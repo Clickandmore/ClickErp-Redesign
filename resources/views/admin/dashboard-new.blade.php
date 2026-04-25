@@ -179,7 +179,7 @@
                     </div>
                     <div>
                         <small data-range-label data-today="عقود اليوم" data-week="عقود هذا الأسبوع"
-                            data-month="عقود هذا الشهر" data-total="إجمالي العقود">عقود اليوم</small>
+                            data-month="عقود هذا الشهر" data-total="عقود هذا الشهر">عقود اليوم</small>
                         <strong data-range-value data-range-format="number"
                             data-today="{{ $contractsStats['today'] ?? 0 }}"
                             data-week="{{ $contractsStats['thisWeek'] ?? 0 }}"
@@ -223,10 +223,14 @@
                     <div class="stat-card is-2">
                         <div class="stat-head d-flex justify-content-between align-items-center">
                             <div>
-                                <small class="stat-label">عقود الاستقدام</small>
+                                <small class="stat-label">عقود الاستقدام هذا الشهر</small>
                                 <h3 class="mb-0">{{ number_format($contractsStats['total'] ?? 0) }}</h3>
                             </div>
-                            <a href="{{ route('RecruitmentContract.index') }}"
+                            <a href="{{ route('RecruitmentContract.index', [
+                                'date_from' => $contractMonthStartDate ?? now()->startOfMonth()->toDateString(),
+                                'date_to' => $contractMonthEndDate ?? now()->endOfMonth()->toDateString(),
+                                'exclude_back' => 1,
+                            ]) }}"
                                 class="btn btn-sm btn-light text-dark">عرض</a>
                         </div>
                         <div class="mt-3 stat-meta">قبل الوصول: {{ number_format($contractsPipeline['pre_arrival'] ?? 0) }}
@@ -300,8 +304,6 @@
             $warrantyActive = $insights['warranty_active'] ?? ($contractsStats['underWarranty'] ?? 0);
             $ticketsReady =
                 $insights['tickets_ready'] ?? ($statusCounts[\App\Enums\ingaz\ContractStatusEnum::Tazker->value] ?? 0);
-            $returnedContracts =
-                $insights['returned'] ?? ($statusCounts[\App\Enums\ingaz\ContractStatusEnum::Back->value] ?? 0);
             $completedContractsCount = $insights['completed'] ?? ($contractsStats['completed'] ?? 0);
 
             $operationsHighlights = [
@@ -342,9 +344,7 @@
                         'ضمان ' .
                         number_format($warrantyActive) .
                         ' | مكتملة ' .
-                        number_format($completedContractsCount) .
-                        ' | مرتجع ' .
-                        number_format($returnedContracts),
+                        number_format($completedContractsCount),
                     'video' => asset('admin/assets/img/new-dashboard/ended-contracted.webm'),
                     'icon' => 'fas fa-hourglass-end',
                     'link' => route('RecruitmentContract.index', ['status' => 'expired_over_2y']),
@@ -424,16 +424,6 @@
                     'color' => 'var(--success)',
                     'link' => route('RecruitmentContract.index', [
                         'status' => \App\Enums\ingaz\ContractStatusEnum::Completed->value,
-                    ]),
-                ],
-                [
-                    'title' => 'عقود مرتجعة',
-                    'subtitle' => 'تحت إعادة المعالجة',
-                    'value' => $returnedContracts,
-                    'icon' => 'fas fa-undo-alt',
-                    'color' => 'var(--danger)',
-                    'link' => route('RecruitmentContract.index', [
-                        'status' => \App\Enums\ingaz\ContractStatusEnum::Back->value,
                     ]),
                 ],
             ];
@@ -669,7 +659,7 @@
                 [
                     'label' => 'عقود مكتملة',
                     'value' => $analyticsStats['completed'] ?? 0,
-                    'meta' => 'العقود التي أغلقت بنجاح',
+                    'meta' => 'وصول + مكتمل كما في صفحة العقود',
                     'color' => 'var(--warning)',
                 ],
             ];
@@ -691,13 +681,13 @@
                 [
                     'label' => 'تحت الضمان',
                     'value' => $analyticsPipeline['under_warranty'] ?? 0,
-                    'meta' => 'آخر 90 يوماً',
+                    'meta' => 'حسب تاريخ انتهاء الضمان',
                     'color' => 'var(--warning)',
                 ],
                 [
                     'label' => 'مكتمل',
                     'value' => $analyticsPipeline['completed'] ?? 0,
-                    'meta' => 'تم إغلاقه',
+                    'meta' => 'وصول + مكتمل',
                     'color' => 'var(--success)',
                 ],
                 [

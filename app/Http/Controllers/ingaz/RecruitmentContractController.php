@@ -392,6 +392,13 @@ class RecruitmentContractController extends Controller
             $statusFilter = $request->get('status');
             $this->applyStatusFilter($query, $statusFilter);
 
+            if ($request->boolean('exclude_back')) {
+                $query->where(function ($q) {
+                    $q->whereNull('status')
+                        ->orWhere('status', '!=', ContractStatusEnum::Back->value);
+                });
+            }
+
             // فلتر حالة الضمان إذا تم تمريرها (حسب تاريخ انتهاء الضمان)
             if ($request->filled('warranty_status')) {
                 $warrantyStatuses = array_filter(array_map('trim', explode(',', $request->warranty_status)));
@@ -427,12 +434,12 @@ class RecruitmentContractController extends Controller
 
             // فلتر التاريخ من
             if ($request->filled('date_from')) {
-                $query->whereDate('created_at', '>=', $request->date_from);
+                $query->whereRaw($this->getEffectiveContractDateSql() . ' >= ?', [$request->date_from]);
             }
 
             // فلتر التاريخ إلى
             if ($request->filled('date_to')) {
-                $query->whereDate('created_at', '<=', $request->date_to);
+                $query->whereRaw($this->getEffectiveContractDateSql() . ' <= ?', [$request->date_to]);
             }
 
             // فلتر رقم جوال العميل
@@ -3871,6 +3878,13 @@ class RecruitmentContractController extends Controller
             $this->applyStatusFilter($query, $statusFilter);
         }
 
+        if ($request->boolean('exclude_back')) {
+            $query->where(function ($q) {
+                $q->whereNull('status')
+                    ->orWhere('status', '!=', ContractStatusEnum::Back->value);
+            });
+        }
+
         // فلتر حالة الضمان
         if (!$ignoreWarranty && $request->filled('warranty_status')) {
             $warrantyStatuses = array_filter(array_map('trim', explode(',', $request->warranty_status)));
@@ -3905,12 +3919,12 @@ class RecruitmentContractController extends Controller
 
         // فلتر التاريخ من
         if ($request->filled('date_from')) {
-            $query->whereDate('created_at', '>=', $request->date_from);
+            $query->whereRaw($this->getEffectiveContractDateSql() . ' >= ?', [$request->date_from]);
         }
 
         // فلتر التاريخ إلى
         if ($request->filled('date_to')) {
-            $query->whereDate('created_at', '<=', $request->date_to);
+            $query->whereRaw($this->getEffectiveContractDateSql() . ' <= ?', [$request->date_to]);
         }
 
         // فلتر رقم جوال العميل

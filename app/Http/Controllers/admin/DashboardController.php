@@ -22,6 +22,27 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
+    private const RECRUITMENT_CONTRACT_TYPES = ['recruitment', 'maid'];
+    private const CURRENT_RECRUITMENT_CONTRACT_STATUSES = [
+        ContractStatusEnum::PendingMaidSelection->value,
+        ContractStatusEnum::New->value,
+        ContractStatusEnum::Msaned->value,
+        ContractStatusEnum::Tafwed->value,
+        ContractStatusEnum::Taffez->value,
+        ContractStatusEnum::Tazker->value,
+    ];
+    private const COMPLETED_RECRUITMENT_CONTRACT_STATUSES = [
+        ContractStatusEnum::Arrival->value,
+        ContractStatusEnum::Completed->value,
+    ];
+    private const DELAYED_RECRUITMENT_CONTRACT_STATUSES = [
+        ContractStatusEnum::PendingMaidSelection->value,
+        ContractStatusEnum::New->value,
+        ContractStatusEnum::Msaned->value,
+        ContractStatusEnum::Tafwed->value,
+        ContractStatusEnum::Taffez->value,
+    ];
+
     public function index(Request $request, objAction $action)
     {
         return $this->professional($request, $action);
@@ -249,6 +270,8 @@ class DashboardController extends Controller
         $contractWeekStart = $now->copy()->startOfWeek();
         $contractWeekEnd = $now->copy()->endOfWeek();
         $contractToday = $now->copy()->toDateString();
+        $contractMonthStartDate = $now->copy()->startOfMonth()->toDateString();
+        $contractMonthEndDate = $now->copy()->endOfMonth()->toDateString();
         $currentYear = (int) $now->year;
         $contractWeekStartDate = $contractWeekStart->toDateString();
         $contractWeekEndDate = $contractWeekEnd->toDateString();
@@ -269,10 +292,16 @@ class DashboardController extends Controller
                 c.id,
                 c.status,
                 c.warranty_status,
+                c.warranty_end_date,
                 ' . $effectiveContractDateExpression . ' as contract_reference_date,
                 COALESCE(c.required_maid_nationality_id, m.nationality_id) as contract_nationality_id,
                 COALESCE(c.required_maid_job_title_id, mjt.job_title_id) as contract_profession_id
-            ');
+            ')
+            ->whereIn('c.type', self::RECRUITMENT_CONTRACT_TYPES)
+            ->where(function ($query) {
+                $query->whereNull('c.status')
+                    ->orWhere('c.status', '!=', ContractStatusEnum::Back->value);
+            });
 
         $contractAnalyticsBaseQuery = function () use ($contractAnalyticsBaseSource) {
             return DB::query()->fromSub($contractAnalyticsBaseSource, 'contract_analytics');
@@ -291,46 +320,51 @@ class DashboardController extends Controller
         };
 
         $contractPendingStatuses = ['pending', 'in_progress'];
-        $contractPreArrivalStatuses = [
-            ContractStatusEnum::New->value,
-            ContractStatusEnum::Msaned->value,
-            ContractStatusEnum::Tafwed->value,
-            ContractStatusEnum::Taffez->value,
-            ContractStatusEnum::PendingMaidSelection->value,
-        ];
+        $contractCurrentStatuses = self::CURRENT_RECRUITMENT_CONTRACT_STATUSES;
+        $contractCompletedStageStatuses = self::COMPLETED_RECRUITMENT_CONTRACT_STATUSES;
+        $contractDelayedArrivalStatuses = self::DELAYED_RECRUITMENT_CONTRACT_STATUSES;
         $contractArrivalStatuses = [
             ContractStatusEnum::Tazker->value,
             ContractStatusEnum::Arrival->value,
         ];
         $pendingStatusPlaceholders = implode(', ', array_fill(0, count($contractPendingStatuses), '?'));
-        $preArrivalStatusPlaceholders = implode(', ', array_fill(0, count($contractPreArrivalStatuses), '?'));
+        $currentStatusPlaceholders = implode(', ', array_fill(0, count($contractCurrentStatuses), '?'));
+        $completedStageStatusPlaceholders = implode(', ', array_fill(0, count($contractCompletedStageStatuses), '?'));
+        $delayedArrivalStatusPlaceholders = implode(', ', array_fill(0, count($contractDelayedArrivalStatuses), '?'));
         $delayedCutoffForAnalytics = $now->copy()->subDays(60)->toDateString();
         $expiredCutoffForAnalytics = $now->copy()->subYears(2)->toDateString();
 
         $buildContractAnalyticsAggregate = function ($query) use (
             $pendingStatusPlaceholders,
             $contractPendingStatuses,
+            $completedStageStatusPlaceholders,
+            $contractCompletedStageStatuses,
             $currentYear,
             $now,
             $contractWeekStartDate,
             $contractWeekEndDate,
             $contractToday,
-            $preArrivalStatusPlaceholders,
-            $contractPreArrivalStatuses,
+            $currentStatusPlaceholders,
+            $contractCurrentStatuses,
+            $delayedArrivalStatusPlaceholders,
+            $contractDelayedArrivalStatuses,
             $delayedCutoffForAnalytics,
             $expiredCutoffForAnalytics
         ) {
             return $query
                 ->selectRaw('COUNT(*) as total')
-                ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as completed_total', [ContractStatusEnum::Completed->value])
+                ->selectRaw("SUM(CASE WHEN status IN ($completedStageStatusPlaceholders) THEN 1 ELSE 0 END) as completed_total", $contractCompletedStageStatuses)
                 ->selectRaw("SUM(CASE WHEN status IN ($pendingStatusPlaceholders) THEN 1 ELSE 0 END) as pending_total", $contractPendingStatuses)
-                ->selectRaw('SUM(CASE WHEN warranty_status = ? THEN 1 ELSE 0 END) as under_warranty_total', ['active'])
+                ->selectRaw(
+                    "SUM(CASE WHEN status IN ($completedStageStatusPlaceholders) AND warranty_end_date IS NOT NULL AND DATE(warranty_end_date) >= ? THEN 1 ELSE 0 END) as under_warranty_total",
+                    array_merge($contractCompletedStageStatuses, [$contractToday])
+                )
                 ->selectRaw('SUM(CASE WHEN contract_reference_date IS NULL THEN 1 ELSE 0 END) as missing_contract_date_total')
                 ->selectRaw('SUM(CASE WHEN YEAR(contract_reference_date) = ? AND MONTH(contract_reference_date) = ? THEN 1 ELSE 0 END) as this_month_total', [$currentYear, $now->month])
                 ->selectRaw('SUM(CASE WHEN contract_reference_date BETWEEN ? AND ? THEN 1 ELSE 0 END) as this_week_total', [$contractWeekStartDate, $contractWeekEndDate])
                 ->selectRaw('SUM(CASE WHEN contract_reference_date = ? THEN 1 ELSE 0 END) as today_total', [$contractToday])
-                ->selectRaw("SUM(CASE WHEN status IN ($preArrivalStatusPlaceholders) THEN 1 ELSE 0 END) as pre_arrival_total", $contractPreArrivalStatuses)
-                ->selectRaw("SUM(CASE WHEN status IN ($preArrivalStatusPlaceholders) AND contract_reference_date < ? THEN 1 ELSE 0 END) as delayed_arrival_total", array_merge($contractPreArrivalStatuses, [$delayedCutoffForAnalytics]))
+                ->selectRaw("SUM(CASE WHEN status IN ($currentStatusPlaceholders) THEN 1 ELSE 0 END) as pre_arrival_total", $contractCurrentStatuses)
+                ->selectRaw("SUM(CASE WHEN status IN ($delayedArrivalStatusPlaceholders) AND contract_reference_date < ? THEN 1 ELSE 0 END) as delayed_arrival_total", array_merge($contractDelayedArrivalStatuses, [$delayedCutoffForAnalytics]))
                 ->selectRaw('SUM(CASE WHEN contract_reference_date < ? THEN 1 ELSE 0 END) as expired_over_2y_total', [$expiredCutoffForAnalytics])
                 ->first();
         };
@@ -365,7 +399,13 @@ class DashboardController extends Controller
                 ->count();
         };
 
-        $globalContractAnalyticsAggregateRow = $buildContractAnalyticsAggregate($contractAnalyticsBaseQuery());
+        $applyContractCurrentMonthScope = function ($query) use ($contractMonthStartDate, $contractMonthEndDate) {
+            return $query->whereBetween('contract_reference_date', [$contractMonthStartDate, $contractMonthEndDate]);
+        };
+
+        $globalContractAnalyticsAggregateRow = $buildContractAnalyticsAggregate(
+            $applyContractCurrentMonthScope($contractAnalyticsBaseQuery())
+        );
         $contractAnalyticsAggregateRow = $buildContractAnalyticsAggregate($applyContractAnalyticsBaseFilters($contractAnalyticsBaseQuery()));
 
         $globalArrivalStageCount = $buildContractArrivalStageCount(false);
@@ -788,7 +828,8 @@ class DashboardController extends Controller
         $calendarEvents = [];
 
         // تقسيمات إضافية للاستخدام المحتمل
-        $contractStatusBreakdown = Contract::select('status')
+        $contractStatusBreakdown = $applyContractCurrentMonthScope($contractAnalyticsBaseQuery())
+            ->select('status')
             ->selectRaw('count(*) as total')
             ->groupBy('status')
             ->pluck('total', 'status')
@@ -803,7 +844,6 @@ class DashboardController extends Controller
             'expired_over_2y' => $contractsPipeline['expired_over_2y'],
             'warranty_active' => $contractsStats['underWarranty'],
             'tickets_ready' => $contractStatusBreakdown[ContractStatusEnum::Tazker->value] ?? 0,
-            'returned' => $contractStatusBreakdown[ContractStatusEnum::Back->value] ?? 0,
             'completed' => $contractsStats['completed'] ?? 0,
         ];
 
@@ -852,6 +892,8 @@ class DashboardController extends Controller
             'selectedContractNationalityTitle',
             'selectedContractProfessionTitle',
             'contractFiltersApplied',
+            'contractMonthStartDate',
+            'contractMonthEndDate',
             'contractProfessionStats',
             'contractProfessionSummary',
             'employeeBookings',

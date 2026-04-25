@@ -168,14 +168,14 @@
                             <input type="hidden" name="job_type_id" value="2">
                             <input type="hidden" name="payment_method" value="none">
                             <input type="hidden" name="maid_id" value="{{ $maid->id }}">
-                            <input type="hidden" name="details_list[address_id]" value="">
-                            <input type="hidden" name="details_list[package_id]" value="">
+                            <input type="hidden" name="details_list[address_id]" id="details_list_address_id" value="">
+                            <input type="hidden" name="details_list[package_id]" id="details_list_package_id" value="">
                             <input type="hidden" name="details_list[deliver_maid]" value="0" class="new_deliver_maid">
                             <!-- location step -->
                             <div id="location" class="content">
                                 <div class="row">
                                     <div class="col-12 p-2 d-flex justify-content-end">
-                                        <button class="addLoation addButton" data-bs-toggle="modal"
+                                        <button type="button" class="addLoation addButton" data-bs-toggle="modal"
                                             data-bs-target="#addLocation" model-name-id="addLocation"
                                             model-route="{{ route('web.addresses.create') }}"
                                             model-title="{{ helperTrans('web.add_address') }}">{{ helperTrans('web.add_address') }}
@@ -277,11 +277,11 @@
                                         </div>
                                     </div>
                                     <div class="col-12 d-flex justify-content-end mt-4 p-2">
-                                        <button class="btn btn-label-secondary btn-prev">
+                                        <button type="button" class="btn btn-label-secondary btn-prev">
                                             <span
                                                 class="align-middle d-sm-inline-block d-none">{{ helperTrans('web.previous') }}</span>
                                         </button>
-                                        <button class="btn-next">
+                                        <button type="button" class="btn-next">
                                             <span
                                                 class="align-middle d-sm-inline-block d-none me-sm-1">{{ helperTrans('web.next') }}</span>
                                         </button>
@@ -351,7 +351,7 @@
                                                 </label>
                                             </div>
 
-                                            <button class="btn btn-primary btn-next">
+                                            <button type="button" class="btn btn-primary btn-next">
                                                 <span
                                                     class="align-middle d-sm-inline-block d-none me-sm-1">{{ helperTrans('web.next') }}</span>
                                             </button>
@@ -432,13 +432,13 @@
                                     <div class="col-12 p-2 d-flex gap-1">
                                         <input type="checkbox" class="check" required="required" name="accept"
                                             id="acceptCheckbox">
-                                        <label for="accept" class="accept">{{ helperTrans('web.approve') }}
+                                        <label for="acceptCheckbox" class="accept">{{ helperTrans('web.approve') }}
                                             <a
                                                 href="{{ route('web.privacyPolicy') }}">{{ helperTrans('web.privacyPolicy') }}</a>
                                         </label>
                                     </div>
                                     <div class="col-12 d-flex justify-content-between mt-4 p-2">
-                                        <button class="btn btn-label-secondary btn-prev">
+                                        <button type="button" class="btn btn-label-secondary btn-prev">
                                             <span
                                                 class="align-middle d-sm-inline-block d-none">{{ helperTrans('web.previous') }}</span>
                                         </button>
@@ -615,6 +615,14 @@
             })
             $('#wizard-property-listing-form').on('submit', function(e) {
                 e.preventDefault();
+                $('.new_deliver_maid').val($('#deliver_maid').is(':checked') ? 1 : 0);
+
+                if (!$('input[name="details_list[package_id]"]').val()) {
+                    infoToster('{{ helperTrans('auth.an error occurred') }}',
+                        "{{ helperTrans('web.package_required') }}");
+                    return;
+                }
+
                 let formData = new FormData(this);
                 let url = $(this).attr('action');
                 $.ajax({
@@ -639,11 +647,14 @@
                     },
                     error: function(xhr) {
                         if (xhr.status === 422) {
-                            let errors = xhr.responseJSON.errors;
+                            let errors = xhr.responseJSON.errors || {};
                             let errorMessages = '';
                             for (let key in errors) {
                                 errorMessages +=
                                     `<p style="margin: 0 0 5px; color: red; text-align: center;">${errors[key][0]}</p>`;
+                            }
+                            if (!errorMessages && xhr.responseJSON.message) {
+                                errorMessages = `<p style="margin: 0 0 5px; color: red; text-align: center;">${xhr.responseJSON.message}</p>`;
                             }
                             Swal.fire({
                                 icon: 'error',
@@ -980,6 +991,10 @@
             const isLoggedIn = @json(auth()->check());
             var stepper = new Stepper($('.bs-stepper')[0]);
             $('.btn-next').on('click', function() {
+                if ($(this).attr('type') === 'submit') {
+                    return;
+                }
+
                 if (!isLoggedIn) {
                     const currentUrl = window.location.href;
                     fetch("{{ route('site.store.intended.url') }}", {
@@ -999,10 +1014,9 @@
                 }
 
                 if (stepper._currentIndex === 1) {
-                    if ((firstPage == null || firstPage === '' || firstPage === undefined) && $(
-                            'input[name="address_id"]:checked').val() !== 'skip' && $(
-                            'input[name="address_id"]:checked').val() !== 'manual' && $(
-                            'input[name="address_id"]:checked').val() == '') {
+                    const selectedAddress = $('input[name="address_id"]:checked').val();
+                    if ((firstPage == null || firstPage === '' || firstPage === undefined) &&
+                        selectedAddress !== 'skip' && selectedAddress !== 'manual') {
                         infoToster('{{ helperTrans('auth.an error occurred') }}',
                             "{{ helperTrans('web.address_required') }}");
                         return true;

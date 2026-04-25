@@ -974,6 +974,16 @@
                 return urlParams.get('marketer_id');
             }
 
+            function getDateFilterFromUrl(key) {
+                const urlParams = new URLSearchParams(window.location.search);
+                return urlParams.get(key);
+            }
+
+            function shouldExcludeBackFromUrl() {
+                const urlParams = new URLSearchParams(window.location.search);
+                return urlParams.get('exclude_back') === '1';
+            }
+
             function toggleWarrantyFilter() {
                 const statusValue = $('#statusFilter').val();
                 const shouldShow = statusValue === 'arrival' || statusValue === 'completed' || statusValue === 'completed_stage';
@@ -1056,6 +1066,9 @@
             const urlStatus = getStatusFromUrl();
             const urlWarrantyStatus = getWarrantyStatusFromUrl();
             const urlMarketer = getMarketerFromUrl();
+            const urlDateFrom = getDateFilterFromUrl('date_from');
+            const urlDateTo = getDateFilterFromUrl('date_to');
+            const urlExcludeBack = shouldExcludeBackFromUrl();
 
             if (urlStatus) {
                 $('#statusFilter').val(urlStatus);
@@ -1075,6 +1088,14 @@
             if (urlMarketer) {
                 $('#marketerFilter').val(urlMarketer);
                 console.log('Marketer from URL applied to filter:', urlMarketer);
+            }
+
+            if (urlDateFrom) {
+                $('#dateFromFilter').val(urlDateFrom);
+            }
+
+            if (urlDateTo) {
+                $('#dateToFilter').val(urlDateTo);
             }
 
             toggleStatsSections();
@@ -1349,6 +1370,7 @@
                         d.request_type = $('#requestTypeFilter').val();
                         d.city = $('#cityFilter').val();
                         d.marketer_id = $('#marketerFilter').val(); // Add marketer filter
+                        d.exclude_back = urlExcludeBack ? 1 : '';
 
                         // إضافة فلتر حالة الضمان فقط إذا كانت الحالة "عقود مكتملة"
                         const statusValue = $('#statusFilter').val();
@@ -1744,7 +1766,8 @@
                         office_id: $('#officeFilter').val(),
                         request_type: $('#requestTypeFilter').val(),
                         city: $('#cityFilter').val(),
-                        marketer_id: $('#marketerFilter').val()
+                        marketer_id: $('#marketerFilter').val(),
+                        exclude_back: urlExcludeBack ? 1 : ''
                     },
                     success: function(response) {
                         if (response.success) {
@@ -1788,8 +1811,8 @@
             // استعادة الفلاتر من localStorage (فقط إذا لم يكن هناك status في الـ URL)
             function loadFilters() {
                 // لا تحمل الفلاتر من localStorage إذا كان هناك status في الـ URL
-                if (urlStatus) {
-                    console.log('Skipping localStorage load because status is in URL:', urlStatus);
+                if (urlStatus || urlDateFrom || urlDateTo || urlExcludeBack) {
+                    console.log('Skipping localStorage load because filters are in URL');
                     return;
                 }
 

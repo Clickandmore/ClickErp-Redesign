@@ -31,6 +31,7 @@ use App\Models\ingaz\Nationality;
 use App\Models\ingaz\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class HomeController extends Controller
@@ -39,37 +40,106 @@ class HomeController extends Controller
 
     public function contractStatus(Request $request)
     {
-        $contractQuery = Contract::query()->with(['user', 'maid', 'info']);
-        $hasFilter = false;
-        if (!empty($request->inpuut_id)) {
-            $hasFilter = true;
+        $searchValue = trim(strtr((string) $request->input('search_value', ''), [
+            '٠' => '0',
+            '١' => '1',
+            '٢' => '2',
+            '٣' => '3',
+            '٤' => '4',
+            '٥' => '5',
+            '٦' => '6',
+            '٧' => '7',
+            '٨' => '8',
+            '٩' => '9',
+            '۰' => '0',
+            '۱' => '1',
+            '۲' => '2',
+            '۳' => '3',
+            '۴' => '4',
+            '۵' => '5',
+            '۶' => '6',
+            '۷' => '7',
+            '۸' => '8',
+            '۹' => '9',
+        ]));
+        $searchValue = trim($searchValue, " \t\n\r\0\x0B#");
+
+        $contractQuery = Contract::query()->with(['user', 'maid.nationality', 'info']);
+
+        if ($searchValue !== '') {
+            $contractQuery->where(function ($query) use ($searchValue) {
+                if (ctype_digit($searchValue)) {
+                    $query->orWhere('id', $searchValue);
+                }
+
+                if (Schema::hasColumn('contracts', 'msaned_number')) {
+                    $query->orWhere('msaned_number', $searchValue);
+                }
+
+                if (Schema::hasColumn('contracts', 'visa_number')) {
+                    $query->orWhere('visa_number', $searchValue);
+                }
+
+                $query->orWhereHas('user', function ($userQuery) use ($searchValue) {
+                    $userQuery->where('national_num', $searchValue);
+                });
+
+                $query->orWhereHas('maid', function ($maidQuery) use ($searchValue) {
+                    $maidQuery->where('passport_num', $searchValue);
+                });
+
+                $query->orWhereHas('info', function ($infoQuery) use ($searchValue) {
+                    $infoQuery->where('msaned_number', $searchValue)
+                        ->orWhere('visa_number', $searchValue);
+
+                    if (Schema::hasColumn('contract_infos', 'manual_maid_passport_num')) {
+                        $infoQuery->orWhere('manual_maid_passport_num', $searchValue);
+                    }
+                });
+            });
+        } elseif (!empty($request->inpuut_id)) {
             $contractQuery->whereHas('user', function ($q) use ($request) {
                 $q->where('national_num', $request->inpuut_id);
             });
         } elseif (!empty($request->inpuut_musand_id)) {
-            $hasFilter = true;
             $contractQuery->where(function ($q) use ($request) {
-                $q->where('msaned_number', $request->inpuut_musand_id)
-                    ->orWhereHas('info', function ($infoQuery) use ($request) {
-                        $infoQuery->where('msaned_number', $request->inpuut_musand_id);
-                    });
+                if (Schema::hasColumn('contracts', 'msaned_number')) {
+                    $q->where('msaned_number', $request->inpuut_musand_id);
+                }
+
+                $q->orWhereHas('info', function ($infoQuery) use ($request) {
+                    $infoQuery->where('msaned_number', $request->inpuut_musand_id);
+                });
             });
         } elseif (!empty($request->inpuut_passport_id)) {
-            $hasFilter = true;
-            $contractQuery->whereHas('maid', function ($q) use ($request) {
-                $q->where('passport_num', $request->inpuut_passport_id);
+            $contractQuery->where(function ($query) use ($request) {
+                $query->whereHas('maid', function ($q) use ($request) {
+                    $q->where('passport_num', $request->inpuut_passport_id);
+                });
+
+                if (Schema::hasColumn('contract_infos', 'manual_maid_passport_num')) {
+                    $query->orWhereHas('info', function ($infoQuery) use ($request) {
+                        $infoQuery->where('manual_maid_passport_num', $request->inpuut_passport_id);
+                    });
+                }
             });
         } elseif (!empty($request->inpuut_visa_id)) {
-            $hasFilter = true;
             $contractQuery->where(function ($q) use ($request) {
-                $q->where('visa_number', $request->inpuut_visa_id)
-                    ->orWhereHas('info', function ($infoQuery) use ($request) {
-                        $infoQuery->where('visa_number', $request->inpuut_visa_id);
-                    });
+                if (Schema::hasColumn('contracts', 'visa_number')) {
+                    $q->where('visa_number', $request->inpuut_visa_id);
+                }
+
+                $q->orWhereHas('info', function ($infoQuery) use ($request) {
+                    $infoQuery->where('visa_number', $request->inpuut_visa_id);
+                });
             });
+        } else {
+            return [
+                "status" => 0,
+            ];
         }
 
-        $contract = $hasFilter ? $contractQuery->latest()->first() : null;
+        $contract = $contractQuery->latest()->first();
 
         if (!empty($contract)) {
             $status = getEnumValue('contract_statuses', $contract->status);
@@ -77,9 +147,26 @@ class HomeController extends Controller
                 $status = $contract->status;
             }
 
+            $message = "رقم العقد: {$contract->id}\n";
+            $message .= "حالة العقد: {$status}";
+
+            if ($contract->info?->msaned_number) {
+                $message .= "\nرقم عقد مساند: {$contract->info->msaned_number}";
+            }
+
+            if ($contract->info?->visa_number) {
+                $message .= "\nرقم التأشيرة: {$contract->info->visa_number}";
+            }
+
+            if ($contract->maid?->passport_num) {
+                $message .= "\nرقم جواز العاملة: {$contract->maid->passport_num}";
+            } elseif ($contract->info?->manual_maid_passport_num) {
+                $message .= "\nرقم جواز العاملة: {$contract->info->manual_maid_passport_num}";
+            }
+
             return [
                 "status" => 1,
-                "data" => $status
+                "data" => $message
             ];
         } else {
             return [
