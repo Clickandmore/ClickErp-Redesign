@@ -498,6 +498,7 @@
                                                     data-nationality="{{$maid->nationality ? $maid->nationality->sub_title : ''}}"
                                                     data-salary="{{$maid->salary}}"
                                                     data-experience="{{$maid->experience_years}}"
+                                                    data-request-type-label="{{$maid->request_type_label}}"
                                                     data-age="{{$maid->age}}">
                                                 {{$maid->name}} - {{$maid->passport_num}}
                                                 - {{$maid->nationality ? $maid->nationality->sub_title : ''}}
@@ -654,6 +655,10 @@
                                     <div class="col-md-6 mb-2">
                                         <label class="form-label">المهنة</label>
                                         <input type="text" id="maid_job" name="maid_job" class="form-control">
+                                    </div>
+                                    <div class="col-md-6 mb-2">
+                                        <label class="form-label">نوع الطلب</label>
+                                        <input type="text" id="maid_request_type" class="form-control" readonly>
                                     </div>
                                     <div class="col-md-6 mb-2">
                                         <label class="form-label">الجنسية</label>
@@ -1046,6 +1051,7 @@
                 $('#maid_passport').val(selectedOption.data('passport') || '');
                 $('#maid_religion').val(selectedOption.data('religion') || '');
                 $('#maid_job').val(selectedOption.data('job') || '');
+                $('#maid_request_type').val(selectedOption.data('request-type-label') || '');
                 $('#maid_nationality').val(selectedOption.data('nationality') || '');
                 $('#maid_salary').val(selectedOption.data('salary') || '');
                 $('#maid_experience_years').val(selectedOption.data('experience') || '');
@@ -1057,7 +1063,7 @@
             }
 
             function clearMaidData() {
-                $('#maid_name, #maid_passport, #maid_religion, #maid_job, #maid_nationality, #maid_salary, #maid_experience_years, #maid_age').val('');
+                $('#maid_name, #maid_passport, #maid_religion, #maid_job, #maid_request_type, #maid_nationality, #maid_salary, #maid_experience_years, #maid_age').val('');
             }
 
             function calculateIngazTo() {

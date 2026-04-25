@@ -158,8 +158,11 @@ class MaidAction extends MainAction
             $data['percentage'] = json_encode([], JSON_UNESCAPED_UNICODE);
         }
 
-        // Normalize request type and offer fields
+        // Rental CVs are contractable stock, so they always fall under custom specs.
         $data['request_type'] = Maid::resolveRequestType($data['request_type'] ?? null);
+        if ($this->isRentalTypeRequest($request)) {
+            $data['request_type'] = Maid::REQUEST_TYPE_CUSTOM;
+        }
 
         $offerPrice = $data['offer_price'] ?? null;
         $data['offer_price'] = ($offerPrice === '' || $offerPrice === null) ? null : round((float)$offerPrice, 2);
@@ -1248,6 +1251,9 @@ class MaidAction extends MainAction
             $data['request_type'] = array_key_exists('request_type', $data)
                 ? Maid::resolveRequestType($data['request_type'])
                 : Maid::resolveRequestType($maid->request_type);
+            if (in_array($this->getRentalJobTypeId(), $jobTypeIds, true)) {
+                $data['request_type'] = Maid::REQUEST_TYPE_CUSTOM;
+            }
         } else {
             unset($data['request_type']);
         }

@@ -4,6 +4,7 @@ namespace App\Http\Requests\ingaz;
 
 use App\Http\Requests\MainRequest;
 use App\Models\ingaz\JobType;
+use App\Models\ingaz\Maid;
 use Illuminate\Validation\Rule;
 
 class MaidRequest extends MainRequest
@@ -85,7 +86,11 @@ class MaidRequest extends MainRequest
 
     protected function prepareForValidation()
     {
-        if (!$this->isSelectedRentalType()) {
+        if ($this->isSelectedRentalType()) {
+            $this->merge([
+                'request_type' => Maid::REQUEST_TYPE_CUSTOM,
+            ]);
+        } else {
             $this->merge([
                 'arrival_date' => null,
             ]);

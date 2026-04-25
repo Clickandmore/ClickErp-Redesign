@@ -773,6 +773,7 @@
             const defaultTypeId = @json($defaultTypeId);
             const defaultShelterContract = @json($defaultShelterContract);
             const isRentalForm = {{ $isRentalForm ? 'true' : 'false' }};
+            const requestTypeCustom = @json(\App\Models\ingaz\Maid::REQUEST_TYPE_CUSTOM);
             if (defaultShelterContract !== '') {
                 $('#create_shelter_contract').val(defaultShelterContract);
             }
@@ -1067,6 +1068,7 @@
                     languagesField.hide();
                     arrivalDateField.show();
                     priceLabel.text('تكلفه الايجار الشهري');
+                    requestTypeSelect.val(requestTypeCustom);
                     maritalStatusEnField.val('');
                     shouldUpdateMaritalTranslation = false;
 
@@ -1074,7 +1076,7 @@
                     heightWeightInputs.removeAttr('required');
                     maritalStatusSelect.removeAttr('required');
                     salaryInput.removeAttr('required');
-                    requestTypeSelect.prop('disabled', true);
+                    requestTypeSelect.prop('disabled', false);
                     if (isRentalForm || typeContext.isRental) {
                         rentalFinanceSection.show();
                         updateRentalFinanceSummary();
