@@ -5,9 +5,9 @@ namespace App\Http\Controllers\ingaz;
 use App\Enums\ingaz\RequirementEnum;
 use App\Http\Actions\ingaz\WhatDoAction as objAction;
 use App\Http\Actions\ingaz\WhatDoItemAction;
-use App\Http\Controllers\Controller;
-use App\Models\WhatDo as objModel;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\WhatDoRequest as objRequest;
+use App\Models\WhatDo as objModel;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
 

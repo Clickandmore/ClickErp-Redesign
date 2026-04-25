@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\auth\AdminTypes;
+use App\Enums\ingaz\NotificationActionEnum;
 use App\Enums\ingaz\RequirementEnum;
 use App\Http\Actions\Api\DailyLabotDemandAction;
 use App\Http\Actions\ingaz\AboutUsAction;
@@ -18,7 +19,7 @@ use App\Http\Actions\ingaz\TestimonialsAction;
 use App\Http\Actions\ingaz\WhatDoAction;
 use App\Http\Actions\ingaz\WhatDoSettingAction;
 use App\Http\Actions\ingaz\WhyUsAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\API\DailyLabotDemandRequest;
 use App\Http\Traits\API\ApiResponse;
 use App\Http\Traits\SendSMSTrait;
@@ -31,7 +32,6 @@ use App\Models\ingaz\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
-use App\Enums\ingaz\NotificationActionEnum;
 
 class HomeController extends Controller
 {

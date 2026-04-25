@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\ingaz;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Models\RentContractTerm;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;

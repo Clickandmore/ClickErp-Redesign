@@ -3,9 +3,8 @@
 namespace App\Http\Controllers\site\profile;
 
 use App\Http\Actions\ingaz\NotificationAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Models\ingaz\Notification as objModel;
-use App\Enums\ingaz\NotificationsTypeEnum;
 
 class NotificationController extends Controller
 {

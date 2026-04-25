@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\API\SponsorshipTransferRequest;
 use App\Http\Resources\Api\SponsorshipTransferResource;
 use App\Models\Contract;
 use App\Models\ingaz\User;
-use Illuminate\Http\Request;
 use App\Models\SponsorshipTransfer;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class ApiSponsorshipTransferController extends Controller
@@ -139,10 +139,10 @@ class ApiSponsorshipTransferController extends Controller
                 'success' => true,
                 'message' => 'تم إرسال طلب نقل الكفالة بنجاح'
             ]);
-            
+
         } catch (\Exception $e) {
             DB::rollback();
-            
+
             \Log::error('Error in SponsorshipTransfer store: ' . $e->getMessage());
 
             return response()->json([

@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
 use App\Models\City;
 use App\Models\Country;
 use Illuminate\Http\Request;
@@ -170,7 +169,7 @@ class CountryController extends Controller
         $cities = $query->ordered()->paginate(20);
         $countries = Country::active()->ordered()->get();
 
-        return view('cities.index', compact('cities', 'countries'));
+        return view('admin.cities.index', compact('cities', 'countries'));
     }
 
     public function createCity(Request $request)
@@ -178,7 +177,7 @@ class CountryController extends Controller
         $countries = Country::active()->ordered()->get();
         $selectedCountryId = old('country_id', $request->get('country_id'));
 
-        return view('cities.create', compact('countries', 'selectedCountryId'));
+        return view('admin.cities.create', compact('countries', 'selectedCountryId'));
     }
 
     public function storeCity(Request $request)
@@ -196,7 +195,7 @@ class CountryController extends Controller
     {
         $countries = Country::active()->ordered()->get();
 
-        return view('cities.edit', compact('city', 'countries'));
+        return view('admin.cities.edit', compact('city', 'countries'));
     }
 
     public function updateCity(Request $request, City $city)

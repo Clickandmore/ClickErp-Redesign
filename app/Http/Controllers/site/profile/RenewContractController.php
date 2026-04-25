@@ -4,7 +4,7 @@ namespace App\Http\Controllers\site\profile;
 
 use App\Enums\Office\MaritalStatusEnum;
 use App\Http\Actions\ingaz\NationalityAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Models\RenewContract;
 use Illuminate\Support\Facades\Auth;
 

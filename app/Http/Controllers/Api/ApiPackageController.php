@@ -2,9 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Actions\ingaz\PackageAction as objAction;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\ingaz\PackageRequest;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Resources\Api\PackageResource as objResource;
 use App\Models\ingaz\Package as objModel;
 use Illuminate\Http\Request;

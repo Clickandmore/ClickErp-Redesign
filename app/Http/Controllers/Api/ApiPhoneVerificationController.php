@@ -2,17 +2,16 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Actions\ingaz\PhoneVerificationAction as objAction;
-use App\Http\Controllers\Controller;
+use App\Http\Actions\ingaz\PhoneVerificationAction;
+use App\Http\Actions\ingaz\UserAction;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\auth\ConfirmCodeRequest;
 use App\Http\Requests\ingaz\auth\ResetPasswordRequest;
 use App\Http\Requests\ingaz\auth\SendCodeRequest;
 use App\Http\Requests\ingaz\PhoneVerificationRequest;
 use Illuminate\Http\Request;
-use App\Http\Actions\ingaz\PhoneVerificationAction;
-use Tymon\JWTAuth\Facades\JWTAuth;
 use Illuminate\Support\Facades\Crypt;
-use App\Http\Actions\ingaz\UserAction;
+use Tymon\JWTAuth\Facades\JWTAuth;
 
 class ApiPhoneVerificationController extends Controller
 {

@@ -5,9 +5,9 @@ namespace App\Http\Controllers\ingaz;
 use App\Enums\ingaz\RequestsStatusEnum;
 use App\Http\Actions\ingaz\JobTitleAction;
 use App\Http\Actions\ingaz\ProfessionalApplicationAction as objAction;
-use App\Http\Controllers\Controller;
-use App\Models\ProfessionalApplication as objModel;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\ProfessionalApplicationRequest as objRequest;
+use App\Models\ProfessionalApplication as objModel;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
 

@@ -3,10 +3,8 @@
 namespace App\Http\Controllers\site\auth;
 
 use App\Http\Actions\ingaz\PhoneVerificationAction;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\site\auth\ForgetPasswordRequest;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\site\auth\ResendOtpRequest;
-use Illuminate\Support\Facades\Crypt;
 
 class ResendOTPController extends Controller
 {

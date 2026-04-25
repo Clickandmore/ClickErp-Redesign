@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\admin\auth;
 
 use App\Http\Actions\auth\ProfileAction as ObjAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\auth\profile\UpdateProfileRequest as UpdateRequest;
 use Illuminate\Http\Request;
 

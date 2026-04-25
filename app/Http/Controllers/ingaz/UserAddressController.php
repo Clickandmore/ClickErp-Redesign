@@ -3,10 +3,9 @@
 namespace App\Http\Controllers\ingaz;
 
 use App\Http\Actions\ingaz\UserAddressAction as objAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Models\ingaz\UserAddress as objModel;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Yajra\DataTables\Facades\DataTables;
 
 class UserAddressController extends Controller

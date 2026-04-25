@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\ingaz\Notification;
 use App\Http\Actions\ingaz\NotificationAction;
+use App\Http\Controllers\admin\Controller;
+use App\Models\ingaz\Notification;
+use Illuminate\Http\Request;
 
 class ApiNationalityController extends Controller
 {

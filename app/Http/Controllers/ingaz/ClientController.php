@@ -3,11 +3,10 @@
 namespace App\Http\Controllers\ingaz;
 
 use App\Http\Actions\ingaz\ClientAction as objAction;
-use App\Http\Controllers\Controller;
-use App\Models\Client as objModel;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\ClientRequest as objRequest;
+use App\Models\Client as objModel;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Yajra\DataTables\Facades\DataTables;
 
 class ClientController extends Controller

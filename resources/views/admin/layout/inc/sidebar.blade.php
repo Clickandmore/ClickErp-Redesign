@@ -91,24 +91,13 @@
                 $canViewOrders = @AdminGuardHasAnyPerm([\App\PermKeys::ORDERS_VIEW, \App\PermKeys::ORDERS_CREATE, \App\PermKeys::ORDERS_EDIT, \App\PermKeys::ORDERS_DELETE, \App\PermKeys::ORDERS_EXPORT, \App\PermKeys::RETURN_REQUEST_VIEW, \App\PermKeys::RETURN_REQUEST_CREATE, \App\PermKeys::RETURN_REQUEST_EDIT, \App\PermKeys::RETURN_REQUEST_DELETE, \App\PermKeys::PROFESSIONAL_APPLICATION_VIEW, \App\PermKeys::RECRUITMENT_REQUESTS_VIEW, \App\PermKeys::RENEW_CONTRACTS_VIEW]) || $canViewContactRequests;
 
                 $canViewRecruitmentContracts = @AdminGuardHasAnyPerm([\App\NewPermKeys::REC_CONTRACTS_VIEW, \App\NewPermKeys::REC_CONTRACTS_CREATE, \App\NewPermKeys::REC_CONTRACTS_UPDATE, \App\NewPermKeys::REC_CONTRACTS_EDIT, \App\NewPermKeys::REC_CONTRACTS_DELETE, \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED, \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFWED, \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFFEZ, \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAZKER, \App\NewPermKeys::REC_CONTRACTS_RETURN, \App\NewPermKeys::REC_CONTRACTS_RETURN_VIEW]);
+                $canViewIngazDelegations = @AdminGuardHasAnyPerm([\App\PermKeys::INGAZ_DELEGATIONS_VIEW, \App\PermKeys::INGAZ_DELEGATIONS_CREATE, \App\PermKeys::INGAZ_DELEGATIONS_EDIT, \App\PermKeys::INGAZ_DELEGATIONS_DELETE, \App\PermKeys::INGAZ_DELEGATIONS_PRINT, \App\PermKeys::INGAZ_DELEGATIONS_CHANGE_STATUS, \App\PermKeys::INGAZ_DELEGATIONS_CONTROL, \App\PermKeys::REC_CONTRACTS_VIEW, \App\PermKeys::REC_CONTRACTS_CREATE, \App\PermKeys::REC_CONTRACTS_EDIT, \App\PermKeys::REC_CONTRACTS_DELETE, \App\PermKeys::REC_CONTRACTS_PRINT, \App\PermKeys::REC_CONTRACTS_MANAGE]);
+                $canCreateIngazDelegations = @AdminGuardHasAnyPerm([\App\PermKeys::INGAZ_DELEGATIONS_CREATE, \App\PermKeys::INGAZ_DELEGATIONS_CONTROL, \App\PermKeys::REC_CONTRACTS_CREATE, \App\PermKeys::REC_CONTRACTS_MANAGE]);
 
-                $canViewRentContracts = @AdminGuardHasAnyPerm([\App\PermKeys::RENT_CONTRACT_VIEW, \App\PermKeys::RENT_CONTRACT_CREATE, \App\PermKeys::RENT_CONTRACT_EDIT, \App\PermKeys::RENT_CONTRACT_DELETE, \App\PermKeys::RENT_CONTRACT_CONTROL, \App\PermKeys::CONTRACT_SETTINGS, \App\PermKeys::PACKAGES_VIEW, \App\PermKeys::RENTAL_ORDERS_VIEW]);
+                $canManageRentContractTerms = @AdminGuardHasAnyPerm([\App\PermKeys::RENT_CONTRACT_TERMS_VIEW, \App\PermKeys::RENT_CONTRACT_TERMS_CREATE, \App\PermKeys::RENT_CONTRACT_TERMS_EDIT, \App\PermKeys::RENT_CONTRACT_TERMS_DELETE, \App\PermKeys::RENT_CONTRACT_VIEW, \App\PermKeys::RENT_CONTRACT_CREATE, \App\PermKeys::RENT_CONTRACT_EDIT, \App\PermKeys::RENT_CONTRACT_DELETE, \App\PermKeys::RENT_CONTRACT_CONTROL, \App\PermKeys::CONTRACT_SETTINGS]);
+                $canViewRentContracts = @AdminGuardHasAnyPerm([\App\PermKeys::RENT_CONTRACT_VIEW, \App\PermKeys::RENT_CONTRACT_CREATE, \App\PermKeys::RENT_CONTRACT_EDIT, \App\PermKeys::RENT_CONTRACT_DELETE, \App\PermKeys::RENT_CONTRACT_CONTROL, \App\PermKeys::RENT_CONTRACT_TERMS_VIEW, \App\PermKeys::RENT_CONTRACT_TERMS_CREATE, \App\PermKeys::RENT_CONTRACT_TERMS_EDIT, \App\PermKeys::RENT_CONTRACT_TERMS_DELETE, \App\PermKeys::CONTRACT_SETTINGS, \App\PermKeys::PACKAGES_VIEW, \App\PermKeys::RENTAL_ORDERS_VIEW]);
 
-                $canViewShelterContracts = @AdminGuardHasAnyPerm([
-                    \App\PermKeys::SHELTER_CONTRACT_VIEW,
-                    \App\PermKeys::SHELTER_CONTRACT_CREATE,
-                    \App\PermKeys::SHELTER_CONTRACT_CONTROL,
-                    \App\PermKeys::SHELTER_CONTRACT_ADDITION_CREATE,
-                    \App\PermKeys::SHELTER_CONTRACT_INSIDE_VIEW,
-                    \App\PermKeys::SHELTER_CONTRACT_AVAILABLE_FOR_TRANSFER_VIEW,
-                    \App\PermKeys::SHELTER_CONTRACT_DEPORTATION_STAGE_VIEW,
-                    \App\PermKeys::SHELTER_CONTRACT_DEPORTED_VIEW,
-                    \App\PermKeys::SHELTER_PLACES_VIEW,
-                    \App\PermKeys::SHELTER_PLACES_CREATE,
-                    \App\PermKeys::SHELTER_PLACES_EDIT,
-                    \App\PermKeys::SHELTER_PLACES_DELETE,
-                    \App\PermKeys::SHELTER_PLACES_CONTROL,
-                ]);
+                $canViewShelterContracts = @AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_VIEW, \App\PermKeys::SHELTER_CONTRACT_CREATE, \App\PermKeys::SHELTER_CONTRACT_CONTROL, \App\PermKeys::SHELTER_CONTRACT_ADDITION_CREATE, \App\PermKeys::SHELTER_CONTRACT_INSIDE_VIEW, \App\PermKeys::SHELTER_CONTRACT_AVAILABLE_FOR_TRANSFER_VIEW, \App\PermKeys::SHELTER_CONTRACT_DEPORTATION_STAGE_VIEW, \App\PermKeys::SHELTER_CONTRACT_DEPORTED_VIEW, \App\PermKeys::SHELTER_PLACES_VIEW, \App\PermKeys::SHELTER_PLACES_CREATE, \App\PermKeys::SHELTER_PLACES_EDIT, \App\PermKeys::SHELTER_PLACES_DELETE, \App\PermKeys::SHELTER_PLACES_CONTROL]);
 
                 $canViewLogistics = @AdminGuardHasPerm(\App\PermKeys::TRAVEL_VIEW);
 
@@ -133,13 +122,10 @@
 
                 $canViewHomeSettings = @AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_VIEW, \App\PermKeys::SLIDERS_VIEW, \App\PermKeys::ABOUT_US_VIEW, \App\PermKeys::FAQ_VIEW, \App\PermKeys::STATISTICS_VIEW, \App\PermKeys::STEPS_VIEW, \App\PermKeys::SERVICES_VIEW, \App\PermKeys::PARTENR_VIEW]);
 
-                $canViewMaidsData = @AdminGuardHasAnyPerm([\App\PermKeys::NATIONALITIES_VIEW, \App\PermKeys::REC_OFFICES_VIEW, \App\PermKeys::JOB_TITLES_VIEW, \App\PermKeys::RELIGIONS_VIEW, \App\PermKeys::SKILLS_VIEW, \App\PermKeys::USERS_VIEW, \App\PermKeys::MAIDS_VIEW]);
+                $canViewMaidsData = @AdminGuardHasAnyPerm([\App\PermKeys::NATIONALITIES_VIEW, \App\PermKeys::REC_OFFICES_VIEW, \App\PermKeys::JOB_TITLES_VIEW, \App\PermKeys::RELIGIONS_VIEW, \App\PermKeys::SKILLS_VIEW, \App\PermKeys::COUNTRIES_VIEW, \App\PermKeys::SOCIAL_STATUS_VIEW, \App\PermKeys::OFFICE_VIEW, \App\PermKeys::USERS_VIEW, \App\PermKeys::MAIDS_VIEW]);
 
                 $canViewSettingsOperation =
-                    $canViewWebsiteManagement ||
-                    $canViewHomeSettings ||
-                    $canViewMaidsData ||
-                    @AdminGuardHasAnyPerm([\App\PermKeys::PACKAGES_VIEW, \App\PermKeys::OFFICE_VIEW]);
+                    $canViewWebsiteManagement || $canViewHomeSettings || $canViewMaidsData || @AdminGuardHasAnyPerm([\App\PermKeys::PACKAGES_VIEW, \App\PermKeys::OFFICE_VIEW]);
             @endphp
             <ul class="menu-list">
                 <!-- Dashboard Section -->
@@ -230,7 +216,8 @@
                                                 <a class="m-link {{ Route::currentRouteName() == 'maids.index' ? 'active' : '' }}"
                                                     href="{{ route('maids.index') }}">
                                                     <i class="fa fa-list"></i>
-                                                    <span class="ms-2">{{ helperTrans('ingaz.cvs') }}</span>
+                                                    <span
+                                                        class="ms-2">{{ helperTrans('ingaz.cvs-recruitment') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -239,7 +226,7 @@
                                                 <a class="m-link {{ in_array(Route::currentRouteName(), ['maids.rental.index', 'maids.rental.create']) ? 'active' : '' }}"
                                                     href="{{ route('maids.rental.index') }}">
                                                     <i class="fas fa-history"></i>
-                                                    <span class="ms-2">سير عاملات الإيجار</span>
+                                                    <span class="ms-2">{{ helperTrans('ingaz.cvs-rental') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -248,7 +235,8 @@
                                                 <a class="m-link {{ Route::currentRouteName() == 'noneAvailableMaids' ? 'active' : '' }}"
                                                     href="{{ route('noneAvailableMaids') }}">
                                                     <i class="fa fa-times-circle"></i>
-                                                    <span class="ms-2">عاملات باك اوت</span>
+                                                    <span class="ms-2">
+                                                        {{ helperTrans('ingaz.cvs-backout') }} </span>
                                                 </a>
                                             </li>
                                         @endif
@@ -539,7 +527,7 @@
                                         <span class="ms-2"> {{ helperTrans('ingaz.Rent contracts') }} </span>
                                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                                     </a>
-                                    <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['RentContract.index', 'RentContract.create', 'RentContract.show', 'RentContract.edit', 'packages.index', 'rent-contract-terms.index']) ? 'show' : '' }}"
+                                    <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['RentContract.index', 'RentContract.create', 'RentContract.show', 'RentContract.edit', 'packages.index', 'rent-contract-terms.index', 'rent-contract-terms.create', 'rent-contract-terms.edit', 'rent-contract.settings']) ? 'show' : '' }}"
                                         id="rentcontracts">
                                         @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CREATE))
                                             <li>
@@ -607,8 +595,8 @@
                                         @endif
                                         @if (@AdminGuardHasPerm(\App\PermKeys::CONTRACT_SETTINGS))
                                             <li>
-                                                <a class="m-link {{ Route::currentRouteName() == 'contract.settings' ? 'active' : '' }}"
-                                                    href="{{ route('contract.settings') }}">
+                                                <a class="m-link {{ Route::currentRouteName() == 'rent-contract.settings' ? 'active' : '' }}"
+                                                    href="{{ route('rent-contract.settings') }}">
                                                     <i class="fas fa-cog"></i>
                                                     <span
                                                         class="ms-2">{{ helperTrans('ingaz.contract_settings') }}</span>
@@ -626,7 +614,7 @@
                                             </li>
                                         @endif
 
-                                        @if (@AdminGuardHasAnyPerm([\App\PermKeys::RENT_CONTRACT_VIEW, \App\PermKeys::CONTRACT_SETTINGS]))
+                                        @if ($canManageRentContractTerms)
                                             <li>
                                                 <a class="m-link {{ in_array(Route::currentRouteName(), ['rent-contract-terms.index', 'rent-contract-terms.create', 'rent-contract-terms.edit']) ? 'active' : '' }}"
                                                     href="{{ route('rent-contract-terms.index') }}">
@@ -639,7 +627,7 @@
                                 </li>
                             @endif
 
-                            @if ($canViewRecruitmentContracts)
+                            @if ($canViewIngazDelegations)
                                 <li class="collapsed">
                                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#ingazDelegations"
                                         href="#">
@@ -649,13 +637,15 @@
                                     </a>
                                     <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['ingaz-delegations.index', 'ingaz-delegations.create', 'ingaz-delegations.show', 'ingaz-delegations.edit']) ? 'show' : '' }}"
                                         id="ingazDelegations">
-                                        <li>
-                                            <a class="m-link {{ request()->routeIs('ingaz-delegations.create') ? 'active' : '' }}"
-                                                href="{{ route('ingaz-delegations.create') }}">
-                                                <i class="fa fa-plus"></i>
-                                                <span class="ms-2">اضافة تفويض جديد</span>
-                                            </a>
-                                        </li>
+                                        @if ($canCreateIngazDelegations)
+                                            <li>
+                                                <a class="m-link {{ request()->routeIs('ingaz-delegations.create') ? 'active' : '' }}"
+                                                    href="{{ route('ingaz-delegations.create') }}">
+                                                    <i class="fa fa-plus"></i>
+                                                    <span class="ms-2">اضافة تفويض جديد</span>
+                                                </a>
+                                            </li>
+                                        @endif
 
                                         <li>
                                             <a class="m-link {{ request()->routeIs('ingaz-delegations.index') ? 'active' : '' }}"
@@ -679,7 +669,12 @@
                                     </a>
                                     <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['ShelterContract.index', 'ShelterContract.create', 'ShelterContract.edit', 'ShelterContract.availableForTransfer', 'ShelterContract.deportationStage', 'ShelterContract.generalShelter', 'ShelterContract.deported', 'shelter-places.index', 'shelter-places.create', 'shelter-places.edit']) ? 'show' : '' }}"
                                         id="sheltercontracts">
-                                        @if (@AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_ADDITION_CREATE, \App\PermKeys::SHELTER_CONTRACT_CREATE, \App\PermKeys::SHELTER_CONTRACT_CONTROL]))
+                                        @if (
+                                            @AdminGuardHasAnyPerm([
+                                                \App\PermKeys::SHELTER_CONTRACT_ADDITION_CREATE,
+                                                \App\PermKeys::SHELTER_CONTRACT_CREATE,
+                                                \App\PermKeys::SHELTER_CONTRACT_CONTROL,
+                                            ]))
                                             <li>
                                                 <a class="m-link {{ request()->routeIs('ShelterContract.create') ? 'active' : '' }}"
                                                     href="{{ route('ShelterContract.create') }}">
@@ -689,7 +684,12 @@
                                                 </a>
                                             </li>
                                         @endif
-                                        @if (@AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_INSIDE_VIEW, \App\PermKeys::SHELTER_CONTRACT_VIEW, \App\PermKeys::SHELTER_CONTRACT_CONTROL]))
+                                        @if (
+                                            @AdminGuardHasAnyPerm([
+                                                \App\PermKeys::SHELTER_CONTRACT_INSIDE_VIEW,
+                                                \App\PermKeys::SHELTER_CONTRACT_VIEW,
+                                                \App\PermKeys::SHELTER_CONTRACT_CONTROL,
+                                            ]))
                                             <li>
                                                 <a class="m-link {{ Route::currentRouteName() == 'ShelterContract.index' ? 'active' : '' }}"
                                                     href="{{ route('ShelterContract.index') }}">
@@ -698,7 +698,12 @@
                                                 </a>
                                             </li>
                                         @endif
-                                        @if (@AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_AVAILABLE_FOR_TRANSFER_VIEW, \App\PermKeys::SHELTER_CONTRACT_VIEW, \App\PermKeys::SHELTER_CONTRACT_CONTROL]))
+                                        @if (
+                                            @AdminGuardHasAnyPerm([
+                                                \App\PermKeys::SHELTER_CONTRACT_AVAILABLE_FOR_TRANSFER_VIEW,
+                                                \App\PermKeys::SHELTER_CONTRACT_VIEW,
+                                                \App\PermKeys::SHELTER_CONTRACT_CONTROL,
+                                            ]))
                                             <li>
                                                 <a class="m-link {{ Route::currentRouteName() == 'ShelterContract.availableForTransfer' ? 'active' : '' }}"
                                                     href="{{ route('ShelterContract.availableForTransfer') }}">
@@ -707,7 +712,12 @@
                                                 </a>
                                             </li>
                                         @endif
-                                        @if (@AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_DEPORTATION_STAGE_VIEW, \App\PermKeys::SHELTER_CONTRACT_VIEW, \App\PermKeys::SHELTER_CONTRACT_CONTROL]))
+                                        @if (
+                                            @AdminGuardHasAnyPerm([
+                                                \App\PermKeys::SHELTER_CONTRACT_DEPORTATION_STAGE_VIEW,
+                                                \App\PermKeys::SHELTER_CONTRACT_VIEW,
+                                                \App\PermKeys::SHELTER_CONTRACT_CONTROL,
+                                            ]))
                                             <li>
                                                 <a class="m-link {{ Route::currentRouteName() == 'ShelterContract.deportationStage' ? 'active' : '' }}"
                                                     href="{{ route('ShelterContract.deportationStage') }}">
@@ -716,7 +726,12 @@
                                                 </a>
                                             </li>
                                         @endif
-                                        @if (@AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_DEPORTED_VIEW, \App\PermKeys::SHELTER_CONTRACT_VIEW, \App\PermKeys::SHELTER_CONTRACT_CONTROL]))
+                                        @if (
+                                            @AdminGuardHasAnyPerm([
+                                                \App\PermKeys::SHELTER_CONTRACT_DEPORTED_VIEW,
+                                                \App\PermKeys::SHELTER_CONTRACT_VIEW,
+                                                \App\PermKeys::SHELTER_CONTRACT_CONTROL,
+                                            ]))
                                             <li>
                                                 <a class="m-link {{ Route::currentRouteName() == 'ShelterContract.deported' ? 'active' : '' }}"
                                                     href="{{ route('ShelterContract.deported') }}">
@@ -739,7 +754,14 @@
                                         </a>
                                     </li>
                                 @endif --}}
-                                        @if (@AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_PLACES_VIEW, \App\PermKeys::SHELTER_PLACES_CREATE, \App\PermKeys::SHELTER_PLACES_EDIT, \App\PermKeys::SHELTER_PLACES_DELETE, \App\PermKeys::SHELTER_PLACES_CONTROL]))
+                                        @if (
+                                            @AdminGuardHasAnyPerm([
+                                                \App\PermKeys::SHELTER_PLACES_VIEW,
+                                                \App\PermKeys::SHELTER_PLACES_CREATE,
+                                                \App\PermKeys::SHELTER_PLACES_EDIT,
+                                                \App\PermKeys::SHELTER_PLACES_DELETE,
+                                                \App\PermKeys::SHELTER_PLACES_CONTROL,
+                                            ]))
                                             <li>
                                                 <a class="m-link {{ request()->routeIs('shelter-places.index') || request()->routeIs('shelter-places.create') || request()->routeIs('shelter-places.edit') ? 'active' : '' }}"
                                                     href="{{ route('shelter-places.index') }}">
@@ -893,21 +915,24 @@
                                                 <a class="m-link {{ Route::currentRouteName() == 'SponsorshipTransfer.trial' ? 'active' : '' }}"
                                                     href="{{ route('SponsorshipTransfer.trial') }}">
                                                     <i class="fa fa-clock-o"></i>
-                                                    <span class="ms-2">{{ helperTrans('ingaz.trial_period') }}</span>
+                                                    <span
+                                                        class="ms-2">{{ helperTrans('ingaz.trial_period') }}</span>
                                                 </a>
                                             </li>
                                             <li>
                                                 <a class="m-link {{ Route::currentRouteName() == 'SponsorshipTransfer.failed' ? 'active' : '' }}"
                                                     href="{{ route('SponsorshipTransfer.failed') }}">
                                                     <i class="fa fa-times-circle"></i>
-                                                    <span class="ms-2">{{ helperTrans('ingaz.trial_failed') }}</span>
+                                                    <span
+                                                        class="ms-2">{{ helperTrans('ingaz.trial_failed') }}</span>
                                                 </a>
                                             </li>
                                             <li>
                                                 <a class="m-link {{ Route::currentRouteName() == 'SponsorshipTransfer.transferred' ? 'active' : '' }}"
                                                     href="{{ route('SponsorshipTransfer.transferred') }}">
                                                     <i class="fa fa-check"></i>
-                                                    <span class="ms-2">{{ helperTrans('ingaz.transferred') }}</span>
+                                                    <span
+                                                        class="ms-2">{{ helperTrans('ingaz.transferred') }}</span>
                                                 </a>
                                             </li>
                                             <li>
@@ -1054,14 +1079,14 @@
                                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                                     </a>
 
-                                        @php
-                                            $websiteManagementOpen =
-                                                request()->routeIs('settings.*') ||
-                                                request()->routeIs('form-settings.*') ||
+                                    @php
+                                        $websiteManagementOpen =
+                                            request()->routeIs('settings.*') ||
+                                            request()->routeIs('form-settings.*') ||
                                             request()->routeIs('about-us.*') ||
                                             request()->routeIs('questions.*') ||
                                             request()->routeIs('dash.settings*');
-                                        @endphp
+                                    @endphp
                                     <ul class="sub-menu collapse {{ $websiteManagementOpen ? 'show' : '' }}"
                                         id="websiteManagement">
                                         @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
@@ -1293,7 +1318,7 @@
                                                 </a>
                                             </li>
                                         @endif
-                                        @if (@AdminGuardHasPerm(\App\PermKeys::USERS_VIEW))
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::COUNTRIES_VIEW))
                                             <li>
                                                 <a class="m-link {{ Route::currentRouteName() == 'countries.index' ? 'active' : '' }}"
                                                     href="{{ route('countries.index') }}">
@@ -1316,7 +1341,7 @@
                                             {{--                                </a> --}}
                                             {{--                            </li> --}}
                                         @endif
-                                        @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_VIEW))
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::SOCIAL_STATUS_VIEW))
                                             <li>
                                                 <a class="m-link" href="{{ route('social-statuses.index') }}">
                                                     <i class="fa fa-heart"></i>
@@ -1333,15 +1358,15 @@
                                                 </a>
                                             </li>
                                         @endif
-                                        {{-- @if (@AdminGuardHasPerm(\App\PermKeys::OFFICE_VIEW)) --}}
-                                        <li>
-                                            <a class="m-link {{ in_array(Route::currentRouteName(), ['offices.index', 'offices.create', 'offices.edit', 'offices.show', 'recruitment-offices.index', 'recruitment-offices.create', 'recruitment-offices.edit', 'recruitment-offices.show']) ? 'active' : '' }}"
-                                                href="{{ route('offices.index') }}">
-                                                <i class="fa fa-envelope"></i>
-                                                <span class="ms-2"> {{ helperTrans('ingaz.offices') }}</span>
-                                            </a>
-                                        </li>
-                                        {{-- @endif --}}
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::OFFICE_VIEW))
+                                            <li>
+                                                <a class="m-link {{ in_array(Route::currentRouteName(), ['offices.index', 'offices.create', 'offices.edit', 'offices.show', 'recruitment-offices.index', 'recruitment-offices.create', 'recruitment-offices.edit', 'recruitment-offices.show']) ? 'active' : '' }}"
+                                                    href="{{ route('offices.index') }}">
+                                                    <i class="fa fa-envelope"></i>
+                                                    <span class="ms-2"> {{ helperTrans('ingaz.offices') }}</span>
+                                                </a>
+                                            </li>
+                                        @endif
                                     </ul>
                                 </li>
                             @endif

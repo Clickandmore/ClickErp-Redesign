@@ -5,7 +5,7 @@ namespace App\Http\Controllers\site\auth;
 use App\Http\Actions\ingaz\PhoneVerificationAction;
 use App\Http\Actions\ingaz\UserAction;
 use App\Http\Actions\site\auth\LoginAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\site\auth\OtpRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;

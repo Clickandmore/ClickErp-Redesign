@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\site\profile;
 
 use App\Http\Actions\ingaz\UserAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\site\auth\SettingsRequest;
 use App\Models\City;
 use Illuminate\Support\Facades\Hash;

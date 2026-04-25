@@ -3,15 +3,14 @@
 namespace App\Http\Controllers\admin;
 
 use App\Keys;
-use App\Models\Contract;
 use App\Models\auth\Admin;
-use App\Models\ingaz\User;
+use App\Models\Contract;
 use App\Models\ContractInfo;
-use Illuminate\Http\Request;
-use App\Models\ShelterWorkers;
 use App\Models\ingaz\Nationality;
+use App\Models\ingaz\User;
+use App\Models\ShelterWorkers;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Http\Controllers\Controller;
 
 class AdminShelterWorkersContractCTLR extends Controller
 {

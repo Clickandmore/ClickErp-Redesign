@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\ingaz;
 
-use App\Http\Controllers\Controller;
-use App\Models\RentalContractInvoice;
+use App\Http\Controllers\admin\Controller;
 use App\Models\ingaz\Setting;
+use App\Models\RentalContractInvoice;
 use App\Services\ingaz\InvoiceCalculationService;
 use Illuminate\Support\Facades\Auth;
 use PDF;

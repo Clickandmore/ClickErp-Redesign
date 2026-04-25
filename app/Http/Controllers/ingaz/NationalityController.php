@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\ingaz;
 
 use App\Http\Actions\ingaz\NationalityAction as objAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\NationalityRequest;
 use App\Models\ingaz\Nationality;
 use App\Models\ingaz\Nationality as objModel;

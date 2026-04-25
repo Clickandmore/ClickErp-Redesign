@@ -9,6 +9,19 @@ php artisan admin:assign-permissions-to-first
 php artisan permission:cache-reset
 ```
 
+### Seeder صلاحيات عقود الاستقدام
+إذا أردت تحديث صلاحيات عقود الاستقدام فقط وتشمل ترتيبها في `/dash/perms/1`:
+```bash
+php artisan db:seed --class=RecruitmentContractsPermissionsSeeder
+php artisan db:seed --class=AssignRecruitmentContractsPermissionsSeeder
+php artisan db:seed --class=AddRecContractsUpdatePermissionSeeder
+```
+
+ولتشغيلها ضمن التهيئة العامة للمشروع:
+```bash
+php artisan db:seed
+```
+
 ## حماية packages من ضياع التعديلات
 
 - المجلدات `packages/crm` و`packages/finance` و`packages/hr` هي `git submodules` وليست مجلدات عادية.

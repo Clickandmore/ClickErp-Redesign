@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers\site\profile;
 
-use App\Http\Controllers\Controller;
-use App\Models\SponsorshipTransfer;
+use App\Http\Controllers\admin\Controller;
 use App\Models\Contract;
 use App\Models\ingaz\User;
+use App\Models\SponsorshipTransfer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 

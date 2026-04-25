@@ -3,8 +3,7 @@
 namespace App\Http\Controllers\site\profile;
 
 use App\Http\Actions\ingaz\UserAction;
-use App\Http\Controllers\Controller;
-use App\Models\ingaz\RecruitmentRequest;
+use App\Http\Controllers\admin\Controller;
 use Illuminate\Http\Request;
 
 class ProfileController extends Controller

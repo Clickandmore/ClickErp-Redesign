@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\admin\auth;
 
 use App\Http\Actions\auth\ChangePasswordAction as ObjAction;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\auth\profile\CahngePasswordRequest  as UpdateRequest;
+use App\Http\Controllers\admin\Controller;
+use App\Http\Requests\auth\profile\CahngePasswordRequest as UpdateRequest;
 use Illuminate\Support\Facades\Hash;
 
 

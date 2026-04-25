@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Enums\auth\AdminTypes;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Resources\Api\CustomerResource as objResource;
 use App\Models\auth\Admin as objModel;
 use Illuminate\Http\Request;

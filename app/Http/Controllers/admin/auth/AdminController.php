@@ -3,26 +3,24 @@
 namespace App\Http\Controllers\admin\auth;
 
 use App\Helpers\Constant;
-use Illuminate\Http\Request;
-use Yajra\DataTables\DataTables;
-use Spatie\Permission\Models\Role;
-use Illuminate\Support\Facades\App;
-
-use App\Http\Controllers\Controller;
-use Illuminate\Support\Facades\Auth;
+use App\Http\Actions\auth\AdminAction as ObjAction;
+use App\Http\Controllers\admin\Controller;
+use App\Http\Requests\auth\profile\StoreAdminRequest as StoreRequest;
+use App\Http\Requests\auth\profile\UpdateAdminRequest as UpdateRequest;
 use App\Models\auth\Admin as objModel;
 use App\Models\Contract;
-use App\Models\RentalContract;
 use App\Models\ingaz\Order;
+use App\Models\RentalContract;
+use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
-use App\Http\Actions\auth\AdminAction as ObjAction;
-use App\Http\Requests\auth\profile\StoreAdminRequest as StoreRequest;
-use App\Http\Requests\auth\profile\UpdateAdminRequest as UpdateRequest;
-
+use Spatie\Permission\Models\Role;
+use Yajra\DataTables\DataTables;
 
 
 class AdminController extends Controller

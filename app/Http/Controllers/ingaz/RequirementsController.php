@@ -4,11 +4,11 @@ namespace App\Http\Controllers\ingaz;
 
 use App\Enums\ingaz\RequirementEnum;
 use App\Http\Actions\ingaz\RequirementAction as objAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
+use App\Http\Requests\ingaz\RequirementRequest as objRequest;
 use App\Models\Requirement as objModel;
- use App\Http\Requests\ingaz\RequirementRequest as objRequest;
 use Illuminate\Http\Request;
- use Yajra\DataTables\Facades\DataTables;
+use Yajra\DataTables\Facades\DataTables;
 
 class RequirementsController extends Controller
 {
@@ -42,7 +42,7 @@ class RequirementsController extends Controller
                     $editButton = '';
                     $deleteButton = '';
                          $editButton = editButton(route($this->mainRoute . ".edit", $row->id), $row->title);
- 
+
                          $deleteButton = deleteButton(route($this->mainRoute . ".destroy", $row->id));
                      return $editButton . " " . $deleteButton;
                 })->escapeColumns([])->make(true);
@@ -71,7 +71,7 @@ public function create(Request $request)
       $data = $request->validated();
          $data = $action->store($data);
         return jsonSuccess($data);
- 
+
     }
 
 

@@ -4,7 +4,7 @@ namespace App\Http\Controllers\ingaz;
 
 use App\Http\Actions\ingaz\NationalityAction;
 use App\Http\Actions\ingaz\PackageAction as objAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\PackageRequest;
 use App\Models\ingaz\Package as objModel;
 use Illuminate\Http\Request;

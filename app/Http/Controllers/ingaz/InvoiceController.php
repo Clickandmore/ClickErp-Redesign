@@ -2,13 +2,15 @@
 
 namespace App\Http\Controllers\ingaz;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Models\Contract;
 use App\Models\ingaz\Invoice;
 use App\Models\ingaz\Setting;
 use App\Models\ingaz\User as ClientUser;
 use App\Services\ingaz\InvoiceCalculationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Nami\Finance\Enums\AccountTypesEnum;
 use Nami\Finance\Enums\BondPaymentTypes;
 use Nami\Finance\Enums\BondTypes;
@@ -16,17 +18,15 @@ use Nami\Finance\Enums\ConfirmSettingTypes;
 use Nami\Finance\Enums\CostCenterTypeEnum;
 use Nami\Finance\Models\Account;
 use Nami\Finance\Models\Bond;
-use Nami\Finance\Models\CostCenter;
 use Nami\Finance\Models\ConfirmSetting;
 use Nami\Finance\Models\Constraint;
+use Nami\Finance\Models\CostCenter;
 use Nami\Finance\Models\TaxSetting;
 use Nami\Finance\Services\BondService;
-use PDF;
-use Yajra\DataTables\Facades\DataTables;
 use Nami\Finance\Services\ConstraintService as ObjService;
 use Nami\Finance\Services\YearService;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Auth;
+use PDF;
+use Yajra\DataTables\Facades\DataTables;
 
 class InvoiceController extends Controller
 {

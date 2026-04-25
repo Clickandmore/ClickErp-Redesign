@@ -2,9 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Actions\ingaz\JobTitleAction as objAction;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\ingaz\JobTitleRequest;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Resources\Api\JobTitleResource as objResource;
 use App\Models\ingaz\JobTitle as objModel;
 use Illuminate\Http\Request;

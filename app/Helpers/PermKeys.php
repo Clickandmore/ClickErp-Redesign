@@ -151,6 +151,15 @@ const PARTENR_CONTROL = 'partenr_control';
     const REC_CONTRACTS_PRINT = 'rec_contracts_print';
     const REC_CONTRACTS_MANAGE = 'rec_contracts_manage';
 
+    // تفاويض الإنجاز
+    const INGAZ_DELEGATIONS_VIEW = 'ingaz_delegations_view';
+    const INGAZ_DELEGATIONS_CREATE = 'ingaz_delegations_create';
+    const INGAZ_DELEGATIONS_EDIT = 'ingaz_delegations_edit';
+    const INGAZ_DELEGATIONS_DELETE = 'ingaz_delegations_delete';
+    const INGAZ_DELEGATIONS_PRINT = 'ingaz_delegations_print';
+    const INGAZ_DELEGATIONS_CHANGE_STATUS = 'ingaz_delegations_change_status';
+    const INGAZ_DELEGATIONS_CONTROL = 'ingaz_delegations_control';
+
     // ========================================
     // الشكاوى
     // ========================================
@@ -369,6 +378,10 @@ const PARTENR_CONTROL = 'partenr_control';
     const RENT_CONTRACT_EDIT = 'rent_contract_edit';
     const RENT_CONTRACT_DELETE = 'rent_contract_delete';
     const RENT_CONTRACT_CONTROL = 'rent_contract_control';
+    const RENT_CONTRACT_TERMS_VIEW = 'rent_contract_terms_view';
+    const RENT_CONTRACT_TERMS_CREATE = 'rent_contract_terms_create';
+    const RENT_CONTRACT_TERMS_EDIT = 'rent_contract_terms_edit';
+    const RENT_CONTRACT_TERMS_DELETE = 'rent_contract_terms_delete';
 
     // ========================================
     // إعدادات العقود (Contract Settings)

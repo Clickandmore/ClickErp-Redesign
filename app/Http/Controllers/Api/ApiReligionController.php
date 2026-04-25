@@ -2,9 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Actions\ingaz\ReligionAction as objAction;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\ingaz\ReligionRequest;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Resources\Api\ReligionResource as objResource;
 use App\Models\ingaz\Religion as objModel;
 use Illuminate\Http\Request;

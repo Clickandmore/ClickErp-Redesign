@@ -14,11 +14,19 @@ class AddRecContractsUpdatePermissionSeeder extends Seeder
      */
     public function run(): void
     {
-        // إنشاء الصلاحية الجديدة
-        $permission = Permission::firstOrCreate([
-            'name' => 'rec_contracts_update',
-            'guard_name' => 'admin'
-        ]);
+        // إنشاء الصلاحية الجديدة أو تحديث بياناتها
+        $permission = Permission::updateOrCreate(
+            [
+                'name' => 'rec_contracts_update',
+                'guard_name' => 'admin',
+            ],
+            [
+                'display_name' => 'تحديث مراحل وبيانات عقد الاستقدام',
+                'description' => 'إمكانية تحديث مراحل العقد، اختيار العاملة، إضافة الملاحظات، وإدارة الإرسالية.',
+                'group_name' => 'rec_contracts',
+                'section_name' => 'recruitment_contracts',
+            ]
+        );
 
         // إضافة الصلاحية لجميع الأدوار التي لديها صلاحيات عقود الاستقدام
         $roles = Role::whereHas('permissions', function($query) {

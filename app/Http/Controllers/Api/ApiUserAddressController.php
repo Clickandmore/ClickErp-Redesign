@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Actions\ingaz\UserAddressAction as objAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\UserAddressRequest;
 use App\Http\Resources\Api\UserAddressResource as objResource;
 use App\Models\ingaz\UserAddress as objModel;

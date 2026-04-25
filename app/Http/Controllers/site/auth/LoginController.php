@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\site\auth;
 
 use App\Http\Actions\site\auth\LoginAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\site\auth\LoginRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;

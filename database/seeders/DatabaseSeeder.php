@@ -19,6 +19,10 @@ class DatabaseSeeder extends Seeder
         $this->call(RoleSeeder::class);
         $this->call(AdminRoleSeeder::class);
         $this->call(PermissionSeeder::class);
+        $this->call(AdminSidebarPermissionsSeeder::class);
+        $this->call(RecruitmentContractsPermissionsSeeder::class);
+        $this->call(AssignRecruitmentContractsPermissionsSeeder::class);
+        $this->call(RentContractTermsPermissionsSeeder::class);
 
         // إضافة بيانات الدول والمدن
         $this->call(CountriesSeeder::class);

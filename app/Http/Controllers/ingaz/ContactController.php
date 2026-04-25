@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\ingaz;
 
 use App\Http\Actions\ingaz\ContactAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Models\ingaz\Contact as objModel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;

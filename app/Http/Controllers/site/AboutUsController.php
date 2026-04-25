@@ -2,8 +2,7 @@
 
 namespace App\Http\Controllers\site;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Http\Controllers\admin\Controller;
 
 class AboutUsController extends Controller
 {

@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Permissions;
 
+use App\Http\Controllers\admin\Controller;
 use App\Models\Permission;
 use Illuminate\Http\Request;
-use App\Http\Controllers\Controller;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -138,6 +138,7 @@ class PermissionsController extends Controller
             'renew_contracts',
             'contact',
             'rec_contracts',
+            'ingaz_delegations',
             'cancel_contract',
             'rent_contract',
             'rental_orders',
@@ -387,6 +388,7 @@ class PermissionsController extends Controller
             'renew_contracts' => 'طلبات تجديد العقود',
             'rec_contract' => 'عقود التوظيف',
             'rec_contracts' => 'عقود الاستقدام',
+            'ingaz_delegations' => 'تفاويض الإنجاز',
             'cancel_contract' => 'عقود الإلغاء',
             'rent_contract' => 'عقود الإيجار',
             'rental_orders' => 'طلبات الإيجار',
@@ -597,6 +599,7 @@ class PermissionsController extends Controller
             'renew_contracts_' => ['section' => 'orders', 'group' => 'renew_contracts'],
             'rec_contract_' => ['section' => 'recruitment_contracts', 'group' => 'rec_contracts'],
             'rec_contracts_' => ['section' => 'recruitment_contracts', 'group' => 'rec_contracts'],
+            'ingaz_delegations_' => ['section' => 'recruitment_contracts', 'group' => 'ingaz_delegations'],
             'cancel_contract_' => ['section' => 'recruitment_contracts', 'group' => 'cancel_contract'],
             'rent_contract_' => ['section' => 'rent_contracts', 'group' => 'rent_contract'],
             'rental_orders_' => ['section' => 'rent_contracts', 'group' => 'rental_orders'],
@@ -857,6 +860,14 @@ class PermissionsController extends Controller
     private function splitPermissionName(string $permissionName): array
     {
         $normalizedName = str_replace('-', '_', $permissionName);
+
+        if (preg_match('/^rec_contracts_cancel_(approve|reject)$/', $normalizedName, $matches)) {
+            return [
+                'resource' => 'rec_contracts_cancel',
+                'action' => $matches[1],
+            ];
+        }
+
         $suffixes = [
             'change_status',
             'toggle_status',
@@ -953,6 +964,7 @@ class PermissionsController extends Controller
             'hr_module' => 'نظام الموارد البشرية',
             'finance_module' => 'النظام المحاسبي',
             'rec_contracts' => 'عقود الاستقدام',
+            'ingaz_delegations' => 'تفاويض الإنجاز',
             'rec_contracts_cancel' => 'طلبات إلغاء عقود الاستقدام',
             'rec_contracts_return' => 'مرتجعات عقود الاستقدام',
             'rec_contracts_warranty' => 'ضمان عقود الاستقدام',
@@ -1536,6 +1548,11 @@ class PermissionsController extends Controller
         $resourceKey = str_replace('-', '_', trim($resourceKey));
 
         $priorities = [
+            'rec_contracts' => 10,
+            'ingaz_delegations' => 15,
+            'rec_contracts_return' => 20,
+            'rec_contracts_warranty' => 30,
+            'rec_contracts_cancel' => 40,
             'shelter_contract_addition' => 10,
             'shelter_contract_inside' => 20,
             'shelter_contract_available_for_transfer' => 30,

@@ -2,9 +2,8 @@
 
 namespace App\Http\Controllers\site\auth;
 
-use App\Http\Actions\ingaz\PhoneVerificationAction;
 use App\Http\Actions\ingaz\UserAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\site\auth\ChangePasswordRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -25,7 +24,7 @@ class ChangePasswordController extends Controller
         $data = $request->validated();
         $user = $userAction->getWhereFirst(['phone' => $data['phone']]);
         $user->update(['password' => Hash::make($data['password'])]);
-        
+
         // إبطال الجلسات القديمة
         $user->setRememberToken(\Illuminate\Support\Str::random(60));
         $user->save();

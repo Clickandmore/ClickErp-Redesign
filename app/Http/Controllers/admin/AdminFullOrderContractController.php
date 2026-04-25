@@ -2,17 +2,16 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Models\Contract;
 use App\Models\auth\Admin;
-use App\Models\ingaz\Maid;
-use App\Models\ingaz\User;
-use App\Models\ingaz\Order;
+use App\Models\Contract;
 use App\Models\ContractInfo;
-use Illuminate\Http\Request;
+use App\Models\ingaz\Maid;
 use App\Models\ingaz\Nationality;
+use App\Models\ingaz\Order;
 use App\Models\ingaz\OrderDetail;
+use App\Models\ingaz\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Http\Controllers\Controller;
 
 class AdminFullOrderContractController extends Controller
 {

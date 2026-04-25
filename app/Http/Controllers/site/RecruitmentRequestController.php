@@ -6,13 +6,10 @@ use App\Enums\Office\MaritalStatusEnum;
 use App\Http\Actions\ingaz\JobTitleAction;
 use App\Http\Actions\ingaz\NationalityAction;
 use App\Http\Actions\ingaz\ReligionAction;
-use App\Http\Actions\site\RenewContractAction;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\site\RenewContractRequest;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\site\RecruitmentRequestRequest;
 use App\Models\Country;
 use App\Models\ingaz\RecruitmentRequestMaid;
-use Illuminate\Http\Request;
 
 class RecruitmentRequestController extends Controller
 {

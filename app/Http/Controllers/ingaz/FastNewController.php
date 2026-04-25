@@ -2,12 +2,12 @@
 
 namespace App\Http\Controllers\ingaz;
 
-use Illuminate\Support\Str;
 use App\Http\Actions\ingaz\FastNewAction as objAction;
-use App\Http\Controllers\Controller;
-use App\Models\ingaz\FastNew as objModel;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\FastNewRequest as objRequest;
+use App\Models\ingaz\FastNew as objModel;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Yajra\DataTables\Facades\DataTables;
 
 class FastNewController extends Controller

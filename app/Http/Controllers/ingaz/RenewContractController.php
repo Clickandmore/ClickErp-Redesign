@@ -8,7 +8,7 @@ use App\Http\Actions\ingaz\JobTitleAction;
 use App\Http\Actions\ingaz\NationalityAction;
 use App\Http\Actions\ingaz\ReligionAction;
 use App\Http\Actions\ingaz\RenewContractAction as objAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\RenewContractRequest as objRequest;
 use App\Models\RenewContract as objModel;
 use Illuminate\Http\Request;

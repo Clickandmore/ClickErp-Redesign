@@ -2,17 +2,17 @@
 
 namespace App\Http\Controllers\ingaz;
 
-use App\Http\Controllers\Controller;
-use App\Models\ingaz\User;
-use App\Models\ingaz\Maid;
+use App\Http\Controllers\admin\Controller;
 use App\Models\Contract;
 use App\Models\ContractInfo;
+use App\Models\ingaz\Maid;
+use App\Models\ingaz\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
-// use Barryvdh\DomPDF\Facade as PDF;
 use PDF;
+
+// use Barryvdh\DomPDF\Facade as PDF;
 
 class ContractController extends Controller
 {

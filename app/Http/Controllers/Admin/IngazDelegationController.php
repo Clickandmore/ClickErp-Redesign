@@ -2,9 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreIngazDelegationRequest;
-use App\Models\IngazDelegation;
 use App\Models\auth\Admin;
 use App\Models\ingaz\JobTitle;
 use App\Models\ingaz\Maid;
@@ -13,7 +11,9 @@ use App\Models\ingaz\Nationality;
 use App\Models\ingaz\Religion;
 use App\Models\ingaz\ReligionsTranslation;
 use App\Models\ingaz\User;
+use App\Models\IngazDelegation;
 use App\Models\office\Office as RecruitmentOffice;
+use App\PermKeys;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -26,6 +26,17 @@ use Yajra\DataTables\Facades\DataTables;
 
 class IngazDelegationController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware($this->permissionMiddleware($this->delegationViewPermissions()), ['only' => ['index', 'show']]);
+        $this->middleware($this->permissionMiddleware($this->delegationCreatePermissions()), ['only' => ['create', 'store']]);
+        $this->middleware($this->permissionMiddleware($this->delegationEditPermissions()), ['only' => ['edit', 'update']]);
+        $this->middleware($this->permissionMiddleware($this->delegationDeletePermissions()), ['only' => ['destroy']]);
+        $this->middleware($this->permissionMiddleware($this->delegationPrintPermissions()), ['only' => ['print']]);
+        $this->middleware($this->permissionMiddleware($this->delegationStatusPermissions()), ['only' => ['updateStatus']]);
+        $this->middleware($this->permissionMiddleware($this->delegationFormPermissions()), ['only' => ['findMaidByPassport']]);
+    }
+
     public function index(Request $request): View|JsonResponse
     {
         $query = IngazDelegation::with(['nationality', 'profession', 'user', 'maid', 'marketer']);
@@ -66,6 +77,12 @@ class IngazDelegationController extends Controller
         }
 
         if ($request->ajax()) {
+            $canViewDelegation = $this->adminCanAny($this->delegationViewPermissions());
+            $canEditDelegation = $this->adminCanAny($this->delegationEditPermissions());
+            $canDeleteDelegation = $this->adminCanAny($this->delegationDeletePermissions());
+            $canPrintDelegation = $this->adminCanAny($this->delegationPrintPermissions());
+            $canChangeDelegationStatus = $this->adminCanAny($this->delegationStatusPermissions());
+
             $rows = $query->latest('id');
 
             return DataTables::eloquent($rows)
@@ -91,21 +108,12 @@ class IngazDelegationController extends Controller
 
                     return '<a href="' . e(Storage::url($invoicePath)) . '" target="_blank" class="btn btn-sm btn-outline-info">عرض</a>';
                 })
-                ->addColumn('status', function (IngazDelegation $row) {
-                    if (!empty($row->ingaz_number) && !empty($row->msaned_contract_number)) {
-                        $label = 'مكتمل';
-                        $class = 'success';
-                    } elseif (!empty($row->ingaz_number) || !empty($row->msaned_contract_number)) {
-                        $label = 'قيد التنفيذ';
-                        $class = 'warning text-dark';
-                    } else {
-                        $label = 'جديد';
-                        $class = 'secondary';
+                ->addColumn('status', fn (IngazDelegation $row) => $this->statusBadgeHtml($row))
+                ->addColumn('status_control', function (IngazDelegation $row) use ($canChangeDelegationStatus) {
+                    if (!$canChangeDelegationStatus) {
+                        return $this->statusBadgeHtml($row);
                     }
 
-                    return '<span class="badge bg-' . $class . '">' . $label . '</span>';
-                })
-                ->addColumn('status_control', function (IngazDelegation $row) {
                     $options = collect(IngazDelegation::statusOptions())->map(function ($label, $value) use ($row) {
                         $selected = $row->status === $value ? 'selected' : '';
 
@@ -118,34 +126,52 @@ class IngazDelegationController extends Controller
                         </select>
                     ';
                 })
-                ->addColumn('print_action', function (IngazDelegation $row) {
+                ->addColumn('print_action', function (IngazDelegation $row) use ($canPrintDelegation) {
+                    if (!$canPrintDelegation) {
+                        return '<span class="text-muted">-</span>';
+                    }
+
                     return '<a href="' . route('ingaz-delegations.print', $row) . '" target="_blank" class="btn btn-sm btn-outline-dark"><i class="fa fa-print"></i></a>';
                 })
-                ->addColumn('actions', function (IngazDelegation $row) {
+                ->addColumn('actions', function (IngazDelegation $row) use ($canViewDelegation, $canEditDelegation, $canDeleteDelegation) {
                     $showUrl = route('ingaz-delegations.show', $row);
                     $editUrl = route('ingaz-delegations.edit', $row);
                     $deleteUrl = route('ingaz-delegations.destroy', $row);
                     $csrf = csrf_token();
+                    $actions = [];
 
-                    return '
-                        <div class="btn-group btn-group-sm">
-                            <a href="' . $showUrl . '" class="btn btn-outline-info">عرض</a>
-                            <a href="' . $editUrl . '" class="btn btn-outline-primary">تعديل</a>
-                            <form action="' . $deleteUrl . '" method="POST" onsubmit="return confirm(\'هل أنت متأكد من حذف هذا التفويض؟\');">
+                    if ($canViewDelegation) {
+                        $actions[] = '<a href="' . $showUrl . '" class="btn btn-outline-info">عرض</a>';
+                    }
+
+                    if ($canEditDelegation) {
+                        $actions[] = '<a href="' . $editUrl . '" class="btn btn-outline-primary">تعديل</a>';
+                    }
+
+                    if ($canDeleteDelegation) {
+                        $actions[] = '
+                            <form action="' . $deleteUrl . '" method="POST" class="d-inline-block" onsubmit="return confirm(\'هل أنت متأكد من حذف هذا التفويض؟\');">
                                 <input type="hidden" name="_token" value="' . $csrf . '">
                                 <input type="hidden" name="_method" value="DELETE">
                                 <button type="submit" class="btn btn-outline-danger">حذف</button>
                             </form>
-                        </div>
-                    ';
+                        ';
+                    }
+
+                    if ($actions === []) {
+                        return '<span class="text-muted">-</span>';
+                    }
+
+                    return '<div class="btn-group btn-group-sm">' . implode('', $actions) . '</div>';
                 })
                 ->rawColumns(['client', 'invoice', 'status', 'status_control', 'print_action', 'actions'])
                 ->make(true);
         }
 
         $nationalities = Nationality::query()->orderByTranslation('sub_title', 'asc')->get(['id']);
+        $canCreateDelegation = $this->adminCanAny($this->delegationCreatePermissions());
 
-        return view('admin.ingaz_delegations.index', compact('nationalities'));
+        return view('admin.ingaz_delegations.index', compact('nationalities', 'canCreateDelegation'));
     }
 
     public function print(IngazDelegation $ingazDelegation): View
@@ -188,6 +214,7 @@ class IngazDelegationController extends Controller
             'religionOptions' => $this->religionOptions(),
             'experienceOptions' => $this->experienceOptions(),
             'visaTypeOptions' => $this->visaTypeOptions(),
+            'canEditDelegation' => $this->adminCanAny($this->delegationEditPermissions()),
         ]);
     }
 
@@ -534,6 +561,131 @@ class IngazDelegationController extends Controller
                 Storage::disk('public')->delete($path);
             }
         }
+    }
+
+    private function permissionMiddleware(array $permissions): string
+    {
+        return 'permission:' . implode('|', array_values(array_unique($permissions))) . ',admin';
+    }
+
+    private function adminCanAny(array $permissions): bool
+    {
+        $admin = auth('admin')->user();
+
+        if (!$admin) {
+            return false;
+        }
+
+        foreach (array_values(array_unique($permissions)) as $permission) {
+            if ($admin->can($permission)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function delegationViewPermissions(): array
+    {
+        return $this->delegationAnyPermissions();
+    }
+
+    private function delegationCreatePermissions(): array
+    {
+        return [
+            PermKeys::INGAZ_DELEGATIONS_CREATE,
+            PermKeys::INGAZ_DELEGATIONS_CONTROL,
+            PermKeys::REC_CONTRACTS_CREATE,
+            PermKeys::REC_CONTRACTS_MANAGE,
+        ];
+    }
+
+    private function delegationEditPermissions(): array
+    {
+        return [
+            PermKeys::INGAZ_DELEGATIONS_EDIT,
+            PermKeys::INGAZ_DELEGATIONS_CONTROL,
+            PermKeys::REC_CONTRACTS_EDIT,
+            PermKeys::REC_CONTRACTS_MANAGE,
+        ];
+    }
+
+    private function delegationDeletePermissions(): array
+    {
+        return [
+            PermKeys::INGAZ_DELEGATIONS_DELETE,
+            PermKeys::INGAZ_DELEGATIONS_CONTROL,
+            PermKeys::REC_CONTRACTS_DELETE,
+            PermKeys::REC_CONTRACTS_MANAGE,
+        ];
+    }
+
+    private function delegationPrintPermissions(): array
+    {
+        return [
+            PermKeys::INGAZ_DELEGATIONS_PRINT,
+            PermKeys::INGAZ_DELEGATIONS_CONTROL,
+            PermKeys::REC_CONTRACTS_PRINT,
+            PermKeys::REC_CONTRACTS_VIEW,
+            PermKeys::REC_CONTRACTS_MANAGE,
+        ];
+    }
+
+    private function delegationStatusPermissions(): array
+    {
+        return [
+            PermKeys::INGAZ_DELEGATIONS_CHANGE_STATUS,
+            PermKeys::INGAZ_DELEGATIONS_CONTROL,
+            PermKeys::REC_CONTRACTS_EDIT,
+            PermKeys::REC_CONTRACTS_MANAGE,
+        ];
+    }
+
+    private function delegationFormPermissions(): array
+    {
+        return array_values(array_unique(array_merge(
+            $this->delegationCreatePermissions(),
+            $this->delegationEditPermissions()
+        )));
+    }
+
+    private function delegationAnyPermissions(): array
+    {
+        return array_values(array_unique(array_merge(
+            [
+                PermKeys::INGAZ_DELEGATIONS_VIEW,
+                PermKeys::INGAZ_DELEGATIONS_CREATE,
+                PermKeys::INGAZ_DELEGATIONS_EDIT,
+                PermKeys::INGAZ_DELEGATIONS_DELETE,
+                PermKeys::INGAZ_DELEGATIONS_PRINT,
+                PermKeys::INGAZ_DELEGATIONS_CHANGE_STATUS,
+                PermKeys::INGAZ_DELEGATIONS_CONTROL,
+            ],
+            [
+                PermKeys::REC_CONTRACTS_VIEW,
+                PermKeys::REC_CONTRACTS_CREATE,
+                PermKeys::REC_CONTRACTS_EDIT,
+                PermKeys::REC_CONTRACTS_DELETE,
+                PermKeys::REC_CONTRACTS_PRINT,
+                PermKeys::REC_CONTRACTS_MANAGE,
+            ]
+        )));
+    }
+
+    private function statusBadgeHtml(IngazDelegation $row): string
+    {
+        if (!empty($row->ingaz_number) && !empty($row->msaned_contract_number)) {
+            $label = 'مكتمل';
+            $class = 'success';
+        } elseif (!empty($row->ingaz_number) || !empty($row->msaned_contract_number)) {
+            $label = 'قيد التنفيذ';
+            $class = 'warning text-dark';
+        } else {
+            $label = 'جديد';
+            $class = 'secondary';
+        }
+
+        return '<span class="badge bg-' . $class . '">' . $label . '</span>';
     }
 
     private function normalizePhone(?string $phone): string

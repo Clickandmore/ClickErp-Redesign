@@ -8,14 +8,14 @@ use App\Enums\ingaz\OrderEnum;
 use App\Http\Actions\auth\AdminAction;
 use App\Http\Actions\ingaz\MaidAction;
 use App\Http\Actions\ingaz\SettingAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\site\CustomerServiceRequest;
+use App\Http\Traits\SendSMSTrait;
+use App\Http\Traits\StoreMessageTrait;
 use App\Models\auth\Admin;
 use App\Models\ingaz\OrderDetail;
 use App\Models\ingaz\RecruitmentRequest;
 use Illuminate\Http\Request;
-use App\Http\Traits\SendSMSTrait;
-use App\Http\Traits\StoreMessageTrait;
 use Illuminate\Validation\Rule;
 
 class CustomerServiceController extends Controller

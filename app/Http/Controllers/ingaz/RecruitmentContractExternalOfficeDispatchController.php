@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\ingaz;
 
 use App\Enums\ingaz\ContractStatusEnum;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Models\Contract;
 use App\Models\TravelHistory;
 use App\NewPermKeys;
@@ -14,9 +14,25 @@ use Yajra\DataTables\Facades\DataTables;
 
 class RecruitmentContractExternalOfficeDispatchController extends Controller
 {
+    private function canViewRecruitmentContracts(): bool
+    {
+        return @AdminGuardHasAnyPerm([
+            NewPermKeys::REC_CONTRACTS_VIEW,
+            NewPermKeys::REC_CONTRACTS_MANAGE,
+        ]);
+    }
+
+    private function canUpdateRecruitmentContracts(): bool
+    {
+        return @AdminGuardHasAnyPerm([
+            NewPermKeys::REC_CONTRACTS_UPDATE,
+            NewPermKeys::REC_CONTRACTS_MANAGE,
+        ]);
+    }
+
     public function index(Request $request)
     {
-        if (!@AdminGuardHasPerm(NewPermKeys::REC_CONTRACTS_VIEW)) {
+        if (!$this->canViewRecruitmentContracts()) {
             abort(403, 'ليس لديك صلاحية لعرض إرسالات المكتب الخارجي.');
         }
 
@@ -166,7 +182,7 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
 
     public function edit(Contract $contract)
     {
-        if (!@AdminGuardHasPerm(NewPermKeys::REC_CONTRACTS_VIEW)) {
+        if (!$this->canViewRecruitmentContracts()) {
             abort(403, 'ليس لديك صلاحية لعرض إرسالية المكتب الخارجي.');
         }
 
@@ -183,7 +199,7 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
         $dispatchState = $contract->getExternalOfficeDispatchState();
         $sourceSnapshot = $contract->buildExternalOfficeDispatchSourceData();
         $sourceErrors = $contract->externalOfficeDispatchSourceValidationErrors();
-        $isEditable = $contract->canManageExternalOfficeDispatch() && @AdminGuardHasPerm(NewPermKeys::REC_CONTRACTS_UPDATE);
+        $isEditable = $contract->canManageExternalOfficeDispatch() && $this->canUpdateRecruitmentContracts();
 
         return view('admin.ingaz.RecruitmentContract.external_office_dispatch', [
             'contract' => $contract,
@@ -202,7 +218,7 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
 
     public function store(Request $request, Contract $contract)
     {
-        if (!@AdminGuardHasPerm(NewPermKeys::REC_CONTRACTS_UPDATE)) {
+        if (!$this->canUpdateRecruitmentContracts()) {
             return redirect()->back()->with('error', 'ليس لديك صلاحية لتحديث إرسالية المكتب الخارجي.');
         }
 
@@ -274,7 +290,7 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
 
     public function print(Contract $contract, Request $request)
     {
-        if (!@AdminGuardHasPerm(NewPermKeys::REC_CONTRACTS_VIEW)) {
+        if (!$this->canViewRecruitmentContracts()) {
             abort(403, 'ليس لديك صلاحية لعرض إرسالية المكتب الخارجي.');
         }
 

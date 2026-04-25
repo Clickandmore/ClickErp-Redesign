@@ -4,6 +4,8 @@
     $defaultShelterContract = $defaultShelterContract ?? (($obj->maid_accommodation_type ?? null) == 2 ? '1' : '0');
     $isRentalForm = $isRentalForm ?? false;
     $formRedirectRoute = $formRedirectRoute ?? route('maids.index');
+    $shelterCompanyName = documentSetting('document_company_name', documentSetting('website_name', 'شركة بلاتنيوم الشرقية'));
+    $shelterCompanyHint = 'سيتم إنشاء عقد إيواء تلقائياً باسم ' . $shelterCompanyName;
     $selectedTypeId = (int) old('type_id', $obj->jobTypes->pluck('id')->first());
     $selectedTypeTitle = collect($types ?? [])->firstWhere('id', $selectedTypeId)->title ?? '';
     $normalizedSelectedTypeTitle = mb_strtolower(trim((string) $selectedTypeTitle));
@@ -1099,7 +1101,7 @@
                 }
 
                 if (shelterHint.length) {
-                    shelterHint.text('سيتم إنشاء عقد إيواء تلقائياً باسم شركة أسس الانجاز');
+                    shelterHint.text(@json($shelterCompanyHint));
                 }
 
                 if (defaultShelterContract !== '') {

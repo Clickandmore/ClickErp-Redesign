@@ -9,7 +9,7 @@ use App\Http\Actions\ingaz\JobTitleAction;
 use App\Http\Actions\ingaz\NationalityAction;
 use App\Http\Actions\ingaz\RecruitmentRequestAction as objAction;
 use App\Http\Actions\ingaz\ReligionAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\ProfessionalApplicationRequest as objRequest;
 use App\Http\Traits\SendSMSTrait;
 use App\Http\Traits\StoreMessageTrait;

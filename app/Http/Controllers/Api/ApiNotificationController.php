@@ -2,8 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Actions\ingaz\NotificationAction as objAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\NotificationRequest;
 use App\Http\Resources\Api\NotificationResource as objResource;
 use App\Models\ingaz\Notification as objModel;

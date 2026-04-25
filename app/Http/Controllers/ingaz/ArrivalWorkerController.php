@@ -3,11 +3,10 @@
 namespace App\Http\Controllers\ingaz;
 
 use App\Http\Actions\ingaz\ArrivalWorkerAction as objAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\ArrivalWorkerRequest as objRequest;
 use App\Models\ArrivalWork as objModel;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Yajra\DataTables\Facades\DataTables;
 

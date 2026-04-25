@@ -2,12 +2,10 @@
 
 namespace App\Http\Controllers\site;
 
-use App\Enums\auth\AdminTypes;
 use App\Http\Actions\auth\AdminAction;
 use App\Http\Actions\ingaz\MaidAction;
 use App\Http\Actions\ingaz\SettingAction;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\site\CustomerServiceRequest;
+use App\Http\Controllers\admin\Controller;
 use App\Models\ingaz\OrderDetail;
 use App\Models\ingaz\RecruitmentRequest;
 use Illuminate\Http\Request;

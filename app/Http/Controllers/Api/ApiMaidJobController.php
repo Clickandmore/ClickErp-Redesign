@@ -3,10 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Actions\ingaz\MaidJobAction as objAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\MaidJobRequest;
-use App\Http\Resources\Api\MaidJobResource as objResource;
-use App\Models\ingaz\MaidJob as objModel;
 use Illuminate\Http\Request;
 
 class ApiMaidJobController extends Controller

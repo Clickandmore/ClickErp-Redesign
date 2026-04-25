@@ -13,6 +13,20 @@
 
 @section('content')
     @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_VIEW))
+        @php
+            $canManageRentContractTerms = @AdminGuardHasAnyPerm([
+                \App\PermKeys::RENT_CONTRACT_TERMS_VIEW,
+                \App\PermKeys::RENT_CONTRACT_TERMS_CREATE,
+                \App\PermKeys::RENT_CONTRACT_TERMS_EDIT,
+                \App\PermKeys::RENT_CONTRACT_TERMS_DELETE,
+                \App\PermKeys::RENT_CONTRACT_VIEW,
+                \App\PermKeys::RENT_CONTRACT_CREATE,
+                \App\PermKeys::RENT_CONTRACT_EDIT,
+                \App\PermKeys::RENT_CONTRACT_DELETE,
+                \App\PermKeys::RENT_CONTRACT_CONTROL,
+                \App\PermKeys::CONTRACT_SETTINGS,
+            ]);
+        @endphp
         <!-- Header Section -->
         <div class="d-sm-flex align-items-center justify-content-between mb-4">
             <h3 class="h3 mb-0 text-gray-800">
@@ -20,15 +34,19 @@
                 {{ helperTrans('ingaz.All Rent contracts') }}
             </h3>
             <div>
-                @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CREATE))
+                @if (@AdminGuardHasPerm(\App\PermKeys::CONTRACT_SETTINGS))
                     <a href="{{ route('rent-contract.settings') }}" class="btn btn-info me-2">
                         <i class="fas fa-sliders-h me-2"></i>
                         إعدادات العقد
                     </a>
+                @endif
+                @if ($canManageRentContractTerms)
                     <a href="{{ route('rent-contract-terms.index') }}" class="btn btn-warning me-2">
                         <i class="fas fa-list-alt me-2"></i>
                         إدارة بنود العقد
                     </a>
+                @endif
+                @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CREATE))
                     <a href="{{ route('RentContract.create') }}" class="btn btn-primary">
                         <i class="fas fa-plus me-2"></i>
                         {{ helperTrans('ingaz.add Rent contract') }}

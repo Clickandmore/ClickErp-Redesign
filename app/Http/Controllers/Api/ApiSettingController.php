@@ -2,8 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Actions\ingaz\SettingAction as objAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Resources\Api\SettingResource as objResource;
 use App\Http\Traits\API\ApiResponse;
 use App\Models\ingaz\Setting as objModel;

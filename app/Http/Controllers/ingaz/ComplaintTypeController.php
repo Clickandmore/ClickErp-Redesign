@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\ingaz;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Models\ingaz\ComplaintType;
 use Illuminate\Http\Request;
 

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\site\profile;
 
 use App\Http\Actions\ingaz\ComplaintAction as objAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\ComplaintRequest;
 use App\Models\ingaz\Complaint as objModel;
 use Illuminate\Http\Request;

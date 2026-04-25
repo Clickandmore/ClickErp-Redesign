@@ -1,80 +1,78 @@
 <?php
 
-use App\Http\Controllers\Admin\ContractReturnRequestController;
-use App\Http\Controllers\ingaz\ArrivalWorkerController;
-use App\Http\Controllers\ingaz\CountryPoliceController;
-use App\Http\Controllers\ingaz\MakeAccountsForClientsController;
-use App\Http\Controllers\ingaz\MaidBulkImportController;
-use App\Http\Controllers\ingaz\MusanedTransferController;
-use App\Http\Controllers\ingaz\PoliceSettingController;
-use App\Http\Controllers\ingaz\SelectWorkerController;
-use App\Http\Controllers\ingaz\SelectWorkerSettingsController;
-use App\Http\Controllers\ingaz\ShelterPlaces;
-use App\Http\Controllers\ingaz\TestimonialController;
-use App\Http\Controllers\ingaz\WhatDoController;
-use App\Http\Controllers\ingaz\WhatDoSettingController;
-use App\Http\Controllers\ingaz\WhyUsController;
-use App\Http\Controllers\office\OfficeController;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\admin\ActivityLogController;
-use App\Http\Controllers\Permissions\RolesController;
 use App\Http\Controllers\admin\AdminContractController;
+use App\Http\Controllers\admin\AdminFullOrderContractController;
 use App\Http\Controllers\admin\AdminSettingsController;
+use App\Http\Controllers\admin\AdminShelterWorkersContractCTLR;
+use App\Http\Controllers\admin\AdminTravelHistoryController;
+use App\Http\Controllers\Admin\ContractReturnRequestController;
 use App\Http\Controllers\admin\FormSettingsController;
+use App\Http\Controllers\admin\office\OfficeController;
 use App\Http\Controllers\admin\PrintContractController;
 use App\Http\Controllers\admin\ShelterWorkersController;
-use App\Http\Controllers\Permissions\PermissionsController;
-use App\Http\Controllers\admin\AdminTravelHistoryController;
-use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
-use App\Http\Controllers\admin\AdminShelterWorkersContractCTLR;
-use App\Http\Controllers\admin\AdminFullOrderContractController;
-use App\Http\Controllers\ingaz\OrderController;
-use App\Http\Controllers\ingaz\RentalOrderController;
-use App\Http\Controllers\ingaz\TransferServiceContractController;
-use App\Http\Controllers\ingaz\TransferContractTermsController;
-use App\Http\Controllers\ingaz\ShelterContractController;
-use App\Http\Controllers\ingaz\RecruitmentContractController;
-use App\Http\Controllers\ingaz\RecruitmentOfficeController;
-use App\Http\Controllers\ingaz\SponsorshipTransferController;
-use App\Http\Controllers\ingaz\RentContractController;
-use App\Http\Controllers\ingaz\NotificationController;
-use App\Http\Controllers\ingaz\NotificationSettingsController;
-use App\Http\Controllers\ingaz\StatisticController;
-use App\Http\Controllers\ingaz\DeportationTravelController;
-use App\Http\Controllers\ingaz\RecruitmentContractExternalOfficeDispatchController;
-use App\Http\Controllers\ingaz\UserController;
-use App\Http\Controllers\ingaz\MaidController;
-use App\Http\Controllers\ingaz\SettingController;
-use App\Http\Controllers\ingaz\DevelopSettingController;
-use App\Http\Controllers\ingaz\JobTitleController;
-use App\Http\Controllers\ingaz\NationalityController;
-use App\Http\Controllers\ingaz\SliderController;
-use App\Http\Controllers\ingaz\ReligionController;
-use App\Http\Controllers\ingaz\SocialStatusController;
-use App\Http\Controllers\ingaz\QuestionController;
-use App\Http\Controllers\ingaz\ReportController;
-use App\Http\Controllers\ingaz\ContactController;
-use App\Http\Controllers\ingaz\ServiceController;
 use App\Http\Controllers\ingaz\AboutUsController;
+use App\Http\Controllers\ingaz\ArrivalWorkerController;
 use App\Http\Controllers\ingaz\ClientController;
-use App\Http\Controllers\ingaz\SkillController;
-use App\Http\Controllers\ingaz\MaidTestController;
-use App\Http\Controllers\ingaz\PackageController;
 use App\Http\Controllers\ingaz\ComplaintController;
-use App\Http\Controllers\ingaz\StepController;
-use App\Http\Controllers\ingaz\ReturnRequestController;
 use App\Http\Controllers\ingaz\ComplaintTypeController;
+use App\Http\Controllers\ingaz\ContactController;
+use App\Http\Controllers\ingaz\CountryPoliceController;
 use App\Http\Controllers\ingaz\CvConvertController;
+use App\Http\Controllers\ingaz\DeportationTravelController;
+use App\Http\Controllers\ingaz\DevelopSettingController;
 use App\Http\Controllers\ingaz\FastNewController;
 use App\Http\Controllers\ingaz\FeatureController;
 use App\Http\Controllers\ingaz\InvoiceController;
+use App\Http\Controllers\ingaz\JobTitleController;
+use App\Http\Controllers\ingaz\MaidBulkImportController;
+use App\Http\Controllers\ingaz\MaidController;
+use App\Http\Controllers\ingaz\MaidTestController;
+use App\Http\Controllers\ingaz\MakeAccountsForClientsController;
+use App\Http\Controllers\ingaz\MusanedTransferController;
+use App\Http\Controllers\ingaz\NationalityController;
+use App\Http\Controllers\ingaz\NotificationController;
+use App\Http\Controllers\ingaz\NotificationSettingsController;
+use App\Http\Controllers\ingaz\OrderController;
+use App\Http\Controllers\ingaz\PackageController;
+use App\Http\Controllers\ingaz\PoliceSettingController;
 use App\Http\Controllers\ingaz\ProfessionalApplicationController;
+use App\Http\Controllers\ingaz\QuestionController;
+use App\Http\Controllers\ingaz\RecruitmentContractController;
+use App\Http\Controllers\ingaz\RecruitmentContractExternalOfficeDispatchController;
 use App\Http\Controllers\ingaz\RecruitmentRequestController;
+use App\Http\Controllers\ingaz\ReligionController;
 use App\Http\Controllers\ingaz\RenewContractController;
 use App\Http\Controllers\ingaz\RentalContractInvoiceController;
 use App\Http\Controllers\ingaz\RentalContractTermsController;
+use App\Http\Controllers\ingaz\RentalOrderController;
+use App\Http\Controllers\ingaz\RentContractController;
+use App\Http\Controllers\ingaz\ReportController;
 use App\Http\Controllers\ingaz\RequirementsController;
-use App\Models\Client;
+use App\Http\Controllers\ingaz\ReturnRequestController;
+use App\Http\Controllers\ingaz\SelectWorkerController;
+use App\Http\Controllers\ingaz\SelectWorkerSettingsController;
+use App\Http\Controllers\ingaz\ServiceController;
+use App\Http\Controllers\ingaz\SettingController;
+use App\Http\Controllers\ingaz\ShelterContractController;
+use App\Http\Controllers\ingaz\ShelterPlaces;
+use App\Http\Controllers\ingaz\SkillController;
+use App\Http\Controllers\ingaz\SliderController;
+use App\Http\Controllers\ingaz\SocialStatusController;
+use App\Http\Controllers\ingaz\SponsorshipTransferController;
+use App\Http\Controllers\ingaz\StatisticController;
+use App\Http\Controllers\ingaz\StepController;
+use App\Http\Controllers\ingaz\TestimonialController;
+use App\Http\Controllers\ingaz\TransferContractTermsController;
+use App\Http\Controllers\ingaz\TransferServiceContractController;
+use App\Http\Controllers\ingaz\UserController;
+use App\Http\Controllers\ingaz\WhatDoController;
+use App\Http\Controllers\ingaz\WhatDoSettingController;
+use App\Http\Controllers\ingaz\WhyUsController;
+use App\Http\Controllers\Permissions\PermissionsController;
+use App\Http\Controllers\Permissions\RolesController;
+use Illuminate\Support\Facades\Route;
+use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 
 /*
 |--------------------------------------------------------------------------
@@ -93,7 +91,7 @@ Route::group(
         'middleware' => ['localeSessionRedirect', 'localizationRedirect', 'localeViewPath'],
     ],
     function () {
-        Route::group(["prefix" => "admin", "middleware" => "auth:admin"], function () {
+        Route::group(["prefix" => "admin", "middleware" => ["auth:admin", "admin.route.permission"]], function () {
 
             Route::resource('partenrs', ClientController::class);
             Route::resource('why-us', WhyUsController::class);
@@ -153,7 +151,7 @@ Route::group(
             Route::get('/travel/{id}/edit', [AdminTravelHistoryController::class, 'edit'])->name('travel.edit');
             Route::post('/travel', [AdminTravelHistoryController::class, 'store'])->name('travel.store');
             Route::post('/travel/{shelter_worker}', [AdminTravelHistoryController::class, 'update'])->name('travel.update');
-            
+
             Route::delete('/travel/{shelter_worker}', [AdminTravelHistoryController::class, 'destroy'])->name('travel.delete');
             Route::post('/store-travel-history', [AdminTravelHistoryController::class, 'storeTravelHistory'])->name('storeTravelHistory');
             Route::get('/travel/download/{id}', [AdminTravelHistoryController::class, 'downloadFile'])->name('travel.file.download');
@@ -475,7 +473,7 @@ Route::group(
     ],
     function () {
 
-        Route::name('dash.')->prefix('dash')->group(function () {
+        Route::middleware(['admin', 'admin.route.permission'])->name('dash.')->prefix('dash')->group(function () {
 
             //** SETTINGS **//
             Route::get('/settings', [AdminSettingsController::class, 'index'])->name('settings');
@@ -515,7 +513,7 @@ Route::group(
         'middleware' => ['localeSessionRedirect', 'localizationRedirect', 'localeViewPath'],
     ],
     function () {
-        Route::group(['prefix' => 'admin', 'middleware' => 'auth:admin'], function () {
+        Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin', 'admin.route.permission']], function () {
             Route::prefix('DeportationTravel')->name('DeportationTravel.')->group(function () {
                 Route::get('/', [DeportationTravelController::class, 'index'])->name('index');
                 Route::get('/create', [DeportationTravelController::class, 'create'])->name('create');

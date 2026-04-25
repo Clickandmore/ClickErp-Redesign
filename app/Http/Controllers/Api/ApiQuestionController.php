@@ -2,9 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
 use App\Http\Actions\ingaz\QuestionAction;
+use App\Http\Controllers\admin\Controller;
 
 class ApiQuestionController extends Controller
 {

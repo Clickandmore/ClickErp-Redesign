@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\site;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Models\ingaz\RecruitmentRequest;
 use Illuminate\Http\Request;
 

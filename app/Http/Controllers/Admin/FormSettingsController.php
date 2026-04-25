@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\admin;
 
 use App\Http\Actions\dashboard\SettingAction;
-use App\Http\Controllers\Controller;
 use App\Http\Requests\ingaz\SettingRequest;
 use App\Models\ingaz\Setting;
 use Illuminate\Http\Request;

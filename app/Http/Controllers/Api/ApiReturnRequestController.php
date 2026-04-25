@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Resources\Api\RetuenRequestsResource;
 use App\Models\Contract;
 use App\Models\ContractReturnRequest;

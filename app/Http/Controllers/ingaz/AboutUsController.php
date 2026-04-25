@@ -3,11 +3,11 @@
 namespace App\Http\Controllers\ingaz;
 
 use App\Http\Actions\ingaz\AboutUsAction as objAction;
-use App\Http\Controllers\Controller;
-use App\Models\ingaz\AboutUs as objModel;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\AboutUsRequest as objRequest;
-use App\Models\ingaz\AboutUs;
 use App\Models\Feature;
+use App\Models\ingaz\AboutUs;
+use App\Models\ingaz\AboutUs as objModel;
 use Illuminate\Http\Request;
 
 

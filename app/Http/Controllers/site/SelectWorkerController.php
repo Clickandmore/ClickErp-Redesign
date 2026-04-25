@@ -5,7 +5,7 @@ namespace App\Http\Controllers\site;
 use App\Http\Actions\ingaz\ClientAction;
 use App\Http\Actions\ingaz\SelectWorkerAction;
 use App\Http\Actions\ingaz\SelectWorkerSettingsAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 
 class SelectWorkerController extends Controller
 {

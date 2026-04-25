@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Actions\ingaz\OrderDetailAction as objAction;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\OrderDetailRequest;
 use App\Http\Resources\Api\OrderDetailResource as objResource;
 use App\Models\ingaz\OrderDetail as objModel;

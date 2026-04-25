@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\site\profile;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\admin\Controller;
 use App\Models\Contract;
 use App\Models\ContractReturnRequest;
 use Illuminate\Http\Request;

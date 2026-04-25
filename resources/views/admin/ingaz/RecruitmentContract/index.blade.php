@@ -217,10 +217,12 @@
                     <i class="fas fa-paper-plane me-2"></i>
                     إرسالات المكتب الخارجي
                 </a>
-                <a href="{{ route('RecruitmentContract.create') }}" class="btn btn-primary">
-                    <i class="fas fa-plus me-2"></i>
-                    {{ helperTrans('ingaz.add_recruitment_contract') }}
-                </a>
+                @if (AdminGuardHasAnyPerm([\App\NewPermKeys::REC_CONTRACTS_CREATE, \App\NewPermKeys::REC_CONTRACTS_MANAGE]))
+                    <a href="{{ route('RecruitmentContract.create') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>
+                        {{ helperTrans('ingaz.add_recruitment_contract') }}
+                    </a>
+                @endif
             </div>
         </div>
 

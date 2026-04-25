@@ -2,9 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Actions\ingaz\JobTypeAction as objAction;
-use App\Http\Controllers\Controller;
-use App\Http\Requests\ingaz\JobTypeRequest;
+use App\Http\Controllers\admin\Controller;
 use App\Http\Resources\Api\JobTypeResource as objResource;
 use App\Models\ingaz\JobType as objModel;
 use Illuminate\Http\Request;

@@ -1,10 +1,10 @@
 <?php
 
-use App\Http\Controllers\office\OfficeController;
-use App\Http\Controllers\office\OfficeFileController;
-use App\Http\Controllers\office\OfficeStatusController;
-use App\Http\Controllers\office\ResetPasswordController;
-use App\Http\Controllers\office\SendEmailResetPasswordController;
+use App\Http\Controllers\admin\office\OfficeController;
+use App\Http\Controllers\admin\office\OfficeFileController;
+use App\Http\Controllers\admin\office\OfficeStatusController;
+use App\Http\Controllers\admin\office\ResetPasswordController;
+use App\Http\Controllers\admin\office\SendEmailResetPasswordController;
 use Illuminate\Support\Facades\Route;
 use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 
@@ -26,7 +26,7 @@ Route::group(
         'middleware' => ['localeSessionRedirect', 'localizationRedirect', 'localeViewPath'],
     ],
     function () {
-        Route::group(["prefix" => "admin", "middleware" => "auth:admin"], function () {
+        Route::group(["prefix" => "admin", "middleware" => ["auth:admin", "admin.route.permission"]], function () {
 
             Route::resource('offices', OfficeController::class);
             Route::resource('offices-status', OfficeStatusController::class);

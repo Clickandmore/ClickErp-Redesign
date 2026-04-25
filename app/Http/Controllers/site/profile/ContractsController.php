@@ -2,13 +2,11 @@
 
 namespace App\Http\Controllers\site\profile;
 
-use Carbon\Carbon;
+use App\Http\Controllers\admin\Controller;
+use App\Models\CancelContractRequests;
 use App\Models\Contract;
 use Illuminate\Http\Request;
-use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
-use App\Models\CancelContractRequests;
-use Illuminate\Support\Facades\Session;
 
 class ContractsController extends Controller
 {

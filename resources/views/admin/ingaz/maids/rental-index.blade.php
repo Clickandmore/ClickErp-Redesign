@@ -12,11 +12,9 @@
         'total' => 0,
         'available' => 0,
         'reserved' => 0,
+        'visible' => 0,
+        'hidden' => 0,
         'in_accommodation' => 0,
-        'expiring' => 0,
-        'wants_to_work' => 0,
-        'in_deportation' => 0,
-        'undecided' => 0,
     ];
     $rentalTypeId = $rentalTypeId ?? null;
     $visibleDefaultFilters = collect($defaultFilters)
@@ -59,28 +57,24 @@
             border-left-color: #28a745;
         }
 
+        .rental-page .contracts-card {
+            border-left-color: #0d6efd;
+        }
+
         .rental-page .reserved-card {
             border-left-color: #f6c23e;
         }
 
-        .rental-page .expiring-card {
-            border-left-color: #e74a3b;
+        .rental-page .visible-card {
+            border-left-color: #198754;
+        }
+
+        .rental-page .hidden-card {
+            border-left-color: #6c757d;
         }
 
         .rental-page .shelter-card {
             border-left-color: #1cc88a;
-        }
-
-        .rental-page .transfer-card {
-            border-left-color: #36b9cc;
-        }
-
-        .rental-page .deportation-card {
-            border-left-color: #ff6b6b;
-        }
-
-        .rental-page .undecided-card {
-            border-left-color: #858796;
         }
 
         .rental-page .filter-card .card-header {
@@ -101,6 +95,10 @@
             min-width: 150px;
         }
 
+        .rental-page .actions-btn {
+            min-width: 118px;
+        }
+
         @media (max-width: 768px) {
             .rental-page .table-responsive {
                 font-size: 0.875rem;
@@ -119,7 +117,7 @@
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
                 <div>
                     <h4 class="mb-1">{{ $pageTitle }}</h4>
-                    <div class="text-muted small">عرض السير الذاتية الخاصة بالإيجار بنفس تسلسل صفحة الإيجار</div>
+                    <div class="text-muted small">ترتيب تشغيلي يوضح حالة التوفر والظهور بالموقع الخارجي ووضع الإيواء الحالي</div>
                 </div>
                 @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_CREATE))
                     <a href="{{ $createUrl }}" class="btn btn-primary">
@@ -129,7 +127,7 @@
             </div>
 
             <div class="row mb-4">
-                <div class="col-xl-3 col-md-6 mb-4">
+                <div class="col-xl-4 col-md-6 mb-4">
                     <div class="card statistics-card total-card shadow h-100" data-rental-filter="total">
                         <div class="card-body">
                             <div class="row align-items-center">
@@ -144,12 +142,12 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-xl-3 col-md-6 mb-4">
+                <div class="col-xl-4 col-md-6 mb-4">
                     <div class="card statistics-card available-card shadow h-100" data-rental-filter="available">
                         <div class="card-body">
                             <div class="row align-items-center">
                                 <div class="col me-2">
-                                    <div class="text-xs mb-1"><i class="fas fa-check-circle me-1"></i>جاهزة للتأجير</div>
+                                    <div class="text-xs mb-1"><i class="fas fa-check-circle me-1"></i>المتاح</div>
                                     <div class="h5 mb-0">{{ number_format($rentalStats['available'] ?? 0) }}</div>
                                 </div>
                                 <div class="col-auto">
@@ -159,12 +157,12 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-xl-3 col-md-6 mb-4">
+                <div class="col-xl-4 col-md-6 mb-4">
                     <div class="card statistics-card reserved-card shadow h-100" data-rental-filter="reserved">
                         <div class="card-body">
                             <div class="row align-items-center">
                                 <div class="col me-2">
-                                    <div class="text-xs mb-1"><i class="fas fa-calendar-check me-1"></i>محجوزة حالياً</div>
+                                    <div class="text-xs mb-1"><i class="fas fa-calendar-check me-1"></i>المحجوز</div>
                                     <div class="h5 mb-0">{{ number_format($rentalStats['reserved'] ?? 0) }}</div>
                                 </div>
                                 <div class="col-auto">
@@ -174,79 +172,46 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card statistics-card expiring-card shadow h-100" data-rental-filter="expiring">
+                <div class="col-xl-4 col-md-6 mb-4">
+                    <div class="card statistics-card visible-card shadow h-100" data-rental-filter="visible">
                         <div class="card-body">
                             <div class="row align-items-center">
                                 <div class="col me-2">
-                                    <div class="text-xs mb-1"><i class="fas fa-hourglass-half me-1"></i>أوشكت الإقامة على الانتهاء</div>
-                                    <div class="h5 mb-0">{{ number_format($rentalStats['expiring'] ?? 0) }}</div>
+                                    <div class="text-xs mb-1"><i class="fas fa-eye me-1"></i>تظهر بالموقع الخارجي</div>
+                                    <div class="h5 mb-0">{{ number_format($rentalStats['visible'] ?? 0) }}</div>
                                 </div>
                                 <div class="col-auto">
-                                    <i class="fas fa-clock fa-2x"></i>
+                                    <i class="fas fa-globe fa-2x"></i>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <div class="row mb-4">
-                <div class="col-xl-3 col-md-6 mb-4">
+                <div class="col-xl-4 col-md-6 mb-4">
+                    <div class="card statistics-card hidden-card shadow h-100" data-rental-filter="hidden">
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col me-2">
+                                    <div class="text-xs mb-1"><i class="fas fa-eye-slash me-1"></i>لا تظهر بالموقع الخارجي</div>
+                                    <div class="h5 mb-0">{{ number_format($rentalStats['hidden'] ?? 0) }}</div>
+                                </div>
+                                <div class="col-auto">
+                                    <i class="fas fa-user-secret fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xl-4 col-md-6 mb-4">
                     <div class="card statistics-card shelter-card shadow h-100" data-rental-filter="in_accommodation">
                         <div class="card-body">
                             <div class="row align-items-center">
                                 <div class="col me-2">
-                                    <div class="text-xs mb-1"><i class="fas fa-home me-1"></i>داخل الإيواء</div>
+                                    <div class="text-xs mb-1"><i class="fas fa-home me-1"></i>داخل الإيواء حالياً</div>
                                     <div class="h5 mb-0">{{ number_format($rentalStats['in_accommodation'] ?? 0) }}</div>
                                 </div>
                                 <div class="col-auto">
                                     <i class="fas fa-warehouse fa-2x"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card statistics-card transfer-card shadow h-100" data-rental-filter="wants_to_work">
-                        <div class="card-body">
-                            <div class="row align-items-center">
-                                <div class="col me-2">
-                                    <div class="text-xs mb-1"><i class="fas fa-random me-1"></i>متاحة للنقل من الإيواء</div>
-                                    <div class="h5 mb-0">{{ number_format($rentalStats['wants_to_work'] ?? 0) }}</div>
-                                </div>
-                                <div class="col-auto">
-                                    <i class="fas fa-exchange-alt fa-2x"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card statistics-card deportation-card shadow h-100" data-rental-filter="in_deportation">
-                        <div class="card-body">
-                            <div class="row align-items-center">
-                                <div class="col me-2">
-                                    <div class="text-xs mb-1"><i class="fas fa-plane-departure me-1"></i>في مرحلة الترحيل</div>
-                                    <div class="h5 mb-0">{{ number_format($rentalStats['in_deportation'] ?? 0) }}</div>
-                                </div>
-                                <div class="col-auto">
-                                    <i class="fas fa-plane fa-2x"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-xl-3 col-md-6 mb-4">
-                    <div class="card statistics-card undecided-card shadow h-100" data-rental-filter="undecided">
-                        <div class="card-body">
-                            <div class="row align-items-center">
-                                <div class="col me-2">
-                                    <div class="text-xs mb-1"><i class="fas fa-question-circle me-1"></i>غير محدد وضعها</div>
-                                    <div class="h5 mb-0">{{ number_format($rentalStats['undecided'] ?? 0) }}</div>
-                                </div>
-                                <div class="col-auto">
-                                    <i class="fas fa-user-clock fa-2x"></i>
                                 </div>
                             </div>
                         </div>
@@ -320,6 +285,13 @@
                                     <option value="available" {{ $request->cv_status === 'available' ? 'selected' : '' }}>متاحة</option>
                                     <option value="reserved" {{ $request->cv_status === 'reserved' ? 'selected' : '' }}>محجوزة</option>
                                     <option value="backout" {{ $request->cv_status === 'backout' ? 'selected' : '' }}>باك اوت</option>
+                                </select>
+                            </div>
+                            <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
+                                <select name="visibility" id="visibility" class="form-control">
+                                    <option value="">حالة الظهور بالموقع</option>
+                                    <option value="visible" {{ $request->visibility === 'visible' ? 'selected' : '' }}>تظهر بالموقع</option>
+                                    <option value="hidden" {{ $request->visibility === 'hidden' ? 'selected' : '' }}>لا تظهر بالموقع</option>
                                 </select>
                             </div>
                             <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
@@ -490,6 +462,7 @@
                     job_type: $('#type').val(),
                     experience_years: $('#experience_years').val(),
                     cv_status: $('#cv_status').val(),
+                    visibility: $('#visibility').val(),
                     experience_status: $('#experience_status').val(),
                     date_from: $('#date_from').val(),
                     date_to: $('#date_to').val()
@@ -546,6 +519,9 @@
                 if ($('#cv_status').val()) {
                     currentRentalStat = '';
                     setActiveRentalStat($('#cv_status').val());
+                } else if ($('#visibility').val()) {
+                    currentRentalStat = '';
+                    setActiveRentalStat($('#visibility').val());
                 } else if (!currentRentalStat) {
                     setActiveRentalStat('total');
                 }
@@ -564,12 +540,19 @@
                 if (filterKey === 'total') {
                     currentRentalStat = '';
                     $('#cv_status').val('');
-                } else if (filterKey === 'available' || filterKey === 'reserved') {
+                    $('#visibility').val('');
+                } else if (filterKey === 'available' || filterKey === 'reserved' || filterKey === 'backout') {
                     currentRentalStat = '';
                     $('#cv_status').val(filterKey);
+                    $('#visibility').val('');
+                } else if (filterKey === 'visible' || filterKey === 'hidden') {
+                    currentRentalStat = '';
+                    $('#cv_status').val('');
+                    $('#visibility').val(filterKey);
                 } else {
                     currentRentalStat = filterKey;
                     $('#cv_status').val('');
+                    $('#visibility').val('');
                 }
 
                 setActiveRentalStat(filterKey);
@@ -635,7 +618,9 @@
 
             if (initialFilters.rental_stat) {
                 setActiveRentalStat(initialFilters.rental_stat);
-            } else if (initialFilters.cv_status === 'available' || initialFilters.cv_status === 'reserved') {
+            } else if (initialFilters.visibility === 'visible' || initialFilters.visibility === 'hidden') {
+                setActiveRentalStat(initialFilters.visibility);
+            } else if (initialFilters.cv_status === 'available' || initialFilters.cv_status === 'reserved' || initialFilters.cv_status === 'backout') {
                 setActiveRentalStat(initialFilters.cv_status);
             } else {
                 setActiveRentalStat('total');
