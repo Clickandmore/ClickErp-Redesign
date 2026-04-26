@@ -25,4 +25,6 @@
   'what_do' => 'What do',
   'cancellation_already_exists' => 'يوجد طلب إلغاء لهذا العقد بالفعل.',
   'cancellation_submitted_successfully' => 'تم إرسال طلب إلغاء العقد بنجاح.',
+  'data_updated_successfully' => 'تم تحديث البيانات بنجاح.',
+  'error_updating_profile' => 'حدث خطأ أثناء تحديث الملف الشخصي. يرجى المحاولة مرة أخرى.',
 );

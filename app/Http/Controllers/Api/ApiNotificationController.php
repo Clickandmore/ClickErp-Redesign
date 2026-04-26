@@ -19,6 +19,7 @@ class ApiNotificationController extends Controller
     public function index(Request $request)
     {
         $sql = objModel::where('user_id',Auth::user()->id);
+        
         return generalReturn($request, $sql, objResource::class, __("api.All items"));
     }
 
