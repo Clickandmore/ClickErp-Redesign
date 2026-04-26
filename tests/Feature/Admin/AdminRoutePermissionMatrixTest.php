@@ -38,4 +38,14 @@ class AdminRoutePermissionMatrixTest extends TestCase
 
         $this->assertSame([PermKeys::ROLES_EDIT], $permissions);
     }
+
+    public function test_offices_route_uses_external_agents_permissions(): void
+    {
+        $permissions = AdminRoutePermissionMatrix::resolve(
+            'offices.index',
+            Request::create('/admin/offices')
+        );
+
+        $this->assertSame([PermKeys::OFFICE_VIEW, PermKeys::OFFICE_CONTROL], $permissions);
+    }
 }

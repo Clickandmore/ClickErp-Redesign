@@ -1062,16 +1062,41 @@
                 @endif
 
                 @if ($canViewSettingsOperation)
-                    <li class="collapsed">
+                    @php
+                        $activeSettingsSection = request()->route('section');
+                        $isDashboardSettings = request()->routeIs('settings.section') && $activeSettingsSection === 'dashboard';
+                        $isWebsiteSettingsRoute =
+                            request()->routeIs('settings.index') ||
+                            (request()->routeIs('settings.section') && !$isDashboardSettings) ||
+                            (request()->routeIs('settings.*') && !request()->routeIs('settings.section'));
+                        $websiteManagementOpen =
+                            $isWebsiteSettingsRoute ||
+                            request()->routeIs('form-settings.*') ||
+                            request()->routeIs('about-us.*') ||
+                            request()->routeIs('questions.*') ||
+                            request()->routeIs('dash.settings*');
+                        $settingsOperationOpen = $isDashboardSettings || $websiteManagementOpen;
+                    @endphp
+                    <li class="{{ $settingsOperationOpen ? '' : 'collapsed' }}">
                         <a class="m-link" data-bs-toggle="collapse" data-bs-target="#settingsOperation"
                             href="#">
                             <i class="fa fa-cog fa-lg"></i>
                             <span class="ms-2">اعدادات النظام</span>
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
-                        <ul class="sub-menu collapse" id="settingsOperation">
+                        <ul class="sub-menu collapse {{ $settingsOperationOpen ? 'show' : '' }}" id="settingsOperation">
+                            @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
+                                <li>
+                                    <a class="m-link {{ $isDashboardSettings ? 'active' : '' }}"
+                                        href="{{ route('settings.section', 'dashboard') }}">
+                                        <i class="fa fa-gauge"></i>
+                                        <span class="ms-2">{{ helperTrans('ingaz.dashboard_settings') }}</span>
+                                    </a>
+                                </li>
+                            @endif
+
                             @if ($canViewWebsiteManagement)
-                                <li class="collapsed">
+                                <li class="{{ $websiteManagementOpen ? '' : 'collapsed' }}">
                                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#websiteManagement"
                                         href="#">
                                         <i class="fa fa-globe"></i>
@@ -1079,19 +1104,11 @@
                                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                                     </a>
 
-                                    @php
-                                        $websiteManagementOpen =
-                                            request()->routeIs('settings.*') ||
-                                            request()->routeIs('form-settings.*') ||
-                                            request()->routeIs('about-us.*') ||
-                                            request()->routeIs('questions.*') ||
-                                            request()->routeIs('dash.settings*');
-                                    @endphp
                                     <ul class="sub-menu collapse {{ $websiteManagementOpen ? 'show' : '' }}"
                                         id="websiteManagement">
                                         @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
                                             <li>
-                                                <a class="m-link {{ request()->routeIs('settings.*') || request()->routeIs('dash.settings*') ? 'active' : '' }}"
+                                                <a class="m-link {{ $isWebsiteSettingsRoute || request()->routeIs('dash.settings*') ? 'active' : '' }}"
                                                     href="{{ route('settings.section', 'general') }}">
                                                     <i class="fa fa-cogs"></i>
                                                     <span

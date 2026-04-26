@@ -7,8 +7,9 @@
     @php
         $locale = app()->getLocale();
         $settingsName = isset($settings) ? optional($settings->translate($locale))->website_name : null;
+        $dashboardName = isset($settings) ? optional($settings->translate($locale))->dashboard_name : null;
         $copyrightText = isset($settings) ? optional($settings->translate($locale))->copyright : null;
-        $brandName = $settingsName ?: (isset($developSettings) ? $developSettings->name : config('app.name', 'Platinum'));
+        $brandName = $dashboardName ?: ($settingsName ?: (isset($developSettings) ? $developSettings->name : config('app.name', 'Platinum')));
 
         if (isset($settings) && !empty($settings->admin_login_background)) {
             $loginBg = showFile($settings->admin_login_background);

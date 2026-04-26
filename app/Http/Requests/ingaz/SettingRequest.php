@@ -56,6 +56,8 @@ class SettingRequest extends MainRequest
             'live_chat_url' => 'nullable|url|max:500',
             'location:ar' => 'nullable|string',
             'location:en' => 'nullable|string',
+            'dashboard_name:ar' => 'nullable|string',
+            'dashboard_name:en' => 'nullable|string',
             'copyright:ar' => 'nullable',
             'copyright:en' => 'nullable',
             'website_name:ar' => 'nullable|string',

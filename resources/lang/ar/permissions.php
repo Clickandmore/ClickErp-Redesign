@@ -302,11 +302,11 @@ return [
     'contact_control' => 'التحكم في طلبات التواصل',
 
 
-    'office_view' => 'عرض المكاتب',
-    'office_create' => 'إضافة المكاتب',
-    'office_edit' => 'تعديل المكاتب',
-    'office_delete' => 'حذف المكاتب',
-    'office_control' => 'التحكم في المكاتب',
+    'office_view' => 'عرض الوكلاء الخارجيين',
+    'office_create' => 'إضافة وكيل خارجي',
+    'office_edit' => 'تعديل الوكلاء الخارجيين',
+    'office_delete' => 'حذف الوكلاء الخارجيين',
+    'office_control' => 'إدارة الوكلاء الخارجيين',
 
     'steps_view' => 'عرض الخطوات',
     'steps_create' => 'إضافة خطوة',
@@ -471,6 +471,7 @@ return [
     'rec_contracts_manage' => 'إدارة عقود الاستقدام',
     'rec_contracts_reports' => 'تقارير عقود الاستقدام',
     'rec_contracts_analytics' => 'إحصائيات عقود الاستقدام',
+    'finance.constraints-approve' => 'اعتماد القيود المحاسبية',
 
     // ========================================
     // عقود التوظيف (Legacy - للتوافق)

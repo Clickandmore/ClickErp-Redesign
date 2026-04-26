@@ -22,6 +22,7 @@ class Setting extends Model
         'rights_users',
         'copyright',
         'website_name',
+        'dashboard_name',
         'document_company_name',
         'document_office_name',
         'document_footer_note',

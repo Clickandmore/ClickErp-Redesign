@@ -471,6 +471,7 @@ return [
     'rec_contracts_manage' => 'Manage Recruitment Contracts',
     'rec_contracts_reports' => 'Recruitment Contracts Reports',
     'rec_contracts_analytics' => 'Recruitment Contracts Analytics',
+    'finance.constraints-approve' => 'Approve accounting constraints',
 
     // ========================================
     // Legacy Recruitment Contracts (for compatibility)

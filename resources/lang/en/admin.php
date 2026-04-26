@@ -327,6 +327,8 @@ return [
     'menu' => 'Menu',
     'general_settings' => 'General Settings',
     'app_settings' => 'App Settings',
+    'settings_section_dashboard' => 'Dashboard Settings',
+    'settings_section_dashboard_hint' => 'Independent dashboard name, logo, and login background settings that do not affect the public website.',
     'settings_section_general' => 'Basics',
     'settings_section_social' => 'Social Links',
     'settings_section_branding' => 'Branding & Media',

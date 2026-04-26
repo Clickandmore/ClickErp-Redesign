@@ -2,7 +2,8 @@
     <div class="container-fluid d-flex flex-wrap justify-content-center align-items-center">
         @php
             $locale = app()->getLocale();
-            $footerName = isset($settings) ? optional($settings->translate($locale))->website_name : null;
+            $footerName = isset($settings) ? optional($settings->translate($locale))->dashboard_name : null;
+            $footerName = $footerName ?: (isset($settings) ? optional($settings->translate($locale))->website_name : null);
             $footerName = $footerName ?: 'بلاتنيوم الشرقية للاستقدام';
             $footerCopyright = isset($settings) ? optional($settings->translate($locale))->copyright : null;
         @endphp

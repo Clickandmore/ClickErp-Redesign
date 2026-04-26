@@ -644,6 +644,7 @@
   'countries' => 'الدول',
   'staff_management' => 'إدارة طاقم العمل',
   'permissions' => 'الصلاحيات',
+  'dashboard_settings' => 'إعدادات لوحة التحكم',
   'website_management' => 'إدارة الموقع',
   'website_settings' => 'إعدادات الموقع',
   'additional_settings' => 'إعدادات إضافية',

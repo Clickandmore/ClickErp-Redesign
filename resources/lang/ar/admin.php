@@ -329,6 +329,8 @@
     'menu' => 'القائمه',
     'general_settings' => 'الاعدادات العامه',
     'app_settings' => 'اعدادات التطبيق',
+    'settings_section_dashboard' => 'إعدادات لوحة التحكم',
+    'settings_section_dashboard_hint' => 'إعدادات مستقلة لاسم وشعار وخلفية لوحة التحكم ولا تؤثر على الموقع الخارجي.',
     'settings_section_general' => 'البيانات الأساسية',
     'settings_section_social' => 'روابط التواصل',
     'settings_section_branding' => 'الهوية والوسائط',

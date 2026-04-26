@@ -45,6 +45,8 @@ class SettingController extends Controller
         'there_are_offer',
         'location:ar',
         'location:en',
+        'dashboard_name:ar',
+        'dashboard_name:en',
         'offer_text:ar',
         'offer_text:en',
         'copyright:ar',
@@ -131,7 +133,7 @@ class SettingController extends Controller
 
     private function renderSection(string $section)
     {
-        $allowedSections = ['general', 'social', 'branding', 'content', 'policies'];
+        $allowedSections = ['dashboard', 'general', 'social', 'branding', 'content', 'policies'];
         if (!in_array($section, $allowedSections, true)) {
             $section = 'general';
         }

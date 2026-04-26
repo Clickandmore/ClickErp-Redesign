@@ -508,6 +508,7 @@
     'countries' => 'Countries',
     'staff_management' => 'Staff Management',
     'permissions' => 'Permissions',
+    'dashboard_settings' => 'Dashboard Settings',
     'website_management' => 'Website Management',
     'website_settings' => 'Website Settings',
     'additional_settings' => 'Additional Settings',

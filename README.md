@@ -174,6 +174,63 @@ php artisan db:seed --class="Nami\\Finance\\Database\\Seeders\\AccountSeeder" --
 php artisan db:seed --class="Nami\\Finance\\Database\\Seeders\\RecruitmentRentalAccountsSeeder" --force
 ```
 
+### إعدادات النظام المحاسبي لحسابات التأجير
+
+صفحة الإعدادات:
+
+```text
+/finance/confirm-settings
+https://www.platinumeastern.com/finance/confirm-settings
+```
+
+قبل ضبط الصفحة تأكد من وجود جداول المالية وحسابات التأجير:
+
+```bash
+php artisan migrate --path=packages/finance/database/migrations --force
+php artisan db:seed --class="Nami\\Finance\\Database\\Seeders\\RecruitmentRentalAccountsSeeder" --force
+php artisan optimize:clear
+```
+
+ربط حسابات مصروفات عاملات التأجير داخل `fn_confirm_settings` حسب أكواد الشجرة المالية:
+
+```bash
+php artisan tinker --execute='use Nami\Finance\Models\Account; use Nami\Finance\Models\ConfirmSetting; $settings = ["rental_maid_account_recruitment_cost" => 5911, "rental_maid_account_visa_fee" => 5921, "rental_maid_account_enjaz_fee" => 5922, "rental_maid_account_iqama_fee" => 5923, "rental_maid_account_work_permit_fee" => 5924, "rental_maid_account_medical_insurance" => 5925, "rental_maid_account_social_insurance" => 5926, "rental_maid_account_salary" => 5931]; foreach ($settings as $key => $code) { $account = Account::where("code", $code)->whereDoesntHave("children")->first(); if (! $account) { throw new RuntimeException("Account {$code} not found"); } ConfirmSetting::updateOrCreate(["title" => $key], ["value" => $account->id, "created_by_id" => 1]); }'
+```
+
+الأكواد المرتبطة في صفحة الإعدادات:
+
+```text
+rental_maid_account_recruitment_cost       => 5911 تكلفة استقدام عمالة تأجير
+rental_maid_account_visa_fee               => 5921 رسوم تأشيرات عمل التأجير
+rental_maid_account_enjaz_fee              => 5922 رسوم إنجاز التأجير
+rental_maid_account_iqama_fee              => 5923 رسوم إقامات التأجير
+rental_maid_account_work_permit_fee        => 5924 رسوم رخص عمل التأجير
+rental_maid_account_medical_insurance      => 5925 رسوم تأمين طبي التأجير
+rental_maid_account_social_insurance       => 5926 رسوم تأمينات اجتماعية التأجير
+rental_maid_account_salary                 => 5931 رواتب عمالة التأجير
+```
+
+صلاحيات شاشات التأجير للمسؤول، ثم تصفير كاش الصلاحيات:
+
+```bash
+php artisan permissions:assign-rent-contracts 1
+php artisan permission:cache-reset
+```
+
+إذا كان المطلوب تجهيز كل صلاحيات السيرفر بعد النشر، استخدم الأمر الشامل بدلا من الأمر اليدوي:
+
+```bash
+php artisan permissions:prepare-server --role-id=1 --role-name=Administrator --attach-first-admin
+php artisan permission:cache-reset
+```
+
+للتحقق من المسار والإعدادات:
+
+```bash
+php artisan route:list | grep finance.confirm-settings
+php artisan tinker --execute='use Nami\Finance\Models\ConfirmSetting; dump(ConfirmSetting::whereIn("title", ["rental_maid_account_recruitment_cost", "rental_maid_account_visa_fee", "rental_maid_account_enjaz_fee", "rental_maid_account_iqama_fee", "rental_maid_account_work_permit_fee", "rental_maid_account_medical_insurance", "rental_maid_account_social_insurance", "rental_maid_account_salary"])->pluck("value", "title")->all());'
+```
+
 ### تشغيل Seeders المالية كاملة
 
 تحذير: `FinanceDatabaseSeeder` يشغل `AccountSeeder`، لذلك سيعيد بناء `fn_accounts`.
