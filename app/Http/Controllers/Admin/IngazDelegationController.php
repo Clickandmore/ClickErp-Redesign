@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Admin;
+namespace App\Http\Controllers\admin;
 
 use App\Http\Requests\StoreIngazDelegationRequest;
 use App\Models\auth\Admin;

@@ -1,8 +1,8 @@
 <?php
 
-use App\Http\Controllers\Admin\AdminContractController;
-use App\Http\Controllers\Admin\CountryController;
-use App\Http\Controllers\Admin\IngazDelegationController;
+use App\Http\Controllers\admin\AdminContractController;
+use App\Http\Controllers\admin\CountryController;
+use App\Http\Controllers\admin\IngazDelegationController;
 use App\Http\Controllers\ingaz\MaidController as IngazMaidController;
 use App\Http\Controllers\ingaz\RecruitmentContractController;
 use App\Http\Controllers\ingaz\RecruitmentController;
@@ -393,9 +393,9 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin', 'admin.route.p
 
 // Notification routes
 Route::prefix('admin')->middleware(['auth:admin', 'admin.route.permission'])->group(function () {
-    Route::get('/notifications', [App\Http\Controllers\Admin\NotificationController::class, 'index']);
-    Route::post('/notifications/{id}/mark-as-read', [App\Http\Controllers\Admin\NotificationController::class, 'markAsRead']);
-    Route::post('/notifications/mark-all-read', [App\Http\Controllers\Admin\NotificationController::class, 'markAllAsRead']);
+    Route::get('/notifications', [App\Http\Controllers\admin\NotificationController::class, 'index']);
+    Route::post('/notifications/{id}/mark-as-read', [App\Http\Controllers\admin\NotificationController::class, 'markAsRead']);
+    Route::post('/notifications/mark-all-read', [App\Http\Controllers\admin\NotificationController::class, 'markAllAsRead']);
 
     // SMS Templates Management
     Route::get('sms-templates', [\App\Http\Controllers\admin\SmsTemplateController::class, 'index'])->name('admin.sms-templates.index');

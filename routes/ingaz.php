@@ -6,7 +6,7 @@ use App\Http\Controllers\admin\AdminFullOrderContractController;
 use App\Http\Controllers\admin\AdminSettingsController;
 use App\Http\Controllers\admin\AdminShelterWorkersContractCTLR;
 use App\Http\Controllers\admin\AdminTravelHistoryController;
-use App\Http\Controllers\Admin\ContractReturnRequestController;
+use App\Http\Controllers\admin\ContractReturnRequestController;
 use App\Http\Controllers\admin\FormSettingsController;
 use App\Http\Controllers\admin\office\OfficeController;
 use App\Http\Controllers\admin\PrintContractController;
@@ -408,7 +408,7 @@ Route::group(
                     Route::post('/contracts', [\App\Http\Controllers\admin\IstiqdasmRealController::class, 'storeContract'])->name('contracts.store');
                     Route::get('/contracts/{contractId}', [\App\Http\Controllers\admin\IstiqdasmRealController::class, 'getContractDetails'])->name('contracts.show');
                     Route::delete('/contracts/{contractId}', [\App\Http\Controllers\admin\IstiqdasmRealController::class, 'cancelContract'])->name('contracts.cancel');
-                    Route::get('/contracts/{contractId}/download/{type?}', [\App\Http\Controllers\Admin\IstiqdasmRealController::class, 'downloadContract'])->name('contracts.download');
+                    Route::get('/contracts/{contractId}/download/{type?}', [\App\Http\Controllers\admin\IstiqdasmRealController::class, 'downloadContract'])->name('contracts.download');
                 });
 
                 // Packages (Mock/Test)
