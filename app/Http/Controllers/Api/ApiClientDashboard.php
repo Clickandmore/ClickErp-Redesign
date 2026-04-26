@@ -44,7 +44,7 @@ class ApiClientDashboard extends Controller
 
         // Get recent orders
         $recentOrders = \App\Models\ingaz\Order::where('user_id', $user->id)
-            ->with(['maid', 'jobType'])
+            ->with(['maid.nationality', 'jobType', 'customer:id,name,phone,whatsapp'])
             ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get();
@@ -76,12 +76,15 @@ class ApiClientDashboard extends Controller
                 ->orWhere('new_sponsor_id', $user->id);
         })->orderBy('created_at', 'desc')->get();
 
+        $notifications_count = \App\Models\ingaz\Notification::where('user_id', $user->id)->count();
+
         $data = [
             "stats" => $stats,
             "recentOrders" => $recentOrders,
             "recentContracts" => $recentContracts,
             "recentComplaints" => $recentComplaints,
             "sponsorshipTransfers" => $sponsorshipTransfers,
+            "notifications_count" => $notifications_count,
         ];
 
         return apiResponse(true, __('api.All items'), $data, 200);
@@ -89,6 +92,8 @@ class ApiClientDashboard extends Controller
 
     public function update_profile(Request $request, UserAction $action)
     {
+        logger()->info('Update profile request data: ', $request->all());
+
         try {
             $dataInsert = $request->only(['name', 'email']);
 
@@ -107,12 +112,12 @@ class ApiClientDashboard extends Controller
             $data = $action->updateUser(auth()->id(), $dataInsert);
 
             if ($data) {
-                return apiResponse(true, helperTrans('web.data_updated_successfully'), [], 200);
+                return apiResponse(true, helperTrans('api.data_updated_successfully'), [], 200);
             } else {
-                return apiResponse(false, helperTrans('web.error_updating_profile'), [], 400);
+                return apiResponse(false, helperTrans('api.error_updating_profile'), [], 400);
             }
         } catch (\Exception $e) {
-            return apiResponse(false, helperTrans('web.error_updating_profile'), [], 500);
+            return apiResponse(false, helperTrans('api.error_updating_profile'), [], 500);
         }
     }
 

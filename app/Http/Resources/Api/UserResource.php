@@ -19,6 +19,7 @@ class UserResource extends JsonResource
 			'name' => (string)$this->name,
 			'phone_code' => (string)$this->phone_code,
 			'phone' => (string)$this->phone,
+			'email' => (string)$this->email,
 			'is_blocked' => (boolean)$this->is_blocked,
             'token' => isset($this->token) ? $this->token : '',
 			// 'remember_token' => (string)$this->remember_token,

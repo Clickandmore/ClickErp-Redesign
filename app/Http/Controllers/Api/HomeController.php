@@ -261,7 +261,7 @@ class HomeController extends Controller
         $services = $serviceAction->get();
         $steps = $stepAction->get();
         $clients = $clientAction->get();
-        $whatDos = $whatDoAction->get();
+        $whatDos = $whatDoAction->get()->load('items');
         $whatDoSetting = $whatDoSettingAction->first();
         $about = $about->first();
         $features = $feature->get();
@@ -277,6 +277,8 @@ class HomeController extends Controller
 
         $counts['clients'] = DB::table('users')->count();
 
+        $customerService = Admin::where('admin_type', AdminTypes::CustomerService->value)->select('id', 'name', 'phone', 'whatsapp')->get();
+
         $data = [
             'sliders' => $sliders,
             'statistics' => $statics,
@@ -288,6 +290,7 @@ class HomeController extends Controller
             'about' => $about,
             'features' => $features,
             'nationalities' => $nationalities,
+            'customerService' => $customerService,
             'requirements' => [
                 'visa' => $Visa,
                 'domestic' => $Domestic,

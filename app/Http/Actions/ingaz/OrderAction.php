@@ -50,7 +50,7 @@ class OrderAction extends MainAction
 
         $data = $this->model->where('user_id', $userId)
             ->whereIn('status', $acceptedStatuses)
-            ->with(['user', 'maid', 'jobType', 'details.admin', 'customer'])
+            ->with(['user', 'maid.jobTitles','maid.nationality',  'jobType', 'details.admin', 'customer'])
             ->orderBy('created_at', 'desc')
             ->get();
         return $data;
