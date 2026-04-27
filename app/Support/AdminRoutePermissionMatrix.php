@@ -22,6 +22,7 @@ class AdminRoutePermissionMatrix
             'professional_application.index',
             'recruitment_requests.index',
             'renew-contracts.index',
+            'known-service-requests.index',
             'contact.index',
             'RecruitmentContract.index',
             'RecruitmentContract.create',
@@ -234,6 +235,10 @@ class AdminRoutePermissionMatrix
                 'professional_application.index' => [PermKeys::PROFESSIONAL_APPLICATION_VIEW],
                 'recruitment_requests.index' => [PermKeys::RECRUITMENT_REQUESTS_VIEW],
                 'renew-contracts.index' => [PermKeys::RENEW_CONTRACTS_VIEW],
+                'known-service-requests.index' => [PermKeys::ORDERS_VIEW],
+                'known-service-requests.show' => [PermKeys::ORDERS_VIEW],
+                'known-service-requests.update' => [PermKeys::ORDERS_EDIT],
+                'known-service-requests.destroy' => [PermKeys::ORDERS_DELETE],
                 'contact.index' => [PermKeys::CONTACT_VIEW],
             ]
         );
@@ -546,3 +551,4 @@ class AdminRoutePermissionMatrix
         ], static fn ($value) => $value !== null);
     }
 }
+
