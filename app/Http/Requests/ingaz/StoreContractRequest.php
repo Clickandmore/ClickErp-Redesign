@@ -7,6 +7,8 @@ use Illuminate\Foundation\Http\FormRequest;
 use App\Models\ingaz\Order;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
+use Illuminate\Contracts\Validation\Validator;
+use Illuminate\Http\Exceptions\HttpResponseException;
 
 class StoreContractRequest extends MainRequest
 {
@@ -20,6 +22,39 @@ class StoreContractRequest extends MainRequest
         return true;
     }
 
+    protected function prepareForValidation()
+    {
+        $normalizedData = [];
+        $currentAdmin = Auth::guard('admin')->user();
+
+        if ($currentAdmin) {
+            $normalizedData['marketer_id'] = $currentAdmin->id;
+        }
+
+        if ($this->filled('new_existing_client_id') && !$this->filled('client_id')) {
+            $normalizedData['client_id'] = $this->input('new_existing_client_id');
+        }
+
+        if ($this->filled('new_new_maid_id') && !$this->filled('maid_id')) {
+            $normalizedData['maid_id'] = $this->input('new_new_maid_id');
+        }
+
+        foreach ([
+            'client_name',
+            'client_phone',
+            'client_email',
+        ] as $field) {
+            $newField = 'new_' . $field;
+            if ($this->filled($newField) && !$this->filled($field)) {
+                $normalizedData[$field] = $this->input($newField);
+            }
+        }
+
+        if (!empty($normalizedData)) {
+            $this->merge($normalizedData);
+        }
+    }
+
     /**
      * Get the validation rules that apply to the request.
      *
@@ -28,13 +63,8 @@ class StoreContractRequest extends MainRequest
     public function rules()
     {
         $currentAdmin = Auth::guard('admin')->user();
-        $canSelectAnyMarketer = $currentAdmin && (
-            $currentAdmin->admin_type === 'super_admin'
-            || adminHasAnyRoleSafe($currentAdmin, ['super_admin', 'admin', 'Administrator'])
-        );
-
         $marketerRules = ['required', 'exists:admins,id'];
-        if ($currentAdmin && !$canSelectAnyMarketer) {
+        if ($currentAdmin) {
             $marketerRules[] = Rule::in([$currentAdmin->id]);
         }
 
@@ -71,7 +101,7 @@ class StoreContractRequest extends MainRequest
             'new_client_children' => 'nullable',
             'new_client_job' => 'nullable',
             'new_client_birthdate' => 'nullable',
-            'maid_id' => 'nullable',
+            'maid_id' => 'required_if:maid_selection_mode,existing|nullable',
             'maid_selection_mode' => 'nullable|in:existing,manual,postponed',
             'maid_selection_postponed' => 'nullable|boolean',
             'manual_maid_name' => 'required_if:maid_selection_mode,manual|nullable|string|max:255',
@@ -105,6 +135,7 @@ class StoreContractRequest extends MainRequest
             'client_city.required' => 'يرجي ادخال المدينة',
             'client_address.required' => 'يرجي ادخال العنوان',
             'client_birthdate.required' => 'يرجي ادخال تاريخ الميلاد',
+            'maid_id.required_if' => 'يرجى اختيار العاملة أو تغيير طريقة الإضافة إلى عاملة مختصرة أو تأجيل الاختيار',
             'maid_selection_mode.in' => 'طريقة إضافة العاملة غير صحيحة',
             'manual_maid_name.required_if' => 'يرجى إدخال اسم العاملة المختصر',
             'manual_maid_passport_num.required_if' => 'يرجى إدخال رقم جواز العاملة المختصر',
@@ -119,5 +150,18 @@ class StoreContractRequest extends MainRequest
             'marketer_id.exists' => 'المسوق المختار غير موجود',
             'required_maid_nationality.exists' => 'الجنسية المختارة غير موجودة',
         ];
+    }
+
+    protected function failedValidation(Validator $validator)
+    {
+        if ($this->ajax() || $this->expectsJson()) {
+            throw new HttpResponseException(response()->json([
+                'success' => false,
+                'message' => $validator->errors()->first() ?: 'يرجى مراجعة الحقول المطلوبة',
+                'errors' => $validator->errors(),
+            ], 422));
+        }
+
+        parent::failedValidation($validator);
     }
 }

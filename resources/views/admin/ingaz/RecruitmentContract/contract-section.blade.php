@@ -48,29 +48,12 @@
             <label class="form-label">المسوق <span class="text-danger">*</span></label>
             @php
                 $currentAdmin = $currentUser ?? auth('admin')->user();
-                $canSelectMarketer = $canSelectAnyMarketer ?? ($currentAdmin && (
-                    $currentAdmin->admin_type === 'super_admin'
-                    || $currentAdmin->hasAnyRole(['super_admin', 'admin', 'Administrator'])
-                ));
-                $availableMarketers = $marketers ?? ($canSelectMarketer
-                    ? \App\Models\auth\Admin::whereNull('deleted_at')->orderBy('name')->get()
-                    : collect([$currentAdmin])->filter());
+                $displayAdminName = trim(preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags((string) ($currentAdmin?->name ?? '')), ENT_QUOTES, 'UTF-8')));
             @endphp
 
-            @if ($canSelectMarketer)
-                <select name="marketer_id" id="marketer_id" class="form-select" data-validation="required">
-                    <option value="">اختر المسوق</option>
-                    @foreach ($availableMarketers as $admin)
-                        <option value="{{ $admin->id }}" @selected($currentAdmin && $currentAdmin->id == $admin->id)>
-                            {{ $admin->name }}
-                        </option>
-                    @endforeach
-                </select>
-            @else
-                <input type="text" class="form-control" value="{{ $currentAdmin?->name }}" readonly>
-                <input type="hidden" name="marketer_id" id="marketer_id" value="{{ $currentAdmin?->id }}">
-                <small class="text-muted">يمكنك تسجيل العقد باسمك فقط</small>
-            @endif
+            <input type="text" class="form-control" value="{{ $displayAdminName ?: 'المستخدم الحالي' }}" readonly>
+            <input type="hidden" name="marketer_id" id="marketer_id" value="{{ $currentAdmin?->id }}">
+            <small class="text-muted">يتم تسجيل العقد باسم المستخدم الحالي تلقائياً.</small>
             <div class="invalid-feedback" id="err_marketer_id"></div>
         </div>
     </div>

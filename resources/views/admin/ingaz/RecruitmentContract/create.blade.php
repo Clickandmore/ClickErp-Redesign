@@ -190,6 +190,17 @@
             };
         @endphp
 
+        @if ($errors->any())
+            <div class="alert alert-danger" dir="rtl">
+                <strong>يرجى مراجعة البيانات التالية:</strong>
+                <ul class="mb-0 mt-2">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         <div class="contract-page-intro">
             <div>
                 <h3 class="contract-page-intro__title">إضافة عقد استقدام</h3>
@@ -1026,6 +1037,91 @@
 
             return value.trim();
         }
+
+        function escapeHtml(value) {
+            return $('<div>').text(value || '').html();
+        }
+
+        function clearContractValidationErrors(formSelector) {
+            var $form = $(formSelector);
+            $form.find('.is-invalid').removeClass('is-invalid');
+            $form.find('.ajax-validation-feedback').remove();
+        }
+
+        function contractFieldSelector(field, formSelector) {
+            var fieldMap = {
+                client_id: '#new_existing_client_id',
+                new_existing_client_id: '#new_existing_client_id',
+                maid_id: '#new_new_maid_id',
+                new_new_maid_id: '#new_new_maid_id',
+                client_name: '#new_client_name',
+                client_phone: '#new_client_phone',
+                client_email: '#new_client_email',
+                order_id: '#order_id',
+                marketer_id: '#marketer_id'
+            };
+
+            if (formSelector === '#maidForm') {
+                fieldMap.client_name = '#client_name';
+                fieldMap.client_phone = '#client_phone';
+                fieldMap.client_email = '#client_email';
+                fieldMap.maid_id = '#maid_id';
+            }
+
+            if (fieldMap[field]) {
+                return formSelector + ' ' + fieldMap[field];
+            }
+
+            return formSelector + ' [name="' + field + '"]';
+        }
+
+        function showContractValidationErrors(errors, formSelector) {
+            clearContractValidationErrors(formSelector);
+
+            var messages = [];
+            var firstInvalidField = null;
+
+            $.each(errors || {}, function(field, fieldMessages) {
+                var message = $.isArray(fieldMessages) ? fieldMessages[0] : fieldMessages;
+                var $field = $(contractFieldSelector(field, formSelector)).first();
+
+                messages.push(message);
+
+                if ($field.length) {
+                    $field.addClass('is-invalid');
+
+                    var $feedback = $('<div class="invalid-feedback d-block ajax-validation-feedback"></div>')
+                        .text(message);
+
+                    if ($field.hasClass('select2-hidden-accessible')) {
+                        $field.next('.select2-container').after($feedback);
+                    } else {
+                        $field.after($feedback);
+                    }
+
+                    if (!firstInvalidField) {
+                        firstInvalidField = $field;
+                    }
+                }
+            });
+
+            if (firstInvalidField && firstInvalidField.length) {
+                $('html, body').animate({
+                    scrollTop: firstInvalidField.offset().top - 120
+                }, 400);
+            }
+
+            if (messages.length) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'يرجى مراجعة البيانات',
+                    html: '<div class="text-start" dir="rtl">' + messages.map(function(message) {
+                        return '<div class="mb-1">- ' + escapeHtml(message) + '</div>';
+                    }).join('') + '</div>',
+                    confirmButtonText: 'حسناً'
+                });
+            }
+        }
     </script>
 
     <script>
@@ -1670,6 +1766,12 @@
                             scrollTop: firstInvalidField.offset().top - 100
                         }, 500);
                     }
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'يرجى مراجعة البيانات',
+                        text: 'توجد حقول مطلوبة أو غير مكتملة قبل حفظ العقد.',
+                        confirmButtonText: 'حسناً'
+                    });
                     return false;
                 }
 
@@ -1693,6 +1795,9 @@
                 $.ajax({
                     url: url,
                     type: 'POST',
+                    headers: {
+                        'Accept': 'application/json'
+                    },
                     data: formData,
                     processData: false,
                     contentType: false,
@@ -1730,21 +1835,15 @@
                             response: xhr.responseText
                         });
 
-                        let errorMessage = 'حدث خطأ أثناء إنشاء العقد';
-                        if (xhr.responseJSON) {
-                            if (xhr.responseJSON.message) {
-                                errorMessage = xhr.responseJSON.message;
-                            } else if (xhr.responseJSON.errors) {
-                                // Handle validation errors
-                                const errors = xhr.responseJSON.errors;
-                                errorMessage = Object.values(errors).flat().join('\n');
-                            }
+                        if (xhr.status === 422 && xhr.responseJSON && xhr.responseJSON.errors) {
+                            showContractValidationErrors(xhr.responseJSON.errors, '#maidForm');
+                            return;
                         }
 
                         Swal.fire({
                             icon: 'error',
                             title: 'خطأ',
-                            text: errorMessage,
+                            text: (xhr.responseJSON && xhr.responseJSON.message) || 'حدث خطأ أثناء إنشاء العقد',
                             confirmButtonText: 'حسناً'
                         });
                     },
@@ -2206,6 +2305,22 @@
 
                 if (!isValid) {
                     console.log('Validation failed, stopping submission');
+                    var $firstInvalid = $('#tab-new-pane .is-invalid').first();
+                    if ($firstInvalid.length) {
+                        var $scrollTarget = $firstInvalid.hasClass('select2-hidden-accessible') ?
+                            $firstInvalid.next('.select2-container') :
+                            $firstInvalid;
+
+                        $('html, body').animate({
+                            scrollTop: $scrollTarget.offset().top - 120
+                        }, 400);
+                    }
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'يرجى مراجعة البيانات',
+                        text: 'توجد حقول مطلوبة أو غير مكتملة قبل حفظ العقد.',
+                        confirmButtonText: 'حسناً'
+                    });
                     return false;
                 }
 
@@ -2450,6 +2565,9 @@
                 $.ajax({
                     url: $(this).attr('action'),
                     type: 'POST',
+                    headers: {
+                        'Accept': 'application/json'
+                    },
                     data: formData,
                     processData: false,
                     contentType: false,
@@ -2489,15 +2607,12 @@
                             responseJSON: xhr.responseJSON
                         });
 
-                        let errorMessage = 'حدث خطأ أثناء إنشاء العقد';
-                        if (xhr.responseJSON) {
-                            if (xhr.responseJSON.message) {
-                                errorMessage = xhr.responseJSON.message;
-                            } else if (xhr.responseJSON.errors) {
-                                const errors = xhr.responseJSON.errors;
-                                errorMessage = Object.values(errors).flat().join('\n');
-                            }
+                        if (xhr.status === 422 && xhr.responseJSON && xhr.responseJSON.errors) {
+                            showContractValidationErrors(xhr.responseJSON.errors, '#newContractForm');
+                            return;
                         }
+
+                        let errorMessage = (xhr.responseJSON && xhr.responseJSON.message) || 'حدث خطأ أثناء إنشاء العقد';
                         Swal.fire({
                             icon: 'error',
                             title: 'خطأ',

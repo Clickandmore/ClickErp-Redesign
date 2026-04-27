@@ -1936,10 +1936,7 @@ class RecruitmentContractController extends Controller
             ], 401);
         }
 
-        $canSelectAnyMarketer = $this->canSelectAnyMarketer($currentAdmin);
-        $marketerId = $canSelectAnyMarketer
-            ? (int) $request->marketer_id
-            : (int) $currentAdmin->id;
+        $marketerId = (int) $currentAdmin->id;
 
         // logger()->info('Recruitment Contract Creation Request:', $request->all());
         // logger()->info('Request validation:', [
