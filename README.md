@@ -1,12 +1,16 @@
 # ClickERP / Platinum ERP
 
-هذا الملف مخصص لأوامر التشغيل على الاستضافة، خصوصا تحديث المشروع وتجهيز الصلاحيات والشجرة المالية الخاصة بالرابط:
+هذا الملف هو فهرس أوامر التشغيل على الاستضافة بعد كل تحديث. التفاصيل مفصولة حتى يسهل أخذ أوامر القسم المطلوب فقط بدون خلط الصلاحيات مع المالية أو الكرون جوب.
+
+## الملفات التشغيلية
 
 ```text
-https://www.platinumeastern.com/finance/accounts
+docs/PERMISSIONS.md  أوامر الصلاحيات وتجهيز شاشة /dash/perms/1
+docs/FINANCE.md      أوامر المالية والشجرة المالية وحسابات التأجير
+docs/CRON_JOBS.md    أوامر cron job والمهام المجدولة
 ```
 
-## 1. قبل أي تحديث على الاستضافة
+## قبل أي تحديث على الاستضافة
 
 ادخل إلى مسار المشروع:
 
@@ -23,7 +27,7 @@ git submodule status --recursive
 
 إذا ظهرت ملفات معدلة على السيرفر مثل `.htaccess` أو `composer.lock` أو ملفات داخل `packages/*`، لا تنفذ `git pull` قبل حفظها أو معرفة سبب التعديل.
 
-## 2. تحديث الكود والحزم
+## تحديث الكود والحزم
 
 تحديث المشروع الرئيسي:
 
@@ -54,9 +58,7 @@ packages/hr
 ./scripts/safe-submodule-update.sh --remote
 ```
 
-## 3. Composer والكاش
-
-بعد أي تحديث للكود أو الحزم:
+## Composer والكاش بعد أي تحديث
 
 ```bash
 composer install --no-dev --optimize-autoloader
@@ -78,12 +80,11 @@ php artisan config:clear
 php artisan config:cache
 ```
 
-## 4. Migrations المطلوبة
-
-تشغيل migrations العامة:
+## Migrations العامة
 
 ```bash
 php artisan migrate --force
+php artisan migrate:status
 ```
 
 إذا كانت جداول Laratrust مثل `permission_role` غير موجودة:
@@ -92,172 +93,33 @@ php artisan migrate --force
 php artisan migrate --path=database/migrations/permissions --force
 ```
 
-جداول المالية تأتي من `packages/finance/database/migrations` لأن `FinanceServiceProvider` يحملها تلقائيا. إذا احتجت تشغيلها صراحة:
-
-```bash
-php artisan migrate --path=packages/finance/database/migrations --force
-```
-
-للتحقق:
-
-```bash
-php artisan migrate:status
-```
-
-## 5. الصلاحيات بعد النشر
-
-الأمر المفضل لتجهيز صلاحيات السيرفر وإعطائها للدور الرئيسي:
-
-```bash
-php artisan permissions:prepare-server --role-id=1 --role-name=Administrator --attach-first-admin
-php artisan permission:cache-reset
-```
-
-أوامر الصلاحيات اليدوية عند الحاجة:
-
-```bash
-php artisan access-control:sync-permissions --registry-only --no-assign-roles
-php artisan access-control:sync-permissions --include-main
-php artisan assign:all-permissions-to-admin
-php artisan admin:assign-permissions-to-first
-php artisan permission:cache-reset
-```
-
-صلاحيات عقود الاستقدام فقط:
-
-```bash
-php artisan db:seed --class=RecruitmentContractsPermissionsSeeder --force
-php artisan db:seed --class=AssignRecruitmentContractsPermissionsSeeder --force
-php artisan db:seed --class=AddRecContractsUpdatePermissionSeeder --force
-```
-
-## 6. الشجرة المالية والحسابات
-
-صفحة الحسابات:
+جداول المالية تأتي من `packages/finance/database/migrations` لأن `FinanceServiceProvider` يحملها تلقائيا. إذا احتجت تشغيلها صراحة راجع:
 
 ```text
-/finance/accounts
+docs/FINANCE.md
 ```
 
-أهم الجداول:
+## بعد كل تحديث
+
+إذا كان التحديث يخص الصلاحيات:
 
 ```text
-fn_accounts
-fn_constraints
-fn_constraint_details
-fn_bonds
-fn_years
-fn_cost_centers
+docs/PERMISSIONS.md
 ```
 
-### تجهيز جداول المالية
-
-```bash
-php artisan migrate --path=packages/finance/database/migrations --force
-composer dump-autoload -o
-php artisan optimize:clear
-```
-
-### إنشاء الشجرة المالية من الصفر
-
-تحذير: هذا الأمر يمسح جدول `fn_accounts` ثم يعيد بناء الشجرة الأساسية. لا تستخدمه على قاعدة إنتاج بها قيود أو حسابات فعلية إلا بعد backup.
-
-```bash
-php artisan db:seed --class="Nami\\Finance\\Database\\Seeders\\AccountSeeder" --force
-```
-
-### إضافة حسابات الاستقدام والتأجير بدون مسح الشجرة
-
-هذا الأمر يستخدم `update/create` للحسابات الخاصة بالاستقدام والتأجير، ويحتاج أن تكون الشجرة الأساسية موجودة أولا:
-
-```bash
-php artisan db:seed --class="Nami\\Finance\\Database\\Seeders\\RecruitmentRentalAccountsSeeder" --force
-```
-
-### إعدادات النظام المحاسبي لحسابات التأجير
-
-صفحة الإعدادات:
+إذا كان التحديث يخص المالية أو الحسابات:
 
 ```text
-/finance/confirm-settings
-https://www.platinumeastern.com/finance/confirm-settings
+docs/FINANCE.md
 ```
 
-قبل ضبط الصفحة تأكد من وجود جداول المالية وحسابات التأجير:
-
-```bash
-php artisan migrate --path=packages/finance/database/migrations --force
-php artisan db:seed --class="Nami\\Finance\\Database\\Seeders\\RecruitmentRentalAccountsSeeder" --force
-php artisan optimize:clear
-```
-
-ربط حسابات مصروفات عاملات التأجير داخل `fn_confirm_settings` حسب أكواد الشجرة المالية:
-
-```bash
-php artisan tinker --execute='use Nami\Finance\Models\Account; use Nami\Finance\Models\ConfirmSetting; $settings = ["rental_maid_account_recruitment_cost" => 5911, "rental_maid_account_visa_fee" => 5921, "rental_maid_account_enjaz_fee" => 5922, "rental_maid_account_iqama_fee" => 5923, "rental_maid_account_work_permit_fee" => 5924, "rental_maid_account_medical_insurance" => 5925, "rental_maid_account_social_insurance" => 5926, "rental_maid_account_salary" => 5931]; foreach ($settings as $key => $code) { $account = Account::where("code", $code)->whereDoesntHave("children")->first(); if (! $account) { throw new RuntimeException("Account {$code} not found"); } ConfirmSetting::updateOrCreate(["title" => $key], ["value" => $account->id, "created_by_id" => 1]); }'
-```
-
-الأكواد المرتبطة في صفحة الإعدادات:
+إذا كان التحديث يخص المهام المجدولة أو أوامر الخلفية:
 
 ```text
-rental_maid_account_recruitment_cost       => 5911 تكلفة استقدام عمالة تأجير
-rental_maid_account_visa_fee               => 5921 رسوم تأشيرات عمل التأجير
-rental_maid_account_enjaz_fee              => 5922 رسوم إنجاز التأجير
-rental_maid_account_iqama_fee              => 5923 رسوم إقامات التأجير
-rental_maid_account_work_permit_fee        => 5924 رسوم رخص عمل التأجير
-rental_maid_account_medical_insurance      => 5925 رسوم تأمين طبي التأجير
-rental_maid_account_social_insurance       => 5926 رسوم تأمينات اجتماعية التأجير
-rental_maid_account_salary                 => 5931 رواتب عمالة التأجير
+docs/CRON_JOBS.md
 ```
 
-صلاحيات شاشات التأجير للمسؤول، ثم تصفير كاش الصلاحيات:
-
-```bash
-php artisan permissions:assign-rent-contracts 1
-php artisan permission:cache-reset
-```
-
-إذا كان المطلوب تجهيز كل صلاحيات السيرفر بعد النشر، استخدم الأمر الشامل بدلا من الأمر اليدوي:
-
-```bash
-php artisan permissions:prepare-server --role-id=1 --role-name=Administrator --attach-first-admin
-php artisan permission:cache-reset
-```
-
-للتحقق من المسار والإعدادات:
-
-```bash
-php artisan route:list | grep finance.confirm-settings
-php artisan tinker --execute='use Nami\Finance\Models\ConfirmSetting; dump(ConfirmSetting::whereIn("title", ["rental_maid_account_recruitment_cost", "rental_maid_account_visa_fee", "rental_maid_account_enjaz_fee", "rental_maid_account_iqama_fee", "rental_maid_account_work_permit_fee", "rental_maid_account_medical_insurance", "rental_maid_account_social_insurance", "rental_maid_account_salary"])->pluck("value", "title")->all());'
-```
-
-### تشغيل Seeders المالية كاملة
-
-تحذير: `FinanceDatabaseSeeder` يشغل `AccountSeeder`، لذلك سيعيد بناء `fn_accounts`.
-
-```bash
-php artisan db:seed --class="Nami\\Finance\\Database\\Seeders\\FinanceDatabaseSeeder" --force
-```
-
-استخدمه فقط في تركيب جديد أو بعد أخذ نسخة احتياطية.
-
-### التحقق من مسارات الحسابات
-
-```bash
-php artisan route:list | grep finance.accounts
-php artisan route:list | grep accounting-guide-management
-```
-
-روابط مهمة:
-
-```text
-/finance/accounts
-/finance/accounting-guide-management
-/finance/accounts-balances
-/finance/account-statement
-```
-
-## 7. أوامر آمنة بعد أي تعديل
+## أوامر آمنة بعد أي تعديل
 
 ```bash
 composer dump-autoload -o
@@ -267,14 +129,14 @@ php artisan route:clear
 php artisan view:cache
 ```
 
-إذا ظهرت أخطاء class not found بعد pull:
+إذا ظهرت أخطاء `class not found` بعد `pull`:
 
 ```bash
 composer dump-autoload -o
 php artisan optimize:clear
 ```
 
-## 8. أوامر لا تشغلها على الإنتاج بدون Backup
+## أوامر لا تشغلها على الإنتاج بدون Backup
 
 هذه الأوامر قد تمسح أو تغير بيانات أساسية:
 

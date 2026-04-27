@@ -23,7 +23,7 @@
 
     {{-- Table some styles --}}
     <link rel="stylesheet" type="text/css" href="{{ asset('admin/assets/css/tables.css') }}">
-    <link rel="stylesheet" href="{{ asset('admin/assets/css/theme-clickmore.css') }}?v=10">
+    <link rel="stylesheet" href="{{ asset('admin/assets/css/theme-clickmore.css') }}?v=11">
 
 </head>
 <body class="layout-1  @if (app()->getLocale() == 'ar') rtl_mode @endif " data-luno="theme-blue"> <!-- h-menu  -->

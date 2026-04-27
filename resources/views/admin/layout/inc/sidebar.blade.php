@@ -154,7 +154,7 @@
                 @endphp
 
                 @if ($canViewCrm)
-                    <li class="{{ $isCrm || request()->routeIs('admin.sms-templates.*') ? '' : 'collapsed' }}">
+                    <li class="sidebar-module sidebar-module--crm {{ $isCrm || request()->routeIs('admin.sms-templates.*') ? '' : 'collapsed' }}">
                         <a class="m-link" data-bs-toggle="collapse" data-bs-target="#crm" href="#">
                             <i class="fa-regular fa-file-lines me-2"></i>
                             <span class="ms-2">{{ __('ingaz.crm') }}</span>
@@ -183,7 +183,7 @@
                     </li>
                 @endif
                 @if ($canViewOperations)
-                    <li class="collapsed">
+                    <li class="sidebar-module sidebar-module--operations collapsed">
                         <a class="m-link" data-bs-toggle="collapse" data-bs-target="#Operations_Management"
                             href="#">
                             <i class="fa fa-tasks me-2"></i>
@@ -975,7 +975,7 @@
                         : $firstSegment;
                     $isHr = $moduleSegment === 'hr';
                 @endphp
-                <li class="{{ $isHr ? '' : 'collapsed' }}">
+                <li class="sidebar-module sidebar-module--hr {{ $isHr ? '' : 'collapsed' }}">
                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#hr" href="#">
                         <i class="fa fa-user-tie me-2"></i>
                         <span class="ms-2">{{ __('ingaz.hr') }}</span>
@@ -990,7 +990,7 @@
                         request()->is('finance*') ||
                         \Illuminate\Support\Str::startsWith((string) Route::currentRouteName(), 'invoices.');
                 @endphp
-                <li class="{{ $isFinance ? '' : 'collapsed' }}">
+                <li class="sidebar-module sidebar-module--finance {{ $isFinance ? '' : 'collapsed' }}">
                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#finance" href="#">
                         <i class="fa fa-dollar-sign me-2"></i>
                         <span class="ms-2">{{ __('ingaz.finance') }}</span>
@@ -1006,7 +1006,7 @@
 
                 {{-- اعدادات الرسائل النصية --}}
                 @if ($canViewSms)
-                    <li class="collapsed">
+                    <li class="sidebar-module sidebar-module--messages collapsed">
                         <a class="m-link" data-bs-toggle="collapse" data-bs-target="#smsManagement" href="#">
                             <i class="fa fa-sms"></i>
                             <span class="ms-2">إدارة الرسائل</span>
@@ -1077,7 +1077,7 @@
                             request()->routeIs('dash.settings*');
                         $settingsOperationOpen = $isDashboardSettings || $websiteManagementOpen;
                     @endphp
-                    <li class="{{ $settingsOperationOpen ? '' : 'collapsed' }}">
+                    <li class="sidebar-module sidebar-module--settings {{ $settingsOperationOpen ? '' : 'collapsed' }}">
                         <a class="m-link" data-bs-toggle="collapse" data-bs-target="#settingsOperation"
                             href="#">
                             <i class="fa fa-cog fa-lg"></i>

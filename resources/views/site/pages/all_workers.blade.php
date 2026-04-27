@@ -68,11 +68,12 @@
                             $currentExperienceStatus = request()->filled('experience_status')
                                 ? request()->experience_status
                                 : '';
-                            $hasActiveFilters = ($type !== 'all')
-                                || request()->filled('experience_status')
-                                || request()->filled('age')
-                                || request()->filled('job')
-                                || request()->filled('nationality_id');
+                            $hasActiveFilters =
+                                $type !== 'all' ||
+                                request()->filled('experience_status') ||
+                                request()->filled('age') ||
+                                request()->filled('job') ||
+                                request()->filled('nationality_id');
                         @endphp
                         <form action="" class="row" id="maids_filter">
                             <input type="hidden" id="experience_status_input" value="{{ $currentExperienceStatus }}">
@@ -98,7 +99,8 @@
                                     <i class="fa-duotone fa-hourglass me-1"></i> {{ __('ingaz.age') }}
                                 </label>
                                 <select id="age" class="select2">
-                                    <option value="" {{ request('age') ? '' : 'selected' }}>{{ __('ingaz.all') }}</option>
+                                    <option value="" {{ request('age') ? '' : 'selected' }}>{{ __('ingaz.all') }}
+                                    </option>
                                     <option value="20_30" {{ request('age') === '20_30' ? 'selected' : '' }}>
                                         {{ __('ingaz.from_20_to_30_years') }}
                                     </option>
@@ -116,7 +118,8 @@
                                     <i class="fa-duotone fa-briefcase me-1"></i> {{ __('ingaz.occupation') }}
                                 </label>
                                 <select id="job" class="select2">
-                                    <option value="" {{ request('job') ? '' : 'selected' }}>{{ __('ingaz.all') }}</option>
+                                    <option value="" {{ request('job') ? '' : 'selected' }}>{{ __('ingaz.all') }}
+                                    </option>
                                     @foreach ($jobTitles as $jobTitle)
                                         <option value="{{ $jobTitle->id }}"
                                             {{ (string) request('job') === (string) $jobTitle->id ? 'selected' : '' }}>
@@ -131,8 +134,8 @@
                                     <i class="fa-duotone fa-flag me-1"></i> {{ __('ingaz.nationality') }}
                                 </label>
                                 <select id="nationality_id" class="select2">
-                                    <option value=""
-                                        {{ request('nationality_id') ? '' : 'selected' }}>{{ __('ingaz.all') }}</option>
+                                    <option value="" {{ request('nationality_id') ? '' : 'selected' }}>
+                                        {{ __('ingaz.all') }}</option>
                                     @foreach ($nationalities as $nationality)
                                         <option value="{{ $nationality->id }}"
                                             {{ (string) request('nationality_id') === (string) $nationality->id ? 'selected' : '' }}>
@@ -262,13 +265,13 @@
                 </div>
             </div>
             <!-- custom Order -->
-            <div class="alert fade show customOrder wow fadeInUp" role="alert">
+            {{-- <div class="alert fade show customOrder wow fadeInUp" role="alert">
                 <button type="button" class="btn-close p-2" data-bs-dismiss="alert" aria-label="Close"></button>
                 <h6>{{ __('ingaz.We can provide suitable labor according to your specifications.') }}</h6>
                 <a class="customBtn" href="{{ route('site.recruitment-request.index') }}"><span></span>
                     {{ __('ingaz.Submit a special request') }}
                 </a>
-            </div>
+            </div> --}}
             <!-- end custom Order -->
         </div>
     </section>

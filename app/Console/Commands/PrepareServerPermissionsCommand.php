@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\Permission;
 use App\Models\auth\Admin;
+use App\Support\AdminRoutePermissionMatrix;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Schema;
 use Nami\AccessControl\Services\PermissionRegistryService;
@@ -36,8 +37,14 @@ class PrepareServerPermissionsCommand extends Command
         $this->line('Total definitions: ' . $summary['total']);
         $this->line('Created: ' . $summary['created'] . ' | Updated: ' . $summary['updated']);
 
+        $matrixSummary = $this->syncRouteMatrixPermissions($service);
+
+        $this->line('Route matrix definitions: ' . $matrixSummary['total']);
+        $this->line('Route matrix created: ' . $matrixSummary['created'] . ' | Updated: ' . $matrixSummary['updated']);
+
         $allPermissions = Permission::query()
             ->where('guard_name', $role->guard_name)
+            ->orderBy('name')
             ->get();
 
         if ($allPermissions->isEmpty()) {
@@ -60,10 +67,53 @@ class PrepareServerPermissionsCommand extends Command
             $this->attachRoleToFirstAdmin($role);
         }
 
+        $this->printFinalVerification($role);
+
         $this->newLine();
         $this->info('Server permissions are ready.');
 
         return self::SUCCESS;
+    }
+
+    private function syncRouteMatrixPermissions(PermissionRegistryService $service): array
+    {
+        $definitions = collect(AdminRoutePermissionMatrix::allPermissions())
+            ->filter(fn ($name) => is_string($name) && trim($name) !== '')
+            ->unique()
+            ->values()
+            ->map(fn (string $name) => $service->makeExplicitPermissionDefinition([
+                'name' => $name,
+                'is_active' => true,
+            ]))
+            ->all();
+
+        return $service->syncPermissionDefinitions($definitions, [], false);
+    }
+
+    private function printFinalVerification(Role $role): void
+    {
+        $screenPermissionNames = Permission::query()
+            ->where('guard_name', $role->guard_name)
+            ->orderBy('name')
+            ->pluck('name');
+
+        $assignedPermissionNames = $role->fresh()
+            ->permissions()
+            ->pluck('name');
+
+        $missingPermissionNames = $screenPermissionNames
+            ->diff($assignedPermissionNames)
+            ->values();
+
+        $this->newLine();
+        $this->line('Final verification:');
+        $this->line('Screen total: ' . $screenPermissionNames->count());
+        $this->line('Role selected: ' . $assignedPermissionNames->intersect($screenPermissionNames)->count());
+        $this->line('Missing selected: ' . $missingPermissionNames->count());
+
+        if ($missingPermissionNames->isNotEmpty()) {
+            $this->warn('Missing permissions: ' . $missingPermissionNames->take(30)->implode(', '));
+        }
     }
 
     private function resolveTargetRole(): Role
