@@ -1,7 +1,7 @@
 @extends('click.layout.indexs.index')
 
-@section("style")
-    <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
+@section('style')
+    <link rel="stylesheet" href="{{ asset('admin') }}/assets/cssbundle/dataTables.min.css">
     <style>
         .invoice-container {
             max-width: 100%;
@@ -55,7 +55,8 @@
             margin-bottom: 20px;
         }
 
-        .invoice-table th, .invoice-table td {
+        .invoice-table th,
+        .invoice-table td {
             padding: 12px;
             text-align: left;
             border-bottom: 1px solid #ddd;
@@ -96,19 +97,23 @@
         }
 
         .file_area a {
-            padding: 10px 20px; /* Add some padding */
-            transition: background-color 0.3s; /* Smooth transition */
+            padding: 10px 20px;
+            /* Add some padding */
+            transition: background-color 0.3s;
+            /* Smooth transition */
         }
 
         .file_area a:hover {
-            background-color: #218838; /* Darker shade on hover */
+            background-color: #218838;
+            /* Darker shade on hover */
         }
 
         .additions_actions {
             padding: 10px;
         }
 
-        .additions_actions button,.additions_action a {
+        .additions_actions button,
+        .additions_action a {
             background-color: #fff;
             border: none;
             padding: 3px 0px;
@@ -116,7 +121,8 @@
             color: var(--bs-card-color);
         }
 
-        .additions_actions button:hover, a:hover {
+        .additions_actions button:hover,
+        a:hover {
             color: var(--secondary-color);
         }
 
@@ -140,78 +146,80 @@
 @section('content')
     <div class="invoice-container">
         <div class="invoice-header">
-            @if(isset($setting_web))
-                <img class="logo" src="{{showFile($setting_web->logo_header)}}" alt="">
+            @if (isset($setting_web))
+                <img class="logo" src="{{ showFile($setting_web->logo_header) }}" alt="">
             @else
-                <img class="logo" src="{{asset('admin/login')}}/imgs/Frame 36125.svg" alt="">
+                <img class="logo" src="{{ asset('admin/login') }}/imgs/Frame 36125.svg" alt="">
             @endif
-            <h1>{{__('finance::finance.Purchases_tax_bill')}} #{{ $obj->code }}</h1>
+            <h1>{{ __('finance::finance.Purchases_tax_bill') }} #{{ $obj->code }}</h1>
             <div class="invoice-info">
-                <h4>{{__('finance::finance.date')}} : {{ $obj->date }}</h4>
-                <p>{{__('finance::finance.the_supplier')}} : {{ $obj->supplier->name }}</p>
-                <p>{{__('finance::finance.supplier_bill_number')}} : {{ $obj->supplier_bill_number }}</p>
+                <h4>{{ __('finance::finance.date') }} : {{ $obj->date }}</h4>
+                <p>{{ __('finance::finance.the_supplier') }} : {{ $obj->supplier->name }}</p>
+                <p>{{ __('finance::finance.supplier_bill_number') }} : {{ $obj->supplier_bill_number }}</p>
             </div>
         </div>
 
         <div class="invoice-body">
             <table class="invoice-table">
                 <thead>
-                <tr>
-                    <th>الاجمالي total</th>
-                    {{-- <th> الخصم Dis</th> --}}
-                    <th>الضريبة Tax</th>
-                    <th>السعر price</th>
-                    <th>الكميه Qty</th>
-                    <th>البيان Descreption</th>
-                    <th>الرقم Code</th>
-                </tr>
+                    <tr>
+                        <th>الاجمالي total</th>
+                        {{-- <th> الخصم Dis</th> --}}
+                        <th>الضريبة Tax</th>
+                        <th>السعر price</th>
+                        <th>الكميه Qty</th>
+                        <th>البيان Descreption</th>
+                        <th>الرقم Code</th>
+                    </tr>
                 </thead>
                 <tbody>
-                @php
-                    // Group items by 'item_id'
-                    $groupedItems = $obj->purchaseItem->groupBy('item_id');
-                    $total_price = 0;
-                    $total_discount = 0;
-                @endphp
-                @foreach($groupedItems as $itemGroup)
                     @php
-                        // Get the first item from the group
-                        $firstItem = $itemGroup->first();
-                        // Calculate total amount and final total for the group
-                        $totalAmount = $itemGroup->sum('amount');
-                        $price = $itemGroup->sum('price');
-                        $one_price = number_format($price / $totalAmount,2);
-                        $totalTaxes = $itemGroup->sum('tax_value');
-                        $totalFinalTotal = $itemGroup->sum('final_total');
-                        $discount_value = $itemGroup->sum('discount_value');
-                        $total_price += $totalFinalTotal;
-                        $total_discount += $discount_value;
+                        // Group items by 'item_id'
+                        $groupedItems = $obj->purchaseItem->groupBy('item_id');
+                        $total_price = 0;
+                        $total_discount = 0;
                     @endphp
-                    <tr>
-                        <td>{{ number_format($totalFinalTotal, 2) }}</td>
-                        {{-- <td> {{ number_format($discount_value, 2) }} </td> --}}
-                        <td>{{ $firstItem->tax_per ? $firstItem->tax_per.'%' : "0%" }}</td>
-                        <td>{{ $one_price }}</td>
-                        <td>{{ $totalAmount }}</td>
-                        <td>{{ @$firstItem->item->name }}</td>
-                        <td>{{ @$firstItem->item->code }}</td>
-                    </tr>
-                @endforeach
+                    @foreach ($groupedItems as $itemGroup)
+                        @php
+                            // Get the first item from the group
+                            $firstItem = $itemGroup->first();
+                            // Calculate total amount and final total for the group
+                            $totalAmount = $itemGroup->sum('amount');
+                            $price = $itemGroup->sum('price');
+                            $one_price = number_format($price / $totalAmount, 2);
+                            $totalTaxes = $itemGroup->sum('tax_value');
+                            $totalFinalTotal = $itemGroup->sum('final_total');
+                            $discount_value = $itemGroup->sum('discount_value');
+                            $total_price += $totalFinalTotal;
+                            $total_discount += $discount_value;
+                        @endphp
+                        <tr>
+                            <td>{{ number_format($totalFinalTotal, 2) }}</td>
+                            {{-- <td> {{ number_format($discount_value, 2) }} </td> --}}
+                            <td>{{ $firstItem->tax_per ? $firstItem->tax_per . '%' : '0%' }}</td>
+                            <td>{{ $one_price }}</td>
+                            <td>{{ $totalAmount }}</td>
+                            <td>{{ @$firstItem->item->name }}</td>
+                            <td>{{ @$firstItem->item->code }}</td>
+                        </tr>
+                    @endforeach
                 </tbody>
             </table>
 
             <div class="invoice-summary">
                 <div class="summary-row">
-                    <span class="label">{{__('finance::finance.Total before discount')}} :</span>
+                    <span class="label">{{ __('finance::finance.Total before discount') }} :</span>
                     <span class="value">{{ number_format($obj->purchaseItem->sum('price'), 2) }} </span>
                 </div>
                 <div class="summary-row">
-                    <span class="label">{{__('finance::finance.discount_value')}} :</span>
+                    <span class="label">{{ __('finance::finance.discount_value') }} :</span>
                     <span class="value">{{ number_format($obj->purchaseItem->sum('discount_value'), 2) }} </span>
                 </div>
                 <div class="summary-row">
                     <span class="label">{{ __('finance::finance.Total after discount') }} :</span>
-                    <span class="value">{{ number_format($obj->purchaseItem->sum('price') - $obj->purchaseItem->sum('discount_value'), 2) }} </span>
+                    <span
+                        class="value">{{ number_format($obj->purchaseItem->sum('price') - $obj->purchaseItem->sum('discount_value'), 2) }}
+                    </span>
                 </div>
 
                 <div class="summary-row">
@@ -228,22 +236,22 @@
 
 
         <div class="additions_actions">
-            @if(count($obj->movements))
-                @foreach($obj->movements as $move)
+            @if (count($obj->movements))
+                @foreach ($obj->movements as $move)
                     <button type="button" class="editButton" data-bs-toggle="modal" data-bs-target="#createModal"
-                            model-route="{{route('finance.stock-movement.show',$move->stock_movement_id)}}">
+                        model-route="{{ route('finance.stock-movement.show', $move->stock_movement_id) }}">
                         <i class="fa fa-arrow-left"></i>
-                        {{__('finance::finance.show stock movement')}}
-                        {{@$move->movement->code}}
+                        {{ __('finance::finance.show stock movement') }}
+                        {{ @$move->movement->code }}
                     </button>
                 @endforeach
             @endif
 
 
-            @if($obj->file != 'no_file')
-                <a class="value" href="{{showFile($obj->file)}}">
+            @if ($obj->file != 'no_file')
+                <a class="value" href="{{ showFile($obj->file) }}">
                     <i class="fa fa-arrow-left"></i>
-                    {{__('finance::finance.attachment')}}
+                    {{ __('finance::finance.attachment') }}
                 </a>
             @endif
         </div>
@@ -251,13 +259,13 @@
 
         <div class="invoice-footer">
             <p>
-                {{__('finance::finance.notes')}} :
-                {{$obj->notes}}
+                {{ __('finance::finance.notes') }} :
+                {{ $obj->notes }}
             </p>
         </div>
     </div>
 @endsection
 
 @section('js')
-    <script src="{{asset("admin")}}/assets/jsbundle/dataTables.min.js"></script>
+    <script src="{{ asset('admin') }}/assets/jsbundle/dataTables.min.js"></script>
 @endsection

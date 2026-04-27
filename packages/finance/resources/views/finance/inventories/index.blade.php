@@ -1,6 +1,6 @@
 @extends('click.layout.indexs.index')
-@section("style")
-    <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
+@section('style')
+    <link rel="stylesheet" href="{{ asset('admin') }}/assets/cssbundle/dataTables.min.css">
 @endsection
 @section('page-title')
     {{ $bladeTitle }}
@@ -11,21 +11,21 @@
 @section('content')
     <div class="row mb-3">
         <div class="col-md-2">
-            <label for="">{{ __("finance::finance.from_date") }}</label>
+            <label for="">{{ __('finance::finance.from_date') }}</label>
             <input type="date" name="from_date" id="from_date" class="form-control">
         </div>
         <div class="col-md-2">
-            <label for="">{{ __("finance::finance.to_date") }}</label>
+            <label for="">{{ __('finance::finance.to_date') }}</label>
             <input type="date" name="to_date" id="to_date" class="form-control">
         </div>
         <div class="col-md-2">
-            <label for="">{{ __("finance::finance.code") }}</label>
+            <label for="">{{ __('finance::finance.code') }}</label>
             <input type="text" name="code" id="code" class="form-control">
         </div>
         <div class="col-md-3">
-            <label for="">{{ __("finance::finance.stocks") }}</label>
+            <label for="">{{ __('finance::finance.stocks') }}</label>
             <select name="stock_id" id="stock_id" class="form-control select2">
-                <option value="">{{ __("finance::finance.choose") }}</option>
+                <option value="">{{ __('finance::finance.choose') }}</option>
                 @foreach ($stocks as $stock)
                     <option value="{{ $stock->id }}">
                         {{ $stock->name }} - {{ $stock->code }}
@@ -34,9 +34,9 @@
             </select>
         </div>
         <div class="col-md-3">
-            <label for="">{{ __("finance::finance.items") }}</label>
+            <label for="">{{ __('finance::finance.items') }}</label>
             <select name="item_id" id="item_id" class="form-control select2">
-                <option value="">{{ __("finance::finance.choose") }}</option>
+                <option value="">{{ __('finance::finance.choose') }}</option>
                 @foreach ($items as $item)
                     <option value="{{ $item->id }}">
                         {{ $item->name }} - {{ $item->code_string }}{{ $item->code }}
@@ -45,63 +45,87 @@
             </select>
         </div>
     </div>
-    {!! addButton($createRoute , $addButtonText) !!}
+    {!! addButton($createRoute, $addButtonText) !!}
     <table id="dataTableObject" class="table display dataTable table-hover" style="width:100%">
         <thead>
-        <tr>
-            <th>{{ __('finance::finance.SL') }}</th>
-            <th>{{__("finance::finance.code")}}</th>
-            <th>{{__("finance::finance.date")}}</th>
-            <th>{{__("finance::finance.stock")}}</th>
-            <th>{{__("finance::finance.responsible")}}</th>
-            <th>{{__("finance::finance.actions")}}</th>
-        </tr>
+            <tr>
+                <th>{{ __('finance::finance.SL') }}</th>
+                <th>{{ __('finance::finance.code') }}</th>
+                <th>{{ __('finance::finance.date') }}</th>
+                <th>{{ __('finance::finance.stock') }}</th>
+                <th>{{ __('finance::finance.responsible') }}</th>
+                <th>{{ __('finance::finance.actions') }}</th>
+            </tr>
         </thead>
         <tbody>
 
         </tbody>
     </table>
-
-
 @endsection
 @section('js')
-    <script src="{{asset("admin")}}/assets/js/bundle/dataTables.bundle.js"></script>
+    <script src="{{ asset('admin') }}/assets/js/bundle/dataTables.bundle.js"></script>
     <script>
+        $(document).ready(function() {
+            var table = $('#dataTableObject').DataTable({
+                "lengthMenu": [
+                    [10, 25, 50, -1],
+                    [10, 25, 50, "الكل"]
+                ],
+                "processing": true,
+                "serverSide": true,
+                "sort": false,
+                "ajax": {
+                    "url": "{{ $dataTableRoute }}",
+                    "type": "GET",
+                    "data": function(d) {
+                        d.from_date = $('#from_date').val();
+                        d.to_date = $('#to_date').val();
+                        d.code = $('#code').val();
+                        d.stock_id = $('#stock_id').val();
+                        d.item_id = $('#item_id').val();
+                    }
+                },
+                "columns": [{
+                        "data": 'DT_RowIndex',
+                        name: 'DT_RowIndex',
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
+                        "data": "code",
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
+                        "data": "date",
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
+                        "data": "stock_id",
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
+                        "data": "responsible",
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
+                        "data": "actions",
+                        orderable: false,
+                        searchable: false
+                    }
+                ],
+            });
 
-    $(document).ready(function () {
-        var table = $('#dataTableObject').DataTable({
-            "lengthMenu": [ [10, 25, 50, -1], [10, 25, 50, "الكل"] ],
-            "processing": true,
-            "serverSide": true,
-            "sort": false,
-            "ajax": {
-                "url": "{{ $dataTableRoute }}",
-                "type": "GET",
-                "data": function (d) {
-                    d.from_date = $('#from_date').val();
-                    d.to_date = $('#to_date').val();
-                    d.code = $('#code').val();
-                    d.stock_id = $('#stock_id').val();
-                    d.item_id = $('#item_id').val();
-                }
-            },
-            "columns": [
-                {"data": 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
-                {"data": "code", orderable: false, searchable: false},
-                {"data": "date", orderable: false, searchable: false},
-                {"data": "stock_id", orderable: false, searchable: false},
-                {"data": "responsible", orderable: false, searchable: false},
-                {"data": "actions", orderable: false, searchable: false}
-            ],
+            $('#from_date, #to_date, #stock_id, #item_id').change(function() {
+                table.draw();
+            });
+            $('#code').keyup(function() {
+                table.draw();
+            });
         });
-
-        $('#from_date, #to_date, #stock_id, #item_id').change(function () {
-            table.draw();
-        });
-        $('#code').keyup(function () {
-            table.draw();
-        });
-    });
     </script>
     <script>
         $(document).ajaxComplete(function() {
@@ -127,6 +151,7 @@
                 currentRow.find('.purchase-price-field').val(purchasePrice);
             }
         });
+
         function calculateDifference(element) {
             var currentRow = $(element).closest('tr');
 

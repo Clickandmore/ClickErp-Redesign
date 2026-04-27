@@ -20,6 +20,7 @@ enum ConfirmSettingTypes: string
     case GeneralSarfBond = "general_sarf_bond";
     case BillSales = "bill_sales";
     case GeneralQabdBond = "general_qabd_bond";
+    case DailyConstraints = "daily_constraints";
     case CostCenterSarfBond = "cost_center_sarf_bond";
     case CostCenterQabdBond = "cost_center_qabd_bond";
     case CostCenterGeneralSarfBond = "cost_center_general_sarf_bond";
@@ -45,6 +46,7 @@ enum ConfirmSettingTypes: string
             ConfirmSettingTypes::ExpenseTaxAccount => __("finance::finance.expense_tax_account"),
             ConfirmSettingTypes::GeneralSarfBond => __("finance::finance.general_sarf_bond"),
             ConfirmSettingTypes::GeneralQabdBond => __("finance::finance.general_qabd_bond"),
+            ConfirmSettingTypes::DailyConstraints => __("finance::finance.daily_constraints"),
             ConfirmSettingTypes::CostCenterSarfBond => __("finance::finance.cost_center_sarf_bond"),
             ConfirmSettingTypes::CostCenterQabdBond => __("finance::finance.cost_center_qabd_bond"),
             ConfirmSettingTypes::CostCenterGeneralSarfBond => __("finance::finance.cost_center_general_sarf_bond"),

@@ -174,6 +174,9 @@ class BankAccountStatementService extends MainService
             return  DB::table('fn_constraint_details')->select(\DB::raw('SUM(debtor_value) as sum_debtor_value, fn_accounts.status ,
                                            SUM(creditor_value) as sum_creditor_value'))
                                         ->join('fn_accounts', 'fn_accounts.id', '=', 'fn_constraint_details.account_id')
+                                        ->join('fn_constraints', 'fn_constraints.id', '=', 'fn_constraint_details.constraint_id')
+                                        ->whereNull('fn_constraint_details.deleted_at')
+                                        ->whereNull('fn_constraints.deleted_at')
                                         ->where('account_id', $accountId)
                                         ->where('date', '<', $customDate)
                                         ->first();
@@ -203,6 +206,8 @@ class BankAccountStatementService extends MainService
             ->join('fn_accounts', 'fn_accounts.id', '=', 'fn_constraint_details.account_id')
             ->join('fn_constraints', 'fn_constraints.id', '=', 'fn_constraint_details.constraint_id')
             ->join('admins', 'admins.id', '=', 'fn_constraints.created_by_id')
+            ->whereNull('fn_constraint_details.deleted_at')
+            ->whereNull('fn_constraints.deleted_at')
             ->where('fn_constraint_details.account_id', '=', $dataSearch['account_id'])
             ->when($dataSearch['type'] != 'both', function ($q) use ($dataSearch) {
                 return $q->where('fn_constraint_details.type', $dataSearch['type']);

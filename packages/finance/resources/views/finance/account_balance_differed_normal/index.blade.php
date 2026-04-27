@@ -14,6 +14,7 @@
             0% {
                 transform: rotate(0deg);
             }
+
             100% {
                 transform: rotate(360deg);
             }
@@ -35,7 +36,8 @@
                 visibility: hidden;
             }
 
-            #account_list, #account_list * {
+            #account_list,
+            #account_list * {
                 visibility: visible;
             }
 
@@ -55,101 +57,102 @@
     </style>
 @endsection
 @section('page-title')
-    {{$bladeTitle}}
+    {{ $bladeTitle }}
 @endsection
 @section('page-links')
-    <li class="breadcrumb-item active" aria-current="page"> {{$bladeTitle}}</li>
+    <li class="breadcrumb-item active" aria-current="page"> {{ $bladeTitle }}</li>
 @endsection
 @section('content')
     <div class="row">
 
         <div class="col-md-3">
-            <label for="TextInput" class="form-label"> {{ __("finance::finance.from_date") }}</label>
+            <label for="TextInput" class="form-label"> {{ __('finance::finance.from_date') }}</label>
             <input type="date" name="from_date" class="form-control search_keys">
         </div>
         <div class="col-md-3">
-            <label for="TextInput" class="form-label"> {{ __("finance::finance.to_date") }}</label>
+            <label for="TextInput" class="form-label"> {{ __('finance::finance.to_date') }}</label>
             <input type="date" name="to_date" class="form-control search_keys">
         </div>
 
         <div class="col">
             <br>
             <button type="button" id="search_button" class="btn btn-sm btn-info float-right">
-                <i class="fa fa-search"></i> {{ __("finance::finance.Search") }}
+                <i class="fa fa-search"></i> {{ __('finance::finance.Search') }}
             </button>
         </div>
         <div class="col justify-content-end" id="print_excel">
             <br>
             <button onclick="printDivById('account_list')" class="btn btn-sm btn-primary mr-2">
-                <i class="fa fa-print"></i> {{ __("finance::finance.print") }}
+                <i class="fa fa-print"></i> {{ __('finance::finance.print') }}
             </button>
             <button type="button" id="toExcel" class="btn btn-sm btn-warning">
-                <i class="fa fa-file-excel"></i> {{ __("finance::finance.toExcel") }}
+                <i class="fa fa-file-excel"></i> {{ __('finance::finance.toExcel') }}
             </button>
         </div>
     </div>
     <br>
     <div class="row">
         <div id="account_list">
-            @if($accounts->count() > 0)
-
+            @if ($accounts->count() > 0)
                 <table class="table table-hover table-bordered table-striped" id="toExcelTable" style="width:100%">
                     <thead>
-                    <tr class="header">
-                        <th style="width: 10%" scope="col">{{ __("finance::finance.account_code") }}</th>
-                        <th style="width: 10%" scope="col">{{ __("finance::finance.account_name") }}</th>
-                        <th style="width: 10%" scope="col">{{ __("finance::finance.notes") }}</th>
-                        <th style="width: 5%" scope="col">{{__('finance::finance.Balance') }}</th>
-                    </tr>
+                        <tr class="header">
+                            <th style="width: 10%" scope="col">{{ __('finance::finance.account_code') }}</th>
+                            <th style="width: 10%" scope="col">{{ __('finance::finance.account_name') }}</th>
+                            <th style="width: 10%" scope="col">{{ __('finance::finance.notes') }}</th>
+                            <th style="width: 5%" scope="col">{{ __('finance::finance.Balance') }}</th>
+                        </tr>
                     </thead>
                     <tbody>
-                    @php( $balance = 0 )
-                    @foreach ($accounts as $row)
-                        @php( $balance += $row->balance )
+                        @php($balance = 0)
+                        @foreach ($accounts as $row)
+                            @php($balance += $row->balance)
 
+                            <tr>
+                                <td>{{ $row->code }}</td>
+                                <td>{{ @$row->name }}</td>
+                                <td>{{ $row->status == 'debtor' ? __('finance::finance.creditor_from_debtor_natural') : __('finance::finance.debtor_from_creditor_natural') }}
+                                </td>
+                                <td>{{ -$row->balance }}</td>
+
+                            </tr>
+                        @endforeach
                         <tr>
-                            <td>{{ $row->code }}</td>
-                            <td>{{ @$row->name }}</td>
-                            <td>{{ $row->status == 'debtor' ? __('finance::finance.creditor_from_debtor_natural') : __('finance::finance.debtor_from_creditor_natural') }}</td>
-                            <td>{{ -$row->balance }}</td>
+                            <td colspan="3" class="text-center">{{ __('finance::finance.total') }}</td>
 
+                            <td class="currency-egp">{{ -$balance }}</td>
                         </tr>
-                    @endforeach
-                    <tr>
-                        <td colspan="3" class="text-center">{{__('finance::finance.total')}}</td>
-
-                        <td class="currency-egp">{{ -$balance }}</td>
-                    </tr>
                     </tbody>
                 </table>
             @else
-                <div role="alert" class="alert alert-danger text-center"> {{__('finance::finance.no_data_found')}}</div>
+                <div role="alert" class="alert alert-danger text-center"> {{ __('finance::finance.no_data_found') }}
+                </div>
             @endif
         </div>
     </div>
 @endsection
 @section('js')
     <script>
-        $("#search_button").on("click", function (e) {
+        $("#search_button").on("click", function(e) {
             e.preventDefault()
 
             var data = $(".search_keys").serialize();
-            let url = '{{$dataTableRoute}}';
+            let url = '{{ $dataTableRoute }}';
             $.ajax({
                 url: url,
                 type: 'GET',
                 data: data,
-                beforeSend: function () {
+                beforeSend: function() {
                     $("#account_list").html('<div class="col-sm-12 col-md-12 col-lg-12 col-xs-12">' +
                         '  <div class="loader" style="margin: auto;"></div>' +
                         '</div>');
                 },
-                success: function (result) {
+                success: function(result) {
                     console.log(result);
                     $("#account_list").html(result.data.html)
 
                 },
-                error: function (errorObj, errorText, errorThrown) {
+                error: function(errorObj, errorText, errorThrown) {
                     handleErrorResponce(errorObj);
                 }
             });
@@ -159,7 +162,7 @@
 
     <script>
         var button = document.querySelector('#toExcel');
-        button.addEventListener('click', function (e) {
+        button.addEventListener('click', function(e) {
             var table = document.querySelector('#toExcelTable');
             TableToExcel.convert(table);
         });

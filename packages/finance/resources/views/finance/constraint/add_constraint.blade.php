@@ -176,6 +176,7 @@
         }
 
         @media (max-width: 767.98px) {
+
             .constraint-create-page .page-hero,
             .constraint-create-page .section-card {
                 padding: 1rem;
@@ -222,7 +223,8 @@
             </div>
         </div>
 
-        <form id="constraint-create-form" class="row g-3" method="post" action="{{ $storeRoute }}" enctype="multipart/form-data">
+        <form id="constraint-create-form" class="row g-3" method="post" action="{{ $storeRoute }}"
+            enctype="multipart/form-data">
             @csrf
             @include('finance::finance.constraint.inc.__create')
 
@@ -245,7 +247,7 @@
 
 @section('js')
     <script>
-        (function () {
+        (function() {
             const form = document.getElementById('constraint-create-form');
 
             if (!form) {
@@ -275,7 +277,7 @@
                 }
 
                 return String(value)
-                    .replace(/[٠-٩]/g, function (digit) {
+                    .replace(/[٠-٩]/g, function(digit) {
                         return '٠١٢٣٤٥٦٧٨٩'.indexOf(digit);
                     })
                     .replace(/٫|،/g, '.')
@@ -310,20 +312,21 @@
                 const selects = $('.select-unique-option');
                 const selectedValues = [];
 
-                selects.each(function () {
+                selects.each(function() {
                     const value = $(this).val();
                     if (value) {
                         selectedValues.push(value);
                     }
                 });
 
-                selects.each(function () {
+                selects.each(function() {
                     const currentValue = $(this).val();
                     $(this).find('option').prop('disabled', false);
 
                     selectedValues.forEach((selectedValue) => {
                         if (selectedValue !== currentValue) {
-                            $(this).find('option[value="' + selectedValue + '"]').prop('disabled', true);
+                            $(this).find('option[value="' + selectedValue + '"]').prop('disabled',
+                            true);
                         }
                     });
                 });
@@ -376,7 +379,7 @@
                 updateTotals();
             }
 
-            form.addEventListener('input', function (event) {
+            form.addEventListener('input', function(event) {
                 if (!event.target.classList.contains('js-amount-input')) {
                     return;
                 }
@@ -385,7 +388,7 @@
                 updateTotals();
             });
 
-            form.addEventListener('blur', function (event) {
+            form.addEventListener('blur', function(event) {
                 if (!event.target.classList.contains('js-amount-input')) {
                     return;
                 }
@@ -395,21 +398,21 @@
                 updateTotals();
             }, true);
 
-            $(document).on('change', '.select-unique-option', function () {
+            $(document).on('change', '.select-unique-option', function() {
                 disableSelectedAccounts();
             });
 
-            $(document).on('click', '.add_debtor', function (event) {
+            $(document).on('click', '.add_debtor', function(event) {
                 event.preventDefault();
                 addRow('debtor');
             });
 
-            $(document).on('click', '.add_creditor', function (event) {
+            $(document).on('click', '.add_creditor', function(event) {
                 event.preventDefault();
                 addRow('creditor');
             });
 
-            $(document).on('click', '.delete-row-btn', function (event) {
+            $(document).on('click', '.delete-row-btn', function(event) {
                 event.preventDefault();
 
                 const row = event.currentTarget.closest('tr');
@@ -418,13 +421,14 @@
                 updateTotals();
             });
 
-            $(document).on('submit', '#constraint-create-form', function (event) {
+            $(document).on('submit', '#constraint-create-form', function(event) {
                 event.preventDefault();
 
                 updateTotals();
 
                 if (!balanceInput.value) {
-                    warningToster('{{ __("auth.an error occurred") }}', '{{ __("finance::finance.debit_credit_totals_must_match") }}');
+                    warningToster('{{ __('auth.an error occurred') }}',
+                        '{{ __('finance::finance.debit_credit_totals_must_match') }}');
                     return;
                 }
 
@@ -433,9 +437,9 @@
                     return;
                 }
 
-                const submitter = event.originalEvent && event.originalEvent.submitter
-                    ? event.originalEvent.submitter
-                    : this.querySelector('.mySubmitButton');
+                const submitter = event.originalEvent && event.originalEvent.submitter ?
+                    event.originalEvent.submitter :
+                    this.querySelector('.mySubmitButton');
                 const submitButton = $(submitter);
                 const buttonText = submitButton.text().trim();
                 const formData = new FormData(this);
@@ -447,10 +451,12 @@
                     cache: false,
                     contentType: false,
                     processData: false,
-                    beforeSend: function () {
-                        submitButton.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ' + buttonText);
+                    beforeSend: function() {
+                        submitButton.html(
+                            '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ' +
+                            buttonText);
                     },
-                    success: function (result) {
+                    success: function(result) {
                         if (result.data && result.data.show_url) {
                             window.location.href = result.data.show_url;
                             return;
@@ -459,7 +465,7 @@
                         handleSuccessResponce(result);
                         submitButton.html(buttonText);
                     },
-                    error: function (errorObj) {
+                    error: function(errorObj) {
                         handleErrorResponce(errorObj);
                         submitButton.html(buttonText);
                     }

@@ -139,15 +139,16 @@
 
     <main class="main">
         <div class="Title">
-            <h2>{{ $title ?? "كشف حساب مزدوج" }}</h2>
+            <h2>{{ $title ?? 'كشف حساب مزدوج' }}</h2>
         </div>
         <div class="Date">
             @if (request()->from_date)
-            <span>من تـاريـخ {{ request()->from_date ? \Carbon\Carbon::parse(request()->from_date)->format('d/m/Y') : '__/__/__' }}</span>
-
+                <span>من تـاريـخ
+                    {{ request()->from_date ? \Carbon\Carbon::parse(request()->from_date)->format('d/m/Y') : '__/__/__' }}</span>
             @endif
             @if (request()->to_date)
-            <span>إلى تـاريخ {{ request()->to_date ? \Carbon\Carbon::parse(request()->to_date)->format('d/m/Y') : '__/__/__' }}</span>
+                <span>إلى تـاريخ
+                    {{ request()->to_date ? \Carbon\Carbon::parse(request()->to_date)->format('d/m/Y') : '__/__/__' }}</span>
             @endif
 
 
@@ -155,15 +156,15 @@
 
         <div class="adress">
             <h3>اسم الحسـاب</h3>
-            <h4> {{ $accountName ?? "-------------------" }}</h4>
+            <h4> {{ $accountName ?? '-------------------' }}</h4>
 
 
 
         </div>
         @php
-        $colspan = ($show_other_account == "yes") ? 7 : 6;
-        $width   = ($show_other_account == "yes") ? 35 : 25;
-    @endphp
+            $colspan = $show_other_account == 'yes' ? 7 : 6;
+            $width = $show_other_account == 'yes' ? 35 : 25;
+        @endphp
         <div class="Tabel">
             <table>
 
@@ -173,7 +174,7 @@
                     <th>تاريخ الحركة</th>
                     <th> رقم الحركة</th>
                     <th> نوع الحركة</th>
-                    @if($show_other_account == "yes")
+                    @if ($show_other_account == 'yes')
                         <th style="width: 10%" scope="col">الحساب المقابل</th>
                     @endif
                     <th> البيان</th>
@@ -183,60 +184,67 @@
                     <th> المستخدم</th>
                 </tr>
                 @php
-            $balance = 0;
-            $sumCreditorValue = $sumDebtorValue = 0;
-        @endphp
-        <!--------------------- $firstBalance ------------------------------------------>
-        @if(isset($firstBalance->sum_debtor_value))
-            @php
-                $balance += ($firstBalance->status == "debtor")? ($firstBalance->sum_debtor_value - $firstBalance->sum_creditor_value):($firstBalance->sum_creditor_value - $firstBalance->sum_debtor_value);
-                $sumDebtorValue += $firstBalance->sum_debtor_value ;
-                $sumCreditorValue += $firstBalance->sum_creditor_value ;
-            // $trClass = ( $firstBalance->sum_debtor_value  == 0  &&  $firstBalance->sum_creditor_value == 0 )? "currency-usd":"currency-egp";
-            @endphp
-        <tr style="background-color: papayawhip;">
-            <td colspan="{{$colspan}}" class="text-center">رصيد اول مدة </td>
-            <td class="currency-egp">{{$firstBalance->sum_debtor_value}}</td>
-            <td class="currency-egp">{{$firstBalance->sum_creditor_value}}</td>
-            <td class="currency-egp">{{number_format($balance)}}</td>
-            <td></td>
-        </tr>
-        @endif
-        <!--------------------- $firstBalance ------------------------------------------>
-        @foreach ($data as $key => $row)
-            @php
-                $balance += ($row->status == "debtor") ? ($row->debtor_value - $row->creditor_value) : ($row->creditor_value - $row->debtor_value);
-                $sumDebtorValue += $row->debtor_value;
-                $sumCreditorValue += $row->creditor_value;
-                $trClass = ($row->debtor_value == 0 && $row->creditor_value == 0) ? "currency-usd" : "currency-egp";
-            @endphp
-            <tr class="{{ $trClass }}">
-                <td>{{ ++$key }}</td>
-                <td>{{ $row->account_name }}</td>
-                <td>{{ $row->date }}</td>
-                <td>{{ $row->constraint_id }}</td>
-                <td>{{ getEnumValue('constraint_types', $row->constraints_type) }}</td>
-                @if($show_other_account == "yes")
-                    <td>
-                        @foreach($otherAccount[$row->constraint_id]["accounts"] as $oneAccount)
-                            <span>{{ $oneAccount->name }}</span><br>
-                        @endforeach
-                    </td>
+                    $balance = 0;
+                    $sumCreditorValue = $sumDebtorValue = 0;
+                @endphp
+                <!--------------------- $firstBalance ------------------------------------------>
+                @if (isset($firstBalance->sum_debtor_value))
+                    @php
+                        $balance +=
+                            $firstBalance->status == 'debtor'
+                                ? $firstBalance->sum_debtor_value - $firstBalance->sum_creditor_value
+                                : $firstBalance->sum_creditor_value - $firstBalance->sum_debtor_value;
+                        $sumDebtorValue += $firstBalance->sum_debtor_value;
+                        $sumCreditorValue += $firstBalance->sum_creditor_value;
+                        // $trClass = ( $firstBalance->sum_debtor_value  == 0  &&  $firstBalance->sum_creditor_value == 0 )? "currency-usd":"currency-egp";
+                    @endphp
+                    <tr style="background-color: papayawhip;">
+                        <td colspan="{{ $colspan }}" class="text-center">رصيد اول مدة </td>
+                        <td class="currency-egp">{{ $firstBalance->sum_debtor_value }}</td>
+                        <td class="currency-egp">{{ $firstBalance->sum_creditor_value }}</td>
+                        <td class="currency-egp">{{ number_format($balance) }}</td>
+                        <td></td>
+                    </tr>
                 @endif
-                <td>{{ $row->statement }}</td>
-                <td class="currency-egp">{{ $row->debtor_value }}</td>
-                <td class="currency-egp">{{ $row->creditor_value }}</td>
-                <td class="currency-egp">{{ $balance }}</td>
-                <td>{{ $row->name }}</td>
-            </tr>
-        @endforeach
-        <tr>
-            <td colspan="{{ $colspan }}" class="text-center">{{__('finance.Balance')}}</td>
-            <td class="currency-egp">{{ $sumDebtorValue }}</td>
-            <td class="currency-egp">{{ $sumCreditorValue }}</td>
-            <td class="currency-egp">{{ $balance }}</td>
-            <td></td>
-        </tr>
+                <!--------------------- $firstBalance ------------------------------------------>
+                @foreach ($data as $key => $row)
+                    @php
+                        $balance +=
+                            $row->status == 'debtor'
+                                ? $row->debtor_value - $row->creditor_value
+                                : $row->creditor_value - $row->debtor_value;
+                        $sumDebtorValue += $row->debtor_value;
+                        $sumCreditorValue += $row->creditor_value;
+                        $trClass =
+                            $row->debtor_value == 0 && $row->creditor_value == 0 ? 'currency-usd' : 'currency-egp';
+                    @endphp
+                    <tr class="{{ $trClass }}">
+                        <td>{{ ++$key }}</td>
+                        <td>{{ $row->account_name }}</td>
+                        <td>{{ $row->date }}</td>
+                        <td>{{ $row->constraint_id }}</td>
+                        <td>{{ getEnumValue('constraint_types', $row->constraints_type) }}</td>
+                        @if ($show_other_account == 'yes')
+                            <td>
+                                @foreach ($otherAccount[$row->constraint_id]['accounts'] as $oneAccount)
+                                    <span>{{ $oneAccount->name }}</span><br>
+                                @endforeach
+                            </td>
+                        @endif
+                        <td>{{ $row->statement }}</td>
+                        <td class="currency-egp">{{ $row->debtor_value }}</td>
+                        <td class="currency-egp">{{ $row->creditor_value }}</td>
+                        <td class="currency-egp">{{ $balance }}</td>
+                        <td>{{ $row->name }}</td>
+                    </tr>
+                @endforeach
+                <tr>
+                    <td colspan="{{ $colspan }}" class="text-center">{{ __('finance.Balance') }}</td>
+                    <td class="currency-egp">{{ $sumDebtorValue }}</td>
+                    <td class="currency-egp">{{ $sumCreditorValue }}</td>
+                    <td class="currency-egp">{{ $balance }}</td>
+                    <td></td>
+                </tr>
 
             </table>
 

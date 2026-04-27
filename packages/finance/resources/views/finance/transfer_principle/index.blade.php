@@ -1,6 +1,6 @@
 @extends('click.layout.indexs.index')
-@section("style")
-    <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
+@section('style')
+    <link rel="stylesheet" href="{{ asset('admin') }}/assets/cssbundle/dataTables.min.css">
 @endsection
 @section('page-title')
     {{ $bladeTitle }}
@@ -11,31 +11,49 @@
 @section('content')
     <table id="dataTableObject" class="table display dataTable table-hover" style="width:100%">
         <thead>
-        <tr>
-            <th>{{ __('finance::finance.SL') }}</th>
-            <th>{{__("finance::finance.name")}}</th>
-            <th>{{__("finance::finance.type")}}</th>
-            <th>{{ __("finance::finance.principle-websites") }} </th>
-            <th>{{__("finance::finance.actions")}}</th>
-        </tr>
+            <tr>
+                <th>{{ __('finance::finance.SL') }}</th>
+                <th>{{ __('finance::finance.name') }}</th>
+                <th>{{ __('finance::finance.type') }}</th>
+                <th>{{ __('finance::finance.principle-websites') }} </th>
+                <th>{{ __('finance::finance.actions') }}</th>
+            </tr>
         </thead>
         <tbody>
 
         </tbody>
     </table>
-
-
 @endsection
 @section('js')
-    <script src="{{asset("admin")}}/assets/js/bundle/dataTables.bundle.js"></script>
+    <script src="{{ asset('admin') }}/assets/js/bundle/dataTables.bundle.js"></script>
     <script>
-        $(document).ready(function () {
-            let columns = [
-                {"data": 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
-                {"data": "name", orderable: false, searchable: false},
-                {"data": "type", orderable: false, searchable: false},
-                {"data": "principle_website_id",orderable: false,searchable: false},
-                {"data": "actions", orderable: false, searchable: false}
+        $(document).ready(function() {
+            let columns = [{
+                    "data": 'DT_RowIndex',
+                    name: 'DT_RowIndex',
+                    orderable: false,
+                    searchable: false
+                },
+                {
+                    "data": "name",
+                    orderable: false,
+                    searchable: false
+                },
+                {
+                    "data": "type",
+                    orderable: false,
+                    searchable: false
+                },
+                {
+                    "data": "principle_website_id",
+                    orderable: false,
+                    searchable: false
+                },
+                {
+                    "data": "actions",
+                    orderable: false,
+                    searchable: false
+                }
             ];
             showDataTable("{{ $dataTableRoute }}", columns);
         });

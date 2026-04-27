@@ -1,5 +1,5 @@
 @extends('click.layout.indexs.index')
-@section("style")
+@section('style')
     <style>
         .required-asterisk {
             color: red;
@@ -7,21 +7,21 @@
     </style>
 @endsection
 @section('page-title')
-    {{$bladeTitle}}
+    {{ $bladeTitle }}
 @endsection
 @section('page-links')
-    <li class="breadcrumb-item active" aria-current="page"> {{$bladeTitle}}</li>
+    <li class="breadcrumb-item active" aria-current="page"> {{ $bladeTitle }}</li>
 @endsection
 @section('content')
-
     <form id="formFilter" class="to_hide">
         <div class="row mb-2 p-2 rounded-3">
 
             <div class="col-4">
                 <div class="form-group">
-                    <label for="year_id" class="form-label">{{ __("finance::finance.Select the Annual Year") }} <span class="required-asterisk" id="spanYear">*</span></label>
+                    <label for="year_id" class="form-label">{{ __('finance::finance.Select the Annual Year') }} <span
+                            class="required-asterisk" id="spanYear">*</span></label>
                     <select id="year_id" name="year_id" class="form-control select2">
-                        {!! showSelectElement($years,'title') !!}
+                        {!! showSelectElement($years, 'title') !!}
                     </select>
                 </div>
             </div>
@@ -29,7 +29,7 @@
 
             <div class="col-4">
                 <button type="button" id="FilterBtn" class="btn mt-4 btn-success"
-                        disabled>{{__('dataTable.sSearch')}}</button>
+                    disabled>{{ __('dataTable.sSearch') }}</button>
             </div>
         </div>
     </form>
@@ -37,12 +37,11 @@
     <div id="resultTable">
 
     </div>
-
 @endsection
 @section('js')
     <script>
-        $(document).ready(function () {
-            $('#year_id').change(function () {
+        $(document).ready(function() {
+            $('#year_id').change(function() {
                 if ($(this).val() !== '') {
                     $('#FilterBtn').prop('disabled', false);
                     $('#spanYear').css('display', 'none');
@@ -72,15 +71,19 @@
                     beforeSend: function() {
                         // Before send actions
                         $('#resultTable').html('');
-                        $('#FilterBtn').html('<span class="spinner-border spinner-border-sm mt-1" role="status" aria-hidden="true"></span> ');
+                        $('#FilterBtn').html(
+                            '<span class="spinner-border spinner-border-sm mt-1" role="status" aria-hidden="true"></span> '
+                        );
                     },
                     success: function(data) {
                         // On success actions
                         $('#resultTable').html(data.data.html);
 
                         // Append print and export buttons
-                        var printButtonHtml = '<button onclick="window.print()" class="btn btn-primary float-right mt-5"><i class="fa fa-print"></i> {{ __("dataTable.print") }}</button>';
-                        var exportButtonHtml = '<button id="export-button" class="btn btn-success float-right mt-2 mt-5"><i class="fa fa-file-excel-o"></i> {{__("dataTable.Export to Excel")}}</button>';
+                        var printButtonHtml =
+                            '<button onclick="window.print()" class="btn btn-primary float-right mt-5"><i class="fa fa-print"></i> {{ __('dataTable.print') }}</button>';
+                        var exportButtonHtml =
+                            '<button id="export-button" class="btn btn-success float-right mt-2 mt-5"><i class="fa fa-file-excel-o"></i> {{ __('dataTable.Export to Excel') }}</button>';
                         $('#resultTable').prepend(printButtonHtml);
                         $('#resultTable').prepend(exportButtonHtml);
 
@@ -98,7 +101,7 @@
                     },
                     complete: function() {
                         // On complete actions
-                        $('#FilterBtn').html('{{__('dataTable.sSearch')}}');
+                        $('#FilterBtn').html('{{ __('dataTable.sSearch') }}');
                     }
                 });
             });
@@ -148,7 +151,7 @@
                 }
             }
 
-// Form submission handling
+            // Form submission handling
             $(document).on('submit', '#formOfFirstBalance', function(e) {
                 e.preventDefault();
 
@@ -177,7 +180,8 @@
                     let accountId = $(this).data('account-id');
                     let accountStatus = $(this).data('account-status');
                     let debtorValue = $('.debtor-input[data-account-id="' + accountId + '"]').val();
-                    let creditorValue = $('.creditor-input[data-account-id="' + accountId + '"]').val();
+                    let creditorValue = $('.creditor-input[data-account-id="' + accountId + '"]')
+                        .val();
 
                     if (accountIds.indexOf(accountId) === -1) {
                         accountIds.push(accountId);
@@ -208,10 +212,12 @@
                         contentType: 'application/json',
                         data: JSON.stringify(formData),
                         beforeSend: function() {
-                            buttonObj.html('<span class="spinner-border spinner-border-sm mt-1" role="status" aria-hidden="true"></span>');
+                            buttonObj.html(
+                                '<span class="spinner-border spinner-border-sm mt-1" role="status" aria-hidden="true"></span>'
+                            );
                         },
                         success: function(data) {
-                            successToster('{{ __("auth.done successfully") }}');
+                            successToster('{{ __('auth.done successfully') }}');
                             window.location.reload();
                             console.log('Success:', data);
                         },
@@ -230,34 +236,33 @@
             });
 
 
-            $(document).on('click', '.deleteFirstBalance', function (e) {
+            $(document).on('click', '.deleteFirstBalance', function(e) {
                 e.preventDefault()
                 let buttonObj = $(this);
                 let confirmRoute = buttonObj.data("action");
                 swal.fire({
-                    title: "{{__('buttons.Are You Sure')}}",
-                    text: "{{__('buttons.You Can not to rollback')}}",
+                    title: "{{ __('buttons.Are You Sure') }}",
+                    text: "{{ __('buttons.You Can not to rollback') }}",
                     icon: 'question',
                     showCancelButton: true,
                     confirmButtonColor: "#DD6B55",
-                    confirmButtonText: "{{__('buttons.accept')}}",
-                    cancelButtonText: "{{__('buttons.cancel')}}",
+                    confirmButtonText: "{{ __('buttons.accept') }}",
+                    cancelButtonText: "{{ __('buttons.cancel') }}",
                 }).then((result) => {
                     if (result.isConfirmed) {
                         $.ajax({
                             url: confirmRoute,
                             type: 'DELETE',
-                            complete: function () {
-                            },
-                            success: function () {
+                            complete: function() {},
+                            success: function() {
                                 Swal.fire({
                                     icon: 'success',
-                                    title: "{{__('buttons.Confirm successfully')}}",
-                                    confirmButtonText: "{{__('buttons.close')}}",
+                                    title: "{{ __('buttons.Confirm successfully') }}",
+                                    confirmButtonText: "{{ __('buttons.close') }}",
                                 });
                                 window.location.reload();
                             },
-                            error: function (errorObj, errorText, errorThrown) {
+                            error: function(errorObj, errorText, errorThrown) {
                                 handleErrorResponce(errorObj);
                             }
                         });
@@ -280,7 +285,6 @@
         }
     </script>
     <script>
-        exportTable('export-button', 'table-to-export', '{{__('finance::finance.opening-balance')}}.xlsx');
+        exportTable('export-button', 'table-to-export', '{{ __('finance::finance.opening-balance') }}.xlsx');
     </script>
-
 @endsection

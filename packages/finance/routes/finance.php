@@ -154,6 +154,13 @@ Route::group(
         Route::resource('years', YearController::class);
         Route::resource('year-status', ChangeYearStatusController::class);
 
+        Route::get('constraints/export/{format}', [ConstraintController::class, 'export'])
+            ->where('format', 'pdf|excel|xlsx')
+            ->name('constraints.export');
+        Route::get('constraints/pending', [ConstraintController::class, 'pending'])
+            ->name('constraints.pending');
+        Route::post('constraints/{id}/approve', [ConstraintController::class, 'approve'])
+            ->name('constraints.approve');
         Route::resource('constraints', ConstraintController::class);
         Route::resource('account-transfer', AccountTransferController::class);
         Route::resource('account-transfer-print', AccountTransferPrintController::class);

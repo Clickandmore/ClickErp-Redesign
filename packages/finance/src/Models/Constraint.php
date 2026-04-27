@@ -3,20 +3,75 @@
 namespace Nami\Finance\Models;
 
 use App\Models\auth\Admin;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Nami\Finance\Enums\ConstraintTypiesEnum;
 
 class Constraint extends Finance
 {
+    use SoftDeletes;
+
+    public const APPROVAL_PENDING = 'pending';
+    public const APPROVAL_APPROVED = 'approved';
+    public const APPROVAL_SETTING_KEY = 'daily_constraints';
+    public const APPROVE_PERMISSION = 'finance.constraints-approve';
+
     protected $table = 'fn_constraints';
 
-    protected $fillable = ['type','value','date','statement','year_id','code','created_by_id'];
+    protected $fillable = [
+        'type',
+        'value',
+        'date',
+        'statement',
+        'year_id',
+        'code',
+        'created_by_id',
+        'approval_status',
+        'approved_at',
+        'approved_by_id',
+    ];
 
     protected $casts = [
-        'type' => ConstraintTypiesEnum::class
+        'type' => ConstraintTypiesEnum::class,
+        'approved_at' => 'datetime',
     ];
 
 
     protected $with = ['admin'];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Constraint $constraint) {
+            if (!$constraint->approval_status) {
+                $constraint->approval_status = self::requiresApproval()
+                    ? self::APPROVAL_PENDING
+                    : self::APPROVAL_APPROVED;
+            }
+
+            if ($constraint->approval_status === self::APPROVAL_APPROVED && !$constraint->approved_at) {
+                $constraint->approved_at = now();
+                $constraint->approved_by_id = $constraint->approved_by_id ?? auth('admin')->id();
+            }
+        });
+    }
+
+    public static function requiresApproval(): bool
+    {
+        return ConfirmSetting::query()
+            ->where('title', self::APPROVAL_SETTING_KEY)
+            ->latest('updated_at')
+            ->value('value') === 'on';
+    }
+
+    public function scopeApproved(Builder $query): Builder
+    {
+        return $query->where('approval_status', self::APPROVAL_APPROVED);
+    }
+
+    public function scopePendingApproval(Builder $query): Builder
+    {
+        return $query->where('approval_status', self::APPROVAL_PENDING);
+    }
 
     public function constraintDetails()
     {
@@ -39,6 +94,11 @@ class Constraint extends Finance
         return $this->hasMany(ConstraintFile::class, 'constraint_id', 'id');
     }
 
+    public function logs()
+    {
+        return $this->hasMany(ConstraintLog::class, 'constraint_id', 'id')->latest();
+    }
+
     public function calculateTotal($constraintDetails, $type): string
     {
         $accounts = '';
@@ -56,6 +116,20 @@ class Constraint extends Finance
     public function admin()
     {
         return $this->belongsTo(Admin::class,'created_by_id');
+    }
+
+    public function approvedBy()
+    {
+        return $this->belongsTo(Admin::class, 'approved_by_id');
+    }
+
+    public function approve(?int $adminId = null): bool
+    {
+        return $this->update([
+            'approval_status' => self::APPROVAL_APPROVED,
+            'approved_at' => now(),
+            'approved_by_id' => $adminId ?? auth('admin')->id(),
+        ]);
     }
 
     public function accountsOfConstraint()

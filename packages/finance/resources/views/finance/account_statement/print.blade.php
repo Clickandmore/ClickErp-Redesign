@@ -11,7 +11,8 @@
     <link rel="stylesheet" href="{{ asset('admin') }}/assets/css/style.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@100;200;300;400;500;600;700&display=swap"
+    <link
+        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@100;200;300;400;500;600;700&display=swap"
         rel="stylesheet" />
 
     <style>
@@ -483,6 +484,7 @@
         }
 
         @media (max-width: 767.98px) {
+
             .print-toolbar,
             .print-heading,
             .statement-report-top {
@@ -560,7 +562,8 @@
                 <div class="print-heading__title">
                     <span class="print-heading__badge">نسخة كشف حساب رسمية</span>
                     <h1>{{ $title ?? 'كشف حساب' }}</h1>
-                    <p>نسخة جاهزة للطباعة أو الحفظ PDF، مبنية على نفس الفلاتر الحالية مع إظهار أوضح للرصيد والحسابات المقابلة.</p>
+                    <p>نسخة جاهزة للطباعة أو الحفظ PDF، مبنية على نفس الفلاتر الحالية مع إظهار أوضح للرصيد والحسابات
+                        المقابلة.</p>
                 </div>
 
                 <div class="print-heading__meta">
@@ -613,14 +616,14 @@
         const shouldAutoClose = new URLSearchParams(window.location.search).get('autoclose') === '1';
 
         if (shouldAutoPrint) {
-            window.addEventListener('load', function () {
-                setTimeout(function () {
+            window.addEventListener('load', function() {
+                setTimeout(function() {
                     window.print();
                 }, 250);
             });
         }
 
-        window.onafterprint = function () {
+        window.onafterprint = function() {
             if (shouldAutoClose) {
                 window.close();
             }

@@ -142,7 +142,10 @@ class TrailBalanceService extends MainService
 
             // Sum debtor and creditor values for this account and all its descendants
             $sums = DB::table('fn_constraint_details')
+                ->join('fn_constraints', 'fn_constraints.id', '=', 'fn_constraint_details.constraint_id')
                 ->whereIn('account_id', $allAccountIds)
+                ->whereNull('fn_constraint_details.deleted_at')
+                ->whereNull('fn_constraints.deleted_at')
                 ->selectRaw('
                 SUM(debtor_value) as total_debtor,
                 SUM(creditor_value) as total_creditor

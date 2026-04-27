@@ -35,6 +35,14 @@ class ConstraintService extends MainService
         $this->confirmSettingService = $confirmSettingService;
     }
 
+    public function store($data)
+    {
+        $constraint = parent::store($data);
+        $this->logConstraintActivity($constraint, 'created', __('finance::finance.constraint_created_log_description'));
+
+        return $constraint;
+    }
+
     public function getAccounts($type = null)
     {
         return $this->accountService->getAccountWithNoChild($type);
@@ -57,6 +65,7 @@ class ConstraintService extends MainService
         $data['year_id'] = $year->id;
         $data['type'] = $type;
         $data['statement'] = $data['statement'] ?? '-';
+        $data['created_by_id'] = $data['created_by_id'] ?? auth('admin')->id();
         return $this->store($data);
     }
 
@@ -64,6 +73,9 @@ class ConstraintService extends MainService
     {
         if (isset($data['file'])) {
             $this->constraintFileService->storeFiles($constraint, $data['file']);
+            $this->logConstraintActivity($constraint, 'file_added', __('finance::finance.constraint_file_added_log_description'), [
+                'files_count' => count($data['file']),
+            ]);
         }
         return true;
     }
@@ -94,8 +106,8 @@ class ConstraintService extends MainService
     {
         $year = $getActiveYear;
         $data['year_id'] = $year->id;
-        $data['type'] = ConstraintTypiesEnum::DailyEntry;
         $constraint = $this->find($id);
+        $data['type'] = $data['type'] ?? $constraint->getRawOriginal('type') ?? ConstraintTypiesEnum::DailyEntry->value;
         $constraint->update($data);
         return $constraint;
     }
@@ -103,20 +115,33 @@ class ConstraintService extends MainService
     public function updateConstraintDetails(int $constraintId, array $accountIds, $request)
     {
         $yearId = $this->yearService->getActiveYear()->id;
+        $submittedOldIds = collect($request['old_id'] ?? [])
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
+
+        $this->constraintDetailsService->model
+            ->where('constraint_id', $constraintId)
+            ->when(!empty($submittedOldIds), function ($query) use ($submittedOldIds) {
+                $query->whereNotIn('id', $submittedOldIds);
+            })
+            ->delete();
 
         foreach ($accountIds as $key => $accountId) {
             $data = [
                 "type" => $request['account_type'][$key],
                 "debtor_value" => $request['debtor_value'][$key],
                 "creditor_value" => $request['creditor_value'][$key],
-                "statement" => $request['statement_account'][$key],
+                "statement" => $request['statement_account'][$key] ?? '-',
                 "account_id" => $accountId,
-                "cost_center_id" => $request['cost_center_id'][$key],
+                "cost_center_id" => $request['cost_center_id'][$key] ?? null,
                 "year_id" => $yearId,
                 "constraint_id" => $constraintId,
+                "date" => $request['date'] ?? $this->model->find($constraintId)->date,
             ];
 
-            if (isset($request['old_id'][$key])) {
+            if (isset($request['old_id'][$key]) && $request['old_id'][$key]) {
                 $this->constraintDetailsService->updateConstraintDetails($request['old_id'][$key], $data);
             } else {
                 $this->constraintDetailsService->storeConstraintDetails($data);
@@ -177,6 +202,9 @@ class ConstraintService extends MainService
             return  DB::table('fn_constraint_details')->select(\DB::raw('SUM(debtor_value) as sum_debtor_value, fn_accounts.status ,
                                            SUM(creditor_value) as sum_creditor_value'))
                                         ->join('fn_accounts', 'fn_accounts.id', '=', 'fn_constraint_details.account_id')
+                                        ->join('fn_constraints', 'fn_constraints.id', '=', 'fn_constraint_details.constraint_id')
+                                        ->whereNull('fn_constraint_details.deleted_at')
+                                        ->whereNull('fn_constraints.deleted_at')
                                         ->where('account_id', $accountId)
                                         ->where('date', '<', $customDate)
                                         ->first();
@@ -199,6 +227,8 @@ class ConstraintService extends MainService
             ->join('fn_accounts', 'fn_accounts.id', '=', 'fn_constraint_details.account_id')
             ->join('fn_constraints', 'fn_constraints.id', '=', 'fn_constraint_details.constraint_id')
             ->leftJoin('admins', 'admins.id', '=', 'fn_constraints.created_by_id')
+            ->whereNull('fn_constraint_details.deleted_at')
+            ->whereNull('fn_constraints.deleted_at')
             ->where('fn_constraint_details.account_id', '=', $dataSearch['account_id'])
             ->when($dataSearch['type'] != 'both', function ($q) use ($dataSearch) {
                 return $q->where('fn_constraint_details.type', $dataSearch['type']);
@@ -223,6 +253,7 @@ class ConstraintService extends MainService
             'fn_constraints.id',
         ])
         ->join('fn_constraint_details', 'fn_constraints.id', '=', 'fn_constraint_details.constraint_id')
+        ->whereNull('fn_constraint_details.deleted_at')
         ->where('fn_constraint_details.account_id', '=', $dataSearch['account_id'])
         ->when($dataSearch['type'] != 'both', function ($q) use ($dataSearch) {
             return $q->where('fn_constraint_details.type', $dataSearch['type']);
@@ -247,12 +278,90 @@ class ConstraintService extends MainService
     public function getIndexData() {
         return $this->model->query()
             ->with(['constraintDetails.account', 'bond', 'transfer_entry'])
+            ->approved()
             ->when(request('type_filter'), function ($q) {
                 $q->whereHas('constraintDetails', function ($details) {
                     $details->where('type', request('type_filter'));
                 });
             })
             ->latest('fn_constraints.created_at');
+    }
+
+    public function getPendingApprovalData()
+    {
+        return $this->model->query()
+            ->with(['constraintDetails.account', 'bond', 'transfer_entry', 'created_by'])
+            ->pendingApproval()
+            ->when(request('type_filter'), function ($q) {
+                $q->whereHas('constraintDetails', function ($details) {
+                    $details->where('type', request('type_filter'));
+                });
+            })
+            ->latest('fn_constraints.created_at');
+    }
+
+    public function approveConstraint(int $id, ?int $adminId = null): Model
+    {
+        $constraint = $this->find($id);
+        $constraint->approve($adminId);
+        $this->logConstraintActivity($constraint, 'approved', __('finance::finance.constraint_approved_log_description'));
+
+        return $constraint->refresh();
+    }
+
+    public function deleteConstraint(int $id): Model
+    {
+        return DB::transaction(function () use ($id) {
+            $constraint = $this->find($id);
+            $snapshot = $this->constraintSnapshot($constraint);
+
+            $this->logConstraintActivity($constraint, 'deleted', __('finance::finance.constraint_deleted_log_description'), [
+                'before' => $snapshot,
+            ]);
+            $constraint->constraintDetails()->delete();
+            $constraint->delete();
+
+            return $constraint;
+        });
+    }
+
+    public function logConstraintActivity(Model $constraint, string $action, ?string $description = null, array $metadata = []): void
+    {
+        $request = request();
+
+        $constraint->logs()->create([
+            'admin_id' => auth('admin')->id(),
+            'action' => $action,
+            'description' => $description,
+            'metadata' => $metadata ?: null,
+            'ip_address' => $request?->ip(),
+            'user_agent' => $request ? mb_substr((string) $request->userAgent(), 0, 500) : null,
+        ]);
+    }
+
+    public function constraintSnapshot(Model $constraint): array
+    {
+        $constraint->loadMissing('constraintDetails');
+
+        return [
+            'id' => $constraint->id,
+            'code' => $constraint->code,
+            'type' => $constraint->getRawOriginal('type'),
+            'value' => $constraint->value,
+            'date' => $constraint->date,
+            'statement' => $constraint->statement,
+            'details' => $constraint->constraintDetails->map(function ($detail) {
+                return [
+                    'id' => $detail->id,
+                    'type' => $detail->type,
+                    'account_id' => $detail->account_id,
+                    'cost_center_id' => $detail->cost_center_id,
+                    'debtor_value' => $detail->debtor_value,
+                    'creditor_value' => $detail->creditor_value,
+                    'statement' => $detail->statement,
+                ];
+            })->values()->all(),
+        ];
     }
 
     public function getIndexDataAll($type= null) {

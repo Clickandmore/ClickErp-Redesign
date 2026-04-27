@@ -21,19 +21,18 @@
 
         <div class="col-md-4 col-12">
             <label>{{ __('finance::finance.date') }}</label>
-            <input type="date" name="date" data-validation="required" class="form-control"
-                   value="{{ date('Y-m-d') }}"
-                   placeholder="{{ __('finance::finance.date') }}">
+            <input type="date" name="date" data-validation="required" class="form-control" value="{{ date('Y-m-d') }}"
+                placeholder="{{ __('finance::finance.date') }}">
         </div>
 
 
         <div class="col-md-4 col-12 mt-3 mb-3">
             <label>
                 {{ __('finance::finance.suppliers') }}
-                                {!! addUpButton(route('finance.suppliers.create'),'supplier_id','','name',true) !!}
+                {!! addUpButton(route('finance.suppliers.create'), 'supplier_id', '', 'name', true) !!}
             </label>
-            <input type="hidden" name="supplier_id" value="{{@$purchaseOrder->suppiler->id}}">
-            <input class="form-control" disabled value="{{@$purchaseOrder->suppiler->name}}">
+            <input type="hidden" name="supplier_id" value="{{ @$purchaseOrder->suppiler->id }}">
+            <input class="form-control" disabled value="{{ @$purchaseOrder->suppiler->name }}">
         </div>
 
         <div class="col-md-4 col-12 mt-3 mb-3">
@@ -42,15 +41,15 @@
         </div>
 
 
-        @if($stock_setting->multiple_stocks_in_bill_purchase == 0)
+        @if ($stock_setting->multiple_stocks_in_bill_purchase == 0)
             <div class="col-md-4 col-12 mt-3 mb-3">
                 <label>
                     {{ __('finance::finance.stocks') }}
                 </label>
                 <select class="form-control select2" name="main_stock_id" id="main_stock_id" data-validation="required">
                     <option value=""> {{ __('finance::finance.choose') }} </option>
-                    @foreach($stocks as $stock)
-                        <option value="{{$stock->id}}">{{$stock->name}}</option>
+                    @foreach ($stocks as $stock)
+                        <option value="{{ $stock->id }}">{{ $stock->name }}</option>
                     @endforeach
                 </select>
             </div>
@@ -59,47 +58,47 @@
 
         <table id="myDataTable_no_filter mt-5" class="table align-middle card-table my-2">
             <thead>
-            <tr>
-                <th></th>
-                <th>{{ __("finance::finance.items") }}</th>
-                @if($stock_setting->multiple_stocks_in_bill_purchase != 0)
-                    <th>{{ __("finance::finance.the_stock") }}</th>
-                @endif
-                <th>{{ __("finance::finance.unit") }}</th>
-                <th>{{ __("finance::finance.price") }}</th>
-                <th>{{ __("finance::finance.amount") }}</th>
-                <th>{{ __("finance::finance.discount_per") }} </th>
-                <th>{{ __("finance::finance.Tax rate") }} </th>
-                <th>{{ __("finance::finance.total") }}</th>
-                <th>{{ __("finance::finance.notes") }}</th>
-                <th>{{ __("finance::finance.actions") }}</th>
-            </tr>
+                <tr>
+                    <th></th>
+                    <th>{{ __('finance::finance.items') }}</th>
+                    @if ($stock_setting->multiple_stocks_in_bill_purchase != 0)
+                        <th>{{ __('finance::finance.the_stock') }}</th>
+                    @endif
+                    <th>{{ __('finance::finance.unit') }}</th>
+                    <th>{{ __('finance::finance.price') }}</th>
+                    <th>{{ __('finance::finance.amount') }}</th>
+                    <th>{{ __('finance::finance.discount_per') }} </th>
+                    <th>{{ __('finance::finance.Tax rate') }} </th>
+                    <th>{{ __('finance::finance.total') }}</th>
+                    <th>{{ __('finance::finance.notes') }}</th>
+                    <th>{{ __('finance::finance.actions') }}</th>
+                </tr>
             </thead>
-            <tbody id="json_array" class="content" data-mfield-options='{"section": ".y-group","btnAdd":"#btnAdd-2","btnRemove":".btnRemove"}'>
-                @foreach($purchaseOrder->purchaseOrderItems as $itemRow)
+            <tbody id="json_array" class="content"
+                data-mfield-options='{"section": ".y-group","btnAdd":"#btnAdd-2","btnRemove":".btnRemove"}'>
+                @foreach ($purchaseOrder->purchaseOrderItems as $itemRow)
                     <tr class="y-group">
                         <td></td>
                         <td style="min-width: 170px;">
                             <select name="item_id[]" id="item_id" data-validation="required" class="form-control select2">
-                                <option value="">{{ __("finance::finance.choose") }}</option>
+                                <option value="">{{ __('finance::finance.choose') }}</option>
                                 @foreach ($items as $item)
                                     <option value="{{ $item->id }}"
-                                            {{$itemRow->item->id == $item->id ? 'selected' : ''}}
-                                            data-code="{{ $item->code }}"
-                                            data-purchase-price="{{ $item->purchase_price }}"
-                                            data-sale-price="{{ $item->sale_price }}"
-                                            data-unit="{{ @$item->purchaseUnit->title }}">
-                                        {{ $item->code_string .$item->code.' | '. $item->name }}
+                                        {{ $itemRow->item->id == $item->id ? 'selected' : '' }}
+                                        data-code="{{ $item->code }}" data-purchase-price="{{ $item->purchase_price }}"
+                                        data-sale-price="{{ $item->sale_price }}"
+                                        data-unit="{{ @$item->purchaseUnit->title }}">
+                                        {{ $item->code_string . $item->code . ' | ' . $item->name }}
                                     </option>
                                 @endforeach
                             </select>
                         </td>
 
-                        @if($stock_setting->multiple_stocks_in_bill_purchase)
+                        @if ($stock_setting->multiple_stocks_in_bill_purchase)
                             <td style="min-width: 170px;">
                                 <select name="stock_id[]" id="stock_id" data-validation="required"
-                                        class="form-control select2">
-                                    <option value="">{{ __("finance::finance.choose") }}</option>
+                                    class="form-control select2">
+                                    <option value="">{{ __('finance::finance.choose') }}</option>
                                     @foreach ($stocks as $stock)
                                         <option value="{{ $stock->id }}">
                                             {{ $stock->name }}
@@ -110,35 +109,45 @@
                         @endif
 
                         <td>
-                            <input type="text" class="form-control itemUnit" readonly value="{{@$itemRow->item->purchaseUnit->title}}">
+                            <input type="text" class="form-control itemUnit" readonly
+                                value="{{ @$itemRow->item->purchaseUnit->title }}">
                         </td>
 
                         <td>
-                            <input type="text" class="form-control itemPurchasePrice" name="purchase_price[]" value="{{@$itemRow->price}}">
-                            <input type="hidden" class="form-control itemPurchasePrice" name="one_price[]" value="{{@$itemRow->price}}">
-                            <input type="hidden" class="form-control itemSalePrice" name="sale_price[]" value="{{@$itemRow->item->sale_price}}">
+                            <input type="text" class="form-control itemPurchasePrice" name="purchase_price[]"
+                                value="{{ @$itemRow->price }}">
+                            <input type="hidden" class="form-control itemPurchasePrice" name="one_price[]"
+                                value="{{ @$itemRow->price }}">
+                            <input type="hidden" class="form-control itemSalePrice" name="sale_price[]"
+                                value="{{ @$itemRow->item->sale_price }}">
                         </td>
 
 
                         <td>
                             <input type="number" name="amount[]" data-validation="required"
-                                class="form-control plus-index total-price-input" value="{{$itemRow->amount}}">
+                                class="form-control plus-index total-price-input" value="{{ $itemRow->amount }}">
                         </td>
 
                         <td>
                             <input type="number" name="discount_per[]" data-validation="required"
-                                    class="form-control plus-index discount_per" max="100" min="0" value="{{$itemRow->discount_per}}">
-                            <input type="hidden" step="0.01" readonly name="discount_value[]" class="form-control index-plus discount-value-field"  value="{{$itemRow->discount_value}}">
+                                class="form-control plus-index discount_per" max="100" min="0"
+                                value="{{ $itemRow->discount_per }}">
+                            <input type="hidden" step="0.01" readonly name="discount_value[]"
+                                class="form-control index-plus discount-value-field"
+                                value="{{ $itemRow->discount_value }}">
                         </td>
 
                         <td>
                             <input type="number" name="tax_per[]" data-validation="required"
-                                    class="form-control plus-index tax_per" max="100" min="0" value="{{$itemRow->tax_per}}">
-                            <input type="hidden" step="0.01" readonly name="tax_value[]" class="form-control index-plus tax-value-field" value="{{$itemRow->tax_value}}">
+                                class="form-control plus-index tax_per" max="100" min="0"
+                                value="{{ $itemRow->tax_per }}">
+                            <input type="hidden" step="0.01" readonly name="tax_value[]"
+                                class="form-control index-plus tax-value-field" value="{{ $itemRow->tax_value }}">
                         </td>
 
                         <td>
-                            <input type="number" name="price[]" class="form-control totalItemPrice" readonly value="{{$itemRow->total_price}}">
+                            <input type="number" name="price[]" class="form-control totalItemPrice" readonly
+                                value="{{ $itemRow->total_price }}">
                         </td>
                         <td>
                             <input type="text" name="ItemNotes[]" class="form-control">
@@ -152,13 +161,14 @@
             </tbody>
         </table>
         <hr>
-        {{--        <div class="col-md-9 col-12">--}}
+        {{--        <div class="col-md-9 col-12"> --}}
 
-        {{--        </div>--}}
+        {{--        </div> --}}
         <div class="row mb-3">
             <div class="col-md-2 col-12">
                 <label>{{ __('hr.total_price') }}</label>
-                <input type="number" class="form-control mt-2" id="totalPriceSum" name="total_item" value="" readonly>
+                <input type="number" class="form-control mt-2" id="totalPriceSum" name="total_item" value=""
+                    readonly>
             </div>
         </div>
 
@@ -176,19 +186,19 @@
         <div class="col-12 modal-footer">
             {!! submitButton($storeRoute) !!}
         </div>
-        <input type="hidden" value="{{$purchaseOrder->id}}" name="purchase_order">
+        <input type="hidden" value="{{ $purchaseOrder->id }}" name="purchase_order">
     </form>
 @endsection
 @section('js')
     <script>
-        $(document).ready(function () {
+        $(document).ready(function() {
             $('#json_array').multifield();
 
             select2AfterPlus()
 
             function calculateTotalPriceSum() {
                 let totalSum = 0;
-                $('.totalItemPrice').each(function () {
+                $('.totalItemPrice').each(function() {
                     totalSum += parseFloat($(this).val()) || 0;
                 });
                 $('#totalPriceSum').val(totalSum.toFixed(2));
@@ -198,15 +208,15 @@
             calculateTotalPriceSum();
 
             // When main stock is selected, update all stock_id fields in the table
-            $('#main_stock_id').on('change', function () {
+            $('#main_stock_id').on('change', function() {
                 var selectedStockId = $(this).val();
                 // Loop through all stock_id fields and set the value
-                $('#json_array').find('select[name="stock_id[]"]').each(function () {
+                $('#json_array').find('select[name="stock_id[]"]').each(function() {
                     $(this).val(selectedStockId);
                 });
             });
 
-            $('#supplier_id').on('change', function () {
+            $('#supplier_id').on('change', function() {
                 // Get the selected option
                 var selectedSupplier = $(this).find('option:selected');
 
@@ -273,7 +283,7 @@
                 let totalSum = 0;
 
                 // Loop through each row and sum up the totalItemPrices
-                $('#json_array').find('.totalItemPrice').each(function () {
+                $('#json_array').find('.totalItemPrice').each(function() {
                     let price = parseFloat($(this).val()) || 0;
                     totalSum += price;
                 });
@@ -283,7 +293,7 @@
             }
 
             // When an item is selected, update the code input and price fields
-            $('#json_array').on('change', 'select[name="item_id[]"]', function () {
+            $('#json_array').on('change', 'select[name="item_id[]"]', function() {
                 let selectedOption = $(this).find('option:selected');
                 let itemCode = selectedOption.data('code');
                 let itemUnit = selectedOption.data('unit');
@@ -302,37 +312,35 @@
             });
 
             // When changing the amount, recalculate the total price
-            $('#json_array').on('input', 'input[name="amount[]"]', function () {
+            $('#json_array').on('input', 'input[name="amount[]"]', function() {
                 let row = $(this).closest('tr');
                 updateTotalPrice(row);
             });
 
             // When changing the purchase price, recalculate the total price
-            $('#json_array').on('input', '.itemPurchasePrice', function () {
+            $('#json_array').on('input', '.itemPurchasePrice', function() {
                 let row = $(this).closest('tr');
                 updateTotalPrice(row);
             });
 
             // When changing the discount percentage, recalculate the total price
-            $('#json_array').on('input', '.discount_per', function () {
+            $('#json_array').on('input', '.discount_per', function() {
                 let row = $(this).closest('tr');
                 updateTotalPrice(row);
             });
 
             // When changing the tax percentage, recalculate the total price
-            $('#json_array').on('input', '.tax_per', function () {
+            $('#json_array').on('input', '.tax_per', function() {
                 let row = $(this).closest('tr');
                 updateTotalPrice(row);
             });
 
             // Recalculate total price when a row is removed
-            $(document).on('click', '.btnRemove', function () {
+            $(document).on('click', '.btnRemove', function() {
                 var subValue = $(this).closest('tr').find('.totalItemPrice').val();
                 var currentValue = $('#totalPriceSum').val();
                 $('#totalPriceSum').val((currentValue - subValue).toFixed(2));
             });
         });
     </script>
-
 @endsection
-

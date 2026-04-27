@@ -1,6 +1,6 @@
 @extends('click.layout.indexs.index')
-@section("style")
-    <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
+@section('style')
+    <link rel="stylesheet" href="{{ asset('admin') }}/assets/cssbundle/dataTables.min.css">
 @endsection
 @section('page-title')
     {{ $bladeTitle }}
@@ -9,43 +9,69 @@
     <li class="breadcrumb-item active" aria-current="page"> {{ $bladeTitle }}</li>
 @endsection
 @section('content')
-     {!! addButton($createRoute , $addButtonText) !!}
-{{--    <div class="d-flex mb-3 justify-content-end">--}}
-{{--        <a class="btn btn-success float-start mx-1" href="{{ $createRoute }}" title="" >--}}
-{{--            {{ __("buttons.add button") }} {{ $addButtonText }}--}}
-{{--        </a>--}}
-{{--    </div>--}}
+    {!! addButton($createRoute, $addButtonText) !!}
+    {{--    <div class="d-flex mb-3 justify-content-end"> --}}
+    {{--        <a class="btn btn-success float-start mx-1" href="{{ $createRoute }}" title="" > --}}
+    {{--            {{ __("buttons.add button") }} {{ $addButtonText }} --}}
+    {{--        </a> --}}
+    {{--    </div> --}}
     <table id="dataTableObject" class="table display dataTable table-hover" style="width:100%">
         <thead>
-        <tr>
-            <th>{{ __('finance::finance.SL') }}</th>
-            <th> {{__('finance::finance.code')}} </th>
-            <th> {{__('finance::finance.name')}} </th>
-            <th>{{__('finance::finance.unit')}} </th>
-            <th>{{__('finance::finance.current_balance')}} </th>
-            <th>{{__('finance::finance.purchase price')}} </th>
-            <th>{{__('finance::finance.supplier')}} </th>
-        </tr>
+            <tr>
+                <th>{{ __('finance::finance.SL') }}</th>
+                <th> {{ __('finance::finance.code') }} </th>
+                <th> {{ __('finance::finance.name') }} </th>
+                <th>{{ __('finance::finance.unit') }} </th>
+                <th>{{ __('finance::finance.current_balance') }} </th>
+                <th>{{ __('finance::finance.purchase price') }} </th>
+                <th>{{ __('finance::finance.supplier') }} </th>
+            </tr>
         </thead>
         <tbody>
 
         </tbody>
     </table>
-
-
 @endsection
 @section('js')
-    <script src="{{asset("admin")}}/assets/js/bundle/dataTables.bundle.js"></script>
+    <script src="{{ asset('admin') }}/assets/js/bundle/dataTables.bundle.js"></script>
     <script>
-        $(document).ready(function () {
-            let columns = [
-                {"data": 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
-                {"data": "code", orderable: false, searchable: false},
-                {"data": "name", orderable: false, searchable: false},
-                {"data": "unit", orderable: false, searchable: false},
-                {"data": "current_balance", orderable: false, searchable: false},
-                {"data": "purchase_price", orderable: false, searchable: false},
-                {"data": "supplier_id", orderable: false, searchable: false},
+        $(document).ready(function() {
+            let columns = [{
+                    "data": 'DT_RowIndex',
+                    name: 'DT_RowIndex',
+                    orderable: false,
+                    searchable: false
+                },
+                {
+                    "data": "code",
+                    orderable: false,
+                    searchable: false
+                },
+                {
+                    "data": "name",
+                    orderable: false,
+                    searchable: false
+                },
+                {
+                    "data": "unit",
+                    orderable: false,
+                    searchable: false
+                },
+                {
+                    "data": "current_balance",
+                    orderable: false,
+                    searchable: false
+                },
+                {
+                    "data": "purchase_price",
+                    orderable: false,
+                    searchable: false
+                },
+                {
+                    "data": "supplier_id",
+                    orderable: false,
+                    searchable: false
+                },
             ];
             showDataTable("{{ $dataTableRoute }}", columns);
 
@@ -58,8 +84,8 @@
             $.ajax({
                 type: 'get',
                 data: {
-                    supplier_id : supplier_id,
-                    from : from
+                    supplier_id: supplier_id,
+                    from: from
                 },
                 url: url,
                 success: function(data) {
@@ -98,6 +124,7 @@
                 currentRow.find('.purchase-price-field').val(purchasePrice);
             }
         });
+
         function calculateDifference(element) {
             var currentRow = $(element).closest('tr');
 

@@ -60,7 +60,7 @@ class AddConstraintController extends Controller
 
     public function show($id, Request $request, ObjService $service)
     {
-        $constraint = $service->find($id);
+        $constraint = $service->find($id)->load(['logs.admin']);
 
         return view($this->folderPath . ".show_constraint")->with([
             "obj" => $constraint,
@@ -84,17 +84,24 @@ class AddConstraintController extends Controller
         }
 
         $getActiveYear = $yearService->getActiveYear();
+        $before = $service->constraintSnapshot($service->find($id));
 
         $updateConstraint = $service->updateConstraint($id, $data, $request, $getActiveYear);
         $service->updateConstraintDetails($updateConstraint->id, $data['account_id'], $data);
         $service->storeFiles($updateConstraint, $data);
+        $service->logConstraintActivity($updateConstraint->refresh(), 'updated', __('finance::finance.constraint_updated_log_description'), [
+            'before' => $before,
+            'after' => $service->constraintSnapshot($updateConstraint),
+        ]);
         return jsonSuccess($updateConstraint, null, 201);
     }
 
 
     public function destroy($id, ObjService $service)
     {
-        //
+        $service->deleteConstraint($id);
+
+        return jsonSuccess();
     }
 
     protected function perData($service, $id)

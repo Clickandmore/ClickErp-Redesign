@@ -142,8 +142,8 @@
         }
 
         /* body{
-                                overflow-x: hidden !important;
-                            } */
+                                    overflow-x: hidden !important;
+                                } */
         .chartGroup {
 
             perspective: 1000px;
@@ -381,14 +381,16 @@
                 }
             }
         }
-        .tables{
-            table{
-                margin-block:1rem;
+
+        .tables {
+            table {
+                margin-block: 1rem;
             }
-            thead{
-                th{
+
+            thead {
+                th {
                     font-size: 1rem;
-                font-weight: 600;
+                    font-weight: 600;
                 }
             }
         }
@@ -887,7 +889,7 @@
                 }
             }],
             xaxis: {
-                categories: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15',],
+                categories: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', ],
             },
             fill: {
                 opacity: 1
@@ -901,13 +903,13 @@
             tooltip: {
                 y: [{
                     title: {
-                        formatter: function (val) {
+                        formatter: function(val) {
                             return val + " (K)"
                         }
                     }
                 }, {
                     title: {
-                        formatter: function (val) {
+                        formatter: function(val) {
                             return val + " (K)"
                         }
                     }
@@ -989,8 +991,7 @@
 
         //chart 1
         const MonLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const dataMonBar = [
-            {
+        const dataMonBar = [{
                 label: 'تم تحرير الفواتير',
                 data: [1200, 1900, 3000, 2500, 2700, 3500, 4000, 3200, 2800, 3100, 2900, 3300],
                 backgroundColor: 'rgba(63, 192, 190, 0.6)',
@@ -1007,8 +1008,7 @@
         ];
 
         //chart2
-        const dataMonBar2 = [
-            {
+        const dataMonBar2 = [{
                 label: '  نفقات',
                 data: [1200, 1900, 3000, 2500, 2700, 3500, 4000, 3200, 2800, 3100, 2900, 3300],
                 backgroundColor: 'rgba(243, 62, 111, 0.6)',
@@ -1025,37 +1025,29 @@
         ];
         // chart3
         const labels3 = ['المصروف', 'المصروف', 'المصروف', 'المصروف'];
-        const dataMonBar3 = [
-            {
-                label: '  نفقات',
-                data: [50, 25, 5, 20],
-                backgroundColor: ['#4bc0c0', '#ff6384', '#ffce56', '#37a2eb']
-            },
-        ];
+        const dataMonBar3 = [{
+            label: '  نفقات',
+            data: [50, 25, 5, 20],
+            backgroundColor: ['#4bc0c0', '#ff6384', '#ffce56', '#37a2eb']
+        }, ];
         // chart4
         const labels4 = ['عميل نشط', 'عميل نشط', 'عميل نشط', 'عميل نشط'];
-        const dataMonBar4 = [
-            {
-                label: '  نفقات',
-                data: [50, 25, 5, 20],
-                backgroundColor: ['#4bc0c0', '#ff6384', '#ffce56', '#37a2eb']
-            },
-        ];
+        const dataMonBar4 = [{
+            label: '  نفقات',
+            data: [50, 25, 5, 20],
+            backgroundColor: ['#4bc0c0', '#ff6384', '#ffce56', '#37a2eb']
+        }, ];
         // chart5
         const labels5 = ['المخزن', 'المخزن', 'المخزن', 'المخزن'];
-        const dataMonBar5 = [
-            {
-                label: '  نفقات',
-                data: [50, 25, 5, 20],
-                backgroundColor: ['#4bc0c0', '#ff6384', '#ffce56', '#37a2eb']
-            },
-        ];
+        const dataMonBar5 = [{
+            label: '  نفقات',
+            data: [50, 25, 5, 20],
+            backgroundColor: ['#4bc0c0', '#ff6384', '#ffce56', '#37a2eb']
+        }, ];
         createCharts('myChart', MonLabels, dataMonBar, 'bar', 'العملة (ريال سعودي)', 'شهور');
         createCharts('myChart2', MonLabels, dataMonBar2, 'bar', 'العملة (ريال سعودي)', 'شهور');
         createCharts('myChart3', labels3, dataMonBar3, 'pie', '', '', 'left', 'center');
         createCharts('myChart4', labels4, dataMonBar4, 'pie', '', '', 'left', 'center');
         createCharts('myChart5', labels5, dataMonBar5, 'doughnut', '', '', 'left', 'center');
-
     </script>
-
 @endsection

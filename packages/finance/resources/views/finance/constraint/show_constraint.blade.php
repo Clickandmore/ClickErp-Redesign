@@ -211,6 +211,44 @@
             border: 1px solid #e5e7eb;
         }
 
+        .constraint-show-page .activity-list {
+            display: flex;
+            flex-direction: column;
+            gap: .75rem;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .constraint-show-page .activity-item {
+            display: grid;
+            grid-template-columns: 140px 1fr 180px;
+            gap: 1rem;
+            align-items: start;
+            padding: .85rem 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .constraint-show-page .activity-item:last-child {
+            border-bottom: 0;
+        }
+
+        .constraint-show-page .activity-item strong {
+            color: #0f172a;
+        }
+
+        .constraint-show-page .activity-item span,
+        .constraint-show-page .activity-item small {
+            color: #6b7280;
+        }
+
+        @media (max-width: 767.98px) {
+            .constraint-show-page .activity-item {
+                grid-template-columns: 1fr;
+                gap: .35rem;
+            }
+        }
+
         @media print {
             @page {
                 size: A4 portrait;
@@ -267,13 +305,16 @@
 
 @section('content')
     @php
-        $companyNameAr = optional(optional($setting_web ?? null)->translate('ar'))->website_name
-            ?: optional($setting_web ?? null)->website_name
-            ?: config('app.name', 'Platinum');
-        $companyNameEn = optional(optional($setting_web ?? null)->translate('en'))->website_name
-            ?: optional($setting_web ?? null)->website_name
-            ?: config('app.name', 'Platinum');
-        $logoUrl = isset($setting_web) && !empty($setting_web->logo_header) ? showFile($setting_web->logo_header) : null;
+        $companyNameAr =
+            optional(optional($setting_web ?? null)->translate('ar'))->website_name ?:
+            optional($setting_web ?? null)->website_name ?:
+            config('app.name', 'Platinum');
+        $companyNameEn =
+            optional(optional($setting_web ?? null)->translate('en'))->website_name ?:
+            optional($setting_web ?? null)->website_name ?:
+            config('app.name', 'Platinum');
+        $logoUrl =
+            isset($setting_web) && !empty($setting_web->logo_header) ? showFile($setting_web->logo_header) : null;
         $taxNumber = isset($setting_web) && !empty($setting_web->tax_number) ? $setting_web->tax_number : '-';
         $entryCode = $obj->code ?: $obj->id;
         $printedAt = now(config('app.timezone', 'Asia/Riyadh'))->format('Y-m-d H:i:s');
@@ -283,11 +324,10 @@
             'finance.account-statement-print-read',
             'finance::finance.account-statement-print-read',
         ];
-        $canOpenAccountStatement = auth('admin')->check()
-            && (
-                auth('admin')->user()->admin_type == \App\Enums\AdminTypeisEnum::Developer->value
-                || count(array_intersect($statementPermissions, getUserPermissions())) > 0
-            );
+        $canOpenAccountStatement =
+            auth('admin')->check() &&
+            (auth('admin')->user()->admin_type == \App\Enums\AdminTypeisEnum::Developer->value ||
+                count(array_intersect($statementPermissions, getUserPermissions())) > 0);
         $buildAccountStatementUrl = function ($accountId) {
             return route('finance.account-statement.index', [
                 'account_id' => $accountId,
@@ -423,8 +463,8 @@
                                 <td class="amount">{{ number_format((float) $detail->creditor_value, 2, '.', ',') }}</td>
                                 <td>
                                     @if (optional($detail->costCenter)->id)
-                                        <a href="{{ $buildCostCenterStatementUrl($detail->costCenter->id) }}" target="_blank"
-                                            rel="noopener" class="constraint-account-link">
+                                        <a href="{{ $buildCostCenterStatementUrl($detail->costCenter->id) }}"
+                                            target="_blank" rel="noopener" class="constraint-account-link">
                                             {{ $detail->costCenter->title }}
                                             <i class="fa fa-external-link"></i>
                                         </a>
@@ -465,6 +505,35 @@
             @else
                 <div class="alert alert-light border mb-0">
                     {{ __('finance::finance.There are no attachments.') }}
+                </div>
+            @endif
+        </div>
+
+        <div class="show-card section-card">
+            <div class="section-head">
+                <h5>{{ __('finance::finance.constraint_activity_log') }}</h5>
+                <p>{{ __('finance::finance.constraint_activity_log_hint') }}</p>
+            </div>
+
+            @if ($obj->logs->count() > 0)
+                <ul class="activity-list">
+                    @foreach ($obj->logs as $log)
+                        <li class="activity-item">
+                            <strong>{{ $log->action_label }}</strong>
+                            <div>
+                                <span>{{ $log->description ?: '-' }}</span>
+                                <small class="d-block mt-1">
+                                    {{ __('finance::finance.created_by') }}:
+                                    {{ optional($log->admin)->name ?: '-' }}
+                                </small>
+                            </div>
+                            <small dir="ltr">{{ optional($log->created_at)->format('Y-m-d H:i:s') }}</small>
+                        </li>
+                    @endforeach
+                </ul>
+            @else
+                <div class="alert alert-light border mb-0">
+                    {{ __('finance::finance.constraint_activity_log_empty') }}
                 </div>
             @endif
         </div>

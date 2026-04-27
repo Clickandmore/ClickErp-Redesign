@@ -817,5 +817,13 @@ return array (
       'display_name' => 'عرض السير الذاتية المحذوفة',
       'description' => 'إمكانية عرض قائمة السير الذاتية المحذوفة من القائمة الجانبية.',
     ),
+    96 =>
+    array (
+      'name' => 'finance.constraints-approve',
+      'group' => 'finance',
+      'section' => 'modules',
+      'display_name' => 'اعتماد القيود المحاسبية',
+      'description' => 'إمكانية اعتماد القيود المحاسبية المنتظرة.',
+    ),
   ),
 );

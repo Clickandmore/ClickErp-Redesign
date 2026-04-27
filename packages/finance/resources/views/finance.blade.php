@@ -475,7 +475,7 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
 
 <li class="collapsed">
     <a class="m-link
-    {{ in_array(Route::currentRouteName(), ['finance.add-constraint.create', 'finance.constraints.index']) &&
+    {{ in_array(Route::currentRouteName(), ['finance.add-constraint.create', 'finance.constraints.index', 'finance.constraints.pending']) &&
     (request()->query('status') == null || in_array(request()->query('status'), ['collected', 'refused']))
         ? 'active'
         : '' }}"
@@ -486,7 +486,7 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
     </a>
 
     <ul class="sub-menu collapse
-            {{ in_array(Route::currentRouteName(), ['finance.add-constraint.create', 'finance.constraints.index']) &&
+            {{ in_array(Route::currentRouteName(), ['finance.add-constraint.create', 'finance.constraints.index', 'finance.constraints.pending']) &&
             (request()->query('status') == null || in_array(request()->query('status'), ['collected', 'refused']))
                 ? 'show'
                 : '' }}"
@@ -505,6 +505,12 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
             <a class="m-link {{ Route::currentRouteName() == 'finance.constraints.index' ? 'active' : '' }}"
                 href="{{ route('finance.constraints.index') }}">
                 <span class="ms-2"> {{ trans('finance::finance.Managing daily constraints') }} </span>
+            </a>
+        </li>
+        <li>
+            <a class="m-link {{ Route::currentRouteName() == 'finance.constraints.pending' ? 'active' : '' }}"
+                href="{{ route('finance.constraints.pending') }}">
+                <span class="ms-2"> {{ trans('finance::finance.pending_constraints_approval') }} </span>
             </a>
         </li>
         {{--        @endif --}}

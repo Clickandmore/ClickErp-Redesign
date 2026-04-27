@@ -39,6 +39,259 @@
         .stats-filter-card:hover {
             transform: translateY(-2px);
         }
+
+        .compact-stats-panel {
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            box-shadow: 0 .125rem .35rem rgba(0, 0, 0, .04);
+        }
+
+        .compact-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));
+            gap: .65rem;
+        }
+
+        .compact-stat {
+            width: 100%;
+            min-height: 76px;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            background: #fff;
+            color: inherit;
+            text-align: start;
+            padding: .75rem;
+        }
+
+        .compact-stat:focus {
+            outline: 2px solid rgba(13, 110, 253, .25);
+            outline-offset: 2px;
+        }
+
+        .compact-stat-label {
+            display: flex;
+            align-items: center;
+            gap: .4rem;
+            min-height: 22px;
+            color: #6c757d;
+            font-size: .78rem;
+            font-weight: 700;
+            line-height: 1.35;
+        }
+
+        .compact-stat-value {
+            margin-top: .35rem;
+            font-size: 1.35rem;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .compact-stat-meta {
+            display: block;
+            margin-top: .3rem;
+            color: #6c757d;
+            font-size: .74rem;
+            line-height: 1.3;
+        }
+
+        .compact-stat-primary {
+            border-right: 4px solid #0d6efd;
+        }
+
+        .compact-stat-rental {
+            border-right: 4px solid #0dcaf0;
+            background: #f7fdff;
+        }
+
+        .quick-tags-panel {
+            border-top: 1px solid #f1f3f5;
+        }
+
+        .quick-tags-strip {
+            display: flex;
+            gap: .5rem;
+            overflow-x: auto;
+            padding-bottom: .15rem;
+            scrollbar-width: thin;
+        }
+
+        .quick-tags-strip .quick-filter-chip {
+            flex: 0 0 auto;
+            white-space: nowrap;
+        }
+
+        .shelter-contracts-page {
+            overflow-x: hidden;
+        }
+
+        .shelter-contracts-page .page-actions {
+            row-gap: .5rem;
+        }
+
+        .shelter-contracts-page .quick-filter-chip {
+            max-width: 100%;
+        }
+
+        .shelter-contracts-page .table-card .card-body {
+            min-width: 0;
+        }
+
+        .shelter-contracts-page .table-responsive {
+            overflow-x: visible;
+        }
+
+        #shelterContractsTable {
+            width: 100% !important;
+        }
+
+        #shelterContractsTable th,
+        #shelterContractsTable td {
+            vertical-align: middle;
+        }
+
+        #shelterContractsTable td {
+            white-space: normal;
+            word-break: break-word;
+        }
+
+        #shelterContractsTable td.child {
+            background: #f8f9fa;
+        }
+
+        #shelterContractsTable td.child ul.dtr-details {
+            width: 100%;
+            padding: 0;
+            margin: 0;
+        }
+
+        #shelterContractsTable td.child ul.dtr-details li {
+            display: flex;
+            gap: .75rem;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: .5rem 0;
+            border-bottom: 1px solid rgba(0, 0, 0, .06);
+        }
+
+        #shelterContractsTable td.child .dtr-title {
+            flex: 0 0 42%;
+            font-weight: 700;
+        }
+
+        #shelterContractsTable td.child .dtr-data {
+            flex: 1;
+            min-width: 0;
+            text-align: start;
+        }
+
+        .shelter-status-stack {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .35rem;
+            align-items: center;
+            max-width: 260px;
+        }
+
+        .shelter-status-stack .badge {
+            white-space: normal;
+            line-height: 1.35;
+            text-align: start;
+        }
+
+        .shelter-contracts-page .dataTables_wrapper .row {
+            row-gap: .75rem;
+        }
+
+        .shelter-contracts-page .dataTables_wrapper .dataTables_info,
+        .shelter-contracts-page .dataTables_wrapper .dataTables_paginate {
+            white-space: normal;
+        }
+
+        @media (max-width: 991.98px) {
+            .shelter-contracts-page {
+                padding: 1rem !important;
+            }
+
+            .shelter-contracts-page .container-fluid {
+                padding-right: 0;
+                padding-left: 0;
+            }
+
+            .shelter-contracts-page .page-header {
+                align-items: stretch !important;
+                gap: 1rem;
+            }
+
+            .shelter-contracts-page .page-header .h3 {
+                font-size: 1.25rem;
+                line-height: 1.5;
+            }
+
+            .shelter-contracts-page .page-actions {
+                width: 100%;
+            }
+
+            .shelter-contracts-page .page-actions .btn,
+            .shelter-contracts-page .filter-actions .btn {
+                flex: 1 1 150px;
+            }
+
+            .shelter-contracts-page .card-body {
+                padding: 1rem;
+            }
+
+            .compact-stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            }
+        }
+
+        @media (max-width: 575.98px) {
+            .shelter-contracts-page {
+                padding: .75rem !important;
+            }
+
+            .shelter-contracts-page .page-title-box .page-title {
+                font-size: 1rem;
+            }
+
+            .shelter-contracts-page .page-actions .btn,
+            .shelter-contracts-page .filter-actions .btn {
+                flex-basis: 100%;
+                width: 100%;
+            }
+
+            .shelter-contracts-page .statistics-card .card-body .row {
+                flex-wrap: nowrap;
+            }
+
+            .shelter-contracts-page .statistics-card .fa-2x {
+                font-size: 1.4rem;
+            }
+
+            .quick-tags-strip .quick-filter-chip {
+                max-width: 82vw;
+            }
+
+            #shelterContractsTable {
+                font-size: .875rem;
+            }
+
+            #shelterContractsTable td.child ul.dtr-details li {
+                display: block;
+            }
+
+            #shelterContractsTable td.child .dtr-title {
+                display: block;
+                margin-bottom: .25rem;
+            }
+
+            .shelter-contracts-page .dataTables_wrapper .pagination {
+                flex-wrap: wrap;
+                gap: .25rem;
+                justify-content: center;
+            }
+        }
     </style>
 @endsection
 
@@ -47,8 +300,13 @@
 @endsection
 
 @section('content')
-    <div class="page-body p-4 text-dark admin-tables">
-        @if (@AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_INSIDE_VIEW, \App\PermKeys::SHELTER_CONTRACT_VIEW, \App\PermKeys::SHELTER_CONTRACT_CONTROL]))
+    <div class="page-body p-4 text-dark admin-tables shelter-contracts-page">
+        @if (
+            @AdminGuardHasAnyPerm([
+                \App\PermKeys::SHELTER_CONTRACT_INSIDE_VIEW,
+                \App\PermKeys::SHELTER_CONTRACT_VIEW,
+                \App\PermKeys::SHELTER_CONTRACT_CONTROL,
+            ]))
             <div class="container-fluid ">
                 <!-- Page Title Section -->
                 <div class="row mb-4">
@@ -60,19 +318,24 @@
                 </div>
 
                 <!-- Header Section -->
-                <div class="d-sm-flex align-items-center justify-content-between mb-4">
+                <div class="page-header d-sm-flex align-items-center justify-content-between mb-4">
                     <h3 class="h3 mb-0 text-gray-800">
                         <i class="fas fa-home text-primary me-2"></i>
                         {{ helperTrans('ingaz.All Shelter contracts') }}
                     </h3>
-                    <div class="d-flex flex-wrap gap-2">
+                    <div class="page-actions d-flex flex-wrap gap-2">
                         <button type="button" id="exportExcel" class="btn btn-success">
                             <i class="fas fa-file-excel me-2"></i>تصدير Excel
                         </button>
                         <button type="button" id="exportPdf" class="btn btn-danger">
                             <i class="fas fa-file-pdf me-2"></i>تصدير PDF
                         </button>
-                        @if (@AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_ADDITION_CREATE, \App\PermKeys::SHELTER_CONTRACT_CREATE, \App\PermKeys::SHELTER_CONTRACT_CONTROL]))
+                        @if (
+                            @AdminGuardHasAnyPerm([
+                                \App\PermKeys::SHELTER_CONTRACT_ADDITION_CREATE,
+                                \App\PermKeys::SHELTER_CONTRACT_CREATE,
+                                \App\PermKeys::SHELTER_CONTRACT_CONTROL,
+                            ]))
                             <a href="{{ route('ShelterContract.create') }}" class="btn btn-primary">
                                 <i class="fas fa-plus me-2"></i>
                                 {{ helperTrans('ingaz.add_shelter_contract') }}
@@ -81,216 +344,103 @@
                     </div>
                 </div>
 
-                <!-- Statistics Cards -->
-                <div class="row mb-4">
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card statistics-card total-card shadow h-100 stats-filter-card"
-                            data-clear-filters="1">
-                            <div class="card-body">
-                                <div class="row no-gutters align-items-center">
-                                    <div class="col mr-2">
-                                        <div class="text-xs font-weight-bold text-uppercase mb-1">
-                                            إجمالي العقود
-                                        </div>
-                                        <div class="h5 mb-0 font-weight-bold">
-                                            {{ $totalContracts ?? 0 }}
-                                        </div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <i class="fas fa-file-contract fa-2x"></i>
-                                    </div>
-                                </div>
-                            </div>
+                <!-- Statistics And Quick Categories -->
+                <div class="compact-stats-panel mb-4">
+                    <div class="p-3">
+                        <div class="compact-stats-grid">
+                            <button type="button" class="compact-stat compact-stat-primary stats-filter-card"
+                                data-clear-filters="1">
+                                <span class="compact-stat-label">
+                                    <i class="fas fa-file-contract text-primary"></i> إجمالي العقود
+                                </span>
+                                <span class="compact-stat-value">{{ $totalContracts ?? 0 }}</span>
+                                <span class="compact-stat-meta">كل العاملات داخل الإيواء</span>
+                            </button>
+
+                            <button type="button" class="compact-stat stats-filter-card"
+                                data-service-category="recruitment">
+                                <span class="compact-stat-label">
+                                    <i class="fas fa-briefcase text-primary"></i> استقدام
+                                </span>
+                                <span class="compact-stat-value">{{ $serviceCategoryStats['recruitment'] ?? 0 }}</span>
+                                <span class="compact-stat-meta">فلترة عاملات الاستقدام</span>
+                            </button>
+
+                            <button type="button" class="compact-stat compact-stat-rental stats-filter-card"
+                                data-service-category="rental">
+                                <span class="compact-stat-label">
+                                    <i class="fas fa-house-user text-info"></i> عاملات الإيجار
+                                </span>
+                                <span class="compact-stat-value">{{ $rentalWorkerStats['total'] ?? 0 }}</span>
+                                <span class="compact-stat-meta">جاهزات: {{ $rentalWorkerStats['ready'] ?? 0 }} | فوري:
+                                    {{ $rentalWorkerStats['instant'] ?? 0 }}</span>
+                            </button>
+
+                            <button type="button" class="compact-stat stats-filter-card" data-service-category="transfer">
+                                <span class="compact-stat-label">
+                                    <i class="fas fa-people-arrows text-success"></i> نقل خدمات
+                                </span>
+                                <span class="compact-stat-value">{{ $serviceCategoryStats['transfer'] ?? 0 }}</span>
+                                <span class="compact-stat-meta">فلترة نقل الخدمات</span>
+                            </button>
+
+                            <button type="button" class="compact-stat stats-filter-card" data-status="within_guarantee">
+                                <span class="compact-stat-label">
+                                    <i class="fas fa-shield-alt text-success"></i> ضمن الضمان
+                                </span>
+                                <span class="compact-stat-value">{{ $withinGuarantee ?? 0 }}</span>
+                                <span class="compact-stat-meta">إيجار:
+                                    {{ $rentalWorkerStats['within_guarantee'] ?? 0 }}</span>
+                            </button>
+
+                            <button type="button" class="compact-stat stats-filter-card" data-status="expired_guarantee">
+                                <span class="compact-stat-label">
+                                    <i class="fas fa-exclamation-triangle text-danger"></i> منتهي الضمان
+                                </span>
+                                <span class="compact-stat-value">{{ $expiredGuarantee ?? 0 }}</span>
+                                <span class="compact-stat-meta">إيجار:
+                                    {{ $rentalWorkerStats['expired_guarantee'] ?? 0 }}</span>
+                            </button>
+
+                            <button type="button" class="compact-stat compact-stat-rental stats-filter-card"
+                                data-service-category="rental" data-work-willingness="yes">
+                                <span class="compact-stat-label">
+                                    <i class="fas fa-user-check text-success"></i> إيجار جاهزات
+                                </span>
+                                <span class="compact-stat-value">{{ $rentalWorkerStats['ready'] ?? 0 }}</span>
+                                <span class="compact-stat-meta">ترغب بالعمل من عاملات الإيجار</span>
+                            </button>
+
+                            <button type="button" class="compact-stat compact-stat-rental stats-filter-card"
+                                data-service-category="rental" data-instant-receipt="yes">
+                                <span class="compact-stat-label">
+                                    <i class="fas fa-bolt text-warning"></i> إيجار فوري
+                                </span>
+                                <span class="compact-stat-value">{{ $rentalWorkerStats['instant'] ?? 0 }}</span>
+                                <span class="compact-stat-meta">متاحة للاستلام الفوري</span>
+                            </button>
+
+                            <button type="button" class="compact-stat compact-stat-rental stats-filter-card"
+                                data-service-category="rental" data-work-willingness="no">
+                                <span class="compact-stat-label">
+                                    <i class="fas fa-plane-departure text-warning"></i> إيجار ترحيل
+                                </span>
+                                <span class="compact-stat-value">{{ $rentalWorkerStats['deportation'] ?? 0 }}</span>
+                                <span class="compact-stat-meta">لا ترغب بالعمل</span>
+                            </button>
                         </div>
                     </div>
 
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card statistics-card shadow h-100 border-start border-primary border-4 stats-filter-card"
-                            data-service-category="recruitment">
-                            <div class="card-body">
-                                <div class="row no-gutters align-items-center">
-                                    <div class="col mr-2">
-                                        <div class="text-xs font-weight-bold text-uppercase mb-1">
-                                            عاملات الاستقدام
-                                        </div>
-                                        <div class="h5 mb-0 font-weight-bold">
-                                            {{ $serviceCategoryStats['recruitment'] ?? 0 }}
-                                        </div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <i class="fas fa-briefcase fa-2x text-primary"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card statistics-card shadow h-100 border-start border-info border-4 stats-filter-card"
-                            data-service-category="rental">
-                            <div class="card-body">
-                                <div class="row no-gutters align-items-center">
-                                    <div class="col mr-2">
-                                        <div class="text-xs font-weight-bold text-uppercase mb-1">
-                                            عاملات التأجير
-                                        </div>
-                                        <div class="h5 mb-0 font-weight-bold">
-                                            {{ $serviceCategoryStats['rental'] ?? 0 }}
-                                        </div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <i class="fas fa-house-user fa-2x text-info"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card statistics-card shadow h-100 border-start border-success border-4 stats-filter-card"
-                            data-service-category="transfer">
-                            <div class="card-body">
-                                <div class="row no-gutters align-items-center">
-                                    <div class="col mr-2">
-                                        <div class="text-xs font-weight-bold text-uppercase mb-1">
-                                            نقل الخدمات
-                                        </div>
-                                        <div class="h5 mb-0 font-weight-bold">
-                                            {{ $serviceCategoryStats['transfer'] ?? 0 }}
-                                        </div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <i class="fas fa-people-arrows fa-2x text-success"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card statistics-card within-guarantee-card shadow h-100 stats-filter-card"
-                            data-status="within_guarantee">
-                            <div class="card-body">
-                                <div class="row no-gutters align-items-center">
-                                    <div class="col mr-2">
-                                        <div class="text-xs font-weight-bold text-uppercase mb-1">
-                                            ضمن الضمان
-                                        </div>
-                                        <div class="h5 mb-0 font-weight-bold">
-                                            {{ $withinGuarantee ?? 0 }}
-                                        </div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <i class="fas fa-shield-alt fa-2x text-success"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card statistics-card expired-guarantee-card shadow h-100 stats-filter-card"
-                            data-status="expired_guarantee">
-                            <div class="card-body">
-                                <div class="row no-gutters align-items-center">
-                                    <div class="col mr-2">
-                                        <div class="text-xs font-weight-bold text-uppercase mb-1">
-                                            منتهي الضمان
-                                        </div>
-                                        <div class="h5 mb-0 font-weight-bold">
-                                            {{ $expiredGuarantee ?? 0 }}
-                                        </div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card statistics-card wants-work-card shadow h-100 stats-filter-card"
-                            data-work-willingness="yes">
-                            <div class="card-body">
-                                <div class="row no-gutters align-items-center">
-                                    <div class="col mr-2">
-                                        <div class="text-xs font-weight-bold text-uppercase mb-1">
-                                            جاهزات للنقل
-                                        </div>
-                                        <div class="h5 mb-0 font-weight-bold">
-                                            {{ $wantsToWork ?? 0 }}
-                                        </div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <i class="fas fa-user-check fa-2x"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card statistics-card shadow h-100 border-start border-warning border-4 stats-filter-card"
-                            data-work-willingness="no">
-                            <div class="card-body">
-                                <div class="row no-gutters align-items-center">
-                                    <div class="col mr-2">
-                                        <div class="text-xs font-weight-bold text-uppercase mb-1">
-                                            مرحلة الترحيل
-                                        </div>
-                                        <div class="h5 mb-0 font-weight-bold">
-                                            {{ $inDeportation ?? 0 }}
-                                        </div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <i class="fas fa-plane-departure fa-2x text-warning"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-xl-3 col-md-6 mb-4">
-                        <div class="card statistics-card instant-receipt-card shadow h-100 stats-filter-card"
-                            data-instant-receipt="yes">
-                            <div class="card-body">
-                                <div class="row no-gutters align-items-center">
-                                    <div class="col mr-2">
-                                        <div class="text-xs font-weight-bold text-uppercase mb-1">
-                                            متاحة للاستلام الفوري
-                                        </div>
-                                        <div class="h5 mb-0 font-weight-bold">
-                                            {{ $availableForInstantReceipt ?? 0 }}
-                                        </div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <i class="fas fa-bolt fa-2x text-warning"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card mb-4">
-                    <div class="card-body">
-                        <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
-                            <div>
-                                <h6 class="mb-1">التصنيفات السريعة</h6>
-                                <small class="text-muted">مثل: جاهزة للنقل، جاهزة للإيجار، تحت المتابعة. يمكن استعمالها
-                                    كإحصائية وفلتر مباشر.</small>
-                            </div>
-                            <div class="d-flex flex-wrap gap-2">
-                                <span class="badge bg-warning text-dark">بدون تاريخ وصول واضح:
-                                    {{ $guaranteeUnknown ?? 0 }}</span>
-                            </div>
+                    <div class="quick-tags-panel px-3 py-2">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <h6 class="mb-0 small fw-bold">التصنيفات السريعة</h6>
+                            <span class="badge bg-warning text-dark">بدون تاريخ وصول: {{ $guaranteeUnknown ?? 0 }}</span>
                         </div>
 
-                        <div class="d-flex flex-wrap gap-2">
+                        <div class="quick-tags-strip">
                             <button type="button" class="btn btn-sm btn-outline-dark quick-filter-chip active"
                                 data-tag="">
-                                كل العقود
+                                الكل
                             </button>
                             @forelse ($quickTagStats as $tagStat)
                                 <button type="button" class="btn btn-sm btn-outline-primary quick-filter-chip"
@@ -299,7 +449,7 @@
                                     <span class="badge bg-light text-dark ms-1">{{ $tagStat['count'] }}</span>
                                 </button>
                             @empty
-                                <span class="text-muted">لا توجد تصنيفات سريعة مضافة حتى الآن.</span>
+                                <span class="text-muted small">لا توجد تصنيفات سريعة مضافة حتى الآن.</span>
                             @endforelse
                         </div>
                     </div>
@@ -420,7 +570,8 @@
                                     </select>
                                 </div>
                                 <div class="col-md-3">
-                                    <label for="filterRequestType" class="form-label">{{ helperTrans('ingaz.request_type') }}</label>
+                                    <label for="filterRequestType"
+                                        class="form-label">{{ helperTrans('ingaz.request_type') }}</label>
                                     <select id="filterRequestType" class="form-select">
                                         <option value="">{{ helperTrans('ingaz.all') }}</option>
                                         @foreach (\App\Models\ingaz\Maid::getRequestTypeOptions() as $value => $label)
@@ -430,7 +581,7 @@
                                 </div>
                             </div>
                             <div class="row mt-3">
-                                <div class="col-12 text-end">
+                                <div class="col-12 text-end filter-actions d-flex flex-wrap justify-content-end gap-2">
                                     <button type="button" id="clearFilters" class="btn btn-secondary me-2">
                                         <i class="fas fa-times me-1"></i> مسح الفلاتر
                                     </button>
@@ -444,15 +595,15 @@
                 </div>
 
                 <!-- جدول العقود -->
-                <div class="card shadow">
-                    <div class="card-body border-bottom">
-                        <div class="alert column-explanation mb-0">
+                <div class="card shadow table-card">
+                    {{-- <div class="card-body border-bottom">
+                        {{-- <div class="alert column-explanation mb-0">
                             <strong class="d-block mb-2">توضيح الأعمدة</strong>
                             <div>مدة التسكين داخل الإيواء: من تاريخ إدخال العاملة إلى الإيواء وحتى اليوم.</div>
                             <div>مدة بقائها داخل المملكة: من تاريخ وصولها للمملكة وحتى اليوم.</div>
                             <div>تاريخ إدخال الإيواء: هو تاريخ مراجعتها وإيداعها داخل الإيواء.</div>
-                        </div>
-                    </div>
+                        </div> --}}
+                    {{-- </div> --}}
                     <div class="card-body">
                         <div class="table-responsive">
                             <table id="shelterContractsTable" class="table table-hover align-middle mb-0 table-style"
@@ -469,9 +620,7 @@
                                         <th>تاريخ إدخال الإيواء</th>
                                         <th>مدة داخل المملكة</th>
                                         <th>مدة داخل الإيواء</th>
-                                        <th>مصدر الاستلام</th>
-                                        <th>حالة الضمان</th>
-                                        <th>رغبة العمل</th>
+                                        <th>الحالة</th>
                                         <th>التصنيفات السريعة</th>
                                         <th>متاحة للاستلام الفوري</th>
                                         <th>الإجراءات</th>
@@ -482,6 +631,8 @@
                         </div>
                     </div>
                 </div>
+
+
 
             </div>
 
@@ -657,8 +808,14 @@
             const dataTable = $('#shelterContractsTable').DataTable({
                 processing: true,
                 serverSide: true,
-                responsive: false,
-                scrollX: true,
+                responsive: {
+                    details: {
+                        type: 'inline',
+                        target: 0
+                    }
+                },
+                autoWidth: false,
+                scrollX: false,
                 searching: false,
                 ajax: {
                     url: '{{ route('ShelterContract.data') }}',
@@ -760,18 +917,8 @@
                         orderable: false
                     },
                     {
-                        data: 'receipt_source',
-                        name: 'receipt_source',
-                        orderable: false
-                    },
-                    {
-                        data: 'guarantee_status',
-                        name: 'guarantee_status',
-                        orderable: false
-                    },
-                    {
-                        data: 'work_willingness',
-                        name: 'work_willingness',
+                        data: 'status_summary',
+                        name: 'status_summary',
                         orderable: false
                     },
                     {
@@ -789,6 +936,43 @@
                         name: 'actions',
                         orderable: false,
                         searchable: false
+                    }
+                ],
+                columnDefs: [{
+                        targets: 0,
+                        responsivePriority: 1
+                    },
+                    {
+                        targets: 1,
+                        responsivePriority: 2
+                    },
+                    {
+                        targets: 2,
+                        responsivePriority: 3
+                    },
+                    {
+                        targets: 10,
+                        responsivePriority: 4
+                    },
+                    {
+                        targets: 13,
+                        responsivePriority: 5
+                    },
+                    {
+                        targets: 3,
+                        responsivePriority: 6
+                    },
+                    {
+                        targets: 11,
+                        responsivePriority: 7
+                    },
+                    {
+                        targets: [4, 5],
+                        responsivePriority: 30
+                    },
+                    {
+                        targets: [6, 7, 8, 9, 12],
+                        responsivePriority: 100
                     }
                 ],
                 createdRow: function(row, data, dataIndex) {
@@ -809,6 +993,14 @@
                 ],
                 pageLength: 25,
                 dom: 'lrtip'
+            });
+
+            $('#filterCollapse').on('shown.bs.collapse hidden.bs.collapse', function() {
+                dataTable.columns.adjust().responsive.recalc();
+            });
+
+            $(window).on('resize orientationchange', function() {
+                dataTable.columns.adjust().responsive.recalc();
             });
 
             // Apply filters
@@ -896,6 +1088,7 @@
                 $('#filterInstantReceipt').val('');
                 $('#filterQuickTag').val('');
                 $('#filterServiceCategory').val('');
+                $('#filterRequestType').val('');
                 $('.quick-filter-chip').removeClass('active');
                 $('.quick-filter-chip[data-tag=""]').addClass('active');
 

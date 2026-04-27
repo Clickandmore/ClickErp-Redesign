@@ -86,6 +86,8 @@ class AuditBudgetService extends MainService
             ->join('fn_accounts', 'fn_accounts.id', '=', 'fn_constraint_details.account_id')
             ->join('fn_constraints', 'fn_constraints.id', '=', 'fn_constraint_details.constraint_id')
             ->join('admins', 'admins.id', '=', 'fn_constraints.created_by_id')
+            ->whereNull('fn_constraint_details.deleted_at')
+            ->whereNull('fn_constraints.deleted_at')
             ->where('fn_accounts.type', '=', $dataSearch['type'])
             ->when($dataSearch['from_date'] != '', function ($q) use ($dataSearch) {
                 return $q->whereDate('fn_constraint_details.date', '>=', $dataSearch['from_date']);
@@ -118,6 +120,8 @@ class AuditBudgetService extends MainService
             ->join('fn_accounts', 'fn_accounts.id', '=', 'fn_constraint_details.account_id')
             ->join('fn_constraints', 'fn_constraints.id', '=', 'fn_constraint_details.constraint_id')
             ->join('admins', 'admins.id', '=', 'fn_constraints.created_by_id')
+            ->whereNull('fn_constraint_details.deleted_at')
+            ->whereNull('fn_constraints.deleted_at')
             ->where('fn_accounts.type', '=', $dataSearch['type'])
             ->when($dataSearch['start_date'] != '', function ($q) use ($dataSearch) {
                 return $q->whereDate('fn_constraint_details.date', '>=', $dataSearch['start_date']);
@@ -150,6 +154,8 @@ class AuditBudgetService extends MainService
             ])
             ->join('fn_accounts', 'fn_accounts.id', '=', 'fn_constraint_details.account_id')
             ->join('fn_constraints', 'fn_constraints.id', '=', 'fn_constraint_details.constraint_id')
+            ->whereNull('fn_constraint_details.deleted_at')
+            ->whereNull('fn_constraints.deleted_at')
             ->where('fn_accounts.type', '=', $dataSearch['type'])
             ->when($dataSearch['from_date'] != '', function ($q) use ($dataSearch) {
                 $dataSearch['from_date'] = $dataSearch['from_date'].'-01';
@@ -230,6 +236,8 @@ class AuditBudgetService extends MainService
             ])
             ->join('fn_accounts', 'fn_accounts.id', '=', 'fn_constraint_details.account_id')
             ->join('fn_constraints', 'fn_constraints.id', '=', 'fn_constraint_details.constraint_id')
+            ->whereNull('fn_constraint_details.deleted_at')
+            ->whereNull('fn_constraints.deleted_at')
            ->where('fn_accounts.type', '=', $dataSearch['type'])
             ->when($dataSearch['start_date'] != '', function ($q) use ($dataSearch) {
                 return $q->whereDate('fn_constraint_details.date', '>=', $dataSearch['start_date']);

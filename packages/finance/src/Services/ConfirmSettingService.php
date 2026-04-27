@@ -99,6 +99,7 @@ class ConfirmSettingService extends MainService
             'account_transfer',
             'general_sarf_bond',
             'general_qabd_bond',
+            'daily_constraints',
             'bill_sales',
             'bill_purchases',
             'bond_sarf_account',

@@ -1,9 +1,9 @@
 @extends('click.layout.indexs.index')
 @section('page-title')
-    {{$bladeTitle}}
+    {{ $bladeTitle }}
 @endsection
 @section('page-links')
-    <li class="breadcrumb-item active" aria-current="page"> {{$bladeTitle}}</li>
+    <li class="breadcrumb-item active" aria-current="page"> {{ $bladeTitle }}</li>
 @endsection
 @section('style')
     <style>
@@ -20,28 +20,33 @@
             0% {
                 transform: rotate(0deg);
             }
+
             100% {
                 transform: rotate(360deg);
             }
         }
 
 
-        .header{
-            position:sticky;
-            top: 0 ;
+        .header {
+            position: sticky;
+            top: 0;
             background-color: #ffc800;
         }
 
-        td{
+        td {
             font-size: small;
         }
+
         @media print {
             body * {
                 visibility: hidden;
             }
-            #simpleTable4, #simpleTable4 * {
+
+            #simpleTable4,
+            #simpleTable4 * {
                 visibility: visible;
             }
+
             #simpleTable4 {
                 position: absolute;
                 left: 0;
@@ -50,6 +55,7 @@
                 padding: 20px;
                 font-size: 12pt;
             }
+
             .sidebar {
                 display: none !important;
             }
@@ -58,10 +64,11 @@
 @endsection
 @section('content')
 
-    @if(count($accounts))
+    @if (count($accounts))
         <div class="row print-and-excel-buttons mb-3">
             <div class="col-12 mt-4" style="text-align: left">
-                <button onclick="window.print()" class="btn btn-primary" id="printBalanceTable"><i class="fa fa-print"></i></button>
+                <button onclick="window.print()" class="btn btn-primary" id="printBalanceTable"><i
+                        class="fa fa-print"></i></button>
                 <button id="toExcel" class="btn btn-info"><i class="fa fa-file-excel-o"></i></button>
             </div>
         </div>
@@ -69,17 +76,17 @@
             <thead>
                 <tr class="header">
                     <th style="width: 3%" scope="col">#</th>
-                    <th style="width: 10%" scope="col">  {{ __('finance::finance.code') }}</th>
-                    <th style="width: 10%" scope="col"> {{ __("finance::finance.Account") }}</th>
-                    <th style="width: 5%" scope="col">{{ __("finance::finance.total_depit") }}</th>
-                    <th style="width: 5%" scope="col">{{ __("finance::finance.total_credit") }}</th>
-                    <th style="width: 10%" scope="col">{{__("finance::finance.Balance")}}</th>
+                    <th style="width: 10%" scope="col"> {{ __('finance::finance.code') }}</th>
+                    <th style="width: 10%" scope="col"> {{ __('finance::finance.Account') }}</th>
+                    <th style="width: 5%" scope="col">{{ __('finance::finance.total_depit') }}</th>
+                    <th style="width: 5%" scope="col">{{ __('finance::finance.total_credit') }}</th>
+                    <th style="width: 10%" scope="col">{{ __('finance::finance.Balance') }}</th>
                 </tr>
             </thead>
             <tbody>
-                @foreach($accounts as $key => $account)
+                @foreach ($accounts as $key => $account)
                     <tr>
-                        <td>{{ ++$key}}</td>
+                        <td>{{ ++$key }}</td>
                         <td>{{ $account['code'] }}</td>
                         <td>{{ $account['name'] }}</td>
                         <td>{{ $account['debtor_value'] }}</td>
@@ -104,10 +111,10 @@
     @endif
 @endsection
 @section('js')
-    <script src="{{asset("plugins")}}/exelJs/dist/tableToExcel.517b1af9.js"></script>
+    <script src="{{ asset('plugins') }}/exelJs/dist/tableToExcel.517b1af9.js"></script>
     <script>
         var button = document.querySelector('#toExcel');
-        button.addEventListener('click', function (e) {
+        button.addEventListener('click', function(e) {
             var table = document.querySelector('#simpleTable4');
             TableToExcel.convert(table);
         });

@@ -16,18 +16,17 @@
 
         <div class="col-md-3 col-12">
             <label>{{ __('finance::finance.date') }}</label>
-            <input type="date" name="date" data-validation="required" class="form-control"
-                   value="{{ date('Y-m-d') }}"
-                   placeholder="{{ __('finance::finance.date') }}">
+            <input type="date" name="date" data-validation="required" class="form-control" value="{{ date('Y-m-d') }}"
+                placeholder="{{ __('finance::finance.date') }}">
         </div>
 
-        @if($stock_setting->multiple_stocks_in_bill_sales == 0)
+        @if ($stock_setting->multiple_stocks_in_bill_sales == 0)
             <div class="col-md-3 col-12">
                 <label>
                     {{ __('finance::finance.the_stock') }}
                 </label>
                 <select class="form-control select2" name="main_stock_id" id="stockk_id" data-validation="required">
-                    {!! showSelectElement($stocks,"name") !!}
+                    {!! showSelectElement($stocks, 'name') !!}
                 </select>
             </div>
         @endif
@@ -46,13 +45,13 @@
         <div class="col-md-4 col-12 mt-3 mb-3">
             <label>
                 {{ __('finance::finance.client') }}
-                {!! addUpButton(route('finance.clients.create'),'client_id','','name',true) !!}
+                {!! addUpButton(route('finance.clients.create'), 'client_id', '', 'name', true) !!}
             </label>
             <select class="form-control select2" name="client_id" id="client_id" data-validation="required">
                 <option value=""> {{ __('finance::finance.choose') }} </option>
-                @foreach($clients as $client)
-                    <option value="{{$client->id}}" data-client_balance="0"
-                            data-tax_number="{{$client->tax_number}}">{{$client->name}}</option>
+                @foreach ($clients as $client)
+                    <option value="{{ $client->id }}" data-client_balance="0"
+                        data-tax_number="{{ $client->tax_number }}">{{ $client->name }}</option>
                 @endforeach
             </select>
         </div>
@@ -74,111 +73,117 @@
 
         <table id="myDataTable_no_filter mt-5" class="table align-middle card-table my-2">
             <thead>
-            <tr>
-                <th></th>
-                <th>{{ __("finance::finance.items") }}</th>
-                @if($stock_setting->multiple_stocks_in_bill_sales != 0)
-                    <th>{{ __("finance::finance.the_stock") }}</th>
-                @endif
-                <th>{{ __("finance::finance.unit") }}</th>
-                <th>{{ __("finance::finance.available_amount") }}</th>
-                <th>{{ __("finance::finance.price") }}</th>
-                <th>{{ __("finance::finance.amount") }}</th>
-                <th>{{ __("finance::finance.discount_per") }} </th>
-                <th>{{ __("finance::finance.Tax rate") }} </th>
-                <th>{{ __("finance::finance.total") }}</th>
-                <th>{{ __("finance::finance.actions") }}</th>
-            </tr>
+                <tr>
+                    <th></th>
+                    <th>{{ __('finance::finance.items') }}</th>
+                    @if ($stock_setting->multiple_stocks_in_bill_sales != 0)
+                        <th>{{ __('finance::finance.the_stock') }}</th>
+                    @endif
+                    <th>{{ __('finance::finance.unit') }}</th>
+                    <th>{{ __('finance::finance.available_amount') }}</th>
+                    <th>{{ __('finance::finance.price') }}</th>
+                    <th>{{ __('finance::finance.amount') }}</th>
+                    <th>{{ __('finance::finance.discount_per') }} </th>
+                    <th>{{ __('finance::finance.Tax rate') }} </th>
+                    <th>{{ __('finance::finance.total') }}</th>
+                    <th>{{ __('finance::finance.actions') }}</th>
+                </tr>
             </thead>
             <tbody id="json_array" class="content"
-                   data-mfield-options='{"section": ".y-group","btnAdd":"#btnAdd-2","btnRemove":".btnRemove"}'>
-            <tr class="y-group">
-                <td></td>
-                <td style="min-width: 170px;">
-                    <select name="item_id[]" id="item_id" data-validation="required" class="form-control select2">
-                        <option value="">{{ __("finance::finance.choose") }}</option>
-                        @foreach ($items as $item)
-                            {{-- <option value="{{ $item->id }}"
+                data-mfield-options='{"section": ".y-group","btnAdd":"#btnAdd-2","btnRemove":".btnRemove"}'>
+                <tr class="y-group">
+                    <td></td>
+                    <td style="min-width: 170px;">
+                        <select name="item_id[]" id="item_id" data-validation="required" class="form-control select2">
+                            <option value="">{{ __('finance::finance.choose') }}</option>
+                            @foreach ($items as $item)
+                                {{-- <option value="{{ $item->id }}"
                                     data-code="{{ $item->code }}"
                                     data-purchase-price="{{ $item->purchase_price }}"
                                     data-sale-price="{{ $item->sale_price }}"
                                     data-unit="{{ @$item->purchaseUnit->title }}">
                                 {{ $item->code_string .$item->code.' | '. $item->name }}
                             </option> --}}
-                            <option value="{{ $item->id }}"
-                                data-code="{{ $item->code }}"
-                                data-purchase-price="{{ $item->purchase_price }}"
-                                data-sale-price="{{ $item->sale_price }}"
-                                data-unit="{{ @$item->purchaseUnit->title }}"
-                                data-type="{{ $item->type }}">
-                                {{ $item->code_string .$item->code.' | '. $item->name }}
-                            </option>
-                        @endforeach
-                    </select>
-                </td>
-
-                @if($stock_setting->multiple_stocks_in_bill_sales)
-                    <td style="min-width: 170px;">
-                        <select name="stock_id[]" id="stock_id" data-validation="required" class="form-control select2">
-                            <option value="">{{ __("finance::finance.choose") }}</option>
-                            @foreach ($stocks as $stock)
-                                <option value="{{ $stock->id }}">
-                                    {{ $stock->name }}
+                                <option value="{{ $item->id }}" data-code="{{ $item->code }}"
+                                    data-purchase-price="{{ $item->purchase_price }}"
+                                    data-sale-price="{{ $item->sale_price }}"
+                                    data-unit="{{ @$item->purchaseUnit->title }}" data-type="{{ $item->type }}">
+                                    {{ $item->code_string . $item->code . ' | ' . $item->name }}
                                 </option>
                             @endforeach
                         </select>
                     </td>
-                @endif
 
-                <td style="max-width: 100px">
-                    <input type="text" class="form-control itemUnit" readonly>
-                </td>
+                    @if ($stock_setting->multiple_stocks_in_bill_sales)
+                        <td style="min-width: 170px;">
+                            <select name="stock_id[]" id="stock_id" data-validation="required"
+                                class="form-control select2">
+                                <option value="">{{ __('finance::finance.choose') }}</option>
+                                @foreach ($stocks as $stock)
+                                    <option value="{{ $stock->id }}">
+                                        {{ $stock->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </td>
+                    @endif
 
-                <td style="max-width: 100px">
-                    <input type="text" class="form-control availableAmount" readonly>
-                </td>
+                    <td style="max-width: 100px">
+                        <input type="text" class="form-control itemUnit" readonly>
+                    </td>
 
-                <td>
-                    <input type="number" min="0.01" step="any" class="form-control itemSalePrice" name="sale_price[]">
-                    <input type="hidden" class="form-control itemPurchasePrice" name="purchase_price[]">
-                    <input type="hidden" class="form-control itemPurchasePrice" name="one_price[]">
-                </td>
+                    <td style="max-width: 100px">
+                        <input type="text" class="form-control availableAmount" readonly>
+                    </td>
+
+                    <td>
+                        <input type="number" min="0.01" step="any" class="form-control itemSalePrice"
+                            name="sale_price[]">
+                        <input type="hidden" class="form-control itemPurchasePrice" name="purchase_price[]">
+                        <input type="hidden" class="form-control itemPurchasePrice" name="one_price[]">
+                    </td>
 
 
-                <td>
-                    <input type="number" name="amount[]" data-validation="required"
-                           class="form-control plus-index total-price-input">
-                </td>
+                    <td>
+                        <input type="number" name="amount[]" data-validation="required"
+                            class="form-control plus-index total-price-input">
+                    </td>
 
-                <td>
-                    <input type="number" step="0.01" name="discount_per[]" class="form-control index-plus discount-per-field" value="0">
-                    <input type="hidden" step="0.01" readonly name="discount_value[]" class="form-control index-plus discount-value-field"  value="0">
-                </td>
-                <!-- إضافة حقل الضريبة لكل عنصر -->
-                <td>
-                    <input type="number" step="0.01" name="tax_per[]" class="form-control index-plus tax-per-field" value="0">
-                    <input type="hidden" step="0.01" readonly name="tax_value[]" class="form-control index-plus tax-value-field" value="0">
-                </td>
+                    <td>
+                        <input type="number" step="0.01" name="discount_per[]"
+                            class="form-control index-plus discount-per-field" value="0">
+                        <input type="hidden" step="0.01" readonly name="discount_value[]"
+                            class="form-control index-plus discount-value-field" value="0">
+                    </td>
+                    <!-- إضافة حقل الضريبة لكل عنصر -->
+                    <td>
+                        <input type="number" step="0.01" name="tax_per[]"
+                            class="form-control index-plus tax-per-field" value="0">
+                        <input type="hidden" step="0.01" readonly name="tax_value[]"
+                            class="form-control index-plus tax-value-field" value="0">
+                    </td>
 
-                <td>
-                    <input type="number" name="price[]" class="form-control totalItemPrice" readonly>
-                    <input type="hidden" name="total_purchase_price[]" class="form-control totalPurchasePrice" readonly>
-                </td>
-                <td>
-                    <i class="fa fa-plus-circle" id="btnAdd-2"></i>
-                    <i class="fa fa-trash-o btnRemove"></i>
-                </td>
-            </tr>
+                    <td>
+                        <input type="number" name="price[]" class="form-control totalItemPrice" readonly>
+                        <input type="hidden" name="total_purchase_price[]" class="form-control totalPurchasePrice"
+                            readonly>
+                    </td>
+                    <td>
+                        <i class="fa fa-plus-circle" id="btnAdd-2"></i>
+                        <i class="fa fa-trash-o btnRemove"></i>
+                    </td>
+                </tr>
             </tbody>
         </table>
         <hr>
-{{--        <div class="col-md-9 col-12">--}}
+        {{--        <div class="col-md-9 col-12"> --}}
 
-{{--        </div>--}}
+        {{--        </div> --}}
 
         <div class="col-md-2 col-12">
             <label>{{ __('hr.total_price') }}</label>
-            <input type="number" class="form-control mt-2" id="totalPriceSum" name="total_item" value="" readonly>
+            <input type="number" class="form-control mt-2" id="totalPriceSum" name="total_item" value=""
+                readonly>
         </div>
 
         <div class="col-12 modal-footer">
@@ -188,12 +193,12 @@
 @endsection
 @section('js')
     <script>
-        $(document).ready(function () {
+        $(document).ready(function() {
             $('#json_array').multifield();
 
             select2AfterPlus()
 
-            $('#client_id').on('change', function () {
+            $('#client_id').on('change', function() {
                 // Get the selected option
                 var selectedClient = $(this).find('option:selected');
 
@@ -206,7 +211,7 @@
                 $('#client_tax_number').val(clientTaxNumber);
             });
 
-// Function to calculate and update the total price with discount and tax
+            // Function to calculate and update the total price with discount and tax
             function updateTotalPrice(row) {
                 // Parse input values
                 let amount = parseFloat(row.find('input[name="amount[]"]').val()) || 0;
@@ -243,12 +248,12 @@
                 calculateTotalSum();
             }
 
-// Function to calculate the sum of all totalItemPrices
+            // Function to calculate the sum of all totalItemPrices
             function calculateTotalSum() {
                 let totalSum = 0;
 
                 // Loop through each row and sum up the totalItemPrices
-                $('#json_array').find('.totalItemPrice').each(function () {
+                $('#json_array').find('.totalItemPrice').each(function() {
                     let price = parseFloat($(this).val()) || 0;
                     totalSum += price;
                 });
@@ -258,7 +263,7 @@
             }
 
             // When an item is selected, update the code input and price fields
-            $('#json_array').on('change', 'select[name="item_id[]"]', function () {
+            $('#json_array').on('change', 'select[name="item_id[]"]', function() {
                 let selectedOption = $(this).find('option:selected');
                 let itemCode = selectedOption.data('code');
                 let itemUnit = selectedOption.data('unit');
@@ -279,7 +284,7 @@
             });
 
             // لو عدل في المخزن او المنتج شوف الكمية المتوفرة من المخزون للمنتج ده
-            $('#json_array').on('change', 'select[name="stock_id[]"], select[name="item_id[]"]', function () {
+            $('#json_array').on('change', 'select[name="stock_id[]"], select[name="item_id[]"]', function() {
                 let row = $(this).closest('tr');
                 let stockId = row.find('select[name="stock_id[]"]').val() ?? $('#stockk_id').val();
                 let itemId = row.find('select[name="item_id[]"]').val();
@@ -295,19 +300,20 @@
                     return;
                 }
                 if (stockId === '') {
-                    validToster('{{__("auth.an error occurred")}}', "{{__('finance::finance.Please specify the exchange store')}}");
+                    validToster('{{ __('auth.an error occurred') }}',
+                        "{{ __('finance::finance.Please specify the exchange store') }}");
                 }
 
                 if (stockId && itemId) {
                     // Make an AJAX request to fetch the stock amount
                     $.ajax({
-                        url: '{{ route("finance.get-item-stock-amount.index") }}',
+                        url: '{{ route('finance.get-item-stock-amount.index') }}',
                         method: 'GET',
                         data: {
                             stock_id: stockId,
                             item_id: itemId
                         },
-                        success: function (response) {
+                        success: function(response) {
                             if (response.amount !== undefined) {
                                 // تحديد اقصي كمية للطلب للمنتج ده بناء علي المخزون
                                 row.find('input[name="amount[]"]').attr('max', response.amount);
@@ -316,14 +322,19 @@
                                 row.find('input.availableAmount').val(response.amount);
 
                                 // لو الكمية المدخلة اكبر من الحد الاقصي للكمية الموجودة للمنتج داخل المخزن اعد تعيين اجمالي الكمية الي الحد الاقصي
-                                let currentAmount = parseFloat(row.find('input[name="amount[]"]').val()) || 0;
+                                let currentAmount = parseFloat(row.find(
+                                    'input[name="amount[]"]').val()) || 0;
                                 if (currentAmount > response.amount) {
                                     row.find('input[name="amount[]"]').val(response.amount);
-                                    validToster('{{__("auth.an error occurred")}}', "{{__('finance::finance.The amount exceeds the maximum available stock. It has been reset to the maximum value of ')}}" + response.amount);
+                                    validToster('{{ __('auth.an error occurred') }}',
+                                        "{{ __('finance::finance.The amount exceeds the maximum available stock. It has been reset to the maximum value of ') }}" +
+                                        response.amount);
                                 }
                                 // لو مفيش كمية للمنتج ده في المخزن ده اظهرله ان مفيش كمية
                                 if (response.amount === 0) {
-                                    validToster('{{__("auth.an error occurred")}}', "{{__('finance::finance.this item not exists in this stock')}}")
+                                    validToster('{{ __('auth.an error occurred') }}',
+                                        "{{ __('finance::finance.this item not exists in this stock') }}"
+                                        )
                                 }
                                 // احسب السعر الاجمالي للمنتج * الكمية
                                 updateTotalPrice(row);
@@ -334,7 +345,7 @@
             });
 
             // لو غير المخزن الاساسي فضي كل الجدول علشان يتم فحص كميات المنتجات
-            $('#stockk_id').on('change', function () {
+            $('#stockk_id').on('change', function() {
                 $('#json_array').find('tr:gt(0)').remove();
                 let firstRow = $('#json_array').find('tr').first();
                 firstRow.find('select[name="item_id[]"]').val('').trigger('change');
@@ -342,7 +353,7 @@
             });
 
             // لما اغير في الكمية شوف الكمية المدخلة اكبر من الحد الاقصي ولا لا ثم احسب السعر الاجمالي
-            $('#json_array').on('input', 'input[name="amount[]"]', function () {
+            $('#json_array').on('input', 'input[name="amount[]"]', function() {
                 let row = $(this).closest('tr');
                 let itemType = row.find('select[name="item_id[]"] option:selected').data('type');
 
@@ -354,7 +365,11 @@
 
                     // Check if the entered amount exceeds the max
                     if (enteredAmount > maxAmount) {
-                        maxAmount === 0 ? validToster('{{__("auth.an error occurred")}}', "{{__('finance::finance.this item not exists in this stock')}}") : validToster('{{__("auth.an error occurred")}}', "{{__('finance::finance.The amount exceeds the maximum allowed value of ')}}" + maxAmount);
+                        maxAmount === 0 ? validToster('{{ __('auth.an error occurred') }}',
+                                "{{ __('finance::finance.this item not exists in this stock') }}") :
+                            validToster('{{ __('auth.an error occurred') }}',
+                                "{{ __('finance::finance.The amount exceeds the maximum allowed value of ') }}" +
+                                maxAmount);
                         $(this).val(maxAmount);
                     }
                 }
@@ -364,28 +379,28 @@
             });
 
             // لو عاوز يغير سعر البيع عدل السعر الاجمالي بناء علي السعر الجديد والكمية المدخلة
-            $('#json_array').on('input', '.itemSalePrice', function () {
+            $('#json_array').on('input', '.itemSalePrice', function() {
                 let row = $(this).closest('tr');
                 updateTotalPrice(row); // Update total price whenever the sale price is changed
             });
             // لو عاوز يغير سعر البيع عدل السعر الاجمالي بناء علي السعر الجديد والكمية المدخلة
-            $('#json_array').on('input', '.itemSalePrice', function () {
+            $('#json_array').on('input', '.itemSalePrice', function() {
                 let row = $(this).closest('tr');
                 updateTotalPrice(row); // Update total price whenever the sale price is changed
             });
 
-            $('#json_array').on('input', 'input[name="discount_per[]"]', function () {
+            $('#json_array').on('input', 'input[name="discount_per[]"]', function() {
                 let row = $(this).closest('tr');
                 updateTotalPrice(row);
             });
 
-            $('#json_array').on('input', 'input[name="tax_per[]"]', function () {
+            $('#json_array').on('input', 'input[name="tax_per[]"]', function() {
                 let row = $(this).closest('tr');
                 updateTotalPrice(row);
             });
 
             // عند حذف صف احسب الاجمالي من جديد
-            $(document).on('click', '.btnRemove', function () {
+            $(document).on('click', '.btnRemove', function() {
                 var subValue = $(this).closest('tr').find('.totalItemPrice').val();
                 var currentValue = $('#totalPriceSum').val();
                 $('#totalPriceSum').val((currentValue - subValue).toFixed(2));
@@ -393,4 +408,3 @@
         });
     </script>
 @endsection
-

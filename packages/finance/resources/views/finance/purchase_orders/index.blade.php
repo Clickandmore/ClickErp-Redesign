@@ -1,6 +1,6 @@
 @extends('click.layout.indexs.index')
-@section("style")
-    <link rel="stylesheet" href="{{asset("admin")}}/assets/cssbundle/dataTables.min.css">
+@section('style')
+    <link rel="stylesheet" href="{{ asset('admin') }}/assets/cssbundle/dataTables.min.css">
 @endsection
 @section('page-title')
     {{ $bladeTitle }}
@@ -13,74 +13,116 @@
 
 
         <div class="col-md-3">
-            <label for="">{{ __("finance::finance.suppliers") }}</label>
+            <label for="">{{ __('finance::finance.suppliers') }}</label>
             <select name="supplier_id" id="supplier_id" class="form-control select2">
-                <option value=""> {{ __("finance::finance.Choose") }}  </option>
-                @foreach($suppliers as $supplier)
-                    <option value="{{ $supplier->id }}"> {{ $supplier->code.'-'.$supplier->name }} </option>
+                <option value=""> {{ __('finance::finance.Choose') }} </option>
+                @foreach ($suppliers as $supplier)
+                    <option value="{{ $supplier->id }}"> {{ $supplier->code . '-' . $supplier->name }} </option>
                 @endforeach
             </select>
         </div>
         <div class="col-md-3">
-            <label for="">{{ __("finance::finance.item") }}</label>
+            <label for="">{{ __('finance::finance.item') }}</label>
             <select name="item_id" id="item_id" class="form-control select2">
-                <option value=""> {{ __("finance::finance.Choose") }}  </option>
-                @foreach($items as $item)
-                    <option value="{{ $item->id }}"> {{ $item->name.'-'.$item->code_string.$item->code }} </option>
+                <option value=""> {{ __('finance::finance.Choose') }} </option>
+                @foreach ($items as $item)
+                    <option value="{{ $item->id }}"> {{ $item->name . '-' . $item->code_string . $item->code }}
+                    </option>
                 @endforeach
             </select>
         </div>
         <div class="col-md-2">
-            <label for="">{{ __("finance::finance.from_date") }}</label>
+            <label for="">{{ __('finance::finance.from_date') }}</label>
             <input type="date" name="from_date" id="from_date" class="form-control">
         </div>
         <div class="col-md-2">
-            <label for="">{{ __("finance::finance.to_date") }}</label>
+            <label for="">{{ __('finance::finance.to_date') }}</label>
             <input type="date" name="to_date" id="to_date" class="form-control">
         </div>
     </div>
 
-    {!! addButton($createRoute , $addButtonText) !!}
+    {!! addButton($createRoute, $addButtonText) !!}
     <table id="dataTableObject" class="table display dataTable table-hover" style="width:100%">
         <thead>
-        <tr>
-            <th>{{ __('finance::finance.SL') }}</th>
-            <th>{{__("finance::finance.order_number")}}</th>
-            <th>{{__("finance::finance.date")}}</th>
-            <th>{{__("finance::finance.supplier")}}</th>
-            <th>{{__("finance::finance.product_amount")}}</th>
-            <th>{{__("finance::finance.Total before discount")}}</th>
-            <th>{{__("finance::finance.total_discount_value")}}</th>
-            <th>{{__("finance::finance.Tax amount")}}</th>
-            <th>{{__("finance::finance.total")}}</th>
-            <th>{{__("finance::finance.status")}}</th>
-            <th>{{__("finance::finance.actions")}}</th>
-        </tr>
+            <tr>
+                <th>{{ __('finance::finance.SL') }}</th>
+                <th>{{ __('finance::finance.order_number') }}</th>
+                <th>{{ __('finance::finance.date') }}</th>
+                <th>{{ __('finance::finance.supplier') }}</th>
+                <th>{{ __('finance::finance.product_amount') }}</th>
+                <th>{{ __('finance::finance.Total before discount') }}</th>
+                <th>{{ __('finance::finance.total_discount_value') }}</th>
+                <th>{{ __('finance::finance.Tax amount') }}</th>
+                <th>{{ __('finance::finance.total') }}</th>
+                <th>{{ __('finance::finance.status') }}</th>
+                <th>{{ __('finance::finance.actions') }}</th>
+            </tr>
         </thead>
         <tbody>
 
         </tbody>
     </table>
-
-
 @endsection
 @section('js')
-    <script src="{{asset("admin")}}/assets/js/bundle/dataTables.bundle.js"></script>
+    <script src="{{ asset('admin') }}/assets/js/bundle/dataTables.bundle.js"></script>
     <script>
-
-        $(document).ready(function () {
-            let columns = [
-                {"data": 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
-                {"data": "code", orderable: false, searchable: false},
-                {"data": "date", orderable: false, searchable: false},
-                {"data": "supplier_id", orderable: false, searchable: false},
-                {"data": "amount_items", orderable: false, searchable: false},
-                {"data": "total_before_discount", orderable: false, searchable: false},
-                {"data": "total_discount_value", orderable: false, searchable: false},
-                {"data": "total_tax_value", orderable: false, searchable: false},
-                {"data": "total_price", orderable: false, searchable: false},
-                {"data": "status", orderable: false, searchable: false},
-                {"data": "actions", orderable: false, searchable: false}
+        $(document).ready(function() {
+            let columns = [{
+                    "data": 'DT_RowIndex',
+                    name: 'DT_RowIndex',
+                    orderable: false,
+                    searchable: false
+                },
+                {
+                    "data": "code",
+                    orderable: false,
+                    searchable: false
+                },
+                {
+                    "data": "date",
+                    orderable: false,
+                    searchable: false
+                },
+                {
+                    "data": "supplier_id",
+                    orderable: false,
+                    searchable: false
+                },
+                {
+                    "data": "amount_items",
+                    orderable: false,
+                    searchable: false
+                },
+                {
+                    "data": "total_before_discount",
+                    orderable: false,
+                    searchable: false
+                },
+                {
+                    "data": "total_discount_value",
+                    orderable: false,
+                    searchable: false
+                },
+                {
+                    "data": "total_tax_value",
+                    orderable: false,
+                    searchable: false
+                },
+                {
+                    "data": "total_price",
+                    orderable: false,
+                    searchable: false
+                },
+                {
+                    "data": "status",
+                    orderable: false,
+                    searchable: false
+                },
+                {
+                    "data": "actions",
+                    orderable: false,
+                    searchable: false
+                }
             ];
             showDataTable("{{ $dataTableRoute }}", columns);
         });
@@ -125,25 +167,25 @@
 
         // });
 
-        // {{--$(document).on('change', '#supplier_id', function(e) {--}}
-        // {{--    const supplier_id = this.value;--}}
-        // {{--    var url = "{{ route('finance.filter-items.index') }}";--}}
-        // {{--    $.ajax({--}}
-        // {{--        type: 'get',--}}
-        // {{--        data: {--}}
-        // {{--            supplier_id : supplier_id--}}
-        // {{--        },--}}
-        // {{--        url: url,--}}
-        // {{--        success: function(data) {--}}
-        // {{--            console.log(data)--}}
-        // {{--           $("#items_list").html('');--}}
-        // {{--            $("#items_list").html(data.data.html);--}}
-        // {{--        },--}}
-        // {{--        error: function() {--}}
-        // {{--            alert('حدث خطأ أثناء التحديث.');--}}
-        // {{--        }--}}
-        // {{--    });--}}
-        // {{--});--}}
+        // {{-- $(document).on('change', '#supplier_id', function(e) { --}}
+        // {{--    const supplier_id = this.value; --}}
+        // {{--    var url = "{{ route('finance.filter-items.index') }}"; --}}
+        // {{--    $.ajax({ --}}
+        // {{--        type: 'get', --}}
+        // {{--        data: { --}}
+        // {{--            supplier_id : supplier_id --}}
+        // {{--        }, --}}
+        // {{--        url: url, --}}
+        // {{--        success: function(data) { --}}
+        // {{--            console.log(data) --}}
+        // {{--           $("#items_list").html(''); --}}
+        // {{--            $("#items_list").html(data.data.html); --}}
+        // {{--        }, --}}
+        // {{--        error: function() { --}}
+        // {{--            alert('حدث خطأ أثناء التحديث.'); --}}
+        // {{--        } --}}
+        // {{--    }); --}}
+        // {{-- }); --}}
     </script>
     <script>
         $(document).ajaxComplete(function() {
@@ -182,7 +224,7 @@
             var taxPer = parseFloat(currentRow.find('.tax-per-field').val()) || 0;
 
             // Calculate total price
-             let total = currentAmount * purchasePrice;
+            let total = currentAmount * purchasePrice;
             // Calculate discount value
             let discountValue = (total * discountPer) / 100;
             // Calculate final price after discount

@@ -63,11 +63,13 @@ class ConstraintDetailsService extends MainService
             }])
             ->leftJoin('fn_constraint_details as primary_account', function ($join) {
                 $join->on('fn_constraints.id', '=', 'primary_account.constraint_id')
-                    ->where('primary_account.type', '=', 'debtor');
+                    ->where('primary_account.type', '=', 'debtor')
+                    ->whereNull('primary_account.deleted_at');
             })
             ->leftJoin('fn_constraint_details as counter_account', function ($join) {
                 $join->on('fn_constraints.id', '=', 'counter_account.constraint_id')
-                    ->where('counter_account.type', '=', 'creditor');
+                    ->where('counter_account.type', '=', 'creditor')
+                    ->whereNull('counter_account.deleted_at');
             })
             ->leftJoin('fn_accounts as primary_account_details', function ($join) {
                 $join->on('primary_account_details.id', '=', 'primary_account.account_id');

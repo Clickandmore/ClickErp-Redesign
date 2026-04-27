@@ -14,18 +14,20 @@
             0% {
                 transform: rotate(0deg);
             }
+
             100% {
                 transform: rotate(360deg);
             }
         }
 
 
-        .header{
-            position:sticky;
-            top: 0 ;
+        .header {
+            position: sticky;
+            top: 0;
             background-color: #fcc436;
         }
-        td{
+
+        td {
             font-size: small;
         }
 
@@ -33,9 +35,12 @@
             body * {
                 visibility: hidden;
             }
-            #account_list, #account_list * {
+
+            #account_list,
+            #account_list * {
                 visibility: visible;
             }
+
             #account_list {
                 position: absolute;
                 left: 0;
@@ -44,6 +49,7 @@
                 padding: 20px;
                 font-size: 12pt;
             }
+
             .sidebar {
                 display: none !important;
             }
@@ -51,10 +57,10 @@
     </style>
 @endsection
 @section('page-title')
-    {{$bladeTitle}}
+    {{ $bladeTitle }}
 @endsection
 @section('page-links')
-    <li class="breadcrumb-item active" aria-current="page"> {{$bladeTitle}}</li>
+    <li class="breadcrumb-item active" aria-current="page"> {{ $bladeTitle }}</li>
 @endsection
 @section('content')
     @php
@@ -63,36 +69,41 @@
 
     <div class="row g-3 my-2">
         <div class="col-3">
-            <label for="TextInput" class="form-label"> {{__('finance::finance.fn-cost-centers')}}</label>
-            <select name="cost_center_id" id="cost_center_id" class="form-control  show-tick ms select2 search_keys"  >
-                {!! showSelectElement($cost_centers,'title', $filters['cost_center_id'] ?? null) !!}
+            <label for="TextInput" class="form-label"> {{ __('finance::finance.fn-cost-centers') }}</label>
+            <select name="cost_center_id" id="cost_center_id" class="form-control  show-tick ms select2 search_keys">
+                {!! showSelectElement($cost_centers, 'title', $filters['cost_center_id'] ?? null) !!}
             </select>
         </div>
 
         <div class="col-3">
-            <label for="TextInput" class="form-label"> {{__('finance::finance.account')}}</label>
+            <label for="TextInput" class="form-label"> {{ __('finance::finance.account') }}</label>
             <select name="account_id" id="account_id" class="form-control  show-tick ms select2 search_keys">
-                {!! showSelectElement($accounts,'name', $filters['account_id'] ?? null) !!}
+                {!! showSelectElement($accounts, 'name', $filters['account_id'] ?? null) !!}
             </select>
         </div>
 
 
         <div class="col-md-2">
-            <label for="TextInput" class="form-label"> {{__('finance::finance.From Date')}}</label>
-            <input type="date" name="from_date" value="{{ $filters['from_date'] ?? '' }}" class="form-control search_keys" id="from_date">
+            <label for="TextInput" class="form-label"> {{ __('finance::finance.From Date') }}</label>
+            <input type="date" name="from_date" value="{{ $filters['from_date'] ?? '' }}"
+                class="form-control search_keys" id="from_date">
         </div>
 
         <div class="col-md-2">
-            <label for="TextInput" class="form-label"> {{__('finance::finance.To Date')}}</label>
-            <input type="date" name="to_date" value="{{ $filters['to_date'] ?? date("Y-m-d",time()) }}" class="form-control search_keys" id="to_date">
+            <label for="TextInput" class="form-label"> {{ __('finance::finance.To Date') }}</label>
+            <input type="date" name="to_date" value="{{ $filters['to_date'] ?? date('Y-m-d', time()) }}"
+                class="form-control search_keys" id="to_date">
         </div>
 
         <div class="col-md-2">
-            <label for="TextInput" class="form-label">{{__('finance::finance.Transaction Type')}}</label>
+            <label for="TextInput" class="form-label">{{ __('finance::finance.Transaction Type') }}</label>
             <select name="type" id="type" class="form-control search_keys">
-                <option value="both" {{ ($filters['type'] ?? 'both') === 'both' ? 'selected' : '' }}>{{__('finance::finance.All')}}</option>
-                <option value="debtor" {{ ($filters['type'] ?? '') === 'debtor' ? 'selected' : '' }}>{{__('finance::finance.debtor')}}</option>
-                <option value="creditor" {{ ($filters['type'] ?? '') === 'creditor' ? 'selected' : '' }}>{{__('finance::finance.creditor')}}</option>
+                <option value="both" {{ ($filters['type'] ?? 'both') === 'both' ? 'selected' : '' }}>
+                    {{ __('finance::finance.All') }}</option>
+                <option value="debtor" {{ ($filters['type'] ?? '') === 'debtor' ? 'selected' : '' }}>
+                    {{ __('finance::finance.debtor') }}</option>
+                <option value="creditor" {{ ($filters['type'] ?? '') === 'creditor' ? 'selected' : '' }}>
+                    {{ __('finance::finance.creditor') }}</option>
             </select>
         </div>
 
@@ -101,7 +112,7 @@
         <div class="col-md-1 mt-4">
             <br>
             <button type="button" id="search_button" class="btn btn-sm btn-success float-right">
-                <i class="fa fa-search"></i> {{ __("finance::finance.Search") }}
+                <i class="fa fa-search"></i> {{ __('finance::finance.Search') }}
             </button>
         </div>
 
@@ -118,43 +129,44 @@
 @section('js')
     <script>
         $('.select2').select2();
+
         function searchCostCenterStatement() {
             var data = $(".search_keys").serialize();
-            let url = '{{$ajaxRoute}}';
+            let url = '{{ $ajaxRoute }}';
 
             $.ajax({
                 url: url,
                 type: 'GET',
                 data: data,
-                beforeSend: function () {
+                beforeSend: function() {
                     $("#account_list").html('<div class="col-sm-12 col-md-12 col-lg-12 col-xs-12">' +
                         '  <div class="loader" style="margin: auto;"></div>' +
                         '</div>');
                 },
-                success: function (result) {
+                success: function(result) {
                     $("#account_list").html(result.data.html);
-                    if(result.data.count > 0) {
+                    if (result.data.count > 0) {
                         $('.print-and-excel-buttons').removeClass('d-none');
-                    }else{
+                    } else {
                         $('.print-and-excel-buttons').addClass('d-none');
                     }
                 },
-                error: function (errorObj, errorText, errorThrown) {
+                error: function(errorObj, errorText, errorThrown) {
                     handleErrorResponce(errorObj);
                 }
             });
         }
 
-        $("#search_button").on("click", function (e) {
+        $("#search_button").on("click", function(e) {
             e.preventDefault()
             searchCostCenterStatement();
         });
     </script>
-    <script src="{{asset("plugins")}}/exelJs/dist/tableToExcel.517b1af9.js"></script>
+    <script src="{{ asset('plugins') }}/exelJs/dist/tableToExcel.517b1af9.js"></script>
     <script>
         var button = document.querySelector('#toExcel');
         if (button) {
-            button.addEventListener('click', function () {
+            button.addEventListener('click', function() {
                 var table = document.querySelector('#simpleTable4');
                 if (!table) {
                     return;

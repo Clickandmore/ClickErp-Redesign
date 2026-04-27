@@ -14,18 +14,20 @@
             0% {
                 transform: rotate(0deg);
             }
+
             100% {
                 transform: rotate(360deg);
             }
         }
 
 
-        .header{
-            position:sticky;
-            top: 0 ;
+        .header {
+            position: sticky;
+            top: 0;
             background-color: #fcc436;
         }
-        td{
+
+        td {
             font-size: small;
         }
 
@@ -33,9 +35,12 @@
             body * {
                 visibility: hidden;
             }
-            #account_list, #account_list * {
+
+            #account_list,
+            #account_list * {
                 visibility: visible;
             }
+
             #account_list {
                 position: absolute;
                 left: 0;
@@ -44,6 +49,7 @@
                 padding: 20px;
                 font-size: 12pt;
             }
+
             .sidebar {
                 display: none !important;
             }
@@ -51,53 +57,53 @@
     </style>
 @endsection
 @section('page-title')
-    {{$bladeTitle}}
+    {{ $bladeTitle }}
 @endsection
 @section('page-links')
-    <li class="breadcrumb-item active" aria-current="page"> {{$bladeTitle}}</li>
+    <li class="breadcrumb-item active" aria-current="page"> {{ $bladeTitle }}</li>
 @endsection
 @section('content')
-
     <div class="row g-3 my-2">
 
         <div class="col-3">
-            <label for="TextInput" class="form-label"> {{__('finance::finance.account')}}</label>
+            <label for="TextInput" class="form-label"> {{ __('finance::finance.account') }}</label>
             <select name="account_id" id="account_id" class="form-control  show-tick ms select2 search_keys">
-                {!! showSelectElement($accounts,'name') !!}
+                {!! showSelectElement($accounts, 'name') !!}
             </select>
         </div>
 
         <div class="col-md-2">
-            <label for="TextInput" class="form-label"> {{__('finance::finance.From Date')}}</label>
+            <label for="TextInput" class="form-label"> {{ __('finance::finance.From Date') }}</label>
             <input type="date" name="from_date" class="form-control search_keys" id="from_date">
         </div>
 
         <div class="col-md-2">
-            <label for="TextInput" class="form-label"> {{__('finance::finance.To Date')}}</label>
-            <input type="date" name="to_date" value="{{date("Y-m-d",time())}}" class="form-control search_keys" id="from_date">
+            <label for="TextInput" class="form-label"> {{ __('finance::finance.To Date') }}</label>
+            <input type="date" name="to_date" value="{{ date('Y-m-d', time()) }}" class="form-control search_keys"
+                id="from_date">
         </div>
 
         <div class="col-md-2">
-            <label for="TextInput" class="form-label">{{__('finance::finance.Transaction Type')}}</label>
+            <label for="TextInput" class="form-label">{{ __('finance::finance.Transaction Type') }}</label>
             <select name="type" id="type" class="form-control search_keys">
-                <option value="both">{{__('finance::finance.All')}}</option>
-                <option value="debtor" >{{__('finance::finance.debtor')}}</option>
-                <option value="creditor" >{{__('finance::finance.creditor')}}</option>
+                <option value="both">{{ __('finance::finance.All') }}</option>
+                <option value="debtor">{{ __('finance::finance.debtor') }}</option>
+                <option value="creditor">{{ __('finance::finance.creditor') }}</option>
             </select>
         </div>
 
         <div class="col-md-2">
-            <label for="TextInput" class="form-label"> {{__('finance::finance.Show Counter Account')}}</label>
+            <label for="TextInput" class="form-label"> {{ __('finance::finance.Show Counter Account') }}</label>
             <select name="other_account" id="other_account" class="form-control search_keys">
-                <option value="no"> {{__('finance::finance.No')}} </option>
-                <option value="yes">{{__('finance::finance.Yes')}} </option>
+                <option value="no"> {{ __('finance::finance.No') }} </option>
+                <option value="yes">{{ __('finance::finance.Yes') }} </option>
             </select>
         </div>
 
         <div class="col-md-1 mt-4">
             <br>
             <button type="button" id="search_button" class="btn btn-sm btn-success float-right">
-                <i class="fa fa-search"></i> {{ __("finance::finance.Search") }}
+                <i class="fa fa-search"></i> {{ __('finance::finance.Search') }}
             </button>
         </div>
 
@@ -106,7 +112,11 @@
     <div class="row print-and-excel-buttons d-none">
         <div class="col-12 mt-4" style="text-align: left">
             {{-- <button onclick="window.print()" class="btn btn-primary"><i class="fa fa-print"></i></button> --}}
-            {!! printButton(route("finance.account-statement-clients-print.index", request()->all()), null, 'finance::finance.account-statement-clients-print-read') !!}
+            {!! printButton(
+                route('finance.account-statement-clients-print.index', request()->all()),
+                null,
+                'finance::finance.account-statement-clients-print-read',
+            ) !!}
             <button id="toExcel" class="btn btn-info"><i class="fa fa-file-excel-o"></i></button>
         </div>
     </div>
@@ -115,37 +125,38 @@
 @section('js')
     <script>
         $('.select2').select2();
-        $("#search_button").on("click", function (e) {
+        $("#search_button").on("click", function(e) {
             e.preventDefault()
             var data = $(".search_keys").serialize();
-            let url = '{{$ajaxRoute}}';
+            let url = '{{ $ajaxRoute }}';
             $.ajax({
                 url: url,
                 type: 'GET',
                 data: data,
-                beforeSend: function () {
+                beforeSend: function() {
                     $("#account_list").html('<div class="col-sm-12 col-md-12 col-lg-12 col-xs-12">' +
                         '  <div class="loader" style="margin: auto;"></div>' +
                         '</div>');
                 },
-                success: function (result) {
+                success: function(result) {
                     // console.log(result.data);
                     $("#account_list").html(result.data.html);
-                    if(result.data.count > 0) {
+                    if (result.data.count > 0) {
                         $('.print-and-excel-buttons').removeClass('d-none');
                         const filterData = $(".search_keys").serialize();
-                        $('#print_button').attr('href', `{{ route('finance.account-statement-clients-print.index') }}?${filterData}`);
+                        $('#print_button').attr('href',
+                            `{{ route('finance.account-statement-clients-print.index') }}?${filterData}`
+                            );
 
-                    }else{
+                    } else {
                         $('.print-and-excel-buttons').addClass('d-none');
                     }
                 },
-                error: function (errorObj, errorText, errorThrown) {
+                error: function(errorObj, errorText, errorThrown) {
                     handleErrorResponce(errorObj);
                 }
             });
         });
     </script>
-    <script src="{{asset("plugins")}}/exelJs/dist/tableToExcel.517b1af9.js"></script>
-
+    <script src="{{ asset('plugins') }}/exelJs/dist/tableToExcel.517b1af9.js"></script>
 @endsection

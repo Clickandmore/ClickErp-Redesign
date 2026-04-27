@@ -11,6 +11,11 @@ use Nami\Finance\Http\Requests\ConstraintRequest as ObjRequest;
 use Nami\Finance\Models\Constraint;
 use Nami\Finance\Services\ConstraintService as ObjService;
 use Nami\Finance\Services\YearService;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Yajra\DataTables\DataTables;
 
 class ConstraintController extends Controller
@@ -25,59 +30,79 @@ class ConstraintController extends Controller
     public function index(Request $request, ObjService $service)
     {
         if ($request->ajax()) {
-            return DataTables::of($service->getIndexData())
-                ->addColumn('code_link', function ($row) {
-                    return $this->renderConstraintCodeLink($row);
-                })
-                ->addColumn('statement_preview', function ($row) {
-                    return $this->renderStatementPreview($row);
-                })
-                ->addColumn('debitors_total', function ($row) use ($service) {
-                    return $service->calculateTotal($row->constraintDetails, 'debtor');
-                })
-                ->addColumn('creditors_total', function ($row) use ($service) {
-                    return $service->calculateTotal($row->constraintDetails, 'creditor');
-                })
-                ->editColumn('value', function ($row) {
-                    return number_format((float) $row->value, 2, '.', ',');
-                })
-                ->editColumn('date', function ($row) {
-                    return '<span title="' . e($row->statement) . '">' . e($row->date) . '</span>';
-                })
-                ->addColumn('print_action', function ($row) {
-                    return $this->renderPrintAction($row);
-                })
-                ->addColumn('document_action', function ($row) {
-                    return $this->renderDocumentAction($row);
-                })
-                ->filter(function ($instance) use ($request) {
-                    if ($request->get('from_date')) {
-                        $instance->where('date','>=', $request->get('from_date'));
-                    }
-                    if ($request->get('to_date')) {
-                        $instance->where('date','<=', $request->get('to_date'));
-                    }
-                })
-                ->rawColumns([
-                    'code_link',
-                    'statement_preview',
-                    'debitors_total',
-                    'creditors_total',
-                    'date',
-                    'print_action',
-                    'document_action',
-                ])
-                ->make(true);
+            return $this->constraintDataTable($service->getIndexData(), $request)->make(true);
         }
 
         return view($this->folderPath . '.index', [
             "createRoute" => route($this->mainRoute . ".create"),
             "dataTableRoute" => route($this->mainRoute . ".index"),
+            "exportPdfRoute" => route($this->mainRoute . ".export", ['format' => 'pdf']),
+            "exportExcelRoute" => route($this->mainRoute . ".export", ['format' => 'excel']),
             "bladeTitle" => __("finance::finance.constraints"),
             "addButtonText" => __("finance::finance.constraint"),
             'modalType' => 'modal-fullscreen',
-            'request' => $request
+            'request' => $request,
+            'approvalMode' => 'approved',
+            'pendingRoute' => route($this->mainRoute . '.pending'),
+            'approvedRoute' => route($this->mainRoute . '.index'),
         ]);
+    }
+
+    public function pending(Request $request, ObjService $service)
+    {
+        if ($request->ajax()) {
+            return $this->constraintDataTable($service->getPendingApprovalData(), $request, true)->make(true);
+        }
+
+        return view($this->folderPath . '.index', [
+            "createRoute" => route($this->mainRoute . ".create"),
+            "dataTableRoute" => route($this->mainRoute . ".pending"),
+            "exportPdfRoute" => '#',
+            "exportExcelRoute" => '#',
+            "bladeTitle" => __("finance::finance.pending_constraints_approval"),
+            "addButtonText" => __("finance::finance.constraint"),
+            'modalType' => 'modal-fullscreen',
+            'request' => $request,
+            'approvalMode' => 'pending',
+            'pendingRoute' => route($this->mainRoute . '.pending'),
+            'approvedRoute' => route($this->mainRoute . '.index'),
+        ]);
+    }
+
+    public function approve(int $id, ObjService $service)
+    {
+        abort_unless($this->canApproveConstraints(), 403, __('ingaz.permission_denied'));
+
+        $service->approveConstraint($id, auth('admin')->id());
+
+        return jsonSuccess(null, __("finance::finance.constraint_approved_successfully"));
+    }
+
+    public function export(Request $request, ObjService $service, string $format)
+    {
+        $constraints = $this->filteredExportQuery($request, $service)->get();
+        $rows = $this->buildExportRows($constraints);
+        $totals = [
+            'count' => $constraints->count(),
+            'value' => $constraints->sum(fn ($constraint) => (float) $constraint->value),
+        ];
+
+        if (in_array($format, ['excel', 'xlsx'], true)) {
+            return $this->exportExcelFile($rows);
+        }
+
+        $pdf = \PDF::loadView($this->folderPath . '.export_pdf', [
+            'rows' => $rows,
+            'totals' => $totals,
+            'filters' => $this->resolveExportFilters($request),
+            'title' => __('finance::finance.constraints'),
+        ])->setPaper('a4', 'landscape');
+        $pdf->setOptions([
+            'defaultFont' => 'dejavu sans',
+            'isHtml5ParserEnabled' => true,
+        ]);
+
+        return $pdf->download($this->buildExportFilename('pdf'));
     }
 
     public function create(Request $request, ObjService $service)
@@ -146,17 +171,124 @@ class ConstraintController extends Controller
         }
 
         $getActiveYear = $yearService->getActiveYear();
+        $before = $service->constraintSnapshot($service->find($id));
 
         $updateConstraint = $service->updateConstraint($id, $data, $request, $getActiveYear);
         $service->updateConstraintDetails($updateConstraint->id, $data['account_id'], $data);
         $service->storeFiles($updateConstraint, $data);
+        $service->logConstraintActivity($updateConstraint->refresh(), 'updated', __('finance::finance.constraint_updated_log_description'), [
+            'before' => $before,
+            'after' => $service->constraintSnapshot($updateConstraint),
+        ]);
         return jsonSuccess();
     }
 
     public function destroy($id, ObjService $service)
     {
-        $service->delete($id);
+        $service->deleteConstraint($id);
         return jsonSuccess();
+    }
+
+    private function constraintDataTable($query, Request $request, bool $pending = false)
+    {
+        $dataTable = DataTables::of($query)
+            ->addColumn('code_link', function ($row) {
+                return $this->renderConstraintCodeLink($row);
+            })
+            ->addColumn('statement_preview', function ($row) {
+                return $this->renderStatementPreview($row);
+            })
+            ->addColumn('debitors_total', function ($row) {
+                return $this->renderDetailsSummary($row, 'debtor');
+            })
+            ->addColumn('creditors_total', function ($row) {
+                return $this->renderDetailsSummary($row, 'creditor');
+            })
+            ->editColumn('value', function ($row) {
+                return number_format((float) $row->value, 2, '.', ',');
+            })
+            ->editColumn('date', function ($row) {
+                return '<span title="' . e($row->statement) . '">' . e($row->date) . '</span>';
+            })
+            ->addColumn('print_action', function ($row) {
+                return $this->renderPrintAction($row);
+            })
+            ->addColumn('document_action', function ($row) {
+                return $this->renderDocumentAction($row);
+            })
+            ->addColumn('actions', function ($row) {
+                return $this->renderRowActions($row);
+            })
+            ->filter(function ($instance) use ($request) {
+                if ($request->get('from_date')) {
+                    $instance->where('date','>=', $request->get('from_date'));
+                }
+                if ($request->get('to_date')) {
+                    $instance->where('date','<=', $request->get('to_date'));
+                }
+            });
+
+        if ($pending) {
+            $dataTable
+                ->addColumn('approval_status', function ($row) {
+                    return $this->renderApprovalStatus($row);
+                })
+                ->addColumn('approval_action', function ($row) {
+                    return $this->renderApprovalAction($row);
+                });
+        }
+
+        $rawColumns = [
+            'code_link',
+            'statement_preview',
+            'debitors_total',
+            'creditors_total',
+            'date',
+            'print_action',
+            'document_action',
+            'actions',
+        ];
+
+        if ($pending) {
+            $rawColumns[] = 'approval_status';
+            $rawColumns[] = 'approval_action';
+        }
+
+        return $dataTable->rawColumns($rawColumns);
+    }
+
+    private function renderApprovalStatus(Constraint $constraint): string
+    {
+        $createdBy = $constraint->created_by?->name ?: '-';
+
+        return '<div class="constraint-approval-cell">'
+            . '<span class="badge bg-warning text-dark">' . e(__('finance::finance.pending_approval')) . '</span>'
+            . '<small>' . e(__('finance::finance.created_by')) . ': ' . e($createdBy) . '</small>'
+            . '</div>';
+    }
+
+    private function renderApprovalAction(Constraint $constraint): string
+    {
+        if (!$this->canApproveConstraints()) {
+            return '<span class="text-muted">-</span>';
+        }
+
+        return '<button type="button" class="btn btn-sm btn-success approveConstraintButton" data-action="'
+            . e(route($this->mainRoute . '.approve', $constraint->id)) . '">'
+            . '<i class="fa fa-check"></i> '
+            . e(__('finance::finance.approve_constraint'))
+            . '</button>';
+    }
+
+    private function canApproveConstraints(): bool
+    {
+        $admin = auth('admin')->user();
+
+        return $admin
+            && (
+                $admin->admin_type == \App\Enums\AdminTypeisEnum::Developer->value
+                || $admin->can(Constraint::APPROVE_PERMISSION)
+            );
     }
 
     private function renderConstraintCodeLink(Constraint $constraint): string
@@ -181,6 +313,28 @@ class ConstraintController extends Controller
             . '</div>';
     }
 
+    private function renderDetailsSummary(Constraint $constraint, string $type): string
+    {
+        $details = $constraint->constraintDetails->where('type', $type);
+
+        if ($details->isEmpty()) {
+            return '<span class="text-muted">-</span>';
+        }
+
+        $items = $details->map(function ($detail) use ($type) {
+            $value = $type === 'debtor'
+                ? (float) $detail->debtor_value
+                : (float) $detail->creditor_value;
+
+            return '<span class="constraint-account-line">'
+                . '<span>' . e($detail->account->name ?? '-') . '</span>'
+                . '<strong>' . e(number_format($value, 2, '.', ',')) . '</strong>'
+                . '</span>';
+        })->implode('');
+
+        return '<div class="constraint-account-list">' . $items . '</div>';
+    }
+
     private function renderPrintAction(Constraint $constraint): string
     {
         return '<a href="' . $this->resolveConstraintPrintUrl($constraint) . '" target="_blank" rel="noopener" class="btn btn-sm btn-primary">'
@@ -196,6 +350,20 @@ class ConstraintController extends Controller
         return '<a href="' . $document['url'] . '" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">'
             . e($document['label'])
             . '</a>';
+    }
+
+    private function renderRowActions(Constraint $constraint): string
+    {
+        $editUrl = route('finance.add-constraint.edit', ['add_constraint' => $constraint->id]);
+        $deleteUrl = route($this->mainRoute . '.destroy', $constraint->id);
+
+        return '<div class="d-flex flex-wrap gap-1">'
+            . '<a href="' . e($editUrl) . '" class="btn btn-sm btn-outline-primary">'
+            . '<i class="fa fa-pencil"></i> ' . e(__('finance::finance.edit')) . '</a>'
+            . '<button type="button" class="btn btn-sm btn-outline-danger deleteConstraintButton" data-action="'
+            . e($deleteUrl) . '">'
+            . '<i class="fa fa-trash"></i> ' . e(__('finance::finance.Delete')) . '</button>'
+            . '</div>';
     }
 
     private function resolveConstraintDocument(Constraint $constraint): array
@@ -262,6 +430,145 @@ class ConstraintController extends Controller
         }
 
         return ConstraintTypiesEnum::tryFrom((int) $constraint->type);
+    }
+
+    private function filteredExportQuery(Request $request, ObjService $service)
+    {
+        return $service->getIndexData()
+            ->when($request->get('from_date'), function ($query, $date) {
+                $query->whereDate('fn_constraints.date', '>=', $date);
+            })
+            ->when($request->get('to_date'), function ($query, $date) {
+                $query->whereDate('fn_constraints.date', '<=', $date);
+            });
+    }
+
+    private function buildExportRows($constraints): array
+    {
+        return $constraints->map(function (Constraint $constraint) {
+            $document = $this->resolveConstraintDocument($constraint);
+
+            return [
+                'code' => $constraint->code ?: $constraint->id,
+                'statement' => $constraint->statement ?: '-',
+                'type' => $this->resolveConstraintType($constraint)?->lang() ?? __('finance::finance.constraint'),
+                'value' => number_format((float) $constraint->value, 2, '.', ','),
+                'date' => (string) $constraint->date,
+                'debtors' => $this->formatDetailsForExport($constraint, 'debtor'),
+                'creditors' => $this->formatDetailsForExport($constraint, 'creditor'),
+                'document' => $document['label'],
+            ];
+        })->values()->all();
+    }
+
+    private function formatDetailsForExport(Constraint $constraint, string $type): string
+    {
+        return $constraint->constraintDetails
+            ->where('type', $type)
+            ->map(function ($detail) use ($type) {
+                $value = $type === 'debtor'
+                    ? (float) $detail->debtor_value
+                    : (float) $detail->creditor_value;
+
+                return ($detail->account->name ?? '-') . ' - ' . number_format($value, 2, '.', ',');
+            })
+            ->implode("\n");
+    }
+
+    private function resolveExportFilters(Request $request): array
+    {
+        $type = $request->get('type_filter');
+
+        return [
+            'from_date' => $request->get('from_date') ?: 'الكل',
+            'to_date' => $request->get('to_date') ?: 'الكل',
+            'type' => $type === 'debtor'
+                ? __('finance::finance.debtor')
+                : ($type === 'creditor' ? __('finance::finance.creditor') : 'الكل'),
+        ];
+    }
+
+    private function exportExcelFile(array $rows)
+    {
+        $headers = $this->exportHeaders();
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('constraints');
+        $sheet->setRightToLeft(app()->getLocale() === 'ar');
+        $sheet->fromArray($headers, null, 'A1');
+
+        $headerRange = 'A1:' . Coordinate::stringFromColumnIndex(count($headers)) . '1';
+        $sheet->getStyle($headerRange)->applyFromArray([
+            'font' => [
+                'bold' => true,
+                'size' => 12,
+            ],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER,
+            ],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => [
+                    'rgb' => 'EEF2F7',
+                ],
+            ],
+        ]);
+
+        $rowNumber = 2;
+        foreach ($rows as $row) {
+            $sheet->fromArray([
+                $row['code'],
+                $row['statement'],
+                $row['type'],
+                $row['value'],
+                $row['date'],
+                $row['debtors'],
+                $row['creditors'],
+                $row['document'],
+            ], null, 'A' . $rowNumber);
+            $rowNumber++;
+        }
+
+        $lastRow = max($rowNumber - 1, 1);
+        $sheet->getStyle('A1:H' . $lastRow)->getAlignment()->setWrapText(true);
+        $sheet->getStyle('A1:H' . $lastRow)->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
+
+        foreach (range(1, count($headers)) as $columnIndex) {
+            $columnLetter = Coordinate::stringFromColumnIndex($columnIndex);
+            $sheet->getColumnDimension($columnLetter)->setAutoSize(true);
+        }
+
+        $writer = new Xlsx($spreadsheet);
+        $tempFile = tempnam(sys_get_temp_dir(), 'constraints_');
+        $writer->save($tempFile);
+
+        return response()
+            ->download(
+                $tempFile,
+                $this->buildExportFilename('xlsx'),
+                ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
+            )
+            ->deleteFileAfterSend(true);
+    }
+
+    private function exportHeaders(): array
+    {
+        return [
+            'رقم القيد',
+            __('finance::finance.statement'),
+            'نوع القيد',
+            __('finance::finance.value'),
+            __('finance::finance.date'),
+            'مدينون',
+            'دائنون',
+            'المستند',
+        ];
+    }
+
+    private function buildExportFilename(string $extension): string
+    {
+        return 'finance-constraints-' . now()->format('Ymd_His') . '.' . $extension;
     }
 
     private function extractInvoiceIdFromStatement(string $statement): ?int

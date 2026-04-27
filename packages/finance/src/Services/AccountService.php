@@ -356,7 +356,10 @@ class AccountService extends MainService
     public function balanceAccountsByTypeNoNormal($search)
     {
         return DB::table('fn_accounts as account')
-            ->leftJoin('fn_constraint_details as c_details', 'account.id', '=', 'c_details.account_id')
+            ->leftJoin('fn_constraint_details as c_details', function ($join) {
+                $join->on('account.id', '=', 'c_details.account_id')
+                    ->whereNull('c_details.deleted_at');
+            })
             ->select(
                 'account.id',
                 'account.code',
@@ -385,7 +388,10 @@ class AccountService extends MainService
     public function balanceAccountsByType($type, $search)
     {
         return DB::table('fn_accounts as account')
-            ->leftJoin('fn_constraint_details as c_details', 'account.id', '=', 'c_details.account_id')
+            ->leftJoin('fn_constraint_details as c_details', function ($join) {
+                $join->on('account.id', '=', 'c_details.account_id')
+                    ->whereNull('c_details.deleted_at');
+            })
             ->select(
                 'account.id',
                 'account.code',
@@ -560,6 +566,7 @@ class AccountService extends MainService
         $constraints = DB::table('fn_constraint_details') // Adjust table name as needed
         ->whereIn('account_id', $account_ids) // Adjust column name as needed
         ->whereIn('id', $constraints_ids)
+            ->whereNull('deleted_at')
             ->select('account_id', 'debtor_value', 'creditor_value')
             ->get();
 

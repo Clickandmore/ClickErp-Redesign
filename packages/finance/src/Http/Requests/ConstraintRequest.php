@@ -69,7 +69,7 @@ class ConstraintRequest extends MainRequest
             'account_id.*' => 'required|exists:fn_accounts,id',
             'debtor_value' => 'required|array|min:1',
             'debtor_value.*' => 'nullable|numeric|min:0',
-            'old_id' => 'required|array|min:1',
+            'old_id' => 'nullable|array',
             'old_id.*' => 'nullable|exists:fn_constraint_details,id',
             'creditor_value' => 'required|array|min:1',
             'creditor_value.*' => 'nullable|numeric|min:0',

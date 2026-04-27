@@ -48,6 +48,8 @@ class AccountStatementService extends MainService
             ->join('fn_accounts', 'fn_accounts.id', '=', 'fn_constraint_details.account_id')
             ->join('fn_constraints', 'fn_constraints.id', '=', 'fn_constraint_details.constraint_id')
             ->join('admins', 'admins.id', '=', 'fn_constraints.created_by_id')
+            ->whereNull('fn_constraint_details.deleted_at')
+            ->whereNull('fn_constraints.deleted_at')
             ->whereIn('fn_constraint_details.account_id',$acoounts )
             ->when($dataSearch["type"] != "both", function ($q) use ($dataSearch) {
                 return $q->where("fn_constraint_details.type", $dataSearch["type"]);
@@ -69,6 +71,7 @@ class AccountStatementService extends MainService
             'fn_constraints.id',
         ])
             ->join('fn_constraint_details', 'fn_constraints.id', '=', 'fn_constraint_details.constraint_id')
+            ->whereNull('fn_constraint_details.deleted_at')
             ->whereIn('fn_constraint_details.account_id',$acoounts )
             ->when($dataSearch["type"] != "both", function ($q) use ($dataSearch) {
                 return $q->where("fn_constraint_details.type", $dataSearch["type"]);

@@ -1,5 +1,5 @@
 @extends('click.layout.indexs.index')
-@section("style")
+@section('style')
 @endsection
 @section('page-title')
     {{ $bladeTitle }}
@@ -8,46 +8,47 @@
     <li class="breadcrumb-item active" aria-current="page"> {{ $bladeTitle }}</li>
 @endsection
 @section('content')
+    <div class="mb-3">
+        <a href="{{ route('finance.items.index') }}" class="btn btn-primary">
+            <i class="fa fa-arrow-right"></i> {{ __('finance::finance.items') }}
+        </a>
+        <a href="{{ asset('items_data.xlsx') }}" class="btn btn-success">
+            <i class="fa fa-download"></i> {{ __('finance::finance.download_sample_excel') }}
+        </a>
 
-<div class="mb-3">
-    <a href="{{ route('finance.items.index') }}" class="btn btn-primary">
-        <i class="fa fa-arrow-right"></i> {{ __('finance::finance.items') }}
-    </a>
-    <a href="{{ asset('items_data.xlsx') }}" class="btn btn-success">
-        <i class="fa fa-download"></i> {{ __('finance::finance.download_sample_excel') }}
-    </a>
-
-</div>
+    </div>
 
     <form class="row g-3 from-submit-global" method="post" action="{{ $storeRoute }}" enctype="multipart/form-data">
         <div class="col-md-3">
-            <label for="title" class="form-label">{{ __("finance::finance.type") }}</label>
+            <label for="title" class="form-label">{{ __('finance::finance.type') }}</label>
             @php
                 $category_types = array_filter($category_types, function ($case) {
                     return !in_array($case->value, ['finished_product', 'boxs']);
                 });
             @endphp
-            <select name="type" id="type" class="form-control" data-validation="required" onchange="handleTypeChange()">
+            <select name="type" id="type" class="form-control" data-validation="required"
+                onchange="handleTypeChange()">
                 {!! getEnumData($category_types) !!}
             </select>
         </div>
 
         <div class="col-md-3">
-            <label for="main_category_id" class="form-label">{{ __("finance::finance.main_categories") }}</label>
-            {!! addUpButton(route('finance.categories.create'),'main_category_id','' ,'title',true) !!}
+            <label for="main_category_id" class="form-label">{{ __('finance::finance.main_categories') }}</label>
+            {!! addUpButton(route('finance.categories.create'), 'main_category_id', '', 'title', true) !!}
             <select name="main_category_id" id="main_category_id" class="form-control" data-validation="required">
-                <option value="">{{ __("finance::finance.choose") }}</option>
+                <option value="">{{ __('finance::finance.choose') }}</option>
                 @foreach ($main_categories as $item)
-                    <option value="{{ $item->id }}" data-type="{{ $item->type }}"  data-code="{{ $item->type }}">{{ $item->title }}</option>
+                    <option value="{{ $item->id }}" data-type="{{ $item->type }}" data-code="{{ $item->type }}">
+                        {{ $item->title }}</option>
                 @endforeach
             </select>
         </div>
 
         <div class="col-md-3">
-            <label for="sub_category_id" class="form-label">{{ __("finance::finance.sub_categories") }}</label>
-            {!! addUpButton(route('finance.categories.create'),'sub_category_id','' ,'title',true) !!}
+            <label for="sub_category_id" class="form-label">{{ __('finance::finance.sub_categories') }}</label>
+            {!! addUpButton(route('finance.categories.create'), 'sub_category_id', '', 'title', true) !!}
             <select name="sub_category_id" id="sub_category_id" class="form-control">
-                <option value="">{{ __("finance::finance.choose") }}</option>
+                <option value="">{{ __('finance::finance.choose') }}</option>
                 <!-- سيتم تعبئة هذه الخيارات عبر JavaScript -->
             </select>
             {{-- <input type="hidden" name="code" value="{{ $code }}" data-validation="required" readonly id="itemCode" class="form-control" data-validation="required"> --}}
@@ -57,10 +58,10 @@
 
 
         <div class="col-md-3">
-            <label for="sale_account_id" class="form-label">{{ __("finance::finance.sale_account") }}:</label>
-            {!! addUpButton(route('finance.accounts.create'),'sale_account_id','' ,'name',true) !!}
+            <label for="sale_account_id" class="form-label">{{ __('finance::finance.sale_account') }}:</label>
+            {!! addUpButton(route('finance.accounts.create'), 'sale_account_id', '', 'name', true) !!}
             <select name="sale_account_id" id="sale_account_id" class="form-control" data-validation="required">
-                <option value="">{{ __("finance::finance.choose") }}</option>
+                <option value="">{{ __('finance::finance.choose') }}</option>
                 @foreach ($sale_accounts as $item)
                     <option value="{{ $item->id }}">
                         {{ $item->name }}
@@ -107,28 +108,26 @@
         </div>
 
     </form>
-
-
 @endsection
 @section('js')
-<script>
-    $(document).ajaxComplete(function() {
-        $('#json_array').multifield();
-    });
+    <script>
+        $(document).ajaxComplete(function() {
+            $('#json_array').multifield();
+        });
         $(document).ready(function() {
             $.validate({
                 ignore: 'input[type=hidden]',
                 modules: 'date, security',
-                lang: '{{\App::currentLocale()}}',
+                lang: '{{ \App::currentLocale() }}',
                 validateOnEvent: true
             });
         });
         // Get Blades From Type
-        $(document).ready(function () {
+        $(document).ready(function() {
             const typeInput = $('#type');
             const bladeContainer = $('#blade-container');
 
-            typeInput.on('change', function () {
+            typeInput.on('change', function() {
                 const selectedType = $(this).val();
 
                 if (selectedType) {
@@ -144,26 +143,25 @@
                 $.ajax({
                     url: url,
                     method: 'GET',
-                    success: function (response) {
+                    success: function(response) {
                         bladeContainer.html(response);
                     },
-                    error: function (error) {
+                    error: function(error) {
                         console.error('Error loading Blade view:', error);
                     }
                 });
             }
         });
+    </script>
 
-</script>
-
-<script>
-            // Get Sub Category From Category && Get code From Category and Sub Category
-        $(document).ready(function () {
+    <script>
+        // Get Sub Category From Category && Get code From Category and Sub Category
+        $(document).ready(function() {
             const mainCategorySelect = $('#main_category_id');
             const subCategorySelect = $('#sub_category_id');
 
             // عندما تتغير الفئة الرئيسية
-            mainCategorySelect.on('change', function () {
+            mainCategorySelect.on('change', function() {
                 const mainCategoryId = $(this).val();
 
                 // جلب الأكواد بناءً على الفئة الرئيسية
@@ -171,7 +169,8 @@
                     fetchSubCategories(mainCategoryId);
                     fetchCode('mainCategories', mainCategoryId);
                 } else {
-                    subCategorySelect.html('<option value="">{{ __("finance::finance.choose") }}</option>');
+                    subCategorySelect.html(
+                        '<option value="">{{ __('finance::finance.choose') }}</option>');
                 }
             });
 
@@ -183,17 +182,19 @@
                     url: url,
                     method: 'GET',
                     dataType: 'json',
-                    success: function (data) {
-                        subCategorySelect.html('<option value="">{{ __("finance::finance.choose") }}</option>');
-                        $.each(data, function (index, item) {
-                            subCategorySelect.append(`<option value="${item.id}">${item.title}</option>`);
+                    success: function(data) {
+                        subCategorySelect.html(
+                            '<option value="">{{ __('finance::finance.choose') }}</option>');
+                        $.each(data, function(index, item) {
+                            subCategorySelect.append(
+                                `<option value="${item.id}">${item.title}</option>`);
                         });
                     },
-                    error: function (error) {
+                    error: function(error) {
                         console.error('Error fetching subcategories:', error);
                     }
                 });
             }
         });
-</script>
+    </script>
 @endsection

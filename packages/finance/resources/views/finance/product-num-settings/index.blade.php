@@ -12,8 +12,8 @@
     @php
         $setting_count = $setting_code->count();
         $items_count = $items->count();
-        $items_main_category_ids= $items->pluck('main_category_id')->toArray();
-        $items_sub_category_ids= $items->pluck('sub_category_id')->toArray();
+        $items_main_category_ids = $items->pluck('main_category_id')->toArray();
+        $items_sub_category_ids = $items->pluck('sub_category_id')->toArray();
     @endphp
     <div class="clearfix"></div>
     <form class="row g-3 from-submit-global" method="post" action="{{ $storeRoute }}" enctype="multipart/form-data">
@@ -23,26 +23,25 @@
             <select id="type" name="type" class="form-control" @if ($items_count != 0) disabled @endif>
                 @foreach (Nami\Finance\Enums\ProductNumSettingEnum::cases() as $case)
                     <option value="{{ $case->value }}"
-                            {{ $setting_code->count() > 0 && $case->value == $setting_code->first()->type ? 'selected' : '' }}>
+                        {{ $setting_code->count() > 0 && $case->value == $setting_code->first()->type ? 'selected' : '' }}>
                         {{ $case->lang() }}</option>
                 @endforeach
             </select>
             @if ($items_count != 0)
-                <input type="hidden" name="type" value="{{  $setting_code->first()->type ?? '' }}">
+                <input type="hidden" name="type" value="{{ $setting_code->first()->type ?? '' }}">
             @endif
         </div>
         <hr>
 
         <div class="col-4 inputField code">
             <label for="code" class="form-label">{{ __('finance::finance.code') }} </label>
-            <input type="text" name="code" id="code" class="form-control myInput code_input" data-validation="length"
-                   data-validation-length="max255">
+            <input type="text" name="code" id="code" class="form-control myInput code_input"
+                data-validation="length" data-validation-length="max255">
         </div>
         <div class="col-4 inputField code">
             <label for="code_string" class="form-label">{{ __('finance::finance.code_string') }} </label>
             <input type="text" name="code_string" id="code_string" class="form-control myInput code_string"
-                   data-validation="length"
-                   data-validation-length="max255">
+                data-validation="length" data-validation-length="max255">
         </div>
         <div class="col-4 inputField code">
             <label for="code_string" class="form-label">{{ __('finance::finance.final_code') }} </label>
@@ -53,44 +52,41 @@
             <label for="mianCategories" class="form-label">{{ __('finance::finance.MainCategories') }} </label>
             <table class="table  table-bordered">
                 <thead>
-                <tr>
-                    <th scope="col">{{ __('finance::finance.category') }}</th>
-                    <th scope="col">{{ __('finance::finance.code') }}</th>
-                    <th scope="col">{{ __('finance::finance.code_string') }}</th>
-                    <th scope="col">{{ __('finance::finance.final_code') }}</th>
-                </tr>
+                    <tr>
+                        <th scope="col">{{ __('finance::finance.category') }}</th>
+                        <th scope="col">{{ __('finance::finance.code') }}</th>
+                        <th scope="col">{{ __('finance::finance.code_string') }}</th>
+                        <th scope="col">{{ __('finance::finance.final_code') }}</th>
+                    </tr>
                 </thead>
                 <tbody>
-                @foreach ($mainCategories as $category)
-                    <tr>
-                        <th scope="row">
-                            {{ $category->title }}
-                        </th>
-                        <td>
-                            <input type="number" id="code_{{ $category->id }}"
-                                   name="mainCategories[{{ $category->id }}][code]"
-                                   class="form-control myInput index-plus ms-2 main_code_{{ $category->id }}"
-                                   data-validation="number,length"
-                                   data-validation-length="max255"
-                                   onkeyup="mainConcatenateInputs({{ $category->id }})">
-                            <!-- استدعاء الدالة عند كل كتابة -->
-                        </td>
-                        <td>
-                            <input type="text" id="code_string_{{ $category->id }}"
-                                   name="mainCategories[{{ $category->id }}][code_string]"
-                                   class="form-control myInput index-plus ms-2 main_code_string_{{ $category->id }}"
-                                   data-validation="length,alphanumeric"
-                                   data-validation-length="max255"
-                                   onkeyup="mainConcatenateInputs({{ $category->id }})">
-                            <!-- استدعاء الدالة عند كل كتابة -->
-                        </td>
-                        <td>
-                            <input type="text" id="final_code_{{ $category->id }}"
-                                   class="form-control ms-2 main_final_code_{{ $category->id }}"
-                                   readonly>
-                        </td>
-                    </tr>
-                @endforeach
+                    @foreach ($mainCategories as $category)
+                        <tr>
+                            <th scope="row">
+                                {{ $category->title }}
+                            </th>
+                            <td>
+                                <input type="number" id="code_{{ $category->id }}"
+                                    name="mainCategories[{{ $category->id }}][code]"
+                                    class="form-control myInput index-plus ms-2 main_code_{{ $category->id }}"
+                                    data-validation="number,length" data-validation-length="max255"
+                                    onkeyup="mainConcatenateInputs({{ $category->id }})">
+                                <!-- استدعاء الدالة عند كل كتابة -->
+                            </td>
+                            <td>
+                                <input type="text" id="code_string_{{ $category->id }}"
+                                    name="mainCategories[{{ $category->id }}][code_string]"
+                                    class="form-control myInput index-plus ms-2 main_code_string_{{ $category->id }}"
+                                    data-validation="length,alphanumeric" data-validation-length="max255"
+                                    onkeyup="mainConcatenateInputs({{ $category->id }})">
+                                <!-- استدعاء الدالة عند كل كتابة -->
+                            </td>
+                            <td>
+                                <input type="text" id="final_code_{{ $category->id }}"
+                                    class="form-control ms-2 main_final_code_{{ $category->id }}" readonly>
+                            </td>
+                        </tr>
+                    @endforeach
                 </tbody>
             </table>
         </div>
@@ -99,42 +95,39 @@
             <label for="subCategories" class="form-label">{{ __('finance::finance.SubCategories') }} </label>
             <table class="table table-bordered">
                 <thead>
-                <tr>
-                    <th scope="col">{{ __('finance::finance.category') }}</th>
-                    <th scope="col">{{ __('finance::finance.code') }}</th>
-                    <th scope="col">{{ __('finance::finance.code_string') }}</th>
-                    <th scope="col">{{ __('finance::finance.final_code') }}</th>
-                </tr>
+                    <tr>
+                        <th scope="col">{{ __('finance::finance.category') }}</th>
+                        <th scope="col">{{ __('finance::finance.code') }}</th>
+                        <th scope="col">{{ __('finance::finance.code_string') }}</th>
+                        <th scope="col">{{ __('finance::finance.final_code') }}</th>
+                    </tr>
                 </thead>
                 <tbody>
-                @foreach ($subCategories as $category)
-                    <tr>
-                        <th scope="row">
-                            {{ $category->title }}
-                        </th>
-                        <td>
-                            <input type="number" id="code_{{ $category->id }}"
-                                   name="subCategories[{{ $category->id }}][code]"
-                                   class="form-control myInput index-plus ms-2 sub_code_{{ $category->id }}"
-                                   data-validation="number,length"
-                                   data-validation-length="max255"
-                                   onkeyup="concatenateInputs({{ $category->id }})">
-                        </td>
-                        <td>
-                            <input type="text" id="code_string_{{ $category->id }}"
-                                   name="subCategories[{{ $category->id }}][code_string]"
-                                   class="form-control myInput index-plus ms-2 sub_code_string_{{ $category->id }}"
-                                   data-validation="length,alphanumeric"
-                                   data-validation-length="max255"
-                                   onkeyup="concatenateInputs({{ $category->id }})">
-                        </td>
-                        <td>
-                            <input type="text" id="final_code_{{ $category->id }}"
-                                   class="form-control ms-2 sub_final_code_{{ $category->id }}"
-                                   readonly>
-                        </td>
-                    </tr>
-                @endforeach
+                    @foreach ($subCategories as $category)
+                        <tr>
+                            <th scope="row">
+                                {{ $category->title }}
+                            </th>
+                            <td>
+                                <input type="number" id="code_{{ $category->id }}"
+                                    name="subCategories[{{ $category->id }}][code]"
+                                    class="form-control myInput index-plus ms-2 sub_code_{{ $category->id }}"
+                                    data-validation="number,length" data-validation-length="max255"
+                                    onkeyup="concatenateInputs({{ $category->id }})">
+                            </td>
+                            <td>
+                                <input type="text" id="code_string_{{ $category->id }}"
+                                    name="subCategories[{{ $category->id }}][code_string]"
+                                    class="form-control myInput index-plus ms-2 sub_code_string_{{ $category->id }}"
+                                    data-validation="length,alphanumeric" data-validation-length="max255"
+                                    onkeyup="concatenateInputs({{ $category->id }})">
+                            </td>
+                            <td>
+                                <input type="text" id="final_code_{{ $category->id }}"
+                                    class="form-control ms-2 sub_final_code_{{ $category->id }}" readonly>
+                            </td>
+                        </tr>
+                    @endforeach
                 </tbody>
             </table>
         </div>
@@ -147,13 +140,13 @@
 
 @section('js')
     <script>
-        $(document).ready(function () {
+        $(document).ready(function() {
             // Initially hide all input fields
             $('.inputField').hide();
 
             var parent = "{{ $setting_type }}";
             var setting_count = "{{ $setting_count }}"
-            var items_count = "{{$items_count}}";
+            var items_count = "{{ $items_count }}";
             if (parent == 'allProducts') {
                 $('.code').show();
                 if (setting_count > 0) {
@@ -174,10 +167,11 @@
                 var settingsArray = {!! json_encode($setting_code->toArray()) !!};
                 var mainCategories = @json($mainCategories);
                 var items_main_category_ids = @json($items_main_category_ids);
-                settingsArray.forEach(function (element) {
+                settingsArray.forEach(function(element) {
                     $('#code_' + element.category_id).val(element.code || '');
                     $('#code_string_' + element.category_id).val(element.code_string || '');
-                    $('#final_code_' + element.category_id).val((element.code_string || '') + (element.code || ''));
+                    $('#final_code_' + element.category_id).val((element.code_string || '') + (element
+                        .code || ''));
                     if (items_main_category_ids.includes(element.category_id)) {
                         $('#code_' + element.category_id).prop('readonly', true);
                         $('#code_string_' + element.category_id).prop('readonly', true);
@@ -191,10 +185,11 @@
                 var settingsArray = {!! json_encode($setting_code->toArray()) !!};
                 var subCategories = @json($subCategories);
                 var items_sub_category_ids = @json($items_sub_category_ids);
-                settingsArray.forEach(function (element) {
+                settingsArray.forEach(function(element) {
                     $('.sub_code_' + element.category_id).val(element.code || '');
                     $('.sub_code_string_' + element.category_id).val(element.code_string || '');
-                    $('.sub_final_code_' + element.category_id).val((element.code_string || '') + (element.code || ''));
+                    $('.sub_final_code_' + element.category_id).val((element.code_string || '') + (element
+                        .code || ''));
                     if (items_sub_category_ids.includes(element.category_id)) {
                         $('.sub_code_' + element.category_id).prop('readonly', true);
                         $('.sub_code_string_' + element.category_id).prop('readonly', true);
@@ -205,7 +200,7 @@
                 });
             }
 
-            $(document).on('change', '#type', function (e) {
+            $(document).on('change', '#type', function(e) {
                 var selectedValue = $(this).val();
 
                 $('.myInput').val('');
@@ -224,7 +219,7 @@
             });
         });
 
-        $(document).ready(function () {
+        $(document).ready(function() {
             // Function to concatenate the values of the first two inputs
             function concatenateInputs() {
                 var code = $('#code').val(); // Get value from the first input
@@ -234,7 +229,7 @@
             }
 
             // Attach the function to the 'input' event of the first two inputs
-            $('#code, #code_string').on('input', function () {
+            $('#code, #code_string').on('input', function() {
                 concatenateInputs();
             });
         });

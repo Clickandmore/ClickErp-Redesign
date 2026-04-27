@@ -183,6 +183,8 @@ class AccountCostCenterService extends MainService
             ->join('fn_accounts', 'fn_accounts.id', '=', 'fn_constraint_details.account_id')
             ->join('fn_constraints', 'fn_constraints.id', '=', 'fn_constraint_details.constraint_id')
             ->leftJoin('admins', 'admins.id', '=', 'fn_constraints.created_by_id')
+            ->whereNull('fn_constraint_details.deleted_at')
+            ->whereNull('fn_constraints.deleted_at')
             ->where('fn_constraint_details.cost_center_id', '=', $dataSearch['cost_center_id'])
             ->when($dataSearch['account_id'] != '', function ($q) use ($dataSearch) {
                 return $q->where('fn_constraint_details.account_id', $dataSearch['account_id']);
@@ -210,6 +212,7 @@ class AccountCostCenterService extends MainService
             'fn_constraints.id',
         ])
         ->join('fn_constraint_details', 'fn_constraints.id', '=', 'fn_constraint_details.constraint_id')
+        ->whereNull('fn_constraint_details.deleted_at')
         ->where('fn_constraint_details.account_id', '=', $dataSearch['account_id'])
         ->when($dataSearch['type'] != 'both', function ($q) use ($dataSearch) {
             return $q->where('fn_constraint_details.type', $dataSearch['type']);

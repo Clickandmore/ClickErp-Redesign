@@ -225,33 +225,68 @@ class ShelterContractController extends Controller
             'rental' => 0,
             'transfer' => 0,
         ];
+        $rentalWorkerStats = [
+            'total' => 0,
+            'ready' => 0,
+            'instant' => 0,
+            'deportation' => 0,
+            'undecided' => 0,
+            'within_guarantee' => 0,
+            'expired_guarantee' => 0,
+            'unknown_guarantee' => 0,
+        ];
         $quickTagCounts = [];
 
         foreach ($statsContracts as $contract) {
             $info = $contract->info;
             $workWillingness = $info?->wants_to_work;
+            $serviceCategory = $this->determineShelterServiceCategory($contract->maid);
+            $serviceCategoryStats[$serviceCategory] = ($serviceCategoryStats[$serviceCategory] ?? 0) + 1;
+            $isRentalWorker = $serviceCategory === 'rental';
 
             if ($workWillingness === 'yes') {
                 $wantsToWork++;
+                if ($isRentalWorker) {
+                    $rentalWorkerStats['ready']++;
+                }
                 if ($info?->is_available_for_instant) {
                     $availableForInstantReceipt++;
+                    if ($isRentalWorker) {
+                        $rentalWorkerStats['instant']++;
+                    }
                 }
             } elseif ($workWillingness === 'no') {
                 $inDeportation++;
+                if ($isRentalWorker) {
+                    $rentalWorkerStats['deportation']++;
+                }
             } else {
                 $undecided++;
+                if ($isRentalWorker) {
+                    $rentalWorkerStats['undecided']++;
+                }
             }
 
-            $serviceCategory = $this->determineShelterServiceCategory($contract->maid);
-            $serviceCategoryStats[$serviceCategory] = ($serviceCategoryStats[$serviceCategory] ?? 0) + 1;
+            if ($isRentalWorker) {
+                $rentalWorkerStats['total']++;
+            }
 
             $guaranteeData = $this->resolveGuaranteeData($contract);
             if ($guaranteeData['status'] === 'within') {
                 $withinGuarantee++;
+                if ($isRentalWorker) {
+                    $rentalWorkerStats['within_guarantee']++;
+                }
             } elseif ($guaranteeData['status'] === 'expired') {
                 $expiredGuarantee++;
+                if ($isRentalWorker) {
+                    $rentalWorkerStats['expired_guarantee']++;
+                }
             } else {
                 $guaranteeUnknown++;
+                if ($isRentalWorker) {
+                    $rentalWorkerStats['unknown_guarantee']++;
+                }
             }
 
             foreach ($this->extractQuickTags($info?->shelter_quick_tags) as $tag) {
@@ -284,6 +319,7 @@ class ShelterContractController extends Controller
             'guaranteeUnknown',
             'availableForInstantReceipt',
             'serviceCategoryStats',
+            'rentalWorkerStats',
             'quickTagStats',
             'quickTagSuggestions',
             'nationalities',
@@ -517,11 +553,13 @@ class ShelterContractController extends Controller
             return 'recruitment';
         }
 
-        $jobType = $maid->relationLoaded('jobTypes')
-            ? $maid->jobTypes->first()
-            : $maid->jobTypes()->first();
+        $jobTypes = $maid->relationLoaded('jobTypes')
+            ? $maid->jobTypes
+            : $maid->jobTypes()->get();
 
-        $title = $this->normalizeServiceCategoryTitle($jobType?->title);
+        $title = $this->normalizeServiceCategoryTitle(
+            $jobTypes->pluck('title')->filter()->implode(' ')
+        );
 
         if ($title === '') {
             return 'recruitment';
@@ -1590,7 +1628,7 @@ class ShelterContractController extends Controller
             if ($guaranteeStatus === 'within_guarantee') {
                 // Within guarantee period
                 $rows->whereHas('info', function ($query) use ($today, $guaranteePeriodDays) {
-                    $query->where(function ($q) use ($today) {
+                    $query->where(function ($q) use ($today, $guaranteePeriodDays) {
                         $q->where(function ($subQ) use ($today, $guaranteePeriodDays) {
                             $subQ->whereNotNull('arrival_date')
                                 ->whereDate('arrival_date', '>=', $today->copy()->subDays($guaranteePeriodDays));
@@ -1609,7 +1647,7 @@ class ShelterContractController extends Controller
             } elseif ($guaranteeStatus === 'expired_guarantee') {
                 // Expired guarantee period
                 $rows->whereHas('info', function ($query) use ($today, $guaranteePeriodDays) {
-                    $query->where(function ($q) use ($today) {
+                    $query->where(function ($q) use ($today, $guaranteePeriodDays) {
                         $q->where(function ($subQ) use ($today, $guaranteePeriodDays) {
                             $subQ->whereNotNull('arrival_date')
                                 ->whereDate('arrival_date', '<', $today->copy()->subDays($guaranteePeriodDays));
@@ -2106,6 +2144,37 @@ class ShelterContractController extends Controller
                         return '<span class="badge bg-secondary">غير محدد</span>';
                     }
                 })
+                ->addColumn('status_summary', function ($row) {
+                    $serviceCategory = $this->determineShelterServiceCategory($row->maid);
+                    $serviceLabel = match ($serviceCategory) {
+                        'rental' => 'إيجار',
+                        'transfer' => 'نقل خدمات',
+                        default => 'استقدام',
+                    };
+                    $serviceClass = match ($serviceCategory) {
+                        'rental' => 'bg-info text-dark',
+                        'transfer' => 'bg-primary',
+                        default => 'bg-dark',
+                    };
+
+                    $receiptSource = $row->info && $row->info->receipt_source
+                        ? e($this->resolveReceiptSourceLabel($row->info->receipt_source))
+                        : 'غير محدد';
+                    $guaranteeData = $this->resolveGuaranteeData($row);
+                    $workWillingness = $row->info ? $row->info->wants_to_work : null;
+                    $workBadge = match ($workWillingness) {
+                        'yes' => '<span class="badge bg-success">ترغب بالعمل</span>',
+                        'no' => '<span class="badge bg-warning text-dark">لا ترغب بالعمل</span>',
+                        default => '<span class="badge bg-secondary">رغبة العمل: غير محدد</span>',
+                    };
+
+                    return '<div class="shelter-status-stack">'
+                        . '<span class="badge ' . $serviceClass . '">' . e($serviceLabel) . '</span>'
+                        . '<span class="badge bg-secondary">مصدر الاستلام: ' . $receiptSource . '</span>'
+                        . '<span class="badge ' . e($guaranteeData['badge_class']) . '">' . e($guaranteeData['label']) . '</span>'
+                        . $workBadge
+                        . '</div>';
+                })
                 ->addColumn('instant_receipt_availability', function ($row) {
                     $isAvailable = $row->info ? $row->info->is_available_for_instant : false;
                     $workWillingness = $row->info ? $row->info->wants_to_work : null;
@@ -2281,7 +2350,7 @@ class ShelterContractController extends Controller
                 ->orderColumn('added_to_shelter_at', function ($query, $order) {
                     $query->orderBy($this->getShelterOrderExpression(), $order);
                 })
-                ->rawColumns(['maid_data', 'client', 'nationality', 'shelter', 'added_to_shelter_at', 'shelter_entry_date', 'shelter_duration', 'kingdom_duration', 'receipt_source', 'arrival_date', 'return_date', 'guarantee_status', 'work_willingness', 'quick_tags', 'instant_receipt_availability', 'deportation_status', 'show_site_status', 'actions'])
+                ->rawColumns(['maid_data', 'client', 'nationality', 'shelter', 'added_to_shelter_at', 'shelter_entry_date', 'shelter_duration', 'kingdom_duration', 'receipt_source', 'arrival_date', 'return_date', 'guarantee_status', 'work_willingness', 'status_summary', 'quick_tags', 'instant_receipt_availability', 'deportation_status', 'show_site_status', 'actions'])
                 ->toJson();
 
             \Log::info('DataTables processing completed');

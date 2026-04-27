@@ -2,8 +2,12 @@
 
 namespace Nami\Finance\Models;
 
+use Illuminate\Database\Eloquent\SoftDeletes;
+
 class ConstraintDetails extends Finance
 {
+    use SoftDeletes;
+
     protected $table = 'fn_constraint_details';
 
     protected $with = ['constraint', 'account', 'costCenter'];

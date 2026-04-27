@@ -11,7 +11,18 @@
             text-align: start;
             color: #000;
         }
-        h1, h2, h3, h4, h5, h6, p, span, div, th, td{
+
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6,
+        p,
+        span,
+        div,
+        th,
+        td {
             font-size: 100% !important;
         }
 
@@ -162,24 +173,27 @@
 
 
 
-      <style>
-
-
+    <style>
         @keyframes spin {
             0% {
                 transform: rotate(0deg);
             }
+
             100% {
                 transform: rotate(360deg);
             }
         }
+
         @media print {
             body * {
                 visibility: hidden;
             }
-            .print, .print * {
+
+            .print,
+            .print * {
                 visibility: visible;
             }
+
             .print {
                 position: absolute;
                 left: 0;
@@ -188,24 +202,27 @@
                 padding: 20px;
                 font-size: 12pt;
             }
+
             .sidebar {
                 display: none !important;
             }
+
             #printButton {
-            display: none;
-        }
+                display: none;
+            }
 
         }
+
         .invoice-summary {
-        margin-top: 20px;
-        padding: 20px;
-    }
+            margin-top: 20px;
+            padding: 20px;
+        }
 
-    .invoice-summary .summary-row {
-        display: flex;
-        justify-content: space-between;
-        padding: 10px 0;
-    }
+        .invoice-summary .summary-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+        }
     </style>
 @endsection
 
@@ -218,7 +235,7 @@
 @endsection
 
 @section('content')
-<button id="printButton" class="btn btn-primary" style="margin: 20px;">طباعة</button>
+    <button id="printButton" class="btn btn-primary" style="margin: 20px;">طباعة</button>
     <div class="print">
         {{-- <header>
             <div class="Logo">
@@ -242,9 +259,10 @@
                 {{-- <div class="qr">
                     <img src="Assets/images/Asset.png" alt="qr" />
                 </div> --}}
-                @if($obj->zatca)
+                @if ($obj->zatca)
                     <div class="qr">
-                        <img style="width: 200px; height: 200px; background-color: white;" src="{{ (new chillerlan\QRCode\QRCode)->render($obj->zatca->qr) }}"/>
+                        <img style="width: 200px; height: 200px; background-color: white;"
+                            src="{{ new chillerlan\QRCode\QRCode()->render($obj->zatca->qr) }}" />
                     </div>
                 @endif
 
@@ -321,14 +339,14 @@
                         $total_discount = 0;
                         $total_tax = 0;
                     @endphp
-                    @foreach($groupedItems as $itemGroup)
+                    @foreach ($groupedItems as $itemGroup)
                         @php
                             // Get the first item from the group
                             $firstItem = $itemGroup->first();
                             // Calculate total amount and final total for the group
                             $totalAmount = $itemGroup->sum('amount');
                             $price = $firstItem->price;
-//                            $price = $itemGroup->sum('price');
+                            //                            $price = $itemGroup->sum('price');
                             $totalFinalTotal = $itemGroup->sum('final_total');
                             $discount_value = $itemGroup->sum('discount_value');
                             $tax_value = $itemGroup->sum('tax_value');
@@ -361,19 +379,19 @@
                 </div>
                 <div class="summary-row">
                     <h3 class="label">{{ __('finance::finance.Total after discount') }} :</h3>
-                    <h3 class="value">{{ number_format($obj->total_item - $obj->discount , 2) }} </h3>
+                    <h3 class="value">{{ number_format($obj->total_item - $obj->discount, 2) }} </h3>
                 </div>
                 <div class="summary-row">
                     <h3 class="label">{{ __('finance::finance.the_tax_value') }} :</h3>
-                    <h3 class="value">{{ number_format($obj->total_tax_value , 2) }} </h3>
+                    <h3 class="value">{{ number_format($obj->total_tax_value, 2) }} </h3>
                 </div>
                 <div class="summary-row">
                     <h3 class="label">{{ __('finance::finance.net') }} :</h3>
-                    <h3 class="value">{{ number_format($obj->final_total , 2) }} </h3>
+                    <h3 class="value">{{ number_format($obj->final_total, 2) }} </h3>
                 </div>
                 <div class="summary-row">
                     <h3 class="label">{{ __('finance::finance.profit_margin') }} :</h3>
-                    <h3 class="value">{{ $obj->profit_with_margin , 2 }} </h3>
+                    <h3 class="value">{{ $obj->profit_with_margin, 2 }} </h3>
                 </div>
             </div>
 
@@ -392,7 +410,8 @@
 
 
                 <div style="display: flex; align-items: center;flex-direction: column; gap: 5px;">
-                    <h5>{{ (isset($setting_web) && isset($setting_web->website_name)) ? $setting_web->translate('ar')->website_name : 'مؤسسه صلات الوطنيه التجاريه '  }}</h5>
+                    <h5>{{ isset($setting_web) && isset($setting_web->website_name) ? $setting_web->translate('ar')->website_name : 'مؤسسه صلات الوطنيه التجاريه ' }}
+                    </h5>
                     <span>..................................</span>
 
                 </div>
@@ -412,9 +431,9 @@
 @endsection
 
 @section('js')
-<script>
-    document.getElementById('printButton').addEventListener('click', function () {
-        window.print();
-    });
-</script>
+    <script>
+        document.getElementById('printButton').addEventListener('click', function() {
+            window.print();
+        });
+    </script>
 @endsection

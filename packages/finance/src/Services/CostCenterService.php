@@ -95,6 +95,7 @@ class CostCenterService extends MainService
         return DB::table('fn_constraint_details')
             ->selectRaw('cost_center_id, SUM(debtor_value) as debtor_value, SUM(creditor_value) as creditor_value, MAX(id) as id')
             ->whereNotNull('cost_center_id')
+            ->whereNull('deleted_at')
             ->groupBy('cost_center_id')
             ->get()
             ->keyBy('cost_center_id')

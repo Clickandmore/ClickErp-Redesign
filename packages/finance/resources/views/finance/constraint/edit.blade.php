@@ -36,10 +36,10 @@
         </thead>
         <tbody class="table-body">
             @foreach ($obj->constraintDetails as $constraintDetails)
-            <input type="hidden" name="old_id[]" value="{{ $constraintDetails->id }}" class="form-control">
                 @if ($constraintDetails->type == 'debtor')
                     <tr class="item-row debtor_append" id="debtor_append">
                         <td>
+                            <input type="hidden" name="old_id[]" value="{{ $constraintDetails->id }}" class="constraint-old-id">
                             <input type="hidden" class="form-control" value="debtor"
                             name="account_type[]">
                             <input class="debtor form-control" min="0.01" step="any" type="number" value="{{ $constraintDetails->debtor_value }}" name="debtor_value[]">
@@ -77,6 +77,7 @@
                 @if ($constraintDetails->type == 'creditor')
                     <tr class="item-row" id="creditor_append">
                         <td>
+                            <input type="hidden" name="old_id[]" value="{{ $constraintDetails->id }}" class="constraint-old-id">
                             <input type="hidden" value="0" name="debtor_value[]">
                         </td>
                         <td>
@@ -150,4 +151,3 @@
         {!! closeButton() !!}
     </div>
 </form>
-

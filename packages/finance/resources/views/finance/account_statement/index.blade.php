@@ -660,13 +660,15 @@
                 <span class="statement-eyebrow">FINANCE REPORT</span>
                 <h1 class="statement-title">{{ $bladeTitle }}</h1>
                 <p class="statement-subtitle">
-                    عرض أوضح لكشف الحساب مع نفس الفلاتر للطباعة والحفظ PDF، وإظهار الحسابات المقابلة بشكل مرتب لتسهيل المراجعة.
+                    عرض أوضح لكشف الحساب مع نفس الفلاتر للطباعة والحفظ PDF، وإظهار الحسابات المقابلة بشكل مرتب لتسهيل
+                    المراجعة.
                 </p>
             </div>
 
             <aside class="statement-hero-note">
                 <span class="statement-hero-chip">جاهز للطباعة</span>
-                <p>اختر الحساب ثم نفّذ البحث. النتيجة المعروضة بالأسفل أصبحت أقرب لنسخة ورقية، مع روابط مباشرة للقيد وكشف الحسابات المقابلة.</p>
+                <p>اختر الحساب ثم نفّذ البحث. النتيجة المعروضة بالأسفل أصبحت أقرب لنسخة ورقية، مع روابط مباشرة للقيد وكشف
+                    الحسابات المقابلة.</p>
             </aside>
         </section>
 
@@ -703,7 +705,8 @@
                     <select name="type" id="type" class="form-control search_keys">
                         <option value="both" @selected(($filters['type'] ?? request('type', 'both')) === 'both')>{{ __('finance::finance.All') }}</option>
                         <option value="debtor" @selected(($filters['type'] ?? request('type')) === 'debtor')>{{ __('finance::finance.debtor') }}</option>
-                        <option value="creditor" @selected(($filters['type'] ?? request('type')) === 'creditor')>{{ __('finance::finance.creditor') }}</option>
+                        <option value="creditor" @selected(($filters['type'] ?? request('type')) === 'creditor')>{{ __('finance::finance.creditor') }}
+                        </option>
                     </select>
                 </div>
 
@@ -732,10 +735,15 @@
 
         <div class="print-and-excel-buttons d-none">
             <div class="statement-action-bar">
-                <p class="statement-action-copy">الطباعة والتصدير يعتمدان دائمًا على نفس الفلاتر الحالية ونتيجة البحث المعروضة أسفلها.</p>
+                <p class="statement-action-copy">الطباعة والتصدير يعتمدان دائمًا على نفس الفلاتر الحالية ونتيجة البحث
+                    المعروضة أسفلها.</p>
 
                 <div class="statement-action-buttons">
-                    {!! printButton(route('finance.account-statement-print.index', array_merge(request()->all(), ['autoprint' => 1])), null, 'finance::finance.account-statement-print-read') !!}
+                    {!! printButton(
+                        route('finance.account-statement-print.index', array_merge(request()->all(), ['autoprint' => 1])),
+                        null,
+                        'finance::finance.account-statement-print-read',
+                    ) !!}
                     <button type="button" id="toExcel" class="btn btn-info">
                         <i class="fa fa-file-excel-o"></i>
                         Excel
@@ -783,10 +791,10 @@
                 url: '{{ route('finance.account-statement.index') }}',
                 type: 'GET',
                 data: data,
-                beforeSend: function () {
+                beforeSend: function() {
                     renderLoadingState();
                 },
-                success: function (result) {
+                success: function(result) {
                     resultsContainer.html(result.data.html);
 
                     if (result.data.count > 0) {
@@ -796,18 +804,18 @@
                         $('.print-and-excel-buttons').addClass('d-none');
                     }
                 },
-                error: function (errorObj) {
+                error: function(errorObj) {
                     handleErrorResponce(errorObj);
                 }
             });
         }
 
-        $('#search_button').on('click', function (e) {
+        $('#search_button').on('click', function(e) {
             e.preventDefault();
             searchAccountStatement();
         });
 
-        filtersContainer.on('keydown', function (e) {
+        filtersContainer.on('keydown', function(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
                 searchAccountStatement();
@@ -824,7 +832,7 @@
         const excelButton = document.querySelector('#toExcel');
 
         if (excelButton) {
-            excelButton.addEventListener('click', function () {
+            excelButton.addEventListener('click', function() {
                 const table = document.querySelector('#simpleTable4');
 
                 if (!table) {
