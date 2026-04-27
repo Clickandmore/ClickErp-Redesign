@@ -14,7 +14,7 @@ return [
 
     'url' => env('MSEGAT_URL', 'https://www.msegat.com/gw/sendsms.php'),
     'username' => env('MSEGAT_USERNAME', ''),
-    'api_key' => env('MSEGAT_API_KEY', ''),
+    'api_key' => env('MSEGAT_API_KEY', ''), 
     'sender' => env('MSEGAT_SENDER', ''),
     'advertising_sender' => env('MSEGAT_ADVERTISING_SENDER', env('MSEGAT_SENDER', '')),
     'verification_sender' => env('MSEGAT_VERIFICATION_SENDER', env('MSEGAT_SENDER', '')),

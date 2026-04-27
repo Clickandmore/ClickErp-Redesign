@@ -109,6 +109,7 @@ Route::group(
             Route::resource('what-do', WhatDoController::class);
             Route::resource('what-do-setting', WhatDoSettingController::class);
             Route::resource('renew-contracts', RenewContractController::class);
+            Route::resource('known-service-requests', \App\Http\Controllers\ingaz\KnownServiceRequestController::class)->only(['index', 'show', 'update', 'destroy']);
             Route::resource('professional_application', ProfessionalApplicationController::class);
             Route::resource('recruitment_requests', RecruitmentRequestController::class);
 
@@ -294,17 +295,17 @@ Route::group(
             Route::get('RentContract/export/excel', [RentContractController::class, 'exportExcel'])->name('RentContract.export.excel');
             Route::get('RentContract/existing-clients', [RentContractController::class, 'getExistingClients'])->name('RentContract.existing.clients');
 
-            // الفواتير
+            // Ø§Ù„ÙÙˆØ§ØªÙŠØ±
             Route::resource('invoices', InvoiceController::class);
             Route::get('invoices/download/{id}', [InvoiceController::class, 'downloadInvoice'])->name('invoice.download');
             Route::resource('musaned-transfers', MusanedTransferController::class)->only(['index', 'create', 'store', 'show']);
 
-            // إغلاق عقود الإيجار
+            // Ø¥ØºÙ„Ø§Ù‚ Ø¹Ù‚ÙˆØ¯ Ø§Ù„Ø¥ÙŠØ¬Ø§Ø±
             Route::get('RentContract/{id}/details', [RentContractController::class, 'getContractDetails'])->name('RentContract.details');
             Route::post('RentContract/{id}/close-and-make-available', [RentContractController::class, 'closeAndMakeAvailable'])->name('RentContract.closeAndMakeAvailable');
             Route::post('RentContract/{id}/transfer-sponsorship', [RentContractController::class, 'transferSponsorship'])->name('RentContract.transferSponsorship');
 
-            // Routes جديدة لـ workflow عقود الإيجار
+            // Routes Ø¬Ø¯ÙŠØ¯Ø© Ù„Ù€ workflow Ø¹Ù‚ÙˆØ¯ Ø§Ù„Ø¥ÙŠØ¬Ø§Ø±
             Route::post('RentContract/{id}/send-contract', [RentContractController::class, 'sendContract'])->name('RentContract.sendContract');
             Route::post('RentContract/{id}/sign-contract', [RentContractController::class, 'signContract'])->name('RentContract.signContract');
             Route::post('RentContract/{id}/deliver-maid', [RentContractController::class, 'deliverMaid'])->name('RentContract.deliverMaid');
@@ -313,7 +314,7 @@ Route::group(
             Route::post('RentContract/{id}/save-signature', [RentContractController::class, 'saveSignature'])->name('RentContract.saveSignature');
             Route::post('RentContract/{id}/change-maid', [RentContractController::class, 'changeMaid'])->name('RentContract.changeMaid');
 
-            // إدارة بنود عقد التأجير
+            // Ø¥Ø¯Ø§Ø±Ø© Ø¨Ù†ÙˆØ¯ Ø¹Ù‚Ø¯ Ø§Ù„ØªØ£Ø¬ÙŠØ±
             Route::get('rent-contract-terms/create', [RentalContractTermsController::class, 'create'])->name('rent-contract-terms.create');
             Route::post('rent-contract-terms/store', [RentalContractTermsController::class, 'store'])->name('rent-contract-terms.store');
             Route::get('rent-contract-terms', [RentalContractTermsController::class, 'index'])->name('rent-contract-terms.index');
@@ -322,19 +323,19 @@ Route::group(
             Route::get('rent-contract-terms/import-default', [RentalContractTermsController::class, 'importDefault'])->name('rent-contract-terms.import-default');
             Route::delete('rent-contract-terms/{id}', [RentalContractTermsController::class, 'destroy'])->name('rent-contract-terms.destroy');
 
-            // إعدادات عقد التأجير
+            // Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø¹Ù‚Ø¯ Ø§Ù„ØªØ£Ø¬ÙŠØ±
             Route::get('rent-contract/settings', [RentalContractTermsController::class, 'showSettings'])->name('rent-contract.settings');
             Route::put('rent-contract/settings', [RentalContractTermsController::class, 'updateSettings'])->name('rent-contract.settings.update');
             Route::get('showDataOfOrder', [OrderController::class, 'showDataOfOrder'])->name('showDataOfOrder');
             Route::get('showDataOfMaid', [OrderController::class, 'showDataOfMaid'])->name('showDataOfMaid');
             Route::get('showUserFromContract', [OrderController::class, 'showUserFromContract'])->name('showUserFromContract');
 
-            // Routes لطلبات نقل الكفالة من الموقع الخارجي - يجب أن تكون قبل resource route
+            // Routes Ù„Ø·Ù„Ø¨Ø§Øª Ù†Ù‚Ù„ Ø§Ù„ÙƒÙØ§Ù„Ø© Ù…Ù† Ø§Ù„Ù…ÙˆÙ‚Ø¹ Ø§Ù„Ø®Ø§Ø±Ø¬ÙŠ - ÙŠØ¬Ø¨ Ø£Ù† ØªÙƒÙˆÙ† Ù‚Ø¨Ù„ resource route
             Route::get('SponsorshipTransfer/web-requests', [SponsorshipTransferController::class, 'webRequests'])->name('SponsorshipTransfer.webRequests');
             Route::get('SponsorshipTransfer/web-requests/{id}', [SponsorshipTransferController::class, 'showWebRequest'])->name('SponsorshipTransfer.webRequest.show');
             Route::post('SponsorshipTransfer/web-requests/{id}/cancel', [SponsorshipTransferController::class, 'cancelOrder'])->name('SponsorshipTransfer.webRequest.cancel');
 
-            // Routes للصفحات المختلفة حسب الحالة - يجب أن تكون قبل resource route
+            // Routes Ù„Ù„ØµÙØ­Ø§Øª Ø§Ù„Ù…Ø®ØªÙ„ÙØ© Ø­Ø³Ø¨ Ø§Ù„Ø­Ø§Ù„Ø© - ÙŠØ¬Ø¨ Ø£Ù† ØªÙƒÙˆÙ† Ù‚Ø¨Ù„ resource route
             Route::get('SponsorshipTransfer/status/trial', [SponsorshipTransferController::class, 'trial'])->name('SponsorshipTransfer.trial');
             Route::get('SponsorshipTransfer/status/transferred', [SponsorshipTransferController::class, 'transferred'])->name('SponsorshipTransfer.transferred');
             Route::get('SponsorshipTransfer/status/failed', [SponsorshipTransferController::class, 'failed'])->name('SponsorshipTransfer.failed');
@@ -455,7 +456,7 @@ Route::group(
                 Route::get('contract_download_form/download/{contract_id}', [App\Http\Controllers\ingaz\ContractController::class, 'deliveryFormDownload'])->name('contract_download_form.download');
             });
 
-            // طلبات استرجاع العقود - الإدارة
+            // Ø·Ù„Ø¨Ø§Øª Ø§Ø³ØªØ±Ø¬Ø§Ø¹ Ø§Ù„Ø¹Ù‚ÙˆØ¯ - Ø§Ù„Ø¥Ø¯Ø§Ø±Ø©
             Route::prefix('contract-return-requests')->name('contract-return-requests.')->group(function () {
                 Route::get('/', [ContractReturnRequestController::class, 'index'])->name('index');
                 Route::get('/statistics', [ContractReturnRequestController::class, 'statistics'])->name('statistics');
@@ -530,3 +531,4 @@ Route::group(
 );
 
 Route::get("ShelterContract/deportation/{id}/activity-log", [ShelterContractController::class, "getActivityLog"])->name("ShelterContract.deportation.activity-log");
+
