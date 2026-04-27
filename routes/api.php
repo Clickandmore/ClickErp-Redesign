@@ -118,6 +118,7 @@ Route::controller(Api\HomeController::class)->group(function ($router) {
 Route::group(['middleware' => 'lang', 'prefix' => 'client'], function () {
     Route::get('home', [HomeController::class, 'homeSections']);
     Route::resource('daily-lebor-demand', ApiDailyLabotDemandController::class)->only(['index', 'store']);
+    Route::resource('known-service', \App\Http\Controllers\Api\ApiKnownServiceController::class)->only(['index', 'store']);
     Route::resource('select-worker', ApiSelectWorkerController::class)->only(['index']);
     Route::resource('contact-us', ApiContactController::class);
     Route::resource('settings', ApiSettingController::class);
@@ -134,3 +135,4 @@ Route::group(['middleware' => 'lang', 'prefix' => 'client'], function () {
     Route::get('arrival-worker', [App\Http\Controllers\Api\ApiMaidController::class, 'arrivalWorker']);
     Route::get('questions', [App\Http\Controllers\Api\ApiQuestionController::class, 'index']);
 });
+

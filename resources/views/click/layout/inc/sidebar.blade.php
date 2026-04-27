@@ -203,7 +203,7 @@
                                 <span class="ms-2">{{ helperTrans('ingaz.orders') }} </span>
                                 <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                             </a>
-                            <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['orders.index', 'return_requests.index', 'orders.current', 'orders.ended', 'professional_application.index', 'recruitment_requests.index', 'renew-contracts.index', 'contact.index']) ? 'show' : '' }}"
+                            <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['orders.index', 'return_requests.index', 'orders.current', 'orders.ended', 'professional_application.index', 'recruitment_requests.index', 'renew-contracts.index', 'known-service-requests.index', 'contact.index']) ? 'show' : '' }}"
                                 id="my_dashboard2">
                                 @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_VIEW))
                                     <li>
@@ -262,6 +262,15 @@
                                             href="{{ route('renew-contracts.index') }}">
                                             <i class="fa fa-envelope"></i>
                                             <span class="ms-2"> {{ helperTrans('ingaz.renew-contracts') }}</span>
+                                        </a>
+                                    </li>
+                                @endif
+                                @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_VIEW))
+                                    <li>
+                                        <a class="m-link {{ Route::currentRouteName() == 'known-service-requests.index' ? 'active' : '' }}"
+                                            href="{{ route('known-service-requests.index') }}">
+                                            <i class="fa fa-envelope"></i>
+                                            <span class="ms-2">طلبات الخدمة المعروفة</span>
                                         </a>
                                     </li>
                                 @endif
@@ -1088,7 +1097,7 @@
                                             target="_blank">
                                             <i class="fa fa-heart"></i>
                                             <span class="ms-2">الحالات الاجتماعية</span>
-                                            <span class="badge bg-success ms-2" style="font-size: 10px;">✅</span>
+                                            <span class="badge bg-success ms-2" style="font-size: 10px;">محدث</span>
                                         </a>
                                     </li>
                                 @endif
@@ -1198,3 +1207,4 @@
 `;
     document.head.appendChild(style);
 </script>
+
