@@ -271,6 +271,7 @@ Route::group(
 
             // RecruitmentContract specific routes - MUST come before resource route
             Route::get('RecruitmentContract/available-maids', [RecruitmentContractController::class, 'getAvailableMaids'])->name('RecruitmentContract.availableMaids');
+            Route::get('RecruitmentContract/search-clients', [RecruitmentContractController::class, 'searchClients'])->name('RecruitmentContract.searchClients');
             Route::get('RecruitmentContract/filter-options', [RecruitmentContractController::class, 'getFilterOptions'])->name('RecruitmentContract.filterOptions');
             Route::get('RecruitmentContract/statistics', [RecruitmentContractController::class, 'statistics'])->name('RecruitmentContract.statistics');
             Route::get('RecruitmentContract/export/pdf', [RecruitmentContractController::class, 'exportPdf'])->name('RecruitmentContract.export.pdf');

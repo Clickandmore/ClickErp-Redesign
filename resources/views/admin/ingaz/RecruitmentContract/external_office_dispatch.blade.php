@@ -145,9 +145,20 @@
                         </div>
 
                         <div class="col-md-4">
-                            <label class="form-label">تكلفة العقد بالدولار</label>
-                            <input type="text" class="form-control"
-                                value="{{ filled($sourceSnapshot['office_contract_cost_usd']) ? number_format((float) $sourceSnapshot['office_contract_cost_usd'], 2) . ' USD' : '' }}"
+                            <label class="form-label">تكلفة العقد بالدولار <span class="text-danger">*</span></label>
+                            <input type="number" name="office_contract_cost_usd" id="office_contract_cost_usd"
+                                class="form-control @error('office_contract_cost_usd') is-invalid @enderror"
+                                value="{{ $initialOfficeContractCostUsd }}"
+                                step="0.01" min="0.01"
+                                {{ $isEditable ? '' : 'disabled' }}>
+                            @error('office_contract_cost_usd')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">المقابل بالريال</label>
+                            <input type="text" id="office_contract_cost_sar" class="form-control"
+                                value="{{ filled($initialOfficeContractCostSar) ? $initialOfficeContractCostSar . ' ريال' : '' }}"
                                 readonly>
                         </div>
                         <div class="col-md-4">
@@ -184,3 +195,23 @@
         </form>
     </div>
 @endsection
+
+@push('js')
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const usdInput = document.getElementById('office_contract_cost_usd');
+            const sarInput = document.getElementById('office_contract_cost_sar');
+            const rate = {{ json_encode($usdToSarRate) }};
+
+            function updateSarCost() {
+                const usdValue = parseFloat(usdInput?.value || '');
+                sarInput.value = Number.isFinite(usdValue) && usdValue > 0
+                    ? `${(usdValue * rate).toFixed(2)} ريال`
+                    : '';
+            }
+
+            usdInput?.addEventListener('input', updateSarCost);
+            updateSarCost();
+        });
+    </script>
+@endpush

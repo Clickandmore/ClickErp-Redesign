@@ -14,6 +14,8 @@ use Yajra\DataTables\Facades\DataTables;
 
 class RecruitmentContractExternalOfficeDispatchController extends Controller
 {
+    private const USD_TO_SAR_RATE = 3.75;
+
     private function canViewRecruitmentContracts(): bool
     {
         return @AdminGuardHasAnyPerm([
@@ -197,9 +199,16 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
 
         $dispatch = $contract->externalOfficeDispatch;
         $dispatchState = $contract->getExternalOfficeDispatchState();
-        $sourceSnapshot = $contract->buildExternalOfficeDispatchSourceData();
+        $sourceSnapshot = $contract->buildExternalOfficeDispatchSourceData($dispatch?->office_contract_cost_usd);
         $sourceErrors = $contract->externalOfficeDispatchSourceValidationErrors();
         $isEditable = $contract->canManageExternalOfficeDispatch() && $this->canUpdateRecruitmentContracts();
+        $initialOfficeContractCostUsd = old(
+            'office_contract_cost_usd',
+            $dispatch?->office_contract_cost_usd ?? $sourceSnapshot['office_contract_cost_usd']
+        );
+        $initialOfficeContractCostSar = filled($initialOfficeContractCostUsd)
+            ? number_format((float) str_replace(',', '', (string) $initialOfficeContractCostUsd) * self::USD_TO_SAR_RATE, 2, '.', '')
+            : null;
 
         return view('admin.ingaz.RecruitmentContract.external_office_dispatch', [
             'contract' => $contract,
@@ -208,6 +217,9 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
             'sourceSnapshot' => $sourceSnapshot,
             'sourceErrors' => $sourceErrors,
             'isEditable' => $isEditable,
+            'usdToSarRate' => self::USD_TO_SAR_RATE,
+            'initialOfficeContractCostUsd' => $initialOfficeContractCostUsd,
+            'initialOfficeContractCostSar' => $initialOfficeContractCostSar,
             'initialArrivalStation' => old('arrival_station', $dispatch?->arrival_station ?? $contract->resolveExternalOfficeDispatchArrivalStation()),
             'initialDispatchDate' => old(
                 'dispatch_date',
@@ -229,11 +241,16 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
         $validated = $request->validate([
             'dispatch_date' => 'required|date',
             'arrival_station' => 'required|string|max:255',
+            'office_contract_cost_usd' => 'required|numeric|min:0.01|max:99999999.99',
         ], [
             'dispatch_date.required' => 'تاريخ الإرسالية مطلوب.',
             'dispatch_date.date' => 'تاريخ الإرسالية غير صحيح.',
             'arrival_station.required' => 'محطة الوصول مطلوبة.',
             'arrival_station.max' => 'محطة الوصول طويلة جداً.',
+            'office_contract_cost_usd.required' => 'تكلفة العقد بالدولار مطلوبة.',
+            'office_contract_cost_usd.numeric' => 'تكلفة العقد بالدولار يجب أن تكون رقماً صحيحاً.',
+            'office_contract_cost_usd.min' => 'تكلفة العقد بالدولار يجب أن تكون أكبر من صفر.',
+            'office_contract_cost_usd.max' => 'تكلفة العقد بالدولار كبيرة جداً.',
         ]);
 
         $contract->loadMissing([
@@ -253,16 +270,17 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
                 ->with('error', implode(' ', $sourceErrors));
         }
 
-        $sourceSnapshot = $contract->buildExternalOfficeDispatchSourceData();
+        $officeContractCostUsd = number_format((float) $validated['office_contract_cost_usd'], 2, '.', '');
+        $sourceSnapshot = $contract->buildExternalOfficeDispatchSourceData($officeContractCostUsd);
         $adminId = auth('admin')->id() ?? auth()->id();
 
-        DB::transaction(function () use ($contract, $validated, $sourceSnapshot, $adminId) {
+        DB::transaction(function () use ($contract, $validated, $sourceSnapshot, $adminId, $officeContractCostUsd) {
             $existingDispatch = $contract->externalOfficeDispatch;
 
             $payload = array_merge($sourceSnapshot, [
                 'dispatch_date' => $validated['dispatch_date'],
                 'arrival_station' => trim((string) $validated['arrival_station']),
-                'source_hash' => $contract->buildExternalOfficeDispatchSourceHash(),
+                'source_hash' => $contract->buildExternalOfficeDispatchSourceHash($officeContractCostUsd),
                 'updated_by_admin_id' => $adminId,
             ]);
 
@@ -276,7 +294,7 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
             );
 
             $travelHistory = $contract->travelHistory()->latest('id')->first();
-            if ($travelHistory && blank($travelHistory->arrival_airport)) {
+            if ($travelHistory && $travelHistory->arrival_airport !== $payload['arrival_station']) {
                 $travelHistory->update([
                     'arrival_airport' => $payload['arrival_station'],
                 ]);
@@ -310,6 +328,7 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
             'contract' => $contract,
             'dispatch' => $dispatch,
             'dispatchState' => $contract->getExternalOfficeDispatchState(),
+            'usdToSarRate' => self::USD_TO_SAR_RATE,
             'previewUrl' => route('RecruitmentContract.externalOfficeDispatch.print', $contract->id),
             'pdfUrl' => route('RecruitmentContract.externalOfficeDispatch.print', [
                 'contract' => $contract->id,

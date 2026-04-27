@@ -103,15 +103,15 @@
                 <strong>العقود المشمولة</strong>
                 <div class="d-flex gap-2">
                     @if ($transfer->settlementConstraint)
-                        <a href="{{ route('finance.add-constraint.show', ['add_constraint' => $transfer->settlementConstraint->id, 'autoprint' => 1]) }}"
+                        <a href="{{ route('finance.add-constraint.show', ['add_constraint' => $transfer->settlementConstraint->id]) }}"
                             class="btn btn-sm btn-outline-primary" target="_blank">
-                            <i class="fas fa-print me-1"></i>طباعة قيد التسوية
+                            <i class="fas fa-eye me-1"></i>عرض قيد التسوية
                         </a>
                     @endif
                     @if ($transfer->bankTransferConstraint)
-                        <a href="{{ route('finance.add-constraint.show', ['add_constraint' => $transfer->bankTransferConstraint->id, 'autoprint' => 1]) }}"
+                        <a href="{{ route('finance.add-constraint.show', ['add_constraint' => $transfer->bankTransferConstraint->id]) }}"
                             class="btn btn-sm btn-outline-success" target="_blank">
-                            <i class="fas fa-print me-1"></i>طباعة قيد التحويل البنكي
+                            <i class="fas fa-eye me-1"></i>عرض قيد التحويل البنكي
                         </a>
                     @endif
                 </div>

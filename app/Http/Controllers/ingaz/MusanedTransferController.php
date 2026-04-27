@@ -447,25 +447,25 @@ class MusanedTransferController extends Controller
         $lines = [];
 
         foreach ($transfer->items as $item) {
-            $statement = $this->buildSettlementItemStatement($transfer, $item);
             $costCenterId = $item->cost_center_id;
-            $nonOperationalCostCenterId = null;
+            $musanedClearingCostCenterId = null;
 
             if ((float) $item->transferred_amount > 0) {
-                $this->appendConstraintLine($lines, $intermediateAccountId, 'debtor', (float) $item->transferred_amount, $statement, $costCenterId);
-                $this->appendConstraintLine($lines, (int) $item->source_account_id, 'creditor', (float) $item->transferred_amount, $statement, $costCenterId);
+                $statement = $this->buildSettlementItemStatement($transfer, $item, 'صافي المبلغ المحول من مساند');
+                $this->appendConstraintLine($lines, $intermediateAccountId, 'debtor', (float) $item->transferred_amount, $statement, $musanedClearingCostCenterId);
+                $this->appendConstraintLine($lines, (int) $item->source_account_id, 'creditor', (float) $item->transferred_amount, $statement, $musanedClearingCostCenterId);
             }
 
             if ((float) $item->commission_amount > 0) {
-                // عمولة مساند ومقابلها لا تُرحّل على مركز تكلفة العقد.
-                $this->appendConstraintLine($lines, $commissionAccountId, 'debtor', (float) $item->commission_amount, $statement, $nonOperationalCostCenterId);
-                $this->appendConstraintLine($lines, (int) $item->source_account_id, 'creditor', (float) $item->commission_amount, $statement, $nonOperationalCostCenterId);
+                $statement = $this->buildSettlementItemStatement($transfer, $item, 'عمولة مساند على العقد');
+                $this->appendConstraintLine($lines, $commissionAccountId, 'debtor', (float) $item->commission_amount, $statement, $costCenterId);
+                $this->appendConstraintLine($lines, (int) $item->source_account_id, 'creditor', (float) $item->commission_amount, $statement);
             }
 
             if ($expenseTaxAccountId && (float) $item->expense_tax_amount > 0) {
-                // ضريبة المصروفات الخاصة بعمولة مساند لا تُحمّل على مركز تكلفة العقد.
-                $this->appendConstraintLine($lines, $expenseTaxAccountId, 'debtor', (float) $item->expense_tax_amount, $statement, $nonOperationalCostCenterId);
-                $this->appendConstraintLine($lines, $commissionAccountId, 'creditor', (float) $item->expense_tax_amount, $statement, $nonOperationalCostCenterId);
+                $statement = $this->buildSettlementItemStatement($transfer, $item, 'فصل ضريبة المصروفات من عمولة مساند');
+                $this->appendConstraintLine($lines, $expenseTaxAccountId, 'debtor', (float) $item->expense_tax_amount, $statement);
+                $this->appendConstraintLine($lines, $commissionAccountId, 'creditor', (float) $item->expense_tax_amount, $statement, $costCenterId);
             }
         }
 
@@ -505,15 +505,11 @@ class MusanedTransferController extends Controller
             return null;
         }
 
-        $costCenterId = $transfer->items->count() === 1
-            ? $transfer->items->first()->cost_center_id
-            : null;
-
         $statement = $this->buildBankTransferStatement($transfer);
         $lines = [];
 
-        $this->appendConstraintLine($lines, $bankAccountId, 'debtor', $amount, $statement, $costCenterId);
-        $this->appendConstraintLine($lines, $intermediateAccountId, 'creditor', $amount, $statement, $costCenterId);
+        $this->appendConstraintLine($lines, $bankAccountId, 'debtor', $amount, $statement);
+        $this->appendConstraintLine($lines, $intermediateAccountId, 'creditor', $amount, $statement);
 
         $data = [
             'code' => $service->lastCode(),
@@ -660,12 +656,13 @@ class MusanedTransferController extends Controller
         return 'قيد تسوية حوالة مساند ' . $reference . ' بتاريخ ' . $transfer->transfer_date->format('Y-m-d');
     }
 
-    private function buildSettlementItemStatement(MusanedTransfer $transfer, MusanedTransferItem $item): string
+    private function buildSettlementItemStatement(MusanedTransfer $transfer, MusanedTransferItem $item, ?string $operation = null): string
     {
         $reference = $transfer->reference_number ?: 'بدون مرجع';
         $msanedNumber = $item->invoice?->contract?->info?->msaned_number ?: '-';
+        $operationText = $operation ? ' / العملية: ' . $operation : '';
 
-        return 'تسوية تحويل مساند / العقد #' . $item->contract_id . ' / مساند ' . $msanedNumber . ' / مرجع ' . $reference;
+        return 'تسوية تحويل مساند' . $operationText . ' / العقد #' . $item->contract_id . ' / مساند ' . $msanedNumber . ' / مرجع ' . $reference;
     }
 
     private function buildBankTransferStatement(MusanedTransfer $transfer): string

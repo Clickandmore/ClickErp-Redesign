@@ -9,28 +9,8 @@
         </div>
         <div class="col-md-12">
             <label for="existing_client_id" class="form-label">اختيار العميل <span class="text-danger">*</span></label>
-            <select name="existing_client_id" id="existing_client_id" class="form-select form-control select2">
+            <select name="existing_client_id" id="existing_client_id" class="form-select form-control select2 ajax-client-select">
                 <option value="" disabled selected>{{helperTrans('ingaz.choose')}}</option>
-                @if(isset($existing_clients))
-                    @foreach($existing_clients as $client)
-                        <option value="{{$client->id}}"
-                            data-name="{{$client->name}}"
-                            data-phone="{{$client->phone}}"
-                            data-email="{{$client->email}}"
-                            data-nationality="{{$client->nationality_id}}"
-                            data-national-num="{{$client->national_num}}"
-                            data-birthdate="{{$client->birthdate}}"
-                            data-phone2="{{$client->phone2}}"
-                            data-address="{{$client->address}}"
-                            data-city="{{$client->city}}"
-                            data-beds-num="{{$client->rooms_num}}"
-                            data-family-num="{{$client->family_num}}"
-                            data-children="{{$client->children}}"
-                            data-job="{{$client->job}}">
-                            {{$client->name}} - {{$client->phone}} - {{$client->national_num}}
-                        </option>
-                    @endforeach
-                @endif
             </select>
         </div>
     </div>

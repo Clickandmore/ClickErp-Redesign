@@ -64,9 +64,16 @@ class AddConstraintController extends Controller
 
         return view($this->folderPath . ".show_constraint")->with([
             "obj" => $constraint,
+            'accounts' => $service->getAccountsForConstraint($constraint),
+            "cost_centers" => $service->getCostCenters(),
             "bladeTitle" => __("finance::finance.constraint_details_page") . " #{$constraint->code}",
             "createRoute" => route($this->mainRoute . ".create"),
+            "editRoute" => route($this->mainRoute . ".edit", $constraint->id),
+            "updateRoute" => route($this->mainRoute . ".update", $constraint->id),
             "indexRoute" => route("finance.constraints.index"),
+            "cost_center_required" => null,
+            "constraintFormClass" => "constraint-inline-edit-form",
+            "inlineConstraintEdit" => true,
         ]);
     }
 
@@ -93,7 +100,13 @@ class AddConstraintController extends Controller
             'before' => $before,
             'after' => $service->constraintSnapshot($updateConstraint),
         ]);
-        return jsonSuccess($updateConstraint, null, 201);
+        return jsonSuccess([
+            "id" => $updateConstraint->id,
+            "show_url" => route($this->mainRoute . ".show", [
+                "add_constraint" => $updateConstraint->id,
+                "saved" => 1,
+            ]),
+        ], null, 201);
     }
 
 
@@ -106,9 +119,11 @@ class AddConstraintController extends Controller
 
     protected function perData($service, $id)
     {
+        $constraint = $service->find($id);
+
         return [
-            "obj" => $service->find($id),
-            'accounts' => $service->getAccounts(),
+            "obj" => $constraint,
+            'accounts' => $service->getAccountsForConstraint($constraint),
             'lastCode' => $service->lastCode(),
             "bladeTitle" => __("finance.constraints"),
             "cost_centers" => $service->getCostCenters(),

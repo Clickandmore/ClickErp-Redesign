@@ -149,7 +149,7 @@ class Contract extends Model
         return $this->info?->manualMaidOffice;
     }
 
-    public function buildExternalOfficeDispatchSourceData(): array
+    public function buildExternalOfficeDispatchSourceData($officeContractCostUsd = null): array
     {
         $this->loadMissing([
             'user',
@@ -162,7 +162,9 @@ class Contract extends Model
         $office = $this->resolveExternalOfficeDispatchOffice();
         $officeCost = null;
 
-        if (filled($office?->cost_of_dollar)) {
+        if ($officeContractCostUsd !== null && $officeContractCostUsd !== '') {
+            $officeCost = number_format((float) str_replace(',', '', (string) $officeContractCostUsd), 2, '.', '');
+        } elseif (filled($office?->cost_of_dollar)) {
             $officeCost = number_format((float) str_replace(',', '', (string) $office->cost_of_dollar), 2, '.', '');
         }
 
@@ -182,17 +184,17 @@ class Contract extends Model
         ];
     }
 
-    public function buildExternalOfficeDispatchSourceHash(): string
+    public function buildExternalOfficeDispatchSourceHash($officeContractCostUsd = null): string
     {
         return sha1(json_encode(
-            $this->buildExternalOfficeDispatchSourceData(),
+            $this->buildExternalOfficeDispatchSourceData($officeContractCostUsd),
             JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
         ));
     }
 
-    public function externalOfficeDispatchSourceValidationErrors(): array
+    public function externalOfficeDispatchSourceValidationErrors($officeContractCostUsd = null): array
     {
-        $data = $this->buildExternalOfficeDispatchSourceData();
+        $data = $this->buildExternalOfficeDispatchSourceData($officeContractCostUsd);
         $errors = [];
 
         if (!$this->maid) {
@@ -233,10 +235,6 @@ class Contract extends Model
 
         if ($data['office_name'] === '') {
             $errors[] = 'المكتب الخارجي غير محدد على العاملة.';
-        }
-
-        if (blank($data['office_contract_cost_usd'])) {
-            $errors[] = 'تكلفة العقد بالدولار غير محددة على المكتب الخارجي.';
         }
 
         return $errors;
@@ -289,7 +287,16 @@ class Contract extends Model
             ];
         }
 
-        $sourceErrors = $this->externalOfficeDispatchSourceValidationErrors();
+        if ((float) ($dispatch->office_contract_cost_usd ?? 0) <= 0) {
+            return [
+                'code' => 'incomplete',
+                'label' => 'غير مكتملة',
+                'message' => 'تكلفة العقد بالدولار غير مكتملة على إرسالية المكتب الخارجي.',
+                'is_completed' => false,
+            ];
+        }
+
+        $sourceErrors = $this->externalOfficeDispatchSourceValidationErrors($dispatch->office_contract_cost_usd);
         if (!empty($sourceErrors)) {
             return [
                 'code' => 'outdated',
@@ -299,7 +306,7 @@ class Contract extends Model
             ];
         }
 
-        if ($dispatch->source_hash !== $this->buildExternalOfficeDispatchSourceHash()) {
+        if ($dispatch->source_hash !== $this->buildExternalOfficeDispatchSourceHash($dispatch->office_contract_cost_usd)) {
             return [
                 'code' => 'outdated',
                 'label' => 'تحتاج تحديث',

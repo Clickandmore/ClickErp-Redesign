@@ -20,9 +20,11 @@ use App\Models\ContractInfo;
 use App\Models\Country;
 use App\Models\ingaz\ContractNote;
 use App\Models\ingaz\Invoice;
+use App\Models\ingaz\JobTitle;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\Nationality;
 use App\Models\ingaz\Order;
+use App\Models\ingaz\Religion;
 use App\Models\ingaz\User;
 use App\Models\RecruitmentOffices;
 use App\Models\TravelHistory;
@@ -1830,12 +1832,14 @@ class RecruitmentContractController extends Controller
         $orderId = request('orderId');
         logger()->info('Loading create page with orderId: ' . $orderId);
 
-        $eligibleOrdersQuery = Order::with([
-            'user.nationality',
-            'maid.nationality',
-            'maid.religion',
-            'jobType.translations'
-        ])
+        $eligibleOrdersQuery = Order::query()
+            ->select(['id', 'user_id', 'maid_id', 'job_type_id', 'status', 'created_at'])
+            ->with([
+                'user:id,name,phone,email,national_num,birthdate,phone2,address,city,nationality_id,rooms_num,family_num,children,job',
+                'maid:id,name,passport_num,nationality_id,religion_id,salary,experience_years,age',
+                'jobType:id',
+                'jobType.translations',
+            ])
             ->where('job_type_id', 1)
             ->where('status', OrderEnum::UnderProcess->value)
             ->orderByDesc('created_at');
@@ -1850,41 +1854,10 @@ class RecruitmentContractController extends Controller
         // Only recruitment orders that are under process are eligible for contract creation.
         $orders = (clone $eligibleOrdersQuery)->get();
 
-        // Get ended orders with relationships
-        $endedOrders = Order::with([
-            'user.nationality',
-            'maid.nationality',
-            'maid.religion',
-            'jobType.translations'
-        ])
-            ->where('status', 'ended')
-            ->get();
-
-        // Get all available maids with relationships - استبعاد العاملات التي لها عقود نشطة
-        $all_available_maids = Maid::with([
-            'nationality',
-            'religion',
-            'jobTitles',
-            'office'
-        ])
-            ->where('available', true)
-            ->where('status', 'available')
-            ->where('is_show', true)
-            ->where('available_at', '<=', now()->toDateString())
-            ->whereNotNull('name')
-            ->where('name', '!=', '')
-            // استبعاد العاملات التي لها عقود نشطة أو معلقة
-            ->whereDoesntHave('contracts', function ($q) {
-                $q->whereNotIn('status', ['back', 'closed', 'completed']);
-            })
-            // استبعاد العاملات التي لها طلبات نشطة
-            ->whereDoesntHave('orders', function ($q) {
-                $q->whereIn('status', ['pending', 'approved', 'in_progress']);
-            })
-            ->get();
-
-        // Get existing clients for new contract
-        $existing_clients = User::with('nationality')->get();
+        // Large select2 lists are loaded lazily through AJAX to keep the create page fast.
+        $endedOrders = collect();
+        $all_available_maids = collect();
+        $existing_clients = collect();
 
         // If we have a selected order and it's not in the new orders list, add it
         if ($selectedOrder && !$orders->contains('id', $selectedOrder->id)) {
@@ -1893,6 +1866,8 @@ class RecruitmentContractController extends Controller
 
         $countries = Country::active()->ordered()->get();
         $maidNationalities = Nationality::with('translations')->get();
+        $maidReligions = Religion::with('translations')->get();
+        $maidJobTitles = JobTitle::with('translations')->get();
         $recruitmentOffices = RecruitmentOffices::with('translations')->orderBy('id')->get();
         $saudiCities = City::query()
             ->whereHas('country', function ($query) {
@@ -1909,10 +1884,10 @@ class RecruitmentContractController extends Controller
             ? \App\Models\auth\Admin::query()
                 ->orderByRaw('CASE WHEN id = ? THEN 0 ELSE 1 END', [$currentUser?->id ?? 0])
                 ->orderBy('name')
-                ->get()
+                ->get(['id', 'name'])
             : collect([$currentUser])->filter();
 
-        return view('admin.ingaz.RecruitmentContract.create', compact('orders', 'endedOrders', 'countries', 'maidNationalities', 'recruitmentOffices', 'saudiCities', 'all_available_maids', 'selectedOrder', 'orderId', 'existing_clients', 'currentUser', 'canSelectAnyMarketer', 'marketers'));
+        return view('admin.ingaz.RecruitmentContract.create', compact('orders', 'endedOrders', 'countries', 'maidNationalities', 'maidReligions', 'maidJobTitles', 'recruitmentOffices', 'saudiCities', 'all_available_maids', 'selectedOrder', 'orderId', 'existing_clients', 'currentUser', 'canSelectAnyMarketer', 'marketers'));
     }
 
 
@@ -2717,6 +2692,76 @@ class RecruitmentContractController extends Controller
         return response()->json($client);
     }
 
+    public function searchClients(Request $request)
+    {
+        if (!$this->canCreateRecruitmentContracts()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ليس لديك صلاحية لإنشاء عقد جديد'
+            ], 403);
+        }
+
+        $search = trim((string) $request->input('term', $request->input('q', '')));
+        $page = max((int) $request->input('page', 1), 1);
+        $perPage = 20;
+
+        $clients = User::query()
+            ->select([
+                'id',
+                'name',
+                'phone',
+                'email',
+                'nationality_id',
+                'national_num',
+                'birthdate',
+                'phone2',
+                'address',
+                'city',
+                'rooms_num',
+                'family_num',
+                'children',
+                'job',
+            ])
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%")
+                        ->orWhere('national_num', 'like', "%{$search}%");
+                });
+            })
+            ->orderByDesc('id')
+            ->paginate($perPage, ['*'], 'page', $page);
+
+        return response()->json([
+            'results' => $clients->getCollection()->map(function ($client) {
+                $label = collect([$client->name, $client->phone, $client->national_num])
+                    ->filter()
+                    ->implode(' - ');
+
+                return [
+                    'id' => $client->id,
+                    'text' => $label ?: ('عميل #' . $client->id),
+                    'name' => $client->name,
+                    'phone' => $client->phone,
+                    'email' => $client->email,
+                    'nationality' => $client->nationality_id,
+                    'national_num' => $client->national_num,
+                    'birthdate' => $client->birthdate,
+                    'phone2' => $client->phone2,
+                    'address' => $client->address,
+                    'city' => $client->city,
+                    'beds_num' => $client->rooms_num,
+                    'family_num' => $client->family_num,
+                    'children' => $client->children,
+                    'job' => $client->job,
+                ];
+            })->values(),
+            'pagination' => [
+                'more' => $clients->hasMorePages(),
+            ],
+        ]);
+    }
+
     public function exportPdf()
     {
         // التحقق من صلاحية تصدير العقود
@@ -3425,7 +3470,24 @@ class RecruitmentContractController extends Controller
                 ], 403);
             }
 
-            $query = Maid::with(['nationality'])
+            $query = Maid::query()
+                ->select([
+                    'id',
+                    'name',
+                    'passport_num',
+                    'id_number',
+                    'nationality_id',
+                    'religion_id',
+                    'office_id',
+                    'salary',
+                    'experience_years',
+                    'age',
+                    'available',
+                    'status',
+                    'is_show',
+                    'available_at',
+                ])
+                ->with(['nationality', 'religion', 'jobTitles', 'office'])
                 ->where('available', true)
                 ->where('status', 'available') // التأكد من أن الحالة متاحة
                 ->whereDoesntHave('contracts', function ($q) {
@@ -3466,6 +3528,48 @@ class RecruitmentContractController extends Controller
                         ->orWhere('passport_num', 'LIKE', "%{$search}%")
                         ->orWhere('id_number', 'LIKE', "%{$search}%");
                 });
+            }
+
+            if ($request->boolean('select2')) {
+                $query
+                    ->where('is_show', true)
+                    ->where('available_at', '<=', now()->toDateString())
+                    ->whereNotNull('name')
+                    ->where('name', '!=', '')
+                    ->whereDoesntHave('contracts', function ($q) {
+                        $q->whereNotIn('status', ['back', 'closed', 'completed']);
+                    })
+                    ->whereDoesntHave('orders', function ($q) {
+                        $q->whereIn('status', ['pending', 'approved', 'in_progress']);
+                    });
+
+                $page = max((int) $request->input('page', 1), 1);
+                $maids = $query->latest()->paginate(20, ['*'], 'page', $page);
+
+                return response()->json([
+                    'results' => $maids->getCollection()->map(function ($maid) {
+                        $label = collect([$maid->name, $maid->passport_num, $maid->nationality?->sub_title])
+                            ->filter()
+                            ->implode(' - ');
+
+                        return [
+                            'id' => $maid->id,
+                            'text' => $label ?: ('عاملة #' . $maid->id),
+                            'name' => $maid->name,
+                            'passport' => $maid->passport_num,
+                            'religion' => $maid->religion?->title,
+                            'job' => $maid->jobTitles->first()?->title,
+                            'nationality' => $maid->nationality?->sub_title,
+                            'office' => $maid->office?->title,
+                            'salary' => $maid->salary,
+                            'experience' => $maid->experience_years,
+                            'age' => $maid->age,
+                        ];
+                    })->values(),
+                    'pagination' => [
+                        'more' => $maids->hasMorePages(),
+                    ],
+                ]);
             }
 
             // هذا الـ endpoint يُستخدم داخل مودال تغيير العاملة ويجب أن يعرض كل النتائج المتاحة

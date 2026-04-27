@@ -381,6 +381,11 @@
                 </div>
 
                 <div class="d-flex flex-wrap gap-2 no-print">
+                    <button type="button" class="btn btn-success" data-bs-toggle="collapse"
+                            data-bs-target="#constraintInlineEdit">
+                        <i class="fa fa-edit"></i>
+                        {{ __('buttons.edit') }}
+                    </button>
                     <a href="{{ $createRoute }}" class="btn btn-primary">
                         <i class="fa fa-plus-circle"></i>
                         {{ __('finance::finance.create_new_constraint') }}
@@ -421,6 +426,17 @@
                     <span>وقت الطباعة</span>
                     <strong dir="ltr">{{ $printedAt }}</strong>
                 </div>
+            </div>
+        </div>
+
+        <div class="collapse no-print" id="constraintInlineEdit">
+            <div class="show-card section-card">
+                <div class="section-head">
+                    <h5>{{ __('buttons.edit') }} {{ __('finance::finance.constraint_details_page') }}</h5>
+                    <p class="mb-0">يتم التعديل من نفس صفحة العرض، والحسابات الحالية في القيد تظل ظاهرة حتى لو تغير شجر الحسابات لاحقاً.</p>
+                </div>
+
+                @include('finance::finance.constraint.edit')
             </div>
         </div>
 
@@ -540,8 +556,57 @@
     </div>
 @endsection
 
-@if (request()->boolean('autoprint'))
-    @section('js')
+@section('js')
+    @include('finance::finance.constraint.partials.edit-scripts')
+    <script>
+        $(document).on('submit', '.constraint-inline-edit-form', function(e) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+
+            let form = this;
+            let formData = new FormData(form);
+            let submitButton = $(e.originalEvent.submitter);
+            let buttonText = submitButton.text();
+
+            $.ajax({
+                url: $(form).attr('action'),
+                type: 'POST',
+                data: formData,
+                cache: false,
+                contentType: false,
+                processData: false,
+                beforeSend: function() {
+                    if (window.cmShowLoader) {
+                        window.cmShowLoader();
+                    } else {
+                        $('#loading-wrapper').show();
+                    }
+                    submitButton.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ' + buttonText);
+                },
+                complete: function() {
+                    if (window.cmHideLoader) {
+                        window.cmHideLoader();
+                    } else {
+                        $('#loading-wrapper').hide();
+                    }
+                    submitButton.html(buttonText);
+                },
+                success: function(result) {
+                    handleSuccessResponce(result);
+                    if (result.data && result.data.show_url) {
+                        window.location.href = result.data.show_url;
+                    } else {
+                        window.location.reload();
+                    }
+                },
+                error: function(errorObj) {
+                    handleErrorResponce(errorObj);
+                }
+            });
+        });
+    </script>
+
+    @if (request()->boolean('autoprint'))
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 setTimeout(function() {
@@ -549,5 +614,5 @@
                 }, 250);
             });
         </script>
-    @endsection
-@endif
+    @endif
+@endsection

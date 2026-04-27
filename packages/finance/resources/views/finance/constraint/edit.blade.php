@@ -1,4 +1,9 @@
-<form class="row g-3 from-submit-update-global" method="post" action="{{ $updateRoute }}" enctype="multipart/form-data">
+@php
+    $constraintFormClass = $constraintFormClass ?? 'from-submit-update-global';
+    $inlineConstraintEdit = $inlineConstraintEdit ?? false;
+@endphp
+
+<form class="row g-3 {{ $constraintFormClass }}" method="post" action="{{ $updateRoute }}" enctype="multipart/form-data">
     @method("PUT")
 
     <div class="col-md-4 col-12">
@@ -148,6 +153,13 @@
     </div>
     <div class="col-12 modal-footer">
          {!! submitButton(   $updateRoute  ) !!}
-        {!! closeButton() !!}
+        @if ($inlineConstraintEdit)
+            <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#constraintInlineEdit">
+                {{ __('buttons.close') }}
+            </button>
+        @else
+            {!! closeButton() !!}
+        @endif
     </div>
 </form>

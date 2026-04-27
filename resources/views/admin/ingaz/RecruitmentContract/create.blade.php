@@ -339,30 +339,9 @@
                                     <label for="new_existing_client_id" class="form-label">اختر عميل <span
                                             class="text-danger">*</span></label>
                                     <select name="new_existing_client_id" id="new_existing_client_id"
-                                        class="form-select select2" style="width:100%">
+                                        class="form-select select2 ajax-client-select" style="width:100%"
+                                        data-placeholder="ابحث بالاسم أو الجوال أو الهوية">
                                         <option value="" selected disabled>اختر عميل...</option>
-                                        @if (isset($existing_clients))
-                                            @foreach ($existing_clients as $client)
-                                                <option value="{{ $client->id }}"
-                                                    data-name="{{ $plainTextValue($client->name) }}"
-                                                    data-phone="{{ $plainTextValue($client->phone) }}"
-                                                    data-email="{{ $plainTextValue($client->email) }}"
-                                                    data-nationality="{{ $client->nationality_id }}"
-                                                    data-national-num="{{ $plainTextValue($client->national_num) }}"
-                                                    data-birthdate="{{ $client->birthdate }}"
-                                                    data-phone2="{{ $plainTextValue($client->phone2) }}"
-                                                    data-address="{{ $plainTextValue($client->address) }}"
-                                                    data-city="{{ $plainTextValue($client->city) }}"
-                                                    data-beds-num="{{ $client->rooms_num }}"
-                                                    data-family-num="{{ $client->family_num }}"
-                                                    data-children="{{ $client->children }}"
-                                                    data-job="{{ $plainTextValue($client->job) }}">
-                                                    {{ $plainTextValue($client->name) }} -
-                                                    {{ $plainTextValue($client->phone) }} -
-                                                    {{ $plainTextValue($client->national_num) }}
-                                                </option>
-                                            @endforeach
-                                        @endif
                                     </select>
                                 </div>
                                 <div class="col-lg-3">
@@ -539,23 +518,9 @@
                                             <div class="col-12 mb-3" id="new-existing-maid-picker">
                                                 <label for="new_new_maid_id" class="form-label">اختر عاملة</label>
                                                 <select name="new_new_maid_id" id="new_new_maid_id"
-                                                    class="form-select select2" style="width:100%">
+                                                    class="form-select select2 ajax-maid-select" style="width:100%"
+                                                    data-placeholder="ابحث باسم العاملة أو رقم الجواز">
                                                     <option value="" selected>اختر عاملة...</option>
-                                                    @foreach ($all_available_maids as $maid)
-                                                        <option value="{{ $maid->id }}"
-                                                            data-name="{{ $maid->name }}"
-                                                            data-passport="{{ $maid->passport_num }}"
-                                                            data-religion="{{ $maid->religion ? $maid->religion->title : '' }}"
-                                                            data-job="{{ $maid->jobTitles && $maid->jobTitles->first() ? $maid->jobTitles->first()->title : '' }}"
-                                                            data-nationality="{{ $maid->nationality ? $maid->nationality->sub_title : '' }}"
-                                                            data-office="{{ $maid->office ? $maid->office->title : '' }}"
-                                                            data-salary="{{ $maid->salary }}"
-                                                            data-experience="{{ $maid->experience_years }}"
-                                                            data-age="{{ $maid->age }}">
-                                                            {{ $maid->name }} - {{ $maid->passport_num }} -
-                                                            {{ $maid->nationality ? $maid->nationality->sub_title : '' }}
-                                                        </option>
-                                                    @endforeach
                                                 </select>
                                             </div>
                                         </div>
@@ -693,11 +658,6 @@
                                                     <select name="required_maid_religion" id="required_maid_religion"
                                                         class="form-select" data-validation="required">
                                                         <option value="">اختر الدين المطلوب...</option>
-                                                        @php
-                                                            $maidReligions = \App\Models\ingaz\Religion::with(
-                                                                'translations',
-                                                            )->get();
-                                                        @endphp
                                                         @foreach ($maidReligions as $religion)
                                                             <option value="{{ $religion->id }}">{{ $religion->title }}</option>
                                                         @endforeach
@@ -740,11 +700,6 @@
                                                     <select name="required_maid_job_title" id="required_maid_job_title"
                                                         class="form-select">
                                                         <option value="">اختر المهنة المطلوبة...</option>
-                                                        @php
-                                                            $maidJobTitles = \App\Models\ingaz\JobTitle::with(
-                                                                'translations',
-                                                            )->get();
-                                                        @endphp
                                                         @foreach ($maidJobTitles as $jobTitle)
                                                             <option value="{{ $jobTitle->id }}">{{ $jobTitle->title }}
                                                             </option>
@@ -966,7 +921,7 @@
                                                 data-maid-id="{{ $order->maid->id ?? '' }}"
                                                 data-maid-nationality="{{ $order->maid->nationality_id ?? '' }}"
                                                 data-maid-religion="{{ $order->maid->religion_id ?? '' }}"
-                                                data-maid-job="{{ $plainTextValue($order->maid?->job_types?->first()?->translations?->first()?->title ?? '') }}"
+                                                data-maid-job=""
                                                 data-maid-salary="{{ $order->maid->salary ?? '' }}"
                                                 data-maid-experience="{{ $order->maid->experience_years ?? '' }}"
                                                 data-maid-age="{{ $order->maid->age ?? '' }}"
@@ -1060,6 +1015,8 @@
         var indexRoute = "{{ route('RecruitmentContract.index') }}";
         var createContractRoute = "{{ route('RecruitmentContract.create') }}";
         var currentContractsRoute = "{{ route('RecruitmentContract.index', ['status' => 'current']) }}";
+        var searchClientsRoute = "{{ route('RecruitmentContract.searchClients') }}";
+        var availableMaidsRoute = "{{ route('RecruitmentContract.availableMaids') }}";
         var selectedOrder = @json($selectedOrder);
         var hasOrderId = {{ isset($orderId) ? 'true' : 'false' }};
     </script>
@@ -1127,6 +1084,19 @@
 
         function escapeHtml(value) {
             return $('<div>').text(value || '').html();
+        }
+
+        function select2SelectedData(selector) {
+            var data = $(selector).select2('data');
+            return data && data.length ? data[0] : {};
+        }
+
+        function optionOrAjaxData($option, ajaxData, key, attrName) {
+            if (ajaxData && ajaxData[key] !== undefined && ajaxData[key] !== null) {
+                return ajaxData[key];
+            }
+
+            return $option.data(attrName || key);
         }
 
         function getNewMaidMode() {
@@ -1307,6 +1277,65 @@
                     allowClear: true,
                     dir: 'rtl',
                     width: '100%'
+                });
+            });
+
+            $('.ajax-client-select').each(function() {
+                if ($(this).hasClass('select2-hidden-accessible')) {
+                    $(this).select2('destroy');
+                }
+
+                $(this).select2({
+                    placeholder: $(this).data('placeholder') || 'ابحث عن العميل...',
+                    allowClear: true,
+                    dir: 'rtl',
+                    width: '100%',
+                    minimumInputLength: 1,
+                    ajax: {
+                        url: searchClientsRoute,
+                        dataType: 'json',
+                        delay: 250,
+                        data: function(params) {
+                            return {
+                                term: params.term || '',
+                                page: params.page || 1
+                            };
+                        },
+                        processResults: function(data) {
+                            return data;
+                        },
+                        cache: true
+                    }
+                });
+            });
+
+            $('.ajax-maid-select').each(function() {
+                if ($(this).hasClass('select2-hidden-accessible')) {
+                    $(this).select2('destroy');
+                }
+
+                $(this).select2({
+                    placeholder: $(this).data('placeholder') || 'ابحث عن العاملة...',
+                    allowClear: true,
+                    dir: 'rtl',
+                    width: '100%',
+                    minimumInputLength: 1,
+                    ajax: {
+                        url: availableMaidsRoute,
+                        dataType: 'json',
+                        delay: 250,
+                        data: function(params) {
+                            return {
+                                select2: 1,
+                                search: params.term || '',
+                                page: params.page || 1
+                            };
+                        },
+                        processResults: function(data) {
+                            return data;
+                        },
+                        cache: true
+                    }
                 });
             });
 
@@ -1596,45 +1625,47 @@
                 $('#err_new_existing_client_id').remove();
 
                 var selectedOption = $(this).find('option:selected');
+                var selectedClient = select2SelectedData(this);
                 if (selectedOption.val()) {
                     // Debug: طباعة بيانات العميل المختار
                     console.log('Selected client data:', {
-                        name: selectedOption.data('name'),
-                        phone: selectedOption.data('phone'),
-                        email: selectedOption.data('email'),
-                        nationality: selectedOption.data('nationality'),
-                        national_num: selectedOption.data('national-num'),
-                        birthdate: selectedOption.data('birthdate'),
-                        phone2: selectedOption.data('phone2'),
-                        address: selectedOption.data('address'),
-                        city: selectedOption.data('city'),
-                        beds_num: selectedOption.data('beds-num'),
-                        family_num: selectedOption.data('family-num'),
-                        children: selectedOption.data('children'),
-                        job: selectedOption.data('job')
+                        name: optionOrAjaxData(selectedOption, selectedClient, 'name'),
+                        phone: optionOrAjaxData(selectedOption, selectedClient, 'phone'),
+                        email: optionOrAjaxData(selectedOption, selectedClient, 'email'),
+                        nationality: optionOrAjaxData(selectedOption, selectedClient, 'nationality'),
+                        national_num: optionOrAjaxData(selectedOption, selectedClient, 'national_num', 'national-num'),
+                        birthdate: optionOrAjaxData(selectedOption, selectedClient, 'birthdate'),
+                        phone2: optionOrAjaxData(selectedOption, selectedClient, 'phone2'),
+                        address: optionOrAjaxData(selectedOption, selectedClient, 'address'),
+                        city: optionOrAjaxData(selectedOption, selectedClient, 'city'),
+                        beds_num: optionOrAjaxData(selectedOption, selectedClient, 'beds_num', 'beds-num'),
+                        family_num: optionOrAjaxData(selectedOption, selectedClient, 'family_num', 'family-num'),
+                        children: optionOrAjaxData(selectedOption, selectedClient, 'children'),
+                        job: optionOrAjaxData(selectedOption, selectedClient, 'job')
                     });
 
                     // تعبئة الحقول المطلوبة
-                    $('#new_client_name').val(sanitizeTextValue(selectedOption.data('name')));
-                    $('#new_client_phone').val(sanitizePhoneValue(selectedOption.data('phone')));
-                    $('#new_client_email').val(sanitizeTextValue(selectedOption.data('email')));
-                    $('#new_client_national_num').val(sanitizeTextValue(selectedOption.data('national-num')));
-                    $('#new_client_birthdate').val(selectedOption.data('birthdate'));
-                    $('#new_client_phone2').val(sanitizePhoneValue(selectedOption.data('phone2')));
-                    $('#new_client_address').val(sanitizeTextValue(selectedOption.data('address')));
-                    setSearchableSelectValue('#new_client_city', selectedOption.data('city'));
+                    $('#new_client_name').val(sanitizeTextValue(optionOrAjaxData(selectedOption, selectedClient, 'name')));
+                    $('#new_client_phone').val(sanitizePhoneValue(optionOrAjaxData(selectedOption, selectedClient, 'phone')));
+                    $('#new_client_email').val(sanitizeTextValue(optionOrAjaxData(selectedOption, selectedClient, 'email')));
+                    $('#new_client_national_num').val(sanitizeTextValue(optionOrAjaxData(selectedOption, selectedClient, 'national_num', 'national-num')));
+                    $('#new_client_birthdate').val(optionOrAjaxData(selectedOption, selectedClient, 'birthdate'));
+                    $('#new_client_phone2').val(sanitizePhoneValue(optionOrAjaxData(selectedOption, selectedClient, 'phone2')));
+                    $('#new_client_address').val(sanitizeTextValue(optionOrAjaxData(selectedOption, selectedClient, 'address')));
+                    setSearchableSelectValue('#new_client_city', optionOrAjaxData(selectedOption, selectedClient, 'city'));
 
                     // تعبئة الحقول الاختيارية
-                    $('#new_client_beds_num').val(selectedOption.data('beds-num'));
-                    $('#new_client_family_num').val(selectedOption.data('family-num'));
-                    $('#new_client_children').val(selectedOption.data('children'));
-                    $('#new_client_job').val(sanitizeTextValue(selectedOption.data('job')));
+                    $('#new_client_beds_num').val(optionOrAjaxData(selectedOption, selectedClient, 'beds_num', 'beds-num'));
+                    $('#new_client_family_num').val(optionOrAjaxData(selectedOption, selectedClient, 'family_num', 'family-num'));
+                    $('#new_client_children').val(optionOrAjaxData(selectedOption, selectedClient, 'children'));
+                    $('#new_client_job').val(sanitizeTextValue(optionOrAjaxData(selectedOption, selectedClient, 'job')));
 
                     // تعبئة حقل الجنسية في dropdown
-                    if (selectedOption.data('nationality')) {
-                        $('#new_client_nationality_id').val(selectedOption.data('nationality')).trigger(
+                    var selectedNationality = optionOrAjaxData(selectedOption, selectedClient, 'nationality');
+                    if (selectedNationality) {
+                        $('#new_client_nationality_id').val(selectedNationality).trigger(
                             'change');
-                        console.log('Setting client nationality to:', selectedOption.data('nationality'));
+                        console.log('Setting client nationality to:', selectedNationality);
                     } else {
                         console.log('No nationality data found for client');
                     }
@@ -1666,17 +1697,18 @@
             // عند اختيار عاملة في التبويب الجديد: عبئ بيانات العاملة (حقول منفصلة)
             $('#new_new_maid_id').on('change', function() {
                 var selectedOption = $(this).find('option:selected');
+                var selectedMaid = select2SelectedData(this);
                 if (selectedOption.val()) {
                     // Debug: طباعة البيانات المختارة
                     console.log('Selected maid data:', {
-                        name: selectedOption.data('name'),
-                        passport: selectedOption.data('passport'),
-                        religion: selectedOption.data('religion'),
-                        job: selectedOption.data('job'),
-                        nationality: selectedOption.data('nationality'),
-                        salary: selectedOption.data('salary'),
-                        experience: selectedOption.data('experience'),
-                        age: selectedOption.data('age')
+                        name: optionOrAjaxData(selectedOption, selectedMaid, 'name'),
+                        passport: optionOrAjaxData(selectedOption, selectedMaid, 'passport'),
+                        religion: optionOrAjaxData(selectedOption, selectedMaid, 'religion'),
+                        job: optionOrAjaxData(selectedOption, selectedMaid, 'job'),
+                        nationality: optionOrAjaxData(selectedOption, selectedMaid, 'nationality'),
+                        salary: optionOrAjaxData(selectedOption, selectedMaid, 'salary'),
+                        experience: optionOrAjaxData(selectedOption, selectedMaid, 'experience'),
+                        age: optionOrAjaxData(selectedOption, selectedMaid, 'age')
                     });
 
                     // طباعة البيانات الخام من data attributes
@@ -1705,20 +1737,20 @@
                         'job-title-value': selectedOption.data('job')
                     });
 
-                    $('#new_maid_name').val(selectedOption.data('name'));
-                    $('#new_maid_passport').val(selectedOption.data('passport'));
-                    $('#new_maid_religion').val(selectedOption.data('religion'));
-                    $('#new_maid_job').val(selectedOption.data('job'));
-                    console.log('Setting maid job to:', selectedOption.data('job'));
+                    $('#new_maid_name').val(optionOrAjaxData(selectedOption, selectedMaid, 'name'));
+                    $('#new_maid_passport').val(optionOrAjaxData(selectedOption, selectedMaid, 'passport'));
+                    $('#new_maid_religion').val(optionOrAjaxData(selectedOption, selectedMaid, 'religion'));
+                    $('#new_maid_job').val(optionOrAjaxData(selectedOption, selectedMaid, 'job'));
+                    console.log('Setting maid job to:', optionOrAjaxData(selectedOption, selectedMaid, 'job'));
                     console.log('Maid job field value after setting:', $('#new_maid_job').val());
-                    console.log('Job title from jobTitles:', selectedOption.data('job'));
-                    $('#new_maid_nationality').val(selectedOption.data('nationality'));
-                    console.log('Setting maid nationality to:', selectedOption.data('nationality'));
+                    console.log('Job title from jobTitles:', optionOrAjaxData(selectedOption, selectedMaid, 'job'));
+                    $('#new_maid_nationality').val(optionOrAjaxData(selectedOption, selectedMaid, 'nationality'));
+                    console.log('Setting maid nationality to:', optionOrAjaxData(selectedOption, selectedMaid, 'nationality'));
                     console.log('Maid nationality field value after setting:', $('#new_maid_nationality')
                         .val());
-                    $('#new_maid_salary').val(selectedOption.data('salary'));
-                    $('#new_maid_experience_years').val(selectedOption.data('experience'));
-                    $('#new_maid_age').val(selectedOption.data('age'));
+                    $('#new_maid_salary').val(optionOrAjaxData(selectedOption, selectedMaid, 'salary'));
+                    $('#new_maid_experience_years').val(optionOrAjaxData(selectedOption, selectedMaid, 'experience'));
+                    $('#new_maid_age').val(optionOrAjaxData(selectedOption, selectedMaid, 'age'));
 
                     // Debug: طباعة القيم بعد التعبئة
                     console.log('Filled nationality field:', $('#new_maid_nationality').val());

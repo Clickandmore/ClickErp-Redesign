@@ -225,6 +225,12 @@
                         </td>
                     </tr>
                     <tr>
+                        <th>المقابل بالريال</th>
+                        <td>
+                            {{ $dispatch->office_contract_cost_usd !== null ? number_format((float) $dispatch->office_contract_cost_usd * $usdToSarRate, 2) . ' ريال' : '-' }}
+                        </td>
+                    </tr>
+                    <tr>
                         <th>محطة الوصول</th>
                         <td>{{ $dispatch->arrival_station ?: '-' }}</td>
                     </tr>

@@ -48,6 +48,25 @@ class ConstraintService extends MainService
         return $this->accountService->getAccountWithNoChild($type);
     }
 
+    public function getAccountsForConstraint(Model|int $constraint)
+    {
+        $constraint = $constraint instanceof Model
+            ? $constraint->loadMissing('constraintDetails.account')
+            : $this->find($constraint)->loadMissing('constraintDetails.account');
+
+        $accounts = $this->getAccounts();
+        $selectedAccounts = $constraint->constraintDetails
+            ->pluck('account')
+            ->filter()
+            ->reject(fn ($account) => $accounts->contains('id', $account->id));
+
+        return $accounts
+            ->concat($selectedAccounts)
+            ->unique('id')
+            ->sortBy(fn ($account) => $account->code ?? $account->id)
+            ->values();
+    }
+
     public function getCostCenters()
     {
         return $this->costCenterService->get();
