@@ -69,6 +69,33 @@
             border: 3px solid #2563eb;
             box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
         }
+
+        .maid-skill-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: .5rem;
+        }
+
+        .maid-skill-item {
+            display: flex;
+            align-items: center;
+            gap: .45rem;
+            min-height: 38px;
+            padding: .55rem .7rem;
+            border: 1px solid #e8eef5;
+            border-radius: 10px;
+            background: #f8fafc;
+            color: #243447;
+            font-size: .86rem;
+            font-weight: 600;
+            line-height: 1.35;
+            overflow-wrap: anywhere;
+        }
+
+        .maid-skill-item i {
+            color: #f59e0b;
+            flex: 0 0 auto;
+        }
     </style>
 @endsection
 
@@ -116,6 +143,29 @@
         @endphp
 
         <div class="container-fluid py-3 py-lg-4">
+            @if (session('success'))
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    {{ session('success') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            @endif
+            @if (session('error'))
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    {{ session('error') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            @endif
+            @if ($errors->any())
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <ul class="mb-0">
+                        @foreach ($errors->all() as $error)
+                            <li>{{ $error }}</li>
+                        @endforeach
+                    </ul>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            @endif
+
             <div class="card maid-hero mb-4">
                 <div class="card-body d-flex flex-wrap align-items-center justify-content-between gap-3">
                     <div class="d-flex align-items-center gap-3">
@@ -173,6 +223,9 @@
                                 <i class="fas fa-edit me-1"></i>{{ helperTrans('ingaz.edit_maid') }}
                             </a>
                         @endif
+                        <a href="#maid-attachments" class="btn btn-outline-info">
+                            <i class="fas fa-paperclip me-1"></i>المرفقات
+                        </a>
                     </div>
                 </div>
             </div>
@@ -207,7 +260,7 @@
                     <div class="card stats-card h-100">
                         <div class="card-body d-flex align-items-center justify-content-between">
                             <div>
-                                <div class="text-muted small fw-semibold">{{ helperTrans('ingaz.rental_contracts_count') }}
+                                <div class="text-muted small fw-semibold">{{ helperTrans('ingaz.recruitment_contracts_count') }}
                                 </div>
                                 <div class="fs-4 fw-bold text-info">{{ number_format($stats['contracts_total']) }}</div>
                             </div>
@@ -505,6 +558,95 @@
                 </div>
 
                 <div class="col-xl-4 d-flex flex-column gap-3">
+                    <div class="card maid-card" id="maid-attachments">
+                        <div class="card-body">
+                            <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                                <i class="fas fa-paperclip text-info"></i>مرفقات العاملة
+                            </h5>
+
+                            @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT))
+                                <form method="POST" action="{{ route('maids.attachments.store', $maid->id) }}"
+                                    enctype="multipart/form-data" class="mb-3">
+                                    @csrf
+                                    <div class="mb-2">
+                                        <label class="form-label">وصف اختياري</label>
+                                        <input type="text" name="title" class="form-control"
+                                            value="{{ old('title') }}" placeholder="مثال: جواز السفر">
+                                    </div>
+                                    <div class="mb-2">
+                                        <label class="form-label">اختيار المرفقات</label>
+                                        <input type="file" name="attachments[]" class="form-control" multiple required>
+                                        <div class="form-text">يمكن رفع أكثر من ملف. الحد الأقصى لكل ملف 20 ميجابايت.</div>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-upload me-1"></i>رفع المرفقات
+                                    </button>
+                                </form>
+                            @endif
+
+                            @if ($maid->attachments->isNotEmpty())
+                                <form id="maidAttachmentsDownloadForm" method="GET"
+                                    action="{{ route('maids.attachments.download', $maid->id) }}"></form>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <strong class="small text-muted">المرفقات الحالية</strong>
+                                    <button type="submit" class="btn btn-outline-success btn-sm"
+                                        form="maidAttachmentsDownloadForm">
+                                        <i class="fas fa-file-archive me-1"></i>تنزيل المحدد
+                                    </button>
+                                </div>
+                                <div class="d-flex flex-column gap-2">
+                                    @foreach ($maid->attachments as $attachment)
+                                        <div class="border rounded-3 p-2">
+                                            <div class="d-flex align-items-start gap-2">
+                                                <input class="form-check-input mt-1" type="checkbox"
+                                                    name="attachments[]" value="{{ $attachment->id }}"
+                                                    id="maid_attachment_{{ $attachment->id }}" checked
+                                                    form="maidAttachmentsDownloadForm">
+                                                <label class="flex-grow-1" for="maid_attachment_{{ $attachment->id }}">
+                                                    <span class="d-block fw-semibold text-break">
+                                                        {{ $attachment->title ?: $attachment->original_name }}
+                                                    </span>
+                                                    <span class="d-block text-muted small text-break">
+                                                        {{ $attachment->original_name }} - {{ $attachment->formatted_size }}
+                                                    </span>
+                                                    <span class="d-block text-muted small">
+                                                        {{ $attachment->created_at?->format('Y-m-d H:i') ?? '-' }}
+                                                        @if ($attachment->uploader)
+                                                            - {{ $attachment->uploader->name }}
+                                                        @endif
+                                                    </span>
+                                                </label>
+                                            </div>
+                                            <div class="d-flex flex-wrap gap-2 mt-2">
+                                                <a href="{{ route('maids.attachments.view', [$maid->id, $attachment->id]) }}"
+                                                    class="btn btn-outline-primary btn-sm" target="_blank">
+                                                    <i class="fas fa-eye me-1"></i>عرض
+                                                </a>
+                                                <a href="{{ route('maids.attachments.download.single', [$maid->id, $attachment->id]) }}"
+                                                    class="btn btn-light btn-sm border">
+                                                    <i class="fas fa-download me-1"></i>تنزيل
+                                                </a>
+                                                @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT))
+                                                    <form method="POST"
+                                                        action="{{ route('maids.attachments.delete', [$maid->id, $attachment->id]) }}"
+                                                        onsubmit="return confirm('هل تريد حذف هذا المرفق؟');">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="btn btn-outline-danger btn-sm">
+                                                            <i class="fas fa-trash me-1"></i>حذف
+                                                        </button>
+                                                    </form>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @else
+                                <p class="text-muted mb-0">لا توجد مرفقات مرتبطة بهذه العاملة.</p>
+                            @endif
+                        </div>
+                    </div>
+
                     <div class="card maid-card">
                         <div class="card-body">
                             <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
@@ -613,9 +755,19 @@
                                 <i class="fas fa-star text-warning"></i>{{ helperTrans('ingaz.skills') }}
                             </h5>
                             @if (!empty($skills))
-                                <div class="d-flex flex-wrap gap-2">
+                                <div class="maid-skill-grid">
                                     @foreach ($skills as $skill)
-                                        <span class="badge bg-light text-muted border">{{ is_string($skill) ? $skill : ($skill->name ?? '-') }}</span>
+                                        @php
+                                            $skillName = is_string($skill)
+                                                ? trim($skill)
+                                                : trim((string) ($skill->name ?? $skill->title ?? ''));
+                                        @endphp
+                                        @if ($skillName !== '')
+                                            <span class="maid-skill-item">
+                                                <i class="fas fa-check-circle"></i>
+                                                <span>{{ $skillName }}</span>
+                                            </span>
+                                        @endif
                                     @endforeach
                                 </div>
                             @else

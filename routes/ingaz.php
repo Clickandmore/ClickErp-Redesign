@@ -185,6 +185,11 @@ Route::group(
             Route::resource('police-settings', PoliceSettingController::class);
             Route::resource('about-us', AboutUsController::class);
             Route::resource('clients', UserController::class);
+            Route::post('clients/{id}/attachments', [UserController::class, 'storeAttachments'])->name('clients.attachments.store');
+            Route::get('clients/{id}/attachments/download', [UserController::class, 'downloadAttachments'])->name('clients.attachments.download');
+            Route::get('clients/{id}/attachments/{attachment}/view', [UserController::class, 'viewAttachment'])->name('clients.attachments.view');
+            Route::get('clients/{id}/attachments/{attachment}/download', [UserController::class, 'downloadAttachment'])->name('clients.attachments.download.single');
+            Route::delete('clients/{id}/attachments/{attachment}', [UserController::class, 'deleteAttachment'])->name('clients.attachments.delete');
             Route::resource('make-accounts-for-clients', MakeAccountsForClientsController::class);
             Route::resource('skills', SkillController::class);
             Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
@@ -195,6 +200,11 @@ Route::group(
             Route::get('maids/{id}/details', [\App\Http\Controllers\ingaz\MaidController::class, 'getMaidDetails'])->name('maids.details');
             Route::get('maids/rental', [\App\Http\Controllers\ingaz\MaidController::class, 'rentalIndex'])->name('maids.rental.index');
             Route::get('maids/rental/create', [\App\Http\Controllers\ingaz\MaidController::class, 'createRental'])->name('maids.rental.create');
+            Route::post('maids/{id}/attachments', [\App\Http\Controllers\ingaz\MaidController::class, 'storeAttachments'])->name('maids.attachments.store');
+            Route::get('maids/{id}/attachments/download', [\App\Http\Controllers\ingaz\MaidController::class, 'downloadAttachments'])->name('maids.attachments.download');
+            Route::get('maids/{id}/attachments/{attachment}/view', [\App\Http\Controllers\ingaz\MaidController::class, 'viewAttachment'])->name('maids.attachments.view');
+            Route::get('maids/{id}/attachments/{attachment}/download', [\App\Http\Controllers\ingaz\MaidController::class, 'downloadAttachment'])->name('maids.attachments.download.single');
+            Route::delete('maids/{id}/attachments/{attachment}', [\App\Http\Controllers\ingaz\MaidController::class, 'deleteAttachment'])->name('maids.attachments.delete');
             Route::get('maids/bulk-import', [MaidBulkImportController::class, 'create'])->name('maids.bulk-import.create');
             Route::get('maids/bulk-import/template', [MaidBulkImportController::class, 'template'])->name('maids.bulk-import.template');
             Route::post('maids/bulk-import', [MaidBulkImportController::class, 'store'])->name('maids.bulk-import.store');
@@ -280,6 +290,10 @@ Route::group(
             Route::get('RecruitmentContract/{contract}/external-office-dispatch', [RecruitmentContractExternalOfficeDispatchController::class, 'edit'])->name('RecruitmentContract.externalOfficeDispatch.edit');
             Route::post('RecruitmentContract/{contract}/external-office-dispatch', [RecruitmentContractExternalOfficeDispatchController::class, 'store'])->name('RecruitmentContract.externalOfficeDispatch.store');
             Route::get('RecruitmentContract/{contract}/external-office-dispatch/print', [RecruitmentContractExternalOfficeDispatchController::class, 'print'])->name('RecruitmentContract.externalOfficeDispatch.print');
+            Route::post('RecruitmentContract/{contractId}/attachments', [RecruitmentContractController::class, 'storeAttachments'])->name('RecruitmentContract.attachments.store');
+            Route::get('RecruitmentContract/{contractId}/attachments/download', [RecruitmentContractController::class, 'downloadAttachments'])->name('RecruitmentContract.attachments.download');
+            Route::get('RecruitmentContract/{contractId}/attachments/{attachment}/download', [RecruitmentContractController::class, 'downloadAttachment'])->name('RecruitmentContract.attachments.download.single');
+            Route::delete('RecruitmentContract/{contractId}/attachments/{attachment}', [RecruitmentContractController::class, 'deleteAttachment'])->name('RecruitmentContract.attachments.delete');
 
             Route::resource('RecruitmentContract', RecruitmentContractController::class);
             Route::get('RecruitmentContractBack/{id}', [RecruitmentContractController::class, 'back'])->name('RecruitmentContract.back');
@@ -303,6 +317,7 @@ Route::group(
 
             // Ø¥ØºÙ„Ø§Ù‚ Ø¹Ù‚ÙˆØ¯ Ø§Ù„Ø¥ÙŠØ¬Ø§Ø±
             Route::get('RentContract/{id}/details', [RentContractController::class, 'getContractDetails'])->name('RentContract.details');
+            Route::get('RentContract/{id}/attachments/download', [RentContractController::class, 'downloadAttachments'])->name('RentContract.attachments.download');
             Route::post('RentContract/{id}/close-and-make-available', [RentContractController::class, 'closeAndMakeAvailable'])->name('RentContract.closeAndMakeAvailable');
             Route::post('RentContract/{id}/transfer-sponsorship', [RentContractController::class, 'transferSponsorship'])->name('RentContract.transferSponsorship');
 

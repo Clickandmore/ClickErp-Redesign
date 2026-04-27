@@ -355,6 +355,77 @@
         border-radius: 14px;
     }
 
+    .attachment-upload-panel {
+        background: #f8fbff;
+        border: 1px solid #dbe7f3;
+        border-radius: 14px;
+        padding: 16px;
+    }
+
+    .attachment-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 12px;
+    }
+
+    .attachment-item {
+        border: 1px solid #dbe7f3;
+        border-radius: 12px;
+        padding: 14px;
+        background: #fff;
+    }
+
+    .attachment-item-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+    .attachment-meta {
+        color: #64748b;
+        font-size: 12px;
+        margin-top: 8px;
+        line-height: 1.8;
+    }
+
+    .contract-document-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+        gap: 12px;
+    }
+
+    .contract-document-link {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 13px;
+        border: 1px solid #dbe7f3;
+        border-radius: 12px;
+        color: #0f172a;
+        background: #fff;
+        text-decoration: none;
+        min-height: 72px;
+    }
+
+    .contract-document-link:hover {
+        border-color: #0d6efd;
+        color: #0d6efd;
+        text-decoration: none;
+    }
+
+    .contract-document-link i {
+        width: 34px;
+        height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        background: #eef6ff;
+        color: #0d6efd;
+        flex-shrink: 0;
+    }
+
     /* تحسين Modal */
     .modal-content {
         border-radius: 15px;
@@ -1408,6 +1479,141 @@
                 </div>
             </div>
 
+            <!-- مرفقات ومستندات العقد -->
+            <div class="row" id="contractAttachmentsSection">
+                <div class="col-12 mb-4">
+                    <div class="info-card">
+                        <div class="d-flex align-items-center justify-content-between gap-2 flex-wrap mb-3">
+                            <div class="card-title mb-0">
+                                <i class="fas fa-paperclip text-primary"></i>
+                                مرفقات ومستندات العقد
+                            </div>
+                            @if (!empty($contractAttachments))
+                                <a href="{{ route('RecruitmentContract.attachments.download', $contract->id) }}"
+                                    class="btn btn-sm btn-primary">
+                                    <i class="fas fa-file-zipper me-1"></i>
+                                    تحميل كل المرفقات
+                                </a>
+                            @endif
+                        </div>
+
+                        @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_UPDATE))
+                            <form method="POST" action="{{ route('RecruitmentContract.attachments.store', $contract->id) }}"
+                                enctype="multipart/form-data" class="attachment-upload-panel mb-4">
+                                @csrf
+                                <div class="row g-3 align-items-end">
+                                    <div class="col-md-3">
+                                        <label class="form-label">نوع المرفق</label>
+                                        <select name="attachment_type" class="form-control">
+                                            <option value="other">أخرى</option>
+                                            <option value="invoice">فاتورة</option>
+                                            <option value="financial">معاملة مالية</option>
+                                            <option value="operational">إجراء تشغيلي</option>
+                                            <option value="contract">مستند عقد</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">إضافة مرفقات</label>
+                                        <input type="file" name="attachments[]" class="form-control" multiple
+                                            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <button type="submit" class="btn btn-primary w-100">
+                                            <i class="fas fa-upload me-1"></i>
+                                            رفع المرفقات
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        @endif
+
+                        @if (!empty($contractAttachments))
+                            <form method="GET" action="{{ route('RecruitmentContract.attachments.download', $contract->id) }}"
+                                class="mb-4">
+                                <input type="hidden" name="selected_only" value="1">
+                                <div class="attachment-list mb-3">
+                                    @foreach ($contractAttachments as $attachment)
+                                        <div class="attachment-item">
+                                            <div class="attachment-item-header">
+                                                <label class="d-flex align-items-start gap-2 mb-0">
+                                                    <input type="checkbox" name="attachments[]" value="{{ $attachment['key'] }}"
+                                                        checked>
+                                                    <span>
+                                                        <strong>{{ $attachment['label'] }}</strong>
+                                                        <span class="badge bg-secondary d-block mt-2">{{ $attachment['type_label'] }}</span>
+                                                    </span>
+                                                </label>
+                                                @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_UPDATE))
+                                                    <button type="submit" form="deleteAttachment{{ $attachment['id'] }}"
+                                                        class="btn btn-sm btn-outline-danger">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                @endif
+                                            </div>
+                                            <div class="attachment-meta">
+                                                <div>الملف: {{ $attachment['original_name'] }}</div>
+                                                <div>الحجم: {{ $attachment['size_label'] }}</div>
+                                                @if ($attachment['uploaded_by'])
+                                                    <div>رفع بواسطة: {{ $attachment['uploaded_by'] }}</div>
+                                                @endif
+                                                @if ($attachment['created_at'])
+                                                    <div>تاريخ الرفع: {{ $attachment['created_at'] }}</div>
+                                                @endif
+                                            </div>
+                                            <a href="{{ $attachment['url'] }}" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
+                                                <i class="fas fa-download me-1"></i>
+                                                تحميل منفرد
+                                            </a>
+                                        </div>
+                                    @endforeach
+                                </div>
+                                <button type="submit" class="btn btn-outline-primary">
+                                    <i class="fas fa-download me-1"></i>
+                                    تحميل المحدد
+                                </button>
+                            </form>
+                            @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_UPDATE))
+                                @foreach ($contractAttachments as $attachment)
+                                    <form id="deleteAttachment{{ $attachment['id'] }}" method="POST"
+                                        action="{{ route('RecruitmentContract.attachments.delete', ['contractId' => $contract->id, 'attachment' => $attachment['id']]) }}"
+                                        onsubmit="return confirm('هل تريد حذف هذا المرفق؟');" class="d-none">
+                                        @csrf
+                                        @method('DELETE')
+                                    </form>
+                                @endforeach
+                            @endif
+                        @else
+                            <div class="alert alert-info mb-4">
+                                لا توجد مرفقات مرفوعة على هذا العقد حتى الآن.
+                            </div>
+                        @endif
+
+                        <div class="card-title">
+                            <i class="fas fa-folder-open text-info"></i>
+                            مستندات مرتبطة بالعقد
+                        </div>
+                        @if (!empty($contractDocuments))
+                            <div class="contract-document-list">
+                                @foreach ($contractDocuments as $document)
+                                    <a href="{{ $document['url'] }}" target="_blank" rel="noopener"
+                                        class="contract-document-link">
+                                        <i class="{{ $document['icon'] }}"></i>
+                                        <span>
+                                            <strong class="d-block">{{ $document['label'] }}</strong>
+                                            <small class="text-muted">{{ $document['category'] }}</small>
+                                        </span>
+                                    </a>
+                                @endforeach
+                            </div>
+                        @else
+                            <div class="alert alert-info mb-0">
+                                لا توجد فاتورة أو معاملات مالية أو إجراءات تشغيلية مرتبطة بهذا العقد حالياً.
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
             <!-- أزرار الإجراءات -->
             <div class="action-buttons">
                 @if ($canManageExternalOfficeDispatch)
@@ -1433,6 +1639,13 @@
                     <a href="{{ route('invoices.show', $contract->invoice->id) }}" class="btn-icon btn-invoice"
                         title="عرض الفاتورة" target="_blank">
                         <i class="fas fa-file-pdf"></i>
+                    </a>
+                @endif
+
+                @if (!empty($contractAttachments))
+                    <a href="{{ route('RecruitmentContract.attachments.download', $contract->id) }}"
+                        class="btn-icon btn-print" title="تحميل مرفقات العقد">
+                        <i class="fas fa-paperclip"></i>
                     </a>
                 @endif
 

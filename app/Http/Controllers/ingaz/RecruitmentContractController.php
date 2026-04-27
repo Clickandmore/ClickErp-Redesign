@@ -24,6 +24,7 @@ use App\Models\ingaz\JobTitle;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\Nationality;
 use App\Models\ingaz\Order;
+use App\Models\ingaz\RecruitmentContractAttachment;
 use App\Models\ingaz\Religion;
 use App\Models\ingaz\User;
 use App\Models\RecruitmentOffices;
@@ -34,6 +35,8 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use PDF;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -382,7 +385,7 @@ class RecruitmentContractController extends Controller
                 'order.details', // تفاصيل الطلب
                 'order.details.admin' // بيانات المسوق
             ])
-                ->withCount('notes')
+                ->withCount(['notes', 'attachments'])
                 ->whereIn('type', ['recruitment', 'maid']);
 
             // فلتر الحالة - استخدام query parameter فقط
@@ -1148,6 +1151,9 @@ class RecruitmentContractController extends Controller
                                     <i class="fas fa-eye"></i> عرض تفاصيل العقد
                                 </a></li>';
 
+                    $attachmentActions = '<li><hr class="dropdown-divider"></li>
+                                <li><h6 class="dropdown-header"><i class="fas fa-paperclip me-1"></i> المرفقات والمستندات</h6></li>';
+
                     if ($row->isCurrentRecruitmentContract() || $row->externalOfficeDispatch) {
                         $dispatchState = $row->getExternalOfficeDispatchState();
                         $dispatchManageLabel = $row->isCurrentRecruitmentContract()
@@ -1161,20 +1167,20 @@ class RecruitmentContractController extends Controller
                                     </a></li>';
 
                         if ($row->externalOfficeDispatch) {
-                            $actions .= '<li><a class="dropdown-item" href="' . e(route('RecruitmentContract.externalOfficeDispatch.print', $row->id)) . '" target="_blank" rel="noopener">
+                            $attachmentActions .= '<li><a class="dropdown-item" href="' . e(route('RecruitmentContract.externalOfficeDispatch.print', $row->id)) . '" target="_blank" rel="noopener">
                                             <i class="fas fa-file-lines"></i> معاينة إرسالية المكتب الخارجي
                                         </a></li>';
-                            $actions .= '<li><a class="dropdown-item" href="' . e(route('RecruitmentContract.externalOfficeDispatch.print', ['contract' => $row->id, 'driver' => 'dompdf', 'download' => 1])) . '" target="_blank" rel="noopener">
+                            $attachmentActions .= '<li><a class="dropdown-item" href="' . e(route('RecruitmentContract.externalOfficeDispatch.print', ['contract' => $row->id, 'driver' => 'dompdf', 'download' => 1])) . '" target="_blank" rel="noopener">
                                             <i class="fas fa-file-pdf"></i> تنزيل إرسالية المكتب الخارجي PDF
                                         </a></li>';
                         }
                     }
 
                     if (in_array($row->status, [ContractStatusEnum::Arrival->value, ContractStatusEnum::Completed->value], true)) {
-                        $actions .= '<li><a class="dropdown-item" href="' . e(route('contract_download_form.download', ['contract_id' => $row->id])) . '" target="_blank" rel="noopener">
+                        $attachmentActions .= '<li><a class="dropdown-item" href="' . e(route('contract_download_form.download', ['contract_id' => $row->id])) . '" target="_blank" rel="noopener">
                                     <i class="fas fa-file-signature"></i> عرض نموذج تسليم العاملة
                                 </a></li>';
-                        $actions .= '<li><a class="dropdown-item" href="' . e(route('contract_download_form.download', ['contract_id' => $row->id, 'driver' => 'dompdf', 'download' => 1])) . '" target="_blank" rel="noopener">
+                        $attachmentActions .= '<li><a class="dropdown-item" href="' . e(route('contract_download_form.download', ['contract_id' => $row->id, 'driver' => 'dompdf', 'download' => 1])) . '" target="_blank" rel="noopener">
                                     <i class="fas fa-file-pdf"></i> تنزيل نموذج التسليم PDF
                                 </a></li>';
                     }
@@ -1182,14 +1188,42 @@ class RecruitmentContractController extends Controller
                     // الفاتورة
                     $invoice = Invoice::with('musanedTransferItem.transfer')->where('contract_id', $row->id)->first();
                     if ($invoice) {
-                        $actions .= '<li><a class="dropdown-item" href="' . route('invoices.show', $invoice->id) . '" target="_blank">
+                        $attachmentActions .= '<li><a class="dropdown-item" href="' . route('invoices.show', $invoice->id) . '" target="_blank">
                                     <i class="fas fa-file-pdf"></i> عرض الفاتورة
                                 </a></li>';
+                        $attachmentActions .= '<li><a class="dropdown-item" href="' . route('invoice.download', ['id' => $invoice->id, 'autoprint' => 1]) . '" target="_blank">
+                                    <i class="fas fa-download"></i> تنزيل الفاتورة
+                                </a></li>';
+
+                        if ($invoice->arrival_revenue_constraint_id) {
+                            $attachmentActions .= '<li><a class="dropdown-item" href="' . route('finance.add-constraint.show', ['add_constraint' => $invoice->arrival_revenue_constraint_id, 'autoprint' => 1]) . '" target="_blank">
+                                    <i class="fas fa-book"></i> قيد إيراد الوصول
+                                </a></li>';
+                        }
+
+                        if ($invoice->external_office_cost_constraint_id) {
+                            $attachmentActions .= '<li><a class="dropdown-item" href="' . route('finance.add-constraint.show', ['add_constraint' => $invoice->external_office_cost_constraint_id, 'autoprint' => 1]) . '" target="_blank">
+                                    <i class="fas fa-book-open"></i> قيد تكلفة المكتب الخارجي
+                                </a></li>';
+                        }
 
                         if ($invoice->musanedTransferItem && $invoice->musanedTransferItem->transfer) {
-                            $actions .= '<li><a class="dropdown-item" href="' . route('musaned-transfers.show', $invoice->musanedTransferItem->transfer->id) . '" target="_blank">
+                            $transfer = $invoice->musanedTransferItem->transfer;
+                            $attachmentActions .= '<li><a class="dropdown-item" href="' . route('musaned-transfers.show', $transfer->id) . '" target="_blank">
                                     <i class="fas fa-money-bill-transfer"></i> عرض تحويل مساند
                                 </a></li>';
+
+                            if ($transfer->settlement_constraint_id) {
+                                $attachmentActions .= '<li><a class="dropdown-item" href="' . route('finance.add-constraint.show', ['add_constraint' => $transfer->settlement_constraint_id, 'autoprint' => 1]) . '" target="_blank">
+                                        <i class="fas fa-book"></i> قيد تسوية مساند
+                                    </a></li>';
+                            }
+
+                            if ($transfer->bank_transfer_constraint_id) {
+                                $attachmentActions .= '<li><a class="dropdown-item" href="' . route('finance.add-constraint.show', ['add_constraint' => $transfer->bank_transfer_constraint_id, 'autoprint' => 1]) . '" target="_blank">
+                                        <i class="fas fa-book-open"></i> قيد تحويل البنك لمساند
+                                    </a></li>';
+                            }
                         } else {
                             $actions .= '<li><a class="dropdown-item" href="' . route('musaned-transfers.create', ['contract_ids' => [$row->id]]) . '" target="_blank">
                                     <i class="fas fa-money-bill-transfer"></i> تسجيل تحويل مساند
@@ -1304,6 +1338,18 @@ class RecruitmentContractController extends Controller
                                             <i class="fas fa-plus"></i> اضافة ملاحظة
                                         </button></li>';
 
+                    $attachmentActions .= '<li><a class="dropdown-item" href="' . route('contracts.details', $row->id) . '#contractAttachmentsSection">
+                                    <i class="fas fa-paperclip"></i> مرفقات العقد (' . (int) ($row->attachments_count ?? 0) . ')
+                                </a></li>';
+
+                    if (($row->attachments_count ?? 0) > 0) {
+                        $attachmentActions .= '<li><a class="dropdown-item" href="' . route('RecruitmentContract.attachments.download', $row->id) . '">
+                                    <i class="fas fa-file-zipper"></i> تحميل مرفقات العقد
+                                </a></li>';
+                    }
+
+                    $actions .= $attachmentActions;
+
                     $actions .= '</ul></div>';
 
                     return $actions;
@@ -1344,6 +1390,7 @@ class RecruitmentContractController extends Controller
             'info.manualMaidOffice',
             'info.shelter',
             'externalOfficeDispatch',
+            'attachments.uploader',
             'contract_status_logs' => function ($query) {
                 $query->orderByDesc('date')->orderByDesc('id');
             },
@@ -1382,6 +1429,8 @@ class RecruitmentContractController extends Controller
         //        return $contract;
         $statusTimeline = $this->buildContractStageTimeline($contract);
         $durationSummary = $this->buildContractDurationSummary($contract);
+        $contractAttachments = $this->collectRecruitmentContractAttachments($contract);
+        $contractDocuments = $this->collectRecruitmentContractDocuments($contract);
         $statusHistory = $contract->contract_status_logs->map(function ($log) use ($contract) {
             return [
                 'status' => $log->status,
@@ -1397,8 +1446,261 @@ class RecruitmentContractController extends Controller
             'marketer',
             'statusTimeline',
             'durationSummary',
+            'contractAttachments',
+            'contractDocuments',
             'statusHistory'
         ));
+    }
+
+    public function storeAttachments(Request $request, $contractId)
+    {
+        if (!$this->canUpdateRecruitmentContracts()) {
+            return redirect()->back()->with('error', 'ليس لديك صلاحية لإضافة مرفقات على العقد.');
+        }
+
+        $contract = Contract::whereIn('type', ['recruitment', 'maid'])->findOrFail($contractId);
+
+        $validated = $request->validate([
+            'attachment_type' => 'nullable|string|in:invoice,financial,operational,contract,other',
+            'attachments' => ['required', 'array'],
+            'attachments.*' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png,doc,docx,xls,xlsx', 'max:10240'],
+            'attachment_titles' => ['nullable', 'array'],
+            'attachment_titles.*' => ['nullable', 'string', 'max:190'],
+        ], [
+            'attachments.required' => 'يرجى اختيار مرفق واحد على الأقل.',
+            'attachments.*.mimes' => 'صيغة المرفق غير مدعومة.',
+            'attachments.*.max' => 'حجم كل مرفق يجب ألا يتجاوز 10 ميجابايت.',
+        ]);
+
+        $type = $validated['attachment_type'] ?? 'other';
+        $titles = $validated['attachment_titles'] ?? [];
+
+        foreach ($request->file('attachments', []) as $index => $file) {
+            $path = $file->store('recruitment-contracts/' . $contract->id, 'public');
+
+            RecruitmentContractAttachment::create([
+                'contract_id' => $contract->id,
+                'title' => $titles[$index] ?? null,
+                'type' => $type ?: 'other',
+                'disk' => 'public',
+                'path' => $path,
+                'original_name' => $file->getClientOriginalName(),
+                'mime_type' => $file->getClientMimeType(),
+                'size' => $file->getSize() ?: 0,
+                'uploaded_by' => auth('admin')->id(),
+            ]);
+        }
+
+        return redirect()
+            ->route('contracts.details', $contract->id)
+            ->with('success', 'تم رفع مرفقات العقد بنجاح.');
+    }
+
+    public function downloadAttachments(Request $request, $contractId)
+    {
+        if (!$this->canViewRecruitmentContracts()) {
+            return redirect()->back()->with('error', 'ليس لديك صلاحية لتحميل مرفقات العقد.');
+        }
+
+        $contract = Contract::with('attachments')
+            ->whereIn('type', ['recruitment', 'maid'])
+            ->findOrFail($contractId);
+
+        $attachments = $this->collectRecruitmentContractAttachments($contract);
+        $selectedKeys = array_filter((array) $request->input('attachments', []));
+
+        if (!empty($selectedKeys)) {
+            $attachments = array_values(array_filter($attachments, function ($attachment) use ($selectedKeys) {
+                return in_array($attachment['key'], $selectedKeys, true);
+            }));
+        } elseif ($request->boolean('selected_only')) {
+            $attachments = [];
+        }
+
+        if (empty($attachments)) {
+            return redirect()->back()->with('error', 'لا توجد مرفقات صالحة للتحميل في هذا العقد.');
+        }
+
+        $zip = new \ZipArchive();
+        $zipFile = tempnam(sys_get_temp_dir(), 'recruitment-contract-attachments-');
+
+        if ($zip->open($zipFile, \ZipArchive::OVERWRITE) !== true) {
+            return redirect()->back()->with('error', 'تعذر تجهيز ملف المرفقات.');
+        }
+
+        foreach ($attachments as $attachment) {
+            $absolutePath = Storage::disk($attachment['disk'])->path($attachment['path']);
+
+            if (is_file($absolutePath)) {
+                $zip->addFile($absolutePath, $attachment['filename']);
+            }
+        }
+
+        $zip->close();
+
+        if (filesize($zipFile) <= 0) {
+            @unlink($zipFile);
+            return redirect()->back()->with('error', 'لا توجد مرفقات صالحة للتحميل في هذا العقد.');
+        }
+
+        return response()
+            ->download($zipFile, 'recruitment-contract-' . $contract->id . '-attachments.zip')
+            ->deleteFileAfterSend(true);
+    }
+
+    public function downloadAttachment($contractId, RecruitmentContractAttachment $attachment)
+    {
+        if (!$this->canViewRecruitmentContracts()) {
+            return redirect()->back()->with('error', 'ليس لديك صلاحية لتحميل مرفقات العقد.');
+        }
+
+        if ((int) $attachment->contract_id !== (int) $contractId) {
+            abort(404);
+        }
+
+        if (!Storage::disk($attachment->disk)->exists($attachment->path)) {
+            return redirect()->back()->with('error', 'ملف المرفق غير موجود.');
+        }
+
+        return Storage::disk($attachment->disk)->download($attachment->path, $attachment->original_name);
+    }
+
+    public function deleteAttachment($contractId, RecruitmentContractAttachment $attachment)
+    {
+        if (!$this->canUpdateRecruitmentContracts()) {
+            return redirect()->back()->with('error', 'ليس لديك صلاحية لحذف مرفقات العقد.');
+        }
+
+        if ((int) $attachment->contract_id !== (int) $contractId) {
+            abort(404);
+        }
+
+        Storage::disk($attachment->disk)->delete($attachment->path);
+        $attachment->delete();
+
+        return redirect()
+            ->route('contracts.details', $contractId)
+            ->with('success', 'تم حذف المرفق بنجاح.');
+    }
+
+    private function collectRecruitmentContractAttachments(Contract $contract): array
+    {
+        $contract->loadMissing('attachments');
+
+        return $contract->attachments
+            ->filter(fn ($attachment) => Storage::disk($attachment->disk ?: 'public')->exists($attachment->path))
+            ->values()
+            ->map(function ($attachment, $index) use ($contract) {
+                $extension = pathinfo($attachment->original_name, PATHINFO_EXTENSION);
+                $label = $attachment->title ?: $attachment->original_name;
+                $safeLabel = Str::slug($label, '-');
+
+                if ($safeLabel === '') {
+                    $safeLabel = 'attachment-' . $attachment->id;
+                }
+
+                return [
+                    'key' => 'uploaded-' . $attachment->id,
+                    'id' => $attachment->id,
+                    'label' => $label,
+                    'type' => $attachment->type,
+                    'type_label' => $this->getRecruitmentAttachmentTypeLabel($attachment->type),
+                    'path' => $attachment->path,
+                    'disk' => $attachment->disk ?: 'public',
+                    'url' => route('RecruitmentContract.attachments.download.single', [
+                        'contractId' => $contract->id,
+                        'attachment' => $attachment->id,
+                    ]),
+                    'filename' => ($index + 1) . '-' . $safeLabel . ($extension ? '.' . $extension : ''),
+                    'original_name' => $attachment->original_name,
+                    'size_label' => $attachment->size_label,
+                    'uploaded_by' => $attachment->uploader?->name,
+                    'created_at' => optional($attachment->created_at)->format('Y-m-d H:i'),
+                ];
+            })
+            ->all();
+    }
+
+    private function collectRecruitmentContractDocuments(Contract $contract): array
+    {
+        $contract->loadMissing([
+            'invoice.musanedTransferItem.transfer',
+            'externalOfficeDispatch',
+        ]);
+
+        $documents = [];
+        $addDocument = function (string $key, string $label, string $category, string $url, string $icon = 'fas fa-file') use (&$documents) {
+            $documents[] = compact('key', 'label', 'category', 'url', 'icon');
+        };
+
+        if ($contract->invoice) {
+            $addDocument('invoice-view', 'عرض الفاتورة', 'فاتورة', route('invoices.show', $contract->invoice->id), 'fas fa-file-invoice');
+            $addDocument('invoice-download', 'تنزيل الفاتورة', 'فاتورة', route('invoice.download', ['id' => $contract->invoice->id, 'autoprint' => 1]), 'fas fa-download');
+
+            if ($contract->invoice->arrival_revenue_constraint_id) {
+                $addDocument('invoice-arrival-revenue-constraint', 'قيد إيراد الوصول', 'معاملة مالية', route('finance.add-constraint.show', [
+                    'add_constraint' => $contract->invoice->arrival_revenue_constraint_id,
+                    'autoprint' => 1,
+                ]), 'fas fa-book');
+            }
+
+            if ($contract->invoice->external_office_cost_constraint_id) {
+                $addDocument('invoice-office-cost-constraint', 'قيد تكلفة المكتب الخارجي', 'معاملة مالية', route('finance.add-constraint.show', [
+                    'add_constraint' => $contract->invoice->external_office_cost_constraint_id,
+                    'autoprint' => 1,
+                ]), 'fas fa-book-open');
+            }
+
+            $transfer = $contract->invoice->musanedTransferItem?->transfer;
+            if ($transfer) {
+                $addDocument('musaned-transfer', 'تحويل مساند', 'معاملة مالية', route('musaned-transfers.show', $transfer->id), 'fas fa-money-bill-transfer');
+
+                if ($transfer->settlement_constraint_id) {
+                    $addDocument('musaned-settlement-constraint', 'قيد تسوية مساند', 'معاملة مالية', route('finance.add-constraint.show', [
+                        'add_constraint' => $transfer->settlement_constraint_id,
+                        'autoprint' => 1,
+                    ]), 'fas fa-book');
+                }
+
+                if ($transfer->bank_transfer_constraint_id) {
+                    $addDocument('musaned-bank-transfer-constraint', 'قيد تحويل البنك لمساند', 'معاملة مالية', route('finance.add-constraint.show', [
+                        'add_constraint' => $transfer->bank_transfer_constraint_id,
+                        'autoprint' => 1,
+                    ]), 'fas fa-book-open');
+                }
+            }
+        }
+
+        if ($contract->externalOfficeDispatch) {
+            $addDocument('external-office-dispatch', 'إرسالية المكتب الخارجي', 'إجراء تشغيلي', route('RecruitmentContract.externalOfficeDispatch.print', $contract->id), 'fas fa-paper-plane');
+            $addDocument('external-office-dispatch-pdf', 'تنزيل إرسالية المكتب الخارجي PDF', 'إجراء تشغيلي', route('RecruitmentContract.externalOfficeDispatch.print', [
+                'contract' => $contract->id,
+                'driver' => 'dompdf',
+                'download' => 1,
+            ]), 'fas fa-file-pdf');
+        }
+
+        if (in_array($contract->status, [ContractStatusEnum::Arrival->value, ContractStatusEnum::Completed->value], true)) {
+            $addDocument('delivery-form', 'نموذج تسليم العاملة', 'إجراء تشغيلي', route('contract_download_form.download', ['contract_id' => $contract->id]), 'fas fa-file-signature');
+            $addDocument('delivery-form-pdf', 'تنزيل نموذج التسليم PDF', 'إجراء تشغيلي', route('contract_download_form.download', [
+                'contract_id' => $contract->id,
+                'driver' => 'dompdf',
+                'download' => 1,
+            ]), 'fas fa-file-pdf');
+        }
+
+        return $documents;
+    }
+
+    private function getRecruitmentAttachmentTypeLabel(?string $type): string
+    {
+        return match ($type) {
+            'invoice' => 'فاتورة',
+            'financial' => 'معاملة مالية',
+            'operational' => 'إجراء تشغيلي',
+            'contract' => 'مستند عقد',
+            default => 'أخرى',
+        };
     }
 
     private function buildContractStageTimeline(Contract $contract): array

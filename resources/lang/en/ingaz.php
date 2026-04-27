@@ -360,6 +360,7 @@
     'active_orders_count' => 'Active Orders',
     'completed_orders_count' => 'Completed Orders',
     'rental_contracts_count' => 'Rent Contracts',
+    'recruitment_contracts_count' => 'Recruitment Contracts',
     'transfer_requests_count' => 'Transfer Requests',
     'complaints_count' => 'Complaints',
     'last_order_activity' => 'Last Order Activity',

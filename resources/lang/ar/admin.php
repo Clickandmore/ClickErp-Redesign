@@ -873,7 +873,7 @@
     'trial_failed' => 'فشل التجربة',
     'transferred' => 'تم النقل',
     'maids_data_management' => 'إدارة بيانات السير',
-    'recruitment_settings' => ' وإعدادات الاستقدام والتأجير',
+    'recruitment_settings' => ' اعدادت  عمليات التشغيل',
     'countries' => 'الدول',
     'staff_management' => 'إدارة طاقم العمل',
     'website_management' => 'إدارة الموقع',

@@ -27,6 +27,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -38,7 +39,7 @@ class RentContractController extends Controller
     public function __construct()
     {
         $this->middleware('permission:' . \App\PermKeys::RENT_CONTRACT_VIEW . ',admin', [
-            'only' => ['index', 'show', 'statistics', 'exportExcel', 'getContractDetails'],
+            'only' => ['index', 'show', 'statistics', 'exportExcel', 'getContractDetails', 'downloadAttachments'],
         ]);
         $this->middleware('permission:' . \App\PermKeys::RENT_CONTRACT_CREATE . ',admin', [
             'only' => ['create', 'store', 'getExistingClients'],
@@ -231,6 +232,10 @@ class RentContractController extends Controller
                     // طباعة العقد المحسّن
                     $actions .= '<li><a class="dropdown-item" href="' . route('print.rental.contract', $row->id) . '" target="_blank">
                                     <i class="fas fa-print"></i> طباعة العقد
+                                </a></li>';
+
+                    $actions .= '<li><a class="dropdown-item" href="' . route('RentContract.attachments.download', $row->id) . '">
+                                    <i class="fas fa-paperclip"></i> تحميل مرفقات العقد
                                 </a></li>';
 
                     if ($row->financeInvoice) {
@@ -643,6 +648,8 @@ class RentContractController extends Controller
             'marketer',
             'order',
             'financeInvoice.receiptAccount',
+            'extensions',
+            'financialAdjustments',
         ])->findOrFail($id);
 
         $availableReplacementMaids = $this->getAvailableRentalMaidsQuery()
@@ -688,11 +695,14 @@ class RentContractController extends Controller
                 ];
             });
 
+        $contractAttachments = $this->collectRentalContractAttachments($contract);
+
         return view($this->folderPath . '.show', compact(
             'contract',
             'availableReplacementMaids',
             'activities',
-            'maidChangeHistory'
+            'maidChangeHistory',
+            'contractAttachments'
         ));
     }
 
@@ -1405,7 +1415,7 @@ class RentContractController extends Controller
 
     protected function buildRentalClosureSummary(RentalContract $contract): array
     {
-        $contract->loadMissing(['info', 'financialAdjustments']);
+        $contract->loadMissing(['info', 'financialAdjustments', 'financeInvoice']);
 
         $info = $contract->info;
         $monthlyCost = (float) ($info->monthly_cost ?? 0);
@@ -1418,24 +1428,50 @@ class RentContractController extends Controller
             $paidAmount = $contractValue;
         }
 
+        if ($contract->financeInvoice && is_numeric($contract->financeInvoice->paid_amount)) {
+            $paidAmount = max($paidAmount, (float) $contract->financeInvoice->paid_amount);
+        }
+
         $remainingAmount = is_numeric($info?->remaining_amount)
             ? (float) $info->remaining_amount
             : max(0.0, $contractValue - $paidAmount);
 
+        $today = Carbon::now()->startOfDay();
+        $startDate = $info?->ingaz_from
+            ? Carbon::parse($info->ingaz_from)->startOfDay()
+            : ($contract->contract_date ? Carbon::parse($contract->contract_date)->startOfDay() : null);
+        $endDate = $info?->ingaz_to ? Carbon::parse($info->ingaz_to)->startOfDay() : null;
+
         $remainingDaysValue = null;
-        if ($info?->ingaz_to) {
-            $remainingDaysValue = max(0, Carbon::now()->startOfDay()->diffInDays(Carbon::parse($info->ingaz_to)->startOfDay(), false));
+        if ($endDate) {
+            $remainingDaysValue = max(0, $today->diffInDays($endDate, false));
         }
 
-        $usedDays = $durationDays > 0
-            ? max(0, $durationDays - (int) ($remainingDaysValue ?? 0))
-            : null;
+        if ($durationDays <= 0 && $startDate && $endDate) {
+            $durationDays = max(1, $startDate->diffInDays($endDate, false));
+        }
 
-        $refundValue = (float) $contract->financialAdjustments()
+        $usedDays = null;
+        if ($durationDays > 0) {
+            if (!$startDate || $today->lessThan($startDate)) {
+                $usedDays = 0;
+            } elseif ($endDate && $today->greaterThanOrEqualTo($endDate)) {
+                $usedDays = $durationDays;
+            } else {
+                $usedDays = min($durationDays, max(0, $startDate->diffInDays($today, false) + 1));
+            }
+        }
+
+        $dailyRate = $durationDays > 0 ? round($contractValue / $durationDays, 2) : 0.0;
+        $usedCost = $usedDays !== null ? round($dailyRate * $usedDays, 2) : 0.0;
+        $calculatedRefundValue = max(0.0, round($paidAmount - $usedCost, 2));
+
+        $storedRefundValue = (float) $contract->financialAdjustments()
             ->where('context', 'closure')
             ->where('type', 'expense')
             ->whereNull('settled_at')
             ->sum('amount');
+        $refundValue = $storedRefundValue > 0 ? $storedRefundValue : $calculatedRefundValue;
 
         return [
             'monthly_cost' => $monthlyCost,
@@ -1446,6 +1482,9 @@ class RentContractController extends Controller
             'remaining_amount' => $remainingAmount,
             'used_days' => $usedDays,
             'remaining_days_value' => $remainingDaysValue,
+            'daily_rate' => $dailyRate,
+            'used_cost' => $usedCost,
+            'calculated_refund_value' => $calculatedRefundValue,
             'refund_value' => $refundValue,
             'payment_status' => $info?->payment_status,
             'closure_client_iban' => $info?->closure_client_iban,
@@ -1459,7 +1498,7 @@ class RentContractController extends Controller
     public function getContractDetails($id)
     {
         try {
-            $contract = RentalContract::with(['user', 'maid', 'info', 'financialAdjustments'])->findOrFail($id);
+            $contract = RentalContract::with(['user', 'maid', 'info', 'financialAdjustments', 'financeInvoice'])->findOrFail($id);
             $summary = $this->buildRentalClosureSummary($contract);
             $remainingDays = (int) ($summary['remaining_days_value'] ?? 0);
 
@@ -1480,6 +1519,9 @@ class RentContractController extends Controller
                 'remaining_amount' => $summary['remaining_amount'],
                 'used_days' => $summary['used_days'],
                 'remaining_days_value' => $summary['remaining_days_value'],
+                'daily_rate' => $summary['daily_rate'],
+                'used_cost' => $summary['used_cost'],
+                'calculated_refund_value' => $summary['calculated_refund_value'],
                 'refund_value' => $summary['refund_value'],
                 'payment_status' => $summary['payment_status'],
                 'closure_client_iban' => $summary['closure_client_iban'],
@@ -1517,10 +1559,9 @@ class RentContractController extends Controller
         try {
             DB::beginTransaction();
 
-            $contract = RentalContract::findOrFail($id);
-            $validated = [];
+            $contract = RentalContract::with(['maid', 'info', 'financialAdjustments', 'financeInvoice'])->lockForUpdate()->findOrFail($id);
 
-            if (false && !$contract->info) {
+            if (!$contract->info) {
                 throw new \RuntimeException('بيانات عقد الإيجار غير مكتملة');
             }
 
@@ -1578,7 +1619,7 @@ class RentContractController extends Controller
                     'type' => 'expense',
                     'label' => 'استرجاع عند إغلاق العقد',
                     'amount' => $adjustmentAmount,
-                    'notes' => 'استرجاع مسجل أثناء إنهاء عقد الإيجار',
+                    'notes' => 'استرجاع مسجل أثناء إنهاء عقد الإيجار. القيمة المقترحة حسب الأيام: ' . number_format((float) ($summary['calculated_refund_value'] ?? 0), 2) . ' ريال',
                     'context' => 'closure',
                     'created_by' => auth('admin')->id(),
                 ]);
@@ -1628,6 +1669,98 @@ class RentContractController extends Controller
                 'message' => 'حدث خطأ أثناء إغلاق العقد: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    public function downloadAttachments(Request $request, $id)
+    {
+        $contract = RentalContract::with(['info', 'maid', 'extensions', 'financialAdjustments'])->findOrFail($id);
+        $attachments = $this->collectRentalContractAttachments($contract);
+        $selectedKeys = array_filter((array) $request->input('attachments', []));
+
+        if (!empty($selectedKeys)) {
+            $attachments = array_values(array_filter($attachments, function ($attachment) use ($selectedKeys) {
+                return in_array($attachment['key'], $selectedKeys, true);
+            }));
+        } elseif ($request->boolean('selected_only')) {
+            $attachments = [];
+        }
+
+        if (empty($attachments)) {
+            return redirect()->back()->with('error', 'لا توجد مرفقات صالحة للتحميل في هذا العقد.');
+        }
+
+        $zip = new \ZipArchive();
+        $zipFile = tempnam(sys_get_temp_dir(), 'rent-contract-attachments-');
+
+        if ($zip->open($zipFile, \ZipArchive::OVERWRITE) !== true) {
+            return redirect()->back()->with('error', 'تعذر تجهيز ملف المرفقات.');
+        }
+
+        foreach ($attachments as $attachment) {
+            $absolutePath = Storage::disk($attachment['disk'])->path($attachment['path']);
+
+            if (!is_file($absolutePath)) {
+                continue;
+            }
+
+            $zip->addFile($absolutePath, $attachment['filename']);
+        }
+
+        $zip->close();
+
+        if (filesize($zipFile) <= 0) {
+            @unlink($zipFile);
+            return redirect()->back()->with('error', 'لا توجد مرفقات صالحة للتحميل في هذا العقد.');
+        }
+
+        $contractNumber = $contract->contract_number ?: $contract->id;
+
+        return response()
+            ->download($zipFile, 'rent-contract-' . $contractNumber . '-attachments.zip')
+            ->deleteFileAfterSend(true);
+    }
+
+    private function collectRentalContractAttachments(RentalContract $contract): array
+    {
+        $contract->loadMissing(['info', 'maid', 'extensions', 'financialAdjustments']);
+
+        $attachments = [];
+        $addAttachment = function (?string $path, string $label, string $keyPrefix) use (&$attachments) {
+            if (!$path || !Storage::disk('public')->exists($path)) {
+                return;
+            }
+
+            $extension = pathinfo($path, PATHINFO_EXTENSION);
+            $safeLabel = Str::slug($label, '-');
+            if ($safeLabel === '') {
+                $safeLabel = 'attachment';
+            }
+
+            $attachments[] = [
+                'key' => $keyPrefix . '-' . count($attachments),
+                'label' => $label,
+                'path' => $path,
+                'disk' => 'public',
+                'url' => Storage::disk('public')->url($path),
+                'filename' => (count($attachments) + 1) . '-' . $safeLabel . ($extension ? '.' . $extension : ''),
+            ];
+        };
+
+        $addAttachment($contract->info?->payment_receipt_path, 'إيصال دفع العقد', 'payment-receipt');
+        $addAttachment($contract->info?->closure_client_iban_attachment_path, 'مرفق آيبان العميل', 'closure-iban');
+        $addAttachment($contract->maid?->cv_file, 'سيرة العاملة', 'maid-cv');
+        $addAttachment($contract->maid?->cv_preview, 'معاينة سيرة العاملة', 'maid-cv-preview');
+        $addAttachment($contract->maid?->image, 'صورة العاملة', 'maid-image');
+
+        foreach ($contract->extensions as $extension) {
+            $addAttachment($extension->payment_receipt_path, 'إيصال تمديد رقم ' . $extension->id, 'extension-' . $extension->id);
+        }
+
+        foreach ($contract->financialAdjustments as $adjustment) {
+            $addAttachment($adjustment->receipt_path, 'مرفق إجراء مالي رقم ' . $adjustment->id, 'adjustment-' . $adjustment->id);
+        }
+
+        return $attachments;
     }
 
     /**
@@ -1834,9 +1967,11 @@ class RentContractController extends Controller
             }
 
             $contract->update([
-                'status' => 'maid_delivered',
+                'status' => 'active',
                 'maid_delivered_at' => now(),
-                'maid_delivered_by' => auth()->id()
+                'maid_delivered_by' => auth('admin')->id() ?: auth()->id(),
+                'trial_started_at' => now(),
+                'trial_started_by' => auth('admin')->id() ?: auth()->id(),
             ]);
 
             $this->markShelterContractOutsideForRental($contract);
@@ -1845,7 +1980,7 @@ class RentContractController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم تأكيد تسليم العاملة بنجاح'
+                'message' => 'تم تأكيد تسليم العاملة وتفعيل العقد بنجاح'
             ]);
 
         } catch (\Exception $e) {
@@ -2132,13 +2267,39 @@ class RentContractController extends Controller
                 ], 400);
             }
 
-            $contract->update([
-                'signature' => $signatureData
-            ]);
+            $signatureData = str_replace('data:image/png;base64,', '', $signatureData);
+            $signatureData = str_replace(' ', '+', $signatureData);
+            $signatureImage = base64_decode($signatureData);
+
+            if (!$signatureImage) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'بيانات التوقيع غير صحيحة'
+                ], 400);
+            }
+
+            $fileName = 'signature_' . $id . '_' . time() . '.png';
+            \Storage::disk('public')->put('signatures/' . $fileName, $signatureImage);
+
+            $updates = [
+                'signature' => $fileName,
+            ];
+
+            if ($contract->canSignContract()) {
+                $updates = array_merge($updates, [
+                    'status' => 'contract_signed',
+                    'contract_sent_at' => $contract->contract_sent_at ?: now(),
+                    'contract_sent_by' => $contract->contract_sent_by ?: (auth('admin')->id() ?: auth()->id()),
+                    'contract_signed_at' => now(),
+                    'contract_signed_by' => auth('admin')->id() ?: auth()->id(),
+                ]);
+            }
+
+            $contract->update($updates);
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم حفظ التوقيع بنجاح'
+                'message' => 'تم حفظ التوقيع وتحديث حالة العقد بنجاح'
             ]);
 
         } catch (\Exception $e) {

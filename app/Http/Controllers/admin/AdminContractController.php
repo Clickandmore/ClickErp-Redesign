@@ -174,7 +174,7 @@ class AdminContractController extends Controller
             $termsPage3 = $termsByPage->get(3, collect());
 
             // Check if contract allows signature (after being sent)
-            $allowSignature = in_array($contract->status, ['contract_sent', 'contract_signed', 'maid_delivered', 'active']);
+            $allowSignature = in_array($contract->status, ['waiting_contract_send', 'contract_sent', 'contract_signed', 'maid_delivered', 'active']);
 
             return view('admin.print.rental-contract-dynamic', compact('contract', 'contractSettings', 'termsByPage', 'termsPage1', 'termsPage2', 'termsPage3', 'allowSignature'));
 
@@ -301,10 +301,24 @@ class AdminContractController extends Controller
             $filePath = "signatures/" . $fileName;
             \Storage::disk("public")->put($filePath, $signatureImage);
 
-            // حفظ مسار الملف في قاعدة البيانات
-            $contract->update([
-                "signature" => $fileName
-            ]);
+            // حفظ مسار الملف في قاعدة البيانات وتحديث مرحلة العقد عند أول توقيع
+            $updates = [
+                "signature" => $fileName,
+            ];
+
+            if (in_array($contract->status, ['waiting_contract_send', 'contract_sent'], true)) {
+                $adminId = auth('admin')->id() ?: auth()->id();
+
+                $updates = array_merge($updates, [
+                    'status' => 'contract_signed',
+                    'contract_sent_at' => $contract->contract_sent_at ?: now(),
+                    'contract_sent_by' => $contract->contract_sent_by ?: $adminId,
+                    'contract_signed_at' => now(),
+                    'contract_signed_by' => $adminId,
+                ]);
+            }
+
+            $contract->update($updates);
 
             // إعادة تحميل العقد للتأكد من التحديث
             $contract->refresh();

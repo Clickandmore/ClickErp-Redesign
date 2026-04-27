@@ -102,27 +102,32 @@
     <title>{{ $documentTitle }}</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap');
 
         * {
-            margin: 0;
-            padding: 0;
             box-sizing: border-box;
         }
 
+        html,
         body {
-            font-family: 'Cairo', sans-serif;
-            font-size: 13px;
-            line-height: 1.6;
-            color: #000;
-            background: white;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Cairo', Tahoma, Arial, sans-serif;
+            font-size: 12.5px;
+            line-height: 1.75;
+            color: #111827;
+            background: #eef2f5;
             direction: rtl;
         }
 
         .container {
-            max-width: 210mm;
+            width: 210mm;
+            max-width: 100%;
             margin: 0 auto;
-            padding: 10mm;
+            padding: 10mm 0;
             position: relative;
         }
 
@@ -131,18 +136,31 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            opacity: 0.08;
-            width: 400px;
+            opacity: 0.035;
+            width: 118mm;
             height: auto;
             z-index: 0;
+            pointer-events: none;
         }
 
-        .contract-page, .page-1, .page-2, .page-3 {
+        .contract-page {
             position: relative;
             z-index: 1;
+            width: 210mm;
             min-height: 297mm;
-            padding: 15mm;
-            background: white;
+            margin: 0 auto 10mm;
+            padding: 12mm;
+            background: #fff;
+            box-shadow: 0 12px 35px rgba(15, 23, 42, .10);
+            overflow: hidden;
+        }
+
+        .contract-page::before {
+            content: "";
+            position: absolute;
+            inset: 6mm;
+            border: 1px solid #d7dee6;
+            pointer-events: none;
         }
 
         .page-break {
@@ -150,150 +168,279 @@
         }
 
         .header {
-            text-align: center;
-            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: 40mm 1fr 42mm;
+            gap: 8mm;
+            align-items: center;
+            padding: 0 0 7mm;
+            margin-bottom: 7mm;
+            border-bottom: 2px solid #1f6f78;
+            position: relative;
         }
 
         .logo-container {
-            text-align: center;
-            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .logo-container img {
-            max-width: 180px;
-            height: auto;
+            max-width: 34mm;
+            max-height: 25mm;
+            object-fit: contain;
+        }
+
+        .document-title {
+            text-align: center;
         }
 
         h1 {
+            margin: 0;
+            color: #0f172a;
             font-size: 24px;
-            font-weight: 700;
-            margin: 10px 0;
+            font-weight: 800;
+            line-height: 1.3;
+        }
+
+        .document-subtitle {
+            margin-top: 3mm;
+            color: #64748b;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .contract-number-badge {
+            border: 1px solid #bfd4d8;
+            background: #f4fbfc;
+            border-radius: 4px;
+            padding: 4mm 3mm;
+            text-align: center;
+        }
+
+        .contract-number-badge span {
+            display: block;
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .contract-number-badge strong {
+            display: block;
+            color: #1f6f78;
+            font-size: 17px;
+            font-weight: 800;
+            direction: ltr;
         }
 
         h3 {
-            font-size: 16px;
-            font-weight: 600;
-            margin: 12px 0 8px;
-            color: #000;
-            border-bottom: 1px solid #ddd;
-            padding-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin: 7mm 0 3mm;
+            color: #0f172a;
+            font-size: 15px;
+            font-weight: 800;
+            break-after: avoid;
+        }
+
+        h3::before {
+            content: "";
+            width: 4px;
+            height: 18px;
+            border-radius: 3px;
+            background: #1f6f78;
+            flex: 0 0 auto;
         }
 
         .contract-info {
-            margin-bottom: 15px;
-        }
-
-        .contract-info p {
-            line-height: 1.7;
+            margin-bottom: 5mm;
+            padding: 4mm 5mm;
+            border: 1px solid #dbe4ea;
+            background: #f8fafc;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: 600;
         }
 
         .parties-section {
-            margin: 20px 0;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 4mm;
+            margin: 5mm 0;
         }
 
         .party {
-            margin-bottom: 8px;
-            line-height: 1.7;
+            border: 1px solid #dbe4ea;
+            border-radius: 4px;
+            padding: 4mm;
+            background: #fff;
+            line-height: 1.75;
+            break-inside: avoid;
         }
 
         .party-title {
-            font-weight: 600;
-            margin-bottom: 5px;
+            margin: -4mm -4mm 3mm;
+            padding: 2.5mm 4mm;
+            background: #f4fbfc;
+            border-bottom: 1px solid #dbe4ea;
+            color: #0f172a;
+            font-size: 14px;
+            font-weight: 800;
+        }
+
+        .party div:not(.party-title) {
+            margin-bottom: 1.6mm;
         }
 
         .contract-body {
-            margin: 20px 0;
+            margin: 5mm 0;
+            padding: 4mm 5mm;
+            border-right: 4px solid #1f6f78;
+            background: #fbfdfe;
+            text-align: justify;
+            break-inside: avoid;
         }
 
         .contract-body p {
-            margin-bottom: 4px;
+            margin: 0 0 2mm;
         }
 
         .terms-section {
-            margin: 20px 0;
+            margin: 5mm 0 0;
         }
 
         .term-item {
-            margin-bottom: 8px;
-            line-height: 1.6;
+            position: relative;
+            margin-bottom: 2.4mm;
+            padding: 2.2mm 4mm;
+            border: 1px solid #e6edf2;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, .86);
+            line-height: 1.72;
             text-align: justify;
-            padding: 3px 0;
+            break-inside: avoid;
         }
 
         .term-number {
-            font-weight: 600;
-            margin-left: 5px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 7mm;
+            height: 7mm;
+            margin-left: 2mm;
+            border-radius: 50%;
+            background: #e8f5f7;
+            color: #1f6f78;
+            font-weight: 800;
         }
 
-        table {
+        .worker-table {
             width: 100%;
-            border-collapse: collapse;
-            margin: 15px 0;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin: 6mm 0 0;
+            overflow: hidden;
+            border: 1px solid #cfdbe3;
+            border-radius: 4px;
         }
 
-        table td {
-            border: 1px solid #333;
-            padding: 8px;
+        .worker-table td {
+            border-left: 1px solid #dbe4ea;
+            border-bottom: 1px solid #dbe4ea;
+            padding: 3mm 2mm;
             text-align: center;
-            font-size: 12px;
+            font-size: 11.5px;
+            vertical-align: middle;
         }
 
-        table tr:first-child td {
-            background-color: #f5f5f5;
-            font-weight: 600;
+        .worker-table tr:first-child td {
+            background: #1f6f78;
+            color: #fff;
+            font-weight: 800;
+        }
+
+        .worker-table tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .worker-table td:last-child {
+            border-left: 0;
         }
 
         .signature-section {
-            margin-top: 30px;
-            display: flex;
-            justify-content: space-between;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8mm;
+            margin-top: 10mm;
+            break-inside: avoid;
         }
 
         .signature-box {
-            width: 45%;
+            min-height: 42mm;
+            padding: 5mm;
+            border: 1px solid #cfdbe3;
+            border-radius: 4px;
+            background: #fff;
             text-align: center;
-            padding: 15px;
-            border: 1px solid #ddd;
         }
 
         .signature-box h4 {
-            margin-bottom: 10px;
-            font-weight: 600;
+            margin: 0 0 4mm;
+            color: #0f172a;
+            font-size: 15px;
+            font-weight: 800;
         }
 
         .signature-line {
-            margin: 10px 0;
-            padding: 5px 0;
-            border-bottom: 1px solid #333;
-            min-height: 30px;
+            min-height: 10mm;
+            margin: 2mm 0;
+            padding: 2mm 0;
+            border-bottom: 1px dashed #94a3b8;
         }
 
         @media print {
+            @page {
+                size: A4;
+                margin: 0;
+            }
+
             body {
                 background: white;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
             }
 
             .container {
+                width: auto;
                 padding: 0;
             }
 
-            .contract-page, .page-1, .page-2, .page-3 {
+            .contract-page {
+                width: 210mm;
+                min-height: 297mm;
+                margin: 0;
                 padding: 10mm;
+                box-shadow: none;
                 page-break-after: always;
             }
 
+            .contract-page::before {
+                inset: 5mm;
+            }
+
             .no-print {
-                display: none;
+                display: none !important;
             }
 
             h3 {
-                margin-top: 8px;
-                margin-bottom: 6px;
+                margin-top: 5mm;
+                margin-bottom: 2mm;
             }
 
             .term-item {
-                margin-bottom: 6px;
-                padding: 2px 0;
+                margin-bottom: 1.8mm;
+                padding-top: 1.8mm;
+                padding-bottom: 1.8mm;
             }
         }
 
@@ -431,6 +578,29 @@
                 background: none;
             }
         }
+
+        @media screen and (max-width: 900px) {
+            .container,
+            .contract-page {
+                width: 100%;
+            }
+
+            .contract-page {
+                min-height: auto;
+                padding: 16px;
+            }
+
+            .header,
+            .parties-section,
+            .signature-section {
+                grid-template-columns: 1fr;
+            }
+
+            .contract-number-badge {
+                max-width: 260px;
+                margin: 0 auto;
+            }
+        }
     </style>
 </head>
 <body>
@@ -452,11 +622,19 @@
                     {{-- <img src="{{ $logoUrl }}" alt="{{ $documentCompanyName }}"> --}}
                     <img src="{{ $documentLogo }}" alt="{{ $documentCompanyName }}">
                 </div>
-                <h1>{{ $documentTitle }}</h1>
+                <div class="document-title">
+                    <h1>{{ $documentTitle }}</h1>
+                    <div class="document-subtitle">{{ $documentCompanyName }}</div>
+                </div>
+                <div class="contract-number-badge">
+                    <span>رقم العقد</span>
+                    <strong>{{ data_get($contract, 'contract_number', data_get($contract, 'id', '______')) }}</strong>
+                    <span>Contract No.</span>
+                </div>
             </div>
 
             <div class="contract-info">
-                <p style="text-align: center;">الحمد لله وحده وبعد ففي يوم الموافق {{ $formatRentalDate(data_get($contract, 'contract_date', now())) }} تم الاتفاق بمدينة الرياض بين كل من:</p>
+                الحمد لله وحده وبعد، ففي يوم الموافق {{ $formatRentalDate(data_get($contract, 'contract_date', now())) }} تم الاتفاق بمدينة الرياض بين كل من:
             </div>
 
             <div class="parties-section">
@@ -494,7 +672,7 @@
                 @endif
 
                 <!-- جدول بيانات العاملة -->
-                <table>
+                <table class="worker-table">
                     <tr>
                         <td><strong>الجنسية</strong></td>
                         <td><strong>رقم جواز السفر</strong></td>

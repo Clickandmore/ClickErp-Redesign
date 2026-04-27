@@ -461,14 +461,14 @@ $quickLinks = collect([
                 </li>
 
                 <li class="d-none d-xl-inline-block">
-                    <a class="cm-header-open-site" href="{{ url('/') }}" target="_blank" rel="noopener noreferrer" title="عرض الموقع الخارجي">
+                    <a class="cm-header-open-site" href="{{ publicSiteUrl() }}" target="_blank" rel="noopener noreferrer" title="عرض الموقع الخارجي">
                         <i class="fa fa-globe"></i>
                         <span>الموقع</span>
                     </a>
                 </li>
 
                 <li class="d-none d-sm-inline-block d-xl-none">
-                    <a class="nav-link cm-header-action" href="{{ url('/') }}" target="_blank" rel="noopener noreferrer" title="الموقع الخارجي">
+                    <a class="nav-link cm-header-action" href="{{ publicSiteUrl() }}" target="_blank" rel="noopener noreferrer" title="الموقع الخارجي">
                         <i class="fa fa-globe"></i>
                     </a>
                 </li>

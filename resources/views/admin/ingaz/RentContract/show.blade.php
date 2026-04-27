@@ -421,6 +421,19 @@
             color: #64748b;
         }
 
+        .attachment-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+        }
+
+        .attachment-item {
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 12px;
+            background: #f8fafc;
+        }
+
         .activity-wrapper .border.rounded-3 {
             border-color: #edf2f7 !important;
         }
@@ -887,6 +900,50 @@
                     </div>
                 </div>
 
+                <div class="col-12">
+                    <div class="section-card">
+                        <div class="section-header">
+                            <h3 class="section-title">
+                                <i class="fas fa-paperclip"></i>
+                                مرفقات العقد
+                            </h3>
+                            @if (!empty($contractAttachments))
+                                <a href="{{ route('RentContract.attachments.download', $contract->id) }}"
+                                    class="btn btn-sm btn-primary no-print">
+                                    <i class="fas fa-file-zipper me-1"></i>
+                                    تحميل الكل
+                                </a>
+                            @endif
+                        </div>
+
+                        @if (!empty($contractAttachments))
+                            <form method="GET" action="{{ route('RentContract.attachments.download', $contract->id) }}" class="no-print">
+                                <input type="hidden" name="selected_only" value="1">
+                                <div class="attachment-list mb-3">
+                                    @foreach ($contractAttachments as $attachment)
+                                        <label class="attachment-item">
+                                            <input type="checkbox" name="attachments[]" value="{{ $attachment['key'] }}" checked>
+                                            <span class="fw-bold">{{ $attachment['label'] }}</span>
+                                            <a href="{{ $attachment['url'] }}" target="_blank" class="d-block mt-2">
+                                                <i class="fas fa-download me-1"></i>
+                                                تحميل منفرد
+                                            </a>
+                                        </label>
+                                    @endforeach
+                                </div>
+                                <button type="submit" class="btn btn-outline-primary">
+                                    <i class="fas fa-download me-1"></i>
+                                    تحميل المحدد
+                                </button>
+                            </form>
+                        @else
+                            <div class="empty-state">
+                                لا توجد مرفقات مسجلة على هذا العقد حتى الآن.
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
                 <div class="col-xl-6">
                     <div class="section-card">
                         <div class="section-header">
@@ -1109,6 +1166,12 @@
             <a href="{{ route('print.rental.contract', $contract->id) }}" class="btn-icon btn-print" title="طباعة العقد" target="_blank">
                 <i class="fas fa-print"></i>
             </a>
+
+            @if (!empty($contractAttachments))
+                <a href="{{ route('RentContract.attachments.download', $contract->id) }}" class="btn-icon btn-back" title="تحميل كل المرفقات">
+                    <i class="fas fa-paperclip"></i>
+                </a>
+            @endif
 
             @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_EDIT))
                 <a href="{{ route('RentContract.edit', $contract->id) }}" class="btn-icon btn-edit" title="تعديل العقد">

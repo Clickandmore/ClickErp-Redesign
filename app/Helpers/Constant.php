@@ -244,8 +244,8 @@ class Constant
 
         "contract_statuses" => [
             'new' => [
-                "ar" => "بانتظار الاعتماد",
-                "en" => "new"
+                "ar" => "عقود جديدة",
+                "en" => "new contracts"
             ],
             'accreditation_contracts' => [
                 "ar" => "اعتماد العقود",

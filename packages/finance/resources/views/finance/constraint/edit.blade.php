@@ -3,7 +3,79 @@
     $inlineConstraintEdit = $inlineConstraintEdit ?? false;
 @endphp
 
-<form class="row g-3 {{ $constraintFormClass }}" method="post" action="{{ $updateRoute }}" enctype="multipart/form-data">
+@once
+    @push('style')
+        <style>
+            .constraint-edit-form .constraint-edit-table-wrap {
+                overflow-x: auto;
+                padding-bottom: .25rem;
+            }
+
+            .constraint-edit-form .constraint-edit-table {
+                min-width: 1120px;
+                table-layout: fixed;
+            }
+
+            .constraint-edit-form .constraint-edit-table th,
+            .constraint-edit-form .constraint-edit-table td {
+                vertical-align: top;
+            }
+
+            .constraint-edit-form .constraint-edit-table th {
+                white-space: nowrap;
+            }
+
+            .constraint-edit-form .constraint-amount-col {
+                width: 120px;
+            }
+
+            .constraint-edit-form .constraint-account-col {
+                width: 260px;
+            }
+
+            .constraint-edit-form .constraint-cost-center-col {
+                width: 240px;
+            }
+
+            .constraint-edit-form .constraint-statement-col {
+                width: 420px;
+            }
+
+            .constraint-edit-form .constraint-action-col {
+                width: 70px;
+            }
+
+            .constraint-edit-form .select2-container {
+                width: 100% !important;
+            }
+
+            .constraint-edit-form .select2-selection--single {
+                min-height: 42px;
+            }
+
+            .constraint-edit-form .select2-selection__rendered {
+                white-space: normal !important;
+                line-height: 1.5 !important;
+                padding-top: .35rem;
+                padding-bottom: .35rem;
+            }
+
+            .constraint-edit-form .statement-account-field {
+                min-height: 88px;
+                resize: vertical;
+                line-height: 1.7;
+            }
+
+            .constraint-edit-form .fa-trash,
+            .constraint-edit-form .delete-row {
+                cursor: pointer;
+                color: #dc3545;
+            }
+        </style>
+    @endpush
+@endonce
+
+<form class="row g-3 constraint-edit-form {{ $constraintFormClass }}" method="post" action="{{ $updateRoute }}" enctype="multipart/form-data">
     @method("PUT")
 
     <div class="col-md-4 col-12">
@@ -20,24 +92,35 @@
                   placeholder="{{ __('finance::finance.statement') }}">{{ $obj->statement }}</textarea>
     </div>
     <div class="debtor__value"></div>
-    <table id="myDataTable_no_filter" class="table align-middle card-table">
+    <div class="table-responsive constraint-edit-table-wrap">
+    <table id="myDataTable_no_filter" class="table align-middle card-table constraint-edit-table">
+        <colgroup>
+            <col class="constraint-amount-col">
+            <col class="constraint-amount-col">
+            <col class="constraint-account-col">
+            <col class="constraint-cost-center-col">
+            <col class="constraint-statement-col">
+            <col class="constraint-action-col">
+        </colgroup>
         <thead>
-        <td>
+        <tr>
+        <th>
             <div class="w-100 d-flex align-items-center justify-content-between add_debtor">
                 <span>{{ __('finance::finance.debtor') }}</span>
                 <i class="fa fa-plus-circle"></i>
             </div>
-        </td>
-        <td>
+        </th>
+        <th>
             <div class="w-100 d-flex align-items-center justify-content-between add_creditor">
                 <span>{{ __('finance::finance.creditor') }}</span>
                 <i class="fa fa-plus-circle"></i>
             </div>
-        </td>
-        <td>{{ __('finance::finance.Account Name') }}</td>
-        <td>{{ __("finance::finance.fn-cost-centers") }}</td>
-        <td>{{ __('finance::finance.Account Statement') }}</td>
-        <td>{{ __('finance::finance.Delete') }}</td>
+        </th>
+        <th>{{ __('finance::finance.Account Name') }}</th>
+        <th>{{ __("finance::finance.fn-cost-centers") }}</th>
+        <th>{{ __('finance::finance.Account Statement') }}</th>
+        <th>{{ __('finance::finance.Delete') }}</th>
+        </tr>
         </thead>
         <tbody class="table-body">
             @foreach ($obj->constraintDetails as $constraintDetails)
@@ -54,7 +137,7 @@
                             <input type="hidden" value="0" name="creditor_value[]">
                         </td>
                         <td>
-                            <select name="account_id[]" class="form-control select-account select-unique-option ">
+                            <select name="account_id[]" class="form-control select-account select-unique-option select2">
                                 <option value="">{{ __("finance::finance.Select the Account") }}</option>
                                 @foreach ($accounts as $account)
                                     <option value="{{ $account->id }}" {{$account->id == $constraintDetails->account_id ? 'selected' : ''}}>{{ $account->name }}</option>
@@ -72,7 +155,7 @@
                             <input type="hidden" name="cost_center_required" value="{{ (isset($cost_center_required) && $cost_center_required->value == "on") ? "on" : "off" }}">
 
                         </td>
-                        <td><textarea name="statement_account[]" class="form-control" placeholder="{{ __('finance::finance.statement') }}">{{ $constraintDetails->statement}}</textarea>
+                        <td><textarea name="statement_account[]" class="form-control statement-account-field" rows="3" placeholder="{{ __('finance::finance.statement') }}">{{ $constraintDetails->statement}}</textarea>
                         </td>
                         <td><i class="fa fa-trash"></i></td>
                     </tr>
@@ -93,7 +176,7 @@
                             <span class="error-span" hidden style='color:red'> {{ __("finance::finance.Enter Valid Values") }}</span>
                         </td>
                         <td>
-                            <select name="account_id[]" class="form-control select-account select-unique-option ">
+                            <select name="account_id[]" class="form-control select-account select-unique-option select2">
                                 @foreach ($accounts as $account)
                                     <option value="{{ $account->id }}" {{$account->id == $constraintDetails->account_id ? 'selected' : ''}}>{{ $account->name }}</option>
                                 @endforeach
@@ -109,7 +192,7 @@
                             <input type="hidden" name="cost_center_required" value="{{ (isset($cost_center_required) && $cost_center_required->value == "on") ? "on" : "off" }}">
 
                         </td>
-                        <td><textarea name="statement_account[]" class="form-control" placeholder="{{ __('finance::finance.statement') }}">{{ $constraintDetails->statement }}</textarea>
+                        <td><textarea name="statement_account[]" class="form-control statement-account-field" rows="3" placeholder="{{ __('finance::finance.statement') }}">{{ $constraintDetails->statement }}</textarea>
                         </td>
                         <td><i class="fa fa-trash"></i></td>
                     </tr>
@@ -126,6 +209,7 @@
         </tr>
         </tfoot>
     </table>
+    </div>
 
     <hr>
     <h4>{{ __('finance::finance.attachments') }}</h4>

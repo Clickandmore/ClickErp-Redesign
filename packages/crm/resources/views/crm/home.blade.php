@@ -1,4 +1,4 @@
-@extends('nami.layout.indexs.index')
+@extends('click.layout.indexs.index')
 @php
     $dk=array_keys($dates);
 

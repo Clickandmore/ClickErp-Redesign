@@ -149,6 +149,29 @@
 @section('content')
 @if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_SHOW))
     <div class="container-fluid py-3 py-lg-4">
+        @if (session('success'))
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                {{ session('success') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+        @if (session('error'))
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                {{ session('error') }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+        @if ($errors->any())
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <ul class="mb-0">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        @endif
+
         <div class="card client-hero mb-4">
             <div class="card-body d-flex flex-wrap align-items-center justify-content-between gap-3">
                 <div class="d-flex flex-column gap-2">
@@ -178,6 +201,10 @@
                             <i class="fas fa-edit me-1"></i>{{ helperTrans('ingaz.edit_client') }}
                         </a>
                     @endif
+                    <a href="#client-attachments" class="btn btn-outline-info">
+                        <i class="fas fa-paperclip me-1"></i>مرفقات العميل
+                        <span class="badge bg-info text-white ms-1">{{ $client->clientAttachments->count() }}</span>
+                    </a>
                 </div>
             </div>
         </div>
@@ -608,6 +635,106 @@
                                 <p class="text-muted mb-0">{{ helperTrans('ingaz.no_records') }}</p>
                             @endforelse
                         </div>
+                    </div>
+                </div>
+
+                <div class="card client-card" id="client-attachments">
+                    <div class="card-body">
+                        <div class="card-section-title mb-3">
+                            <i class="fas fa-paperclip text-info"></i>
+                            مرفقات العميل
+                        </div>
+
+                        @if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_EDIT))
+                            <form method="POST" action="{{ route('clients.attachments.store', $client->id) }}"
+                                enctype="multipart/form-data" class="border rounded-3 p-3 mb-3 bg-light">
+                                @csrf
+                                <div class="mb-3">
+                                    <label class="form-label">عنوان المرفق</label>
+                                    <input type="text" name="title" class="form-control" value="{{ old('title') }}"
+                                        placeholder="مثال: الهوية الوطنية أو عقد العميل">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">الملفات</label>
+                                    <input type="file" name="attachments[]" class="form-control" multiple required>
+                                    <small class="text-muted">يمكن رفع أكثر من ملف. الحد الأقصى لكل ملف 20MB.</small>
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-upload me-1"></i>إضافة مرفقات
+                                </button>
+                            </form>
+                        @endif
+
+                        @if ($client->clientAttachments->isNotEmpty())
+                            <form id="download-client-attachments-form" method="GET"
+                                action="{{ route('clients.attachments.download', $client->id) }}"></form>
+
+                            <div class="d-flex flex-wrap gap-2 mb-3">
+                                <button type="submit" form="download-client-attachments-form" class="btn btn-outline-success btn-sm">
+                                    <i class="fas fa-download me-1"></i>تحميل المحدد
+                                </button>
+                                <a href="{{ route('clients.attachments.download', $client->id) }}" class="btn btn-outline-secondary btn-sm">
+                                    <i class="fas fa-file-archive me-1"></i>تحميل الكل
+                                </a>
+                            </div>
+
+                            <div class="table-responsive">
+                                <table class="table table-clean align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 36px;"></th>
+                                            <th>الملف</th>
+                                            <th>الحجم</th>
+                                            <th>أضيف بواسطة</th>
+                                            <th>التاريخ</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($client->clientAttachments as $attachment)
+                                            <tr>
+                                                <td>
+                                                    <input type="checkbox" name="attachments[]" value="{{ $attachment->id }}"
+                                                        form="download-client-attachments-form" class="form-check-input">
+                                                </td>
+                                                <td>
+                                                    <div class="fw-semibold">{{ $attachment->title ?: $attachment->original_name }}</div>
+                                                    <div class="text-muted small">{{ $attachment->original_name }}</div>
+                                                </td>
+                                                <td>{{ $attachment->formatted_size }}</td>
+                                                <td>{{ $attachment->uploader?->name ?? helperTrans('ingaz.not_specified') }}</td>
+                                                <td>{{ $attachment->created_at?->format('Y-m-d H:i') ?? '-' }}</td>
+                                                <td class="text-end">
+                                                    <div class="d-inline-flex gap-1">
+                                                        <a href="{{ route('clients.attachments.view', [$client->id, $attachment->id]) }}"
+                                                            class="btn btn-sm btn-outline-info" target="_blank">
+                                                            <i class="fas fa-eye"></i>
+                                                        </a>
+                                                        <a href="{{ route('clients.attachments.download.single', [$client->id, $attachment->id]) }}"
+                                                            class="btn btn-sm btn-outline-primary">
+                                                            <i class="fas fa-download"></i>
+                                                        </a>
+                                                        @if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_EDIT))
+                                                            <form method="POST"
+                                                                action="{{ route('clients.attachments.delete', [$client->id, $attachment->id]) }}"
+                                                                onsubmit="return confirm('هل أنت متأكد من حذف هذا المرفق؟')">
+                                                                @csrf
+                                                                @method('DELETE')
+                                                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                                    <i class="fas fa-trash"></i>
+                                                                </button>
+                                                            </form>
+                                                        @endif
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @else
+                            <p class="text-muted mb-0">لا توجد مرفقات لهذا العميل.</p>
+                        @endif
                     </div>
                 </div>
 

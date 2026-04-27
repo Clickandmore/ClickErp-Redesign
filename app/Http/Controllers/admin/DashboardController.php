@@ -786,11 +786,15 @@ class DashboardController extends Controller
             ]
         ];
 
-        // إيواء (placeholder)
+        $insideShelterCount = Contract::insideShelter()->count();
+        $outsideShelterCount = Contract::outsideShelter()->count();
+        $shelterPlacesTotal = \App\Models\ShelterPlaces::count();
+
         $shelterStats = [
-            'total' => 50,
-            'occupied' => 35,
-            'available' => 15,
+            'total' => Contract::where('status', ContractStatusEnum::Shelter->value)->count(),
+            'inside' => $insideShelterCount,
+            'outside' => $outsideShelterCount,
+            'places' => $shelterPlacesTotal,
         ];
 
         // الجنسيات

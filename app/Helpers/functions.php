@@ -147,6 +147,26 @@ function checkIfUrlIsCurrentVersion2($url, $parameters = [])
     return false;
 }
 
+if (!function_exists('publicSiteUrl')) {
+    function publicSiteUrl(string $path = ''): string
+    {
+        $configuredUrl = config('app.public_site_url');
+
+        if (filled($configuredUrl)) {
+            return rtrim($configuredUrl, '/') . ($path ? '/' . ltrim($path, '/') : '');
+        }
+
+        $rootUrl = request()->getSchemeAndHttpHost();
+        $host = request()->getHost();
+
+        if (str_starts_with($host, 'dashboard.')) {
+            $rootUrl = str_replace('://' . $host, '://' . substr($host, strlen('dashboard.')), $rootUrl);
+        }
+
+        return rtrim($rootUrl, '/') . ($path ? '/' . ltrim($path, '/') : '');
+    }
+}
+
 
 
 

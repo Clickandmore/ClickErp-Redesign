@@ -308,8 +308,8 @@
 
             $operationsHighlights = [
                 [
-                    'title' => 'اعتماد العقود',
-                    'subtitle' => 'بانتظار الاعتماد',
+                    'title' => 'عقود جديدة',
+                    'subtitle' => 'أول مرحلة تشغيلية',
                     'value' => $statusCounts[\App\Enums\ingaz\ContractStatusEnum::New->value] ?? 0,
                     'meta' => 'اليوم: ' . number_format($contractsStats['today'] ?? 0),
                     'video' => asset('admin/assets/img/new-dashboard/contracted.webm'),
@@ -320,9 +320,9 @@
                 ],
                 [
                     'title' => 'حركة وصول اليوم',
-                    'subtitle' => 'تذاكر مؤكدة وموعودة بالوصول',
+                    'subtitle' => 'تذاكر مؤكدة وتحتاج متابعة الاستلام',
                     'value' => $arrivalTodayCount,
-                    'meta' => 'تذاكر جاهزة: ' . number_format($ticketsReady),
+                    'meta' => 'تذاكر جاهزة: ' . number_format($ticketsReady) . ' | راجع الإيواء بعد الوصول',
                     'video' => asset('admin/assets/img/new-dashboard/daily-arraivel.webm'),
                     'icon' => 'fas fa-plane-arrival',
                     'link' => route('RecruitmentContract.index', ['status' => 'arrival_today']),
@@ -364,7 +364,7 @@
                 ],
                 [
                     'title' => __('ingaz.msaned'),
-                    'subtitle' => 'بعد الاعتماد',
+                    'subtitle' => 'بعد اعتماد العقد الجديد',
                     'value' => $statusCounts[\App\Enums\ingaz\ContractStatusEnum::Msaned->value] ?? 0,
                     'icon' => 'fas fa-folder-open',
                     'color' => 'var(--dash-chart-2)',
@@ -557,6 +557,9 @@
                         <div class="mt-3 stat-meta">نشطة: {{ number_format($rentalStats['active'] ?? 0) }} | تحت الإجراء:
                             {{ number_format($rentalStats['in_workflow'] ?? 0) }} | مكتملة:
                             {{ number_format($rentalStats['completed'] ?? 0) }}</div>
+                        <a href="{{ route('finance.home.index') }}" class="stat-meta d-inline-block mt-2 text-white-50">
+                            التفاصيل المالية لعقود الإيجار <i class="fas fa-arrow-left ms-1"></i>
+                        </a>
                     </div>
                 @endif
 
@@ -573,6 +576,9 @@
                             الإجراء:
                             {{ number_format($rentalOrderStats['under_process'] ?? 0) }} | مكتملة:
                             {{ number_format($rentalOrderStats['completed'] ?? 0) }}</div>
+                        <a href="{{ route('RentContract.index') }}" class="stat-meta d-inline-block mt-2 text-white-50">
+                            تحويل الطلب إلى عقد إيجار <i class="fas fa-arrow-left ms-1"></i>
+                        </a>
                     </div>
                 @endif
 
@@ -617,10 +623,14 @@
                                 <small class="stat-label">الإيواء</small>
                                 <h3 class="mb-0">{{ number_format($shelterStats['total'] ?? 0) }}</h3>
                             </div>
-                            <a href="{{ route('dashboard.index') }}" class="btn btn-sm btn-light text-dark">عرض</a>
+                            <a href="{{ route('ShelterContract.index') }}" class="btn btn-sm btn-light text-dark">عرض</a>
                         </div>
-                        <div class="mt-3 stat-meta">مشغول: {{ number_format($shelterStats['occupied'] ?? 0) }} | متاح:
-                            {{ number_format($shelterStats['available'] ?? 0) }}</div>
+                        <div class="mt-3 stat-meta">داخل الإيواء: {{ number_format($shelterStats['inside'] ?? 0) }} |
+                            خارج الإيواء: {{ number_format($shelterStats['outside'] ?? 0) }} | أماكن:
+                            {{ number_format($shelterStats['places'] ?? 0) }}</div>
+                        <a href="{{ route('ShelterContract.outside') }}" class="stat-meta d-inline-block mt-2 text-white-50">
+                            متابعة حركة الخروج للإيجار والنقل <i class="fas fa-arrow-left ms-1"></i>
+                        </a>
                     </div>
                 @endif
             </div>
@@ -665,11 +675,11 @@
             ];
             $contractStageRows = [
                 [
-                    'label' => 'بانتظار الاعتماد',
+                    'label' => 'عقود جديدة',
                     'value' =>
                         $analyticsStatusCounts[\App\Enums\ingaz\ContractStatusEnum::New->value] ??
                         ($analyticsPipeline['pre_arrival'] ?? 0),
-                    'meta' => 'قبل الوصول',
+                    'meta' => 'أول مرحلة تشغيلية قبل مساند',
                     'color' => 'var(--dash-chart-1)',
                 ],
                 [

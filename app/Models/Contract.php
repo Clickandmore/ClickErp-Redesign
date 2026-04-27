@@ -9,6 +9,7 @@ use App\Models\ingaz\User;
 use App\Models\ContractInfo;
 use App\Models\ingaz\ContractNote;
 use App\Models\ingaz\Invoice;
+use App\Models\ingaz\RecruitmentContractAttachment;
 use App\Support\AutomationSettings;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -93,6 +94,11 @@ class Contract extends Model
 
     public function notes(){
         return $this->hasMany(ContractNote::class, 'contract_id');
+    }
+
+    public function attachments()
+    {
+        return $this->hasMany(RecruitmentContractAttachment::class, 'contract_id');
     }
     
 

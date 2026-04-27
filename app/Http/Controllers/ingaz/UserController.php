@@ -6,6 +6,7 @@ use App\Http\Actions\ingaz\UserAction as objAction;
 use App\Http\Controllers\admin\Controller;
 use App\Models\City;
 use App\Models\Country;
+use App\Models\ingaz\ClientAttachment;
 use App\Models\ingaz\Invoice;
 use App\Models\ingaz\Order;
 use App\Models\ingaz\User as objModel;
@@ -15,7 +16,9 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Str;
 use Nami\Finance\Enums\AccountTypesEnum;
 use Nami\Finance\Models\Account;
 use Nami\Finance\Models\Client;
@@ -54,6 +57,7 @@ class UserController extends Controller
                     },
                     'rentalContracts as rental_contracts_count',
                     'sponsorshipTransfersAsNewSponsor as transfer_requests_count',
+                    'clientAttachments as client_attachments_count',
                 ])
                 ->addSelect([
                     'last_order_at' => Order::select('created_at')
@@ -244,6 +248,17 @@ class UserController extends Controller
                         $menuItems .= '<li><a class="dropdown-item" href="' . route($this->mainRoute . '.show', $row->id) . '">
                             <i class="fas fa-eye me-2 text-primary"></i>' . helperTrans('ingaz.view_details') . '
                         </a></li>';
+
+                        $menuItems .= '<li><a class="dropdown-item" href="' . route($this->mainRoute . '.show', $row->id) . '#client-attachments">
+                            <i class="fas fa-paperclip me-2 text-info"></i>مرفقات العميل
+                            <span class="badge bg-light text-dark ms-1">' . number_format((int) $row->client_attachments_count) . '</span>
+                        </a></li>';
+
+                        if ((int) $row->client_attachments_count > 0) {
+                            $menuItems .= '<li><a class="dropdown-item" href="' . route('clients.attachments.download', $row->id) . '">
+                                <i class="fas fa-download me-2 text-success"></i>تحميل مرفقات العميل
+                            </a></li>';
+                        }
                     }
 
                     if (\Illuminate\Support\Facades\Route::has('crm.client_attachments.index')) {
@@ -526,7 +541,8 @@ class UserController extends Controller
             },
             'rentalContracts' => function ($query) {
                 $query->with(['maid', 'info'])->latest();
-            }
+            },
+            'clientAttachments.uploader',
         ])->findOrFail($id);
 
         $activities = $client->activities()->latest()->limit(15)->get()->map(function ($activity) {
@@ -586,6 +602,165 @@ class UserController extends Controller
             'activities',
             'lastInteractionAt'
         ));
+    }
+
+    public function storeAttachments(Request $request, $id)
+    {
+        if (!@AdminGuardHasPerm(\App\PermKeys::CLIENTS_EDIT)) {
+            abort(403);
+        }
+
+        $client = objModel::findOrFail($id);
+
+        $validated = $request->validate([
+            'title' => ['nullable', 'string', 'max:255'],
+            'attachments' => ['required', 'array', 'min:1'],
+            'attachments.*' => ['required', 'file', 'max:20480'],
+        ], [
+            'attachments.required' => 'يرجى اختيار ملف واحد على الأقل.',
+            'attachments.*.max' => 'حجم كل مرفق يجب ألا يتجاوز 20 ميجابايت.',
+        ]);
+
+        foreach ($request->file('attachments', []) as $file) {
+            $originalName = $file->getClientOriginalName();
+            $extension = $file->getClientOriginalExtension();
+            $fileName = Str::uuid()->toString() . ($extension ? '.' . $extension : '');
+            $path = $file->storeAs('clients/attachments/' . $client->id, $fileName, 'public');
+
+            ClientAttachment::create([
+                'user_id' => $client->id,
+                'uploaded_by' => auth('admin')->id() ?: auth()->id(),
+                'title' => $validated['title'] ?? null,
+                'original_name' => $originalName,
+                'path' => $path,
+                'mime_type' => $file->getClientMimeType(),
+                'size' => $file->getSize() ?: 0,
+            ]);
+        }
+
+        return redirect()
+            ->route('clients.show', $client->id)
+            ->with('success', 'تم رفع مرفقات العميل بنجاح.');
+    }
+
+    public function downloadAttachments(Request $request, $id)
+    {
+        if (!@AdminGuardHasPerm(\App\PermKeys::CLIENTS_SHOW) && !@AdminGuardHasPerm(\App\PermKeys::CLIENTS_VIEW)) {
+            abort(403);
+        }
+
+        $client = objModel::with('clientAttachments')->findOrFail($id);
+        $selectedIds = collect((array) $request->input('attachments', []))
+            ->filter(fn($value) => is_numeric($value))
+            ->map(fn($value) => (int) $value)
+            ->values();
+
+        $attachments = $client->clientAttachments;
+        if ($selectedIds->isNotEmpty()) {
+            $attachments = $attachments->whereIn('id', $selectedIds);
+        }
+
+        $attachments = $attachments->filter(fn(ClientAttachment $attachment) => $attachment->existsOnDisk())->values();
+
+        if ($attachments->isEmpty()) {
+            return redirect()->back()->with('error', 'لا توجد مرفقات صالحة للتنزيل.');
+        }
+
+        $zip = new \ZipArchive();
+        $zipFile = tempnam(sys_get_temp_dir(), 'client-attachments-');
+
+        if ($zip->open($zipFile, \ZipArchive::OVERWRITE) !== true) {
+            return redirect()->back()->with('error', 'تعذر تجهيز ملف المرفقات.');
+        }
+
+        foreach ($attachments as $attachment) {
+            $zip->addFile(
+                Storage::disk('public')->path($attachment->path),
+                $this->buildAttachmentDownloadName($attachment)
+            );
+        }
+
+        $zip->close();
+
+        if (filesize($zipFile) <= 0) {
+            @unlink($zipFile);
+            return redirect()->back()->with('error', 'لا توجد مرفقات صالحة للتنزيل.');
+        }
+
+        return response()
+            ->download($zipFile, 'client-' . $client->id . '-attachments.zip')
+            ->deleteFileAfterSend(true);
+    }
+
+    public function downloadAttachment($id, ClientAttachment $attachment)
+    {
+        if (!@AdminGuardHasPerm(\App\PermKeys::CLIENTS_SHOW) && !@AdminGuardHasPerm(\App\PermKeys::CLIENTS_VIEW)) {
+            abort(403);
+        }
+
+        objModel::findOrFail($id);
+
+        if ((int) $attachment->user_id !== (int) $id || !$attachment->existsOnDisk()) {
+            abort(404);
+        }
+
+        return Storage::disk('public')->download($attachment->path, $attachment->original_name);
+    }
+
+    public function viewAttachment($id, ClientAttachment $attachment)
+    {
+        if (!@AdminGuardHasPerm(\App\PermKeys::CLIENTS_SHOW) && !@AdminGuardHasPerm(\App\PermKeys::CLIENTS_VIEW)) {
+            abort(403);
+        }
+
+        objModel::findOrFail($id);
+
+        if ((int) $attachment->user_id !== (int) $id || !$attachment->existsOnDisk()) {
+            abort(404);
+        }
+
+        $filename = str_replace(['"', "\r", "\n"], '', $attachment->original_name ?: 'attachment');
+
+        return response()->file(Storage::disk('public')->path($attachment->path), [
+            'Content-Type' => $attachment->mime_type ?: 'application/octet-stream',
+            'Content-Disposition' => 'inline; filename="' . $filename . '"',
+        ]);
+    }
+
+    public function deleteAttachment($id, ClientAttachment $attachment)
+    {
+        if (!@AdminGuardHasPerm(\App\PermKeys::CLIENTS_EDIT)) {
+            abort(403);
+        }
+
+        objModel::findOrFail($id);
+
+        if ((int) $attachment->user_id !== (int) $id) {
+            abort(404);
+        }
+
+        if ($attachment->path) {
+            Storage::disk('public')->delete($attachment->path);
+        }
+
+        $attachment->delete();
+
+        return redirect()
+            ->route('clients.show', $id)
+            ->with('success', 'تم حذف مرفق العميل بنجاح.');
+    }
+
+    private function buildAttachmentDownloadName(ClientAttachment $attachment): string
+    {
+        $extension = pathinfo($attachment->original_name ?: $attachment->path, PATHINFO_EXTENSION);
+        $baseName = pathinfo($attachment->original_name ?: 'attachment', PATHINFO_FILENAME);
+        $safeName = Str::slug($baseName, '-');
+
+        if ($safeName === '') {
+            $safeName = 'attachment-' . $attachment->id;
+        }
+
+        return $attachment->id . '-' . $safeName . ($extension ? '.' . $extension : '');
     }
 
     /**

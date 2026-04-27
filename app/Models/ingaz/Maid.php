@@ -210,6 +210,11 @@ class Maid extends Model
         return $this->hasMany(\App\Models\RentalContract::class, 'maid_id');
     }
 
+    public function attachments()
+    {
+        return $this->hasMany(MaidAttachment::class, 'maid_id')->latest();
+    }
+
     public function office()
     {
         return $this->belongsTo(RecruitmentOffices::class, 'office_id');

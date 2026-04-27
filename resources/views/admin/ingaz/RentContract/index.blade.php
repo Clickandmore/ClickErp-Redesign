@@ -436,6 +436,18 @@
                                             <strong>الأيام المتبقية:</strong>
                                             <p id="financialRemainingDays">-</p>
                                         </div>
+                                        <div class="col-md-3">
+                                            <strong>تكلفة اليوم:</strong>
+                                            <p id="financialDailyRate">-</p>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <strong>تكلفة الأيام المستخدمة:</strong>
+                                            <p id="financialUsedCost">-</p>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <strong>الاسترجاع المقترح:</strong>
+                                            <p id="financialSuggestedRefund">-</p>
+                                        </div>
                                     </div>
                                     <div class="row g-3 mt-2 align-items-end">
                                         <div class="col-md-4">
@@ -1144,6 +1156,9 @@
                 $('#closeClientIbanAttachmentCurrentWrapper').addClass('d-none');
                 $('#closeClientIbanAttachmentCurrent').attr('href', '#');
                 $('#financialRemainingAmount').data('raw', 0);
+                $('#financialDailyRate').text('-');
+                $('#financialUsedCost').text('-');
+                $('#financialSuggestedRefund').text('-');
                 updateCloseFinancialPreview();
             }
 
@@ -1320,6 +1335,10 @@
                                 .data('raw', contract.remaining_amount || 0);
                             $('#financialUsedDays').text(contract.used_days !== null && typeof contract.used_days !== 'undefined' ? (contract.used_days + ' يوم') : '-');
                             $('#financialRemainingDays').text(contract.remaining_days_value !== null && typeof contract.remaining_days_value !== 'undefined' ? (contract.remaining_days_value + ' يوم') : '-');
+                            $('#financialDailyRate').text(formatCurrency(contract.daily_rate || 0) + ' ريال');
+                            $('#financialUsedCost').text(formatCurrency(contract.used_cost || 0) + ' ريال');
+                            $('#financialSuggestedRefund').text(formatCurrency(contract.calculated_refund_value || 0) + ' ريال');
+                            $('#closeAdjustmentAmount').val(parseFloat(contract.refund_value || 0).toFixed(2));
                             $('#closePaymentStatus').val(contract.payment_status || '');
                             $('#closeClientIban').val(contract.closure_client_iban || '');
 

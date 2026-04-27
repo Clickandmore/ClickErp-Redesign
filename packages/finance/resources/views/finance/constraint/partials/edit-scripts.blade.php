@@ -5,24 +5,52 @@
         lang: '{{ \App::currentLocale() }}',
         validateOnEvent: true
     });
-    $('.select2').select2();
+    function initConstraintSelect2(scope) {
+        $(scope || document).find('.select2').each(function() {
+            let select = $(this);
+            if (select.data('select2')) {
+                select.select2('destroy');
+            }
+
+            select
+                .removeClass('select2-hidden-accessible')
+                .removeAttr('data-select2-id aria-hidden tabindex');
+            select.find('option').removeAttr('data-select2-id');
+
+            select.select2({
+                width: '100%',
+                dir: '{{ app()->getLocale() === 'ar' ? 'rtl' : 'ltr' }}',
+                dropdownAutoWidth: true,
+                placeholder: select.find('option:first').text() || '',
+                allowClear: !select.prop('required')
+            });
+        });
+    }
+
+    initConstraintSelect2(document);
     $(document).on('click', '.add_debtor', function(e) {
         e.preventDefault();
         var HtmlDebtorAppend = $("#debtor_append").clone();
+        HtmlDebtorAppend.find('.select2-container').remove();
+        HtmlDebtorAppend.removeAttr('id');
+        HtmlDebtorAppend.find('input[type="number"], textarea').val('');
+        HtmlDebtorAppend.find('select').val('');
         HtmlDebtorAppend.find('i').addClass('delete-row');
         HtmlDebtorAppend.find('.constraint-old-id').remove();
         let newSelect = HtmlDebtorAppend.find(".select-unique-option");
-        newSelect.select2('destroy');
         HtmlDebtorAppend.appendTo('.table-body');
         disableNewOptions(newSelect);
     });
     $(document).on('click', '.add_creditor', function(e) {
         e.preventDefault();
         var HtmlCreditorAppend = $("#creditor_append").clone();
+        HtmlCreditorAppend.find('.select2-container').remove();
+        HtmlCreditorAppend.removeAttr('id');
+        HtmlCreditorAppend.find('input[type="number"], textarea').val('');
+        HtmlCreditorAppend.find('select').val('');
         HtmlCreditorAppend.find('i').addClass('delete-row');
         HtmlCreditorAppend.find('.constraint-old-id').remove();
         let newSelect = HtmlCreditorAppend.find(".select-unique-option");
-        newSelect.select2('destroy');
         HtmlCreditorAppend.appendTo('.table-body');
         disableNewOptions(newSelect);
     });
@@ -38,7 +66,7 @@
     }).change();
 
     function disableNewOptions(newSelect) {
-        $('.select2').select2();
+        initConstraintSelect2(newSelect.closest('tr'));
         $('select.select-unique-option').not(newSelect).each(function() {
             if ($("option:selected", this).val() != "") {
                 newSelect.find('option[value="' + $("option:selected", this).val() + '"]').attr("disabled", true);

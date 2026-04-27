@@ -480,6 +480,7 @@
   'active_orders_count' => 'الطلبات النشطة',
   'completed_orders_count' => 'الطلبات المكتملة',
   'rental_contracts_count' => 'عقود الإيجار',
+  'recruitment_contracts_count' => 'عقود الاستقدام',
   'transfer_requests_count' => 'طلبات نقل الكفالة',
   'complaints_count' => 'الشكاوى',
   'last_order_activity' => 'آخر نشاط للطلبات',

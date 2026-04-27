@@ -179,6 +179,11 @@ class AdminRoutePermissionMatrix
             [
                 'clients.export.pdf' => [PermKeys::CLIENTS_EXPORT_PDF, PermKeys::CLIENTS_EXPORT],
                 'clients.export.excel' => [PermKeys::CLIENTS_EXPORT_EXCEL, PermKeys::CLIENTS_EXPORT],
+                'clients.attachments.store' => [PermKeys::CLIENTS_EDIT],
+                'clients.attachments.download' => [PermKeys::CLIENTS_SHOW, PermKeys::CLIENTS_VIEW],
+                'clients.attachments.view' => [PermKeys::CLIENTS_SHOW, PermKeys::CLIENTS_VIEW],
+                'clients.attachments.download.single' => [PermKeys::CLIENTS_SHOW, PermKeys::CLIENTS_VIEW],
+                'clients.attachments.delete' => [PermKeys::CLIENTS_EDIT],
             ]
         );
     }
@@ -189,6 +194,11 @@ class AdminRoutePermissionMatrix
             'maids.index' => [PermKeys::MAIDS_VIEW],
             'maids.create' => [PermKeys::MAIDS_CREATE],
             'maids.rental.index' => [PermKeys::MAIDS_RENTAL_VIEW],
+            'maids.attachments.store' => [PermKeys::MAIDS_EDIT],
+            'maids.attachments.download' => [PermKeys::MAIDS_VIEW, PermKeys::MAIDS_SHOW, PermKeys::MAIDS_RENTAL_VIEW],
+            'maids.attachments.view' => [PermKeys::MAIDS_VIEW, PermKeys::MAIDS_SHOW, PermKeys::MAIDS_RENTAL_VIEW],
+            'maids.attachments.download.single' => [PermKeys::MAIDS_VIEW, PermKeys::MAIDS_SHOW, PermKeys::MAIDS_RENTAL_VIEW],
+            'maids.attachments.delete' => [PermKeys::MAIDS_EDIT],
             'noneAvailableMaids' => [PermKeys::MAIDS_BACKOUT_VIEW],
             'maids.deleted_cvs' => [PermKeys::MAIDS_DELETED_VIEW],
         ];

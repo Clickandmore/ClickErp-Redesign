@@ -920,8 +920,8 @@ if (!function_exists('getContractStatus')) {
     {
         $statuses = [
             'new' => [
-                'ar' => 'عقد جديد',
-                'en' => 'New Contract'
+                'ar' => 'عقود جديدة',
+                'en' => 'New Contracts'
             ],
             'msaned' => [
                 'ar' => 'عقود مساند',

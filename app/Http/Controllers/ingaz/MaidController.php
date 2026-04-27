@@ -17,6 +17,7 @@ use App\Models\Contract;
 use App\Models\ingaz\JobType;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\Maid as objModel;
+use App\Models\ingaz\MaidAttachment;
 use App\Models\ingaz\Nationality;
 use App\Models\ingaz\Skill;
 use App\Models\MaidUnavailableRecord;
@@ -25,6 +26,7 @@ use App\Services\ingaz\RentalMaidFinanceService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -404,7 +406,7 @@ class MaidController extends Controller
 
                     $ordersLabel = helperTrans('ingaz.total_orders_count');
                     $activeOrdersLabel = helperTrans('ingaz.active_orders_count');
-                    $contractsLabel = helperTrans('ingaz.rental_contracts_count');
+                    $contractsLabel = helperTrans('ingaz.recruitment_contracts_count');
                     $activeContractsLabel = helperTrans('ingaz.active_contracts_count');
 
                     // HTML Elements
@@ -434,6 +436,7 @@ class MaidController extends Controller
 
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_SHOW)) {
                         $menuItems .= '<li><a class="dropdown-item" href="' . route('showMaidDetails', $row->id) . '"><i class="fas fa-eye text-primary me-2"></i>' . helperTrans('ingaz.view_details') . '</a></li>';
+                        $menuItems .= '<li><a class="dropdown-item" href="' . route('showMaidDetails', $row->id) . '#maid-attachments"><i class="fas fa-paperclip text-info me-2"></i>المرفقات</a></li>';
                     }
 
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT)) {
@@ -693,6 +696,9 @@ class MaidController extends Controller
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_SHOW) || @AdminGuardHasPerm(\App\PermKeys::MAIDS_RENTAL_VIEW)) {
                         $menuItems[] = '<li><a class="dropdown-item" href="' . route('showMaidDetails', $row->id) . '">
                             <i class="fas fa-eye text-primary me-2"></i>عرض التفاصيل
+                        </a></li>';
+                        $menuItems[] = '<li><a class="dropdown-item" href="' . route('showMaidDetails', $row->id) . '#maid-attachments">
+                            <i class="fas fa-paperclip text-info me-2"></i>المرفقات
                         </a></li>';
                     }
 
@@ -1041,6 +1047,7 @@ class MaidController extends Controller
             'orders.contracts',
             'expertises.country',
             'expertises.jobTitle',
+            'attachments.uploader',
             'rentalFinancialAdjustments' => function ($query) {
                 $query->where('context', 'maid')->latest();
             },
@@ -1218,6 +1225,165 @@ class MaidController extends Controller
             'backToListRoute',
             'hrEmployeeRecord'
         ));
+    }
+
+    public function storeAttachments(Request $request, $id)
+    {
+        if (!@AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT)) {
+            abort(403);
+        }
+
+        $maid = objModel::withTrashed()->findOrFail($id);
+
+        $validated = $request->validate([
+            'title' => ['nullable', 'string', 'max:255'],
+            'attachments' => ['required', 'array', 'min:1'],
+            'attachments.*' => ['required', 'file', 'max:20480'],
+        ], [
+            'attachments.required' => 'يرجى اختيار ملف واحد على الأقل.',
+            'attachments.*.max' => 'حجم كل مرفق يجب ألا يتجاوز 20 ميجابايت.',
+        ]);
+
+        foreach ($request->file('attachments', []) as $file) {
+            $originalName = $file->getClientOriginalName();
+            $extension = $file->getClientOriginalExtension();
+            $fileName = Str::uuid()->toString() . ($extension ? '.' . $extension : '');
+            $path = $file->storeAs('maids/attachments/' . $maid->id, $fileName, 'public');
+
+            MaidAttachment::create([
+                'maid_id' => $maid->id,
+                'uploaded_by' => auth('admin')->id() ?: auth()->id(),
+                'title' => $validated['title'] ?? null,
+                'original_name' => $originalName,
+                'path' => $path,
+                'mime_type' => $file->getClientMimeType(),
+                'size' => $file->getSize() ?: 0,
+            ]);
+        }
+
+        return redirect()
+            ->route('showMaidDetails', $maid->id)
+            ->with('success', 'تم رفع المرفقات بنجاح.');
+    }
+
+    public function downloadAttachments(Request $request, $id)
+    {
+        if (!@AdminGuardHasPerm(\App\PermKeys::MAIDS_VIEW) && !@AdminGuardHasPerm(\App\PermKeys::MAIDS_SHOW) && !@AdminGuardHasPerm(\App\PermKeys::MAIDS_RENTAL_VIEW)) {
+            abort(403);
+        }
+
+        $maid = objModel::withTrashed()->with('attachments')->findOrFail($id);
+        $selectedIds = collect((array) $request->input('attachments', []))
+            ->filter(fn($value) => is_numeric($value))
+            ->map(fn($value) => (int) $value)
+            ->values();
+
+        $attachments = $maid->attachments;
+        if ($selectedIds->isNotEmpty()) {
+            $attachments = $attachments->whereIn('id', $selectedIds);
+        }
+
+        $attachments = $attachments->filter(fn(MaidAttachment $attachment) => $attachment->existsOnDisk())->values();
+
+        if ($attachments->isEmpty()) {
+            return redirect()->back()->with('error', 'لا توجد مرفقات صالحة للتنزيل.');
+        }
+
+        $zip = new \ZipArchive();
+        $zipFile = tempnam(sys_get_temp_dir(), 'maid-attachments-');
+
+        if ($zip->open($zipFile, \ZipArchive::OVERWRITE) !== true) {
+            return redirect()->back()->with('error', 'تعذر تجهيز ملف المرفقات.');
+        }
+
+        foreach ($attachments as $attachment) {
+            $zip->addFile(
+                Storage::disk('public')->path($attachment->path),
+                $this->buildAttachmentDownloadName($attachment)
+            );
+        }
+
+        $zip->close();
+
+        if (filesize($zipFile) <= 0) {
+            @unlink($zipFile);
+            return redirect()->back()->with('error', 'لا توجد مرفقات صالحة للتنزيل.');
+        }
+
+        return response()
+            ->download($zipFile, 'maid-' . $maid->id . '-attachments.zip')
+            ->deleteFileAfterSend(true);
+    }
+
+    public function downloadAttachment($id, MaidAttachment $attachment)
+    {
+        if (!@AdminGuardHasPerm(\App\PermKeys::MAIDS_VIEW) && !@AdminGuardHasPerm(\App\PermKeys::MAIDS_SHOW) && !@AdminGuardHasPerm(\App\PermKeys::MAIDS_RENTAL_VIEW)) {
+            abort(403);
+        }
+
+        objModel::withTrashed()->findOrFail($id);
+
+        if ((int) $attachment->maid_id !== (int) $id || !$attachment->existsOnDisk()) {
+            abort(404);
+        }
+
+        return Storage::disk('public')->download($attachment->path, $attachment->original_name);
+    }
+
+    public function viewAttachment($id, MaidAttachment $attachment)
+    {
+        if (!@AdminGuardHasPerm(\App\PermKeys::MAIDS_VIEW) && !@AdminGuardHasPerm(\App\PermKeys::MAIDS_SHOW) && !@AdminGuardHasPerm(\App\PermKeys::MAIDS_RENTAL_VIEW)) {
+            abort(403);
+        }
+
+        objModel::withTrashed()->findOrFail($id);
+
+        if ((int) $attachment->maid_id !== (int) $id || !$attachment->existsOnDisk()) {
+            abort(404);
+        }
+
+        $filename = str_replace(['"', "\r", "\n"], '', $attachment->original_name ?: 'attachment');
+
+        return response()->file(Storage::disk('public')->path($attachment->path), [
+            'Content-Type' => $attachment->mime_type ?: 'application/octet-stream',
+            'Content-Disposition' => 'inline; filename="' . $filename . '"',
+        ]);
+    }
+
+    public function deleteAttachment($id, MaidAttachment $attachment)
+    {
+        if (!@AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT)) {
+            abort(403);
+        }
+
+        objModel::withTrashed()->findOrFail($id);
+
+        if ((int) $attachment->maid_id !== (int) $id) {
+            abort(404);
+        }
+
+        if ($attachment->path) {
+            Storage::disk('public')->delete($attachment->path);
+        }
+
+        $attachment->delete();
+
+        return redirect()
+            ->route('showMaidDetails', $id)
+            ->with('success', 'تم حذف المرفق بنجاح.');
+    }
+
+    private function buildAttachmentDownloadName(MaidAttachment $attachment): string
+    {
+        $extension = pathinfo($attachment->original_name ?: $attachment->path, PATHINFO_EXTENSION);
+        $baseName = pathinfo($attachment->original_name ?: 'attachment', PATHINFO_FILENAME);
+        $safeName = Str::slug($baseName, '-');
+
+        if ($safeName === '') {
+            $safeName = 'attachment-' . $attachment->id;
+        }
+
+        return $attachment->id . '-' . $safeName . ($extension ? '.' . $extension : '');
     }
 
     public function create(NationalityAction $act, RecruitmentOfficeAction $officeAct, ReligionAction $relAct, JobTitleAction $jobTitleAction, JobTypeAction $jobTypesAction, SkillAction $skillAction, Request $request)
