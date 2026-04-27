@@ -61,12 +61,7 @@ class RecruitmentContractController extends Controller
 
     private function canSelectAnyMarketer($admin): bool
     {
-        if (!$admin) {
-            return false;
-        }
-
-        return $admin->admin_type === 'super_admin'
-            || adminHasAnyRoleSafe($admin, ['super_admin', 'admin', 'Administrator']);
+        return (bool) $admin;
     }
 
     private function canViewRecruitmentContracts(): bool
@@ -1911,7 +1906,10 @@ class RecruitmentContractController extends Controller
         $currentUser = Auth::guard('admin')->user();
         $canSelectAnyMarketer = $this->canSelectAnyMarketer($currentUser);
         $marketers = $canSelectAnyMarketer
-            ? \App\Models\auth\Admin::whereNull('deleted_at')->orderBy('name')->get()
+            ? \App\Models\auth\Admin::query()
+                ->orderByRaw('CASE WHEN id = ? THEN 0 ELSE 1 END', [$currentUser?->id ?? 0])
+                ->orderBy('name')
+                ->get()
             : collect([$currentUser])->filter();
 
         return view('admin.ingaz.RecruitmentContract.create', compact('orders', 'endedOrders', 'countries', 'maidNationalities', 'recruitmentOffices', 'saudiCities', 'all_available_maids', 'selectedOrder', 'orderId', 'existing_clients', 'currentUser', 'canSelectAnyMarketer', 'marketers'));
@@ -1936,7 +1934,10 @@ class RecruitmentContractController extends Controller
             ], 401);
         }
 
-        $marketerId = (int) $currentAdmin->id;
+        $canSelectAnyMarketer = $this->canSelectAnyMarketer($currentAdmin);
+        $marketerId = $canSelectAnyMarketer
+            ? (int) $request->input('marketer_id', $currentAdmin->id)
+            : (int) $currentAdmin->id;
 
         // logger()->info('Recruitment Contract Creation Request:', $request->all());
         // logger()->info('Request validation:', [
@@ -2453,7 +2454,10 @@ class RecruitmentContractController extends Controller
         $currentAdmin = Auth::guard('admin')->user();
         $canSelectAnyMarketer = $this->canSelectAnyMarketer($currentAdmin);
         $marketers = $canSelectAnyMarketer
-            ? \App\Models\auth\Admin::whereNull('deleted_at')->orderBy('name')->get()
+            ? \App\Models\auth\Admin::query()
+                ->orderByRaw('CASE WHEN id = ? THEN 0 ELSE 1 END', [$currentAdmin?->id ?? 0])
+                ->orderBy('name')
+                ->get()
             : collect([$currentAdmin])->filter();
 
         return view('admin.ingaz.RecruitmentContract.edit', compact('contract', 'countries', 'currentAdmin', 'canSelectAnyMarketer', 'marketers'));
@@ -3578,7 +3582,7 @@ class RecruitmentContractController extends Controller
                 'nationalities' => $nationalities,
                 'religions' => $religions,
                 'offices' => $offices,
-                'marketers' => \App\Models\auth\Admin::select('id', 'name')->whereNull('deleted_at')->orderBy('name')->get(),
+                'marketers' => \App\Models\auth\Admin::select('id', 'name')->orderBy('name')->get(),
             ];
         });
     }

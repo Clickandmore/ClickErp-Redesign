@@ -12,6 +12,11 @@ use Illuminate\Http\Exceptions\HttpResponseException;
 
 class StoreContractRequest extends MainRequest
 {
+    private function canSelectAnyMarketer($admin): bool
+    {
+        return (bool) $admin;
+    }
+
     /**
      * Determine if the user is authorized to make this request.
      *
@@ -27,7 +32,7 @@ class StoreContractRequest extends MainRequest
         $normalizedData = [];
         $currentAdmin = Auth::guard('admin')->user();
 
-        if ($currentAdmin) {
+        if ($currentAdmin && (!$this->canSelectAnyMarketer($currentAdmin) || !$this->filled('marketer_id'))) {
             $normalizedData['marketer_id'] = $currentAdmin->id;
         }
 
@@ -64,7 +69,7 @@ class StoreContractRequest extends MainRequest
     {
         $currentAdmin = Auth::guard('admin')->user();
         $marketerRules = ['required', 'exists:admins,id'];
-        if ($currentAdmin) {
+        if ($currentAdmin && !$this->canSelectAnyMarketer($currentAdmin)) {
             $marketerRules[] = Rule::in([$currentAdmin->id]);
         }
 
@@ -148,6 +153,7 @@ class StoreContractRequest extends MainRequest
             'manual_maid_attachment.mimes' => 'صيغة مرفق العاملة المختصرة غير مدعومة',
             'marketer_id.required' => 'يرجي اختيار المسوق',
             'marketer_id.exists' => 'المسوق المختار غير موجود',
+            'marketer_id.in' => 'لا يمكنك اختيار مسوق مختلف عن المستخدم الحالي',
             'required_maid_nationality.exists' => 'الجنسية المختارة غير موجودة',
         ];
     }

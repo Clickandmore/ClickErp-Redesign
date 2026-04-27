@@ -48,12 +48,25 @@
             <label class="form-label">المسوق <span class="text-danger">*</span></label>
             @php
                 $currentAdmin = $currentUser ?? auth('admin')->user();
+                $selectedMarketerId = old('marketer_id', $contract->marketer_id ?? $currentAdmin?->id);
                 $displayAdminName = trim(preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags((string) ($currentAdmin?->name ?? '')), ENT_QUOTES, 'UTF-8')));
             @endphp
 
-            <input type="text" class="form-control" value="{{ $displayAdminName ?: 'المستخدم الحالي' }}" readonly>
-            <input type="hidden" name="marketer_id" id="marketer_id" value="{{ $currentAdmin?->id }}">
-            <small class="text-muted">يتم تسجيل العقد باسم المستخدم الحالي تلقائياً.</small>
+            @if (!empty($canSelectAnyMarketer))
+                <select name="marketer_id" id="marketer_id" class="form-select select2" data-placeholder="اختر المسوق">
+                    <option value="">اختر المسوق...</option>
+                    @foreach ($marketers ?? collect() as $marketer)
+                        <option value="{{ $marketer->id }}" @selected((string) $selectedMarketerId === (string) $marketer->id)>
+                            {{ $marketer->name }}
+                        </option>
+                    @endforeach
+                </select>
+                <small class="text-muted">اختر الموظف/المسوق المسؤول عن العقد.</small>
+            @else
+                <input type="text" class="form-control" value="{{ $displayAdminName ?: 'المستخدم الحالي' }}" readonly>
+                <input type="hidden" name="marketer_id" id="marketer_id" value="{{ $currentAdmin?->id }}">
+                <small class="text-muted">يتم تسجيل العقد باسم المستخدم الحالي تلقائياً.</small>
+            @endif
             <div class="invalid-feedback" id="err_marketer_id"></div>
         </div>
     </div>

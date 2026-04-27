@@ -96,6 +96,85 @@
             padding: 1.35rem;
         }
 
+        .contract-page-content .form-section {
+            width: 100%;
+            padding: 1.25rem;
+            border: 1px solid #dde8f4;
+            border-radius: 18px;
+            background: #fff;
+            box-shadow: 0 12px 26px rgba(27, 55, 88, 0.05);
+        }
+
+        .contract-page-content .section-header {
+            display: flex;
+            align-items: flex-start;
+            gap: .85rem;
+            margin-bottom: 1.15rem;
+            padding-bottom: .9rem;
+            border-bottom: 1px solid #e8eef6;
+        }
+
+        .contract-page-content .section-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #1f6fb2 0%, #2d8cbc 100%);
+            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+            box-shadow: 0 10px 18px rgba(31, 111, 178, 0.16);
+        }
+
+        .contract-page-content .section-title {
+            margin: 0 0 .2rem;
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: #233d59;
+        }
+
+        .contract-page-content .section-subtitle {
+            margin: 0;
+            color: #728196;
+            font-size: .88rem;
+        }
+
+        .contract-picker-row {
+            padding: 1rem;
+            margin: 0 0 1.25rem;
+            border: 1px dashed #cfdceb;
+            border-radius: 18px;
+            background: #f8fbff;
+        }
+
+        .quick-create-client {
+            min-height: 46px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: .45rem;
+            border-radius: 14px;
+            font-weight: 700;
+        }
+
+        .maid-mode-options {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: .75rem;
+        }
+
+        .maid-mode-options .btn {
+            min-height: 48px;
+            border-radius: 14px !important;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: normal;
+            line-height: 1.35;
+            font-weight: 700;
+        }
+
         .contract-header {
             padding: 1.4rem 1.5rem;
             background: linear-gradient(135deg, #1f6fb2 0%, #246d8f 100%);
@@ -176,6 +255,10 @@
                 min-width: auto;
                 width: 100%;
             }
+
+            .maid-mode-options {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 @endsection
@@ -251,8 +334,8 @@
                             </div>
                         </div>
                         <div class="card-body">
-                            <div class="row align-items-end">
-                                <div class="col-md-12 mb-3">
+                            <div class="row g-3 align-items-end contract-picker-row">
+                                <div class="col-lg-9">
                                     <label for="new_existing_client_id" class="form-label">اختر عميل <span
                                             class="text-danger">*</span></label>
                                     <select name="new_existing_client_id" id="new_existing_client_id"
@@ -281,8 +364,10 @@
                                             @endforeach
                                         @endif
                                     </select>
+                                </div>
+                                <div class="col-lg-3">
                                     <a href="{{ route('clients.create') }}" target="_blank"
-                                        class="btn btn-outline-primary mt-2" title="إضافة عميل جديد"><i
+                                        class="btn btn-outline-primary quick-create-client w-100" title="إضافة عميل جديد"><i
                                             class="fas fa-user-plus"></i> إضافة عميل جديد</a>
                                 </div>
                             </div>
@@ -429,7 +514,7 @@
                                             <div class="col-12 mb-3">
                                                 <label class="form-label">طريقة إضافة العاملة <span
                                                         class="text-danger">*</span></label>
-                                                <div class="btn-group w-100" role="group" aria-label="طريقة إضافة العاملة">
+                                                <div class="maid-mode-options" role="group" aria-label="طريقة إضافة العاملة">
                                                     <input type="radio" class="btn-check" name="maid_selection_mode"
                                                         id="maid_mode_existing" value="existing" checked>
                                                     <label class="btn btn-outline-success" for="maid_mode_existing">عاملة
@@ -973,6 +1058,8 @@
 @section('js')
     <script>
         var indexRoute = "{{ route('RecruitmentContract.index') }}";
+        var createContractRoute = "{{ route('RecruitmentContract.create') }}";
+        var currentContractsRoute = "{{ route('RecruitmentContract.index', ['status' => 'current']) }}";
         var selectedOrder = @json($selectedOrder);
         var hasOrderId = {{ isset($orderId) ? 'true' : 'false' }};
     </script>
@@ -1040,6 +1127,10 @@
 
         function escapeHtml(value) {
             return $('<div>').text(value || '').html();
+        }
+
+        function getNewMaidMode() {
+            return $('input[name="maid_selection_mode"]:checked').val() || 'existing';
         }
 
         function clearContractValidationErrors(formSelector) {
@@ -1121,6 +1212,29 @@
                     confirmButtonText: 'حسناً'
                 });
             }
+        }
+
+        function handleContractCreated(response, redirectToInvoice, invoiceCreateUrl) {
+            if (redirectToInvoice && response.contract && response.contract.id) {
+                window.location.href = invoiceCreateUrl + '?contract_id=' + response.contract.id;
+                return;
+            }
+
+            Swal.fire({
+                icon: 'success',
+                title: 'تم إنشاء العقد بنجاح',
+                text: response.message || 'تم إنشاء العقد بنجاح',
+                showDenyButton: true,
+                confirmButtonText: 'إضافة عقد آخر',
+                denyButtonText: 'العقود السارية',
+                allowOutsideClick: false
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = createContractRoute;
+                } else {
+                    window.location.href = currentContractsRoute;
+                }
+            });
         }
     </script>
 
@@ -1804,20 +1918,7 @@
                     success: function(response) {
                         console.log('Server response:', response);
                         if (response.success) {
-                            // Show success message
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'تم بنجاح',
-                                text: response.message || 'تم إنشاء العقد بنجاح',
-                                confirmButtonText: 'حسناً'
-                            }).then((result) => {
-                                if (redirectToInvoice && response.contract && response.contract.id) {
-                                    window.location.href = orderInvoiceCreateUrl +
-                                        '?contract_id=' + response.contract.id;
-                                } else {
-                                    window.location.href = indexRoute;
-                                }
-                            });
+                            handleContractCreated(response, redirectToInvoice, orderInvoiceCreateUrl);
                         } else {
                             // Show error message
                             Swal.fire({
@@ -1860,6 +1961,28 @@
         // Global error handler
         window.addEventListener('error', function(e) {
             console.error('JavaScript error:', e.error);
+
+            if (window.Swal) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ في الصفحة',
+                    text: e.message || 'حدث خطأ غير متوقع أثناء تنفيذ العملية',
+                    confirmButtonText: 'حسناً'
+                });
+            }
+        });
+
+        window.addEventListener('unhandledrejection', function(e) {
+            console.error('Unhandled promise rejection:', e.reason);
+
+            if (window.Swal) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ في الصفحة',
+                    text: (e.reason && e.reason.message) || 'حدث خطأ غير متوقع أثناء تنفيذ العملية',
+                    confirmButtonText: 'حسناً'
+                });
+            }
         });
 
         $(document).ready(function() {
@@ -2574,22 +2697,7 @@
                     success: function(response) {
                         console.log('AJAX success response:', response);
                         if (response.success) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'تم بنجاح',
-                                text: response.message || 'تم إنشاء العقد بنجاح',
-                                confirmButtonText: 'حسناً'
-                            }).then((result) => {
-                                if (redirectToInvoice && response.contract && response
-                                    .contract.id) {
-                                    window.location.href =
-                                        invoiceCreateUrl + '?contract_id=' + response
-                                        .contract.id;
-                                } else {
-                                    window.location.href =
-                                        "{{ route('RecruitmentContract.index') }}";
-                                };
-                            });
+                            handleContractCreated(response, redirectToInvoice, invoiceCreateUrl);
                         } else {
                             Swal.fire({
                                 icon: 'error',
