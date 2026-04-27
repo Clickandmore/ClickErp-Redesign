@@ -138,7 +138,7 @@
         }
 
         .shelter-contracts-page .table-responsive {
-            overflow-x: visible;
+            overflow-x: auto;
         }
 
         #shelterContractsTable {
@@ -153,6 +153,21 @@
         #shelterContractsTable td {
             white-space: normal;
             word-break: break-word;
+        }
+
+        #shelterContractsTable th:nth-child(3),
+        #shelterContractsTable td:nth-child(3) {
+            min-width: 220px;
+        }
+
+        #shelterContractsTable th:nth-child(4),
+        #shelterContractsTable td:nth-child(4) {
+            min-width: 180px;
+        }
+
+        #shelterContractsTable th:nth-child(11),
+        #shelterContractsTable td:nth-child(11) {
+            min-width: 240px;
         }
 
         #shelterContractsTable td.child {
@@ -185,18 +200,92 @@
             text-align: start;
         }
 
-        .shelter-status-stack {
+        .table-person-cell,
+        .shelter-status-cell {
+            display: flex;
+            flex-direction: column;
+            gap: .42rem;
+            min-width: 0;
+        }
+
+        .table-person-title {
+            color: #212529;
+            font-size: .92rem;
+            font-weight: 800;
+            line-height: 1.35;
+        }
+
+        .table-person-meta,
+        .status-line {
+            display: flex;
+            align-items: flex-start;
+            gap: .4rem;
+            color: #6c757d;
+            font-size: .78rem;
+            line-height: 1.4;
+        }
+
+        .table-person-meta i,
+        .status-line i {
+            flex: 0 0 14px;
+            width: 14px;
+            margin-top: .12rem;
+            color: #8a94a6;
+            text-align: center;
+        }
+
+        .status-top {
             display: flex;
             flex-wrap: wrap;
             gap: .35rem;
             align-items: center;
-            max-width: 260px;
         }
 
-        .shelter-status-stack .badge {
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            width: fit-content;
+            max-width: 100%;
+            border-radius: 999px;
+            padding: .25rem .55rem;
+            font-size: .74rem;
+            font-weight: 800;
+            line-height: 1.25;
             white-space: normal;
-            line-height: 1.35;
-            text-align: start;
+        }
+
+        .status-pill-service {
+            color: #084298;
+            background: #e7f1ff;
+            border: 1px solid #bfd7ff;
+        }
+
+        .status-pill-work {
+            color: #0f5132;
+            background: #d1e7dd;
+            border: 1px solid #badbcc;
+        }
+
+        .status-pill-work-warning {
+            color: #664d03;
+            background: #fff3cd;
+            border: 1px solid #ffecb5;
+        }
+
+        .status-pill-work-muted {
+            color: #41464b;
+            background: #e2e3e5;
+            border: 1px solid #d3d6d8;
+        }
+
+        .status-line strong {
+            flex: 0 0 auto;
+            color: #495057;
+            font-weight: 800;
+        }
+
+        .status-line span {
+            min-width: 0;
         }
 
         .shelter-contracts-page .dataTables_wrapper .row {

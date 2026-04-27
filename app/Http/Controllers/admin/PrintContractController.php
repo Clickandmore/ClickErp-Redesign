@@ -56,7 +56,7 @@ class PrintContractController extends Controller
             "@contract_expire_date",
         ];
         $replace = [
-            'شركة بلاتنيوم الشرقية للإستقدام',
+            documentSetting('document_company_name', documentSetting('website_name', config('app.name'))),
             Carbon::now()->format('d/m/Y') ?? '----------',
             $data->user->name ?? '----------',
             getNationalityName(@$data->user->nationality_id) ?? '----------',

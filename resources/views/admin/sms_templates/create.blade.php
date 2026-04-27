@@ -232,9 +232,9 @@
                 const clientPhone = $('#previewClientPhone').val() || '0501234567';
                 const clientEmail = $('#previewClientEmail').val() || 'client@example.com';
                 const contractNumber = $('#previewContractNumber').val() || '12345';
-                const companyName = 'شركة بلاتينيوم الشرقية للاستقدام';
-                const companyPhone = '0112345678';
-                const companyEmail = 'info@asas-alinjaz.com';
+                const companyName = @json(documentSetting('document_company_name', documentSetting('website_name', config('app.name'))));
+                const companyPhone = @json(documentSetting('phone', ''));
+                const companyEmail = @json(documentSetting('email', ''));
 
                 let processedMessage = message
                     .replace(/{client_name}/g, clientName)

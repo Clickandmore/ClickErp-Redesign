@@ -510,7 +510,7 @@ class InvoiceController extends Controller
         $settingsQr = ($settings && $settings->qr_image) ? showFile($settings->qr_image) : null;
         $settingsSecondQr = ($settings && $settings->second_qr_image) ? showFile($settings->second_qr_image) : null;
 
-        $supplierName = (string) documentSetting('document_company_name', $settings?->website_name ?: 'شركة بلاتنيوم الشرقية للاستقدام');
+        $supplierName = (string) documentSetting('document_company_name', $settings?->website_name ?: config('app.name'));
         $supplierAddress = (string) ($settings?->location ?: 'الرياض، المملكة العربية السعودية');
         $supplierPhone = (string) ($settings?->phone ?: '-');
         $supplierOtherPhone = (string) ($settings?->other_phone ?: '-');

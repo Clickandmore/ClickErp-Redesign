@@ -451,8 +451,8 @@ if (!function_exists('replaceDocumentPlaceholders')) {
         }
 
         $branding = [
-            'company_name' => documentSetting('document_company_name', documentSetting('website_name', 'بلاتنيوم الشرقية للاستقدام')),
-            'office_name' => documentSetting('document_office_name', 'مكتب بلاتنيوم الشرقية للاستقدام'),
+            'company_name' => documentSetting('document_company_name', documentSetting('website_name', config('app.name'))),
+            'office_name' => documentSetting('document_office_name', documentSetting('website_name', config('app.name'))),
         ];
 
         $tokens = [
@@ -474,9 +474,9 @@ if (!function_exists('documentBranding')) {
     function documentBranding(?string $locale = null): array
     {
         $locale = $locale ?: app()->getLocale();
-        $defaultCompanyName = documentSetting('website_name', 'بلاتنيوم الشرقية للاستقدام', $locale);
+        $defaultCompanyName = documentSetting('website_name', config('app.name'), $locale);
         $companyName = documentSetting('document_company_name', $defaultCompanyName, $locale);
-        $officeName = documentSetting('document_office_name', 'مكتب بلاتنيوم الشرقية للاستقدام', $locale);
+        $officeName = documentSetting('document_office_name', $defaultCompanyName, $locale);
         $footerTemplate = documentSetting(
             'document_footer_note',
             'تم إنشاء هذا النموذج إلكترونياً بواسطة [اسم_الشركة].',

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     @php
         $feedbackBrandName = isset($settings) ? optional($settings->translate(app()->getLocale()))->website_name : null;
-        $feedbackBrandName = $feedbackBrandName ?: 'بلاتنيوم الشرقية للاستقدام';
+        $feedbackBrandName = $feedbackBrandName ?: documentSetting('website_name', config('app.name'));
     @endphp
     <title>تقييم خدمة العملاء - {{ $feedbackBrandName }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">

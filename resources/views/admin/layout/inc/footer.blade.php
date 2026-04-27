@@ -4,7 +4,7 @@
             $locale = app()->getLocale();
             $footerName = isset($settings) ? optional($settings->translate($locale))->dashboard_name : null;
             $footerName = $footerName ?: (isset($settings) ? optional($settings->translate($locale))->website_name : null);
-            $footerName = $footerName ?: 'بلاتنيوم الشرقية للاستقدام';
+            $footerName = $footerName ?: documentSetting('website_name', config('app.name'));
             $footerCopyright = isset($settings) ? optional($settings->translate($locale))->copyright : null;
         @endphp
         <p class=" text-muted d-flex align-items-center gap-1">

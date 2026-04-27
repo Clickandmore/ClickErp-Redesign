@@ -6,7 +6,7 @@
     @include('site.includes.css')
 
     @yield('style')
-    <title> @yield('title') | {{ __('ingaz.Platinum Al Sharqiyah Recruitment Agency') }}</title>
+    <title> @yield('title') | {{ isset($settings) ? optional($settings->translate(app()->getLocale()))->website_name : documentSetting('website_name', config('app.name')) }}</title>
 
 </head>
 

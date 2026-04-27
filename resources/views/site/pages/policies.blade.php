@@ -27,7 +27,7 @@
         <div class="container">
             <h2 class="section-title">{{ __('ingaz.guidelines_title') }}</h2>
             <p class="section-desc">
-                {!! __('ingaz.guidelines_desc') !!}
+                {!! 'تحرص شركة <strong>' . e(documentSetting('website_name', config('app.name'))) . '</strong> على توفير بيئة عمل آمنة وواضحة لكلٍ من العملاء والعاملات. لذلك قمنا بإعداد كتيبات <span>التوجيهات</span> و<span>الإرشادات</span> بشكل مبسط ومترجم إلى لغات الجنسيات المختلفة، حتى يتمكن الجميع من الاطلاع عليها وفهم حقوقهم وواجباتهم بسهولة.<br>يمكنكم تحميل الملفات الخاصة بكل دولة من خلال البطاقات أدناه.' !!}
             </p>
             <div class="guidelines-wrapper">
 

@@ -137,8 +137,8 @@ class OrderAction extends MainAction
             'order_id' => $order->id,
             "type" => ($type != null) ? $type : NotificationActionEnum::NewOrder->value,
             'title' => [
-                'en' => __('notifications.Asus Al Injaz', [], 'en'),
-                'ar' => __('notifications.Asus Al Injaz', [], 'ar'),
+                'en' => documentSetting('website_name', config('app.name'), 'en'),
+                'ar' => documentSetting('website_name', config('app.name'), 'ar'),
             ],
             'description' => [
                 'en' => __('notifications.There is a new order', [], 'en') . $order->id,
@@ -211,8 +211,8 @@ class OrderAction extends MainAction
             'order_id' => $order->id,
             "type" => NotificationActionEnum::OrderStatus->value,
             'title' => [
-                'en' => __('notifications.Asus Al Injaz', [], 'en'),
-                'ar' => __('notifications.Asus Al Injaz', [], 'ar'),
+                'en' => documentSetting('website_name', config('app.name'), 'en'),
+                'ar' => documentSetting('website_name', config('app.name'), 'ar'),
             ],
             'description' => [
                 'en' => __('notifications.update_order_status', [], 'en') . $order->id,

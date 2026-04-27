@@ -624,7 +624,7 @@
 
                         <div class="info">
                             <h4 class="hint">
-                                {{ __('web.project_name') }}
+                                {{ documentSetting('website_name', config('app.name')) }}
                             </h4>
                             <h1 class="sliderTitle">
                                 {{ __('web.project_desc') }}
@@ -679,7 +679,7 @@
                     {{ __('web.our_services') }}
                 </i>
             </div>
-            <h2 class="title">{{ isset($whatDoSetting) ? $whatDoSetting->title : 'خدمات شركه بلاتينيوم الشرقية' }}</h2>
+            <h2 class="title">{{ isset($whatDoSetting) ? $whatDoSetting->title : 'خدمات ' . documentSetting('website_name', config('app.name')) }}</h2>
             <p class="hint">{{ isset($whatDoSetting) ? $whatDoSetting->description : ' خدماتنا مرخصه من وزاره الموارد البشريه والتنميه الاجتماعية لضمان راحتك وراحه اسرتك' }}
             </p>
         </div> --}}
@@ -889,7 +889,7 @@
 
     @php
         $aboutTitle = optional($abouts)->title ?? __('ingaz.about-us');
-        $aboutDescription = optional($abouts)->description ?? __('ingaz.about_description');
+        $aboutDescription = optional($abouts)->description ?? documentSetting('website_name', config('app.name')) . ' مرخصة من وزارة العمل والموارد البشرية لخدمات التوسط في استقدام العمالة الوافدة، وحرصاً منا على تقديم خدمات متميزة تم إطلاق منصة رقمية متكاملة لتبسيط عملية الاستقدام وجعلها أكثر كفاءة وسهولة لعملائنا بما يتوافق مع رؤية المملكة.';
         $aboutImage = optional($abouts)->image ? showFile($abouts->image) : asset('site/assets/images/about.webp');
     @endphp
     <!-- about sec  -->

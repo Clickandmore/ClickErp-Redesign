@@ -34,7 +34,7 @@
 </head>
 <body>
     @php
-        $documentCompanyName = documentSetting('document_company_name', 'شركة بلاتنيوم الشرقية للإستقدام');
+        $documentCompanyName = documentSetting('document_company_name', documentSetting('website_name', config('app.name')));
         $rentalIntroText = replaceDocumentPlaceholders((string) documentSetting(
             'rental_contract_intro_text',
             'حيث أن الطرف الأول مرخص ويسمح له بتقديم خدمات العمالة المنزلية، ولديه الخبرات والامكانيات اللازمة لتوفير خدمات العمالة المنزلية، وذلك وفق الأنظمة واللوائح والتعليمات المعمول بها في المملكة العربية السعودية وبما لا يتعارض مع أحكام الشريعة الإسلامية، ولحاجه الطرف الثاني لخدمات بعض العمالة المنزلية، فقد اتفق الطرفان وهما بكامل أهليتهما المعتبرة شرعا ونظاما على ما يلي:'

@@ -1623,6 +1623,8 @@ class SponsorshipTransferController extends Controller
                 $transfer->contract->update([
                     'status' => ContractStatusEnum::Trial->value
                 ]);
+
+                $this->markShelterContractOutsideForTransfer($transfer);
             }
 
             if ($transfer->transferServiceContract && !in_array($transfer->transferServiceContract->status, ['completed', 'cancelled'], true)) {
@@ -1650,6 +1652,28 @@ class SponsorshipTransferController extends Controller
                 'message' => 'حدث خطأ في تسجيل تسليم العاملة'
             ], 500);
         }
+    }
+
+    private function markShelterContractOutsideForTransfer(SponsorshipTransfer $transfer): void
+    {
+        if (!$transfer->contract) {
+            return;
+        }
+
+        $transfer->contract->info()->updateOrCreate([], [
+            'is_outside_shelter' => true,
+            'outside_shelter_at' => $transfer->maid_delivered_at ?: now(),
+            'outside_shelter_reason' => 'transfer_delivery',
+            'outside_shelter_reference_type' => SponsorshipTransfer::class,
+            'outside_shelter_reference_id' => $transfer->id,
+            'outside_shelter_by' => auth('admin')->id() ?: auth()->id(),
+        ]);
+
+        $transfer->contract->contract_status_logs()->create([
+            'status' => ContractStatusEnum::Trial->value,
+            'date' => now(),
+            'notes' => 'تم إخراج العاملة من داخل الإيواء بسبب بدء فترة تجربة نقل كفالة رقم ' . $transfer->id,
+        ]);
     }
 
     /**

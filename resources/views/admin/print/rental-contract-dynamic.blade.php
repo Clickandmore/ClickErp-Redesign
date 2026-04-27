@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     @php
         $documentTitle = documentSetting('rental_contract_title', 'عقد تأجير عاملة منزلية');
-        $documentCompanyName = documentSetting('document_company_name', $contractSettings['company_name'] ?? 'شركة بلاتنيوم الشرقية للاستقدام');
+        $documentCompanyName = documentSetting('document_company_name', $contractSettings['company_name'] ?? documentSetting('website_name', config('app.name')));
         $documentLogo = documentLogoUrl(asset('admin/assets/img/company_logo.png'));
         $documentAddress = $contractSettings['address'] ?? documentSetting('location', 'الرياض');
         $documentPhone = $contractSettings['phone'] ?? documentSetting('phone', '');
@@ -449,7 +449,7 @@
         <div class="contract-page page-1">
             <div class="header">
                 <div class="logo-container">
-                    {{-- <img src="{{ $logoUrl }}" alt="شركة بلاتنيوم الشرقية"> --}}
+                    {{-- <img src="{{ $logoUrl }}" alt="{{ $documentCompanyName }}"> --}}
                     <img src="{{ $documentLogo }}" alt="{{ $documentCompanyName }}">
                 </div>
                 <h1>{{ $documentTitle }}</h1>

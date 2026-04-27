@@ -967,7 +967,9 @@ class RentContractController extends Controller
     public function completeContract(Request $request, $id)
     {
         try {
-            $contract = RentalContract::findOrFail($id);
+            DB::beginTransaction();
+
+            $contract = RentalContract::lockForUpdate()->findOrFail($id);
 
             $contract->update([
                 'status' => 'completed',
@@ -976,12 +978,20 @@ class RentContractController extends Controller
                 'warranty_end_date' => now()->addMonths(3), // 3 أشهر ضمان افتراضي
             ]);
 
+            $this->returnShelterContractInsideForRental($contract);
+
+            DB::commit();
+
             return response()->json([
                 'success' => true,
                 'message' => 'تم إنهاء العقد بنجاح'
             ]);
 
         } catch (\Exception $e) {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+
             return response()->json([
                 'success' => false,
                 'message' => 'حدث خطأ أثناء إنهاء العقد: ' . $e->getMessage()
@@ -1582,6 +1592,8 @@ class RentContractController extends Controller
                 $contract->maid->save();
             }
 
+            $this->returnShelterContractInsideForRental($contract);
+
             // Log the action
             \Log::info('Rent contract closed and maid made available', [
                 'contract_id' => $contract->id,
@@ -1808,9 +1820,13 @@ class RentContractController extends Controller
     public function deliverMaid(Request $request, $id)
     {
         try {
-            $contract = RentalContract::findOrFail($id);
+            DB::beginTransaction();
+
+            $contract = RentalContract::with('maid')->lockForUpdate()->findOrFail($id);
 
             if (!$contract->canDeliverMaid()) {
+                DB::rollBack();
+
                 return response()->json([
                     'success' => false,
                     'message' => 'لا يمكن تسليم العاملة في هذه المرحلة'
@@ -1823,12 +1839,20 @@ class RentContractController extends Controller
                 'maid_delivered_by' => auth()->id()
             ]);
 
+            $this->markShelterContractOutsideForRental($contract);
+
+            DB::commit();
+
             return response()->json([
                 'success' => true,
                 'message' => 'تم تأكيد تسليم العاملة بنجاح'
             ]);
 
         } catch (\Exception $e) {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+
             return response()->json([
                 'success' => false,
                 'message' => 'حدث خطأ: ' . $e->getMessage()
@@ -2065,7 +2089,7 @@ class RentContractController extends Controller
 
             $contractSettings['company_name'] = documentSetting(
                 'document_company_name',
-                $contractSettings['company_name'] ?? 'شركة بلاتنيوم الشرقية للاستقدام'
+                $contractSettings['company_name'] ?? documentSetting('website_name', config('app.name'))
             );
             $contractSettings['address'] = $contractSettings['address'] ?: documentSetting('location', 'الرياض');
             $contractSettings['phone'] = $contractSettings['phone'] ?: documentSetting('phone', '');
@@ -2123,6 +2147,84 @@ class RentContractController extends Controller
                 'message' => 'حدث خطأ أثناء حفظ التوقيع: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    private function markShelterContractOutsideForRental(RentalContract $rentalContract): void
+    {
+        if (!$rentalContract->maid_id) {
+            return;
+        }
+
+        $shelterContract = Contract::query()
+            ->with('info')
+            ->where('maid_id', $rentalContract->maid_id)
+            ->where('status', ContractStatusEnum::Shelter->value)
+            ->where(function ($query) {
+                $query->whereDoesntHave('info')
+                    ->orWhereHas('info', function ($infoQuery) {
+                        $infoQuery->where(function ($outsideQuery) {
+                            $outsideQuery->whereNull('is_outside_shelter')
+                                ->orWhere('is_outside_shelter', false);
+                        });
+                    });
+            })
+            ->latest('id')
+            ->lockForUpdate()
+            ->first();
+
+        if (!$shelterContract) {
+            return;
+        }
+
+        $shelterContract->info()->updateOrCreate([], [
+            'is_outside_shelter' => true,
+            'outside_shelter_at' => $rentalContract->maid_delivered_at ?: now(),
+            'outside_shelter_reason' => 'rental_delivery',
+            'outside_shelter_reference_type' => RentalContract::class,
+            'outside_shelter_reference_id' => $rentalContract->id,
+            'outside_shelter_by' => auth('admin')->id() ?: auth()->id(),
+        ]);
+
+        $shelterContract->contract_status_logs()->create([
+            'status' => ContractStatusEnum::Shelter->value,
+            'date' => now(),
+            'notes' => 'تم إخراج العاملة من داخل الإيواء بسبب تسليم عقد إيجار رقم ' . $rentalContract->id,
+        ]);
+    }
+
+    private function returnShelterContractInsideForRental(RentalContract $rentalContract): void
+    {
+        if (!$rentalContract->maid_id) {
+            return;
+        }
+
+        $shelterContract = Contract::query()
+            ->with('info')
+            ->where('maid_id', $rentalContract->maid_id)
+            ->where('status', ContractStatusEnum::Shelter->value)
+            ->whereHas('info', function ($infoQuery) use ($rentalContract) {
+                $infoQuery->where('is_outside_shelter', true)
+                    ->where('outside_shelter_reason', 'rental_delivery')
+                    ->where('outside_shelter_reference_type', RentalContract::class)
+                    ->where('outside_shelter_reference_id', $rentalContract->id);
+            })
+            ->latest('id')
+            ->lockForUpdate()
+            ->first();
+
+        if (!$shelterContract || !$shelterContract->info) {
+            return;
+        }
+
+        $shelterContract->info->update([
+            'is_outside_shelter' => false,
+        ]);
+
+        $shelterContract->contract_status_logs()->create([
+            'status' => ContractStatusEnum::Shelter->value,
+            'date' => now(),
+            'notes' => 'تمت إعادة العاملة إلى داخل الإيواء بعد إنهاء عقد إيجار رقم ' . $rentalContract->id,
+        ]);
     }
 
 

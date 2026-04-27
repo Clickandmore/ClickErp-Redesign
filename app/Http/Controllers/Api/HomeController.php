@@ -221,7 +221,8 @@ class HomeController extends Controller
 
         if ($ticket->save()) {
             $ticket->code = $ticket->id;
-            $msg = " عزيزنا العميل ,تم تسليم الشكوى لدى مكتب بلاتنيوم الشرقية للاستقدام بنجاح . وهى محل اهتمامنا و سيتم المتابعة و أعلامك بالمستجدات رقم الشكوى" . $ticket->code;
+            $companyName = documentSetting('document_company_name', documentSetting('website_name', config('app.name')));
+            $msg = " عزيزنا العميل ,تم تسليم الشكوى لدى شركة {$companyName} بنجاح . وهى محل اهتمامنا و سيتم المتابعة و أعلامك بالمستجدات رقم الشكوى" . $ticket->code;
             if (!empty($user->phone)) {
                 $result = $this->sendSMS(formatSaudiPhone($user->phone), $msg);
 

@@ -1758,5 +1758,4 @@
   'recruitment_office' => 'المكتب الخارجي',
   'force_delete' => 'Force delete',
   'cvs-recruitment-returns' => 'Cvs-recruitment-returns',
-  'cvs-backout' => 'Cvs-backout',
 );

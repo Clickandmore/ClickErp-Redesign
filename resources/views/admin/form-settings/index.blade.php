@@ -133,7 +133,7 @@
                                         <label class="form-label">اسم الشركة على النماذج {{ getFieldLanguage($locale) }}</label>
                                         <input type="text" name="document_company_name:{{ $locale }}" class="form-control"
                                                value="{{ $settings->translate($locale)->document_company_name ?? '' }}"
-                                               placeholder="مثال: شركة بلاتنيوم الشرقية للاستقدام">
+                                               placeholder="مثال: {{ documentSetting('document_company_name', documentSetting('website_name', config('app.name'))) }}">
                                     </div>
                                 @endforeach
 
@@ -142,7 +142,7 @@
                                         <label class="form-label">اسم المكتب على النماذج {{ getFieldLanguage($locale) }}</label>
                                         <input type="text" name="document_office_name:{{ $locale }}" class="form-control"
                                                value="{{ $settings->translate($locale)->document_office_name ?? '' }}"
-                                               placeholder="مثال: مكتب بلاتنيوم الشرقية للاستقدام">
+                                               placeholder="مثال: {{ documentSetting('document_office_name', documentSetting('website_name', config('app.name'))) }}">
                                     </div>
                                 @endforeach
 

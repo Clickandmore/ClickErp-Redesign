@@ -5,7 +5,7 @@
     $footerText =
         isset($settings) && !empty($settings->footer_text)
             ? $settings->footer_text
-            : 'بلاتينيوم الشرقية للاستقدام يقدم خدمات استقدام العمالة المنزلية باحترافية وجودة مميزة.';
+            : documentSetting('website_name', config('app.name')) . ' يقدم خدمات استقدام العمالة المنزلية باحترافية وجودة مميزة.';
     $taxLogo =
         isset($settings) && !empty($settings->zatch_logo)
             ? showFile($settings->zatch_logo)
@@ -16,7 +16,7 @@
     $footerPhone = isset($settings) && !empty($settings->phone) ? $settings->phone : '920003174';
     $footerOtherPhone = isset($settings) && !empty($settings->other_phone) ? $settings->other_phone : '0552333182';
     $footerBrandName = isset($settings) ? optional($settings->translate(app()->getLocale()))->website_name : null;
-    $footerBrandName = $footerBrandName ?: 'شركة بلاتنيوم الشرقية';
+    $footerBrandName = $footerBrandName ?: documentSetting('website_name', config('app.name'));
 @endphp
 <div class="container">
     <div class="row align-items-start">

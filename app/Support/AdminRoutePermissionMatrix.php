@@ -38,6 +38,7 @@ class AdminRoutePermissionMatrix
             'ShelterContract.create',
             'ShelterContract.availableForTransfer',
             'ShelterContract.deportationStage',
+            'ShelterContract.outside',
             'ShelterContract.deported',
             'shelter_workers',
             'shelter-places.index',
@@ -328,6 +329,7 @@ class AdminRoutePermissionMatrix
             'ShelterContract.create' => [PermKeys::SHELTER_CONTRACT_ADDITION_CREATE, PermKeys::SHELTER_CONTRACT_CREATE, PermKeys::SHELTER_CONTRACT_CONTROL],
             'ShelterContract.availableForTransfer' => [PermKeys::SHELTER_CONTRACT_AVAILABLE_FOR_TRANSFER_VIEW, PermKeys::SHELTER_CONTRACT_VIEW, PermKeys::SHELTER_CONTRACT_CONTROL],
             'ShelterContract.deportationStage' => [PermKeys::SHELTER_CONTRACT_DEPORTATION_STAGE_VIEW, PermKeys::SHELTER_CONTRACT_VIEW, PermKeys::SHELTER_CONTRACT_CONTROL],
+            'ShelterContract.outside' => [PermKeys::SHELTER_CONTRACT_INSIDE_VIEW, PermKeys::SHELTER_CONTRACT_VIEW, PermKeys::SHELTER_CONTRACT_CONTROL],
             'ShelterContract.deported' => [PermKeys::SHELTER_CONTRACT_DEPORTED_VIEW, PermKeys::SHELTER_CONTRACT_VIEW, PermKeys::SHELTER_CONTRACT_CONTROL],
             'shelter_workers' => [PermKeys::SHELTER_WORKERS_VIEW, PermKeys::SHELTER_WORKERS_CONTROL],
             'shelter-places.index' => [PermKeys::SHELTER_PLACES_VIEW, PermKeys::SHELTER_PLACES_CONTROL],
@@ -551,4 +553,3 @@ class AdminRoutePermissionMatrix
         ], static fn ($value) => $value !== null);
     }
 }
-

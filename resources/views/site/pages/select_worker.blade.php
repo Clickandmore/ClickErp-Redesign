@@ -61,7 +61,7 @@
     <!-- ================ available ================= -->
     <section class="available">
         <div class="container">
-            <h4 class="wow fadeInUp">{{__('ingaz.At_Platinum_we_offer_the_option_to_choose_your_workforce_according_to')}}  </h4>
+            <h4 class="wow fadeInUp">نتيح في {{ documentSetting('website_name', config('app.name')) }} اختيار العمالة طبقا</h4>
             <div class="row flex-wrap">
                 @forelse($selectWorkers as $selectWorker)
                     <div class="col p-2">

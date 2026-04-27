@@ -5,6 +5,7 @@ namespace App\Http\Actions\dashboard;
 
 use App\Http\Actions\MainAction;
 use App\Models\ingaz\Setting;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 
 class SettingAction extends MainAction
@@ -194,7 +195,15 @@ class SettingAction extends MainAction
         }
 
         // Update translations
+        $translationColumns = Schema::hasTable('settings_translations')
+            ? Schema::getColumnListing('settings_translations')
+            : [];
+
         foreach ($translationData as $locale => $fields) {
+            if ($translationColumns) {
+                $fields = array_intersect_key($fields, array_flip($translationColumns));
+            }
+
             $setting->translateOrNew($locale)->fill($fields);
         }
 

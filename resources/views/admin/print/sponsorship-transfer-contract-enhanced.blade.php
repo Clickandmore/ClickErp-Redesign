@@ -313,7 +313,7 @@
             </div>
             <h1>عقد نقل كفالة العمالة المنزلية</h1>
             <p style="font-size: 14pt; margin: 5px 0;">
-                {{ documentSetting('document_company_name', $contractSettings['company_name'] ?? 'شركة بلاتينيوم الشرقية للاستقدام') }}
+                {{ documentSetting('document_company_name', $contractSettings['company_name'] ?? documentSetting('website_name', config('app.name'))) }}
             </p>
             <p style="font-size: 12pt; color: #666;">ترخيص رقم:
                 {{ $contractSettings['license_number'] ?? '1234567890' }}</p>
@@ -428,7 +428,7 @@
             <div style="margin-top: 40px;">
                 <div style="font-weight: bold; margin-bottom: 20px;">أطراف العقد:</div>
                 <div>الطرف الأول:
-                    {{ documentSetting('document_company_name', $contractSettings['company_name'] ?? 'شركة بلاتينيوم الشرقية للاستقدام') }}
+                    {{ documentSetting('document_company_name', $contractSettings['company_name'] ?? documentSetting('website_name', config('app.name'))) }}
                 </div>
                 <div>الطرف الثاني: {{ $transfer->newSponsor->name ?? '[اسم_العميل]' }}</div>
 
@@ -484,7 +484,7 @@
                 <div style="margin-top: 50px; display: flex; justify-content: space-between;">
                     <div style="text-align: center; width: 45%;">
                         <div style="border-top: 1px solid #000; padding-top: 10px; margin-top: 50px;">
-                            <strong>{{ documentSetting('document_company_name', $contractSettings['company_name'] ?? 'شركة بلاتينيوم الشرقية للاستقدام') }}</strong><br>
+                            <strong>{{ documentSetting('document_company_name', $contractSettings['company_name'] ?? documentSetting('website_name', config('app.name'))) }}</strong><br>
                             الطرف الأول
                         </div>
                     </div>

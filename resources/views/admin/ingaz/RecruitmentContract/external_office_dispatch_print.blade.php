@@ -6,7 +6,7 @@
         'incomplete' => '#dc3545',
         default => '#6c757d',
     };
-    $documentCompanyName = documentSetting('document_company_name', 'بلاتنيوم الشرقية للاستقدام');
+    $documentCompanyName = documentSetting('document_company_name', documentSetting('website_name', config('app.name')));
     $documentFooterNote = documentBranding()['footer_note'];
 @endphp
 <!DOCTYPE html>

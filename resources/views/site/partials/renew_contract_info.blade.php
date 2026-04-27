@@ -10,7 +10,7 @@
         {{ __('ingaz.information_of_interest_to_you_text_2') }}
     </p>
     <p>
-        <strong>:{{ __('ingaz.company_owner') }} </strong> بلاتينيوم الشرقية للاستقدام
+        <strong>:{{ __('ingaz.company_owner') }} </strong> {{ documentSetting('document_company_name', documentSetting('website_name', config('app.name'))) }}
     </p>
     <p><strong>:{{ __('ingaz.account_number') }}</strong> 09249888000204</p>
     <p>

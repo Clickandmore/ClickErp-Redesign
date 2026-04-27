@@ -573,7 +573,7 @@
                                                 <small class="text-muted">الكفيل القديم</small>
                                             </div>
                                             <div class="card-body">
-                                                <h6 class="mb-1">{{ documentSetting('document_company_name', 'شركة بلاتنيوم الشرقية للاستقدام') }}</h6>
+                                                <h6 class="mb-1">{{ documentSetting('document_company_name', documentSetting('website_name', config('app.name'))) }}</h6>
                                                 <small class="text-muted">عقد إيجار</small>
                                             </div>
                                         </div>

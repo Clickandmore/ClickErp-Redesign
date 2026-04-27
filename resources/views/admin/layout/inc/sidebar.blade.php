@@ -676,7 +676,7 @@
                                         <span class="ms-2"> {{ __('ingaz.shelter_management') }} </span>
                                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                                     </a>
-                                    <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['ShelterContract.index', 'ShelterContract.create', 'ShelterContract.edit', 'ShelterContract.availableForTransfer', 'ShelterContract.deportationStage', 'ShelterContract.generalShelter', 'ShelterContract.deported', 'shelter-places.index', 'shelter-places.create', 'shelter-places.edit']) ? 'show' : '' }}"
+                                    <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['ShelterContract.index', 'ShelterContract.create', 'ShelterContract.edit', 'ShelterContract.availableForTransfer', 'ShelterContract.deportationStage', 'ShelterContract.generalShelter', 'ShelterContract.outside', 'ShelterContract.deported', 'shelter-places.index', 'shelter-places.create', 'shelter-places.edit']) ? 'show' : '' }}"
                                         id="sheltercontracts">
                                         @if (
                                             @AdminGuardHasAnyPerm([
@@ -704,6 +704,20 @@
                                                     href="{{ route('ShelterContract.index') }}">
                                                     <i class="icon-loop"></i>
                                                     <span class="ms-2"> داخل الإيواء</span>
+                                                </a>
+                                            </li>
+                                        @endif
+                                        @if (
+                                            @AdminGuardHasAnyPerm([
+                                                \App\PermKeys::SHELTER_CONTRACT_INSIDE_VIEW,
+                                                \App\PermKeys::SHELTER_CONTRACT_VIEW,
+                                                \App\PermKeys::SHELTER_CONTRACT_CONTROL,
+                                            ]))
+                                            <li>
+                                                <a class="m-link {{ Route::currentRouteName() == 'ShelterContract.outside' ? 'active' : '' }}"
+                                                    href="{{ route('ShelterContract.outside') }}">
+                                                    <i class="fas fa-sign-out-alt"></i>
+                                                    <span class="ms-2"> خارج الإيواء</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -1487,4 +1501,3 @@
 `;
     document.head.appendChild(style);
 </script>
-

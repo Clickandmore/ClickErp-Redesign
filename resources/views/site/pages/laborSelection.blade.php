@@ -1,6 +1,6 @@
 @extends('site.layouts.index')
 @section('title')
-    بلاتينيوم الشرقية - عقد استقدام
+    {{ documentSetting('website_name', config('app.name')) }} - عقد استقدام
 @endsection
 
 @section('content')
@@ -42,7 +42,7 @@
         <section class="recruitmentContract mt-0">
             <div class="container">
                 <h3 data-aos="fade-up">تعاقد الإستقدام</h3>
-                <p data-aos="fade-up">بلاتينيوم الشرقية للإستقدام يُقدم لك خدمات العمالة المنزلية بأفضل جودة، مع مراعاة
+                <p data-aos="fade-up">{{ documentSetting('website_name', config('app.name')) }} يُقدم لك خدمات العمالة المنزلية بأفضل جودة، مع مراعاة
                     القوانين والتشريعات
                     المحلية والدولية، فقد تعاون المكتب مع عدد كبير من أمهر الخبراء بمكاتب الاستقدام الإقليمية والعالمية، كما
                     يلتزم المكتب بالقوانين والتشريعات التي نصت عليها وزارة العمل، ووزارة الموارد البشرية والتنمية

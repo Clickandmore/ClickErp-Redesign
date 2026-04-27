@@ -15,6 +15,8 @@ class ContractInfo extends Model
     protected $casts = [
         'shelter_attachments' => 'array',
         'shelter_quick_tags' => 'array',
+        'is_outside_shelter' => 'boolean',
+        'outside_shelter_at' => 'datetime',
     ];
 
     public function contract()
@@ -30,6 +32,16 @@ class ContractInfo extends Model
     public function shelter()
     {
         return $this->belongsTo(ShelterPlaces::class, 'shelter_id');
+    }
+
+    public function outsideShelterBy()
+    {
+        return $this->belongsTo(\App\Models\auth\Admin::class, 'outside_shelter_by');
+    }
+
+    public function outsideReference()
+    {
+        return $this->morphTo(__FUNCTION__, 'outside_shelter_reference_type', 'outside_shelter_reference_id');
     }
 
     public function manualMaidNationality()

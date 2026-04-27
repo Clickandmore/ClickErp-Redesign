@@ -370,6 +370,7 @@ Route::group(
             Route::get('ShelterContract/available-for-transfer', [ShelterContractController::class, 'availableForTransfer'])->name('ShelterContract.availableForTransfer');
             Route::get('ShelterContract/deportation-stage', [ShelterContractController::class, 'deportationStage'])->name('ShelterContract.deportationStage');
             Route::get('ShelterContract/general-shelter', [ShelterContractController::class, 'generalShelter'])->name('ShelterContract.generalShelter');
+            Route::get('ShelterContract/outside-shelter', [ShelterContractController::class, 'outsideShelter'])->name('ShelterContract.outside');
             Route::get('ShelterContract/search-by-passport', [ShelterContractController::class, 'searchByPassport'])->name('ShelterContract.searchByPassport');
             Route::get('ShelterContract/get-contract-details', [ShelterContractController::class, 'getContractDetails'])->name('get.contract.details');
             Route::get('ShelterContract/get-nationalities', [ShelterContractController::class, 'getNationalities'])->name('ShelterContract.getNationalities');
@@ -531,4 +532,3 @@ Route::group(
 );
 
 Route::get("ShelterContract/deportation/{id}/activity-log", [ShelterContractController::class, "getActivityLog"])->name("ShelterContract.deportation.activity-log");
-

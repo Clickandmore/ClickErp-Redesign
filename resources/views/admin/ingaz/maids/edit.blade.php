@@ -4,7 +4,7 @@
     $defaultShelterContract = $defaultShelterContract ?? (($obj->maid_accommodation_type ?? null) == 2 ? '1' : '0');
     $isRentalForm = $isRentalForm ?? false;
     $formRedirectRoute = $formRedirectRoute ?? route('maids.index');
-    $shelterCompanyName = documentSetting('document_company_name', documentSetting('website_name', 'شركة بلاتنيوم الشرقية'));
+    $shelterCompanyName = documentSetting('document_company_name', documentSetting('website_name', config('app.name')));
     $shelterCompanyHint = 'سيتم إنشاء عقد إيواء تلقائياً باسم ' . $shelterCompanyName;
     $selectedTypeId = (int) old('type_id', $obj->jobTypes->pluck('id')->first());
     $selectedTypeTitle = collect($types ?? [])->firstWhere('id', $selectedTypeId)->title ?? '';
@@ -133,7 +133,7 @@
                             <option value="0">لا - لا تسكين</option>
                             <option value="1">نعم - تسكين للإيواء</option>
                         </select>
-                        <small class="text-muted">سيتم إنشاء عقد إيواء تلقائياً باسم {{ documentSetting('document_company_name', 'شركة بلاتنيوم الشرقية') }}</small>
+                        <small class="text-muted">سيتم إنشاء عقد إيواء تلقائياً باسم {{ documentSetting('document_company_name', documentSetting('website_name', config('app.name'))) }}</small>
                     </div>
 
                     <!-- الوظائف -->

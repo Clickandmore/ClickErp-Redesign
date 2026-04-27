@@ -234,7 +234,7 @@
         <div class="header">
             <h1>عقد نقل كفالة العمالة المنزلية</h1>
             <div class="company-info">
-                {{ documentSetting('document_company_name', $contractSettings['company_name'] ?? 'شركة بلاتينيوم الشرقية للاستقدام') }}
+                {{ documentSetting('document_company_name', $contractSettings['company_name'] ?? documentSetting('website_name', config('app.name'))) }}
             </div>
             <div class="company-info">ترخيص رقم: {{ $contractSettings['license_number'] ?? '1234567890' }}</div>
             <div class="company-info">{{ $contractSettings['address'] ?? 'الرياض، المملكة العربية السعودية' }}</div>
@@ -247,7 +247,7 @@
             <div class="party">
                 <div class="party-title">الطرف الأول (مقدم الخدمة):</div>
                 <div class="party-info">
-                    {{ documentSetting('document_company_name', $contractSettings['company_name'] ?? 'شركة بلاتينيوم الشرقية للاستقدام') }}<br>
+                    {{ documentSetting('document_company_name', $contractSettings['company_name'] ?? documentSetting('website_name', config('app.name'))) }}<br>
                     ترخيص رقم: {{ $contractSettings['license_number'] ?? '1234567890' }}<br>
                     العنوان: {{ $contractSettings['address'] ?? 'الرياض، المملكة العربية السعودية' }}
                 </div>
@@ -376,7 +376,7 @@
             <div class="signature-box">
                 <div class="signature-title">الطرف الأول (الشركة)</div>
                 <div class="signature-info">
-                    {{ documentSetting('document_company_name', $contractSettings['company_name'] ?? 'شركة بلاتينيوم الشرقية للاستقدام') }}<br>
+                    {{ documentSetting('document_company_name', $contractSettings['company_name'] ?? documentSetting('website_name', config('app.name'))) }}<br>
                     التوقيع: ___________________<br>
                     التاريخ: ___________________
                 </div>

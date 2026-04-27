@@ -10,7 +10,9 @@ use App\Models\ContractInfo;
 use App\Models\ingaz\JobType;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\Nationality;
+use App\Models\RentalContract;
 use App\Models\ShelterPlaces;
+use App\Models\SponsorshipTransfer;
 use App\PermKeys;
 use App\Support\AutomationSettings;
 use Illuminate\Http\Request;
@@ -29,7 +31,7 @@ class ShelterContractController extends Controller
 
     public function __construct()
     {
-        $this->middleware($this->permissionMiddleware($this->shelterInsideViewPermissions()), ['only' => ['index', 'getData']]);
+        $this->middleware($this->permissionMiddleware($this->shelterInsideViewPermissions()), ['only' => ['index', 'getData', 'outsideShelter']]);
         $this->middleware($this->permissionMiddleware($this->shelterAvailableForTransferViewPermissions()), ['only' => ['availableForTransfer']]);
         $this->middleware($this->permissionMiddleware($this->shelterDeportationStageViewPermissions()), ['only' => ['deportationStage']]);
         $this->middleware($this->permissionMiddleware($this->shelterDeportedViewPermissions()), ['only' => ['deported']]);
@@ -1438,6 +1440,8 @@ class ShelterContractController extends Controller
                         'info.outsideReference',
                         'maid.nationality.translations',
                         'maid.job_types.job_type.translations',
+                        'maid.rentalContracts',
+                        'sponsorshipTransfers',
                     ]);
 
                 $this->applyFilters($rows, $request);
@@ -1464,7 +1468,7 @@ class ShelterContractController extends Controller
                             . '</div>';
                     })
                     ->addColumn('outside_reason', function ($row) {
-                        $reason = optional($row->info)->outside_shelter_reason;
+                        $reason = $this->resolveOutsideShelterReason($row);
 
                         return match ($reason) {
                             'rental_delivery' => '<span class="badge bg-primary">تسليم عقد إيجار</span>',
@@ -1473,17 +1477,7 @@ class ShelterContractController extends Controller
                         };
                     })
                     ->addColumn('outside_at', function ($row) {
-                        $info = $row->info;
-                        $timestamp = optional($info)->outside_shelter_at;
-
-                        if (!$timestamp && $info && $info->outsideReference) {
-                            $reference = $info->outsideReference;
-                            $referenceTimestamp = $reference->maid_delivered_at ?? $reference->transferred_at ?? null;
-
-                            if ($referenceTimestamp) {
-                                $timestamp = $referenceTimestamp;
-                            }
-                        }
+                        $timestamp = $this->resolveOutsideShelterAt($row);
 
                         if ($timestamp instanceof \Carbon\CarbonInterface) {
                             return $timestamp->format('Y-m-d H:i');
@@ -1499,21 +1493,22 @@ class ShelterContractController extends Controller
                         return 'غير محدد';
                     })
                     ->addColumn('reference_link', function ($row) {
-                        $info = $row->info;
-                        if (!$info || !$info->outside_shelter_reference_type || !$info->outside_shelter_reference_id) {
+                        $reference = $this->resolveOutsideShelterReference($row);
+
+                        if (!$reference) {
                             return '<span class="text-muted">لا يوجد</span>';
                         }
 
                         $label = 'عرض المرجع';
                         $url = null;
 
-                        switch ($info->outside_shelter_reference_type) {
-                            case \App\Models\RentalContract::class:
-                                $url = route('RentContract.show', $info->outside_shelter_reference_id);
+                        switch (get_class($reference)) {
+                            case RentalContract::class:
+                                $url = route('RentContract.show', $reference->id);
                                 $label = 'عرض عقد الإيجار';
                                 break;
-                            case \App\Models\SponsorshipTransfer::class:
-                                $url = route('SponsorshipTransfer.show', $info->outside_shelter_reference_id);
+                            case SponsorshipTransfer::class:
+                                $url = route('SponsorshipTransfer.show', $reference->id);
                                 $label = 'عرض طلب نقل الكفالة';
                                 break;
                         }
@@ -1537,14 +1532,16 @@ class ShelterContractController extends Controller
                                         <i class="fas fa-eye"></i> عرض تفاصيل العقد
                                     </a></li>';
 
-                        if ($row->info && $row->info->outside_shelter_reason === 'rental_delivery' && $row->info->outside_shelter_reference_id) {
-                            $actions .= '<li><a class="dropdown-item" href="' . route('RentContract.show', $row->info->outside_shelter_reference_id) . '">
+                        $reference = $this->resolveOutsideShelterReference($row);
+
+                        if ($reference instanceof RentalContract) {
+                            $actions .= '<li><a class="dropdown-item" href="' . route('RentContract.show', $reference->id) . '">
                                             <i class="fas fa-file-contract"></i> عرض عقد الإيجار
                                         </a></li>';
                         }
 
-                        if ($row->info && $row->info->outside_shelter_reason === 'transfer_delivery' && $row->info->outside_shelter_reference_id) {
-                            $actions .= '<li><a class="dropdown-item" href="' . route('SponsorshipTransfer.show', $row->info->outside_shelter_reference_id) . '">
+                        if ($reference instanceof SponsorshipTransfer) {
+                            $actions .= '<li><a class="dropdown-item" href="' . route('SponsorshipTransfer.show', $reference->id) . '">
                                             <i class="fas fa-people-carry"></i> عرض طلب نقل الكفالة
                                         </a></li>';
                         }
@@ -1565,12 +1562,8 @@ class ShelterContractController extends Controller
 
         $outsideContracts = Contract::outsideShelter();
         $outsideTotal = $outsideContracts->clone()->count();
-        $outsideRental = $outsideContracts->clone()->whereHas('info', function ($query) {
-            $query->where('outside_shelter_reason', 'rental_delivery');
-        })->count();
-        $outsideTransfer = $outsideContracts->clone()->whereHas('info', function ($query) {
-            $query->where('outside_shelter_reason', 'transfer_delivery');
-        })->count();
+        $outsideRental = $this->applyOutsideReasonFilter($outsideContracts->clone(), 'rental_delivery')->count();
+        $outsideTransfer = $this->applyOutsideReasonFilter($outsideContracts->clone(), 'transfer_delivery')->count();
         $outsideOther = max(0, $outsideTotal - $outsideRental - $outsideTransfer);
 
         $data["dataTableRoute"] = route($this->mainRoute . '.outside');
@@ -1586,6 +1579,119 @@ class ShelterContractController extends Controller
         ];
 
         return view($this->folderPath . '.outside', $data);
+    }
+
+    private function resolveOutsideShelterReason(Contract $contract): ?string
+    {
+        if ($contract->info?->outside_shelter_reason) {
+            return $contract->info->outside_shelter_reason;
+        }
+
+        if ($this->resolveActiveTransferReference($contract)) {
+            return 'transfer_delivery';
+        }
+
+        if ($this->resolveActiveRentalReference($contract)) {
+            return 'rental_delivery';
+        }
+
+        return null;
+    }
+
+    private function resolveOutsideShelterAt(Contract $contract)
+    {
+        if ($contract->info?->outside_shelter_at) {
+            return $contract->info->outside_shelter_at;
+        }
+
+        $reference = $this->resolveOutsideShelterReference($contract);
+
+        return $reference?->maid_delivered_at
+            ?? $reference?->trial_started_at
+            ?? $reference?->transferred_at
+            ?? null;
+    }
+
+    private function resolveOutsideShelterReference(Contract $contract): RentalContract|SponsorshipTransfer|null
+    {
+        $info = $contract->info;
+
+        if ($info && $info->outside_shelter_reference_type && $info->outside_shelter_reference_id) {
+            if ($info->relationLoaded('outsideReference') && $info->outsideReference) {
+                return $info->outsideReference;
+            }
+
+            if ($info->outside_shelter_reference_type === RentalContract::class) {
+                return RentalContract::find($info->outside_shelter_reference_id);
+            }
+
+            if ($info->outside_shelter_reference_type === SponsorshipTransfer::class) {
+                return SponsorshipTransfer::find($info->outside_shelter_reference_id);
+            }
+        }
+
+        return $this->resolveActiveTransferReference($contract)
+            ?: $this->resolveActiveRentalReference($contract);
+    }
+
+    private function resolveActiveRentalReference(Contract $contract): ?RentalContract
+    {
+        if ($contract->maid && $contract->maid->relationLoaded('rentalContracts')) {
+            return $contract->maid->rentalContracts
+                ->whereIn('status', ['maid_delivered', 'active'])
+                ->sortByDesc('id')
+                ->first();
+        }
+
+        return $contract->maid?->rentalContracts()
+            ->whereIn('status', ['maid_delivered', 'active'])
+            ->latest('id')
+            ->first();
+    }
+
+    private function resolveActiveTransferReference(Contract $contract): ?SponsorshipTransfer
+    {
+        if ($contract->relationLoaded('sponsorshipTransfers')) {
+            return $contract->sponsorshipTransfers
+                ->whereIn('status', ['maid_delivered', 'trial', 'trial_started'])
+                ->sortByDesc('id')
+                ->first();
+        }
+
+        return $contract->sponsorshipTransfers()
+            ->whereIn('status', ['maid_delivered', 'trial', 'trial_started'])
+            ->latest('id')
+            ->first();
+    }
+
+    private function applyOutsideReasonFilter($rows, string $outsideReason)
+    {
+        return $rows->where(function ($query) use ($outsideReason) {
+            $query->whereHas('info', function ($infoQuery) use ($outsideReason) {
+                $infoQuery->where('outside_shelter_reason', $outsideReason);
+            });
+
+            if ($outsideReason === 'rental_delivery') {
+                $query->orWhere(function ($rentalQuery) {
+                    $rentalQuery->where('status', ContractStatusEnum::Shelter->value)
+                        ->whereHas('maid.rentalContracts', function ($contractQuery) {
+                            $contractQuery->whereIn('status', ['maid_delivered', 'active']);
+                        });
+                });
+            }
+
+            if ($outsideReason === 'transfer_delivery') {
+                $query->orWhere(function ($transferQuery) {
+                    $transferQuery->whereIn('status', [
+                            ContractStatusEnum::Shelter->value,
+                            ContractStatusEnum::Trial->value,
+                        ])
+                        ->whereHas('sponsorshipTransfers', function ($sponsorshipQuery) {
+                            $sponsorshipQuery->whereIn('status', ['maid_delivered', 'trial', 'trial_started']);
+                        });
+                });
+            }
+        });
     }
 
     /**
@@ -1692,10 +1798,7 @@ class ShelterContractController extends Controller
         }
 
         if ($request->filled('outside_reason')) {
-            $outsideReason = $request->input('outside_reason');
-            $rows->whereHas('info', function ($query) use ($outsideReason) {
-                $query->where('outside_shelter_reason', $outsideReason);
-            });
+            $this->applyOutsideReasonFilter($rows, $request->input('outside_reason'));
         }
 
         // فلتر الاستلام الفوري (العاملات التي ترغب بالعمل)
@@ -2001,11 +2104,11 @@ class ShelterContractController extends Controller
                         }
                     }
 
-                    $html = '<div class="maid-info">';
-                    $html .= '<strong>' . htmlspecialchars($maidName) . '</strong><br>';
-                    $html .= '<small class="text-muted">جواز: ' . htmlspecialchars($passport) . '</small><br>';
-                    $html .= '<small class="text-muted">نوع الطلب: ' . htmlspecialchars($row->maid->request_type_label) . '</small><br>';
-                    $html .= '<small class="text-muted">نوع العمل: ' . htmlspecialchars($jobType) . '</small>';
+                    $html = '<div class="table-person-cell">';
+                    $html .= '<div class="table-person-title">' . e($maidName) . '</div>';
+                    $html .= '<div class="table-person-meta"><i class="fas fa-passport"></i><span>جواز: ' . e($passport) . '</span></div>';
+                    $html .= '<div class="table-person-meta"><i class="fas fa-clipboard-list"></i><span>نوع الطلب: ' . e($row->maid->request_type_label) . '</span></div>';
+                    $html .= '<div class="table-person-meta"><i class="fas fa-briefcase"></i><span>نوع العمل: ' . e($jobType) . '</span></div>';
                     $html .= '</div>';
 
                     return $html;
@@ -2018,9 +2121,9 @@ class ShelterContractController extends Controller
                     $clientName = $row->user->name ?: 'عميل رقم: ' . $row->user->id;
                     $clientPhone = $row->user->phone ?: 'غير محدد';
 
-                    return '<div class="user-info">
-                                <strong>' . $clientName . '</strong><br>
-                                <small class="text-muted">' . $clientPhone . '</small>
+                    return '<div class="table-person-cell">
+                                <div class="table-person-title">' . e($clientName) . '</div>
+                                <div class="table-person-meta"><i class="fas fa-phone-alt"></i><span>' . e($clientPhone) . '</span></div>
                             </div>';
                 })
                 ->addColumn('nationality', function ($row) {
@@ -2151,28 +2254,30 @@ class ShelterContractController extends Controller
                         'transfer' => 'نقل خدمات',
                         default => 'استقدام',
                     };
-                    $serviceClass = match ($serviceCategory) {
-                        'rental' => 'bg-info text-dark',
-                        'transfer' => 'bg-primary',
-                        default => 'bg-dark',
-                    };
 
                     $receiptSource = $row->info && $row->info->receipt_source
                         ? e($this->resolveReceiptSourceLabel($row->info->receipt_source))
                         : 'غير محدد';
                     $guaranteeData = $this->resolveGuaranteeData($row);
                     $workWillingness = $row->info ? $row->info->wants_to_work : null;
-                    $workBadge = match ($workWillingness) {
-                        'yes' => '<span class="badge bg-success">ترغب بالعمل</span>',
-                        'no' => '<span class="badge bg-warning text-dark">لا ترغب بالعمل</span>',
-                        default => '<span class="badge bg-secondary">رغبة العمل: غير محدد</span>',
+                    $workLabel = match ($workWillingness) {
+                        'yes' => 'ترغب بالعمل',
+                        'no' => 'لا ترغب بالعمل',
+                        default => 'رغبة العمل غير محددة',
+                    };
+                    $workClass = match ($workWillingness) {
+                        'yes' => 'status-pill-work',
+                        'no' => 'status-pill-work-warning',
+                        default => 'status-pill-work-muted',
                     };
 
-                    return '<div class="shelter-status-stack">'
-                        . '<span class="badge ' . $serviceClass . '">' . e($serviceLabel) . '</span>'
-                        . '<span class="badge bg-secondary">مصدر الاستلام: ' . $receiptSource . '</span>'
-                        . '<span class="badge ' . e($guaranteeData['badge_class']) . '">' . e($guaranteeData['label']) . '</span>'
-                        . $workBadge
+                    return '<div class="shelter-status-cell">'
+                        . '<div class="status-top">'
+                        . '<span class="status-pill status-pill-service">' . e($serviceLabel) . '</span>'
+                        . '<span class="status-pill ' . $workClass . '">' . e($workLabel) . '</span>'
+                        . '</div>'
+                        . '<div class="status-line"><i class="fas fa-truck-loading"></i><strong>مصدر الاستلام</strong><span>' . $receiptSource . '</span></div>'
+                        . '<div class="status-line"><i class="fas fa-shield-alt"></i><strong>الضمان</strong><span class="badge ' . e($guaranteeData['badge_class']) . '">' . e($guaranteeData['label']) . '</span></div>'
                         . '</div>';
                 })
                 ->addColumn('instant_receipt_availability', function ($row) {

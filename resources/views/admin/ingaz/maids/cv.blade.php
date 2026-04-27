@@ -11,9 +11,9 @@
     <title> {{$settings->website_name}}</title>
     <link rel="icon" href="{{ showFile($settings->favicon) }}" type="image/png" />
     @else
-    <title>بلاتنيوم الشرقية</title>
+    <title>{{ documentSetting('website_name', config('app.name')) }}</title>
     @endif
-    <meta name="title" content="الماجد للاستقدام" />
+    <meta name="title" content="{{ isset($settings) && isset($settings->website_name) ? $settings->website_name : documentSetting('website_name', config('app.name')) }}" />
     <meta name="description" content="" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <!-- Favicon -->

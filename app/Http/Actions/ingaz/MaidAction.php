@@ -400,16 +400,20 @@ class MaidAction extends MainAction
 
                     if ($createShelterContract === '1') {
                         DB::beginTransaction();
-                        $companyClient = ClientUser::where('name', 'like', '%شركة  بلاتنيوم الشرقية %')
-                            ->orWhere('email', 'company@platinumestern.com')
-                            ->orWhere('phone', '0500000002')
+                        $companyName = documentSetting('document_company_name', documentSetting('website_name', config('app.name')));
+                        $companyPhone = documentSetting('phone', '0500000002');
+                        $companyEmail = documentSetting('email', 'company@example.test');
+
+                        $companyClient = ClientUser::where('name', 'like', '%' . $companyName . '%')
+                            ->orWhere('email', $companyEmail)
+                            ->orWhere('phone', $companyPhone)
                             ->first();
 
                         if (!$companyClient) {
                             $companyClient = ClientUser::create([
-                                'name' => ' شركة بلاتنيوم الشرقية للاستقدام ',
-                                'email' => 'company@platinumestern.com',
-                                'phone' => '0500000002',
+                                'name' => $companyName,
+                                'email' => $companyEmail,
+                                'phone' => $companyPhone,
                                 'password' => bcrypt('password123'),
                             ]);
                         }
@@ -1439,15 +1443,19 @@ class MaidAction extends MainAction
             }
 
             // Find or create the company client
-            $companyClient = ClientUser::where('name', 'بلاتنيوم الشرقية')
-                ->orWhere('phone', '0112345678')
+            $companyName = documentSetting('document_company_name', documentSetting('website_name', config('app.name')));
+            $companyPhone = documentSetting('phone', '0112345678');
+            $companyEmail = documentSetting('email', 'company@example.test');
+
+            $companyClient = ClientUser::where('name', $companyName)
+                ->orWhere('phone', $companyPhone)
                 ->first();
 
             if (!$companyClient) {
                 $companyClient = ClientUser::create([
-                    'name' => 'بلاتنيوم الشرقية',
-                    'phone' => '0112345678',
-                    'email' => 'info@platinumeastern.com',
+                    'name' => $companyName,
+                    'phone' => $companyPhone,
+                    'email' => $companyEmail,
                     'nationality_id' => 1, // Saudi Arabia
                     'password' => bcrypt('password123'),
                     'status' => 'active'
@@ -1491,7 +1499,7 @@ class MaidAction extends MainAction
 
     private function resolveShelterCompanyClient(): ClientUser
     {
-        $defaultCompanyName = 'شركة بلاتنيوم الشرقية للاستقدام';
+        $defaultCompanyName = config('app.name');
         $configuredCompanyName = trim((string) documentSetting(
             'document_company_name',
             documentSetting('website_name', $defaultCompanyName)

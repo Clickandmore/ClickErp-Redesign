@@ -155,7 +155,7 @@ class AdminContractController extends Controller
 
             $contractSettings['company_name'] = documentSetting(
                 'document_company_name',
-                $contractSettings['company_name'] ?? 'شركة بلاتنيوم الشرقية للاستقدام'
+                $contractSettings['company_name'] ?? documentSetting('website_name', config('app.name'))
             );
             $contractSettings['address'] = $contractSettings['address'] ?: documentSetting('location', 'الرياض');
             $contractSettings['phone'] = $contractSettings['phone'] ?: documentSetting('phone', '');

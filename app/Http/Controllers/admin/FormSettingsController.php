@@ -226,7 +226,7 @@ class FormSettingsController extends Controller
         return [
             'invoice' => (object) ['id' => 10045],
             'settings' => $settings,
-            'supplierName' => (string) documentSetting('document_company_name', documentSetting('website_name', 'شركة بلاتنيوم الشرقية للاستقدام')),
+            'supplierName' => (string) documentSetting('document_company_name', documentSetting('website_name', config('app.name'))),
             'supplierAddress' => (string) documentSetting('location', 'الرياض، المملكة العربية السعودية'),
             'supplierPhone' => (string) ($settings?->phone ?: '+966 11 234 5678'),
             'supplierOtherPhone' => (string) ($settings?->other_phone ?: '+966 55 765 4321'),
@@ -321,7 +321,7 @@ class FormSettingsController extends Controller
         return [
             'contract' => $contract,
             'contractSettings' => [
-                'company_name' => documentSetting('document_company_name', 'شركة بلاتنيوم الشرقية للاستقدام'),
+                'company_name' => documentSetting('document_company_name', documentSetting('website_name', config('app.name'))),
                 'license_number' => '4001772',
                 'license_date' => '2024/10/13',
                 'commercial_register' => '1010601958',

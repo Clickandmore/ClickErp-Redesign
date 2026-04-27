@@ -118,6 +118,11 @@ class Contract extends Model
         return $this->hasOne(ContractExternalOfficeDispatch::class, 'contract_id');
     }
 
+    public function sponsorshipTransfers()
+    {
+        return $this->hasMany(SponsorshipTransfer::class, 'contract_id');
+    }
+
     public function isCurrentRecruitmentContract(): bool
     {
         return in_array($this->status, [
@@ -389,6 +394,12 @@ class Contract extends Model
     public function scopeInsideShelter($query)
     {
         return $query->where('status', ContractStatusEnum::Shelter->value)
+            ->whereDoesntHave('maid.rentalContracts', function ($rentalQuery) {
+                $rentalQuery->whereIn('status', ['maid_delivered', 'active']);
+            })
+            ->whereDoesntHave('sponsorshipTransfers', function ($transferQuery) {
+                $transferQuery->whereIn('status', ['maid_delivered', 'trial', 'trial_started']);
+            })
             ->where(function ($innerQuery) {
                 $innerQuery->whereDoesntHave('info')
                     ->orWhereHas('info', function ($infoQuery) {
@@ -402,9 +413,29 @@ class Contract extends Model
 
     public function scopeOutsideShelter($query)
     {
-        return $query->where('status', ContractStatusEnum::Shelter->value)
-            ->whereHas('info', function ($infoQuery) {
-                $infoQuery->where('is_outside_shelter', true);
+        return $query->where(function ($outsideQuery) {
+            $outsideQuery
+                ->where(function ($flaggedQuery) {
+                    $flaggedQuery->where('status', ContractStatusEnum::Shelter->value)
+                        ->whereHas('info', function ($infoQuery) {
+                            $infoQuery->where('is_outside_shelter', true);
+                        });
+                })
+                ->orWhere(function ($rentalQuery) {
+                    $rentalQuery->where('status', ContractStatusEnum::Shelter->value)
+                        ->whereHas('maid.rentalContracts', function ($contractQuery) {
+                            $contractQuery->whereIn('status', ['maid_delivered', 'active']);
+                        });
+                })
+                ->orWhere(function ($transferQuery) {
+                    $transferQuery->whereIn('status', [
+                            ContractStatusEnum::Shelter->value,
+                            ContractStatusEnum::Trial->value,
+                        ])
+                        ->whereHas('sponsorshipTransfers', function ($sponsorshipQuery) {
+                            $sponsorshipQuery->whereIn('status', ['maid_delivered', 'trial', 'trial_started']);
+                        });
+                });
             });
     }
 

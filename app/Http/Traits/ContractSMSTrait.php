@@ -80,11 +80,11 @@ trait ContractSMSTrait
             $variables = [
                 'client_name' => $contract->user->name ?? 'عزيزنا العميل',
                 'contract_number' => $contract->id,
-                'company_name' => 'شركة بلاتنيوم الشرقية للاستقدام',
+                'company_name' => documentSetting('document_company_name', documentSetting('website_name', config('app.name'))),
                 'client_phone' => $contract->user->phone ?? '',
                 'client_email' => $contract->user->email ?? '',
-                'company_phone' => '0112345678',
-                'company_email' => 'info@platinumeastern.com'
+                'company_phone' => documentSetting('phone', ''),
+                'company_email' => documentSetting('email', '')
             ];
 
             return $template->processMessage($variables);
@@ -93,7 +93,7 @@ trait ContractSMSTrait
         // إذا لم يوجد قالب في قاعدة البيانات، استخدم القوالب الافتراضية
         $clientName = $contract->user->name ?? 'عزيزنا العميل';
         $contractNumber = $contract->id;
-        $companyName = 'شركة بلاتنيوم الشرقية للاستقدام';
+        $companyName = documentSetting('document_company_name', documentSetting('website_name', config('app.name')));
 
         $messages = [
             ContractStatusEnum::Msaned->value => "عزيزي {$clientName}، نود إعلامكم بأن عقدكم رقم {$contractNumber} قد تم إسناده بنجاح. سنتواصل معكم قريباً لمتابعة الإجراءات. {$companyName}",

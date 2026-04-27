@@ -29,8 +29,8 @@ class ReturnRequestAction extends MainAction
             'order_id' => $data['order_id'],
             "type" => NotificationActionEnum::OrderStatus->value,
             'title' => [
-                'en' => __('notifications.Asus Al Injaz',[],'en'),
-                'ar' => __('notifications.Asus Al Injaz',[],'ar'),
+                'en' => documentSetting('website_name', config('app.name'), 'en'),
+                'ar' => documentSetting('website_name', config('app.name'), 'ar'),
             ],
             'description' => [
                 'en' => __('notifications.return_request_sent',[],'en') . $data['order_id'],
@@ -60,8 +60,8 @@ class ReturnRequestAction extends MainAction
             'order_id' => $request->order_id,
             "type" => NotificationActionEnum::OrderStatus->value,
             'title' => [
-                'en' => __('notifications.Asus Al Injaz',[],'en'),
-                'ar' => __('notifications.Asus Al Injaz',[],'ar'),
+                'en' => documentSetting('website_name', config('app.name'), 'en'),
+                'ar' => documentSetting('website_name', config('app.name'), 'ar'),
             ],
             'description' => [
                 'en' => $data['status'] == 'accept' ? __('notifications.return_request_accepted',[],'en') : __('notifications.return_request_refused',[],'en') ,
