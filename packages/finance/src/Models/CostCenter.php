@@ -1,0 +1,51 @@
+<?php
+
+namespace Nami\Finance\Models;
+
+use App\Models\auth\Admin;
+use Illuminate\Support\Facades\DB;
+
+class CostCenter extends Finance
+{
+    protected $table ='fn_cost_centers';
+    protected $fillable =['title','parent_id','table_name', 'table_related_id', 'code', 'admin_id', 'created_by_id'];
+
+    public function children()
+    {
+        return $this->hasMany(CostCenter::class, 'parent_id', 'id');
+    }
+
+    public function admin()
+    {
+        return $this->belongsTo(Admin::class, 'created_by_id');
+    }
+
+    public function parent()
+    {
+        return $this->belongsTo(CostCenter::class, 'parent_id');
+    }
+
+    public function childrenRecursive()
+    {
+        return $this->children()->with('childrenRecursive');
+    }
+
+    public function scopeCanDelete($q)
+    {
+        $databaseName = config('database.connections.mysql.database'); // Get the current database name
+
+        $tables = DB::select("SELECT table_name FROM information_schema.columns WHERE column_name = 'cost_center_id' AND table_schema = ?", [$databaseName]);
+
+        // Extract table names from the result set
+        $tableNames = array_column($tables, 'table_name');
+        $count = 0;
+        for ($i = 0; $i < count($tableNames); $i++){
+            $c = DB::table($tableNames[$i])->where('cost_center_id',$this->attributes['id'])->count();
+            if($c > 0) {
+                ++$count;
+                break;
+            }
+        }
+        return $count;
+    }
+}

@@ -1,0 +1,21 @@
+{
+    "name": "nami/hr",
+    "description": "Hr package for the ERP system",
+    "autoload": {
+        "psr-4": {
+            "Nami\\Hr\\": "src/"
+        },
+        "files": [
+            "src/Helpers/HrHtmlHelper.php",
+            "src/Helpers/HrConstantHelper.php"
+        ]
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Nami\\Hr\\HrServiceProvider"
+            ]
+        }
+    }
+
+}

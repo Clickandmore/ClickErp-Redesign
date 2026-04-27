@@ -1,0 +1,113 @@
+<?php
+
+namespace Nami\Finance\Http\Controllers;
+
+use App\Http\Controllers\admin\Controller;
+use Illuminate\Http\Request;
+use Nami\Finance\Http\Middleware\CheckActiveYear;
+use Nami\Finance\Http\Requests\ConstraintRequest as ObjRequest;
+use Nami\Finance\Services\ConstraintService as ObjService;
+use Nami\Finance\Services\YearService;
+
+class AddConstraintController extends Controller
+{
+    protected string $folderPath = "finance::finance.constraint";
+    protected string $mainRoute = "finance.add-constraint";
+
+    public function __construct()
+    {
+        $this->middleware(CheckActiveYear::class)->only(['create', 'edit']);
+    }
+
+    public function index(Request $request, ObjService $service)
+    {
+        //
+    }
+
+    public function create(Request $request, ObjService $service)
+    {
+        return view($this->folderPath . ".add_constraint")->with([
+            'accounts' => $service->getAccounts(),
+            'lastCode' => $service->lastCode(),
+            "bladeTitle" => __("finance::finance.Add daily constraint"),
+            "cost_centers" => $service->getCostCenters(),
+            "storeRoute" => route($this->mainRoute . ".store"),
+            "cost_center_required" => null,
+            "indexRoute" => route("finance.constraints.index"),
+        ]);
+    }
+
+    public function store(ObjRequest $request, ObjService $service, YearService $yearService)
+    {
+        $data = $request->validated();
+        if (!$yearService->checkDateRange($data['date'])) {
+            return jsonValid(['error' => [__("finance.the year is not exist")]], '');
+        }
+        $getActiveYear = $yearService->getActiveYear();
+        $storeConstraint = $service->storeConstraint($data, $getActiveYear);
+        $service->storeConstraintDetails($data['account_id'], $storeConstraint->id, $data);
+        $service->storeFiles($storeConstraint, $data);
+        return jsonSuccess([
+            "id" => $storeConstraint->id,
+            "show_url" => route($this->mainRoute . ".show", [
+                "add_constraint" => $storeConstraint->id,
+                "saved" => 1,
+            ]),
+            "create_url" => route($this->mainRoute . ".create"),
+            "index_url" => route("finance.constraints.index"),
+        ], __("finance::finance.constraint_saved_successfully"));
+    }
+
+    public function show($id, Request $request, ObjService $service)
+    {
+        $constraint = $service->find($id);
+
+        return view($this->folderPath . ".show_constraint")->with([
+            "obj" => $constraint,
+            "bladeTitle" => __("finance::finance.constraint_details_page") . " #{$constraint->code}",
+            "createRoute" => route($this->mainRoute . ".create"),
+            "indexRoute" => route("finance.constraints.index"),
+        ]);
+    }
+
+    public function edit($id, Request $request, ObjService $service)
+    {
+        $data = $this->perData($service, $id);
+        return view($this->folderPath . ".edit_constraint")->with($data);
+    }
+
+    public function update(ObjRequest $request, $id, ObjService $service, YearService $yearService)
+    {
+        $data = $request->validated();
+        if (!$yearService->checkDateRange($data['date'])) {
+            return jsonValid(['error' => [__("finance.the year is not exist")]], '');
+        }
+
+        $getActiveYear = $yearService->getActiveYear();
+
+        $updateConstraint = $service->updateConstraint($id, $data, $request, $getActiveYear);
+        $service->updateConstraintDetails($updateConstraint->id, $data['account_id'], $data);
+        $service->storeFiles($updateConstraint, $data);
+        return jsonSuccess($updateConstraint, null, 201);
+    }
+
+
+    public function destroy($id, ObjService $service)
+    {
+        //
+    }
+
+    protected function perData($service, $id)
+    {
+        return [
+            "obj" => $service->find($id),
+            'accounts' => $service->getAccounts(),
+            'lastCode' => $service->lastCode(),
+            "bladeTitle" => __("finance.constraints"),
+            "cost_centers" => $service->getCostCenters(),
+            "updateRoute" => route($this->mainRoute . ".update", $id),
+            "cost_center_required" => null,
+        ];
+
+    }
+}

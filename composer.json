@@ -6,6 +6,8 @@
     "license": "MIT",
     "require": {
         "php": "^8.1|^8.2.0",
+        "ext-dom": "*",
+        "ext-openssl": "*",
         "anhskohbo/no-captcha": "^3.7",
         "astrotomic/laravel-translatable": "^11.12",
         "barryvdh/laravel-dompdf": "2.0",
@@ -20,6 +22,7 @@
         "misterspelik/laravel-pdf": "^2.2",
         "php-flasher/flasher-toastr-laravel": "^1.15",
         "phpoffice/phpspreadsheet": "^4.2",
+        "salla/zatca": "^3.0",
         "spatie/laravel-activitylog": "^4.8",
         "spatie/laravel-permission": "^6.9",
         "spatie/laravel-translatable": "^5.2",
@@ -67,10 +70,6 @@
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"
         ],
-        "package:attach": "bash ./scripts/package-attach-branches.sh",
-        "package:backup": "bash ./scripts/package-backup.sh",
-        "package:check": "bash ./scripts/check-package-repos.sh",
-        "package:update-safe": "bash ./scripts/safe-submodule-update.sh",
         "post-update-cmd": [
             "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
         ],

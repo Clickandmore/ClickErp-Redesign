@@ -1,0 +1,19 @@
+{
+    "name": "nami/crm",
+    "description": "Crm package for the ERP system",
+    "autoload": {
+        "psr-4": {
+            "Nami\\Crm\\": "src/"
+        },
+        "files": [
+            "src/Helpers/CrmHtmlHelper.php"
+        ]
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "CrmServiceProvider"
+            ]
+        }
+    }
+}

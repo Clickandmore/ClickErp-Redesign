@@ -1,0 +1,35 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('fn_item_collects', function (Blueprint $table) {
+            $table->id();
+            $table->string('code')->nullable();
+            $table->date('date');
+            $table->foreignId('to_stock_id')->constrained('fn_stocks')->onDelete('cascade');
+            $table->foreignId('item_id')->constrained('fn_items')->onDelete('cascade');
+            $table->string('notes')->default('لا يوجد');
+            $table->string('attachment')->default('no file');
+            $table->string('status')->default('new');
+            $table->integer('amount')->default(0);
+            $table->timestamps();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('fn_item_collects');
+    }
+};

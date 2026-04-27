@@ -1,0 +1,24 @@
+{
+    "name": "nami/finance",
+    "description": "Finance package for the ERP system",
+    "require": {
+        "salla/zatca": "^3.0",
+        "ext-dom": "*",
+        "ext-openssl": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "Nami\\Finance\\": "src/"
+        },
+        "files": [
+            "src/Helpers/FinanceHtmlHelper.php"
+        ]
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Nami\\Finance\\FinanceServiceProvider"
+            ]
+        }
+    }
+}
