@@ -998,33 +998,39 @@
                         : $firstSegment;
                     $isHr = $moduleSegment === 'hr';
                 @endphp
-                <li class="sidebar-module sidebar-module--hr {{ $isHr ? '' : 'collapsed' }}">
-                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#hr" href="#">
-                        <i class="fa fa-user-tie me-2"></i>
-                        <span class="ms-2">{{ __('ingaz.hr') }}</span>
-                        <span class="arrow fa fa-angle-left ms-auto text-end"></span>
-                    </a>
-                    <ul class="sub-menu collapse {{ $isHr ? 'show' : '' }}" id="hr">
-                        @include('admin.layout.inc.hr_sidebar_links')
-                    </ul>
-                </li>
+                @if ($canViewHrModule)
+                    <li class="sidebar-module sidebar-module--hr {{ $isHr ? '' : 'collapsed' }}">
+                        <a class="m-link" data-bs-toggle="collapse" data-bs-target="#hr" href="#">
+                            <i class="fa fa-user-tie me-2"></i>
+                            <span class="ms-2">{{ __('ingaz.hr') }}</span>
+                            <span class="arrow fa fa-angle-left ms-auto text-end"></span>
+                        </a>
+                        <ul class="sub-menu collapse {{ $isHr ? 'show' : '' }}" id="hr">
+                            @include('admin.layout.inc.hr_sidebar_links')
+                        </ul>
+                    </li>
+                @endif
                 @php
                     $isFinance =
                         request()->is('finance*') ||
                         \Illuminate\Support\Str::startsWith((string) Route::currentRouteName(), 'invoices.');
                 @endphp
-                <li class="sidebar-module sidebar-module--finance {{ $isFinance ? '' : 'collapsed' }}">
-                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#finance" href="#">
-                        <i class="fa fa-dollar-sign me-2"></i>
-                        <span class="ms-2">{{ __('ingaz.finance') }}</span>
-                        <span class="arrow fa fa-angle-left ms-auto text-end"></span>
-                    </a>
-                    <ul class="sub-menu collapse {{ $isFinance ? 'show' : '' }}" id="finance">
-                        @include('finance::finance')
-                    </ul>
-                </li>
+                @if ($canViewFinanceModule)
+                    <li class="sidebar-module sidebar-module--finance {{ $isFinance ? '' : 'collapsed' }}">
+                        <a class="m-link" data-bs-toggle="collapse" data-bs-target="#finance" href="#">
+                            <i class="fa fa-dollar-sign me-2"></i>
+                            <span class="ms-2">{{ __('ingaz.finance') }}</span>
+                            <span class="arrow fa fa-angle-left ms-auto text-end"></span>
+                        </a>
+                        <ul class="sub-menu collapse {{ $isFinance ? 'show' : '' }}" id="finance">
+                            @include('finance::finance')
+                        </ul>
+                    </li>
+                @endif
                 {{--                @include('finance::stock') --}}
-                @include('finance::zatca')
+                @if ($canViewFinanceModule)
+                    @include('finance::zatca')
+                @endif
                 @include('access-control::menu-group')
 
                 {{-- اعدادات الرسائل النصية --}}

@@ -149,7 +149,7 @@ Route::group(
         'prefix' => LaravelLocalization::setLocale(),
         'middleware' => ["adminLocale", 'localeSessionRedirect', 'localizationRedirect', 'localeViewPath']
     ], function () {
-    Route::group(["middleware" => ['web', 'admin'], "prefix" => "finance", "as" => "finance."], function () {
+    Route::group(["middleware" => ['web', 'admin', 'package.route.permission:finance'], "prefix" => "finance", "as" => "finance."], function () {
         Route::resource('home', HomeController::class);
         Route::resource('years', YearController::class);
         Route::resource('year-status', ChangeYearStatusController::class);

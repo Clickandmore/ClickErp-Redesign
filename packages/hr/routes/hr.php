@@ -58,7 +58,7 @@ Route::group(
         'prefix' => LaravelLocalization::setLocale(),
         'middleware' => ["adminLocale", 'localeSessionRedirect', 'localizationRedirect', 'localeViewPath']
     ], function () {
-    Route::group(["middleware" => ["web", "admin"], "prefix" => "hr"], function () {
+    Route::group(["middleware" => ["web", "admin", "package.route.permission:hr"], "prefix" => "hr"], function () {
         Route::resource("home", HomeController::class)->names(['index' => 'hr.home.index']);
         Route::resource('departments', DepartmentController::class);
         Route::resource('jobs', JobController::class);

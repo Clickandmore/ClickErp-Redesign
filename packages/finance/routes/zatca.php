@@ -24,7 +24,7 @@ Route::group(
         'prefix' => LaravelLocalization::setLocale(),
         'middleware' => ['localeSessionRedirect', 'localizationRedirect', 'localeViewPath']
     ], function () {
-    Route::group(["middleware" => ["web","admin"], "prefix" => "zatca", "as" => "zatca."], function () {
+    Route::group(["middleware" => ["web", "admin", "package.route.permission:zatca"], "prefix" => "zatca", "as" => "zatca."], function () {
 
         Route::resource('zatca-settings', ZatcaSettingController::class);
         Route::resource('share-invoice', ShareZatcaController::class);
@@ -32,5 +32,4 @@ Route::group(
     });
 
 });
-
 
