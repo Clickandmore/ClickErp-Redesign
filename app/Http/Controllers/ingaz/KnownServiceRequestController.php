@@ -80,13 +80,13 @@ class KnownServiceRequestController extends Controller
 
                     if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_VIEW)) {
                         $items[] = '<li><a class="dropdown-item" href="' . route('known-service-requests.show', $row->id) . '">
-                            <i class="fas fa-eye"></i> Ø¹Ø±Ø¶ Ø§Ù„ØªÙØ§ØµÙŠÙ„
+                            <i class="fas fa-eye"></i> عرض التفاصيل
                         </a></li>';
                     }
 
                     if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_DELETE)) {
                         $items[] = '<li><button class="dropdown-item delete-order-request" data-id="' . $row->id . '">
-                            <i class="fa fa-trash"></i> Ø­Ø°Ù Ø§Ù„Ø·Ù„Ø¨
+                            <i class="fa fa-trash"></i> حذف الطلب
                         </button></li>';
                     }
 
@@ -97,7 +97,7 @@ class KnownServiceRequestController extends Controller
                     return '
                         <div class="dropdown actions-dropdown">
                             <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="fas fa-cogs me-1"></i> Ø§Ù„Ø¥Ø¬Ø±Ø§Ø¡Ø§Øª
+                                <i class="fas fa-cogs me-1"></i> الإجراءات
                             </button>
                             <ul class="dropdown-menu dropdown-menu-end shadow-lg">' . implode('', $items) . '</ul>
                         </div>';
@@ -147,7 +147,7 @@ class KnownServiceRequestController extends Controller
 
         return response()->json([
             'success' => false,
-            'message' => 'Ù„Ø§ ØªÙˆØ¬Ø¯ Ø¨ÙŠØ§Ù†Ø§Øª Ù‚Ø§Ø¨Ù„Ø© Ù„Ù„ØªØ­Ø¯ÙŠØ«.',
+            'message' => 'لا توجد بيانات قابلة للتحديث.',
         ], 422);
     }
 

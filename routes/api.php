@@ -24,6 +24,7 @@ use \Api\ApiComplaintController;
 use \Api\ApiContactController;
 use \Api\ApiReturnRequestController;
 use \Api\ApiDailyLabotDemandController;
+use \Api\ApiKnownServiceController;
 use \Api\ApiSelectWorkerController;
 use App\Http\Controllers\Api\HomeController;
 use Illuminate\Http\Request;
@@ -80,6 +81,7 @@ Route::group(
             Route::resource('notifications', ApiNotificationController::class);
             Route::resource('complaints', ApiComplaintController::class);
             Route::get('complaints-types', [App\Http\Controllers\Api\ApiComplaintController::class, 'complaints_types']);
+            Route::get('orders/tracking', [App\Http\Controllers\Api\ApiOrderController::class, 'tracking']);
             Route::resource('orders', ApiOrderController::class);
             Route::get('recruitment-request/{id}', [App\Http\Controllers\Api\ApiOrderController::class, 'showRecruitmentRequest']);
             Route::get('recruitment-request', [App\Http\Controllers\Api\ApiRecruitmentRequest::class, 'index']);
@@ -87,7 +89,6 @@ Route::group(
             Route::resource('contracts', ApiContractController::class);
             Route::post('contracts/cancel', [App\Http\Controllers\Api\ApiContractController::class, 'cancel']);
             Route::resource('profile/renew-contracts', ApiRenewContractsController::class);
-            Route::get('renew-contracts', [App\Http\Controllers\Api\ApiRenewContractsController::class, 'page']);
             Route::resource('sponsorship-transfers', ApiSponsorshipTransferController::class);
             Route::resource('return-requests', ApiReturnRequestController::class);
             Route::resource('customers', ApiCustomerController::class);
@@ -117,8 +118,11 @@ Route::controller(Api\HomeController::class)->group(function ($router) {
 // Public API routes (3mer)
 Route::group(['middleware' => 'lang', 'prefix' => 'client'], function () {
     Route::get('home', [HomeController::class, 'homeSections']);
+    Route::get('about', [HomeController::class, 'about']);
+    Route::get('renew-contracts', [App\Http\Controllers\Api\ApiRenewContractsController::class, 'page']);
+    Route::post('renew-contracts', [App\Http\Controllers\Api\ApiRenewContractsController::class, 'store']);
     Route::resource('daily-lebor-demand', ApiDailyLabotDemandController::class)->only(['index', 'store']);
-    Route::resource('known-service', \App\Http\Controllers\Api\ApiKnownServiceController::class)->only(['index', 'store']);
+    Route::resource('known-service', ApiKnownServiceController::class)->only(['index', 'store']);
     Route::resource('select-worker', ApiSelectWorkerController::class)->only(['index']);
     Route::resource('contact-us', ApiContactController::class);
     Route::resource('settings', ApiSettingController::class);
@@ -134,5 +138,6 @@ Route::group(['middleware' => 'lang', 'prefix' => 'client'], function () {
     Route::resource('all-workers', ApiMaidController::class);
     Route::get('arrival-worker', [App\Http\Controllers\Api\ApiMaidController::class, 'arrivalWorker']);
     Route::get('questions', [App\Http\Controllers\Api\ApiQuestionController::class, 'index']);
+    
 });
 
