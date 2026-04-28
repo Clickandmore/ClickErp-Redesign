@@ -13,6 +13,15 @@ class FormSettingsController extends Controller
 {
     private array $formSettingFields = [
         'document_logo',
+        'zatch_logo',
+        'qr_image',
+        'second_qr_image',
+        'tax_number',
+        'phone',
+        'other_phone',
+        'email',
+        'location:ar',
+        'location:en',
         'document_company_name:ar',
         'document_company_name:en',
         'document_office_name:ar',
@@ -222,22 +231,25 @@ class FormSettingsController extends Controller
     {
         $settings = Setting::query()->first();
         $today = Carbon::now();
+        $zatcaLogo = ($settings && $settings->zatch_logo) ? showFile($settings->zatch_logo) : null;
+        $qrImage = ($settings && $settings->qr_image) ? showFile($settings->qr_image) : null;
+        $secondQrImage = ($settings && $settings->second_qr_image) ? showFile($settings->second_qr_image) : null;
 
         return [
             'invoice' => (object) ['id' => 10045],
             'settings' => $settings,
             'supplierName' => (string) documentSetting('document_company_name', documentSetting('website_name', config('app.name'))),
             'supplierAddress' => (string) documentSetting('location', 'الرياض، المملكة العربية السعودية'),
-            'supplierPhone' => (string) ($settings?->phone ?: '+966 11 234 5678'),
-            'supplierOtherPhone' => (string) ($settings?->other_phone ?: '+966 55 765 4321'),
-            'supplierEmail' => (string) ($settings?->email ?: 'info@clickerp.test'),
-            'supplierTaxNumber' => (string) ($settings?->tax_number ?: '314232024200003'),
+            'supplierPhone' => $this->printableSetting('phone', '+966 11 234 5678'),
+            'supplierOtherPhone' => $this->printableSetting('other_phone', '+966 55 765 4321'),
+            'supplierEmail' => $this->printableSetting('email', 'info@clickerp.test'),
+            'supplierTaxNumber' => $this->printableSetting('tax_number', '314232024200003'),
             'supplierLogo' => documentLogoUrl(asset('admin/assets/img/company_logo.png')),
             'invoiceTitle' => (string) documentSetting('invoice_title', 'فاتورة ضريبية مبسطة'),
             'invoiceSubtitle' => (string) documentSetting('invoice_subtitle', 'Simplified Tax Invoice'),
             'invoiceFooterText' => (string) replaceDocumentPlaceholders(documentSetting('invoice_footer_text', '')),
-            'zatcaLogo' => ($settings && $settings->zatch_logo) ? showFile($settings->zatch_logo) : asset('site/assets/images/zatca-logo.png'),
-            'qrImage' => ($settings && $settings->qr_image) ? showFile($settings->qr_image) : asset('site/assets/images/qr1.png'),
+            'zatcaLogo' => $zatcaLogo ?: asset('site/assets/images/zatca-logo.png'),
+            'qrImage' => $qrImage ?: ($secondQrImage ?: asset('site/assets/images/qr1.png')),
             'serviceDesc' => 'طلب تعاقد',
             'serviceLongDescription' => 'فاتورة تجريبية لمعاينة شكل الطباعة والنصوص الافتراضية قبل اعتمادها على الفواتير الحقيقية.',
             'items' => [
@@ -359,5 +371,12 @@ class FormSettingsController extends Controller
             ]),
             'allowSignature' => true,
         ];
+    }
+
+    private function printableSetting(string $key, string $default = '-'): string
+    {
+        $value = trim((string) documentSetting($key, ''));
+
+        return $value === '' || $value === '#' ? $default : $value;
     }
 }

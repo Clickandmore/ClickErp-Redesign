@@ -253,6 +253,71 @@
                         <div class="card-body">
                             <h5 class="mb-3">تحرير الفاتورة</h5>
                             <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">الرقم الضريبي</label>
+                                    <input type="text" name="tax_number" class="form-control"
+                                           value="{{ $settings->tax_number ?? '' }}">
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label class="form-label">هاتف مقدم الخدمة</label>
+                                    <input type="text" name="phone" class="form-control"
+                                           value="{{ $settings->phone ?? '' }}">
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label class="form-label">هاتف إضافي</label>
+                                    <input type="text" name="other_phone" class="form-control"
+                                           value="{{ $settings->other_phone ?? '' }}">
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">البريد الإلكتروني</label>
+                                    <input type="email" name="email" class="form-control"
+                                           value="{{ ($settings->email ?? '') === '#' ? '' : ($settings->email ?? '') }}">
+                                </div>
+
+                                @foreach (config('translatable.locales') as $locale)
+                                    <div class="col-md-6">
+                                        <label class="form-label">عنوان مقدم الخدمة {{ getFieldLanguage($locale) }}</label>
+                                        <input type="text" name="location:{{ $locale }}" class="form-control"
+                                               value="{{ $settings->translate($locale)->location ?? '' }}">
+                                    </div>
+                                @endforeach
+
+                                <div class="col-md-4">
+                                    <label class="form-label">لوجو هيئة الزكاة والضريبة</label>
+                                    <input type="file" name="zatch_logo" class="form-control" accept="image/*">
+                                    @php $zatcaLogoPreview = showFile($settings->zatch_logo ?? null); @endphp
+                                    @if ($zatcaLogoPreview)
+                                        <div class="mt-2 border rounded p-2 bg-light text-center">
+                                            <img src="{{ $zatcaLogoPreview }}" alt="لوجو الضريبة" class="logo-preview">
+                                        </div>
+                                    @endif
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label class="form-label">QR الفاتورة</label>
+                                    <input type="file" name="qr_image" class="form-control" accept="image/*">
+                                    @php $qrPreview = showFile($settings->qr_image ?? null); @endphp
+                                    @if ($qrPreview)
+                                        <div class="mt-2 border rounded p-2 bg-light text-center">
+                                            <img src="{{ $qrPreview }}" alt="QR الفاتورة" class="logo-preview">
+                                        </div>
+                                    @endif
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label class="form-label">QR احتياطي للفاتورة</label>
+                                    <input type="file" name="second_qr_image" class="form-control" accept="image/*">
+                                    @php $secondQrPreview = showFile($settings->second_qr_image ?? null); @endphp
+                                    @if ($secondQrPreview)
+                                        <div class="mt-2 border rounded p-2 bg-light text-center">
+                                            <img src="{{ $secondQrPreview }}" alt="QR احتياطي" class="logo-preview">
+                                        </div>
+                                    @endif
+                                </div>
+
                                 @foreach (config('translatable.locales') as $locale)
                                     <div class="col-md-6">
                                         <label class="form-label">عنوان الفاتورة {{ getFieldLanguage($locale) }}</label>

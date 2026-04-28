@@ -56,11 +56,11 @@ class RentalContractInvoiceController extends Controller
         $settingsSecondQr = ($settings && $settings->second_qr_image) ? showFile($settings->second_qr_image) : null;
 
         $supplierName = (string) documentSetting('document_company_name', $settings?->website_name ?: config('app.name'));
-        $supplierAddress = (string) ($settings?->location ?: 'الرياض، المملكة العربية السعودية');
-        $supplierPhone = (string) ($settings?->phone ?: '-');
-        $supplierOtherPhone = (string) ($settings?->other_phone ?: '-');
-        $supplierEmail = (string) ($settings?->email ?: '-');
-        $supplierTaxNumber = (string) ($settings?->tax_number ?: '314232024200003');
+        $supplierAddress = (string) documentSetting('location', 'الرياض، المملكة العربية السعودية');
+        $supplierPhone = $this->printableSetting('phone', '-');
+        $supplierOtherPhone = $this->printableSetting('other_phone', '-');
+        $supplierEmail = $this->printableSetting('email', '-');
+        $supplierTaxNumber = $this->printableSetting('tax_number', '314232024200003');
         $supplierLogo = $settingsLogo ?: $documentBranding['logo_url'];
         $zatcaLogo = $settingsZatcaLogo ?: asset('site/assets/images/zatca-logo.png');
         $qrImage = $settingsQr ?: ($settingsSecondQr ?: asset('site/assets/images/qr1.png'));
@@ -268,5 +268,12 @@ class RentalContractInvoiceController extends Controller
         }
 
         return $code . $phone;
+    }
+
+    private function printableSetting(string $key, string $default = '-'): string
+    {
+        $value = trim((string) documentSetting($key, ''));
+
+        return $value === '' || $value === '#' ? $default : $value;
     }
 }
