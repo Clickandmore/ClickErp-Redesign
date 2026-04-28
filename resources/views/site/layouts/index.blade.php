@@ -50,6 +50,7 @@
     <!-- <div class="themeColor">
     <input type="color" id="colorInput" class="color-input">
 </div> -->
+    @include('site.partials.whatsapp_float')
     <footer class="footer">
         @include('site.layouts.footer')
     </footer>

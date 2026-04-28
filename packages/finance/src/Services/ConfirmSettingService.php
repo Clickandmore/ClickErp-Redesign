@@ -3,6 +3,7 @@
 namespace Nami\Finance\Services;
 
 use App\Services\ingaz\RentalMaidFinanceService;
+use App\Services\ingaz\ShelterLivingExpenseAccountingService;
 use Nami\Finance\MainService;
 use Nami\Finance\Enums\AccountStatusEnum;
 use Nami\Finance\Models\Account;
@@ -114,7 +115,7 @@ class ConfirmSettingService extends MainService
             'cost_center_general_sarf_bond',
             'cost_center_general_qabd_bond',
             'cost_center_account_transfer',
-        ], RentalMaidFinanceService::confirmSettingTitles()))
+        ], RentalMaidFinanceService::confirmSettingTitles(), ShelterLivingExpenseAccountingService::confirmSettingTitles()))
             ->latest('updated_at')
             ->get()
             ->unique('title')

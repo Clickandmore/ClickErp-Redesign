@@ -373,6 +373,13 @@
                         <span class="settings-nav__count">{{ count($rental_maid_expense_definitions) }} {{ __('finance::finance.settings_fields') }}</span>
                     </span>
                 </a>
+                <a class="settings-nav__item" href="#shelter-living-settings-section">
+                    <span class="settings-nav__icon"><i class="fa fa-home"></i></span>
+                    <span>
+                        <span class="settings-nav__title">{{ __('finance::finance.shelter_living_expense_account') }}</span>
+                        <span class="settings-nav__count">1 {{ __('finance::finance.settings_fields') }}</span>
+                    </span>
+                </a>
             </div>
 
             <details class="settings-section" id="tax-settings-section" open>
@@ -653,6 +660,41 @@
                         @empty
                             <div class="alert alert-warning mb-0">{{ __('finance::finance.rental_maid_expense_accounts_empty') }}</div>
                         @endforelse
+                    </div>
+                </div>
+            </details>
+
+            <details class="settings-section" id="shelter-living-settings-section" open>
+                <summary>
+                    <div>
+                        <h3 class="settings-section-title">{{ __('finance::finance.shelter_living_expense_account') }}</h3>
+                        <p class="settings-section-hint">{{ __('finance::finance.shelter_living_expense_account_hint') }}</p>
+                    </div>
+                    <span class="settings-section-icon"><i class="fa fa-chevron-down"></i></span>
+                </summary>
+                <div class="settings-section-body">
+                    <div class="settings-grid">
+                        <div class="setting-field">
+                            <div class="setting-field__top">
+                                <label for="shelter_living_expense_account">{{ __('finance::finance.shelter_living_expense_account') }}</label>
+                                <span class="setting-field__tools">
+                                    {!! addUpButton(route('finance.accounts.create'), 'shelter_living_expense_account', false, 'name', true) !!}
+                                    <span class="setting-info" title="{{ __('finance::finance.shelter_living_expense_account_tree_hint') }}"><i class="fa fa-info"></i></span>
+                                </span>
+                            </div>
+                            <input type="hidden" value="shelter_living_expense_account" name="data[shelter_living_expense_account][title]">
+                            <select name="data[shelter_living_expense_account][value]" id="shelter_living_expense_account" class="form-control select2">
+                                <option value="">{{ __('finance::finance.choose') }}</option>
+                                @foreach ($debtor_accounts as $item)
+                                    <option value="{{ $item->id }}" {{ (string) ($shelter_living_expense_account_id ?? '') === (string) $item->id ? 'selected' : '' }}>
+                                        {{ $item->code }} / {{ $item->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <div class="setting-field__tree">
+                                <strong>{{ $accountTreeLabel }}:</strong> {{ __('finance::finance.shelter_living_expense_account_tree_hint') }}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </details>

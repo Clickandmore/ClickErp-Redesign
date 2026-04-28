@@ -421,6 +421,15 @@
                         </button>
                         @if (
                             @AdminGuardHasAnyPerm([
+                                \App\PermKeys::SHELTER_CONTRACT_EDIT,
+                                \App\PermKeys::SHELTER_CONTRACT_CONTROL,
+                            ]))
+                            <button type="button" id="openLivingExpenseModal" class="btn btn-warning">
+                                <i class="fas fa-utensils me-2"></i>إضافة إعاشة
+                            </button>
+                        @endif
+                        @if (
+                            @AdminGuardHasAnyPerm([
                                 \App\PermKeys::SHELTER_CONTRACT_ADDITION_CREATE,
                                 \App\PermKeys::SHELTER_CONTRACT_CREATE,
                                 \App\PermKeys::SHELTER_CONTRACT_CONTROL,
@@ -723,6 +732,118 @@
 
 
 
+            </div>
+
+            <div class="modal fade" id="livingExpenseModal" tabindex="-1" aria-labelledby="livingExpenseModalLabel"
+                aria-hidden="true">
+                <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <form id="livingExpenseForm">
+                            @csrf
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="livingExpenseModalLabel">تسجيل مصروف إعاشة للإيواء</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="row g-3">
+                                    <div class="col-md-3">
+                                        <label class="form-label" for="livingExpenseDate">التاريخ</label>
+                                        <input type="date" id="livingExpenseDate" name="expense_date"
+                                            class="form-control" value="{{ now()->format('Y-m-d') }}" required>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label" for="livingExpenseShelter">مكان الإيواء</label>
+                                        <select id="livingExpenseShelter" name="shelter_id" class="form-select">
+                                            <option value="">كل الإيواء</option>
+                                            @foreach ($shelters as $shelter)
+                                                @php
+                                                    $translation = $shelter->translations
+                                                        ->where('locale', app()->getLocale())
+                                                        ->first();
+                                                    $name = $translation ? $translation->title : $shelter->title ?? 'غير محدد';
+                                                @endphp
+                                                <option value="{{ $shelter->id }}">{{ $name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label" for="livingExpenseTitle">البند</label>
+                                        <input type="text" id="livingExpenseTitle" name="title" class="form-control"
+                                            value="إعاشة الإيواء">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label" for="livingExpenseAmount">إجمالي المصروف</label>
+                                        <input type="number" step="0.01" min="0.01" id="livingExpenseAmount"
+                                            name="total_amount" class="form-control" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label" for="livingExpenseAccount">حساب مصروف الإعاشة</label>
+                                        <select id="livingExpenseAccount" name="expense_account_id" class="form-select" required>
+                                            <option value="">اختر الحساب</option>
+                                            @foreach ($livingExpenseAccounts as $account)
+                                                <option value="{{ $account->id }}"
+                                                    {{ (string) ($defaultLivingExpenseAccountId ?? '') === (string) $account->id ? 'selected' : '' }}>
+                                                    {{ $account->code }} / {{ $account->name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        <small class="text-muted">يمكن ضبط الحساب الافتراضي من إعدادات النظام المحاسبي.</small>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label" for="livingPaymentAccount">حساب الصرف</label>
+                                        <select id="livingPaymentAccount" name="payment_account_id" class="form-select" required>
+                                            <option value="">اختر حساب الصندوق أو البنك</option>
+                                            @foreach ($paymentAccounts as $account)
+                                                <option value="{{ $account->id }}"
+                                                    {{ (string) ($defaultPaymentAccountId ?? '') === (string) $account->id ? 'selected' : '' }}>
+                                                    {{ $account->code }} / {{ $account->name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="form-label" for="livingExpenseNotes">ملاحظات</label>
+                                        <textarea id="livingExpenseNotes" name="notes" rows="2" class="form-control"></textarea>
+                                    </div>
+                                </div>
+
+                                <hr>
+
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <h6 class="mb-0">آخر مصروفات الإعاشة</h6>
+                                    <button type="button" id="refreshLivingExpenses" class="btn btn-sm btn-outline-secondary">
+                                        <i class="fas fa-sync"></i>
+                                    </button>
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-bordered align-middle mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>التاريخ</th>
+                                                <th>الإيواء</th>
+                                                <th>الإجمالي</th>
+                                                <th>عدد العاملات</th>
+                                                <th>نصيب العاملة</th>
+                                                <th>القيد</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="livingExpensesRows">
+                                            <tr>
+                                                <td colspan="6" class="text-muted text-center">لم يتم التحميل بعد</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                                <button type="submit" class="btn btn-warning">
+                                    <i class="fas fa-save me-1"></i> حفظ وتوزيع الإعاشة
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </div>
 
             <!-- Modal -->
@@ -1490,6 +1611,79 @@
                                 Swal.fire('خطأ!', errorMessage, 'error');
                             }
                         });
+                    }
+                });
+            });
+
+            const livingExpenseModal = $('#livingExpenseModal');
+
+            function loadLivingExpenses() {
+                $.get('{{ route('ShelterContract.livingExpenses') }}')
+                    .done(function(response) {
+                        const rows = response.data || [];
+                        if (!rows.length) {
+                            $('#livingExpensesRows').html(
+                                '<tr><td colspan="6" class="text-muted text-center">لا توجد مصروفات إعاشة مسجلة</td></tr>'
+                            );
+                            return;
+                        }
+
+                        $('#livingExpensesRows').html(rows.map(function(row) {
+                            const constraint = row.constraint_url ?
+                                '<a href="' + row.constraint_url + '" target="_blank" class="btn btn-sm btn-outline-primary">عرض القيد</a>' :
+                                '<span class="text-muted">بدون قيد</span>';
+
+                            return '<tr>' +
+                                '<td>' + row.expense_date + '</td>' +
+                                '<td>' + row.shelter + '</td>' +
+                                '<td>' + row.total_amount + '</td>' +
+                                '<td>' + row.worker_count + '</td>' +
+                                '<td>' + row.amount_per_worker + '</td>' +
+                                '<td>' + constraint + '</td>' +
+                                '</tr>';
+                        }).join(''));
+                    })
+                    .fail(function(xhr) {
+                        $('#livingExpensesRows').html(
+                            '<tr><td colspan="6" class="text-danger text-center">' +
+                            (xhr.responseJSON?.message || 'تعذر تحميل مصروفات الإعاشة') +
+                            '</td></tr>'
+                        );
+                    });
+            }
+
+            $('#openLivingExpenseModal').on('click', function() {
+                livingExpenseModal.modal('show');
+                loadLivingExpenses();
+            });
+
+            $('#refreshLivingExpenses').on('click', loadLivingExpenses);
+
+            $('#livingExpenseForm').on('submit', function(e) {
+                e.preventDefault();
+
+                const submitButton = $(this).find('button[type="submit"]');
+                submitButton.prop('disabled', true);
+
+                $.ajax({
+                    url: '{{ route('ShelterContract.livingExpenses.store') }}',
+                    type: 'POST',
+                    data: $(this).serialize(),
+                    success: function(response) {
+                        Swal.fire('نجح!', response.message || 'تم حفظ مصروف الإعاشة', 'success');
+                        $('#livingExpenseAmount').val('');
+                        $('#livingExpenseNotes').val('');
+                        loadLivingExpenses();
+
+                        if (response.constraint_url) {
+                            window.open(response.constraint_url, '_blank');
+                        }
+                    },
+                    error: function(xhr) {
+                        Swal.fire('خطأ!', xhr.responseJSON?.message || 'حدث خطأ أثناء حفظ مصروف الإعاشة', 'error');
+                    },
+                    complete: function() {
+                        submitButton.prop('disabled', false);
                     }
                 });
             });

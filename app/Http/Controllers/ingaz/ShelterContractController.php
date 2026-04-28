@@ -11,15 +11,19 @@ use App\Models\ingaz\JobType;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\Nationality;
 use App\Models\RentalContract;
+use App\Models\ShelterLivingExpense;
 use App\Models\ShelterPlaces;
 use App\Models\SponsorshipTransfer;
 use App\PermKeys;
+use App\Services\ingaz\ShelterLivingExpenseAccountingService;
 use App\Support\AutomationSettings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Nami\Finance\Models\Account;
+use Nami\Finance\Models\ConfirmSetting;
 use PDF;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -48,7 +52,7 @@ class ShelterContractController extends Controller
             'only' => ['searchByPassport', 'getContractDetails', 'getNationalities', 'getShelterPlaces'],
         ]);
         $this->middleware($this->permissionMiddleware($this->shelterAdditionCreatePermissions()), ['only' => ['create', 'store']]);
-        $this->middleware($this->permissionMiddleware($this->shelterContractEditPermissions()), ['only' => ['edit', 'update']]);
+        $this->middleware($this->permissionMiddleware($this->shelterContractEditPermissions()), ['only' => ['edit', 'update', 'storeLivingExpense', 'livingExpenses']]);
         $this->middleware($this->permissionMiddleware($this->shelterRemoveFromShelterPermissions()), ['only' => ['back']]);
         $this->middleware($this->permissionMiddleware($this->shelterQuickTagsEditPermissions()), ['only' => ['updateQuickTags']]);
         $this->middleware($this->permissionMiddleware($this->shelterDeportationProceduresEditPermissions()), [
@@ -310,6 +314,20 @@ class ShelterContractController extends Controller
         $nationalities = Nationality::with('translations')->get();
         $shelters = ShelterPlaces::with('translations')->get();
         $quickTagSuggestions = $this->getQuickTagSuggestions();
+        $livingExpenseAccounts = Account::query()
+            ->whereDoesntHave('children')
+            ->where('status', 'debtor')
+            ->orderBy('code')
+            ->get(['id', 'code', 'name']);
+        $paymentAccounts = Account::query()
+            ->whereDoesntHave('children')
+            ->orderBy('code')
+            ->get(['id', 'code', 'name']);
+        $defaultLivingExpenseAccountId = app(ShelterLivingExpenseAccountingService::class)->defaultExpenseAccountId();
+        $defaultPaymentAccountId = (int) (ConfirmSetting::query()
+            ->where('title', 'bond_sarf_account')
+            ->latest('updated_at')
+            ->value('value') ?? 0);
 
         return view('admin.ingaz.ShelterContract.index', compact(
             'totalContracts',
@@ -325,8 +343,75 @@ class ShelterContractController extends Controller
             'quickTagStats',
             'quickTagSuggestions',
             'nationalities',
-            'shelters'
+            'shelters',
+            'livingExpenseAccounts',
+            'paymentAccounts',
+            'defaultLivingExpenseAccountId',
+            'defaultPaymentAccountId'
         ));
+    }
+
+    public function storeLivingExpense(Request $request, ShelterLivingExpenseAccountingService $service)
+    {
+        $data = $request->validate([
+            'shelter_id' => ['nullable', 'integer', 'exists:shelter_places,id'],
+            'expense_date' => ['required', 'date'],
+            'title' => ['nullable', 'string', 'max:255'],
+            'total_amount' => ['required', 'numeric', 'min:0.01'],
+            'expense_account_id' => ['required', 'integer', 'exists:fn_accounts,id'],
+            'payment_account_id' => ['required', 'integer', 'exists:fn_accounts,id'],
+            'notes' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        try {
+            $expense = $service->create($data);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تسجيل مصروف الإعاشة وتوزيعه على العاملات بنجاح.',
+                'constraint_url' => $expense->constraint_id
+                    ? route('finance.add-constraint.show', ['add_constraint' => $expense->constraint_id, 'autoprint' => 1])
+                    : null,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+    }
+
+    public function livingExpenses()
+    {
+        $expenses = ShelterLivingExpense::query()
+            ->with(['shelter.translations', 'expenseAccount', 'paymentAccount', 'constraint'])
+            ->latest('expense_date')
+            ->latest('id')
+            ->limit(25)
+            ->get()
+            ->map(function (ShelterLivingExpense $expense) {
+                $shelterTitle = $expense->shelter?->translations?->where('locale', app()->getLocale())->first()?->title
+                    ?: $expense->shelter?->translations?->first()?->title
+                    ?: 'كل الإيواء';
+
+                return [
+                    'id' => $expense->id,
+                    'expense_date' => optional($expense->expense_date)->format('Y-m-d'),
+                    'title' => $expense->title,
+                    'shelter' => $shelterTitle,
+                    'total_amount' => number_format((float) $expense->total_amount, 2),
+                    'worker_count' => $expense->worker_count,
+                    'amount_per_worker' => number_format((float) $expense->amount_per_worker, 2),
+                    'expense_account' => trim(($expense->expenseAccount?->code ? $expense->expenseAccount->code . ' / ' : '') . ($expense->expenseAccount?->name ?? '')),
+                    'payment_account' => trim(($expense->paymentAccount?->code ? $expense->paymentAccount->code . ' / ' : '') . ($expense->paymentAccount?->name ?? '')),
+                    'constraint_url' => $expense->constraint_id
+                        ? route('finance.add-constraint.show', ['add_constraint' => $expense->constraint_id, 'autoprint' => 1])
+                        : null,
+                ];
+            })
+            ->values();
+
+        return response()->json(['data' => $expenses]);
     }
 
     /**

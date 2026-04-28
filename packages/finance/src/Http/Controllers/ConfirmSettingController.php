@@ -4,6 +4,7 @@ namespace Nami\Finance\Http\Controllers;
 
 use App\Http\Controllers\admin\Controller;
 use App\Services\ingaz\RentalMaidFinanceService;
+use App\Services\ingaz\ShelterLivingExpenseAccountingService;
 use Exception;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\View\Factory;
@@ -26,7 +27,12 @@ class ConfirmSettingController extends Controller
      * @throws Exception
      */
 
-    public function index(Request $request, ObjService $service, RentalMaidFinanceService $rentalMaidFinanceService)
+    public function index(
+        Request $request,
+        ObjService $service,
+        RentalMaidFinanceService $rentalMaidFinanceService,
+        ShelterLivingExpenseAccountingService $shelterLivingExpenseAccountingService
+    )
     {
         $settings = $service->getAllSettings();
         $data = [
@@ -41,6 +47,7 @@ class ConfirmSettingController extends Controller
             "musaned_accounts" => $service->getMusanedIntermediateAccounts(),
             "tax_settings" => $service->getTaxSetting(),
             "rental_maid_expense_definitions" => $rentalMaidFinanceService->getSettingDefinitions($settings),
+            "shelter_living_expense_account_id" => $shelterLivingExpenseAccountingService->defaultExpenseAccountId(),
         ];
         return view($this->folderPath . '.index', $data);
     }
