@@ -105,7 +105,11 @@ class EnsurePackageRoutePermission
             default => 'view',
         };
 
-        $normalizedResource = str_replace(['.', '-'], '_', $resource);
+        $normalizedResource = trim(Str::snake(str_replace(['.', '-'], '_', $resource)), '_');
+
+        if ($normalizedResource === '') {
+            return [$modulePermission];
+        }
 
         return array_values(array_unique([
             "{$module}_{$normalizedResource}_{$ability}",
