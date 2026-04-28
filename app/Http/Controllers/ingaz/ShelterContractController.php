@@ -24,6 +24,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Nami\Finance\Models\Account;
 use Nami\Finance\Models\ConfirmSetting;
+use Nami\Finance\Enums\AccountTypesEnum;
 use PDF;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -321,8 +322,28 @@ class ShelterContractController extends Controller
             ->get(['id', 'code', 'name']);
         $paymentAccounts = Account::query()
             ->whereDoesntHave('children')
+            ->whereIn('type', [AccountTypesEnum::Bank->value, AccountTypesEnum::Box->value])
             ->orderBy('code')
-            ->get(['id', 'code', 'name']);
+            ->get(['id', 'code', 'name', 'type']);
+        $livingExpenseWorkerOptions = Contract::insideShelter()
+            ->with(['maid:id,name,passport_num', 'info.shelter.translations'])
+            ->whereNotNull('maid_id')
+            ->orderBy('id')
+            ->get()
+            ->map(function (Contract $contract) {
+                $shelterTitle = $contract->info?->shelter?->translations?->where('locale', app()->getLocale())->first()?->title
+                    ?: $contract->info?->shelter?->translations?->first()?->title
+                    ?: 'بدون إيواء محدد';
+                $maidName = trim((string) ($contract->maid?->name ?? 'عاملة غير محددة'));
+                $passport = trim((string) ($contract->maid?->passport_num ?? ''));
+
+                return [
+                    'contract_id' => $contract->id,
+                    'shelter_id' => $contract->info?->shelter_id,
+                    'label' => '#' . $contract->id . ' - ' . $maidName . ($passport !== '' ? ' - ' . $passport : ''),
+                    'shelter' => $shelterTitle,
+                ];
+            });
         $defaultLivingExpenseAccountId = app(ShelterLivingExpenseAccountingService::class)->defaultExpenseAccountId();
         $defaultPaymentAccountId = (int) (ConfirmSetting::query()
             ->where('title', 'bond_sarf_account')
@@ -346,6 +367,7 @@ class ShelterContractController extends Controller
             'shelters',
             'livingExpenseAccounts',
             'paymentAccounts',
+            'livingExpenseWorkerOptions',
             'defaultLivingExpenseAccountId',
             'defaultPaymentAccountId'
         ));
@@ -355,6 +377,7 @@ class ShelterContractController extends Controller
     {
         $data = $request->validate([
             'shelter_id' => ['nullable', 'integer', 'exists:shelter_places,id'],
+            'contract_id' => ['nullable', 'integer', 'exists:contracts,id'],
             'expense_date' => ['required', 'date'],
             'title' => ['nullable', 'string', 'max:255'],
             'total_amount' => ['required', 'numeric', 'min:0.01'],
@@ -384,7 +407,7 @@ class ShelterContractController extends Controller
     public function livingExpenses()
     {
         $expenses = ShelterLivingExpense::query()
-            ->with(['shelter.translations', 'expenseAccount', 'paymentAccount', 'constraint'])
+            ->with(['shelter.translations', 'expenseAccount', 'paymentAccount', 'constraint', 'allocations.maid'])
             ->latest('expense_date')
             ->latest('id')
             ->limit(25)
@@ -399,6 +422,9 @@ class ShelterContractController extends Controller
                     'expense_date' => optional($expense->expense_date)->format('Y-m-d'),
                     'title' => $expense->title,
                     'shelter' => $shelterTitle,
+                    'target' => $expense->worker_count === 1
+                        ? ($expense->allocations->first()?->maid?->name ?: 'عاملة واحدة')
+                        : 'توزيع على العاملات',
                     'total_amount' => number_format((float) $expense->total_amount, 2),
                     'worker_count' => $expense->worker_count,
                     'amount_per_worker' => number_format((float) $expense->amount_per_worker, 2),

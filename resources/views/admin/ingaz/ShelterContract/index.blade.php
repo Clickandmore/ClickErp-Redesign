@@ -777,6 +777,19 @@
                                             name="total_amount" class="form-control" required>
                                     </div>
                                     <div class="col-md-6">
+                                        <label class="form-label" for="livingExpenseContract">العاملة</label>
+                                        <select id="livingExpenseContract" name="contract_id" class="form-select">
+                                            <option value="">كل العاملات المطابقات</option>
+                                            @foreach ($livingExpenseWorkerOptions as $worker)
+                                                <option value="{{ $worker['contract_id'] }}"
+                                                    data-shelter-id="{{ $worker['shelter_id'] ?? '' }}">
+                                                    {{ $worker['label'] }} - {{ $worker['shelter'] }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        <small class="text-muted">اتركها فارغة لتوزيع المبلغ على كل العاملات داخل الإيواء المختار.</small>
+                                    </div>
+                                    <div class="col-md-6">
                                         <label class="form-label" for="livingExpenseAccount">حساب مصروف الإعاشة</label>
                                         <select id="livingExpenseAccount" name="expense_account_id" class="form-select" required>
                                             <option value="">اختر الحساب</option>
@@ -800,6 +813,9 @@
                                                 </option>
                                             @endforeach
                                         </select>
+                                        @if ($paymentAccounts->isEmpty())
+                                            <small class="text-danger">لا توجد حسابات بنك أو صندوق معرفة في النظام المحاسبي.</small>
+                                        @endif
                                     </div>
                                     <div class="col-12">
                                         <label class="form-label" for="livingExpenseNotes">ملاحظات</label>
@@ -821,6 +837,7 @@
                                             <tr>
                                                 <th>التاريخ</th>
                                                 <th>الإيواء</th>
+                                                <th>التخصيص</th>
                                                 <th>الإجمالي</th>
                                                 <th>عدد العاملات</th>
                                                 <th>نصيب العاملة</th>
@@ -829,7 +846,7 @@
                                         </thead>
                                         <tbody id="livingExpensesRows">
                                             <tr>
-                                                <td colspan="6" class="text-muted text-center">لم يتم التحميل بعد</td>
+                                                <td colspan="7" class="text-muted text-center">لم يتم التحميل بعد</td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -1623,7 +1640,7 @@
                         const rows = response.data || [];
                         if (!rows.length) {
                             $('#livingExpensesRows').html(
-                                '<tr><td colspan="6" class="text-muted text-center">لا توجد مصروفات إعاشة مسجلة</td></tr>'
+                                '<tr><td colspan="7" class="text-muted text-center">لا توجد مصروفات إعاشة مسجلة</td></tr>'
                             );
                             return;
                         }
@@ -1636,6 +1653,7 @@
                             return '<tr>' +
                                 '<td>' + row.expense_date + '</td>' +
                                 '<td>' + row.shelter + '</td>' +
+                                '<td>' + row.target + '</td>' +
                                 '<td>' + row.total_amount + '</td>' +
                                 '<td>' + row.worker_count + '</td>' +
                                 '<td>' + row.amount_per_worker + '</td>' +
@@ -1645,19 +1663,44 @@
                     })
                     .fail(function(xhr) {
                         $('#livingExpensesRows').html(
-                            '<tr><td colspan="6" class="text-danger text-center">' +
+                            '<tr><td colspan="7" class="text-danger text-center">' +
                             (xhr.responseJSON?.message || 'تعذر تحميل مصروفات الإعاشة') +
                             '</td></tr>'
                         );
                     });
             }
 
+            function filterLivingExpenseWorkers() {
+                const shelterId = String($('#livingExpenseShelter').val() || '');
+                const workerSelect = $('#livingExpenseContract');
+                const currentValue = workerSelect.val();
+                let currentStillVisible = !currentValue;
+
+                workerSelect.find('option').each(function() {
+                    const option = $(this);
+                    const optionShelterId = String(option.data('shelter-id') || '');
+                    const isEmptyOption = option.val() === '';
+                    const shouldShow = isEmptyOption || !shelterId || optionShelterId === shelterId;
+
+                    option.prop('hidden', !shouldShow).prop('disabled', !shouldShow);
+                    if (shouldShow && option.val() === currentValue) {
+                        currentStillVisible = true;
+                    }
+                });
+
+                if (!currentStillVisible) {
+                    workerSelect.val('');
+                }
+            }
+
             $('#openLivingExpenseModal').on('click', function() {
                 livingExpenseModal.modal('show');
+                filterLivingExpenseWorkers();
                 loadLivingExpenses();
             });
 
             $('#refreshLivingExpenses').on('click', loadLivingExpenses);
+            $('#livingExpenseShelter').on('change', filterLivingExpenseWorkers);
 
             $('#livingExpenseForm').on('submit', function(e) {
                 e.preventDefault();

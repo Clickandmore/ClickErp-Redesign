@@ -8,6 +8,7 @@ use App\Models\ShelterLivingExpense;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Nami\Finance\Enums\CostCenterTypeEnum;
+use Nami\Finance\Enums\AccountTypesEnum;
 use Nami\Finance\Models\Account;
 use Nami\Finance\Models\ConfirmSetting;
 use Nami\Finance\Models\Constraint;
@@ -58,9 +59,13 @@ class ShelterLivingExpenseAccountingService
                 throw new \RuntimeException('يجب اختيار حسابات محاسبية نهائية صحيحة للإعاشة والصرف.');
             }
 
-            $contracts = $this->eligibleContracts($data['shelter_id'] ?? null)->get();
+            if (!$this->isPaymentAccount($paymentAccount)) {
+                throw new \RuntimeException('حساب الصرف يجب أن يكون حساب بنك أو صندوق.');
+            }
+
+            $contracts = $this->eligibleContracts($data['shelter_id'] ?? null, $data['contract_id'] ?? null)->get();
             if ($contracts->isEmpty()) {
-                throw new \RuntimeException('لا توجد عاملات داخل الإيواء لتوزيع مصروف الإعاشة.');
+                throw new \RuntimeException('لا توجد عاملات مطابقة داخل الإيواء لتسجيل مصروف الإعاشة.');
             }
 
             $totalAmount = $this->roundMoney((float) $data['total_amount']);
@@ -72,9 +77,10 @@ class ShelterLivingExpenseAccountingService
             $allocations = $this->splitAmount($totalAmount, $workerCount);
             $entryDate = (string) $data['expense_date'];
             $activeYear = $this->resolveYear($entryDate);
+            $expenseShelterId = $data['shelter_id'] ?? ($workerCount === 1 ? $contracts->first()?->info?->shelter_id : null);
 
             $expense = ShelterLivingExpense::query()->create([
-                'shelter_id' => $data['shelter_id'] ?? null,
+                'shelter_id' => $expenseShelterId,
                 'expense_account_id' => $expenseAccount->id,
                 'payment_account_id' => $paymentAccount->id,
                 'expense_date' => $entryDate,
@@ -125,10 +131,13 @@ class ShelterLivingExpenseAccountingService
         });
     }
 
-    private function eligibleContracts(?int $shelterId)
+    private function eligibleContracts(?int $shelterId, ?int $contractId = null)
     {
         return Contract::query()
             ->where('status', ContractStatusEnum::Shelter->value)
+            ->when($contractId, function ($query) use ($contractId) {
+                $query->whereKey($contractId);
+            })
             ->whereHas('info', function ($query) use ($shelterId) {
                 $query->where(function ($insideQuery) {
                     $insideQuery->where('is_outside_shelter', false)
@@ -265,6 +274,17 @@ class ShelterLivingExpenseAccountingService
             ->whereKey($accountId)
             ->whereDoesntHave('children')
             ->first();
+    }
+
+    private function isPaymentAccount(Account $account): bool
+    {
+        $type = $account->type;
+        $typeValue = $type instanceof AccountTypesEnum ? $type->value : (int) $type;
+
+        return in_array($typeValue, [
+            AccountTypesEnum::Bank->value,
+            AccountTypesEnum::Box->value,
+        ], true);
     }
 
     private function constraintStatement(ShelterLivingExpense $expense): string
