@@ -24,7 +24,7 @@ class KnownServiceRequestStoreRequest extends MainRequest
             'passport_number' => ['required', 'string', 'max:100'],
             'passport_expiration_date' => ['nullable', 'date'],
             'age' => ['nullable', 'integer', 'min:0', 'max:100'],
-            'social_status_id' => ['nullable', 'exists:social_statuses,id'],
+            'social_status_id' => ['nullable', 'exists:social_status,id'],
             'religion_id' => ['nullable', 'exists:religions,id'],
             'skills' => ['nullable', 'string', 'max:2000'],
             'required_salary' => ['nullable', 'numeric', 'min:0'],

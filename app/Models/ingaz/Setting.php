@@ -60,6 +60,18 @@ class Setting extends Model
         , 'qr_image', 'experience_image', 'second_qr_image', 'tax_number', 'zatch_logo'
     ];
 
+    protected $appends = ['header_logo_url', 'footer_logo_url'];
+
+    public function getHeaderLogoUrlAttribute()
+    {
+        return $this->logo_header ? asset('storage/' . $this->logo_header) : null;
+    }
+
+    public function getFooterLogoUrlAttribute()
+    {
+        return $this->logo_footer ? asset('storage/' . $this->logo_footer) : null;
+    }
+
     public static function getValue($key, $default = null)
     {
         $setting = static::where('key', $key)->first();

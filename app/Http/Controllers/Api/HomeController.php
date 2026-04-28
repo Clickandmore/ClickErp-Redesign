@@ -302,6 +302,13 @@ class HomeController extends Controller
         return $this->successResponse($data, 'Home data retrieved successfully', 200);
     }
 
+    public function about(Request $request, AboutUsAction $about)
+    {
+        $about = $about->first();
+
+        return $this->successResponse($about, 'About data retrieved successfully', 200);
+    }
+
 
     public function whyUs(Request $request, WhyUsAction $whyUsAction)
     {

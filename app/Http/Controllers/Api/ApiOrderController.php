@@ -8,7 +8,7 @@ use App\Enums\ingaz\OrderEnum;
 use App\Http\Actions\auth\AdminAction;
 use App\Http\Actions\ingaz\MaidAction;
 use App\Http\Actions\ingaz\OrderAction;
-use App\Http\Actions\ingaz\OrderAction as objAction;
+use App\Http\Actions\ingaz\OrderAction as ObjAction;
 use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\API\CustomerServiceRequest;
 use App\Http\Traits\SendSMSTrait;
@@ -19,6 +19,7 @@ use App\Models\ingaz\RecruitmentRequest;
 use App\Models\ingaz\ReturnRequest;
 use App\Models\TravelHistory;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -26,47 +27,77 @@ use Illuminate\Validation\Rule;
 class ApiOrderController extends Controller
 {
     use SendSMSTrait, StoreMessageTrait;
+
     public $postData = ['maid_id', 'job_type_id', 'payment_method'];
 
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
     public function index(OrderAction $orderAction)
     {
         $current = $orderAction->getIndex('current');
         $previous = $orderAction->getIndex('previous');
-        $order_progressbar = ['refused' => 0, 'new' => 20, 'paid' => 40, 'under_process' => 60, 'started' => 80, 'contracted' => 100, 'done' => 100, 'completed' => 100];
+        $order_progressbar = [
+            'refused' => 0,
+            'new' => 20,
+            'paid' => 40,
+            'under_process' => 60,
+            'started' => 80,
+            'contracted' => 100,
+            'done' => 100,
+            'completed' => 100,
+        ];
 
-        $data = [
+        return apiResponse(true, __('api.All items'), [
             'current' => $current,
             'previous' => $previous,
             'order_progressbar' => $order_progressbar,
-        ];
-
-        return apiResponse(true, __('api.All items'), $data, 200);
+        ], 200);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
+    public function tracking(Request $request)
+    {
+        $orderCode = trim((string) $request->query('order_code', ''));
+        $normalizedOrderCode = preg_replace('/\D+/', '', $orderCode);
+
+        $orders = Order::with([
+            'jobType',
+            'maid.nationality',
+            'details.admin',
+            'customer',
+            'user',
+            'transfers',
+        ])
+            ->where('user_id', Auth::id())
+            ->when($orderCode !== '', function ($query) use ($orderCode, $normalizedOrderCode) {
+                $query->where(function ($orderQuery) use ($orderCode, $normalizedOrderCode) {
+                    $orderQuery->where('order_code', $orderCode);
+
+                    if ($normalizedOrderCode !== '' && $normalizedOrderCode !== $orderCode) {
+                        $orderQuery->orWhere('order_code', $normalizedOrderCode);
+                    }
+                });
+            })
+            ->latest()
+            ->get();
+
+        $items = $orders->map(fn(Order $order) => $this->transformTrackingOrder($order))->values();
+
+        return apiResponse(true, __('api.All items'), [
+            'orders' => $items,
+            'summary' => [
+                'total' => $items->count(),
+                'active' => $items->whereIn('status', ['new', 'in_progress', 'ready'])->count(),
+                'completed' => $items->where('status', 'completed')->count(),
+                'cancelled' => $items->where('status', 'cancelled')->count(),
+            ],
+        ], 200);
+    }
+
     public function create(Request $request)
     {
         //
     }
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
     public function store(Request $request, MaidAction $maidAction, AdminAction $adminAction)
     {
-        // 1. Validation
         $request->validate([
             'maid_id' => ['required', 'exists:maids,id'],
             'customer' => [
@@ -85,7 +116,6 @@ class ApiOrderController extends Controller
             'customer.exists' => __('ingaz.customer_is_not_exists'),
         ]);
 
-        // 2. Fetch Data
         $maid = $maidAction->find($request->maid_id);
         $jobType = $maid->jobTypes->first();
 
@@ -93,44 +123,40 @@ class ApiOrderController extends Controller
             return apiResponse(false, __("ingaz.job_type_not_found"), null, 404);
         }
 
-        // 3. Check for Duplicate Order
         $existingOrder = RecruitmentRequest::where('maid_id', $request->maid_id)
             ->where('user_id', auth()->id())
             ->whereIn('status', [
                 OrderEnum::New->value,
                 OrderEnum::Contracted->value,
                 OrderEnum::UnderProcess->value,
-                OrderEnum::ContractedWithoutContract->value
-            ])->exists(); // استخدام exists() أسرع من first()
+                OrderEnum::ContractedWithoutContract->value,
+            ])->exists();
 
         if ($existingOrder) {
             return apiResponse(false, __("web.there_are_order_in_prograss"), null, 403);
         }
 
-        // 4. Start Transaction
         return DB::transaction(function () use ($request, $maid, $jobType, $adminAction) {
-
             $order = RecruitmentRequest::create([
                 'user_id' => auth()->id(),
                 'maid_id' => $maid->id,
-                'job_type_id' => $jobType->id
+                'job_type_id' => $jobType->id,
             ]);
 
             $user = auth()->user();
             $userPhone = formatSaudiPhone($user->phone);
 
-            // SMS to User
             if ($userPhone) {
                 $msg = "عزيزي العميل، تم حجز سيرة ذاتية بنجاح. رقم الطلب {$order->order_code}.";
                 $smsResult = $this->sendSMS($userPhone, $msg);
+
                 if (isset($smsResult['code']) && $smsResult['code'] == "1") {
                     $this->storeMessage('ارسال رسالة نصية الى العميل', $msg, NotificationActionEnum::SMS->value, $user->id);
                 }
             }
 
-            $customerService = (object)[];
+            $customerService = (object) [];
 
-            // Assign Customer Service if provided
             if ($request->filled('customer')) {
                 $customerService = $adminAction->find($request->customer);
 
@@ -142,64 +168,55 @@ class ApiOrderController extends Controller
                 );
 
                 $customerPhone = formatSaudiPhone($customerService->phone);
+
                 if ($customerPhone) {
                     $customerMsg = "يوجد لديكم حجز باسم {$user->name} برقم جوال {$userPhone}";
                     $this->sendSMS($customerPhone, $customerMsg);
                 }
             }
 
-            // Return the created order data
-            return apiResponse(true, __('api.Order created successfully'), ['order' => $order, 'customer' => $customerService], 201);
+            return apiResponse(true, __('api.Order created successfully'), [
+                'order' => $order,
+                'customer' => $customerService,
+            ], 201);
         });
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
     public function show(OrderAction $orderAction, $id)
     {
-        //  $data['order'] = $orderAction->find($id);
         $data['order'] = Order::with(['jobType', 'maid.nationality', 'maid.religion', 'maid.jobTitles'])->find($id);
+
         if ($data['order']->user_id != Auth::user()->id) {
             abort(404);
         }
-        $data['order_progressbar'] = ['refused' => 0, 'new' => 20, 'paid' => 40, 'completed' => 60, 'started' => 80, 'done' => 100];
+
+        $data['order_progressbar'] = [
+            'refused' => 0,
+            'new' => 20,
+            'paid' => 40,
+            'completed' => 60,
+            'started' => 80,
+            'done' => 100,
+        ];
         $data['returnRequest'] = ReturnRequest::where('order_id', $id)->first();
         $data['travelRequest'] = TravelHistory::where('order_id', $id)->first();
 
         return apiResponse(true, "تم جلب الطلب بنجاح", $data, 200);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
     public function edit($id, Request $request, ObjAction $action)
     {
         //
     }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
     public function update($id, CustomerServiceRequest $request, AdminAction $adminAction)
     {
         $dataInserted = $request->validated();
-
         $order = RecruitmentRequest::find($id);
 
         if (isset($order)) {
             $order->update([
-                'customer_id' => $dataInserted['customer']
+                'customer_id' => $dataInserted['customer'],
             ]);
 
             OrderDetail::updateOrCreate(
@@ -208,31 +225,23 @@ class ApiOrderController extends Controller
             );
         }
 
-        // Send SMS after assigning customer service
         $userPhone = formatSaudiPhone(auth()->user()->phone);
         $userName = auth()->user()->name;
         $customerPhone = formatSaudiPhone($adminAction->find($dataInserted['customer'])->phone);
+
         if (!empty($customerPhone)) {
-            $body =  "يوجد لديكم حجز باسم " . $userName . "برقم جوال " . $userPhone;
+            $body = "يوجد لديكم حجز باسم " . $userName . " برقم جوال " . $userPhone;
             $this->sendSMS($customerPhone, $body);
         }
 
         $customer = $adminAction->find($dataInserted['customer']);
 
-        $data = [
+        return apiResponse(true, 'success', [
             'order' => $order,
             'customer' => $customer,
-        ];
-
-        return apiResponse(true, 'success', $data, 200);
+        ], 200);
     }
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
-     */
     public function destroy(OrderAction $orderAction, $id)
     {
         $order = $orderAction->delete($id);
@@ -244,15 +253,248 @@ class ApiOrderController extends Controller
         return apiResponse(true, "تم حذف الطلب بنجاح", [], 200);
     }
 
-
     public function showRecruitmentRequest($id)
     {
         $maid_id = RecruitmentRequest::find($id)->maid_id;
 
-        $data = [
+        return apiResponse(true, "تم بنجاح", [
             'maid_id' => $maid_id,
+        ], 200);
+    }
+
+    private function transformTrackingOrder(Order $order): array
+    {
+        $statusMeta = $this->resolveFrontendStatusMeta($order->status);
+        $activities = $this->collectOrderActivities($order);
+        $updates = $this->buildTrackingUpdates($activities);
+        $steps = $this->buildTrackingSteps($order, $statusMeta['progress']);
+        $timeline = collect($steps)
+            ->map(fn(array $step) => [
+                'label' => $step['label'],
+                'done' => $step['done'],
+            ])
+            ->values()
+            ->all();
+
+        $lastUpdateDate = collect($updates)->pluck('date')->filter()->first();
+        $consultant = $order->details?->admin?->name ?? $order->customer?->name ?? null;
+        $workerName = $order->maid?->name ?: ('#' . $order->maid_id);
+        $country = $order->maid?->nationality?->title ?? $order->maid?->nationality?->sub_title ?? null;
+        $expectedDate = optional($order->deadline_at)->toDateString()
+            ?? optional($order->created_at)->copy()?->addDays(45)?->toDateString();
+        $nextStep = collect($steps)->firstWhere('current', true)['label'] ?? null;
+
+        return [
+            'id' => $this->formatOrderCode($order->order_code),
+            'order_code' => (string) $order->order_code,
+            'workerName' => $workerName,
+            'country' => $country ?: '-',
+            'city' => '-',
+            'service' => $order->jobType?->title ?? __('api.Order'),
+            'sponsor' => $order->user?->name ?? '-',
+            'consultant' => $consultant ?: '-',
+            'phoneLast4' => substr((string) preg_replace('/\D+/', '', (string) ($order->user?->phone ?? '')), -4),
+            'createdAt' => optional($order->created_at)->toDateString(),
+            'expectedDate' => $expectedDate,
+            'status' => $statusMeta['key'],
+            'statusLabel' => $this->resolveStatusLabel($order->status, $statusMeta['label']),
+            'progress' => $statusMeta['progress'],
+            'lastUpdateAt' => $lastUpdateDate ?: optional($order->updated_at)->toDateString(),
+            'nextStep' => $nextStep ?: $statusMeta['label'],
+            'timeline' => $timeline,
+            'steps' => $steps,
+            'updates' => $updates,
+        ];
+    }
+
+    private function resolveFrontendStatusMeta(?string $status): array
+    {
+        return match ($status) {
+            'completed', 'done', 'delivered' => [
+                'key' => 'completed',
+                'label' => 'مكتمل',
+                'progress' => 100,
+            ],
+            'contracted', 'contracted_without_contract', 'arrived', 'msaned', 'training', 'started' => [
+                'key' => 'ready',
+                'label' => 'جاهز للوصول',
+                'progress' => 90,
+            ],
+            'under_process', 'paid' => [
+                'key' => 'in_progress',
+                'label' => 'قيد الإجراء',
+                'progress' => 60,
+            ],
+            'refused', 'return', 'canceled_by_system' => [
+                'key' => 'cancelled',
+                'label' => 'ملغي',
+                'progress' => 0,
+            ],
+            default => [
+                'key' => 'new',
+                'label' => 'جديد',
+                'progress' => 20,
+            ],
+        };
+    }
+
+    private function resolveStatusLabel(?string $status, string $fallback): string
+    {
+        if ($status && function_exists('getEnumValue')) {
+            return (string) (getEnumValue('orders_statuses', $status) ?: $fallback);
+        }
+
+        return $fallback;
+    }
+
+    private function formatOrderCode(?string $orderCode): string
+    {
+        $value = trim((string) $orderCode);
+
+        return $value === '' ? '-' : 'AQ-' . $value;
+    }
+
+    private function collectOrderActivities(Order $order): Collection
+    {
+        $activities = collect();
+
+        if (method_exists($order, 'activities')) {
+            $activities = $activities->merge($order->activities()->with('causer')->latest()->get());
+        }
+
+        if ($order->details && method_exists($order->details, 'activities')) {
+            $activities = $activities->merge($order->details->activities()->with('causer')->latest()->get());
+        }
+
+        foreach ($order->transfers as $transfer) {
+            if (method_exists($transfer, 'activities')) {
+                $activities = $activities->merge($transfer->activities()->with('causer')->latest()->get());
+            }
+        }
+
+        return $activities
+            ->filter()
+            ->sortByDesc('created_at')
+            ->values();
+    }
+
+    private function buildTrackingUpdates(Collection $activities): array
+    {
+        $fieldLabels = $this->trackingFieldLabels();
+
+        $updates = $activities
+            ->take(8)
+            ->map(function ($activity) use ($fieldLabels) {
+                $event = strtolower((string) ($activity->event ?: $activity->description ?: ''));
+                $subjectLabel = $this->resolveActivitySubjectLabel($activity, 'الطلب');
+                $actionLabel = $this->resolveActivityActionLabel($event);
+                $description = $this->resolveActivityDescription($activity, $event);
+                $changedFields = $this->extractActivityChangedFields($activity, $fieldLabels);
+                $note = $description ?: (empty($changedFields) ? null : implode('، ', $changedFields));
+
+                return [
+                    'title' => trim($actionLabel . ' ' . $subjectLabel),
+                    'date' => optional($activity->created_at)->toDateString(),
+                    'note' => $note ?: 'تم تحديث بيانات الطلب.',
+                ];
+            })
+            ->values()
+            ->all();
+
+        if (!empty($updates)) {
+            return $updates;
+        }
+
+        return [[
+            'title' => 'إنشاء الطلب',
+            'date' => now()->toDateString(),
+            'note' => 'تم استلام الطلب وتسجيله بنجاح.',
+        ]];
+    }
+
+    private function buildTrackingSteps(Order $order, int $progress): array
+    {
+        $currentStepIndex = $this->resolveCurrentStepIndex($order->status);
+        $isCompleted = $progress >= 100;
+        $isCancelled = $progress === 0 && in_array($order->status, ['refused', 'return', 'canceled_by_system'], true);
+
+        $steps = [
+            [
+                'label' => 'إنشاء الطلب',
+                'note' => 'تم استلام الطلب وتسجيله بنجاح.',
+            ],
+            [
+                'label' => 'مراجعة البيانات',
+                'note' => 'يتم التحقق من بيانات الطلب والعاملة.',
+            ],
+            [
+                'label' => 'قيد الإجراء',
+                'note' => 'الطلب ضمن المعالجة لدى الفريق المختص.',
+            ],
+            [
+                'label' => 'جاهز للوصول',
+                'note' => 'تم استكمال المراحل الأساسية والطلب جاهز للخطوة النهائية.',
+            ],
+            [
+                'label' => 'اكتمال الطلب',
+                'note' => 'تم إنهاء الطلب بنجاح.',
+            ],
         ];
 
-        return apiResponse(true, "تم بنجاح", $data, 200);
+        return collect($steps)
+            ->map(function (array $step, int $index) use ($currentStepIndex, $isCompleted, $isCancelled, $order) {
+                $done = $isCompleted || (!$isCancelled && $currentStepIndex !== null && $index < $currentStepIndex);
+                $current = !$isCompleted && !$isCancelled && $currentStepIndex !== null && $index === $currentStepIndex;
+
+                if ($index === 0) {
+                    $done = true;
+                }
+
+                return [
+                    'label' => $step['label'],
+                    'note' => $step['note'],
+                    'date' => $done ? optional($order->created_at)->toDateString() : null,
+                    'done' => $done,
+                    'current' => $current,
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    private function resolveCurrentStepIndex(?string $status): ?int
+    {
+        return match ($status) {
+            'new', 'paid' => 1,
+            'under_process' => 2,
+            'contracted', 'contracted_without_contract', 'arrived', 'msaned', 'training', 'started' => 3,
+            'completed', 'done', 'delivered' => 4,
+            'refused', 'return', 'canceled_by_system' => null,
+            default => 1,
+        };
+    }
+
+    private function trackingFieldLabels(): array
+    {
+        return [
+            'status' => 'حالة الطلب',
+            'maid_id' => 'العاملة',
+            'customer_id' => 'الموظف المسؤول',
+            'user_id' => 'العميل',
+            'job_type_id' => 'نوع الخدمة',
+            'payment_method' => 'طريقة الدفع',
+            'refuse_reason' => 'سبب الإلغاء',
+            'status_changed_at' => 'وقت تغيير الحالة',
+            'deadline_at' => 'الموعد النهائي',
+            'admin_id' => 'الموظف المسؤول',
+            'package_id' => 'الباقة',
+            'address_id' => 'العنوان',
+            'deliver_maid' => 'تسليم العاملة',
+            'name' => 'الاسم',
+            'phone' => 'رقم الهاتف',
+            'address' => 'العنوان',
+            'notes' => 'الملاحظات',
+            'file' => 'الملف',
+        ];
     }
 }
