@@ -39,7 +39,7 @@ class IngazDelegationController extends Controller
 
     public function index(Request $request): View|JsonResponse
     {
-        $query = IngazDelegation::with(['nationality', 'profession', 'user', 'maid', 'marketer']);
+        $query = IngazDelegation::with(['nationality', 'profession', 'user', 'maid', 'marketer', 'invoice.musanedTransferItem.transfer']);
 
         $searchInput = $request->input('global_search', $request->query('search'));
 
@@ -99,14 +99,11 @@ class IngazDelegationController extends Controller
                 })
                 ->addColumn('profession_name', fn (IngazDelegation $row) => e($row->profession?->title ?? '-'))
                 ->addColumn('invoice', function (IngazDelegation $row) {
-                    $invoiceAttachment = collect($row->attachments ?? [])->first();
-                    $invoicePath = is_array($invoiceAttachment) ? ($invoiceAttachment['path'] ?? null) : $invoiceAttachment;
-
-                    if (!$invoicePath) {
-                        return '<span class="text-muted">لا يوجد</span>';
+                    if ($row->invoice) {
+                        return '<a href="' . route('invoices.show', $row->invoice->id) . '" class="btn btn-sm btn-outline-success">عرض الفاتورة</a>';
                     }
 
-                    return '<a href="' . e(Storage::url($invoicePath)) . '" target="_blank" class="btn btn-sm btn-outline-info">عرض</a>';
+                    return '<a href="' . route('invoices.create', ['ingaz_delegation_id' => $row->id]) . '" class="btn btn-sm btn-outline-primary">إضافة فاتورة</a>';
                 })
                 ->addColumn('status', fn (IngazDelegation $row) => $this->statusBadgeHtml($row))
                 ->addColumn('status_control', function (IngazDelegation $row) use ($canChangeDelegationStatus) {
@@ -148,6 +145,18 @@ class IngazDelegationController extends Controller
                         $actions[] = '<a href="' . $editUrl . '" class="btn btn-outline-primary">تعديل</a>';
                     }
 
+                    if ($row->invoice) {
+                        $actions[] = '<a href="' . route('invoices.show', $row->invoice->id) . '" class="btn btn-outline-success">الفاتورة</a>';
+                        $transfer = $row->invoice->musanedTransferItem?->transfer;
+                        if ($transfer) {
+                            $actions[] = '<a href="' . route('musaned-transfers.show', $transfer->id) . '" class="btn btn-outline-info">تحويل مساند</a>';
+                        } else {
+                            $actions[] = '<a href="' . route('musaned-transfers.create', ['ingaz_delegation_ids' => [$row->id]]) . '" class="btn btn-outline-info">تسجيل تحويل مساند</a>';
+                        }
+                    } else {
+                        $actions[] = '<a href="' . route('invoices.create', ['ingaz_delegation_id' => $row->id]) . '" class="btn btn-outline-success">إضافة فاتورة</a>';
+                    }
+
                     if ($canDeleteDelegation) {
                         $actions[] = '
                             <form action="' . $deleteUrl . '" method="POST" class="d-inline-block" onsubmit="return confirm(\'هل أنت متأكد من حذف هذا التفويض؟\');">
@@ -176,7 +185,7 @@ class IngazDelegationController extends Controller
 
     public function print(IngazDelegation $ingazDelegation): View
     {
-        $ingazDelegation->load(['nationality', 'profession', 'user', 'maid.religion', 'marketer']);
+        $ingazDelegation->load(['nationality', 'profession', 'user', 'maid.religion', 'marketer', 'invoice.musanedTransferItem.transfer']);
 
         return view('admin.ingaz_delegations.print', [
             'delegation' => $ingazDelegation,
@@ -207,7 +216,7 @@ class IngazDelegationController extends Controller
 
     public function show(IngazDelegation $ingazDelegation): View
     {
-        $ingazDelegation->load(['nationality', 'profession', 'user', 'maid.religion', 'marketer']);
+        $ingazDelegation->load(['nationality', 'profession', 'user', 'maid.religion', 'marketer', 'invoice']);
 
         return view('admin.ingaz_delegations.show', [
             'delegation' => $ingazDelegation,

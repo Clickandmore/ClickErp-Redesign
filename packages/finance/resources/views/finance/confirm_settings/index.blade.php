@@ -366,6 +366,13 @@
                         <span class="settings-nav__count">3 {{ __('finance::finance.settings_fields') }}</span>
                     </span>
                 </a>
+                <a class="settings-nav__item" href="#ingaz-delegation-settings-section">
+                    <span class="settings-nav__icon"><i class="fa fa-file-signature"></i></span>
+                    <span>
+                        <span class="settings-nav__title">{{ __('finance::finance.ingaz_delegation_accounts') }}</span>
+                        <span class="settings-nav__count">4 {{ __('finance::finance.settings_fields') }}</span>
+                    </span>
+                </a>
                 <a class="settings-nav__item" href="#rental-maid-settings-section">
                     <span class="settings-nav__icon"><i class="fa fa-list-ul"></i></span>
                     <span>
@@ -619,6 +626,87 @@
                             <div class="setting-field__tree">
                                 <strong>{{ $accountTreeLabel }}:</strong> {{ __('finance::finance.musaned_commission_account_tree_hint') }}
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </details>
+
+            <details class="settings-section" id="ingaz-delegation-settings-section" open>
+                <summary>
+                    <div>
+                        <h3 class="settings-section-title">{{ __('finance::finance.ingaz_delegation_accounts') }}</h3>
+                        <p class="settings-section-hint">{{ __('finance::finance.ingaz_delegation_accounts_hint') }}</p>
+                    </div>
+                    <span class="settings-section-icon"><i class="fa fa-chevron-down"></i></span>
+                </summary>
+                <div class="settings-section-body">
+                    <div class="settings-grid settings-grid--three">
+                        <div class="setting-field">
+                            <div class="setting-field__top">
+                                <label for="ingaz_delegation_revenue_account">{{ __('finance::finance.ingaz_delegation_revenue_account') }}</label>
+                                <span class="setting-field__tools">
+                                    {!! addUpButton(route('finance.accounts.create'), 'ingaz_delegation_revenue_account', false, 'name', true) !!}
+                                </span>
+                            </div>
+                            <input type="hidden" value="ingaz_delegation_revenue_account" name="data[ingaz_delegation_revenue_account][title]">
+                            <select name="data[ingaz_delegation_revenue_account][value]" id="ingaz_delegation_revenue_account" class="form-control select2">
+                                <option value="">{{ __('finance::finance.choose') }}</option>
+                                @foreach ($revenue_tax_accounts as $item)
+                                    <option value="{{ $item->id }}" {{ $selected('ingaz_delegation_revenue_account', $item->id) }}>
+                                        {{ $item->code }} / {{ $item->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <small>{{ __('finance::finance.ingaz_delegation_revenue_account_hint') }}</small>
+                        </div>
+
+                        <div class="setting-field">
+                            <div class="setting-field__top">
+                                <label for="ingaz_delegation_ingaz_account">{{ __('finance::finance.ingaz_delegation_ingaz_account') }}</label>
+                                <span class="setting-field__tools">
+                                    {!! addUpButton(route('finance.accounts.create'), 'ingaz_delegation_ingaz_account', false, 'name', true) !!}
+                                </span>
+                            </div>
+                            <input type="hidden" value="ingaz_delegation_ingaz_account" name="data[ingaz_delegation_ingaz_account][title]">
+                            <select name="data[ingaz_delegation_ingaz_account][value]" id="ingaz_delegation_ingaz_account" class="form-control select2">
+                                <option value="">{{ __('finance::finance.choose') }}</option>
+                                @foreach ($revenue_tax_accounts as $item)
+                                    <option value="{{ $item->id }}" {{ $selected('ingaz_delegation_ingaz_account', $item->id) }}>
+                                        {{ $item->code }} / {{ $item->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <small>{{ __('finance::finance.ingaz_delegation_ingaz_account_hint') }}</small>
+                        </div>
+
+                        <div class="setting-field">
+                            <div class="setting-field__top">
+                                <label for="ingaz_delegation_cost_account">{{ __('finance::finance.ingaz_delegation_cost_account') }}</label>
+                                <span class="setting-field__tools">
+                                    {!! addUpButton(route('finance.accounts.create'), 'ingaz_delegation_cost_account', false, 'name', true) !!}
+                                </span>
+                            </div>
+                            <input type="hidden" value="ingaz_delegation_cost_account" name="data[ingaz_delegation_cost_account][title]">
+                            <select name="data[ingaz_delegation_cost_account][value]" id="ingaz_delegation_cost_account" class="form-control select2">
+                                <option value="">{{ __('finance::finance.choose') }}</option>
+                                @foreach ($debtor_accounts as $item)
+                                    <option value="{{ $item->id }}" {{ $selected('ingaz_delegation_cost_account', $item->id) }}>
+                                        {{ $item->code }} / {{ $item->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <small>{{ __('finance::finance.ingaz_delegation_cost_account_hint') }}</small>
+                        </div>
+
+                        <div class="setting-field">
+                            <div class="setting-field__top">
+                                <label for="ingaz_delegation_fixed_cost">{{ __('finance::finance.ingaz_delegation_fixed_cost') }}</label>
+                            </div>
+                            <input type="hidden" value="ingaz_delegation_fixed_cost" name="data[ingaz_delegation_fixed_cost][title]">
+                            <input type="number" step="0.01" min="0" name="data[ingaz_delegation_fixed_cost][value]"
+                                   id="ingaz_delegation_fixed_cost" class="form-control"
+                                   value="{{ $settingValue('ingaz_delegation_fixed_cost', '137') }}">
+                            <small>{{ __('finance::finance.ingaz_delegation_fixed_cost_hint') }}</small>
                         </div>
                     </div>
                 </div>

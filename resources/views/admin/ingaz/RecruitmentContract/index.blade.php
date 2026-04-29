@@ -349,37 +349,13 @@
                                     </button>
                                 </div>
                                 <div class="col-12 col-md-6 col-lg-3">
-                                    <button type="button" class="stat-card stat-filter stat-card-arrival"
-                                        data-status="arrival">
-                                        <div class="stat-icon">
-                                            <i class="fas fa-plane-arrival"></i>
-                                        </div>
-                                        <div class="stat-body">
-                                            <div class="stat-title">وصول</div>
-                                            <div class="stat-value" data-stat-key="stage_arrival">0</div>
-                                        </div>
-                                    </button>
-                                </div>
-                                <div class="col-12 col-md-6 col-lg-3">
-                                    <button type="button" class="stat-card stat-filter stat-card-completed"
-                                        data-status="completed">
-                                        <div class="stat-icon">
-                                            <i class="fas fa-circle-check"></i>
-                                        </div>
-                                        <div class="stat-body">
-                                            <div class="stat-title">مكتمل</div>
-                                            <div class="stat-value" data-stat-key="stage_completed">0</div>
-                                        </div>
-                                    </button>
-                                </div>
-                                <div class="col-12 col-md-6 col-lg-3">
                                     <button type="button" class="stat-card stat-filter stat-card-warranty-active"
                                         data-status="arrival" data-warranty="active">
                                         <div class="stat-icon">
                                             <i class="fas fa-shield"></i>
                                         </div>
                                         <div class="stat-body">
-                                            <div class="stat-title">ضمان نشط</div>
+                                            <div class="stat-title">وصول داخل الضمان</div>
                                             <div class="stat-value" data-stat-key="warranty_active">0</div>
                                         </div>
                                     </button>
@@ -391,20 +367,8 @@
                                             <i class="fas fa-times-circle"></i>
                                         </div>
                                         <div class="stat-body">
-                                            <div class="stat-title">ضمان منتهي</div>
+                                            <div class="stat-title">مكتمل منتهي الضمان</div>
                                             <div class="stat-value" data-stat-key="warranty_expired">0</div>
-                                        </div>
-                                    </button>
-                                </div>
-                                <div class="col-12 col-md-6 col-lg-3">
-                                    <button type="button" class="stat-card stat-filter stat-card-warranty-na"
-                                        data-status="completed" data-warranty="not_applicable">
-                                        <div class="stat-icon">
-                                            <i class="fas fa-minus-circle"></i>
-                                        </div>
-                                        <div class="stat-body">
-                                            <div class="stat-title">بدون ضمان</div>
-                                            <div class="stat-value" data-stat-key="warranty_not_applicable">0</div>
                                         </div>
                                     </button>
                                 </div>
@@ -1069,19 +1033,22 @@
             const urlDateFrom = getDateFilterFromUrl('date_from');
             const urlDateTo = getDateFilterFromUrl('date_to');
             const urlExcludeBack = shouldExcludeBackFromUrl();
+            const normalizeCompletedTotalUrl = urlStatus === 'arrival' && urlWarrantyStatus === 'expired,not_applicable';
+            const effectiveUrlStatus = normalizeCompletedTotalUrl ? 'completed_stage' : urlStatus;
+            const effectiveUrlWarrantyStatus = normalizeCompletedTotalUrl ? '' : urlWarrantyStatus;
 
-            if (urlStatus) {
-                $('#statusFilter').val(urlStatus);
-                console.log('Status from URL applied to filter:', urlStatus);
+            if (effectiveUrlStatus) {
+                $('#statusFilter').val(effectiveUrlStatus);
+                console.log('Status from URL applied to filter:', effectiveUrlStatus);
                 // إزالة الفلتر من localStorage لتجنب التضارب
                 localStorage.removeItem('contractFilters');
 
                 toggleWarrantyFilter();
 
                 // تطبيق فلتر warranty_status إذا كان موجود في URL
-                if (urlWarrantyStatus) {
-                    $('#warrantyStatusFilter').val(urlWarrantyStatus);
-                    console.log('Warranty status from URL applied to filter:', urlWarrantyStatus);
+                if (effectiveUrlWarrantyStatus) {
+                    $('#warrantyStatusFilter').val(effectiveUrlWarrantyStatus);
+                    console.log('Warranty status from URL applied to filter:', effectiveUrlWarrantyStatus);
                 }
             }
 
@@ -1182,13 +1149,13 @@
                 const groups = buildBulkStageGroups(selectedItems);
                 if (!actionType) {
                     $('#bulkSelectionSummary').text(
-                        `تم تحديد ${selectedCount} عقد بعمليات مختلفة. اختر عقود تحديث المراحل وحدها أو عقود التذاكر وحدها لإضافة رحلة جماعية.`
+                        `تم تحديد ${selectedCount} عقد بعمليات مختلفة. اختر عقود تحديث المراحل وحدها أو عقود التفييز وحدها لإضافة رحلة جماعية.`
                     );
                     $('#bulkStatusDateWrapper, #bulkSmsWrapper').addClass('d-none');
                     $('#bulkUpdateStatusBtn').text('اختر نوعاً واحداً').prop('disabled', true);
                 } else if (actionType === 'travel_create') {
                     $('#bulkSelectionSummary').text(
-                        `تم تحديد ${selectedCount} عقد في مرحلة التذاكر وسيتم تحويلها إلى شاشة إنشاء رحلة واحدة بشكل مجمع.`
+                        `تم تحديد ${selectedCount} عقد في مرحلة التفييز وسيتم تحويلها إلى شاشة إنشاء رحلة واحدة بشكل مجمع.`
                     );
                     $('#bulkStatusDateWrapper, #bulkSmsWrapper').addClass('d-none');
                     $('#bulkUpdateStatusBtn').text('إضافة رحلة للمحدد').prop('disabled', false);
@@ -1498,7 +1465,7 @@
                     Swal.fire({
                         icon: 'warning',
                         title: 'اختيار غير متجانس',
-                        text: 'اختر نوع عملية واحد فقط: إما تحديث مراحل العقود أو إضافة رحلة جماعية لعقود التذاكر.'
+                        text: 'اختر نوع عملية واحد فقط: إما تحديث مراحل العقود أو إضافة رحلة جماعية لعقود التفييز.'
                     });
                     return;
                 }
@@ -1901,6 +1868,7 @@
                 $('#updateStatusModal #rowId').val(rowId);
                 $('#updateStatusModal #status').val(status);
                 $('#updateStatusModal #nextStatus').val(nextStatus);
+                $('#updateStatusModal #sendSmsNotification').prop('checked', true);
 
                 var today = new Date().toISOString().split('T')[0];
                 $('#updateStatusModal #statusDate').val(today);
@@ -2014,6 +1982,7 @@
                 modal.find('#nextStatus').val(nextStatus);
                 modal.find('#statusDate').val(date);
                 modal.find('#currentStatus').val(getContractStatusText(status));
+                modal.find('#sendSmsNotification').prop('checked', true);
 
                 if (isManual) {
                     modal.find('#nextStatusDisplayWrapper').addClass('d-none');

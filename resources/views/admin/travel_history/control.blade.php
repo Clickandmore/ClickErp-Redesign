@@ -122,7 +122,8 @@
             $selectedContracts = [@$orderId];
         }
         $selectedTravelType = old('travel_type') ?: (@$data->travel_type ?: 'international');
-        $selectedTravelWith = old('travel_with') ?: (@$data->travel_with ?: 'airport');
+        $selectedTravelWith = 'airport';
+        $selectedAssignedTo = old('assigned_to') ?: (@$data->assigned_to ?? '');
     @endphp
 
     {{-- اختيار العقود (يدعم متعدد) --}}
@@ -138,12 +139,14 @@
                                 selected
                             @endif>
                             عقد #{{$contract->id}} | العميل: {{@$contract->user->name ?? 'غير محدد'}} | العاملة: {{@$contract->maid->name ?? 'غير محدد'}}
+                            @if(@$contract->info->msaned_number || @$contract->msaned_number) | مساند: {{@$contract->info->msaned_number ?: @$contract->msaned_number}} @endif
+                            @if(@$contract->user->national_num) | الهوية: {{@$contract->user->national_num}} @endif
                             @if(@$contract->info->visa_number) | تأشيرة: {{@$contract->info->visa_number}} @endif
                         </option>
                     @empty
                     @endforelse
                 </select>
-                <small class="text-muted d-block mt-2">يمكن اختيار أكثر من عقد لنفس الرحلة.</small>
+                <small class="text-muted d-block mt-2">يمكن البحث برقم العقد أو رقم عقد مساند أو هوية العميل، ويمكن اختيار أكثر من عقد لنفس الرحلة.</small>
 
                 <div id="selected_contracts_preview" class="contracts-preview mt-2">
                     <span class="text-muted">لم يتم اختيار عقود بعد.</span>
@@ -239,22 +242,7 @@
         </div>
     </div>
 
-    <div class="mb-3 row">
-        <label for="" class="col-sm-3 col-form-label">وسيلة السفر</label>
-        <div class="col-sm-5">
-            <select name="travel_with" id="travel_with" class="form-control cu-form-design select2">
-                <option value="airport" @if ($selectedTravelWith == 'airport') selected @endif>مطار</option>
-                <option value="group_transport" @if ($selectedTravelWith == 'group_transport') selected @endif>نقل جماعي</option>
-                <option value="train" @if ($selectedTravelWith == 'train') selected @endif>قطار</option>
-            </select>
-            <span class="travel-default-hint">الاختيار الافتراضي: مطار.</span>
-            <div>
-                @error('travel_with')
-                <div class="text-danger">{{ $message }}</div>
-                @enderror
-            </div>
-        </div>
-    </div>
+    <input type="hidden" name="travel_with" id="travel_with" value="airport">
 
     <div class="mb-3 row">
         <label for="" class="col-sm-3 col-form-label">{{ __('admin.arrival_airport') }}</label>
@@ -345,6 +333,39 @@
             <textarea name="notes" id="notes" rows="3" class="form-control" placeholder="ملاحظات إضافية">{{ old('notes', @$data->notes) }}</textarea>
             <div>
                 @error('notes')
+                <div class="text-danger">{{ $message }}</div>
+                @enderror
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-3 row">
+        <label for="assigned_to" class="col-sm-3 col-form-label">إسناد الرحلة إلى سائق / موظف</label>
+        <div class="col-sm-5">
+            <select name="assigned_to" id="assigned_to" class="form-control cu-form-design select2">
+                <option value="">بدون إسناد الآن</option>
+                @foreach (($assignableStaff ?? []) as $staff)
+                    <option value="{{ $staff['id'] }}" @if ((string) $selectedAssignedTo === (string) $staff['id']) selected @endif>
+                        {{ $staff['label'] }}
+                        @if (!empty($staff['phone'])) | {{ $staff['phone'] }} @endif
+                    </option>
+                @endforeach
+            </select>
+            <span class="travel-default-hint">عند اختيار سائق/موظف سيتم إرسال إشعار له بتفاصيل الرحلة ورابط إكمالها بعد استلام العاملات.</span>
+            <div>
+                @error('assigned_to')
+                <div class="text-danger">{{ $message }}</div>
+                @enderror
+            </div>
+        </div>
+    </div>
+
+    <div class="mb-3 row">
+        <label for="assignment_note" class="col-sm-3 col-form-label">ملاحظة الإسناد</label>
+        <div class="col-sm-5">
+            <textarea name="assignment_note" id="assignment_note" rows="2" class="form-control" placeholder="ملاحظة اختيارية للسائق">{{ old('assignment_note', @$data->assignment_note) }}</textarea>
+            <div>
+                @error('assignment_note')
                 <div class="text-danger">{{ $message }}</div>
                 @enderror
             </div>
@@ -465,7 +486,7 @@ $(document).ready(function () {
 
     $('#order_ids').select2({
         width: '100%',
-        placeholder: @json(__('ingaz.select_contract'))
+        placeholder: 'ابحث برقم العقد / رقم مساند / هوية العميل'
     });
 
     if (contractIdFromUrl && !initialSelectedOrderIds.includes(contractIdFromUrl)) {
@@ -496,10 +517,12 @@ $(document).ready(function () {
             const maid = contract.maid && contract.maid.name ? contract.maid.name : 'غير محدد';
             const city = contract.user && contract.user.city ? contract.user.city : 'غير محدد';
             const visa = contract.info && contract.info.visa_number ? contract.info.visa_number : '-';
+            const musaned = contract.info && contract.info.msaned_number ? contract.info.msaned_number : (contract.msaned_number || '-');
+            const nationalId = contract.user && contract.user.national_num ? contract.user.national_num : '-';
             return `
                 <div class="contract-preview-item">
                     <div><strong>عقد #${contract.id}</strong> | عميلة: ${client}</div>
-                    <div class="text-muted small">العاملة: ${maid} | مدينة التسليم: ${city} | التأشيرة: ${visa}</div>
+                    <div class="text-muted small">العاملة: ${maid} | مدينة التسليم: ${city} | مساند: ${musaned} | الهوية: ${nationalId} | التأشيرة: ${visa}</div>
                 </div>
             `;
         }).join('');
@@ -601,17 +624,10 @@ $(document).ready(function () {
 
     $('form').on('submit', function(e) {
         var orderIds = $('#order_ids').val() || [];
-        var travelWith = $('#travel_with').val();
 
         if (orderIds.length === 0) {
             e.preventDefault();
             swal('{{ __('admin.error') }}', 'يجب اختيار عقد واحد على الأقل.', 'error');
-            return false;
-        }
-
-        if (!travelWith) {
-            e.preventDefault();
-            swal('{{ __('admin.error') }}', 'وسيلة السفر مطلوبة.', 'error');
             return false;
         }
     });

@@ -33,7 +33,7 @@
         <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
                 <h4 class="mb-1">إضافة تحويل مساند</h4>
-                <div class="text-muted">يمكن تسجيل حوالة لعقد واحد أو لعدة عقود تحت مرجع مساند واحد.</div>
+                <div class="text-muted">يمكن تسجيل حوالة لعقد أو تفويض إنجاز أو عدة بنود تحت مرجع مساند واحد.</div>
             </div>
             <a href="{{ route('musaned-transfers.index') }}" class="btn btn-outline-secondary">
                 <i class="fas fa-arrow-right me-1"></i>الرجوع للتحويلات
@@ -59,19 +59,27 @@
                 $invoiceOptions = $eligibleInvoices
                     ->map(function ($invoice) {
                         $contract = $invoice->contract;
-                        $clientName = $contract?->user?->name ?: 'غير محدد';
-                        $msanedNumber = $contract?->info?->msaned_number ?: '-';
+                        $delegation = $invoice->ingazDelegation;
+                        $clientName = $contract?->user?->name ?: ($delegation?->user?->name ?: 'غير محدد');
+                        $msanedNumber = $contract?->info?->msaned_number ?: ($delegation?->msaned_contract_number ?: '-');
+                        $sourceType = $contract ? 'contract' : 'delegation';
+                        $sourceId = $contract?->id ?: $delegation?->id;
+                        $sourceLabel = $contract ? ('عقد #' . $contract->id) : ('تفويض #' . $delegation?->id);
 
                         return [
                             'contract_id' => $contract?->id,
+                            'ingaz_delegation_id' => $delegation?->id,
+                            'source_type' => $sourceType,
+                            'source_id' => $sourceId,
+                            'source_key' => $sourceType . ':' . $sourceId,
                             'invoice_id' => $invoice->id,
-                            'label' => '#' . ($contract?->id ?: '-') . ' - ' . $clientName . ' - مساند ' . $msanedNumber,
+                            'label' => $sourceLabel . ' - ' . $clientName . ' - مساند ' . $msanedNumber,
                             'client_name' => $clientName,
                             'msaned_number' => $msanedNumber,
                             'invoice_total' => (float) $invoice->total_due,
                         ];
                     })
-                    ->filter(fn ($item) => !empty($item['contract_id']))
+                    ->filter(fn ($item) => !empty($item['source_id']))
                     ->values();
             @endphp
 
@@ -104,11 +112,14 @@
                                 </select>
                             </div>
                             <div class="col-12">
-                                <label for="contract_selector" class="form-label">العقود المشمولة في الحوالة</label>
+                                <label for="contract_selector" class="form-label">العقود والتفاويض المشمولة في الحوالة</label>
                                 <select class="form-control" id="contract_selector" multiple>
                                     @foreach ($invoiceOptions as $option)
-                                        <option value="{{ $option['contract_id'] }}"
-                                            @selected(in_array($option['contract_id'], old('selected_contract_ids', $selectedContractIds), true))>
+                                        <option value="{{ $option['source_key'] }}"
+                                            @selected(
+                                                ($option['source_type'] === 'contract' && in_array($option['source_id'], old('selected_contract_ids', $selectedContractIds), true))
+                                                || ($option['source_type'] === 'delegation' && in_array($option['source_id'], old('selected_ingaz_delegation_ids', $selectedIngazDelegationIds ?? []), true))
+                                            )>
                                             {{ $option['label'] }}
                                         </option>
                                     @endforeach
@@ -128,14 +139,14 @@
 
                 <div class="card shadow-sm mb-3">
                     <div class="card-header bg-white">
-                        <strong>تفاصيل العقود</strong>
+                        <strong>تفاصيل البنود</strong>
                     </div>
                     <div class="card-body p-0">
                         <div class="table-responsive">
                             <table class="table table-bordered align-middle mb-0">
                                 <thead class="table-light">
                                     <tr>
-                                        <th>العقد</th>
+                                        <th>البند</th>
                                         <th>العميل</th>
                                         <th>رقم مساند</th>
                                         <th>قيمة الفاتورة</th>
@@ -148,7 +159,7 @@
                                 <tbody id="transfer_items_body">
                                     <tr id="empty_transfer_row">
                                         <td colspan="8" class="text-center py-4 text-muted">
-                                            اختر عقداً واحداً أو أكثر لإضافة بنود الحوالة.
+                                            اختر عقداً أو تفويضاً واحداً أو أكثر لإضافة بنود الحوالة.
                                         </td>
                                     </tr>
                                 </tbody>
@@ -197,13 +208,27 @@
                     const expenseTaxRate = {{ json_encode((float) $expenseTaxRate) }};
                     const contractsLookup = @json($invoiceOptions);
                     const selectedFromOld = @json(old('items', []));
-                    const initialSelectedIds = @json(
+                    const initialSelectedKeys = @json(
                         collect(old('items', []))
-                            ->pluck('contract_id')
+                            ->map(function ($item) {
+                                if (!empty($item['contract_id'])) {
+                                    return 'contract:' . (int) $item['contract_id'];
+                                }
+
+                                if (!empty($item['ingaz_delegation_id'])) {
+                                    return 'delegation:' . (int) $item['ingaz_delegation_id'];
+                                }
+
+                                return null;
+                            })
                             ->filter()
-                            ->map(fn($id) => (int) $id)
                             ->values()
-                            ->all() ?: $selectedContractIds
+                            ->all() ?:
+                            collect($selectedContractIds)
+                                ->map(fn($id) => 'contract:' . (int) $id)
+                                ->merge(collect($selectedIngazDelegationIds ?? [])->map(fn($id) => 'delegation:' . (int) $id))
+                                ->values()
+                                ->all()
                     );
                     const selector = document.getElementById('contract_selector');
                     const body = document.getElementById('transfer_items_body');
@@ -218,9 +243,12 @@
 
                     const oldTransferredMap = {};
                     selectedFromOld.forEach(function(item) {
-                        const contractId = parseInt(item.contract_id || 0, 10);
-                        if (contractId > 0) {
-                            oldTransferredMap[contractId] = item.transferred_amount || '';
+                        const sourceKey = item.contract_id
+                            ? `contract:${parseInt(item.contract_id, 10)}`
+                            : (item.ingaz_delegation_id ? `delegation:${parseInt(item.ingaz_delegation_id, 10)}` : null);
+
+                        if (sourceKey) {
+                            oldTransferredMap[sourceKey] = item.transferred_amount || '';
                         }
                     });
 
@@ -291,15 +319,21 @@
                     function buildRow(option, index) {
                         const row = document.createElement('tr');
                         row.className = 'transfer-item-row';
-                        row.dataset.contractId = option.contract_id;
+                        row.dataset.sourceKey = option.source_key;
                         row.dataset.invoiceTotal = option.invoice_total;
 
-                        const transferredValue = oldTransferredMap[option.contract_id] || '';
+                        const transferredValue = oldTransferredMap[option.source_key] || '';
+                        const hiddenSourceInput = option.source_type === 'contract'
+                            ? `<input type="hidden" name="items[${index}][contract_id]" value="${option.contract_id}">`
+                            : `<input type="hidden" name="items[${index}][ingaz_delegation_id]" value="${option.ingaz_delegation_id}">`;
+                        const sourceText = option.source_type === 'contract'
+                            ? `عقد #${option.contract_id}`
+                            : `تفويض #${option.ingaz_delegation_id}`;
 
                         row.innerHTML = `
                             <td>
-                                <input type="hidden" name="items[${index}][contract_id]" value="${option.contract_id}">
-                                <div class="fw-semibold">#${option.contract_id}</div>
+                                ${hiddenSourceInput}
+                                <div class="fw-semibold">${sourceText}</div>
                             </td>
                             <td>${option.client_name}</td>
                             <td>${option.msaned_number}</td>
@@ -334,17 +368,17 @@
                     }
 
                     function renderRows() {
-                        const selectedIds = Array.from(selector.selectedOptions).map(option => parseInt(option.value, 10));
+                        const selectedKeys = Array.from(selector.selectedOptions).map(option => option.value);
                         body.innerHTML = '';
 
-                        if (!selectedIds.length) {
+                        if (!selectedKeys.length) {
                             body.appendChild(emptyRow);
                             updateSummary();
                             return;
                         }
 
-                        selectedIds.forEach(function(contractId, index) {
-                            const option = contractsLookup.find(item => parseInt(item.contract_id, 10) === contractId);
+                        selectedKeys.forEach(function(sourceKey, index) {
+                            const option = contractsLookup.find(item => item.source_key === sourceKey);
                             if (!option) {
                                 return;
                             }
@@ -357,7 +391,7 @@
 
                     if (window.jQuery && window.jQuery.fn && window.jQuery.fn.select2) {
                         window.jQuery(selector).select2({
-                            placeholder: 'اختر العقود المشمولة في الحوالة'
+                            placeholder: 'اختر العقود أو التفاويض المشمولة في الحوالة'
                         });
 
                         window.jQuery(selector).on('change', renderRows);
@@ -365,9 +399,9 @@
                         selector.addEventListener('change', renderRows);
                     }
 
-                    if (initialSelectedIds && initialSelectedIds.length) {
+                    if (initialSelectedKeys && initialSelectedKeys.length) {
                         Array.from(selector.options).forEach(function(option) {
-                            option.selected = initialSelectedIds.includes(parseInt(option.value, 10));
+                            option.selected = initialSelectedKeys.includes(option.value);
                         });
                     }
 

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\ingaz\Invoice;
+use App\Models\IngazDelegation;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Nami\Finance\Models\Account;
@@ -30,6 +31,11 @@ class MusanedTransferItem extends Model
     public function contract()
     {
         return $this->belongsTo(Contract::class, 'contract_id');
+    }
+
+    public function ingazDelegation()
+    {
+        return $this->belongsTo(IngazDelegation::class, 'ingaz_delegation_id');
     }
 
     public function invoice()

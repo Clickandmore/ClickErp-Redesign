@@ -29,7 +29,7 @@ class MusanedTransferController extends Controller
     public function index()
     {
         $transfers = MusanedTransfer::query()
-            ->with(['createdBy', 'bankAccount', 'items.contract.user'])
+            ->with(['createdBy', 'bankAccount', 'items.contract.user', 'items.ingazDelegation.user'])
             ->latest('transfer_date')
             ->latest('id')
             ->paginate(20);
@@ -49,9 +49,22 @@ class MusanedTransferController extends Controller
             ->values()
             ->all();
 
+        $selectedIngazDelegationIds = collect((array) $request->query('ingaz_delegation_ids', []))
+            ->push($request->query('ingaz_delegation_id'))
+            ->filter()
+            ->map(fn ($value) => (int) $value)
+            ->unique()
+            ->values()
+            ->all();
+
         $selectedContractIds = array_values(array_intersect(
             $selectedContractIds,
             $eligibleInvoices->pluck('contract_id')->all()
+        ));
+
+        $selectedIngazDelegationIds = array_values(array_intersect(
+            $selectedIngazDelegationIds,
+            $eligibleInvoices->pluck('ingaz_delegation_id')->filter()->all()
         ));
 
         $bankAccounts = $this->getBankAccounts();
@@ -60,6 +73,7 @@ class MusanedTransferController extends Controller
         return view('admin.ingaz.musaned_transfers.create', [
             'eligibleInvoices' => $eligibleInvoices,
             'selectedContractIds' => $selectedContractIds,
+            'selectedIngazDelegationIds' => $selectedIngazDelegationIds,
             'bankAccounts' => $bankAccounts,
             'expenseTaxRate' => $expenseTaxRate,
         ]);
@@ -73,7 +87,8 @@ class MusanedTransferController extends Controller
             'bank_account_id' => 'required|integer|exists:fn_accounts,id',
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
-            'items.*.contract_id' => 'required|integer|distinct|exists:contracts,id',
+            'items.*.contract_id' => 'nullable|required_without:items.*.ingaz_delegation_id|integer|exists:contracts,id',
+            'items.*.ingaz_delegation_id' => 'nullable|required_without:items.*.contract_id|integer|exists:ingaz_delegations,id',
             'items.*.transferred_amount' => 'required|numeric|min:0.01',
         ]);
 
@@ -110,25 +125,55 @@ class MusanedTransferController extends Controller
             ) {
                 $itemsInput = collect($validated['items'])
                     ->map(function ($item) {
+                        $contractId = isset($item['contract_id']) && $item['contract_id'] !== ''
+                            ? (int) $item['contract_id']
+                            : null;
+                        $delegationId = isset($item['ingaz_delegation_id']) && $item['ingaz_delegation_id'] !== ''
+                            ? (int) $item['ingaz_delegation_id']
+                            : null;
+
+                        if ($contractId && $delegationId) {
+                            throw ValidationException::withMessages([
+                                'items' => 'لا يمكن اختيار عقد وتفويض في نفس بند تحويل مساند.',
+                            ]);
+                        }
+
+                        if (!$contractId && !$delegationId) {
+                            throw ValidationException::withMessages([
+                                'items' => 'يجب اختيار عقد أو تفويض لكل بند تحويل مساند.',
+                            ]);
+                        }
+
                         return [
-                            'contract_id' => (int) $item['contract_id'],
+                            'contract_id' => $contractId,
+                            'ingaz_delegation_id' => $delegationId,
+                            'source_key' => $contractId ? ('contract:' . $contractId) : ('delegation:' . $delegationId),
                             'transferred_amount' => $this->roundMoney((float) $item['transferred_amount']),
                         ];
                     })
-                    ->unique('contract_id')
+                    ->unique('source_key')
                     ->values();
 
-                $contractIds = $itemsInput->pluck('contract_id')->all();
+                $contractIds = $itemsInput->pluck('contract_id')->filter()->all();
+                $delegationIds = $itemsInput->pluck('ingaz_delegation_id')->filter()->all();
 
                 $invoices = $this->getEligibleInvoicesQuery()
-                    ->whereIn('contract_id', $contractIds)
+                    ->where(function ($query) use ($contractIds, $delegationIds) {
+                        if ($contractIds) {
+                            $query->orWhereIn('contract_id', $contractIds);
+                        }
+
+                        if ($delegationIds) {
+                            $query->orWhereIn('ingaz_delegation_id', $delegationIds);
+                        }
+                    })
                     ->lockForUpdate()
                     ->get()
-                    ->keyBy('contract_id');
+                    ->keyBy(fn (Invoice $invoice) => $this->invoiceSourceKey($invoice));
 
-                if (count($contractIds) !== $invoices->count()) {
+                if ($itemsInput->count() !== $invoices->count()) {
                     throw ValidationException::withMessages([
-                        'items' => 'بعض العقود المحددة لا تحتوي فاتورة صالحة أو تم تسجيل تحويل مساند لها مسبقاً.',
+                        'items' => 'بعض البنود المحددة لا تحتوي فاتورة صالحة أو تم تسجيل تحويل مساند لها مسبقاً.',
                     ]);
                 }
 
@@ -143,14 +188,16 @@ class MusanedTransferController extends Controller
 
                 foreach ($itemsInput as $row) {
                     /** @var \App\Models\ingaz\Invoice $invoice */
-                    $invoice = $invoices->get($row['contract_id']);
+                    $invoice = $invoices->get($row['source_key']);
                     $contract = $invoice->contract;
+                    $delegation = $invoice->ingazDelegation;
+                    $itemLabel = $contract ? ('العقد #' . $contract->id) : ('تفويض إنجاز #' . $delegation?->id);
                     $customerPaidAmount = $this->roundMoney((float) $invoice->total_due);
                     $transferredAmount = $row['transferred_amount'];
 
                     if ($transferredAmount > $customerPaidAmount) {
                         throw ValidationException::withMessages([
-                            'items' => 'المبلغ المحول من مساند لا يمكن أن يكون أكبر من قيمة الفاتورة للعقد #' . $contract->id,
+                            'items' => 'المبلغ المحول من مساند لا يمكن أن يكون أكبر من قيمة الفاتورة لـ ' . $itemLabel,
                         ]);
                     }
 
@@ -160,19 +207,20 @@ class MusanedTransferController extends Controller
                         : 0.0;
                     $commissionNetAmount = $this->roundMoney($commissionAmount - $expenseTaxAmount);
                     $sourceAccountId = $this->resolveInvoiceMusanedSourceAccountId($invoice, (int) $intermediateAccount->id);
-                    $costCenter = $this->ensureRecruitmentContractCostCenter($contract);
+                    $costCenter = $contract ? $this->ensureRecruitmentContractCostCenter($contract) : null;
 
                     $itemPayloads[] = [
-                        'contract_id' => $contract->id,
+                        'contract_id' => $contract?->id,
+                        'ingaz_delegation_id' => $delegation?->id,
                         'invoice_id' => $invoice->id,
-                        'cost_center_id' => $costCenter->id,
+                        'cost_center_id' => $costCenter?->id,
                         'source_account_id' => $sourceAccountId,
                         'customer_paid_amount' => $customerPaidAmount,
                         'transferred_amount' => $transferredAmount,
                         'commission_amount' => $commissionAmount,
                         'expense_tax_amount' => $expenseTaxAmount,
                         'commission_net_amount' => $commissionNetAmount,
-                        'notes' => $invoice->contract?->info?->msaned_number,
+                        'notes' => $contract?->info?->msaned_number ?: $delegation?->msaned_contract_number,
                     ];
 
                     $totals['customer_paid_total'] += $customerPaidAmount;
@@ -205,7 +253,7 @@ class MusanedTransferController extends Controller
                 ]);
 
                 $transfer->items()->createMany($itemPayloads);
-                $transfer->load(['items.contract.user', 'items.invoice.contract.info']);
+                $transfer->load(['items.contract.user', 'items.ingazDelegation.user', 'items.invoice.contract.info', 'items.invoice.ingazDelegation']);
 
                 $settlementConstraint = $this->storeSettlementConstraint(
                     $transfer,
@@ -231,7 +279,9 @@ class MusanedTransferController extends Controller
 
                 return $transfer->fresh([
                     'items.contract.user',
+                    'items.ingazDelegation.user',
                     'items.invoice.contract.info',
+                    'items.invoice.ingazDelegation',
                     'bankAccount',
                     'intermediateAccount',
                     'commissionAccount',
@@ -258,7 +308,9 @@ class MusanedTransferController extends Controller
         $transfer = MusanedTransfer::query()
             ->with([
                 'items.contract.user',
+                'items.ingazDelegation.user',
                 'items.invoice.contract.info',
+                'items.invoice.ingazDelegation',
                 'items.costCenter',
                 'items.sourceAccount',
                 'bankAccount',
@@ -282,10 +334,15 @@ class MusanedTransferController extends Controller
                 'contract.info',
                 'contract.maid.nationality',
                 'contract.requiredMaidNationality',
+                'ingazDelegation.user',
+                'ingazDelegation.nationality',
                 'musanedTransferItem',
             ])
             ->whereDoesntHave('musanedTransferItem')
-            ->whereHas('contract');
+            ->where(function ($query) {
+                $query->whereHas('contract')
+                    ->orWhereHas('ingazDelegation');
+            });
     }
 
     private function getBankAccounts()
@@ -434,6 +491,13 @@ class MusanedTransferController extends Controller
         }
 
         return $fallbackAccountId;
+    }
+
+    private function invoiceSourceKey(Invoice $invoice): string
+    {
+        return $invoice->contract_id
+            ? ('contract:' . $invoice->contract_id)
+            : ('delegation:' . $invoice->ingaz_delegation_id);
     }
 
     private function storeSettlementConstraint(
@@ -659,10 +723,14 @@ class MusanedTransferController extends Controller
     private function buildSettlementItemStatement(MusanedTransfer $transfer, MusanedTransferItem $item, ?string $operation = null): string
     {
         $reference = $transfer->reference_number ?: 'بدون مرجع';
-        $msanedNumber = $item->invoice?->contract?->info?->msaned_number ?: '-';
+        $msanedNumber = $item->invoice?->contract?->info?->msaned_number
+            ?: ($item->invoice?->ingazDelegation?->msaned_contract_number ?: '-');
         $operationText = $operation ? ' / العملية: ' . $operation : '';
+        $sourceText = $item->contract_id
+            ? ('العقد #' . $item->contract_id)
+            : ('تفويض إنجاز #' . $item->ingaz_delegation_id);
 
-        return 'تسوية تحويل مساند' . $operationText . ' / العقد #' . $item->contract_id . ' / مساند ' . $msanedNumber . ' / مرجع ' . $reference;
+        return 'تسوية تحويل مساند' . $operationText . ' / ' . $sourceText . ' / مساند ' . $msanedNumber . ' / مرجع ' . $reference;
     }
 
     private function buildBankTransferStatement(MusanedTransfer $transfer): string

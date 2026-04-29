@@ -401,25 +401,8 @@ class AdminTravelHistoryController extends Controller
 
     public function assignableStaff()
     {
-        $staff = Admin::query()
-            ->select('id', 'name', 'phone', 'admin_type', 'status')
-            ->where(function ($query) {
-                $query->whereNull('status')
-                    ->orWhere('status', '!=', 'suspended');
-            })
-            ->orderBy('name')
-            ->get()
-            ->map(function ($admin) {
-                $typeLabel = $admin->admin_type ?: 'employee';
-
-                return [
-                    'id' => $admin->id,
-                    'name' => $admin->name,
-                    'phone' => $admin->contact_phone,
-                    'admin_type' => $admin->admin_type,
-                    'label' => $admin->name . ' (' . $typeLabel . ')',
-                ];
-            });
+        $staff = $this->assignableStaffCollection()
+            ->map(fn (Admin $admin) => $this->formatAssignableStaff($admin));
 
         return response()->json([
             'success' => true,
@@ -451,33 +434,7 @@ class AdminTravelHistoryController extends Controller
                 ]);
             }
 
-            $notificationTrip = $groupTrips->first() ?: $trip;
-            $notificationText = $this->buildAssignmentMessage($notificationTrip);
-            if ($orderIds->count() > 1) {
-                $travelTypeLabel = $notificationTrip->travel_type === 'deportation' ? 'ترحيل' : 'استقدام';
-                $notificationText = 'تم إسناد رحلة ' . $travelTypeLabel . ' مجمعة (' . $orderIds->count() . ' عقود). موعد الوصول: '
-                    . ($notificationTrip->arrival_date ?: 'غير محدد') . ' '
-                    . ($notificationTrip->arrival_time ?: 'غير محدد') . '.';
-            }
-
-            AdminNotification::create([
-                'admin_id' => $assignee->id,
-                'created_by' => auth('admin')->id(),
-                'title' => 'إسناد رحلة جديدة',
-                'message' => $notificationText,
-                'type' => 'travel_assignment',
-                'link' => route('travel'),
-                'data' => [
-                    'trip_id' => $notificationTrip->id,
-                    'travel_type' => $notificationTrip->travel_type,
-                    'arrival_date' => $notificationTrip->arrival_date,
-                    'arrival_time' => $notificationTrip->arrival_time,
-                    'order_id' => $notificationTrip->order_id,
-                    'order_ids' => $orderIds->all(),
-                    'contracts_count' => $orderIds->count(),
-                ],
-            ]);
-
+            $notificationText = $this->createTripAssignmentNotification($groupTrips, $assignee, $request->assignment_note);
             $smsSent = $this->sendAssignmentSms($assignee, $notificationText);
 
             DB::commit();
@@ -566,15 +523,32 @@ class AdminTravelHistoryController extends Controller
         return ($isFuture ? 'متبقي ' : 'متأخر ') . implode(' و ', array_slice($parts, 0, 2));
     }
 
-    private function buildAssignmentMessage(TravelHistory $trip): string
+    private function buildAssignmentMessage(TravelHistory $trip, ?Collection $groupTrips = null, ?string $completionUrl = null): string
     {
         $travelType = $trip->travel_type === 'deportation' ? 'ترحيل' : 'استقدام';
-        $maidName = optional($trip->maid)->name ?: 'غير محدد';
+        $groupTrips = $groupTrips ?: collect([$trip]);
+        $maidNames = $groupTrips->map(fn (TravelHistory $item) => optional($item->maid)->name)
+            ->filter()
+            ->unique()
+            ->values();
+        $contractIds = $groupTrips->pluck('order_id')->filter()->unique()->values();
+        $maidName = $maidNames->isNotEmpty() ? $maidNames->take(4)->implode('، ') : 'غير محدد';
         $arrivalDate = $trip->arrival_date ?: 'غير محدد';
         $arrivalTime = $trip->arrival_time ?: 'غير محدد';
         $airport = $trip->arrival_airport ?: 'غير محدد';
+        $flightCompany = $trip->flight_company ?: 'غير محدد';
+        $flightNumber = $trip->flight_number ?: 'غير محدد';
+        $contractsText = $contractIds->isNotEmpty()
+            ? $contractIds->map(fn ($id) => '#' . $id)->implode('، ')
+            : 'غير محدد';
 
-        return "تم إسناد رحلة {$travelType} لكم. العاملة: {$maidName}، موعد الوصول: {$arrivalDate} {$arrivalTime}، المطار: {$airport}.";
+        $message = "تم إسناد رحلة {$travelType} لكم. العقود: {$contractsText}. العاملة: {$maidName}. موعد الوصول: {$arrivalDate} {$arrivalTime}. المطار: {$airport}. شركة الطيران: {$flightCompany}. رقم الرحلة: {$flightNumber}.";
+
+        if ($completionUrl) {
+            $message .= " رابط إكمال الرحلة بعد الاستلام: {$completionUrl}";
+        }
+
+        return $message;
     }
 
     private function sendAssignmentSms(Admin $assignee, string $message): bool
@@ -593,6 +567,74 @@ class AdminTravelHistoryController extends Controller
             ]);
             return false;
         }
+    }
+
+    private function assignableStaffCollection(): Collection
+    {
+        return Admin::query()
+            ->select('id', 'name', 'phone', 'admin_type', 'status')
+            ->where(function ($query) {
+                $query->whereNull('status')
+                    ->orWhere('status', '!=', 'suspended');
+            })
+            ->orderBy('name')
+            ->get();
+    }
+
+    private function formatAssignableStaff(Admin $admin): array
+    {
+        $typeLabel = $admin->admin_type ?: 'employee';
+
+        return [
+            'id' => $admin->id,
+            'name' => $admin->name,
+            'phone' => $admin->contact_phone,
+            'admin_type' => $admin->admin_type,
+            'label' => $admin->name . ' (' . $typeLabel . ')',
+        ];
+    }
+
+    private function createTripAssignmentNotification(Collection $tripRecords, Admin $assignee, ?string $assignmentNote = null): string
+    {
+        $notificationTrip = $tripRecords->first();
+        if (!$notificationTrip) {
+            return '';
+        }
+
+        $orderIds = $tripRecords->pluck('order_id')->filter()->unique()->values();
+        $completionUrl = route('travel', [
+            'trip_id' => $notificationTrip->id,
+            'complete_trip' => $notificationTrip->id,
+        ]);
+        $notificationText = $this->buildAssignmentMessage($notificationTrip, $tripRecords, $completionUrl);
+
+        if ($assignmentNote) {
+            $notificationText .= ' ملاحظة الإسناد: ' . $assignmentNote;
+        }
+
+        AdminNotification::create([
+            'admin_id' => $assignee->id,
+            'created_by' => auth('admin')->id(),
+            'title' => 'إسناد رحلة جديدة',
+            'message' => $notificationText,
+            'type' => 'travel_assignment',
+            'link' => $completionUrl,
+            'data' => [
+                'trip_id' => $notificationTrip->id,
+                'travel_type' => $notificationTrip->travel_type,
+                'arrival_date' => $notificationTrip->arrival_date,
+                'arrival_time' => $notificationTrip->arrival_time,
+                'arrival_airport' => $notificationTrip->arrival_airport,
+                'flight_company' => $notificationTrip->flight_company,
+                'flight_number' => $notificationTrip->flight_number,
+                'order_id' => $notificationTrip->order_id,
+                'order_ids' => $orderIds->all(),
+                'contracts_count' => $orderIds->count(),
+                'completion_url' => $completionUrl,
+            ],
+        ]);
+
+        return $notificationText;
     }
 
             /**
@@ -818,8 +860,11 @@ class AdminTravelHistoryController extends Controller
         $clientsList = $this->usersList();
         $maidsList = $this->maidsList();
 
-        // Get all contracts with status 'tazker' and their relationships
-        $contracts = Contract::where('status', 'tazker')
+        // Get contracts that can be used for recruitment travel scheduling.
+        $contracts = Contract::whereIn('status', [
+            ContractStatusEnum::Taffez->value,
+            ContractStatusEnum::Tazker->value,
+        ])
             ->with(['user', 'maid', 'maid.nationality', 'maid.religion', 'maid.jobTitles', 'info'])
             ->get();
 
@@ -878,7 +923,10 @@ class AdminTravelHistoryController extends Controller
         ]);
 
         $ordersList = [];
-        return view('admin.travel_history.control', compact('data', 'clientsList', 'maidsList', 'ordersList', 'contracts', 'id', 'userId', 'maidId', 'order', 'orderId', 'selectedOrderIds'));
+        $assignableStaff = $this->assignableStaffCollection()
+            ->map(fn (Admin $admin) => $this->formatAssignableStaff($admin));
+
+        return view('admin.travel_history.control', compact('data', 'clientsList', 'maidsList', 'ordersList', 'contracts', 'id', 'userId', 'maidId', 'order', 'orderId', 'selectedOrderIds', 'assignableStaff'));
     }
 
     public function store(Request $request, $id = null)
@@ -891,6 +939,8 @@ class AdminTravelHistoryController extends Controller
             'order_ids.*' => 'nullable|exists:contracts,id',
             'order_id' => 'nullable|exists:contracts,id',
             'contract_id' => 'nullable|exists:contracts,id',
+            'assigned_to' => 'nullable|exists:admins,id',
+            'assignment_note' => 'nullable|string|max:2000',
             'files.*' => 'nullable|file|mimes:jpeg,png,jpg,pdf|max:4096',
         ]);
 
@@ -926,13 +976,17 @@ class AdminTravelHistoryController extends Controller
         $this->authorizeTravelFormAccess((bool) $editingTrip);
 
         $savedTrips = collect();
+        $assignee = $request->filled('assigned_to')
+            ? Admin::find($request->assigned_to)
+            : null;
 
         DB::transaction(function () use (
             $request,
             $orderIds,
             $contracts,
             $editingTrip,
-            &$savedTrips
+            &$savedTrips,
+            $assignee
         ) {
             $existingGroupRecords = collect();
             if ($editingTrip) {
@@ -978,12 +1032,25 @@ class AdminTravelHistoryController extends Controller
                     'arrival_time' => $request->arrival_time,
                     'flight_company' => $request->flight_company,
                     'flight_number' => $request->flight_number,
+                    'assigned_to' => $assignee?->id,
+                    'assigned_by' => $assignee ? auth('admin')->id() : null,
+                    'assigned_at' => $assignee ? now() : null,
+                    'assignment_note' => $assignee ? $request->assignment_note : null,
                 ];
 
                 if ($tripRecord) {
                     $tripRecord->update($payload);
                 } else {
                     $tripRecord = TravelHistory::create($payload);
+                }
+
+                if ($contract->status === ContractStatusEnum::Taffez->value) {
+                    $contract->update(['status' => ContractStatusEnum::Tazker->value]);
+                    $contract->contract_status_logs()->create([
+                        'status' => ContractStatusEnum::Tazker->value,
+                        'date' => now()->toDateString(),
+                        'notes' => 'تم إضافة رحلة للعقد ونقله تلقائياً من التفييز إلى مرحلة التذاكر',
+                    ]);
                 }
 
                 $savedTrips->push($tripRecord);
@@ -1037,6 +1104,12 @@ class AdminTravelHistoryController extends Controller
                 }
             }
         });
+
+        if ($assignee && $savedTrips->isNotEmpty()) {
+            $savedTrips->each(fn (TravelHistory $trip) => $trip->load(['user', 'maid']));
+            $notificationText = $this->createTripAssignmentNotification($savedTrips, $assignee, $request->assignment_note);
+            $this->sendAssignmentSms($assignee, $notificationText);
+        }
 
         return redirect(route('travel'))->with('success', __('admin.success'));
     }

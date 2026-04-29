@@ -159,9 +159,12 @@ class AppServiceProvider extends ServiceProvider
             // $contractsCount['tafwed'] = Contract::where('status', 'tafwed')->count();
             // $contractsCount['taffez'] = Contract::where('status', 'taffez')->count();
             // $contractsCount['tazker'] = Contract::where('status', 'tazker')->count();
-            $contractsCount['under_warranty'] = Contract::where('status', ContractStatusEnum::Arrival->value)->where('warranty_status', 'active')->count();
+            $contractsCount['under_warranty'] = Contract::where('status', ContractStatusEnum::Arrival->value)
+                ->whereNotNull('warranty_end_date')
+                ->whereDate('warranty_end_date', '>=', now()->toDateString())
+                ->count();
             $contractsCount['back'] = Contract::where('status', 'back')->count();
-            // $contractsCount['arrival'] = Contract::where('status', 'arrival')->count();
+            $contractsCount['arrival'] = Contract::where('status', ContractStatusEnum::Arrival->value)->count();
             $contractsCount['closed'] = Contract::where('status', 'closed')->count();
             $contractsCount['pending_maid_selection'] = Contract::where('status', 'pending_maid_selection')->count();
             // $contractsCount['all'] = Contract::count();

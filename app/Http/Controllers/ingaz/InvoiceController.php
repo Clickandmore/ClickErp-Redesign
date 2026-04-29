@@ -4,6 +4,7 @@ namespace App\Http\Controllers\ingaz;
 
 use App\Http\Controllers\admin\Controller;
 use App\Models\Contract;
+use App\Models\IngazDelegation;
 use App\Models\ingaz\Invoice;
 use App\Models\ingaz\Setting;
 use App\Models\ingaz\User as ClientUser;
@@ -30,6 +31,12 @@ use Yajra\DataTables\Facades\DataTables;
 
 class InvoiceController extends Controller
 {
+    private const SETTING_DELEGATION_REVENUE_ACCOUNT = 'ingaz_delegation_revenue_account';
+    private const SETTING_DELEGATION_INGAZ_ACCOUNT = 'ingaz_delegation_ingaz_account';
+    private const SETTING_DELEGATION_COST_ACCOUNT = 'ingaz_delegation_cost_account';
+    private const SETTING_DELEGATION_FIXED_COST = 'ingaz_delegation_fixed_cost';
+    private const DEFAULT_DELEGATION_FIXED_COST = 137.0;
+
     /**
      * Display a listing of the resource.
      *
@@ -38,7 +45,7 @@ class InvoiceController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = Invoice::with(['contract.user'])->select('invoices.*')->latest();
+            $query = Invoice::with(['contract.user', 'ingazDelegation.user'])->select('invoices.*')->latest();
 
             return DataTables::of($query)
                 ->addIndexColumn()
@@ -46,10 +53,12 @@ class InvoiceController extends Controller
                     return '<a href="' . route('invoice.download', ['id' => $row->id, 'autoprint' => 1]) . '" target="_blank" rel="noopener" class="fw-bold text-decoration-none">#' . $row->id . '</a>';
                 })
                 ->addColumn('contract_number', function ($row) {
-                    return '#' . $row->contract_id;
+                    return $row->contract_id
+                        ? '#' . $row->contract_id
+                        : ('تفويض #' . $row->ingaz_delegation_id);
                 })
                 ->addColumn('client_name', function ($row) {
-                    return $row->contract && $row->contract->user ? $row->contract->user->name : '-';
+                    return $row->contract?->user?->name ?: ($row->ingazDelegation?->user?->name ?: '-');
                 })
                 ->editColumn('subtotal', function ($row) {
                     return number_format($row->subtotal, 2);
@@ -101,6 +110,8 @@ class InvoiceController extends Controller
     {
         $contractId = $request->query('contract_id');
         $contractId = is_numeric($contractId) ? (int) $contractId : null;
+        $ingazDelegationId = $request->query('ingaz_delegation_id');
+        $ingazDelegationId = is_numeric($ingazDelegationId) ? (int) $ingazDelegationId : null;
 
         $contracts = Contract::query()
             ->with(['user', 'maid.nationality', 'requiredMaidNationality'])
@@ -109,6 +120,7 @@ class InvoiceController extends Controller
             ->get();
 
         $selectedContract = null;
+        $selectedIngazDelegation = null;
 
         if ($contractId) {
             $selectedContract = Contract::query()
@@ -122,7 +134,25 @@ class InvoiceController extends Controller
             }
         }
 
-        return view('admin.ingaz.invoices.create', compact('contractId', 'contracts', 'selectedContract'));
+        if ($ingazDelegationId) {
+            $selectedIngazDelegation = IngazDelegation::query()
+                ->with(['user', 'nationality', 'profession', 'invoice'])
+                ->findOrFail($ingazDelegationId);
+
+            if ($selectedIngazDelegation->invoice) {
+                return redirect()
+                    ->route('invoices.show', $selectedIngazDelegation->invoice->id)
+                    ->with('success', 'تم إصدار فاتورة لهذا التفويض مسبقاً.');
+            }
+        }
+
+        return view('admin.ingaz.invoices.create', compact(
+            'contractId',
+            'ingazDelegationId',
+            'contracts',
+            'selectedContract',
+            'selectedIngazDelegation'
+        ));
     }
 
     /**
@@ -134,7 +164,8 @@ class InvoiceController extends Controller
     public function store(Request $request, ObjService $service, YearService $yearService, BondService $bondService)
     {
         $request->validate([
-            'contract_id' => 'required|exists:contracts,id',
+            'contract_id' => 'nullable|required_without:ingaz_delegation_id|exists:contracts,id',
+            'ingaz_delegation_id' => 'nullable|required_without:contract_id|exists:ingaz_delegations,id',
             'insurance_company' => 'nullable|string|max:255',
             'direct_recruitment_cost' => 'nullable|numeric|min:0',
             'external_recruitment_cost' => 'nullable|numeric|min:0',
@@ -152,21 +183,42 @@ class InvoiceController extends Controller
             'total_due' => 'nullable|numeric|min:0',
         ]);
 
-        // منع تكرار الفاتورة لنفس العقد
-        $invoiceExists = Invoice::where('contract_id', $request->contract_id)->exists();
+        if ($request->filled('contract_id') && $request->filled('ingaz_delegation_id')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'يجب ربط الفاتورة بعقد أو تفويض إنجاز فقط.'
+            ], 422);
+        }
+
+        $invoiceExists = $request->filled('contract_id')
+            ? Invoice::where('contract_id', $request->contract_id)->exists()
+            : Invoice::where('ingaz_delegation_id', $request->ingaz_delegation_id)->exists();
 
         if ($invoiceExists) {
             return response()->json([
                 'success' => false,
-                'message' => 'هذا العقد لديه فاتورة سابقة'
+                'message' => $request->filled('contract_id')
+                    ? 'هذا العقد لديه فاتورة سابقة'
+                    : 'هذا التفويض لديه فاتورة سابقة'
             ], 422);
         }
 
         try {
             $result = DB::transaction(function () use ($request, $service, $yearService, $bondService) {
+                $invoicePayload = $this->buildInvoicePayload($request);
+
+                if ($request->filled('ingaz_delegation_id')) {
+                    return $this->storeIngazDelegationInvoice(
+                        $request,
+                        $invoicePayload,
+                        $service,
+                        $yearService,
+                        $bondService
+                    );
+                }
+
                 $contract = Contract::with(['user', 'maid.nationality', 'requiredMaidNationality'])
                     ->findOrFail($request->contract_id);
-                $invoicePayload = $this->buildInvoicePayload($request);
 
                 if ($contract->invoice()->exists()) {
                     throw new \RuntimeException('هذا العقد لديه فاتورة سابقة');
@@ -275,6 +327,8 @@ class InvoiceController extends Controller
         $invoiceConstraint = $result['invoice_constraint'];
         /** @var \Nami\Finance\Models\Bond|null $receiptBond */
         $receiptBond = $result['receipt_bond'];
+        /** @var \Nami\Finance\Models\Constraint|null $delegationCostConstraint */
+        $delegationCostConstraint = $result['delegation_cost_constraint'] ?? null;
 
         return response()->json([
             'success' => true,
@@ -286,6 +340,7 @@ class InvoiceController extends Controller
             'invoice_constraint_print_url' => $invoiceConstraint ? $this->buildConstraintPrintUrl($invoiceConstraint->id) : null,
             'receipt_bond_print_url' => $receiptBond ? $this->buildReceiptBondPrintUrl($receiptBond->id) : null,
             'receipt_constraint_print_url' => ($receiptBond && $receiptBond->constraint_id) ? $this->buildConstraintPrintUrl((int) $receiptBond->constraint_id) : null,
+            'delegation_cost_constraint_print_url' => $delegationCostConstraint ? $this->buildConstraintPrintUrl($delegationCostConstraint->id) : null,
             'index_url' => route('invoices.index'),
             'create_url' => route('invoices.create'),
         ]);
@@ -416,6 +471,221 @@ class InvoiceController extends Controller
         return $bond->fresh();
     }
 
+    private function storeIngazDelegationInvoice(
+        Request $request,
+        array $invoicePayload,
+        ObjService $service,
+        YearService $yearService,
+        BondService $bondService
+    ): array
+    {
+        $delegation = IngazDelegation::query()
+            ->with(['user', 'nationality', 'profession'])
+            ->lockForUpdate()
+            ->findOrFail($request->ingaz_delegation_id);
+
+        if ($delegation->invoice()->exists()) {
+            throw new \RuntimeException('هذا التفويض لديه فاتورة سابقة');
+        }
+
+        if (!$delegation->user) {
+            throw new \RuntimeException('التفويض غير مرتبط بعميل، لا يمكن إصدار الفاتورة.');
+        }
+
+        $clientAccountId = $this->ensureClientUserAccountId($delegation->user);
+        $invoice = Invoice::create([
+            'contract_id' => null,
+            'ingaz_delegation_id' => $delegation->id,
+            'insurance_company' => $request->insurance_company ?? null,
+            'direct_recruitment_cost' => $invoicePayload['direct_recruitment_cost'],
+            'external_recruitment_cost' => $invoicePayload['external_recruitment_cost'],
+            'government_cost' => $invoicePayload['government_cost'],
+            'internal_ticket_cost' => $invoicePayload['internal_ticket_cost'],
+            'visa_recruited_count' => $invoicePayload['visa_recruited_count'],
+            'direct_recruitment_count' => $invoicePayload['direct_recruitment_count'],
+            'external_recruitment_count' => $invoicePayload['external_recruitment_count'],
+            'insured_count' => $invoicePayload['insured_count'],
+            'government_cost_count' => $invoicePayload['government_cost_count'],
+            'internal_ticket_count' => $invoicePayload['internal_ticket_count'],
+            'subtotal' => $invoicePayload['subtotal'],
+            'discount' => $invoicePayload['discount'],
+            'vat_amount' => $invoicePayload['vat_amount'],
+            'total_due' => $invoicePayload['total_due'],
+            'is_paid' => true,
+            'paid_at' => now(),
+        ]);
+
+        $invoice->setRelation('ingazDelegation', $delegation);
+
+        $invoiceConstraint = null;
+        $receiptBond = null;
+        $delegationCostConstraint = null;
+
+        if ((float) $invoice->total_due > 0) {
+            $invoiceConstraint = $this->storeInvoiceConstraintForIngazDelegation(
+                $invoice,
+                $service,
+                $yearService,
+                $clientAccountId
+            );
+
+            $receiptBond = $this->storeReceiptBondForInvoice(
+                $invoice,
+                $bondService,
+                $yearService,
+                $clientAccountId,
+                (int) $this->resolveMusanedReceiptAccount()->id
+            );
+
+            $delegationCostConstraint = $this->storeIngazDelegationFixedCostConstraint(
+                $invoice,
+                $service,
+                $yearService
+            );
+        }
+
+        if ($delegationCostConstraint) {
+            $invoice->update([
+                'ingaz_delegation_cost_constraint_id' => $delegationCostConstraint->id,
+            ]);
+        }
+
+        return [
+            'invoice' => $invoice,
+            'invoice_constraint' => $invoiceConstraint,
+            'receipt_bond' => $receiptBond,
+            'delegation_cost_constraint' => $delegationCostConstraint,
+        ];
+    }
+
+    private function storeInvoiceConstraintForIngazDelegation(
+        Invoice $invoice,
+        ObjService $service,
+        YearService $yearService,
+        int $clientAccountId
+    ): ?Constraint
+    {
+        $amounts = $this->buildInvoiceFinanceBreakdown($invoice);
+        if ($amounts['total_due'] <= 0) {
+            return null;
+        }
+
+        $revenueAccountId = $this->resolveSettingAccountId(
+            self::SETTING_DELEGATION_REVENUE_ACCOUNT,
+            'حساب إيراد تفاويض إنجاز غير محدد. الرجاء تحديده من صفحة إعدادات الحسابات أولاً.',
+            'creditor'
+        );
+        $statement = $this->buildInvoiceStatement($invoice);
+        $lines = [];
+
+        $netRevenueAmount = $this->roundMoney($amounts['direct_amount'] + $amounts['other_amount']);
+
+        if ($netRevenueAmount > 0) {
+            $this->appendConstraintPair(
+                $lines,
+                $revenueAccountId,
+                $clientAccountId,
+                $netRevenueAmount,
+                $statement
+            );
+        }
+
+        if ($amounts['vat_amount'] > 0) {
+            $taxAccountId = $this->resolveRevenueTaxAccountId();
+
+            if (!$taxAccountId) {
+                throw new \RuntimeException(
+                    'لا توجد ضريبة إيرادات معرفة في إعدادات الحسابات. الرجاء تحديدها من صفحة إعدادات الحسابات أولاً.'
+                );
+            }
+
+            $this->appendConstraintPair(
+                $lines,
+                $taxAccountId,
+                $clientAccountId,
+                $amounts['vat_amount'],
+                $statement
+            );
+        }
+
+        return $this->storeConstraintFromLines($service, $yearService, $invoice, $statement, $lines, $amounts['total_due']);
+    }
+
+    private function storeIngazDelegationFixedCostConstraint(
+        Invoice $invoice,
+        ObjService $service,
+        YearService $yearService
+    ): ?Constraint
+    {
+        $amount = $this->resolveDelegationFixedCostAmount();
+        if ($amount <= 0) {
+            return null;
+        }
+
+        $ingazAccountId = $this->resolveSettingAccountId(
+            self::SETTING_DELEGATION_INGAZ_ACCOUNT,
+            'حساب إنجاز غير محدد. الرجاء تحديده من صفحة إعدادات الحسابات أولاً.',
+            'creditor'
+        );
+        $costAccountId = $this->resolveSettingAccountId(
+            self::SETTING_DELEGATION_COST_ACCOUNT,
+            'حساب تكلفة تفاويض إنجاز غير محدد. الرجاء تحديده من صفحة إعدادات الحسابات أولاً.',
+            'debtor'
+        );
+        $statement = $this->buildDelegationFixedCostStatement($invoice);
+        $lines = [];
+
+        $this->appendConstraintPair(
+            $lines,
+            $ingazAccountId,
+            $costAccountId,
+            $amount,
+            $statement
+        );
+
+        return $this->storeConstraintFromLines($service, $yearService, $invoice, $statement, $lines, $amount);
+    }
+
+    private function storeConstraintFromLines(
+        ObjService $service,
+        YearService $yearService,
+        Invoice $invoice,
+        string $statement,
+        array $lines,
+        float $value
+    ): ?Constraint
+    {
+        if (empty($lines)) {
+            return null;
+        }
+
+        $date = $invoice->created_at ? $invoice->created_at->toDateString() : now()->toDateString();
+        $activeYear = $yearService->checkDateRange($date);
+        if (!$activeYear) {
+            throw new \RuntimeException('لا يوجد سنة مالية نشطة للتاريخ المحدد');
+        }
+
+        $data = [
+            'code' => $service->lastCode(),
+            'date' => $date,
+            'statement' => $statement,
+            'account_id' => array_column($lines, 'account_id'),
+            'account_type' => array_column($lines, 'account_type'),
+            'debtor_value' => array_column($lines, 'debtor_value'),
+            'creditor_value' => array_column($lines, 'creditor_value'),
+            'statement_account' => array_column($lines, 'statement'),
+            'cost_center_required' => 'off',
+            'cost_center_id' => array_column($lines, 'cost_center_id'),
+            'value' => $this->roundMoney($value),
+        ];
+
+        $storeConstraint = $service->storeConstraint($data, $activeYear);
+        $service->storeConstraintDetails($data['account_id'], $storeConstraint->id, $data);
+        $service->storeFiles($storeConstraint, $data);
+
+        return $storeConstraint;
+    }
+
     /**
      * Display the specified resource.
      *
@@ -500,6 +770,9 @@ class InvoiceController extends Controller
             'contract.requiredMaidReligion',
             'contract.requiredMaidJobTitle',
             'contract.info',
+            'ingazDelegation.user',
+            'ingazDelegation.nationality',
+            'ingazDelegation.profession',
             'musanedTransferItem.transfer',
         ])->findOrFail($id);
 
@@ -523,7 +796,7 @@ class InvoiceController extends Controller
         $invoiceSubtitle = (string) documentSetting('invoice_subtitle', 'Simplified Tax Invoice');
         $invoiceFooterText = (string) replaceDocumentPlaceholders(documentSetting('invoice_footer_text', ''));
 
-        $serviceDesc = 'طلب تعاقد';
+        $serviceDesc = $invoice->ingaz_delegation_id ? 'تفويض إنجاز' : 'طلب تعاقد';
         $serviceLongDescription = $this->buildServiceDescription($invoice);
         $items = $this->buildInvoiceItems($invoice);
         $invoiceStatus = ((bool) $invoice->is_paid || (float) $invoice->total_due <= 0) ? 'مدفوعة' : 'غير مدفوعة';
@@ -532,12 +805,12 @@ class InvoiceController extends Controller
             ?? 'النظام';
         $printedAt = now();
 
-        $client = $invoice->contract?->user;
+        $client = $invoice->contract?->user ?: $invoice->ingazDelegation?->user;
         $customerName = $client?->name ?: '---';
         $customerNationalId = $client?->national_num ?: '---';
         $customerPhone = $this->formatPhone((string) ($client?->phone_code ?? ''), (string) ($client?->phone ?? ''));
         $customerAddress = $client?->address ?: '---';
-        $accountNumber = $client?->account_id ?: ($client?->id ?: $invoice->contract_id);
+        $accountNumber = $client?->account_id ?: ($client?->id ?: ($invoice->contract_id ?: $invoice->ingaz_delegation_id));
 
         $contractInfo = $invoice->contract?->info;
         $matchedHijriDate = $contractInfo?->visa_hijry_date
@@ -679,7 +952,23 @@ class InvoiceController extends Controller
     {
         $contract = $invoice->contract;
         if (!$contract) {
-            return 'طلب استقدام';
+            $delegation = $invoice->ingazDelegation;
+            if (!$delegation) {
+                return 'طلب استقدام';
+            }
+
+            $clientName = $delegation->user?->name ?: 'غير محدد';
+            $jobTitle = $delegation->profession?->title ?: 'غير محدد';
+            $nationality = $delegation->nationality?->sub_title ?: ($delegation->nationality?->title ?: 'غير محدد');
+
+            return 'تفويض إنجاز - العميل: ' . $clientName
+                . ' - رقم التفويض: ' . $delegation->id
+                . ' - المهنة: ' . $jobTitle
+                . ' - الجنسية: ' . $nationality
+                . ' - نوع التأشيرة: ' . ($delegation->visa_type ?: 'غير محدد')
+                . ' - رقم التأشيرة: ' . ($delegation->visa_number ?: '-')
+                . ' - رقم إنجاز: ' . ($delegation->ingaz_number ?: '-')
+                . ' - رقم مساند: ' . ($delegation->msaned_contract_number ?: '-');
         }
 
         $clientName = $contract->user?->name ?: 'غير محدد';
@@ -819,6 +1108,14 @@ class InvoiceController extends Controller
 
     private function buildInvoiceStatement(Invoice $invoice): string
     {
+        if ($invoice->ingaz_delegation_id) {
+            $delegation = $invoice->ingazDelegation;
+            $ingazNumber = $delegation?->ingaz_number ?: '-';
+            $msanedNumber = $delegation?->msaned_contract_number ?: '-';
+
+            return "قيد فاتورة تفويض إنجاز #{$invoice->ingaz_delegation_id} / الفاتورة #{$invoice->id} / إنجاز {$ingazNumber} / مساند {$msanedNumber}";
+        }
+
         $contractId = $invoice->contract_id;
         $msanedNumber = $invoice->contract?->info?->msaned_number
             ?? $invoice->contract?->msaned_number
@@ -829,12 +1126,28 @@ class InvoiceController extends Controller
 
     private function buildInvoiceReceiptStatement(Invoice $invoice): string
     {
+        if ($invoice->ingaz_delegation_id) {
+            $delegation = $invoice->ingazDelegation;
+            $ingazNumber = $delegation?->ingaz_number ?: '-';
+            $msanedNumber = $delegation?->msaned_contract_number ?: '-';
+
+            return "سند قبض سداد فاتورة تفويض إنجاز #{$invoice->ingaz_delegation_id} / الفاتورة #{$invoice->id} / إلى حساب مساند / إنجاز {$ingazNumber} / مساند {$msanedNumber}";
+        }
+
         $contractId = $invoice->contract_id;
         $msanedNumber = $invoice->contract?->info?->msaned_number
             ?? $invoice->contract?->msaned_number
             ?? '-';
 
         return "سند قبض سداد فاتورة طلب استقدام للعقد #{$contractId} / الفاتورة #{$invoice->id} / إلى حساب مساند الوسيط / مساند {$msanedNumber}";
+    }
+
+    private function buildDelegationFixedCostStatement(Invoice $invoice): string
+    {
+        $delegation = $invoice->ingazDelegation;
+        $ingazNumber = $delegation?->ingaz_number ?: '-';
+
+        return "قيد تكلفة تفويض إنجاز #{$invoice->ingaz_delegation_id} / الفاتورة #{$invoice->id} / إنجاز {$ingazNumber}";
     }
 
     private function buildConstraintPrintUrl(int $constraintId): string
@@ -961,9 +1274,26 @@ class InvoiceController extends Controller
             throw new \RuntimeException('العميل المرتبط بالعقد غير موجود.');
         }
 
-        if ($user->account_id) {
-            // return (int) $user->account_id;
+        $accountId = $this->ensureClientUserAccountId($user);
 
+        if ($contract->relationLoaded('user') && $contract->user) {
+            $contract->user->account_id = $accountId;
+        }
+
+        return $accountId;
+    }
+
+    private function ensureClientUserAccountId(ClientUser $user): int
+    {
+        $user = ClientUser::query()
+            ->lockForUpdate()
+            ->find($user->id);
+
+        if (!$user) {
+            throw new \RuntimeException('العميل غير موجود.');
+        }
+
+        if ($user->account_id) {
             $existingAccount = Account::query()
                 ->lockForUpdate()
                 ->find($user->account_id);
@@ -975,10 +1305,6 @@ class InvoiceController extends Controller
             $user->update([
                 'account_id' => null,
             ]);
-
-            if ($contract->relationLoaded('user') && $contract->user) {
-                $contract->user->account_id = null;
-            }
         }
 
         $parentAccount = Account::query()
@@ -1015,10 +1341,6 @@ class InvoiceController extends Controller
         $user->update([
             'account_id' => $account->id,
         ]);
-
-        if ($contract->relationLoaded('user') && $contract->user) {
-            $contract->user->account_id = $account->id;
-        }
 
         return (int) $account->id;
     }
@@ -1172,6 +1494,45 @@ class InvoiceController extends Controller
             ->value('id');
 
         return $accountId ? (int) $accountId : null;
+    }
+
+    private function resolveSettingAccountId(string $settingTitle, string $missingMessage, ?string $status = null): int
+    {
+        $accountId = ConfirmSetting::query()
+            ->where('title', $settingTitle)
+            ->latest('updated_at')
+            ->value('value');
+
+        if (!$accountId) {
+            throw new \RuntimeException($missingMessage);
+        }
+
+        $query = Account::query()->whereKey((int) $accountId);
+
+        if ($status) {
+            $query->where('status', $status);
+        }
+
+        $account = $query->first();
+        if (!$account) {
+            throw new \RuntimeException($missingMessage);
+        }
+
+        return (int) $account->id;
+    }
+
+    private function resolveDelegationFixedCostAmount(): float
+    {
+        $amount = ConfirmSetting::query()
+            ->where('title', self::SETTING_DELEGATION_FIXED_COST)
+            ->latest('updated_at')
+            ->value('value');
+
+        if ($amount === null || $amount === '') {
+            return self::DEFAULT_DELEGATION_FIXED_COST;
+        }
+
+        return $this->roundMoney((float) $amount);
     }
 
     private function printableSetting(string $key, string $default = '-'): string

@@ -3,6 +3,7 @@
 namespace App\Models\ingaz;
 
 use App\Models\Contract;
+use App\Models\IngazDelegation;
 use App\Models\MusanedTransferItem;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -23,6 +24,11 @@ class Invoice extends Model
         return $this->belongsTo(Contract::class);
     }
 
+    public function ingazDelegation()
+    {
+        return $this->belongsTo(IngazDelegation::class, 'ingaz_delegation_id');
+    }
+
     public function musanedTransferItem()
     {
         return $this->hasOne(MusanedTransferItem::class, 'invoice_id');
@@ -36,5 +42,10 @@ class Invoice extends Model
     public function externalOfficeCostConstraint()
     {
         return $this->belongsTo(Constraint::class, 'external_office_cost_constraint_id');
+    }
+
+    public function ingazDelegationCostConstraint()
+    {
+        return $this->belongsTo(Constraint::class, 'ingaz_delegation_cost_constraint_id');
     }
 }

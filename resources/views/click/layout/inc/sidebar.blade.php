@@ -358,11 +358,11 @@
                                         </li>
                                         <li>
                                             <a class="m-link"
-                                                href="{{ route('RecruitmentContract.index', ['status' => 'completed', 'warranty_status' => 'expired,not_applicable']) }}">
+                                                href="{{ route('RecruitmentContract.index', ['status' => 'completed_stage']) }}">
                                                 <i class="fa fa-check-circle"></i>
                                                 <span class="ms-2">عقود مكتملة</span>&nbsp;&nbsp;
                                                 <span
-                                                    class="badge bg-primary ms-2">{{ $contractsCount['completed'] - $contractsCount['under_warranty'] }}</span>
+                                                    class="badge bg-primary ms-2">{{ $contractsCount['under_warranty'] ?? 0 }}</span>
                                             </a>
                                         </li>
                                     @endif

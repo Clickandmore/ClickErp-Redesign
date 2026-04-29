@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\ingaz\Nationality;
 use App\Models\auth\Admin;
 use App\Models\ingaz\JobTitle;
+use App\Models\ingaz\Invoice;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -88,5 +89,10 @@ class IngazDelegation extends Model
     public function marketer()
     {
         return $this->belongsTo(Admin::class, 'marketer_id');
+    }
+
+    public function invoice()
+    {
+        return $this->hasOne(Invoice::class, 'ingaz_delegation_id');
     }
 }

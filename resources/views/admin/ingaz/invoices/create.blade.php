@@ -373,23 +373,29 @@
 @section('content')
     @php
         $selectedContractId = old('contract_id', $contractId ?? request('contract_id'));
+        $selectedIngazDelegationId = old('ingaz_delegation_id', $ingazDelegationId ?? request('ingaz_delegation_id'));
         $contracts = $contracts ?? collect();
         $selectedContract = $selectedContract ?? null;
+        $selectedIngazDelegation = $selectedIngazDelegation ?? null;
+        $isDelegationInvoice = (bool) $selectedIngazDelegation;
         $selectedContractFromList =
             !$selectedContract && $selectedContractId ? $contracts->firstWhere('id', (int) $selectedContractId) : null;
         $currentContract = $selectedContract ?: $selectedContractFromList;
-        $currentNationality =
-            optional($currentContract?->maid?->nationality ?? $currentContract?->requiredMaidNationality)->sub_title ?:
-            (optional($currentContract?->maid?->nationality ?? $currentContract?->requiredMaidNationality)->title ?:
-            'غير محدد');
+        $currentNationality = $isDelegationInvoice
+            ? (optional($selectedIngazDelegation?->nationality)->sub_title ?:
+                (optional($selectedIngazDelegation?->nationality)->title ?: 'غير محدد'))
+            : (optional($currentContract?->maid?->nationality ?? $currentContract?->requiredMaidNationality)->sub_title ?:
+                (optional($currentContract?->maid?->nationality ?? $currentContract?->requiredMaidNationality)->title ?:
+                    'غير محدد'));
         $currentContractStatus = $currentContract
             ? getEnumValue('contract_statuses', $currentContract->status) ?? ($currentContract->status ?? 'غير محدد')
-            : 'غير محدد';
-        $currentClientName = $currentContract?->user?->name ?? 'غير محدد';
+            : ($isDelegationInvoice ? ($selectedIngazDelegation?->status_label ?? 'غير محدد') : 'غير محدد');
+        $currentClient = $isDelegationInvoice ? $selectedIngazDelegation?->user : $currentContract?->user;
+        $currentClientName = $currentClient?->name ?? 'غير محدد';
         $currentClientPhone =
-            trim(($currentContract?->user?->phone_code ?? '') . ($currentContract?->user?->phone ?? '')) ?: 'غير محدد';
-        $currentClientIdentity = $currentContract?->user?->national_num ?? 'غير محدد';
-        $canCreateInvoice = (bool) $currentContract || $contracts->isNotEmpty();
+            trim(($currentClient?->phone_code ?? '') . ($currentClient?->phone ?? '')) ?: 'غير محدد';
+        $currentClientIdentity = $currentClient?->national_num ?? 'غير محدد';
+        $canCreateInvoice = $isDelegationInvoice || (bool) $currentContract || $contracts->isNotEmpty();
     @endphp
 
     <div class="container-fluid py-3 invoice-create-page">
@@ -432,10 +438,20 @@
                         <div class="mini-section">
                             <div class="mini-title">
                                 <i class="fas fa-link"></i>
-                                ربط العقد
+                                {{ $isDelegationInvoice ? 'ربط تفويض إنجاز' : 'ربط العقد' }}
                             </div>
 
-                            @if (!$selectedContract)
+                            @if ($isDelegationInvoice)
+                                <input type="hidden" name="ingaz_delegation_id" value="{{ $selectedIngazDelegation->id }}">
+
+                                <div class="fixed-contract-strip">
+                                    <div>
+                                        <strong>تفويض إنجاز مرتبط مسبقاً: #{{ $selectedIngazDelegation->id }}</strong>
+                                        <p>تم فتح الصفحة من التفويض، وسيتم إصدار الفاتورة والقيود الخاصة بالتفاويض.</p>
+                                    </div>
+                                    <span class="badge bg-light text-dark border">العميل: {{ $currentClientName }}</span>
+                                </div>
+                            @elseif (!$selectedContract)
                                 <div class="row g-3">
                                     <div class="col-12">
                                         <label class="form-label" for="contract_id">
@@ -635,16 +651,16 @@
                                     <i class="fas fa-address-card"></i>
                                 </span>
                                 <div>
-                                    <div class="panel-title">بيانات العقد والعميل</div>
+                                    <div class="panel-title">{{ $isDelegationInvoice ? 'بيانات التفويض والعميل' : 'بيانات العقد والعميل' }}</div>
                                 </div>
                             </div>
 
                             <div class="side-section">
-                                <div class="meta-grid {{ $currentContract ? '' : 'is-empty' }}" id="contractPreview">
+                                <div class="meta-grid {{ $currentContract || $isDelegationInvoice ? '' : 'is-empty' }}" id="contractPreview">
                                     <div class="meta-item">
-                                        <span class="meta-label">رقم العقد</span>
+                                        <span class="meta-label">{{ $isDelegationInvoice ? 'رقم التفويض' : 'رقم العقد' }}</span>
                                         <strong class="meta-value" id="previewContractNumber">
-                                            {{ $currentContract ? '#' . $currentContract->id : '---' }}
+                                            {{ $isDelegationInvoice ? '#' . $selectedIngazDelegation->id : ($currentContract ? '#' . $currentContract->id : '---') }}
                                         </strong>
                                     </div>
                                     <div class="meta-item">
@@ -658,7 +674,7 @@
                                             id="previewNationality">{{ $currentNationality }}</strong>
                                     </div>
                                     <div class="meta-item">
-                                        <span class="meta-label">حالة العقد</span>
+                                        <span class="meta-label">{{ $isDelegationInvoice ? 'حالة التفويض' : 'حالة العقد' }}</span>
                                         <strong class="meta-value"
                                             id="previewContractStatus">{{ $currentContractStatus }}</strong>
                                     </div>
@@ -762,6 +778,11 @@
                                             id="printReceiptConstraintBtn" target="_blank" rel="noopener">
                                             <i class="fas fa-file-invoice-dollar me-1"></i>
                                             طباعة قيد سند القبض
+                                        </a>
+                                        <a href="#" class="btn btn-outline-dark d-none js-post-save-link"
+                                            id="printDelegationCostConstraintBtn" target="_blank" rel="noopener">
+                                            <i class="fas fa-coins me-1"></i>
+                                            طباعة قيد تكلفة إنجاز
                                         </a>
                                         <a href="{{ route('invoices.create') }}" class="btn btn-outline-success"
                                             id="addAnotherInvoiceBtn">
@@ -909,6 +930,9 @@
                 $('#printReceiptConstraintBtn')
                     .attr('href', response.receipt_constraint_print_url || '#')
                     .toggleClass('d-none', !response.receipt_constraint_print_url);
+                $('#printDelegationCostConstraintBtn')
+                    .attr('href', response.delegation_cost_constraint_print_url || '#')
+                    .toggleClass('d-none', !response.delegation_cost_constraint_print_url);
                 $('#addAnotherInvoiceBtn').attr('href', response.create_url || "{{ route('invoices.create') }}");
                 $('#allInvoicesBtn').attr('href', response.index_url || "{{ route('invoices.index') }}");
                 $('#postSaveActions').removeClass('d-none');

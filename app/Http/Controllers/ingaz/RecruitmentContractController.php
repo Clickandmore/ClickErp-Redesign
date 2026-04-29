@@ -185,7 +185,10 @@ class RecruitmentContractController extends Controller
     {
         $transitionContext = $this->resolveContractTransitionContext($contract);
 
-        if ($transitionContext['can_update']) {
+        if (
+            $transitionContext['can_update'] &&
+            $contract->status !== ContractStatusEnum::Taffez->value
+        ) {
             return array_merge($transitionContext, [
                 'can_select' => true,
                 'action_type' => 'status_update',
@@ -197,7 +200,7 @@ class RecruitmentContractController extends Controller
             ? $contract->travelHistory
             : $contract->travelHistory()->latest('id')->first();
 
-        if ($contract->status === ContractStatusEnum::Tazker->value) {
+        if (in_array($contract->status, [ContractStatusEnum::Taffez->value, ContractStatusEnum::Tazker->value], true)) {
             if ($travelHistory) {
                 return [
                     'can_select' => false,
@@ -208,7 +211,9 @@ class RecruitmentContractController extends Controller
                     'next_status' => null,
                     'next_status_text' => null,
                     'action_text' => 'إضافة رحلة',
-                    'reason' => 'يوجد رحلة مسجلة بالفعل لهذا العقد',
+                    'reason' => $contract->status === ContractStatusEnum::Taffez->value
+                        ? 'يوجد رحلة مسجلة بالفعل لهذا العقد وسيتم استكمالها من مرحلة التذاكر'
+                        : 'يوجد رحلة مسجلة بالفعل لهذا العقد',
                 ];
             }
 
@@ -294,6 +299,35 @@ class RecruitmentContractController extends Controller
         ];
     }
 
+    private function getCompletedStageStatuses(): array
+    {
+        return [
+            ContractStatusEnum::Arrival->value,
+            ContractStatusEnum::Completed->value,
+        ];
+    }
+
+    private function getStatusFilterForRequest(Request $request): ?string
+    {
+        if ($this->shouldTreatAsCompletedTotalRequest($request)) {
+            return 'completed_stage';
+        }
+
+        return $request->get('status');
+    }
+
+    private function shouldTreatAsCompletedTotalRequest(Request $request): bool
+    {
+        if ($request->get('status') !== ContractStatusEnum::Arrival->value || !$request->filled('warranty_status')) {
+            return false;
+        }
+
+        $warrantyStatuses = array_values(array_unique(array_filter(array_map('trim', explode(',', $request->warranty_status)))));
+        sort($warrantyStatuses);
+
+        return $warrantyStatuses === ['expired', 'not_applicable'];
+    }
+
     private function getEffectiveContractDateSql(): string
     {
         return "DATE(COALESCE(NULLIF((SELECT ci.contract_date FROM contract_infos as ci WHERE ci.contract_id = contracts.id LIMIT 1), '0000-00-00'), NULLIF(contracts.contract_date, '0000-00-00')))";
@@ -311,10 +345,7 @@ class RecruitmentContractController extends Controller
         }
 
         if ($statusFilter === 'completed_stage') {
-            $query->whereIn('status', [
-                ContractStatusEnum::Arrival->value,
-                ContractStatusEnum::Completed->value,
-            ]);
+            $query->whereIn('status', $this->getCompletedStageStatuses());
             return;
         }
 
@@ -389,7 +420,7 @@ class RecruitmentContractController extends Controller
                 ->whereIn('type', ['recruitment', 'maid']);
 
             // فلتر الحالة - استخدام query parameter فقط
-            $statusFilter = $request->get('status');
+            $statusFilter = $this->getStatusFilterForRequest($request);
             $this->applyStatusFilter($query, $statusFilter);
 
             if ($request->boolean('exclude_back')) {
@@ -400,7 +431,7 @@ class RecruitmentContractController extends Controller
             }
 
             // فلتر حالة الضمان إذا تم تمريرها (حسب تاريخ انتهاء الضمان)
-            if ($request->filled('warranty_status')) {
+            if (!$this->shouldTreatAsCompletedTotalRequest($request) && $request->filled('warranty_status')) {
                 $warrantyStatuses = array_filter(array_map('trim', explode(',', $request->warranty_status)));
                 if (!empty($warrantyStatuses)) {
                     $today = \Carbon\Carbon::now()->toDateString();
@@ -981,9 +1012,8 @@ class RecruitmentContractController extends Controller
                         return '<a href="' . route('RecruitmentContract.selectMaid', $row->id) . '" class="btn btn-warning btn-sm btn-action" title="إضافة عاملة">
                             <i class="fas fa-user-plus me-1"></i>إضافة عاملة
                         </a>';
-                    } else if ($row->status == ContractStatusEnum::Tazker->value) {
+                    } else if (in_array($row->status, [ContractStatusEnum::Taffez->value, ContractStatusEnum::Tazker->value], true)) {
                         // التحقق من صلاحيات إدارة الرحلات
-                        $hasTravelPermission = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW_TRAVEL);
                         $hasAddTravelPermission = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_ADD_TRAVEL);
                         $hasCompleteTravelPermission = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_COMPLETE_TRAVEL);
 
@@ -991,6 +1021,18 @@ class RecruitmentContractController extends Controller
                         $travelHistory = TravelHistory::where('order_id', $row->id)->first();
 
                         if ($travelHistory) {
+                            if ($row->status === ContractStatusEnum::Taffez->value) {
+                                if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAZKER)) {
+                                    $lastContractStatusLog = $row->getLastContractStatusLog();
+
+                                    return '<button class="btn btn-success btn-sm update-status-btn btn-action" data-bs-toggle="modal" data-bs-target="#updateStatusModal" data-row-id="' . $row->id . '" data-status="' . $row->status . '" data-next-status="' . ContractStatusEnum::Tazker->value . '" data-date="' . ($lastContractStatusLog ? $lastContractStatusLog->date : \Carbon\Carbon::now()->format('Y-m-d')) . '" title="انتقال إلى تذكرة">
+                                        <i class="fas fa-arrow-up me-1"></i>انتقال إلى تذكرة
+                                    </button>';
+                                }
+
+                                return '<span class="badge bg-warning">رحلة مسجلة - بانتظار مرحلة التذاكر</span>';
+                            }
+
                             if ($travelHistory->status === 'completed') {
                                 return '<span class="badge bg-success">تم إكمال الرحلة</span>';
                             } else {
@@ -1272,12 +1314,11 @@ class RecruitmentContractController extends Controller
                         }
                     }
 
-                    // زر إكمال الرحلة - يظهر فقط للعقود التي لديها رحلة فعلية وليس في مرحلة التذكرة
+                    // زر إكمال الرحلة - يظهر للعقود في مرحلة التذاكر التي لديها رحلة فعلية
                     $travelHistory = TravelHistory::where('order_id', $row->id)->first();
                     if ($travelHistory && @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_COMPLETE_TRAVEL)) {
-                        // التأكد من أن العقد ليس في مرحلة التذكرة وأن الرحلة موجودة ولم تكتمل
                         if (
-                            $row->status !== ContractStatusEnum::Tazker->value &&
+                            $row->status === ContractStatusEnum::Tazker->value &&
                             $travelHistory->status !== 'completed'
                         ) {
                             $actions .= '<li><button class="dropdown-item complete-trip-btn" data-trip-id="' . $travelHistory->id . '">
@@ -1286,9 +1327,9 @@ class RecruitmentContractController extends Controller
                         }
                     }
 
-                    // زر إضافة رحلة - يظهر للعقود في مرحلة التذكرة التي لا تحتوي على رحلة
+                    // زر إضافة رحلة - يظهر للعقود في مرحلة التفييز التي لا تحتوي على رحلة
                     if (
-                        $row->status === ContractStatusEnum::Tazker->value &&
+                        $row->status === ContractStatusEnum::Taffez->value &&
                         !$travelHistory &&
                         @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_ADD_TRAVEL)
                     ) {
@@ -3439,6 +3480,13 @@ class RecruitmentContractController extends Controller
                 ], 404);
             }
 
+            if (!in_array($contract->status, [ContractStatusEnum::Taffez->value, ContractStatusEnum::Tazker->value], true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'إضافة الرحلة متاحة فقط في مرحلة التفييز أو التذاكر'
+                ], 422);
+            }
+
             // التحقق من عدم وجود رحلة نشطة للعقد
             $existingTravel = TravelHistory::where('order_id', $contractId)->first();
             if ($existingTravel) {
@@ -3448,17 +3496,32 @@ class RecruitmentContractController extends Controller
                 ], 400);
             }
 
-            // إنشاء رحلة جديدة
-            TravelHistory::create([
-                'order_id' => $contractId,
-                'status' => 'active',
-                'created_at' => now(),
-                'updated_at' => now()
-            ]);
+            $movedToTickets = false;
+
+            DB::transaction(function () use ($contract, $contractId, &$movedToTickets) {
+                TravelHistory::create([
+                    'order_id' => $contractId,
+                    'status' => 'active',
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+
+                if ($contract->status === ContractStatusEnum::Taffez->value) {
+                    $contract->update(['status' => ContractStatusEnum::Tazker->value]);
+                    $movedToTickets = true;
+                    $contract->contract_status_logs()->create([
+                        'status' => ContractStatusEnum::Tazker->value,
+                        'date' => now()->toDateString(),
+                        'notes' => 'تم إضافة رحلة للعقد ونقله تلقائياً من التفييز إلى مرحلة التذاكر',
+                    ]);
+                }
+            });
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم إضافة الرحلة بنجاح'
+                'message' => $movedToTickets
+                    ? 'تم إضافة الرحلة بنجاح ونقل العقد إلى مرحلة التذاكر'
+                    : 'تم إضافة الرحلة بنجاح'
             ]);
         } catch (\Exception $e) {
             logger()->error('Error in addTravel', [
@@ -4229,10 +4292,7 @@ class RecruitmentContractController extends Controller
                 ContractStatusEnum::Taffez->value,
                 ContractStatusEnum::Tazker->value,
             ];
-            $completedStageStatuses = [
-                ContractStatusEnum::Arrival->value,
-                ContractStatusEnum::Completed->value,
-            ];
+            $completedStageStatuses = $this->getCompletedStageStatuses();
 
             $counts = [
                 'total' => (clone $baseQuery)->count(),
@@ -4247,7 +4307,7 @@ class RecruitmentContractController extends Controller
                 'stage_tazker' => (clone $baseQuery)->where('status', ContractStatusEnum::Tazker->value)->count(),
                 'stage_arrival' => (clone $baseQuery)->where('status', ContractStatusEnum::Arrival->value)->count(),
                 'stage_completed' => (clone $baseQuery)->where('status', ContractStatusEnum::Completed->value)->count(),
-                'warranty_active' => (clone $baseQuery)->whereIn('status', $completedStageStatuses)
+                'warranty_active' => (clone $baseQuery)->where('status', ContractStatusEnum::Arrival->value)
                     ->whereNotNull('warranty_end_date')
                     ->whereDate('warranty_end_date', '>=', $today)
                     ->count(),
@@ -4281,7 +4341,7 @@ class RecruitmentContractController extends Controller
     {
         // فلتر الحالة - استخدام query parameter فقط
         if (!$ignoreStatus) {
-            $statusFilter = $request->get('status');
+            $statusFilter = $this->getStatusFilterForRequest($request);
             $this->applyStatusFilter($query, $statusFilter);
         }
 
@@ -4293,7 +4353,7 @@ class RecruitmentContractController extends Controller
         }
 
         // فلتر حالة الضمان
-        if (!$ignoreWarranty && $request->filled('warranty_status')) {
+        if (!$ignoreWarranty && !$this->shouldTreatAsCompletedTotalRequest($request) && $request->filled('warranty_status')) {
             $warrantyStatuses = array_filter(array_map('trim', explode(',', $request->warranty_status)));
             if (!empty($warrantyStatuses)) {
                 $today = \Carbon\Carbon::now()->toDateString();

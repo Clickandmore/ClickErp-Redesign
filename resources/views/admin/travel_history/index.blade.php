@@ -854,6 +854,13 @@
                     }
                 });
             }
+
+            const completeTripFromLink = new URLSearchParams(window.location.search).get('complete_trip');
+            if (completeTripFromLink) {
+                setTimeout(function() {
+                    completeTrip(completeTripFromLink);
+                }, 700);
+            }
         @endif
     </script>
 @endsection

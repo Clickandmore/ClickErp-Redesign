@@ -100,7 +100,7 @@
 
         <div class="card shadow-sm mb-3">
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                <strong>العقود المشمولة</strong>
+                <strong>العقود والتفاويض المشمولة</strong>
                 <div class="d-flex gap-2">
                     @if ($transfer->settlementConstraint)
                         <a href="{{ route('finance.add-constraint.show', ['add_constraint' => $transfer->settlementConstraint->id]) }}"
@@ -121,7 +121,7 @@
                     <table class="table table-bordered align-middle mb-0">
                         <thead class="table-light">
                             <tr>
-                                <th>العقد</th>
+                                <th>البند</th>
                                 <th>العميل</th>
                                 <th>رقم مساند</th>
                                 <th>قيمة العميل</th>
@@ -137,12 +137,18 @@
                             @foreach ($transfer->items as $item)
                                 <tr>
                                     <td>
-                                        <a href="{{ route('contracts.details', $item->contract_id) }}" target="_blank">
-                                            #{{ $item->contract_id }}
-                                        </a>
+                                        @if ($item->contract_id)
+                                            <a href="{{ route('contracts.details', $item->contract_id) }}" target="_blank">
+                                                عقد #{{ $item->contract_id }}
+                                            </a>
+                                        @else
+                                            <a href="{{ route('ingaz-delegations.show', $item->ingaz_delegation_id) }}" target="_blank">
+                                                تفويض #{{ $item->ingaz_delegation_id }}
+                                            </a>
+                                        @endif
                                     </td>
-                                    <td>{{ $item->contract->user->name ?? 'غير محدد' }}</td>
-                                    <td>{{ $item->invoice?->contract?->info?->msaned_number ?? '-' }}</td>
+                                    <td>{{ $item->contract?->user?->name ?? $item->ingazDelegation?->user?->name ?? 'غير محدد' }}</td>
+                                    <td>{{ $item->invoice?->contract?->info?->msaned_number ?? $item->invoice?->ingazDelegation?->msaned_contract_number ?? '-' }}</td>
                                     <td>{{ number_format((float) $item->customer_paid_amount, 2) }}</td>
                                     <td>{{ number_format((float) $item->transferred_amount, 2) }}</td>
                                     <td>{{ number_format((float) $item->commission_amount, 2) }}</td>
