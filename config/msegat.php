@@ -22,4 +22,5 @@ return [
     'encoding' => env('MSEGAT_ENCODING', 'UTF8'),
     'bulk_send_limit' => (int) env('MSEGAT_BULK_SEND_LIMIT', 200),
     'bulk_confirmation_keyword' => env('MSEGAT_BULK_CONFIRMATION_KEYWORD', 'SEND_ALL_SMS'),
+    'app_domain_for_msegat' => env('APP_DOMAIN_FOR_MSEGAT'),
 ];
