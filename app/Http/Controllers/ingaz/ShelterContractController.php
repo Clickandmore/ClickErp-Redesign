@@ -328,6 +328,7 @@ class ShelterContractController extends Controller
         $livingExpenseWorkerOptions = Contract::insideShelter()
             ->with(['maid:id,name,passport_num', 'info.shelter.translations'])
             ->whereNotNull('maid_id')
+            ->whereHas('maid')
             ->orderBy('id')
             ->get()
             ->map(function (Contract $contract) {

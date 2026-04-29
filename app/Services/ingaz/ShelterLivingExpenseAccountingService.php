@@ -149,6 +149,7 @@ class ShelterLivingExpenseAccountingService
                 }
             })
             ->whereNotNull('maid_id')
+            ->whereHas('maid')
             ->with(['maid', 'info.shelter.translations'])
             ->orderBy('id');
     }
