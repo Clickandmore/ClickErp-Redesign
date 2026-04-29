@@ -64,6 +64,12 @@
             border: 1px solid #edf0f4;
             border-radius: 8px;
             background: #fff;
+            overflow-x: auto;
+        }
+
+        .constraints-table-wrap .table {
+            table-layout: fixed;
+            min-width: 1180px;
         }
 
         .constraints-table-wrap .table thead th {
@@ -76,20 +82,34 @@
         .constraint-account-list {
             display: flex;
             flex-direction: column;
-            gap: 6px;
-            min-width: 190px;
+            gap: 5px;
+            min-width: 210px;
+            max-width: 260px;
         }
 
         .constraint-account-line {
-            display: flex;
-            justify-content: space-between;
-            gap: 12px;
-            padding-bottom: 5px;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 4px;
             border-bottom: 1px dashed #edf0f4;
             line-height: 1.6;
         }
 
+        .constraint-account-name {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
         .constraint-account-line:last-child {
+            border-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .constraint-account-line--last {
             border-bottom: 0;
             padding-bottom: 0;
         }
@@ -98,6 +118,37 @@
             direction: ltr;
             white-space: nowrap;
             color: #1f2937;
+        }
+
+        .constraint-account-more {
+            display: inline-flex;
+            align-items: center;
+            width: fit-content;
+            margin-top: 2px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: #f1f5f9;
+            color: #475467;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+
+        #dataTableObject th:nth-child(1),
+        #dataTableObject td:nth-child(1) {
+            width: 90px;
+        }
+
+        #dataTableObject th:nth-child(2),
+        #dataTableObject td:nth-child(2) {
+            width: 300px;
+        }
+
+        #dataTableObject th:nth-child(5),
+        #dataTableObject td:nth-child(5),
+        #dataTableObject th:nth-child(6),
+        #dataTableObject td:nth-child(6) {
+            width: 270px;
+            vertical-align: top;
         }
 
         .constraint-approval-cell {
@@ -446,24 +497,13 @@
         /************************************************************************************/
         $(document).on('change', '.select-unique-option', function() {
             $('option', '.select-unique-option').prop('disabled', false);
-            $('.select-unique-option').each(function() {
-                var val = this.value;
-                $('.select-unique-option').not(this).find('option').filter(function() {
-                    return this.value === val;
-                }).prop('disabled', true);
-            });
         }).change();
 
         function disableNewOptions(newSelect) {
             $('.select2').select2({
                 dropdownParent: $('#createModal .modal-body'),
             });
-            $('select.select-unique-option').not(newSelect).each(function() {
-                if ($("option:selected", this).val() != "") {
-                    newSelect.find('option[value="' + $("option:selected", this).val() + '"]').attr("disabled",
-                        true);
-                }
-            });
+            $('option', '.select-unique-option').prop('disabled', false);
         }
 
 
@@ -530,11 +570,6 @@
             e.preventDefault();
             let obj = $(this)
             let parentTr = obj.closest("tr");
-            let deleteSelect = $('select.select-unique-option option:selected', parentTr);
-            let deletedVal = parseInt(deleteSelect.val()) || 0;
-            $('select.select-unique-option').each(function() {
-                $(this).find('option[value="' + deletedVal + '"]').attr("disabled", false);
-            });
             parentTr.remove();
         })
     </script>

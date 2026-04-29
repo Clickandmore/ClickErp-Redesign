@@ -60,27 +60,35 @@ class AddConstraintController extends Controller
 
     public function show($id, Request $request, ObjService $service)
     {
+        $inlineConstraintEditOpen = $request->boolean('edit');
         $constraint = $service->find($id)->load(['logs.admin']);
 
         return view($this->folderPath . ".show_constraint")->with([
             "obj" => $constraint,
-            'accounts' => $service->getAccountsForConstraint($constraint),
-            "cost_centers" => $service->getCostCenters(),
+            'accounts' => $inlineConstraintEditOpen ? $service->getAccountsForConstraint($constraint) : collect(),
+            "cost_centers" => $inlineConstraintEditOpen ? $service->getCostCenters() : collect(),
             "bladeTitle" => __("finance::finance.constraint_details_page") . " #{$constraint->code}",
             "createRoute" => route($this->mainRoute . ".create"),
-            "editRoute" => route($this->mainRoute . ".edit", $constraint->id),
+            "editRoute" => route($this->mainRoute . ".show", [
+                "add_constraint" => $constraint->id,
+                "edit" => 1,
+            ]),
             "updateRoute" => route($this->mainRoute . ".update", $constraint->id),
             "indexRoute" => route("finance.constraints.index"),
             "cost_center_required" => null,
             "constraintFormClass" => "constraint-inline-edit-form",
             "inlineConstraintEdit" => true,
+            "inlineConstraintEditOpen" => $inlineConstraintEditOpen,
+            "closeRoute" => route($this->mainRoute . ".show", $constraint->id),
         ]);
     }
 
     public function edit($id, Request $request, ObjService $service)
     {
-        $data = $this->perData($service, $id);
-        return view($this->folderPath . ".edit_constraint")->with($data);
+        return redirect()->route($this->mainRoute . ".show", [
+            "add_constraint" => $id,
+            "edit" => 1,
+        ]);
     }
 
     public function update(ObjRequest $request, $id, ObjService $service, YearService $yearService)

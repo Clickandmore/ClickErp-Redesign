@@ -316,23 +316,41 @@ class ConstraintController extends Controller
     private function renderDetailsSummary(Constraint $constraint, string $type): string
     {
         $details = $constraint->constraintDetails->where('type', $type);
+        $visibleDetailsLimit = 3;
 
         if ($details->isEmpty()) {
             return '<span class="text-muted">-</span>';
         }
 
-        $items = $details->map(function ($detail) use ($type) {
+        $fullTitle = $details->map(function ($detail) use ($type) {
             $value = $type === 'debtor'
                 ? (float) $detail->debtor_value
                 : (float) $detail->creditor_value;
 
-            return '<span class="constraint-account-line">'
-                . '<span>' . e($detail->account->name ?? '-') . '</span>'
+            return ($detail->account->name ?? '-') . ' - ' . number_format($value, 2, '.', ',');
+        })->implode("\n");
+
+        $visibleDetails = $details->take($visibleDetailsLimit)->values();
+        $items = $visibleDetails->map(function ($detail, $index) use ($type, $visibleDetails) {
+            $value = $type === 'debtor'
+                ? (float) $detail->debtor_value
+                : (float) $detail->creditor_value;
+            $isLastVisible = $index === $visibleDetails->count() - 1;
+
+            return '<span class="constraint-account-line' . ($isLastVisible ? ' constraint-account-line--last' : '') . '">'
+                . '<span class="constraint-account-name" title="' . e($detail->account->name ?? '-') . '">'
+                . e($detail->account->name ?? '-')
+                . '</span>'
                 . '<strong>' . e(number_format($value, 2, '.', ',')) . '</strong>'
                 . '</span>';
         })->implode('');
 
-        return '<div class="constraint-account-list">' . $items . '</div>';
+        $remainingCount = $details->count() - $visibleDetailsLimit;
+        $more = $remainingCount > 0
+            ? '<span class="constraint-account-more">+' . e($remainingCount) . ' بنود أخرى</span>'
+            : '';
+
+        return '<div class="constraint-account-list" title="' . e($fullTitle) . '">' . $items . $more . '</div>';
     }
 
     private function renderPrintAction(Constraint $constraint): string
@@ -354,7 +372,10 @@ class ConstraintController extends Controller
 
     private function renderRowActions(Constraint $constraint): string
     {
-        $editUrl = route('finance.add-constraint.edit', ['add_constraint' => $constraint->id]);
+        $editUrl = route('finance.add-constraint.show', [
+            'add_constraint' => $constraint->id,
+            'edit' => 1,
+        ]);
         $deleteUrl = route($this->mainRoute . '.destroy', $constraint->id);
 
         return '<div class="d-flex flex-wrap gap-1">'
@@ -419,7 +440,6 @@ class ConstraintController extends Controller
     {
         return route('finance.add-constraint.show', [
             'add_constraint' => $constraint->id,
-            'autoprint' => 1,
         ]);
     }
 

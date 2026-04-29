@@ -76,6 +76,7 @@
 @endonce
 
 <form class="row g-3 constraint-edit-form {{ $constraintFormClass }}" method="post" action="{{ $updateRoute }}" enctype="multipart/form-data">
+    @csrf
     @method("PUT")
 
     <div class="col-md-4 col-12">
@@ -91,7 +92,9 @@
         <textarea type="text" name="statement" class="form-control form-control-lg mb-1"
                   placeholder="{{ __('finance::finance.statement') }}">{{ $obj->statement }}</textarea>
     </div>
-    <div class="debtor__value"></div>
+    <div class="debtor__value">
+        <input type="hidden" name="value" value="{{ $obj->value }}" class="constraint-total-value">
+    </div>
     <div class="table-responsive constraint-edit-table-wrap">
     <table id="myDataTable_no_filter" class="table align-middle card-table constraint-edit-table">
         <colgroup>
@@ -157,7 +160,7 @@
                         </td>
                         <td><textarea name="statement_account[]" class="form-control statement-account-field" rows="3" placeholder="{{ __('finance::finance.statement') }}">{{ $constraintDetails->statement}}</textarea>
                         </td>
-                        <td><i class="fa fa-trash"></i></td>
+                        <td><i class="fa fa-trash delete-row"></i></td>
                     </tr>
                 @endif
             @endforeach
@@ -194,7 +197,7 @@
                         </td>
                         <td><textarea name="statement_account[]" class="form-control statement-account-field" rows="3" placeholder="{{ __('finance::finance.statement') }}">{{ $constraintDetails->statement }}</textarea>
                         </td>
-                        <td><i class="fa fa-trash"></i></td>
+                        <td><i class="fa fa-trash delete-row"></i></td>
                     </tr>
                 @endif
             @endforeach
@@ -238,10 +241,9 @@
     <div class="col-12 modal-footer">
          {!! submitButton(   $updateRoute  ) !!}
         @if ($inlineConstraintEdit)
-            <button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse"
-                    data-bs-target="#constraintInlineEdit">
+            <a class="btn btn-outline-secondary" href="{{ $closeRoute ?? url()->current() }}">
                 {{ __('buttons.close') }}
-            </button>
+            </a>
         @else
             {!! closeButton() !!}
         @endif

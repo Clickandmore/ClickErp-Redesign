@@ -129,7 +129,17 @@
                 }
                 },
                 columns: [
-                    {"data": "identifier", searchable: true},
+                    {
+                        "data": "id",
+                        searchable: true,
+                        render: function (data, type, row) {
+                            if (type === 'sort' || type === 'type') {
+                                return parseInt(data, 10) || 0;
+                            }
+
+                            return row.identifier;
+                        }
+                    },
                     {"data": "request_number", searchable: true},
                     {"data": "account_summary", orderable: false, searchable: true},
                     {"data": "required_amount", searchable: true},

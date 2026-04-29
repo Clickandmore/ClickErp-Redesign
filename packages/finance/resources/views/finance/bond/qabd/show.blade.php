@@ -26,6 +26,8 @@
     $movementAmount = rtrim(rtrim(number_format((float) $obj->value, 2, '.', ','), '0'), '.') . ' ر.س';
     $accountant = optional($obj->createdBy)->name ?: '-';
     $printRoute = route('finance.bonds-print.show', $obj->id) . '?type=qabd';
+    $fileDownloadRoute = $obj->file ? route('finance.bonds-qabd.download-attachment', [$obj->id, 'file']) : null;
+    $transferFileDownloadRoute = $obj->transfer_file ? route('finance.bonds-qabd.download-attachment', [$obj->id, 'transfer_file']) : null;
 @endphp
 
 <style>
@@ -187,18 +189,18 @@
         <p>{{ $statement ?: '-' }}</p>
     </div>
 
-    @if ($obj->file || $obj->transfer_file)
+    @if ($fileDownloadRoute || $transferFileDownloadRoute)
         <div class="receipt-preview__files">
             <h5>المرفقات</h5>
             <div class="receipt-preview__files-list">
-                @if ($obj->file)
-                    <a href="{{ showFile($obj->file) }}" download class="btn btn-outline-primary">
+                @if ($fileDownloadRoute)
+                    <a href="{{ $fileDownloadRoute }}" class="btn btn-outline-primary">
                         <i class="fa fa-download"></i>
                         مستند السند
                     </a>
                 @endif
-                @if ($obj->transfer_file)
-                    <a href="{{ showFile($obj->transfer_file) }}" download class="btn btn-outline-primary">
+                @if ($transferFileDownloadRoute)
+                    <a href="{{ $transferFileDownloadRoute }}" class="btn btn-outline-primary">
                         <i class="fa fa-download"></i>
                         مستند التحويل
                     </a>

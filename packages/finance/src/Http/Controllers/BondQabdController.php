@@ -4,6 +4,7 @@ namespace Nami\Finance\Http\Controllers;
 
 use App\Http\Controllers\admin\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Nami\Finance\Enums\AccountTypesEnum;
 use Nami\Finance\Enums\BondPaymentTypes;
 use Nami\Finance\Enums\BondTypes;
@@ -150,6 +151,20 @@ class BondQabdController extends Controller
             ])->render();
             return jsonSuccess(["html" => $returnHTML]);
         }
+    }
+
+    public function downloadAttachment(ObjService $service, $bond, string $attachment)
+    {
+        abort_unless(in_array($attachment, ['file', 'transfer_file'], true), 404);
+
+        $obj = $service->find($bond);
+        $path = $obj->{$attachment};
+
+        abort_if(!is_string($path) || $path === '' || !Storage::disk('public')->exists($path), 404);
+
+        $filename = basename($path);
+
+        return Storage::disk('public')->download($path, $filename);
     }
 
 

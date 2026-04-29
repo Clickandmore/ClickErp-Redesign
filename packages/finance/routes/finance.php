@@ -169,6 +169,9 @@ Route::group(
         Route::resource('constraint-files', ConstraintFileController::class);
         Route::resource('bonds-print', BondPrintController::class);
         Route::resource('bonds-sarf', BondSarfController::class);
+        Route::get('bonds-qabd/{bond}/attachments/{attachment}/download', [BondQabdController::class, 'downloadAttachment'])
+            ->where('attachment', 'file|transfer_file')
+            ->name('bonds-qabd.download-attachment');
         Route::resource('bonds-qabd', BondQabdController::class);
         Route::resource('bonds-confirm', BondConfirmController::class);
         Route::resource('bonds-payment', BondPaymentController::class);

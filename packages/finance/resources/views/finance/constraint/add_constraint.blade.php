@@ -309,27 +309,7 @@
             }
 
             function disableSelectedAccounts() {
-                const selects = $('.select-unique-option');
-                const selectedValues = [];
-
-                selects.each(function() {
-                    const value = $(this).val();
-                    if (value) {
-                        selectedValues.push(value);
-                    }
-                });
-
-                selects.each(function() {
-                    const currentValue = $(this).val();
-                    $(this).find('option').prop('disabled', false);
-
-                    selectedValues.forEach((selectedValue) => {
-                        if (selectedValue !== currentValue) {
-                            $(this).find('option[value="' + selectedValue + '"]').prop('disabled',
-                            true);
-                        }
-                    });
-                });
+                $('.select-unique-option option').prop('disabled', false);
             }
 
             function updateTotals() {
