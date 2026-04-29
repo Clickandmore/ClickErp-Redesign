@@ -38,7 +38,7 @@ class PhoneVerificationAction extends MainAction
             $code = $storedData->code;
         }
 
-        $app_domain_name = config('app_domain_for_msegat', 'click.com');
+        $app_domain_name = config('msegat.app_domain_for_msegat', 'click.com');
 
         $msg = "مرحبًا بك، نأمل استخدام رمز التفعيل للتحقق من الهاتف: {$code}. للدخول إلى منصة {$app_domain_name}";
         $result = $this->sendSMS(formatSaudiPhone($request->phone), $msg, $code);
