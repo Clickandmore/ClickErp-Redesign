@@ -294,6 +294,7 @@ Route::group(
             Route::get('RecruitmentContract/{contractId}/attachments/download', [RecruitmentContractController::class, 'downloadAttachments'])->name('RecruitmentContract.attachments.download');
             Route::get('RecruitmentContract/{contractId}/attachments/{attachment}/download', [RecruitmentContractController::class, 'downloadAttachment'])->name('RecruitmentContract.attachments.download.single');
             Route::delete('RecruitmentContract/{contractId}/attachments/{attachment}', [RecruitmentContractController::class, 'deleteAttachment'])->name('RecruitmentContract.attachments.delete');
+            Route::post('RecruitmentContract/refund/preview', [RecruitmentContractController::class, 'refundPreview'])->name('RecruitmentContract.refundPreview');
             Route::post('RecruitmentContract/refund', [RecruitmentContractController::class, 'refund'])->name('RecruitmentContract.refund');
 
             Route::resource('RecruitmentContract', RecruitmentContractController::class);

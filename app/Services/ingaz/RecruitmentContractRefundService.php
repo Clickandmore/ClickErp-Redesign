@@ -43,7 +43,7 @@ class RecruitmentContractRefundService
             $cancelledBy = 'none_before_transfer';
             $penaltyAmount = 0.0;
             $penaltyPercent = 0.0;
-        } elseif (!in_array($cancelledBy, ['client', 'external_office'], true)) {
+        } elseif (!in_array($cancelledBy, ['client', 'office', 'external_office'], true)) {
             $cancelledBy = null;
         }
 
@@ -111,6 +111,114 @@ class RecruitmentContractRefundService
             'reason' => $data['reason'] ?? null,
             'created_by_id' => Auth::guard('admin')->id() ?: Auth::id(),
         ]);
+    }
+
+    public function previewDetails(Contract $contract, string $refundDate, ?string $cancelledBy = null): array
+    {
+        $contract->loadMissing(['invoice.musanedTransferItem.transfer', 'user', 'info']);
+        $summary = $this->preview($contract, $refundDate, $cancelledBy);
+        $invoice = $contract->invoice;
+        $statement = $this->buildStatement($contract, $summary);
+        $warnings = [];
+        $lines = [];
+
+        if (!$summary['has_musaned_transfer']) {
+            $warnings[] = 'لم يتم تسجيل تحويل مساند لهذا العقد، لذلك لن يتم إنشاء قيد مالي للاسترداد.';
+        } else {
+            $sourceConstraintId = $invoice->arrival_revenue_constraint_id ?: $invoice->constraint_id;
+            $reverseLines = $this->buildReverseInvoiceLines($sourceConstraintId, $statement);
+
+            if (empty($reverseLines)) {
+                $warnings[] = 'لا يوجد قيد فاتورة أو قيد إيراد وصول لعكسه ضمن قيد الاسترداد.';
+            }
+
+            $lines = array_merge($lines, $this->withSection($reverseLines, 'القيد العكسي للفاتورة'));
+
+            /** @var MusanedTransferItem|null $transferItem */
+            $transferItem = $summary['transfer_item'];
+            $bankAccountId = (int) ($transferItem?->transfer?->bank_account_id ?: 0);
+            if (!$bankAccountId) {
+                throw new \RuntimeException('تحويل مساند لا يحتوي حساب بنك صالح لإنشاء قيد الاسترداد.');
+            }
+
+            $clientAccountId = (int) ($contract->user?->account_id ?: 0);
+            if (!$clientAccountId) {
+                throw new \RuntimeException('لا يوجد حساب محاسبي للعميل المرتبط بالعقد.');
+            }
+
+            $paymentLines = [];
+            $this->appendLine($paymentLines, $clientAccountId, 'debtor', (float) $summary['refund_amount'], $statement, null);
+            $this->appendLine($paymentLines, $bankAccountId, 'creditor', (float) $summary['refund_amount'], $statement, null);
+            $lines = array_merge($lines, $this->withSection($paymentLines, 'المبلغ المدفوع للعميل'));
+
+            if (($summary['cancelled_by'] ?? null) === 'client' && (float) $summary['penalty_amount'] > 0) {
+                $penaltyAccount = $this->findPenaltyIncomeAccount();
+                if (!$penaltyAccount) {
+                    $warnings[] = 'سيتم إنشاء حساب غرامات إلغاء عقود الاستقدام عند تسجيل الاسترداد.';
+                }
+
+                $penaltyLines = [];
+                $this->appendLine($penaltyLines, $clientAccountId, 'debtor', (float) $summary['penalty_amount'], $statement, $transferItem->cost_center_id);
+                $this->appendPreviewLine(
+                    $penaltyLines,
+                    $penaltyAccount?->id,
+                    'creditor',
+                    (float) $summary['penalty_amount'],
+                    $statement,
+                    $transferItem->cost_center_id,
+                    $penaltyAccount?->name ?: 'غرامات إلغاء عقود الاستقدام'
+                );
+                $lines = array_merge($lines, $this->withSection($penaltyLines, 'غرامة الاسترداد'));
+            }
+
+            if (($summary['cancelled_by'] ?? null) === 'external_office' && (float) $summary['penalty_amount'] > 0) {
+                $officeAccountId = $this->resolveExternalOfficeAccountId($contract);
+                $penaltyAccount = $this->findPenaltyIncomeAccount();
+                if (!$penaltyAccount) {
+                    $warnings[] = 'سيتم إنشاء حساب غرامات إلغاء عقود الاستقدام عند تسجيل الاسترداد.';
+                }
+
+                $penaltyLines = [];
+                $this->appendLine($penaltyLines, $officeAccountId, 'debtor', (float) $summary['penalty_amount'], $statement, $transferItem->cost_center_id);
+                $this->appendPreviewLine(
+                    $penaltyLines,
+                    $penaltyAccount?->id,
+                    'creditor',
+                    (float) $summary['penalty_amount'],
+                    $statement,
+                    $transferItem->cost_center_id,
+                    $penaltyAccount?->name ?: 'غرامات إلغاء عقود الاستقدام'
+                );
+                $lines = array_merge($lines, $this->withSection($penaltyLines, 'غرامة الاسترداد'));
+            }
+
+            if (($summary['cancelled_by'] ?? null) === 'office' && (float) $summary['penalty_amount'] > 0) {
+                $warnings[] = 'تم تحديد المكتب كطرف متسبب، لذلك سيسترد العميل كامل قيمة العقد ولا يتم تحميل الغرامة على العميل أو الوكيل الخارجي.';
+            }
+        }
+
+        $lines = $this->hydrateLineLabels($lines);
+
+        return [
+            'summary' => [
+                'has_musaned_transfer' => $summary['has_musaned_transfer'],
+                'cancelled_by' => $summary['cancelled_by'],
+                'cancelled_by_label' => $this->cancelledByLabel($summary['cancelled_by']),
+                'days_from_contract' => $summary['days_from_contract'],
+                'penalty_percent' => $summary['penalty_percent'],
+                'contract_amount' => $summary['contract_amount'],
+                'penalty_amount' => $summary['penalty_amount'],
+                'refund_amount' => $summary['refund_amount'],
+                'statement' => $statement,
+                'source_constraint_id' => $invoice->arrival_revenue_constraint_id ?: $invoice->constraint_id,
+            ],
+            'lines' => $lines,
+            'totals' => [
+                'debtor' => $this->roundMoney(array_sum(array_column($lines, 'debtor_value'))),
+                'creditor' => $this->roundMoney(array_sum(array_column($lines, 'creditor_value'))),
+            ],
+            'warnings' => array_values(array_unique($warnings)),
+        ];
     }
 
     private function createRefundConstraint(
@@ -195,11 +303,14 @@ class RecruitmentContractRefundService
 
                 return [
                     'account_id' => (int) $detail->account_id,
+                    'account_name' => $detail->account?->name,
+                    'account_code' => $detail->account?->code,
                     'account_type' => $debtor > 0 ? 'debtor' : 'creditor',
                     'debtor_value' => $debtor,
                     'creditor_value' => $creditor,
                     'statement' => $statement,
                     'cost_center_id' => $detail->cost_center_id,
+                    'cost_center_name' => $detail->costCenter?->name,
                 ];
             })
             ->filter(fn (array $line) => $line['debtor_value'] > 0 || $line['creditor_value'] > 0)
@@ -222,6 +333,55 @@ class RecruitmentContractRefundService
             'statement' => $statement,
             'cost_center_id' => $costCenterId,
         ];
+    }
+
+    private function appendPreviewLine(
+        array &$lines,
+        ?int $accountId,
+        string $type,
+        float $amount,
+        string $statement,
+        ?int $costCenterId,
+        ?string $accountName = null
+    ): void {
+        $amount = $this->roundMoney($amount);
+        if ($amount <= 0) {
+            return;
+        }
+
+        $lines[] = [
+            'account_id' => $accountId,
+            'account_name' => $accountName,
+            'account_type' => $type,
+            'debtor_value' => $type === 'debtor' ? $amount : 0,
+            'creditor_value' => $type === 'creditor' ? $amount : 0,
+            'statement' => $statement,
+            'cost_center_id' => $costCenterId,
+        ];
+    }
+
+    private function withSection(array $lines, string $section): array
+    {
+        return array_map(function (array $line) use ($section) {
+            $line['section'] = $section;
+            return $line;
+        }, $lines);
+    }
+
+    private function hydrateLineLabels(array $lines): array
+    {
+        $accountIds = collect($lines)->pluck('account_id')->filter()->unique()->values();
+        $accounts = $accountIds->isEmpty()
+            ? collect()
+            : Account::query()->whereIn('id', $accountIds)->get()->keyBy('id');
+
+        return collect($lines)->map(function (array $line) use ($accounts) {
+            $account = $line['account_id'] ? $accounts->get($line['account_id']) : null;
+            $line['account_name'] = $line['account_name'] ?? $account?->name ?? 'غير محدد';
+            $line['account_code'] = $line['account_code'] ?? $account?->code;
+            $line['cost_center_name'] = $line['cost_center_name'] ?? null;
+            return $line;
+        })->values()->all();
     }
 
     private function daysFromContract(Contract $contract, string $refundDate): int
@@ -259,14 +419,7 @@ class RecruitmentContractRefundService
 
     private function ensurePenaltyIncomeAccountId(): int
     {
-        $account = Account::query()
-            ->whereDoesntHave('children')
-            ->where(function ($query) {
-                $query->where('name', 'like', '%غرام%إلغاء%')
-                    ->orWhere('name', 'like', '%غرامة%استرداد%');
-            })
-            ->orderBy('id')
-            ->first();
+        $account = $this->findPenaltyIncomeAccount();
 
         if ($account) {
             return (int) $account->id;
@@ -294,6 +447,18 @@ class RecruitmentContractRefundService
         ])->id;
     }
 
+    private function findPenaltyIncomeAccount(): ?Account
+    {
+        return Account::query()
+            ->whereDoesntHave('children')
+            ->where(function ($query) {
+                $query->where('name', 'like', '%غرام%إلغاء%')
+                    ->orWhere('name', 'like', '%غرامة%استرداد%');
+            })
+            ->orderBy('id')
+            ->first();
+    }
+
     private function nextAccountCode(Account $parent): int
     {
         $maxChildCode = Account::query()->where('parent_id', $parent->id)->max('code');
@@ -304,11 +469,23 @@ class RecruitmentContractRefundService
     {
         $party = match ($summary['cancelled_by'] ?? null) {
             'client' => 'العميل',
-            'external_office' => 'المكتب الخارجي',
+            'office' => 'المكتب',
+            'external_office' => 'الوكيل/المكتب الخارجي',
             default => 'بدون خصم قبل تحويل مساند',
         };
 
         return 'استرداد عقد استقدام #' . $contract->id . ' / الطرف المتسبب: ' . $party;
+    }
+
+    private function cancelledByLabel(?string $cancelledBy): string
+    {
+        return match ($cancelledBy) {
+            'client' => 'العميل',
+            'office' => 'المكتب',
+            'external_office' => 'الوكيل/المكتب الخارجي',
+            'none_before_transfer' => 'قبل تحويل مساند',
+            default => 'غير محدد',
+        };
     }
 
     private function roundMoney(float $amount): float

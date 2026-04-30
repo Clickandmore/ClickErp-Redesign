@@ -11,6 +11,8 @@ class FinanceServiceProvider extends ServiceProvider
 
     public function boot()
     {
+        $this->app['router']->aliasMiddleware('checkActiveYear', CheckActiveYear::class);
+
         $helperFile = __DIR__ . '/Helpers/FinanceHtmlHelper.php';
         if (file_exists($helperFile)) {
             require_once $helperFile;

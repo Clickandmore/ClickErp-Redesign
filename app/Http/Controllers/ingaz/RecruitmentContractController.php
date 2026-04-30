@@ -27,6 +27,7 @@ use App\Models\ingaz\Order;
 use App\Models\ingaz\RecruitmentContractAttachment;
 use App\Models\ingaz\Religion;
 use App\Models\ingaz\User;
+use App\Models\MaidUnavailableRecord;
 use App\Models\RecruitmentOffices;
 use App\Models\TravelHistory;
 use App\NewPermKeys;
@@ -288,6 +289,11 @@ class RecruitmentContractController extends Controller
             ContractStatusEnum::Tazker->value,
             ContractStatusEnum::Sari->value,
         ];
+    }
+
+    private function isRefundableRecruitmentContractStatus(?string $status): bool
+    {
+        return in_array($status, $this->getCurrentContractStatuses(), true);
     }
 
     private function getDelayedArrivalStatuses(): array
@@ -1211,11 +1217,25 @@ class RecruitmentContractController extends Controller
                     }
 
                     // الفاتورة
-                    $invoice = Invoice::with('musanedTransferItem.transfer')->where('contract_id', $row->id)->first();
+                    $invoice = $row->invoice;
                     if (!$invoice) {
                         $actions .= '<li><a class="dropdown-item" href="' . route('invoices.create') . '?contract_id=' . $row->id . '" target="_blank">
                                     <i class="fas fa-file-invoice"></i> اضافة فاتورة
                                 </a></li>';
+                    } elseif ($invoice->musanedTransferItem && $invoice->musanedTransferItem->transfer) {
+                        $actions .= '<li><a class="dropdown-item" href="' . e(route('musaned-transfers.show', $invoice->musanedTransferItem->transfer->id)) . '">
+                                    <i class="fas fa-money-bill-transfer"></i> عرض تحويل مساند
+                                </a></li>';
+                    } else {
+                        $actions .= '<li><a class="dropdown-item" href="' . e(route('musaned-transfers.create', ['contract_ids' => [$row->id]])) . '">
+                                    <i class="fas fa-money-bill-transfer"></i> تسجيل تحويل مساند
+                                </a></li>';
+                    }
+
+                    if ($row->recruitmentRefund) {
+                        $actions .= '<li><a class="dropdown-item" href="' . route('contracts.details', $row->id) . '#contractRefundSection">
+                                        <i class="fas fa-receipt"></i> عرض تفاصيل الاسترداد
+                                    </a></li>';
                     }
 
                     // منع التعديل والحذف للعقود المكتملة والمرتجعة والتي في الإيواء
@@ -1307,12 +1327,9 @@ class RecruitmentContractController extends Controller
                         $row->status !== ContractStatusEnum::Back->value &&
                         $row->status !== ContractStatusEnum::Shelter->value
                     ) {
-                        if ($row->recruitmentRefund) {
-                            $actions .= '<li><span class="dropdown-item disabled">
-                                            <span class="badge bg-secondary">تم تسجيل استرداد العقد</span>
-                                        </span></li>';
-                        } elseif (
-                            $row->status === ContractStatusEnum::Sari->value &&
+                        if (
+                            !$row->recruitmentRefund &&
+                            $this->isRefundableRecruitmentContractStatus($row->status) &&
                             @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_RETURN)
                         ) {
                             if ($invoice) {
@@ -1386,6 +1403,8 @@ class RecruitmentContractController extends Controller
             'info.manualMaidOffice',
             'info.shelter',
             'externalOfficeDispatch',
+            'recruitmentRefund.refundConstraint.constraintDetails.account',
+            'recruitmentRefund.createdBy',
             'attachments.uploader',
             'contract_status_logs' => function ($query) {
                 $query->orderByDesc('date')->orderByDesc('id');
@@ -1620,7 +1639,9 @@ class RecruitmentContractController extends Controller
     private function collectRecruitmentContractDocuments(Contract $contract): array
     {
         $contract->loadMissing([
+            'invoice.financeSale',
             'invoice.musanedTransferItem.transfer',
+            'recruitmentRefund.refundConstraint',
             'externalOfficeDispatch',
         ]);
 
@@ -1641,6 +1662,10 @@ class RecruitmentContractController extends Controller
         if ($contract->invoice) {
             $addFinancialDocument('invoice-view', 'عرض الفاتورة', route('invoices.show', $contract->invoice->id), 'fas fa-file-invoice');
             $addFinancialDocument('invoice-download', 'تنزيل الفاتورة', route('invoice.download', ['id' => $contract->invoice->id, 'autoprint' => 1]), 'fas fa-download');
+
+            if ($contract->invoice->finance_sale_id) {
+                $addFinancialDocument('finance-sale', 'فاتورة المبيعات المحاسبية', route('finance.bill-sales.show', $contract->invoice->finance_sale_id), 'fas fa-file-lines');
+            }
 
             if ($contract->invoice->arrival_revenue_constraint_id) {
                 $addFinancialDocument('invoice-arrival-revenue-constraint', 'قيد إيراد الوصول', route('finance.add-constraint.show', [
@@ -1674,6 +1699,13 @@ class RecruitmentContractController extends Controller
                     ]), 'fas fa-book-open');
                 }
             }
+        }
+
+        if ($contract->recruitmentRefund?->refund_constraint_id) {
+            $addFinancialDocument('refund-constraint', 'قيد استرداد العقد', route('finance.add-constraint.show', [
+                'add_constraint' => $contract->recruitmentRefund->refund_constraint_id,
+                'autoprint' => 1,
+            ]), 'fas fa-rotate-left');
         }
 
         if (!empty($financialDocuments)) {
@@ -4944,6 +4976,73 @@ class RecruitmentContractController extends Controller
         }
     }
 
+    public function refundPreview(Request $request, RecruitmentContractRefundService $refundService)
+    {
+        try {
+            if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_RETURN)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ليس لديك صلاحية لاسترداد العقود'
+                ], 403);
+            }
+
+            $validated = $request->validate([
+                'contract_id' => 'required|exists:contracts,id',
+                'refund_date' => 'required|date',
+                'cancelled_by' => 'nullable|in:client,office,external_office',
+            ]);
+
+            $contract = Contract::with([
+                'maid',
+                'user',
+                'invoice.musanedTransferItem.transfer',
+                'recruitmentRefund',
+                'info',
+            ])->findOrFail($validated['contract_id']);
+
+            if (!$this->isRefundableRecruitmentContractStatus($contract->status)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'استرداد العقد متاح فقط للعقود السارية'
+                ], 422);
+            }
+
+            if (!$contract->invoice) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن استرداد العقد قبل إضافة فاتورة له'
+                ], 422);
+            }
+
+            if ($contract->recruitmentRefund) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'تم تسجيل استرداد سابق لهذا العقد'
+                ], 422);
+            }
+
+            return response()->json([
+                'success' => true,
+                'preview' => $refundService->previewDetails(
+                    $contract,
+                    $validated['refund_date'],
+                    $validated['cancelled_by'] ?? null
+                ),
+            ]);
+        } catch (\Throwable $e) {
+            logger()->error('Error previewing recruitment contract refund:', [
+                'contract_id' => $request->contract_id ?? null,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء معاينة الاسترداد: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function refund(Request $request, RecruitmentContractRefundService $refundService)
     {
         try {
@@ -4957,7 +5056,7 @@ class RecruitmentContractController extends Controller
             $validated = $request->validate([
                 'contract_id' => 'required|exists:contracts,id',
                 'refund_date' => 'required|date',
-                'cancelled_by' => 'nullable|in:client,external_office',
+                'cancelled_by' => 'nullable|in:client,office,external_office',
                 'reason' => 'required|string|max:500',
             ]);
 
@@ -4969,10 +5068,10 @@ class RecruitmentContractController extends Controller
                 'info',
             ])->findOrFail($validated['contract_id']);
 
-            if ($contract->status !== ContractStatusEnum::Sari->value) {
+            if (!$this->isRefundableRecruitmentContractStatus($contract->status)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'استرداد العقد متاح فقط للعقد الساري'
+                    'message' => 'استرداد العقد متاح فقط للعقود السارية'
                 ], 422);
             }
 
@@ -5011,6 +5110,24 @@ class RecruitmentContractController extends Controller
                     'notes' => 'تم استرداد العقد - السبب: ' . $validated['reason'],
                 ]);
 
+                if ($contract->maid) {
+                    $backoutReason = 'تم تحويل العاملة إلى باك آوت بعد استرداد العقد #' . $contract->id
+                        . ' - السبب: ' . $validated['reason'];
+
+                    $contract->maid->forceFill([
+                        'status' => 'backout',
+                        'available' => false,
+                        'back_out_reason' => $backoutReason,
+                    ])->save();
+
+                    MaidUnavailableRecord::query()->create([
+                        'maid_id' => $contract->maid->id,
+                        'reason' => $backoutReason,
+                        'contract_id' => $contract->id,
+                        'admin_id' => Auth::guard('admin')->id(),
+                    ]);
+                }
+
                 DB::commit();
             } catch (\Throwable $exception) {
                 DB::rollBack();
@@ -5019,7 +5136,8 @@ class RecruitmentContractController extends Controller
 
             $partyLabel = match ($refund->cancelled_by) {
                 'client' => 'العميل',
-                'external_office' => 'المكتب الخارجي',
+                'office' => 'المكتب',
+                'external_office' => 'الوكيل/المكتب الخارجي',
                 default => 'قبل تحويل مساند',
             };
 

@@ -45,6 +45,7 @@ class ConstraintController extends Controller
             'approvalMode' => 'approved',
             'pendingRoute' => route($this->mainRoute . '.pending'),
             'approvedRoute' => route($this->mainRoute . '.index'),
+            'typeOptions' => ConstraintTypiesEnum::cases(),
         ]);
     }
 
@@ -66,6 +67,7 @@ class ConstraintController extends Controller
             'approvalMode' => 'pending',
             'pendingRoute' => route($this->mainRoute . '.pending'),
             'approvedRoute' => route($this->mainRoute . '.index'),
+            'typeOptions' => ConstraintTypiesEnum::cases(),
         ]);
     }
 
@@ -226,6 +228,9 @@ class ConstraintController extends Controller
                 if ($request->get('to_date')) {
                     $instance->where('date','<=', $request->get('to_date'));
                 }
+                if ($request->get('type_filter')) {
+                    $instance->where('type', $request->get('type_filter'));
+                }
             });
 
         if ($pending) {
@@ -377,13 +382,24 @@ class ConstraintController extends Controller
             'edit' => 1,
         ]);
         $deleteUrl = route($this->mainRoute . '.destroy', $constraint->id);
+        $printUrl = $this->resolveConstraintPrintUrl($constraint);
+        $document = $this->resolveConstraintDocument($constraint);
 
-        return '<div class="d-flex flex-wrap gap-1">'
-            . '<a href="' . e($editUrl) . '" class="btn btn-sm btn-outline-primary">'
-            . '<i class="fa fa-pencil"></i> ' . e(__('finance::finance.edit')) . '</a>'
-            . '<button type="button" class="btn btn-sm btn-outline-danger deleteConstraintButton" data-action="'
-            . e($deleteUrl) . '">'
-            . '<i class="fa fa-trash"></i> ' . e(__('finance::finance.Delete')) . '</button>'
+        return '<div class="dropdown constraint-actions-dropdown">'
+            . '<button class="btn btn-sm btn-light border dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">'
+            . '<i class="fa fa-ellipsis-v"></i> ' . e(__('finance::finance.actions'))
+            . '</button>'
+            . '<ul class="dropdown-menu dropdown-menu-end shadow border-0">'
+            . '<li><a class="dropdown-item" href="' . e($printUrl) . '" target="_blank" rel="noopener">'
+            . '<i class="fa fa-print"></i> ' . e(__('finance::finance.print')) . '</a></li>'
+            . '<li><a class="dropdown-item" href="' . e($document['url']) . '" target="_blank" rel="noopener">'
+            . '<i class="fa fa-file-text-o"></i> ' . e($document['label']) . '</a></li>'
+            . '<li><hr class="dropdown-divider"></li>'
+            . '<li><a class="dropdown-item" href="' . e($editUrl) . '">'
+            . '<i class="fa fa-pencil"></i> ' . e(__('finance::finance.edit')) . '</a></li>'
+            . '<li><button type="button" class="dropdown-item text-danger deleteConstraintButton" data-action="' . e($deleteUrl) . '">'
+            . '<i class="fa fa-trash"></i> ' . e(__('finance::finance.Delete')) . '</button></li>'
+            . '</ul>'
             . '</div>';
     }
 
@@ -460,6 +476,9 @@ class ConstraintController extends Controller
             })
             ->when($request->get('to_date'), function ($query, $date) {
                 $query->whereDate('fn_constraints.date', '<=', $date);
+            })
+            ->when($request->get('type_filter'), function ($query, $type) {
+                $query->where('fn_constraints.type', $type);
             });
     }
 
@@ -497,14 +516,12 @@ class ConstraintController extends Controller
 
     private function resolveExportFilters(Request $request): array
     {
-        $type = $request->get('type_filter');
+        $type = ConstraintTypiesEnum::tryFrom((int) $request->get('type_filter'));
 
         return [
             'from_date' => $request->get('from_date') ?: 'الكل',
             'to_date' => $request->get('to_date') ?: 'الكل',
-            'type' => $type === 'debtor'
-                ? __('finance::finance.debtor')
-                : ($type === 'creditor' ? __('finance::finance.creditor') : 'الكل'),
+            'type' => $type?->lang() ?: 'الكل',
         ];
     }
 

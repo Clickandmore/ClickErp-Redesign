@@ -952,8 +952,13 @@
                                         </div>
                                         <div class="form-check">
                                             <input class="form-check-input" type="radio" name="cancelled_by"
+                                                id="refund_by_office" value="office">
+                                            <label class="form-check-label" for="refund_by_office">المكتب</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="cancelled_by"
                                                 id="refund_by_external_office" value="external_office">
-                                            <label class="form-check-label" for="refund_by_external_office">المكتب الخارجي</label>
+                                            <label class="form-check-label" for="refund_by_external_office">الوكيل/المكتب الخارجي</label>
                                         </div>
                                     </div>
                                 </div>
@@ -968,6 +973,76 @@
                                 </div>
                             </div>
                         </form>
+
+                        <div class="mt-3" id="refundPreviewWrapper" style="display: none;">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <h6 class="mb-0 fw-bold">
+                                    <i class="fas fa-calculator text-primary me-1"></i>
+                                    تفاصيل الاسترداد والقيود المتوقعة
+                                </h6>
+                                <span class="badge bg-light text-dark" id="refundPreviewParty"></span>
+                            </div>
+
+                            <div class="row g-2 mb-3">
+                                <div class="col-6 col-md-3">
+                                    <div class="border rounded p-2 bg-light">
+                                        <small class="text-muted d-block">قيمة العقد</small>
+                                        <strong id="refundPreviewContractAmount">0.00</strong>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="border rounded p-2 bg-light">
+                                        <small class="text-muted d-block">نسبة الخصم</small>
+                                        <strong id="refundPreviewPenaltyPercent">0%</strong>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="border rounded p-2 bg-light">
+                                        <small class="text-muted d-block">قيمة الخصم</small>
+                                        <strong id="refundPreviewPenaltyAmount">0.00</strong>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="border rounded p-2 bg-success-subtle">
+                                        <small class="text-muted d-block">المدفوع للعميل</small>
+                                        <strong class="text-success" id="refundPreviewRefundAmount">0.00</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="alert alert-warning py-2 d-none" id="refundPreviewWarnings"></div>
+
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>النوع</th>
+                                            <th>الحساب</th>
+                                            <th>مدين</th>
+                                            <th>دائن</th>
+                                            <th>البيان</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="refundPreviewLines">
+                                        <tr>
+                                            <td colspan="5" class="text-center text-muted">لا توجد بيانات معاينة</td>
+                                        </tr>
+                                    </tbody>
+                                    <tfoot class="table-light">
+                                        <tr>
+                                            <th colspan="2">الإجمالي</th>
+                                            <th id="refundPreviewTotalDebtor">0.00</th>
+                                            <th id="refundPreviewTotalCreditor">0.00</th>
+                                            <th></th>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info py-2 mt-3" id="refundPreviewPlaceholder">
+                            اختر تاريخ الاسترداد والطرف المتسبب لعرض المبلغ المدفوع للعميل والقيود المتوقعة قبل التسجيل.
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
@@ -2229,6 +2304,114 @@
                 openCancelContractModal(contractId, contractNumber, clientName, maidName);
             });
 
+            function formatRefundMoney(value) {
+                return Number(value || 0).toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+            }
+
+            function escapeRefundHtml(value) {
+                return String(value || '').replace(/[&<>"']/g, function(character) {
+                    return {
+                        '&': '&amp;',
+                        '<': '&lt;',
+                        '>': '&gt;',
+                        '"': '&quot;',
+                        "'": '&#039;'
+                    }[character];
+                });
+            }
+
+            function resetRefundPreview(message) {
+                $('#refundPreviewWrapper').hide();
+                $('#refundPreviewLines').html('<tr><td colspan="5" class="text-center text-muted">لا توجد بيانات معاينة</td></tr>');
+                $('#refundPreviewWarnings').addClass('d-none').empty();
+                $('#refundPreviewPlaceholder')
+                    .removeClass('alert-danger alert-info')
+                    .addClass('alert-info')
+                    .text(message || 'اختر تاريخ الاسترداد والطرف المتسبب لعرض المبلغ المدفوع للعميل والقيود المتوقعة قبل التسجيل.')
+                    .show();
+            }
+
+            function renderRefundPreview(preview) {
+                var summary = preview.summary || {};
+                var lines = preview.lines || [];
+                var totals = preview.totals || {};
+                var warnings = preview.warnings || [];
+
+                $('#refundPreviewContractAmount').text(formatRefundMoney(summary.contract_amount));
+                $('#refundPreviewPenaltyPercent').text(formatRefundMoney(summary.penalty_percent) + '%');
+                $('#refundPreviewPenaltyAmount').text(formatRefundMoney(summary.penalty_amount));
+                $('#refundPreviewRefundAmount').text(formatRefundMoney(summary.refund_amount));
+                $('#refundPreviewParty').text(summary.cancelled_by_label || 'غير محدد');
+                $('#refundPreviewTotalDebtor').text(formatRefundMoney(totals.debtor));
+                $('#refundPreviewTotalCreditor').text(formatRefundMoney(totals.creditor));
+
+                if (warnings.length) {
+                    $('#refundPreviewWarnings')
+                        .removeClass('d-none')
+                        .html(warnings.map(function(warning) {
+                            return '<div><i class="fas fa-triangle-exclamation me-1"></i>' + escapeRefundHtml(warning) + '</div>';
+                        }).join(''));
+                } else {
+                    $('#refundPreviewWarnings').addClass('d-none').empty();
+                }
+
+                if (lines.length) {
+                    $('#refundPreviewLines').html(lines.map(function(line) {
+                        var accountCode = line.account_code ? '<span class="text-muted me-1">#' + escapeRefundHtml(line.account_code) + '</span>' : '';
+                        return '<tr>' +
+                            '<td><span class="badge bg-secondary">' + escapeRefundHtml(line.section || '-') + '</span></td>' +
+                            '<td>' + accountCode + escapeRefundHtml(line.account_name || 'غير محدد') + '</td>' +
+                            '<td class="text-success fw-semibold">' + formatRefundMoney(line.debtor_value) + '</td>' +
+                            '<td class="text-danger fw-semibold">' + formatRefundMoney(line.creditor_value) + '</td>' +
+                            '<td class="small text-muted">' + escapeRefundHtml(line.statement || '') + '</td>' +
+                            '</tr>';
+                    }).join(''));
+                } else {
+                    $('#refundPreviewLines').html('<tr><td colspan="5" class="text-center text-muted">لا توجد قيود متوقعة قبل تحويل مساند</td></tr>');
+                }
+
+                $('#refundPreviewPlaceholder').hide();
+                $('#refundPreviewWrapper').show();
+            }
+
+            function loadRefundPreview() {
+                var hasMusanedTransfer = $('#refundContractForm').data('has-musaned-transfer') === 1;
+                var cancelledBy = $('input[name="cancelled_by"]:checked').val() || '';
+
+                if (hasMusanedTransfer && !cancelledBy) {
+                    resetRefundPreview('اختر الطرف المتسبب في الإلغاء لاحتساب الخصم والقيود بدقة.');
+                    return;
+                }
+
+                $.ajax({
+                    url: '{{ route('RecruitmentContract.refundPreview') }}',
+                    method: 'POST',
+                    data: $('#refundContractForm').serialize(),
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            renderRefundPreview(response.preview);
+                        } else {
+                            resetRefundPreview(response.message || 'تعذر تحميل معاينة الاسترداد.');
+                        }
+                    },
+                    error: function(xhr) {
+                        var message = xhr.responseJSON && xhr.responseJSON.message
+                            ? xhr.responseJSON.message
+                            : 'تعذر تحميل معاينة الاسترداد.';
+                        resetRefundPreview(message);
+                        $('#refundPreviewPlaceholder')
+                            .removeClass('alert-info')
+                            .addClass('alert-danger');
+                    }
+                });
+            }
+
             $(document).on('click', '.refund-contract-btn', function(e) {
                 e.preventDefault();
                 var button = $(this);
@@ -2241,6 +2424,8 @@
                 $('#refund_reason').val('');
                 $('#refund_date').val('{{ date('Y-m-d') }}');
                 $('input[name="cancelled_by"]').prop('checked', false).prop('required', hasMusanedTransfer);
+                $('#refundContractForm').data('has-musaned-transfer', hasMusanedTransfer ? 1 : 0);
+                resetRefundPreview();
 
                 if (hasMusanedTransfer) {
                     $('#refundCancelledByWrapper').removeClass('d-none');
@@ -2248,10 +2433,14 @@
                 } else {
                     $('#refundCancelledByWrapper').addClass('d-none');
                     $('#refundBeforeTransferNote').removeClass('d-none');
+                    loadRefundPreview();
                 }
 
                 $('#refundContractModal').modal('show');
             });
+
+            $('#refund_date').on('change', loadRefundPreview);
+            $(document).on('change', 'input[name="cancelled_by"]', loadRefundPreview);
 
             $('#submitRefundContractBtn').on('click', function() {
                 var button = $(this);

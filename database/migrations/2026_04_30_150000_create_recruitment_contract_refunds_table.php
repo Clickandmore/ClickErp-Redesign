@@ -18,7 +18,7 @@ return new class extends Migration
             $table->unsignedBigInteger('invoice_id');
             $table->unsignedBigInteger('musaned_transfer_item_id')->nullable();
             $table->unsignedBigInteger('refund_constraint_id')->nullable();
-            $table->string('cancelled_by', 30)->nullable()->comment('client, external_office, none_before_transfer');
+            $table->string('cancelled_by', 30)->nullable()->comment('client, office, external_office, none_before_transfer');
             $table->date('refund_date');
             $table->unsignedInteger('days_from_contract')->default(0);
             $table->decimal('penalty_percent', 8, 4)->default(0);

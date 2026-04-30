@@ -11,6 +11,10 @@
             margin-bottom: 16px;
         }
 
+        .bill-sales-heading {
+            min-width: 220px;
+        }
+
         .bill-sales-title {
             margin: 0;
             font-size: 22px;
@@ -21,6 +25,11 @@
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
+        }
+
+        .bill-sales-actions .btn {
+            margin: 0 !important;
+            white-space: nowrap;
         }
 
         .bill-sales-filters {
@@ -37,9 +46,35 @@
             color: #4b5563;
         }
 
+        .bill-sales-table {
+            padding: 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: #fff;
+            overflow-x: auto;
+        }
+
         #dataTableObject th {
             white-space: nowrap;
             font-size: 12px;
+        }
+
+        #dataTableObject td {
+            vertical-align: middle;
+        }
+
+        @media (max-width: 767.98px) {
+            .bill-sales-toolbar {
+                align-items: stretch;
+            }
+
+            .bill-sales-actions {
+                width: 100%;
+            }
+
+            .bill-sales-actions .btn {
+                flex: 1 1 120px;
+            }
         }
     </style>
 @endsection
@@ -51,7 +86,7 @@
 @endsection
 @section('content')
     <div class="bill-sales-toolbar">
-        <div>
+        <div class="bill-sales-heading">
             <h4 class="bill-sales-title">{{ $bladeTitle }}</h4>
             <small class="text-muted">متابعة فواتير المبيعات وحالة مشاركتها مع هيئة الزكاة.</small>
         </div>
@@ -62,7 +97,10 @@
             <a href="{{ route('finance.bill-sales.export.pdf') }}" id="exportPdfLink" class="btn btn-outline-danger">
                 <i class="fa fa-file-pdf me-1"></i> PDF
             </a>
-            {!! addHyperButton($createRoute, $addButtonText) !!}
+            <a href="{{ $createRoute }}" class="btn btn-success">
+                <i class="fa fa-plus-circle me-1"></i>
+                {{ __('buttons.add button') }} {{ $addButtonText }}
+            </a>
         </div>
     </div>
 
@@ -92,40 +130,51 @@
             </select>
         </div>
     </div>
-    <table id="dataTableObject" class="table display dataTable table-hover" style="width:100%">
-        <thead>
-            <tr>
-                <th>{{ __('finance::finance.SL') }}</th>
-                <th>{{ __('finance::finance.Invoice Number') }}</th>
-                <th>{{ __('finance::finance.date') }}</th>
-                <th>{{ __('finance::finance.the_stock') }}</th>
-                <th>{{ __('finance::finance.client') }}</th>
-                <th>{{ __('finance::finance.Total before discount') }}</th>
-                <th>{{ __('finance::finance.Total discount') }}</th>
-                <th>{{ __('finance::finance.the_tax_value') }}</th>
-                <th>{{ __('finance::finance.total_after_all') }}</th>
-                <th>{{ __('finance::finance.profit_margin') }}</th>
-                <th>{{ __('finance::finance.share') }}</th>
-                <th>{{ __('finance::finance.actions') }}</th>
-            </tr>
-        </thead>
-        <tbody>
+    <div class="bill-sales-table">
+        <table id="dataTableObject" class="table display dataTable table-hover" style="width:100%">
+            <thead>
+                <tr>
+                    <th>{{ __('finance::finance.SL') }}</th>
+                    <th>{{ __('finance::finance.Invoice Number') }}</th>
+                    <th>{{ __('finance::finance.date') }}</th>
+                    <th>{{ __('finance::finance.the_stock') }}</th>
+                    <th>{{ __('finance::finance.client') }}</th>
+                    <th>{{ __('finance::finance.Total before discount') }}</th>
+                    <th>{{ __('finance::finance.Total discount') }}</th>
+                    <th>{{ __('finance::finance.the_tax_value') }}</th>
+                    <th>{{ __('finance::finance.total_after_all') }}</th>
+                    <th>{{ __('finance::finance.profit_margin') }}</th>
+                    <th>{{ __('finance::finance.share') }}</th>
+                    <th>{{ __('finance::finance.actions') }}</th>
+                </tr>
+            </thead>
+            <tbody>
 
-        </tbody>
-    </table>
+            </tbody>
+        </table>
+    </div>
 @endsection
 @section('js')
     <script src="{{ asset('admin') }}/assets/js/bundle/dataTables.bundle.js"></script>
     <script>
         $(document).ready(function() {
             function currentQueryString() {
-                return $.param({
+                let params = {
+                    shared: "{{ request('shared') }}",
                     from_date: $('#from_date').val(),
                     to_date: $('#to_date').val(),
                     code: $('#code').val(),
                     client_id: $('#client_id').val(),
                     item_id: $('#item_id').val()
+                };
+
+                Object.keys(params).forEach(function(key) {
+                    if (params[key] === '' || params[key] === null || typeof params[key] === 'undefined') {
+                        delete params[key];
+                    }
                 });
+
+                return $.param(params);
             }
 
             function updateExportLinks() {

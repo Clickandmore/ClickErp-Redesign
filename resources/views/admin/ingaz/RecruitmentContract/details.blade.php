@@ -364,7 +364,7 @@
 
     .attachment-list {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
         gap: 12px;
     }
 
@@ -373,6 +373,7 @@
         border-radius: 12px;
         padding: 14px;
         background: #fff;
+        min-height: 100%;
     }
 
     .attachment-item-header {
@@ -391,7 +392,7 @@
 
     .contract-document-list {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
         gap: 12px;
     }
 
@@ -428,6 +429,69 @@
 
     .contract-document-link.has-items {
         align-items: flex-start;
+    }
+
+    .attachments-dashboard {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+
+    .attachment-summary-tile {
+        background: #f8fbff;
+        border: 1px solid #dbe7f3;
+        border-radius: 14px;
+        padding: 14px;
+    }
+
+    .attachment-summary-label {
+        color: #64748b;
+        display: block;
+        font-size: 12px;
+        margin-bottom: 6px;
+    }
+
+    .attachment-summary-value {
+        color: #0f172a;
+        font-size: 22px;
+        font-weight: 800;
+        line-height: 1.2;
+    }
+
+    .attachments-section-block {
+        border: 1px solid #e2e8f0;
+        border-radius: 16px;
+        padding: 16px;
+        margin-bottom: 18px;
+        background: #fff;
+    }
+
+    .attachments-section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+    }
+
+    .attachments-section-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #1f2937;
+        font-size: 16px;
+        font-weight: 800;
+        margin: 0;
+    }
+
+    .attachment-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 12px;
     }
 
     .contract-document-items {
@@ -1148,6 +1212,145 @@
                 </div>
             </div>
 
+            @if ($contract->recruitmentRefund)
+                @php
+                    $refund = $contract->recruitmentRefund;
+                    $refundPartyLabel = match ($refund->cancelled_by) {
+                        'client' => 'العميل',
+                        'office' => 'المكتب',
+                        'external_office' => 'الوكيل/المكتب الخارجي',
+                        'none_before_transfer' => 'قبل تحويل مساند',
+                        default => 'غير محدد',
+                    };
+                    $refundConstraint = $refund->refundConstraint;
+                    $refundConstraintDetails = $refundConstraint?->constraintDetails ?? collect();
+                    $refundDebtorTotal = $refundConstraintDetails->sum('debtor_value');
+                    $refundCreditorTotal = $refundConstraintDetails->sum('creditor_value');
+                @endphp
+
+                <div class="row" id="contractRefundSection">
+                    <div class="col-12 mb-4">
+                        <div class="info-card financial-info">
+                            <div class="card-title">
+                                <i class="fas fa-rotate-left text-primary"></i>
+                                تفاصيل استرداد العقد
+                            </div>
+
+                            <div class="row g-3 mb-3">
+                                <div class="col-6 col-md-3">
+                                    <div class="overview-card h-100">
+                                        <span class="overview-label">قيمة العقد</span>
+                                        <div class="overview-value">{{ number_format((float) $refund->contract_amount, 2) }}</div>
+                                        <div class="overview-meta">ريال</div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="overview-card h-100">
+                                        <span class="overview-label">قيمة الخصم</span>
+                                        <div class="overview-value text-danger">{{ number_format((float) $refund->penalty_amount, 2) }}</div>
+                                        <div class="overview-meta">{{ number_format((float) $refund->penalty_percent, 2) }}%</div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="overview-card h-100">
+                                        <span class="overview-label">المدفوع للعميل</span>
+                                        <div class="overview-value text-success">{{ number_format((float) $refund->refund_amount, 2) }}</div>
+                                        <div class="overview-meta">ريال</div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="overview-card h-100">
+                                        <span class="overview-label">عدد الأيام</span>
+                                        <div class="overview-value">{{ $refund->days_from_contract }}</div>
+                                        <div class="overview-meta">من تاريخ العقد</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="info-row">
+                                        <span class="info-label">تاريخ الاسترداد:</span>
+                                        <span class="info-value">{{ optional($refund->refund_date)->format('Y-m-d') }}</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">الطرف المتسبب:</span>
+                                        <span class="info-value highlight">{{ $refundPartyLabel }}</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">سبب الاسترداد:</span>
+                                        <span class="info-value">{{ $refund->reason ?: 'غير محدد' }}</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="info-row">
+                                        <span class="info-label">تم بواسطة:</span>
+                                        <span class="info-value">{{ $refund->createdBy->name ?? 'غير محدد' }}</span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">قيد الاسترداد:</span>
+                                        <span class="info-value">
+                                            @if ($refundConstraint)
+                                                <a class="btn btn-sm btn-outline-primary"
+                                                    href="{{ route('finance.add-constraint.show', ['add_constraint' => $refundConstraint->id]) }}"
+                                                    target="_blank">
+                                                    <i class="fas fa-book-open me-1"></i>
+                                                    عرض القيد #{{ $refundConstraint->code ?? $refundConstraint->id }}
+                                                </a>
+                                            @else
+                                                <span class="badge bg-warning text-dark">لا يوجد قيد مالي</span>
+                                            @endif
+                                        </span>
+                                    </div>
+                                    <div class="info-row">
+                                        <span class="info-label">تاريخ التسجيل:</span>
+                                        <span class="info-value">{{ optional($refund->created_at)->format('Y-m-d H:i') }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            @if ($refundConstraintDetails->isNotEmpty())
+                                <div class="table-responsive mt-3">
+                                    <table class="table table-bordered table-sm align-middle">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>الحساب</th>
+                                                <th>مدين</th>
+                                                <th>دائن</th>
+                                                <th>البيان</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach ($refundConstraintDetails as $detail)
+                                                <tr>
+                                                    <td>
+                                                        @if ($detail->account?->code)
+                                                            <span class="text-muted">#{{ $detail->account->code }}</span>
+                                                        @endif
+                                                        {{ $detail->account->name ?? 'غير محدد' }}
+                                                    </td>
+                                                    <td class="text-success fw-semibold">{{ number_format((float) $detail->debtor_value, 2) }}</td>
+                                                    <td class="text-danger fw-semibold">{{ number_format((float) $detail->creditor_value, 2) }}</td>
+                                                    <td class="text-muted small">{{ $detail->statement }}</td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                        <tfoot class="table-light">
+                                            <tr>
+                                                <th>الإجمالي</th>
+                                                <th>{{ number_format((float) $refundDebtorTotal, 2) }}</th>
+                                                <th>{{ number_format((float) $refundCreditorTotal, 2) }}</th>
+                                                <th></th>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             <!-- معلومات المسوق -->
             @if ($marketer)
                 <div class="row">
@@ -1510,6 +1713,16 @@
             </div>
 
             <!-- مرفقات ومستندات العقد -->
+            @php
+                $documentCollection = collect($contractDocuments ?? []);
+                $financialDocumentGroup = $documentCollection->firstWhere('key', 'financial-attachments');
+                $financialDocuments = collect($financialDocumentGroup['items'] ?? []);
+                $operationalDocuments = $documentCollection->reject(fn ($document) => ($document['key'] ?? null) === 'financial-attachments')->values();
+                $uploadedAttachments = collect($contractAttachments ?? []);
+                $uploadedAttachmentsByType = $uploadedAttachments->groupBy('type_label');
+                $linkedDocumentsCount = $financialDocuments->count() + $operationalDocuments->count();
+            @endphp
+
             <div class="row" id="contractAttachmentsSection">
                 <div class="col-12 mb-4">
                     <div class="info-card">
@@ -1518,13 +1731,32 @@
                                 <i class="fas fa-paperclip text-primary"></i>
                                 مرفقات ومستندات العقد
                             </div>
-                            @if (!empty($contractAttachments))
+                            @if ($uploadedAttachments->isNotEmpty())
                                 <a href="{{ route('RecruitmentContract.attachments.download', $contract->id) }}"
                                     class="btn btn-sm btn-primary">
                                     <i class="fas fa-file-zipper me-1"></i>
-                                    تحميل كل المرفقات
+                                    تحميل كل المرفقات المرفوعة
                                 </a>
                             @endif
+                        </div>
+
+                        <div class="attachments-dashboard">
+                            <div class="attachment-summary-tile">
+                                <span class="attachment-summary-label">مرفقات مرفوعة</span>
+                                <div class="attachment-summary-value">{{ $uploadedAttachments->count() }}</div>
+                            </div>
+                            <div class="attachment-summary-tile">
+                                <span class="attachment-summary-label">مستندات مالية وقيود</span>
+                                <div class="attachment-summary-value">{{ $financialDocuments->count() }}</div>
+                            </div>
+                            <div class="attachment-summary-tile">
+                                <span class="attachment-summary-label">مستندات تشغيلية</span>
+                                <div class="attachment-summary-value">{{ $operationalDocuments->count() }}</div>
+                            </div>
+                            <div class="attachment-summary-tile">
+                                <span class="attachment-summary-label">الإجمالي المعروض</span>
+                                <div class="attachment-summary-value">{{ $uploadedAttachments->count() + $linkedDocumentsCount }}</div>
+                            </div>
                         </div>
 
                         @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_UPDATE))
@@ -1557,91 +1789,136 @@
                             </form>
                         @endif
 
-                        @if (!empty($contractAttachments))
-                            <form method="GET" action="{{ route('RecruitmentContract.attachments.download', $contract->id) }}"
-                                class="mb-4">
-                                <input type="hidden" name="selected_only" value="1">
-                                <div class="attachment-list mb-3">
-                                    @foreach ($contractAttachments as $attachment)
-                                        <div class="attachment-item">
-                                            <div class="attachment-item-header">
-                                                <label class="d-flex align-items-start gap-2 mb-0">
-                                                    <input type="checkbox" name="attachments[]" value="{{ $attachment['key'] }}"
-                                                        checked>
-                                                    <span>
-                                                        <strong>{{ $attachment['label'] }}</strong>
-                                                        <span class="badge bg-secondary d-block mt-2">{{ $attachment['type_label'] }}</span>
-                                                    </span>
-                                                </label>
-                                                @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_UPDATE))
-                                                    <button type="submit" form="deleteAttachment{{ $attachment['id'] }}"
-                                                        class="btn btn-sm btn-outline-danger">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                @endif
+                        <div class="attachments-section-block">
+                            <div class="attachments-section-header">
+                                <h5 class="attachments-section-title">
+                                    <i class="fas fa-folder text-primary"></i>
+                                    المرفقات المرفوعة
+                                </h5>
+                                @if ($uploadedAttachments->isNotEmpty())
+                                    <span class="badge bg-primary">{{ $uploadedAttachments->count() }} ملف</span>
+                                @endif
+                            </div>
+
+                            @if ($uploadedAttachments->isNotEmpty())
+                                <form method="GET" action="{{ route('RecruitmentContract.attachments.download', $contract->id) }}">
+                                    <input type="hidden" name="selected_only" value="1">
+
+                                    @foreach ($uploadedAttachmentsByType as $typeLabel => $attachments)
+                                        <div class="mb-3">
+                                            <div class="d-flex align-items-center gap-2 mb-2">
+                                                <span class="badge bg-secondary">{{ $typeLabel }}</span>
+                                                <span class="text-muted small">{{ $attachments->count() }} ملف</span>
                                             </div>
-                                            <div class="attachment-meta">
-                                                <div>الملف: {{ $attachment['original_name'] }}</div>
-                                                <div>الحجم: {{ $attachment['size_label'] }}</div>
-                                                @if ($attachment['uploaded_by'])
-                                                    <div>رفع بواسطة: {{ $attachment['uploaded_by'] }}</div>
-                                                @endif
-                                                @if ($attachment['created_at'])
-                                                    <div>تاريخ الرفع: {{ $attachment['created_at'] }}</div>
-                                                @endif
+                                            <div class="attachment-list">
+                                                @foreach ($attachments as $attachment)
+                                                    <div class="attachment-item">
+                                                        <div class="attachment-item-header">
+                                                            <label class="d-flex align-items-start gap-2 mb-0">
+                                                                <input type="checkbox" name="attachments[]"
+                                                                    value="{{ $attachment['key'] }}" checked>
+                                                                <span>
+                                                                    <strong>{{ $attachment['label'] }}</strong>
+                                                                    <span class="text-muted d-block small mt-1">{{ $attachment['original_name'] }}</span>
+                                                                </span>
+                                                            </label>
+                                                            @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_UPDATE))
+                                                                <button type="submit" form="deleteAttachment{{ $attachment['id'] }}"
+                                                                    class="btn btn-sm btn-outline-danger" title="حذف المرفق">
+                                                                    <i class="fas fa-trash"></i>
+                                                                </button>
+                                                            @endif
+                                                        </div>
+                                                        <div class="attachment-meta">
+                                                            <div>الحجم: {{ $attachment['size_label'] }}</div>
+                                                            @if ($attachment['uploaded_by'])
+                                                                <div>رفع بواسطة: {{ $attachment['uploaded_by'] }}</div>
+                                                            @endif
+                                                            @if ($attachment['created_at'])
+                                                                <div>تاريخ الرفع: {{ $attachment['created_at'] }}</div>
+                                                            @endif
+                                                        </div>
+                                                        <div class="attachment-actions">
+                                                            <a href="{{ $attachment['url'] }}" target="_blank"
+                                                                class="btn btn-sm btn-outline-primary">
+                                                                <i class="fas fa-download me-1"></i>
+                                                                تحميل
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                @endforeach
                                             </div>
-                                            <a href="{{ $attachment['url'] }}" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
-                                                <i class="fas fa-download me-1"></i>
-                                                تحميل منفرد
-                                            </a>
                                         </div>
                                     @endforeach
-                                </div>
-                                <button type="submit" class="btn btn-outline-primary">
-                                    <i class="fas fa-download me-1"></i>
-                                    تحميل المحدد
-                                </button>
-                            </form>
-                            @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_UPDATE))
-                                @foreach ($contractAttachments as $attachment)
-                                    <form id="deleteAttachment{{ $attachment['id'] }}" method="POST"
-                                        action="{{ route('RecruitmentContract.attachments.delete', ['contractId' => $contract->id, 'attachment' => $attachment['id']]) }}"
-                                        onsubmit="return confirm('هل تريد حذف هذا المرفق؟');" class="d-none">
-                                        @csrf
-                                        @method('DELETE')
-                                    </form>
-                                @endforeach
-                            @endif
-                        @else
-                            <div class="alert alert-info mb-4">
-                                لا توجد مرفقات مرفوعة على هذا العقد حتى الآن.
-                            </div>
-                        @endif
 
-                        <div class="card-title">
-                            <i class="fas fa-folder-open text-info"></i>
-                            مستندات مرتبطة بالعقد
+                                    <button type="submit" class="btn btn-outline-primary">
+                                        <i class="fas fa-download me-1"></i>
+                                        تحميل المحدد
+                                    </button>
+                                </form>
+
+                                @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_UPDATE))
+                                    @foreach ($uploadedAttachments as $attachment)
+                                        <form id="deleteAttachment{{ $attachment['id'] }}" method="POST"
+                                            action="{{ route('RecruitmentContract.attachments.delete', ['contractId' => $contract->id, 'attachment' => $attachment['id']]) }}"
+                                            onsubmit="return confirm('هل تريد حذف هذا المرفق؟');" class="d-none">
+                                            @csrf
+                                            @method('DELETE')
+                                        </form>
+                                    @endforeach
+                                @endif
+                            @else
+                                <div class="alert alert-info mb-0">
+                                    لا توجد مرفقات مرفوعة على هذا العقد حتى الآن.
+                                </div>
+                            @endif
                         </div>
-                        @if (!empty($contractDocuments))
-                            <div class="contract-document-list">
-                                @foreach ($contractDocuments as $document)
-                                    @if (!empty($document['items']))
-                                        <div class="contract-document-link has-items">
-                                            <i class="{{ $document['icon'] }}"></i>
+
+                        <div class="attachments-section-block">
+                            <div class="attachments-section-header">
+                                <h5 class="attachments-section-title">
+                                    <i class="fas fa-scale-balanced text-danger"></i>
+                                    المستندات المالية والقيود
+                                </h5>
+                                @if ($financialDocuments->isNotEmpty())
+                                    <span class="badge bg-danger">{{ $financialDocuments->count() }} مستند</span>
+                                @endif
+                            </div>
+
+                            @if ($financialDocuments->isNotEmpty())
+                                <div class="contract-document-list">
+                                    @foreach ($financialDocuments as $item)
+                                        <a href="{{ $item['url'] }}" target="_blank" rel="noopener"
+                                            class="contract-document-link">
+                                            <i class="{{ $item['icon'] }}"></i>
                                             <span>
-                                                <strong class="d-block">{{ $document['label'] }}</strong>
-                                                <small class="text-muted">{{ $document['category'] }}</small>
-                                                <span class="contract-document-items">
-                                                    @foreach ($document['items'] as $item)
-                                                        <a href="{{ $item['url'] }}" target="_blank" rel="noopener">
-                                                            <i class="{{ $item['icon'] }} me-1"></i>
-                                                            {{ $item['label'] }}
-                                                        </a>
-                                                    @endforeach
-                                                </span>
+                                                <strong class="d-block">{{ $item['label'] }}</strong>
+                                                <small class="text-muted">فاتورة / قيد مالي</small>
                                             </span>
-                                        </div>
-                                    @else
+                                        </a>
+                                    @endforeach
+                                </div>
+                            @else
+                                <div class="alert alert-info mb-0">
+                                    لا توجد فاتورة أو قيود مالية مرتبطة بهذا العقد حالياً.
+                                </div>
+                            @endif
+                        </div>
+
+                        <div class="attachments-section-block mb-0">
+                            <div class="attachments-section-header">
+                                <h5 class="attachments-section-title">
+                                    <i class="fas fa-briefcase text-info"></i>
+                                    المستندات التشغيلية
+                                </h5>
+                                @if ($operationalDocuments->isNotEmpty())
+                                    <span class="badge bg-info">{{ $operationalDocuments->count() }} مستند</span>
+                                @endif
+                            </div>
+
+                            @if ($operationalDocuments->isNotEmpty())
+                                <div class="contract-document-list">
+                                    @foreach ($operationalDocuments as $document)
                                         <a href="{{ $document['url'] }}" target="_blank" rel="noopener"
                                             class="contract-document-link">
                                             <i class="{{ $document['icon'] }}"></i>
@@ -1650,14 +1927,14 @@
                                                 <small class="text-muted">{{ $document['category'] }}</small>
                                             </span>
                                         </a>
-                                    @endif
-                                @endforeach
-                            </div>
-                        @else
-                            <div class="alert alert-info mb-0">
-                                لا توجد فاتورة أو معاملات مالية أو إجراءات تشغيلية مرتبطة بهذا العقد حالياً.
-                            </div>
-                        @endif
+                                    @endforeach
+                                </div>
+                            @else
+                                <div class="alert alert-info mb-0">
+                                    لا توجد إجراءات تشغيلية مرتبطة بهذا العقد حالياً.
+                                </div>
+                            @endif
+                        </div>
                     </div>
                 </div>
             </div>
