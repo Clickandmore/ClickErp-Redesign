@@ -38,6 +38,56 @@ class HomeController extends Controller
 {
     use SendSMSTrait, ApiResponse, StoreMessageTrait;
 
+    public function __construct()
+    {
+        $this->middleware(function (Request $request, $next) {
+            $this->setApiLocale($request);
+
+            return $next($request);
+        });
+    }
+
+    private function setApiLocale(Request $request): void
+    {
+        $locale = strtolower((string) ($request->header('lang') ?: $request->header('Accept-Language', 'ar')));
+        $locale = substr($locale, 0, 2);
+
+        if (!in_array($locale, ['ar', 'en'], true)) {
+            $locale = 'ar';
+        }
+
+        app()->setLocale($locale);
+    }
+
+    private function localizedText(string $ar, string $en): string
+    {
+        return app()->getLocale() === 'en' ? $en : $ar;
+    }
+
+    private function buildContractStatusMessage(Contract $contract, string $status): string
+    {
+        $lines = [
+            $this->localizedText('رقم العقد: ', 'Contract Number: ') . $contract->id,
+            $this->localizedText('حالة العقد: ', 'Contract Status: ') . $status,
+        ];
+
+        if ($contract->info?->msaned_number) {
+            $lines[] = $this->localizedText('رقم عقد مساند: ', 'Msaned Contract Number: ') . $contract->info->msaned_number;
+        }
+
+        if ($contract->info?->visa_number) {
+            $lines[] = $this->localizedText('رقم التأشيرة: ', 'Visa Number: ') . $contract->info->visa_number;
+        }
+
+        if ($contract->maid?->passport_num) {
+            $lines[] = $this->localizedText('رقم جواز العاملة: ', 'Worker Passport Number: ') . $contract->maid->passport_num;
+        } elseif ($contract->info?->manual_maid_passport_num) {
+            $lines[] = $this->localizedText('رقم جواز العاملة: ', 'Worker Passport Number: ') . $contract->info->manual_maid_passport_num;
+        }
+
+        return implode("\n", $lines);
+    }
+
     public function contractStatus(Request $request)
     {
         $searchValue = trim(strtr((string) $request->input('search_value', ''), [
@@ -163,6 +213,8 @@ class HomeController extends Controller
             } elseif ($contract->info?->manual_maid_passport_num) {
                 $message .= "\nرقم جواز العاملة: {$contract->info->manual_maid_passport_num}";
             }
+
+            $message = $this->buildContractStatusMessage($contract, $status);
 
             return [
                 "status" => 1,
@@ -299,26 +351,26 @@ class HomeController extends Controller
             'counts' => $counts,
         ];
 
-        return $this->successResponse($data, 'Home data retrieved successfully', 200);
+        return $this->successResponse($data, $this->localizedText('تم جلب بيانات الصفحة الرئيسية بنجاح', 'Home data retrieved successfully'), 200);
     }
 
     public function about(Request $request, AboutUsAction $about)
     {
         $about = $about->first();
 
-        return $this->successResponse($about, 'About data retrieved successfully', 200);
+        return $this->successResponse($about, $this->localizedText('تم جلب بيانات من نحن بنجاح', 'About data retrieved successfully'), 200);
     }
 
 
     public function whyUs(Request $request, WhyUsAction $whyUsAction)
     {
         $whyUs = $whyUsAction->get();
-        return $this->successResponse($whyUs, 'Why Us data retrieved successfully', 200);
+        return $this->successResponse($whyUs, $this->localizedText('تم جلب بيانات لماذا نحن بنجاح', 'Why Us data retrieved successfully'), 200);
     }
     public function testimonials(Request $request, TestimonialsAction $testimonialsAction)
     {
         $testimonials = $testimonialsAction->get();
-        return $this->successResponse($testimonials, 'Testimonials data retrieved successfully', 200);
+        return $this->successResponse($testimonials, $this->localizedText('تم جلب آراء العملاء بنجاح', 'Testimonials data retrieved successfully'), 200);
     }
 
     public function storeTestimonial(DailyLabotDemandRequest $request, DailyLabotDemandAction $dailyLabotDemandAction)
