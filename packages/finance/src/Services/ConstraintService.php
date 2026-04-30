@@ -299,9 +299,7 @@ class ConstraintService extends MainService
             ->with(['constraintDetails.account', 'bond', 'transfer_entry'])
             ->approved()
             ->when(request('type_filter'), function ($q) {
-                $q->whereHas('constraintDetails', function ($details) {
-                    $details->where('type', request('type_filter'));
-                });
+                $q->where('fn_constraints.type', request('type_filter'));
             })
             ->latest('fn_constraints.created_at');
     }
@@ -312,9 +310,7 @@ class ConstraintService extends MainService
             ->with(['constraintDetails.account', 'bond', 'transfer_entry', 'created_by'])
             ->pendingApproval()
             ->when(request('type_filter'), function ($q) {
-                $q->whereHas('constraintDetails', function ($details) {
-                    $details->where('type', request('type_filter'));
-                });
+                $q->where('fn_constraints.type', request('type_filter'));
             })
             ->latest('fn_constraints.created_at');
     }

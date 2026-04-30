@@ -229,7 +229,7 @@ class ConstraintController extends Controller
                     $instance->where('date','<=', $request->get('to_date'));
                 }
                 if ($request->get('type_filter')) {
-                    $instance->where('type', $request->get('type_filter'));
+                    $instance->where('fn_constraints.type', $request->get('type_filter'));
                 }
             });
 
@@ -386,10 +386,10 @@ class ConstraintController extends Controller
         $document = $this->resolveConstraintDocument($constraint);
 
         return '<div class="dropdown constraint-actions-dropdown">'
-            . '<button class="btn btn-sm btn-light border dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">'
+            . '<button class="btn btn-sm btn-light border constraint-actions-toggle" type="button" aria-expanded="false">'
             . '<i class="fa fa-ellipsis-v"></i> ' . e(__('finance::finance.actions'))
             . '</button>'
-            . '<ul class="dropdown-menu dropdown-menu-end shadow border-0">'
+            . '<ul class="dropdown-menu dropdown-menu-end shadow border-0 constraint-actions-menu">'
             . '<li><a class="dropdown-item" href="' . e($printUrl) . '" target="_blank" rel="noopener">'
             . '<i class="fa fa-print"></i> ' . e(__('finance::finance.print')) . '</a></li>'
             . '<li><a class="dropdown-item" href="' . e($document['url']) . '" target="_blank" rel="noopener">'

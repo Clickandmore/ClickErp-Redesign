@@ -59,6 +59,19 @@
             background: #fbfcfe;
         }
 
+        .constraints-filter-grid {
+            display: grid;
+            grid-template-columns: minmax(220px, 1.2fr) minmax(170px, .9fr) minmax(170px, .9fr) 140px;
+            gap: 12px;
+            align-items: end;
+        }
+
+        .constraints-filter-panel label {
+            margin-bottom: 6px;
+            color: #344054;
+            font-weight: 600;
+        }
+
         .constraints-table-wrap {
             padding: 14px;
             border: 1px solid #edf0f4;
@@ -69,7 +82,7 @@
 
         .constraints-table-wrap .table {
             table-layout: fixed;
-            min-width: 1180px;
+            min-width: 980px;
         }
 
         .constraints-table-wrap .table thead th {
@@ -140,15 +153,59 @@
 
         #dataTableObject th:nth-child(2),
         #dataTableObject td:nth-child(2) {
-            width: 300px;
+            width: 340px;
+        }
+
+        #dataTableObject th:nth-child(3),
+        #dataTableObject td:nth-child(3),
+        #dataTableObject th:nth-child(4),
+        #dataTableObject td:nth-child(4) {
+            width: 110px;
         }
 
         #dataTableObject th:nth-child(5),
         #dataTableObject td:nth-child(5),
         #dataTableObject th:nth-child(6),
         #dataTableObject td:nth-child(6) {
-            width: 270px;
+            width: 235px;
             vertical-align: top;
+        }
+
+        #dataTableObject th:nth-child(7),
+        #dataTableObject td:nth-child(7) {
+            width: 120px;
+            text-align: center;
+        }
+
+        .constraint-actions-dropdown {
+            display: inline-flex;
+            justify-content: center;
+        }
+
+        .constraint-actions-menu {
+            display: none;
+            position: fixed !important;
+            z-index: 1065;
+            min-width: 190px;
+            padding: 6px;
+            text-align: right;
+        }
+
+        .constraint-actions-menu.show {
+            display: block;
+        }
+
+        .constraint-actions-menu .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        .constraint-actions-menu .dropdown-item i {
+            width: 16px;
+            text-align: center;
         }
 
         .constraint-approval-cell {
@@ -175,6 +232,10 @@
 
             .constraints-toolbar__actions .btn {
                 flex: 1 1 auto;
+            }
+
+            .constraints-filter-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -216,24 +277,25 @@
     </div>
     {{--    {!! addButton($createRoute , $addButtonText) !!} --}}
     <div class="constraints-filter-panel">
-        <div class="row">
-            <div class="col-md-3">
+        <div class="constraints-filter-grid">
+            <div>
                 <label>{{ __('finance::finance.filter_by_type') }}</label>
                 <select class="form-control" id="type_filter" name="type_filter">
                     <option value="">{{ __('finance::finance.choose') }}</option>
-                    <option value="debtor">{{ __('finance::finance.debtor') }}</option>
-                    <option value="creditor">{{ __('finance::finance.creditor') }}</option>
+                    @foreach(($typeOptions ?? []) as $typeOption)
+                        <option value="{{ $typeOption->value }}">{{ $typeOption->lang() }}</option>
+                    @endforeach
                 </select>
             </div>
-            <div class="col-md-3 float-start">
+            <div>
                 <label for="TextInput" class="form-label">{{ __('finance::finance.from_date') }}</label>
                 <input type="date" name="from_date" id="from_date" class="form-control" required>
             </div>
-            <div class="col-md-3 float-start">
+            <div>
                 <label for="TextInput" class="form-label">{{ __('finance::finance.to_date') }}</label>
                 <input type="date" name="to_date" id="to_date" class="form-control" required>
             </div>
-            <div class="col-md-3 d-flex align-items-end">
+            <div>
                 <button type="button" id="clearFilters" class="btn btn-light border w-100">
                     <i class="fa fa-refresh"></i> مسح الفلاتر
                 </button>
@@ -251,8 +313,6 @@
                     <th>{{ __('finance::finance.date') }}</th>
                     <th>مدينون</th>
                     <th>دائنون</th>
-                    <th>{{ __('finance::finance.print') }}</th>
-                    <th>المستند</th>
                     <th>{{ __('finance::finance.actions') }}</th>
                     @if ($approvalMode === 'pending')
                         <th>{{ __('finance::finance.approval_status') }}</th>
@@ -338,16 +398,6 @@
                         searchable: true
                     },
                     {
-                        "data": "print_action",
-                        orderable: false,
-                        searchable: false
-                    },
-                    {
-                        "data": "document_action",
-                        orderable: false,
-                        searchable: false
-                    },
-                    {
                         "data": "actions",
                         orderable: false,
                         searchable: false
@@ -367,6 +417,80 @@
                     @endif
                 ],
             });
+
+            var openConstraintMenu = null;
+            var openConstraintMenuOwner = null;
+
+            function closeConstraintActionsMenu() {
+                if (!openConstraintMenu) {
+                    return;
+                }
+
+                openConstraintMenu.removeClass('show').hide().removeAttr('style');
+                if (openConstraintMenuOwner && openConstraintMenuOwner.length) {
+                    openConstraintMenuOwner.append(openConstraintMenu);
+                    openConstraintMenuOwner.find('.constraint-actions-toggle').attr('aria-expanded', 'false');
+                }
+                openConstraintMenu = null;
+                openConstraintMenuOwner = null;
+            }
+
+            function positionConstraintActionsMenu($button, $menu) {
+                var buttonRect = $button[0].getBoundingClientRect();
+                var menuWidth = $menu.outerWidth();
+                var menuHeight = $menu.outerHeight();
+                var spacing = 6;
+
+                var top = buttonRect.bottom + spacing;
+                if (top + menuHeight > window.innerHeight - spacing) {
+                    top = Math.max(spacing, buttonRect.top - menuHeight - spacing);
+                }
+
+                var left = buttonRect.right - menuWidth;
+                left = Math.max(spacing, Math.min(left, window.innerWidth - menuWidth - spacing));
+
+                $menu.css({
+                    top: top + 'px',
+                    left: left + 'px',
+                    display: 'block'
+                });
+            }
+
+            $(document).on('click', '.constraint-actions-toggle', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                var $button = $(this);
+                var $owner = $button.closest('.constraint-actions-dropdown');
+                var $menu = $owner.find('.constraint-actions-menu').first();
+
+                if (openConstraintMenu && openConstraintMenu[0] === $menu[0]) {
+                    closeConstraintActionsMenu();
+                    return;
+                }
+
+                closeConstraintActionsMenu();
+
+                openConstraintMenu = $menu.appendTo('body').addClass('show').show();
+                openConstraintMenuOwner = $owner;
+                $button.attr('aria-expanded', 'true');
+                positionConstraintActionsMenu($button, openConstraintMenu);
+            });
+
+            $(document).on('click', '.constraint-actions-menu', function(e) {
+                e.stopPropagation();
+            });
+
+            $(document).on('click', '.constraint-actions-menu .dropdown-item', function() {
+                setTimeout(closeConstraintActionsMenu, 0);
+            });
+
+            $(document).on('click', function() {
+                closeConstraintActionsMenu();
+            });
+
+            $(window).on('scroll resize', closeConstraintActionsMenu);
+            table.on('draw.dt', closeConstraintActionsMenu);
 
             $('#filter').click(function() {
                 table.ajax.reload();
