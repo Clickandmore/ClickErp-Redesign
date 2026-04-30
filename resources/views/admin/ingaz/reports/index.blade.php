@@ -110,6 +110,10 @@
                     </h3>
                     <p class="text-muted mb-0">فلترة أي قائمة وتصديرها من مكان واحد بصيغة PDF موحدة أو Excel.</p>
                 </div>
+                <a href="{{ route('reports.import.index') }}" class="btn btn-primary mt-3 mt-sm-0">
+                    <i class="fas fa-file-import me-1"></i>
+                    استيراد البيانات
+                </a>
             </div>
 
             <div class="card reports-hero mb-4">

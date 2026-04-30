@@ -19,6 +19,7 @@ use App\Http\Controllers\ingaz\ComplaintTypeController;
 use App\Http\Controllers\ingaz\ContactController;
 use App\Http\Controllers\ingaz\CountryPoliceController;
 use App\Http\Controllers\ingaz\CvConvertController;
+use App\Http\Controllers\ingaz\DataImportController;
 use App\Http\Controllers\ingaz\DeportationTravelController;
 use App\Http\Controllers\ingaz\DevelopSettingController;
 use App\Http\Controllers\ingaz\FastNewController;
@@ -193,6 +194,9 @@ Route::group(
             Route::resource('make-accounts-for-clients', MakeAccountsForClientsController::class);
             Route::resource('skills', SkillController::class);
             Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
+            Route::get('reports/import', [DataImportController::class, 'index'])->name('reports.import.index');
+            Route::get('reports/import/template/{type}', [DataImportController::class, 'template'])->name('reports.import.template');
+            Route::post('reports/import', [DataImportController::class, 'store'])->name('reports.import.store');
             Route::get('reports/export/{report}', [ReportController::class, 'export'])->name('reports.export');
             Route::get('show-maid-details/{id}', [\App\Http\Controllers\ingaz\MaidController::class, 'showMaidDetails'])->name('showMaidDetails');
             Route::get('maids-not-available', [\App\Http\Controllers\ingaz\MaidController::class, 'noneAvailableMaids'])->name('noneAvailableMaids');
