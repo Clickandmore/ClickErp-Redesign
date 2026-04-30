@@ -26,17 +26,26 @@ class AccountStatementClientPrintController extends Controller
      */
     public function index(Request $request, ObjService $service, AccountService $accountService)
     {
-        // dd($request->all());
-        $dataSearch = $request->only($this->getData);
+        $dataSearch = array_merge([
+            'from_date' => '',
+            'to_date' => now()->format('Y-m-d'),
+            'type' => 'both',
+            'account_id' => '',
+            'other_account' => 'yes',
+        ], $request->only($this->getData));
 
+        $data = collect();
+        $firstBalance = null;
+        $otherAccount = [];
+        $accountName = null;
 
-        // تنفيذ نفس العمليات للحصول على البيانات
-        $data = $service->filterAccount($dataSearch);
-        $firstBalance = $service->getFirstBalance($dataSearch);
-        $otherAccount = ($dataSearch["other_account"] == "yes") ? $service->filterConstraints($dataSearch) : [];
-        $accounts = $accountService->find($dataSearch["account_id"]);
-        $accountName = $accounts["name"];
-        // تمرير البيانات إلى صفحة الطباعة
+        if (!empty($dataSearch['account_id'])) {
+            $data = $service->filterAccount($dataSearch);
+            $firstBalance = $service->getFirstBalance($dataSearch);
+            $otherAccount = ($dataSearch["other_account"] == "yes") ? $service->filterConstraints($dataSearch) : [];
+            $accountName = optional($accountService->find($dataSearch["account_id"]))->name;
+        }
+
         return view($this->folderPath . ".print")->with([
             "data" => $data,
             "firstBalance" => $firstBalance,
@@ -44,6 +53,8 @@ class AccountStatementClientPrintController extends Controller
             "accountName" => $accountName,
             "title" => "كشف حساب عميل",
             "show_other_account" => $dataSearch["other_account"],
+            "filters" => $dataSearch,
+            "reportTitle" => __("finance::finance.account-statement-clients"),
         ]);
     }
 

@@ -21,7 +21,7 @@ class ContractController extends Controller
      */
     public function createCompletedPage()
     {
-        return view('admin.ingaz.CompletedContract.create');
+        return redirect()->route('ShelterContract.create');
     }
 
     /**
@@ -262,18 +262,49 @@ class ContractController extends Controller
         try {
             DB::beginTransaction();
 
-            // Get existing client ID
+            $clientType = $request->input('client_type', 'existing');
             $clientId = $request->input('existing_client_id');
-            if (!$clientId) {
+
+            if ($clientType === 'new') {
+                $clientData = $request->validate([
+                    'client_name' => 'required|string|max:255',
+                    'client_phone' => 'required|string|max:20',
+                    'client_email' => 'nullable|email',
+                    'client_nationality_id' => 'nullable|exists:nationalities,id',
+                    'client_national_num' => 'nullable|string|max:50',
+                    'client_birthdate' => 'nullable|date',
+                    'city' => 'nullable|string|max:100',
+                    'address' => 'nullable|string',
+                ]);
+
+                $client = User::create([
+                    'name' => $clientData['client_name'],
+                    'phone' => $clientData['client_phone'],
+                    'email' => $clientData['client_email'] ?? null,
+                    'nationality_id' => $clientData['client_nationality_id'] ?? null,
+                    'national_num' => $clientData['client_national_num'] ?? null,
+                    'birthdate' => $clientData['client_birthdate'] ?? null,
+                    'city' => $clientData['city'] ?? null,
+                    'address' => $clientData['address'] ?? null,
+                ]);
+
+                $clientId = $client->id;
+            } elseif (!$clientId) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'يرجى اختيار عميل موجود'
+                    'message' => 'يرجى اختيار عميل أو إضافة عميل جديد'
                 ], 400);
             }
 
             // Validate contract data
             $contractData = $request->validate([
-                'maid_id' => 'required|exists:maids,id',
+                'maid_type' => 'nullable|in:existing,new',
+                'maid_id' => 'nullable|required_if:maid_type,existing|exists:maids,id',
+                'new_maid_name' => 'nullable|required_if:maid_type,new|string|max:255',
+                'new_maid_passport' => 'nullable|required_if:maid_type,new|string|max:100|unique:maids,passport_num',
+                'new_maid_nationality_id' => 'nullable|exists:nationalities,id',
+                'new_maid_salary' => 'nullable|numeric|min:0',
+                'new_maid_age' => 'nullable|numeric|min:0',
                 'contract_date' => 'required|date',
                 'arrival_date' => 'required|date',
                 'visa_number' => 'required|string|max:100',
@@ -282,8 +313,23 @@ class ContractController extends Controller
                 'client_birthdate' => 'nullable|date'
             ]);
 
-            // Check if maid is available
-            $maid = Maid::find($contractData['maid_id']);
+            $maidType = $request->input('maid_type', 'existing');
+            if ($maidType === 'new') {
+                $maid = Maid::create([
+                    'name' => $contractData['new_maid_name'],
+                    'passport_num' => $contractData['new_maid_passport'],
+                    'nationality_id' => $contractData['new_maid_nationality_id'] ?? null,
+                    'salary' => $contractData['new_maid_salary'] ?? null,
+                    'age' => $contractData['new_maid_age'] ?? null,
+                    'arrival_date' => $contractData['arrival_date'],
+                    'status' => 'completed',
+                    'available' => 0,
+                    'is_show' => 0,
+                ]);
+            } else {
+                $maid = Maid::find($contractData['maid_id']);
+            }
+
             if (!$maid) {
                 return response()->json([
                     'success' => false,
@@ -303,11 +349,12 @@ class ContractController extends Controller
             // Create completed contract
             $contract = Contract::create([
                 'user_id' => $clientId,
-                'maid_id' => $contractData['maid_id'],
+                'maid_id' => $maid->id,
                 'status' => 'completed', // Set as completed (عقد مكتمل)
                 'contract_date' => $contractData['contract_date'],
                 'visa_number' => $contractData['visa_number'],
                 'msaned_number' => $contractData['msaned_number'] ?? '',
+                'desc' => $maid->name . ' - ' . $maid->passport_num,
             ]);
 
             // Create contract info with arrival date

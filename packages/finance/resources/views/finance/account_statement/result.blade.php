@@ -5,5 +5,6 @@
     'show_other_account' => $show_other_account,
     'accountName' => $accountName ?? null,
     'filters' => $filters ?? [],
+    'reportTitle' => $reportTitle ?? null,
     'isPrint' => false,
 ])

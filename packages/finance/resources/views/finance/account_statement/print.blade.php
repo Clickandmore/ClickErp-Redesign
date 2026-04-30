@@ -594,6 +594,7 @@
                     'show_other_account' => $show_other_account,
                     'accountName' => $accountName,
                     'filters' => $filters ?? [],
+                    'reportTitle' => $reportTitle ?? null,
                     'isPrint' => true,
                 ])
 

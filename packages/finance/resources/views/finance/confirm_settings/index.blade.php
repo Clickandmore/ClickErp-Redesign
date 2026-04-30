@@ -10,7 +10,27 @@
             --settings-soft: #f8fafc;
             --settings-accent: #0f766e;
             --settings-warning: #b45309;
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
             color: #1f2937;
+        }
+
+        .finance-settings-page *,
+        .finance-settings-page *::before,
+        .finance-settings-page *::after {
+            box-sizing: border-box;
+        }
+
+        .finance-settings-page form,
+        .finance-settings-header,
+        .settings-nav,
+        .settings-section,
+        .settings-section-body,
+        .settings-grid,
+        .setting-field {
+            min-width: 0;
+            max-width: 100%;
         }
 
         .finance-settings-header {
@@ -60,6 +80,7 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            min-width: 0;
             min-height: 58px;
             padding: 12px 14px;
             border: 1px solid var(--settings-border);
@@ -95,6 +116,7 @@
             display: block;
             font-weight: 800;
             line-height: 1.4;
+            overflow-wrap: anywhere;
         }
 
         .settings-nav__count {
@@ -103,6 +125,7 @@
             color: var(--settings-muted);
             font-size: 12px;
             line-height: 1.4;
+            overflow-wrap: anywhere;
         }
 
         .settings-section {
@@ -195,6 +218,8 @@
             margin: 0;
             font-weight: 800;
             line-height: 1.6;
+            min-width: 0;
+            overflow-wrap: anywhere;
         }
 
         .setting-field__tools {
@@ -222,6 +247,7 @@
             margin-top: 8px;
             color: var(--settings-muted);
             line-height: 1.8;
+            overflow-wrap: anywhere;
         }
 
         .setting-field__tree {
@@ -233,11 +259,26 @@
             background: #ffffff;
             font-size: 12px;
             line-height: 1.7;
+            overflow-wrap: anywhere;
         }
 
         .setting-field .select2-container,
         .setting-field .form-control {
             width: 100% !important;
+            max-width: 100% !important;
+        }
+
+        .setting-field .select2-container .select2-selection--single,
+        .setting-field .select2-container .select2-selection--multiple {
+            max-width: 100%;
+        }
+
+        .setting-field .select2-container .select2-selection__rendered {
+            display: block;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .approval-options {

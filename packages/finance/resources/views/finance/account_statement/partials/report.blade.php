@@ -126,7 +126,7 @@
 <div class="statement-report {{ $isPrint ? 'statement-report--print' : '' }}">
     <div class="statement-report-top">
         <div class="statement-report-heading">
-            <span class="statement-report-tag">{{ __('finance::finance.account-statement') }}</span>
+            <span class="statement-report-tag">{{ $reportTitle ?? __('finance::finance.account-statement') }}</span>
             <h2>{{ $accountName ?: 'اختر حسابًا لعرض كشفه' }}</h2>
             <p>
                 @if ($hasData)

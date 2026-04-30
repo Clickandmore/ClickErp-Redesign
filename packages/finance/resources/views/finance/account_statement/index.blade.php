@@ -1,5 +1,11 @@
 @extends('click.layout.indexs.index')
 
+@php
+    $statementRoute = $statementRoute ?? route('finance.account-statement.index');
+    $printRoute = $printRoute ?? route('finance.account-statement-print.index');
+    $printPermission = $printPermission ?? 'finance::finance.account-statement-print-read';
+@endphp
+
 @section('style')
     <style>
         :root {
@@ -740,9 +746,9 @@
 
                 <div class="statement-action-buttons">
                     {!! printButton(
-                        route('finance.account-statement-print.index', array_merge(request()->all(), ['autoprint' => 1])),
+                        $printRoute . '?' . http_build_query(array_merge(request()->all(), ['autoprint' => 1])),
                         null,
-                        'finance::finance.account-statement-print-read',
+                        $printPermission,
                     ) !!}
                     <button type="button" id="toExcel" class="btn btn-info">
                         <i class="fa fa-file-excel-o"></i>
@@ -762,7 +768,8 @@
 
         const filtersContainer = $('#accountStatementFilters');
         const printButton = $('#print_button');
-        const printBaseUrl = @json(route('finance.account-statement-print.index'));
+        const statementBaseUrl = @json($statementRoute);
+        const printBaseUrl = @json($printRoute);
         const resultsContainer = $('#account_list');
 
         function updatePrintHref() {
@@ -788,7 +795,7 @@
             const data = filtersContainer.find('.search_keys').serialize();
 
             $.ajax({
-                url: '{{ route('finance.account-statement.index') }}',
+                url: statementBaseUrl,
                 type: 'GET',
                 data: data,
                 beforeSend: function() {

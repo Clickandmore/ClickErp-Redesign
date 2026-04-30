@@ -10,6 +10,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Nami\Finance\Enums\AccountTypesEnum;
+use Nami\Finance\Services\AccountService;
 use Nami\Finance\Services\ConstraintService as ObjService;
 use Throwable;
 
@@ -26,25 +27,57 @@ class AccountStatementClientController extends Controller
      * @throws Exception
      */
 
-    public function index(Request $request, ObjService $service)
+    public function index(Request $request, ObjService $service, AccountService $accountService)
     {
-        $dataSearch = $request->only($this->getData);
+        $dataSearch = array_merge([
+            'from_date' => '',
+            'to_date' => now()->format('Y-m-d'),
+            'type' => 'both',
+            'account_id' => '',
+            'other_account' => 'yes',
+        ], $request->only($this->getData));
+
         if ($request->ajax()) {
-            $data = $service->filterAccount($dataSearch);
-            $firstBalance  = $service->getFirstBalance($dataSearch);
-            $otherAccount = ($dataSearch["other_account"] == "yes") ? $service->filterConstraints($dataSearch) : [];
-            $returnHTML = view($this->folderPath . ".result")->with([
+            $data = collect();
+            $firstBalance = null;
+            $otherAccount = [];
+            $selectedAccount = null;
+
+            if (!empty($dataSearch['account_id'])) {
+                $data = $service->filterAccount($dataSearch);
+                $firstBalance = $service->getFirstBalance($dataSearch);
+                $otherAccount = ($dataSearch["other_account"] == "yes") ? $service->filterConstraints($dataSearch) : [];
+                $selectedAccount = $accountService->find($dataSearch['account_id']);
+            }
+
+            $hasOpeningBalance = abs((float) ($firstBalance->sum_debtor_value ?? 0)) > 0.01
+                || abs((float) ($firstBalance->sum_creditor_value ?? 0)) > 0.01;
+
+            $returnHTML = view("finance::finance.account_statement.result")->with([
                 "data" => $data,
                 "firstBalance" => $firstBalance,
                 "otherAccount" => $otherAccount,
                 "show_other_account" => $dataSearch["other_account"],
+                "accountName" => $selectedAccount->name ?? null,
+                "filters" => $dataSearch,
+                "reportTitle" => __("finance::finance.account-statement-clients"),
             ])->render();
-            return jsonSuccess(["html" => $returnHTML,'count'=>$data->count()]);
+
+            return jsonSuccess([
+                "html" => $returnHTML,
+                "count" => ($data->count() > 0 || $hasOpeningBalance) ? 1 : 0,
+            ]);
         }
+
         $data["accounts"] = $service->getAccounts(AccountTypesEnum::Client->value);
         $data["ajaxRoute"] = route($this->mainRoute . ".index");
-        $data["bladeTitle"] = __("finance::finance.cash-movement");
-        return view($this->folderPath . '.index', $data);
+        $data["bladeTitle"] = __("finance::finance.account-statement-clients");
+        $data["filters"] = $dataSearch;
+        $data["statementRoute"] = route($this->mainRoute . ".index");
+        $data["printRoute"] = route("finance.account-statement-clients-print.index");
+        $data["printPermission"] = "finance::finance.account-statement-clients-print-read";
+
+        return view('finance::finance.account_statement.index', $data);
     }
 
     /**

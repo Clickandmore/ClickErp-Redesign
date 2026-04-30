@@ -35,19 +35,15 @@
                 <div class="col-12">
                     <div class="card">
                         <div class="card-body">
-                            <h5 class="card-title">
+                            <h5 class="card-title mb-2">
                                 {{ helperTrans('ingaz.quick_create_contract') }}
                             </h5>
-                            <p class="card-text">{{ helperTrans('ingaz.create_completed_contract_description') }}</p>
+                            <p class="card-text mb-3">إضافة عقد مكتمل مختصر ثم توجيهه مباشرة إلى الإيواء.</p>
                             <div class="d-flex gap-2">
-                                {{-- <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createContractModal">
-                                <i class="fas fa-plus me-1"></i>
-                                {{helperTrans("ingaz.create_completed_contract")}}
-                            </button> --}}
-                                <a href="{{ route('Contract.createCompletedPage') }}" class="btn btn-primary">
-                                    <i class="fas fa-external-link-alt me-1"></i>
+                                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createContractModal">
+                                    <i class="fas fa-plus me-1"></i>
                                     {{ helperTrans('ingaz.add_completed_contract') }}
-                                </a>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -72,9 +68,22 @@
                         </option>
                         @foreach ($contracts ?? [] as $contract)
                             @php
+                                $maidName = optional($contract->info)->manual_maid_name ?: ($contract->maid->name ?? '');
+                                $passportNumber = optional($contract->info)->manual_maid_passport_num ?: ($contract->maid->passport_num ?? '');
+                                $clientName = $contract->user->name ?? '';
+                                $clientNationalId = $contract->user->national_num ?? '';
+                                $arrivalDate = optional($contract->info)->arrival_date
+                                    ?: optional($contract->maid)->arrival_date
+                                    ?: optional($contract->travelHistory)->arrival_date
+                                    ?: '';
+                                if ($arrivalDate instanceof \Carbon\CarbonInterface) {
+                                    $arrivalDate = $arrivalDate->format('Y-m-d');
+                                }
                                 $warrantyStatus = '';
                                 if ($contract->status === \App\Enums\ingaz\ContractStatusEnum::Completed->value) {
                                     $warrantyStatus = ' (مكتمل)';
+                                } elseif ($contract->status === \App\Enums\ingaz\ContractStatusEnum::Arrival->value) {
+                                    $warrantyStatus = ' (مرحلة الوصول)';
                                 } elseif (
                                     $contract->status === \App\Enums\ingaz\ContractStatusEnum::UnderWarranty->value
                                 ) {
@@ -84,23 +93,31 @@
                                 }
                             @endphp
                             <option value="{{ $contract->id }}"
-                                data-passport="{{ $contract->maid ? $contract->maid->passport_num : '' }}"
-                                data-passport-snapshot="{{ optional($contract->info)->passport_number_snapshot ?? ($contract->maid->passport_num ?? '') }}"
-                                data-maid-name="{{ $contract->maid ? $contract->maid->name : '' }}"
-                                data-maid-name-snapshot="{{ optional($contract->info)->worker_name_snapshot ?? ($contract->maid->name ?? '') }}"
-                                data-maid-nationality="{{ $contract->maid && $contract->maid->nationality ? $contract->maid->nationality->name_ar : '' }}"
-                                data-client-name="{{ optional($contract->info)->client_name_snapshot ?? ($contract->user->name ?? '') }}"
-                                data-client-national-id="{{ optional($contract->info)->client_national_id ?? ($contract->user->national_num ?? '') }}"
+                                data-passport="{{ $passportNumber }}"
+                                data-passport-snapshot="{{ $passportNumber }}"
+                                data-maid-name="{{ $maidName }}"
+                                data-maid-name-snapshot="{{ $maidName }}"
+                                data-maid-nationality="{{ $contract->maid?->nationality_id ?? '' }}"
+                                data-client-name="{{ $clientName }}"
+                                data-client-national-id="{{ $clientNationalId }}"
                                 data-sponsorship-price="{{ optional($contract->info)->sponsorship_price }}"
-                                data-receipt-date="{{ optional($contract->info)->receipt_form_date ?? (optional($contract->info)->arrival_date ?? ($contract->contract_date ?? '')) }}"
+                                data-receipt-date="{{ optional($contract->info)->receipt_form_date ?? ($arrivalDate ?: ($contract->contract_date ?? '')) }}"
                                 data-receipt-text="{{ optional($contract->info)->receipt_form_text }}"
                                 data-has-residency="{{ optional($contract->info)->workers_have_residency }}"
                                 data-medical-exam="{{ optional($contract->info)->performing_medical_examination }}"
                                 data-service-type="{{ optional($contract->info)->worker_service_type }}"
+                                data-arrival-date="{{ $arrivalDate }}"
                                 data-status="{{ $contract->status }}"
                                 {{ $selectedContractId == $contract->id ? 'selected' : '' }}>
-                                {{ $contract->desc }}{{ $warrantyStatus }} @if ($contract->maid && $contract->maid->passport_num)
-                                    - {{ $contract->maid->passport_num }}
+                                {{ $contract->desc }}{{ $warrantyStatus }}
+                                @if ($maidName)
+                                    - {{ $maidName }}
+                                @endif
+                                @if ($passportNumber)
+                                    - {{ $passportNumber }}
+                                @endif
+                                @if ($clientNationalId)
+                                    - {{ $clientNationalId }}
                                 @endif
                             </option>
                         @endforeach
@@ -159,7 +176,7 @@
                 </div>
                 <div class="col-4 mt-4">
                     <label for="TextInput" class="form-label">{{ helperTrans('ingaz.salary_final_status') }}</label>
-                    <select name="salary_final_status" class="form-select form-control select2" data-validation="required">
+                    <select name="salary_final_status" class="form-select form-control select2">
                         <option disabled
                             {{ old('salary_final_status', optional($editingInfo)->salary_final_status) ? '' : 'selected' }}>
                             {{ helperTrans('ingaz.choose') }}
@@ -176,7 +193,7 @@
                 </div>
                 <div class="col-4 mt-4">
                     <label for="TextInput" class="form-label">{{ helperTrans('ingaz.work_willingness') }}</label>
-                    <select name="wants_to_work" class="form-select form-control select2" data-validation="required">
+                    <select name="wants_to_work" class="form-select form-control select2">
                         <option disabled {{ old('wants_to_work', optional($editingInfo)->wants_to_work) ? '' : 'selected' }}>
                             {{ helperTrans('ingaz.choose') }}
                         </option>
@@ -198,7 +215,7 @@
                 <div class="col-4 mt-4">
                     <label class="form-label">هل العاملة لديها اقامة؟</label>
                     <select name="workers_have_residency" id="workers_have_residency"
-                        class="form-select form-control select2" data-validation="required">
+                        class="form-select form-control select2">
                         <option disabled {{ old('workers_have_residency', optional($editingInfo)->workers_have_residency) ? '' : 'selected' }}>
                             {{ helperTrans('ingaz.choose') }}</option>
                         <option value="yes"
@@ -215,7 +232,7 @@
                 <div class="col-4 mt-4">
                     <label class="form-label">هل تم عمل الفحص الطبي؟</label>
                     <select name="performing_medical_examination" id="performing_medical_examination"
-                        class="form-select form-control select2" data-validation="required">
+                        class="form-select form-control select2">
                         <option disabled
                             {{ old('performing_medical_examination', optional($editingInfo)->performing_medical_examination) ? '' : 'selected' }}>
                             {{ helperTrans('ingaz.choose') }}</option>
@@ -227,22 +244,6 @@
                             {{ old('performing_medical_examination', optional($editingInfo)->performing_medical_examination) === 'no' ? 'selected' : '' }}>
                             لا
                         </option>
-                    </select>
-                </div>
-
-                <div class="col-4 mt-4">
-                    <label class="form-label">هل العاملة للتسفير ام لنقل الخدمات؟</label>
-                    <select name="worker_service_type" id="worker_service_type" class="form-select form-control select2"
-                        data-validation="required">
-                        <option disabled
-                            {{ old('worker_service_type', optional($editingInfo)->worker_service_type) ? '' : 'selected' }}>
-                            {{ helperTrans('ingaz.choose') }}</option>
-                        <option value="deportation"
-                            {{ old('worker_service_type', optional($editingInfo)->worker_service_type) === 'deportation' ? 'selected' : '' }}>
-                            التسفير</option>
-                        <option value="transfer"
-                            {{ old('worker_service_type', optional($editingInfo)->worker_service_type) === 'transfer' ? 'selected' : '' }}>
-                            نقل خدمات</option>
                     </select>
                 </div>
 
@@ -283,10 +284,15 @@
 
                 <div class="col-12 mt-4">
                     <div class="card border-secondary">
-                        <div class="card-header bg-light">
+                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
                             <h6 class="mb-0">بيانات العميل (بيانات العميل للقراءة فقط)</h6>
+                            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse"
+                                data-bs-target="#clientSnapshotCollapse" aria-expanded="false"
+                                aria-controls="clientSnapshotCollapse">
+                                عرض/إخفاء
+                            </button>
                         </div>
-                        <div class="card-body">
+                        <div class="card-body collapse" id="clientSnapshotCollapse">
                             <div class="row g-3">
                                 <div class="col-md-6 col-lg-3">
                                     <label class="form-label">اسم العميل</label>
@@ -346,8 +352,24 @@
                 </div>
 
                 <div class="col-12 mt-4">
-                    <label class="form-label">نص النموذج</label>
-                    <textarea name="receipt_form_text" id="receipt_form_text" rows="8" class="form-control">{{ old('receipt_form_text', optional($editingInfo)->receipt_form_text ?: $defaultReceiptText) }}</textarea>
+                    <div class="card border-secondary">
+                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">نص النموذج</h6>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-sm btn-outline-primary" type="button" id="printReceiptFormBtn">
+                                    <i class="fas fa-print me-1"></i>طباعة
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse"
+                                    data-bs-target="#receiptFormTextCollapse" aria-expanded="false"
+                                    aria-controls="receiptFormTextCollapse">
+                                    عرض/إخفاء
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body collapse" id="receiptFormTextCollapse">
+                            <textarea name="receipt_form_text" id="receipt_form_text" rows="8" class="form-control">{{ old('receipt_form_text', optional($editingInfo)->receipt_form_text ?: $defaultReceiptText) }}</textarea>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="col-12 mt-4">
@@ -418,221 +440,100 @@
                     <div class="modal-body">
                         <form id="createContractForm">
                             @csrf
-                            <div class="row">
-                            <!-- نوع العميل -->
-                            <div class="col-12 mb-3">
-                                <div class="card border-primary">
-                                    <div class="card-header bg-primary text-white">
-                                        <h6 class="mb-0"><i
-                                                class="fas fa-user me-2"></i>{{ helperTrans('ingaz.client_type') }}</h6>
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label class="form-label d-block">العميل</label>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="client_type" id="existing_client" value="existing" checked>
+                                        <label class="form-check-label" for="existing_client">اختيار عميل</label>
                                     </div>
-                                    <div class="card-body">
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="client_type"
-                                                id="existing_client" value="existing" checked>
-                                            <label class="form-check-label" for="existing_client">
-                                                <i
-                                                    class="fas fa-user-check me-1"></i>{{ helperTrans('ingaz.existing_client') }}
-                                            </label>
-                                        </div>
-                                        <div class="form-check form-check-inline">
-                                            <input class="form-check-input" type="radio" name="client_type"
-                                                id="new_client" value="new">
-                                            <label class="form-check-label" for="new_client">
-                                                <i class="fas fa-user-plus me-1"></i>{{ helperTrans('ingaz.new_client') }}
-                                            </label>
-                                        </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="client_type" id="new_client" value="new">
+                                        <label class="form-check-label" for="new_client">إضافة عميل</label>
                                     </div>
                                 </div>
-                            </div>
+                                <div id="existing_client_section" class="col-12">
+                                    <select name="existing_client_id" id="existing_client_id" class="form-select select2-ajax-client" style="width:100%"></select>
+                                </div>
+                                <div class="col-md-6 new-client-field" style="display:none;">
+                                    <label class="form-label">اسم العميل *</label>
+                                    <input type="text" name="client_name" class="form-control">
+                                </div>
+                                <div class="col-md-6 new-client-field" style="display:none;">
+                                    <label class="form-label">جوال العميل *</label>
+                                    <input type="tel" name="client_phone" class="form-control">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">رقم هوية العميل</label>
+                                    <input type="text" name="client_national_num" id="client_national_num" class="form-control">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">تاريخ ميلاد العميل</label>
+                                    <input type="date" name="client_birthdate" id="client_birthdate" class="form-control">
+                                </div>
+                                <div class="col-12 new-client-field" style="display:none;">
+                                    <label class="form-label">العنوان</label>
+                                    <textarea name="address" class="form-control" rows="2"></textarea>
+                                </div>
 
-                            <!-- اختيار عميل موجود -->
-                            <div id="existing_client_section" class="col-12 mb-3">
-                                <label class="form-label">{{ helperTrans('ingaz.select_existing_client') }} *</label>
-                                <select name="existing_client_id" id="existing_client_id"
-                                    class="form-select select2-ajax-client" style="width:100%"></select>
-                            </div>
-
-                            <!-- معلومات العميل الجديد -->
-                            <div id="new_client_section" class="col-12 mb-3" style="display: none;">
-                                <h6>{{ helperTrans('ingaz.client_information') }}</h6>
-                            </div>
-
-                            <div class="col-6 new-client-field" style="display: none;">
-                                <label class="form-label">{{ helperTrans('ingaz.client_name') }} *</label>
-                                <input type="text" name="client_name" class="form-control">
-                            </div>
-
-                            <div class="col-6 new-client-field" style="display: none;">
-                                <label class="form-label">{{ helperTrans('ingaz.client_phone') }} *</label>
-                                <input type="tel" name="client_phone" class="form-control">
-                            </div>
-
-                            <div class="col-6 new-client-field" style="display: none;">
-                                <label class="form-label">{{ helperTrans('ingaz.email') }}</label>
-                                <input type="email" name="client_email" class="form-control">
-                            </div>
-
-                            <div class="col-6 new-client-field" style="display: none;">
-                                <label class="form-label">{{ helperTrans('ingaz.nationality') }}</label>
-                                <select name="client_nationality_id" class="form-select">
-                                    <option value="">{{ helperTrans('ingaz.choose') }}</option>
-                                    @foreach (\App\Models\ingaz\Nationality::all() as $nationality)
-                                        <option value="{{ $nationality->id }}">{{ $nationality->name_ar }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-
-                            <div class="col-6 new-client-field" style="display: none;">
-                                <label class="form-label">{{ helperTrans('ingaz.national_num') }}</label>
-                                <input type="text" name="client_national_num" id="client_national_num"
-                                    class="form-control">
-                            </div>
-
-                            <div class="col-6 new-client-field" style="display: none;">
-                                <label class="form-label">{{ helperTrans('ingaz.birthdate') }}</label>
-                                <input type="date" name="client_birthdate" id="client_birthdate"
-                                    class="form-control">
-                            </div>
-
-                            <div class="col-6 new-client-field" style="display: none;">
-                                <label class="form-label">{{ helperTrans('ingaz.city') }}</label>
-                                <input type="text" name="city" class="form-control">
-                            </div>
-
-                            <div class="col-12 new-client-field" style="display: none;">
-                                <label class="form-label">{{ helperTrans('ingaz.address') }}</label>
-                                <textarea name="address" class="form-control" rows="2"></textarea>
-                            </div>
-
-                            <!-- معلومات العاملة -->
-                            <div class="col-12 mb-3 mt-3">
-                                <div class="card border-info">
-                                    <div class="card-header bg-info text-white">
-                                        <h6 class="mb-0"><i
-                                                class="fas fa-user-tie me-2"></i>{{ helperTrans('ingaz.maid_information') }}
-                                        </h6>
+                                <div class="col-12 border-top pt-3">
+                                    <label class="form-label d-block">العاملة</label>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="maid_type" id="existing_maid" value="existing" checked>
+                                        <label class="form-check-label" for="existing_maid">اختيار عاملة</label>
                                     </div>
-                                    <div class="card-body">
-                                        <div class="row">
-                                            <div class="col-6">
-                                                <label class="form-label">{{ helperTrans('ingaz.maid') }} *</label>
-                                                <select name="maid_id" id="maid_id"
-                                                    class="form-select select2-ajax-maid" required
-                                                    style="width:100%"></select>
-                                            </div>
-                                        </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" type="radio" name="maid_type" id="new_maid" value="new">
+                                        <label class="form-check-label" for="new_maid">إضافة عاملة</label>
                                     </div>
                                 </div>
-                            </div>
-
-                            <!-- البحث عن العاملة -->
-                            <div class="col-12 mb-3">
-                                <label class="form-label">{{ helperTrans('ingaz.search_maid') }}</label>
-                                <div class="input-group">
-                                    <input type="text" id="maid_search" class="form-control"
-                                        placeholder="{{ helperTrans('ingaz.enter_passport_or_name') }}">
-                                    <button type="button" class="btn btn-outline-secondary" id="search_maid_btn">
-                                        <i class="fa fa-search"></i> {{ helperTrans('ingaz.search') }}
-                                    </button>
-                                    <button type="button" class="btn btn-outline-secondary" id="clear_maid_search">
-                                        <i class="fa fa-times"></i> {{ helperTrans('ingaz.clear') }}
-                                    </button>
+                                <div id="existing_maid_section" class="col-12">
+                                    <select name="maid_id" id="maid_id" class="form-select select2-ajax-maid" style="width:100%"></select>
                                 </div>
-                            </div>
-
-                            <!-- تفاصيل العاملة المختارة -->
-                            <div id="maid_details" class="col-12 mb-3" style="display: none;">
-                                <div class="card border-success">
-                                    <div class="card-header bg-success text-white">
-                                        <h6 class="mb-0"><i
-                                                class="fas fa-info-circle me-2"></i>{{ helperTrans('ingaz.selected_maid_details') }}
-                                        </h6>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="row">
-                                            <div class="col-md-4 col-sm-6 mb-2">
-                                                <strong class="text-primary">{{ helperTrans('ingaz.name') }}:</strong>
-                                                <span id="maid_name_display" class="ms-2"></span>
-                                            </div>
-                                            <div class="col-md-4 col-sm-6 mb-2">
-                                                <strong
-                                                    class="text-primary">{{ helperTrans('ingaz.passport_num') }}:</strong>
-                                                <span id="maid_passport_display" class="ms-2"></span>
-                                            </div>
-                                            <div class="col-md-4 col-sm-6 mb-2">
-                                                <strong
-                                                    class="text-primary">{{ helperTrans('ingaz.nationality') }}:</strong>
-                                                <span id="maid_nationality_display" class="ms-2"></span>
-                                            </div>
-                                            <div class="col-md-4 col-sm-6 mb-2">
-                                                <strong class="text-primary">{{ helperTrans('ingaz.age') }}:</strong>
-                                                <span id="maid_age_display" class="ms-2"></span>
-                                            </div>
-                                            <div class="col-md-4 col-sm-6 mb-2">
-                                                <strong class="text-primary">{{ helperTrans('ingaz.salary') }}:</strong>
-                                                <span id="maid_salary_display" class="ms-2"></span>
-                                            </div>
-                                            <div class="col-md-4 col-sm-6 mb-2">
-                                                <strong
-                                                    class="text-primary">{{ helperTrans('ingaz.experience_years') }}:</strong>
-                                                <span id="maid_experience_display" class="ms-2"></span>
-                                            </div>
-                                        </div>
-                                    </div>
+                                <div class="col-md-6 new-maid-field" style="display:none;">
+                                    <label class="form-label">اسم العاملة *</label>
+                                    <input type="text" name="new_maid_name" class="form-control">
                                 </div>
-                            </div>
-
-                            <!-- معلومات العقد -->
-                            <div class="col-12 mb-3 mt-3">
-                                <div class="card border-warning">
-                                    <div class="card-header bg-warning text-dark">
-                                        <h6 class="mb-0"><i
-                                                class="fas fa-file-contract me-2"></i>{{ helperTrans('ingaz.contract_information') }}
-                                        </h6>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="row">
-                                            <div class="col-6">
-                                                <label class="form-label">{{ helperTrans('ingaz.contract_date') }}
-                                                    *</label>
-                                                <input type="date" name="contract_date" class="form-control" required>
-                                            </div>
-
-                                            <div class="col-6">
-                                                <label class="form-label">{{ helperTrans('ingaz.contract_duration') }}
-                                                    *</label>
-                                                <input type="number" name="contract_duration" class="form-control"
-                                                    placeholder="{{ helperTrans('ingaz.in_months') }}" required>
-                                            </div>
-
-                                            <div class="col-6">
-                                                <label class="form-label">{{ helperTrans('ingaz.visa_number') }}
-                                                    *</label>
-                                                <input type="text" name="visa_number" class="form-control" required>
-                                            </div>
-
-                                            <div class="col-6">
-                                                <label class="form-label">{{ helperTrans('ingaz.msaned_number') }}
-                                                    *</label>
-                                                <input type="text" name="msaned_number" class="form-control" required>
-                                            </div>
-
-                                            <div class="col-6">
-                                                <label
-                                                    class="form-label">{{ helperTrans('ingaz.tafwed_number') }}</label>
-                                                <input type="text" name="tafwed_number" class="form-control">
-                                            </div>
-
-                                            <div class="col-6">
-                                                <label
-                                                    class="form-label">{{ helperTrans('ingaz.visa_milad_date') }}</label>
-                                                <input type="date" name="visa_milad_date" class="form-control">
-                                            </div>
-                                        </div>
-                                    </div>
+                                <div class="col-md-6 new-maid-field" style="display:none;">
+                                    <label class="form-label">رقم الجواز *</label>
+                                    <input type="text" name="new_maid_passport" class="form-control">
                                 </div>
-                            </div>
+                                <div class="col-md-6 new-maid-field" style="display:none;">
+                                    <label class="form-label">الجنسية</label>
+                                    <select name="new_maid_nationality_id" class="form-select">
+                                        <option value="">{{ helperTrans('ingaz.choose') }}</option>
+                                        @foreach ($nationalities as $nationality)
+                                            <option value="{{ $nationality->id }}">
+                                                {{ $nationality->translations->where('locale', app()->getLocale())->first()?->title ?? $nationality->translations->first()?->title }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-md-3 new-maid-field" style="display:none;">
+                                    <label class="form-label">الراتب</label>
+                                    <input type="number" name="new_maid_salary" class="form-control" min="0" step="0.01">
+                                </div>
+                                <div class="col-md-3 new-maid-field" style="display:none;">
+                                    <label class="form-label">العمر</label>
+                                    <input type="number" name="new_maid_age" class="form-control" min="0" step="1">
+                                </div>
+
+                                <div class="col-md-4 border-top pt-3">
+                                    <label class="form-label">تاريخ العقد *</label>
+                                    <input type="date" name="contract_date" class="form-control" required>
+                                </div>
+                                <div class="col-md-4 border-top pt-3">
+                                    <label class="form-label">تاريخ الوصول *</label>
+                                    <input type="date" name="arrival_date" class="form-control" required>
+                                </div>
+                                <div class="col-md-4 border-top pt-3">
+                                    <label class="form-label">رقم التأشيرة *</label>
+                                    <input type="text" name="visa_number" class="form-control" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">رقم عقد مساند</label>
+                                    <input type="text" name="msaned_number" class="form-control">
+                                </div>
                             </div>
                         </form>
                     </div>
@@ -736,13 +637,27 @@
                             optionText += ' - ' + contract.passport_number;
                         }
 
-                        $select.append(
-                            '<option value="' + contract.id + '" ' +
-                            'data-passport="' + (contract.passport_number || '') + '" ' +
-                            'data-maid-name="' + (contract.maid_name || '') + '">' +
-                            optionText +
-                            '</option>'
-                        );
+                        $('<option>')
+                            .val(contract.id)
+                            .text(optionText)
+                            .attr({
+                                'data-passport': contract.passport_number || '',
+                                'data-passport-snapshot': contract.passport_snapshot || contract.passport_number || '',
+                                'data-maid-name': contract.maid_name || '',
+                                'data-maid-name-snapshot': contract.maid_name_snapshot || contract.maid_name || '',
+                                'data-maid-nationality': contract.maid_nationality_snapshot || '',
+                                'data-client-name': contract.client_name || '',
+                                'data-client-national-id': contract.client_national_id || '',
+                                'data-sponsorship-price': contract.sponsorship_price || '',
+                                'data-receipt-date': contract.receipt_date || '',
+                                'data-receipt-text': contract.receipt_text || '',
+                                'data-has-residency': contract.has_residency || '',
+                                'data-medical-exam': contract.medical_exam || '',
+                                'data-service-type': contract.service_type || '',
+                                'data-arrival-date': contract.arrival_date || '',
+                                'data-status': contract.status || ''
+                            })
+                            .appendTo($select);
                     });
                 }
 
@@ -790,9 +705,16 @@
                 console.log('تم اختيار العقد:', contractId);
 
                 if (contractId) {
+                    const selectedOption = $(this).find('option:selected');
+                    const selectedArrivalDate = selectedOption.data('arrivalDate');
+                    if (selectedArrivalDate) {
+                        $('#arrival_date').val(selectedArrivalDate);
+                        calculateDurationFromArrivalDate(selectedArrivalDate);
+                    }
+
                     // البحث عن العقد في البيانات المتاحة
                     @foreach ($contracts as $contract)
-                        if ({{ $contract->id }} == contractId) {
+                        if (!selectedArrivalDate && {{ $contract->id }} == contractId) {
                             @if ($contract->info && $contract->info->arrival_date)
                                 $('#arrival_date').val('{{ $contract->info->arrival_date }}');
                                 console.log('تم ملء تاريخ الوصول: {{ $contract->info->arrival_date }}');
@@ -1008,6 +930,39 @@
     </script>
 
     <script>
+        $(document).on('click', '#printReceiptFormBtn', function() {
+            const receiptText = $('<div>').text($('#receipt_form_text').val() || '').html().replace(/\n/g, '<br>');
+            const printWindow = window.open('', '_blank', 'width=900,height=700');
+            if (!printWindow) {
+                return;
+            }
+
+            const printHtml = ''
+                + '\x3C!doctype html>'
+                + '\x3Chtml dir="rtl" lang="ar">'
+                + '\x3Chead>'
+                + '\x3Cmeta charset="UTF-8">'
+                + '\x3Ctitle>نموذج الإيواء\x3C/title>'
+                + '\x3Cstyle>'
+                + 'body{font-family:Tahoma,Arial,sans-serif;padding:32px;line-height:2;color:#111;}'
+                + 'h1{font-size:22px;margin:0 0 24px;text-align:center;}'
+                + '.content{font-size:16px;white-space:normal;}'
+                + '\x3C/style>'
+                + '\x3C/head>'
+                + '\x3Cbody>'
+                + '\x3Ch1>نموذج الإيواء\x3C/h1>'
+                + '\x3Cdiv class="content">' + receiptText + '\x3C/div>'
+                + '\x3C/body>'
+                + '\x3C/html>';
+
+            printWindow.document.write(printHtml);
+            printWindow.document.close();
+            printWindow.focus();
+            printWindow.print();
+        });
+    </script>
+
+    <script>
         // إنشاء عقد جديد
         $(document).ready(function() {
             // تهيئة Select2 العادية للحقول الأخرى
@@ -1023,6 +978,10 @@
                     // جلب بيانات العقد من الخيار المحدد
                     let selectedOption = $(this).find('option:selected');
                     let contractData = selectedOption.data();
+                    if (contractData.arrivalDate) {
+                        $('#arrival_date').val(contractData.arrivalDate);
+                        return;
+                    }
 
                     // البحث عن العقد في البيانات المتاحة
                     @foreach ($contracts as $contract)
@@ -1090,12 +1049,11 @@
                     },
                     processResults: function(data) {
                         return {
-                            results: data.maids.map(function(maid) {
+                            results: (data.maids || []).map(function(item) {
                                 return {
-                                    id: maid.id,
-                                    text: maid.name + ' - ' + maid.passport_num + (maid
-                                        .nationality ? ' - ' + maid.nationality : ''),
-                                    maid: maid
+                                    id: item.id,
+                                    text: item.text,
+                                    maid: item.maid || item
                                 };
                             })
                         };
@@ -1203,13 +1161,11 @@
                         },
                         processResults: function(data) {
                             return {
-                                results: data.maids.map(function(maid) {
+                                results: (data.maids || []).map(function(item) {
                                     return {
-                                        id: maid.id,
-                                        text: maid.name + ' - ' + maid.passport_num + (
-                                            maid.nationality ? ' - ' + maid
-                                            .nationality : ''),
-                                        maid: maid
+                                        id: item.id,
+                                        text: item.text,
+                                        maid: item.maid || item
                                     };
                                 })
                             };
@@ -1227,22 +1183,37 @@
                 if (clientType === 'existing') {
                     $('#existing_client_section').show();
                     $('.new-client-field').hide();
-                    $('#new_client_section').hide();
 
                     // إزالة required من حقول العميل الجديد
                     $('.new-client-field input, .new-client-field select').prop('required', false);
-                    $('#existing_client_id').prop('required', true);
+                    $('#existing_client_id').prop('required', false);
                 } else {
                     $('#existing_client_section').hide();
                     $('.new-client-field').show();
-                    $('#new_client_section').show();
 
                     // إضافة required لحقول العميل الجديد
                     $('.new-client-field input[name="client_name"], .new-client-field input[name="client_phone"]')
                         .prop('required', true);
                     $('#existing_client_id').prop('required', false);
                 }
-            });
+            }).filter(':checked').trigger('change');
+
+            $('input[name="maid_type"]').on('change', function() {
+                let maidType = $(this).val();
+
+                if (maidType === 'existing') {
+                    $('#existing_maid_section').show();
+                    $('.new-maid-field').hide();
+                    $('.new-maid-field input, .new-maid-field select').prop('required', false);
+                    $('#maid_id').prop('required', false);
+                } else {
+                    $('#existing_maid_section').hide();
+                    $('.new-maid-field').show();
+                    $('.new-maid-field input[name="new_maid_name"], .new-maid-field input[name="new_maid_passport"]')
+                        .prop('required', true);
+                    $('#maid_id').prop('required', false);
+                }
+            }).filter(':checked').trigger('change');
 
             // البحث عن العاملة
             $('#search_maid_btn').on('click', function() {
@@ -1308,7 +1279,8 @@
                 if (maids.length === 0) {
                     $select.append('<option disabled>{{ helperTrans('ingaz.no_maids_found') }}</option>');
                 } else {
-                    maids.forEach(function(maid) {
+                    maids.forEach(function(item) {
+                        let maid = item.maid || item;
                         let optionText = maid.name + ' - ' + maid.passport_num;
                         if (maid.nationality) {
                             optionText += ' - ' + maid.nationality;
@@ -1375,6 +1347,17 @@
                     return;
                 }
 
+                let maidType = $('input[name="maid_type"]:checked').val();
+                if (maidType === 'existing' && !$('#maid_id').val()) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: '{{ helperTrans('ingaz.error') }}',
+                        text: '{{ helperTrans('ingaz.please_select_maid') }}',
+                        confirmButtonText: '{{ helperTrans('ingaz.ok') }}'
+                    });
+                    return;
+                }
+
                 // إظهار spinner
                 button.prop('disabled', true);
                 spinner.removeClass('d-none');
@@ -1391,35 +1374,15 @@
                     },
                     success: function(response) {
                         if (response.success) {
-                            // إضافة العقد الجديد إلى القائمة
-                            let newOption = new Option(
-                                response.contract.desc + ' - ' + response.contract.maid
-                                .passport_num,
-                                response.contract.id,
-                                true,
-                                true
-                            );
-                            $('#contract_id').append(newOption).trigger('change');
-
-                            // إغلاق modal
                             $('#createContractModal').modal('hide');
-
-                            // إظهار رسالة نجاح
                             Swal.fire({
                                 icon: 'success',
                                 title: '{{ helperTrans('ingaz.success') }}',
                                 text: response.message,
                                 confirmButtonText: '{{ helperTrans('ingaz.ok') }}'
+                            }).then(function() {
+                                window.location.href = response.redirect_url || '{{ route('ShelterContract.create') }}';
                             });
-
-                            // إعادة تعيين النموذج
-                            form[0].reset();
-                            $('#maid_details').hide();
-                            $('.new-client-field').hide();
-                            $('#existing_client_section').show();
-                            $('#new_client_section').hide();
-                            $('input[name="client_type"][value="existing"]').prop('checked',
-                                true);
                         } else {
                             Swal.fire({
                                 icon: 'error',
@@ -1456,11 +1419,12 @@
                 $('#createContractForm')[0].reset();
                 $('#maid_details').hide();
                 $('.new-client-field').hide();
+                $('.new-maid-field').hide();
                 $('#existing_client_section').show();
-                $('#new_client_section').hide();
+                $('#existing_maid_section').show();
                 $('input[name="client_type"][value="existing"]').prop('checked', true);
+                $('input[name="maid_type"][value="existing"]').prop('checked', true);
                 $('#maid_search').val('');
-                loadAllMaids();
             });
         });
     </script>

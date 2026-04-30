@@ -887,21 +887,83 @@ class ShelterContractController extends Controller
         return $translation?->title ?: 'غير محدد';
     }
 
+    private function shelterSelectableContractsQuery()
+    {
+        return Contract::query()
+            ->whereIn('status', [
+                ContractStatusEnum::Arrival->value,
+                ContractStatusEnum::Completed->value,
+                ContractStatusEnum::UnderWarranty->value,
+                ContractStatusEnum::Closed->value,
+            ])
+            ->whereNotIn('status', [
+                ContractStatusEnum::Shelter->value,
+                ContractStatusEnum::Back->value,
+            ])
+            ->with(['maid.nationality.translations', 'info', 'user', 'travelHistory'])
+            ->latest();
+    }
+
+    private function formatShelterSelectableContract(Contract $contract): array
+    {
+        $maidName = optional($contract->info)->manual_maid_name ?: ($contract->maid->name ?? '');
+        $passportNumber = optional($contract->info)->manual_maid_passport_num ?: ($contract->maid->passport_num ?? '');
+        $nationality = $contract->maid && $contract->maid->nationality
+            ? ($contract->maid->nationality->translations->where('locale', app()->getLocale())->first()?->title
+                ?? $contract->maid->nationality->translations->first()?->title
+                ?? '')
+            : '';
+        $clientName = $contract->user->name ?? '';
+        $clientNationalId = $contract->user->national_num ?? '';
+        $arrivalDate = optional($contract->info)->arrival_date
+            ?: optional($contract->maid)->arrival_date
+            ?: optional($contract->travelHistory)->arrival_date;
+        if ($arrivalDate instanceof \Carbon\CarbonInterface) {
+            $arrivalDate = $arrivalDate->format('Y-m-d');
+        }
+
+        $statusLabel = match ($contract->status) {
+            ContractStatusEnum::Arrival->value => ' (مرحلة الوصول)',
+            ContractStatusEnum::Completed->value, ContractStatusEnum::Closed->value => ' (مكتمل)',
+            ContractStatusEnum::UnderWarranty->value => ' (تحت الضمان)',
+            default => '',
+        };
+
+        $searchParts = array_filter([
+            $contract->desc . $statusLabel,
+            $maidName,
+            $passportNumber,
+            $clientName,
+            $clientNationalId,
+        ]);
+
+        return [
+            'id' => $contract->id,
+            'desc' => implode(' - ', $searchParts),
+            'passport_number' => $passportNumber,
+            'maid_name' => $maidName,
+            'maid_name_snapshot' => $maidName,
+            'maid_nationality' => $nationality,
+            'maid_nationality_snapshot' => $contract->maid?->nationality_id ?? '',
+            'passport_snapshot' => $passportNumber,
+            'client_name' => $clientName,
+            'client_national_id' => $clientNationalId,
+            'sponsorship_price' => optional($contract->info)->sponsorship_price ?? '',
+            'receipt_date' => optional($contract->info)->receipt_form_date ?? $arrivalDate ?? ($contract->contract_date ?? ''),
+            'receipt_text' => optional($contract->info)->receipt_form_text ?? '',
+            'has_residency' => optional($contract->info)->workers_have_residency ?? '',
+            'medical_exam' => optional($contract->info)->performing_medical_examination ?? '',
+            'service_type' => optional($contract->info)->worker_service_type ?? '',
+            'arrival_date' => $arrivalDate,
+            'status' => $contract->status,
+        ];
+    }
+
     public function create()
     {
         $shelters = \App\Models\ShelterPlaces::latest()->get();
 
-        // جلب العقود المكتملة فقط (تشمل under_warranty و closed)
-        $contracts = Contract::whereIn('status', [
-            ContractStatusEnum::Completed->value,      // عقد مكتمل (جديد)
-            ContractStatusEnum::UnderWarranty->value,  // تحت الضمان (قديم)
-            ContractStatusEnum::Closed->value          // مكتمل (قديم)
-        ])
-            ->where('status', '!=', ContractStatusEnum::Shelter->value) // ليس في الإيواء
-            ->where('status', '!=', ContractStatusEnum::Back->value)    // ليس مسترجع
-            ->with(['maid.nationality', 'info', 'user'])
-            ->latest()
-            ->get();
+        $contracts = $this->shelterSelectableContractsQuery()->get();
 
         // Debug: Log contracts data
 
@@ -916,59 +978,39 @@ class ShelterContractController extends Controller
     }
 
     /**
-     * Search contracts by passport number
+     * Search contracts available for shelter by contract, client, worker, identity, or passport.
      */
     public function searchByPassport(Request $request)
     {
-        $passportNumber = $request->input('passport_number');
+        $searchTerm = trim((string) ($request->input('passport_number') ?: $request->input('search')));
 
-        if (empty($passportNumber)) {
+        if ($searchTerm === '') {
             return response()->json(['contracts' => []]);
         }
 
-        $contracts = Contract::whereIn('status', [
-            ContractStatusEnum::Completed->value,      // عقد مكتمل (جديد)
-            ContractStatusEnum::UnderWarranty->value,  // تحت الضمان (قديم)
-            ContractStatusEnum::Closed->value          // مكتمل (قديم)
-        ])
-            ->where('status', '!=', ContractStatusEnum::Shelter->value) // ليس في الإيواء
-            ->where('status', '!=', ContractStatusEnum::Back->value)    // ليس مسترجع
-            ->whereHas('maid', function ($query) use ($passportNumber) {
-                $query->where('passport_num', 'like', '%' . $passportNumber . '%');
+        $contracts = $this->shelterSelectableContractsQuery()
+            ->where(function ($query) use ($searchTerm) {
+                $query->where('id', 'like', '%' . $searchTerm . '%')
+                    ->orWhereHas('user', function ($userQuery) use ($searchTerm) {
+                        $userQuery->where('name', 'like', '%' . $searchTerm . '%')
+                            ->orWhere('national_num', 'like', '%' . $searchTerm . '%')
+                            ->orWhere('phone', 'like', '%' . $searchTerm . '%');
+                    })
+                    ->orWhereHas('maid', function ($maidQuery) use ($searchTerm) {
+                        $maidQuery->where('name', 'like', '%' . $searchTerm . '%')
+                            ->orWhere('passport_num', 'like', '%' . $searchTerm . '%');
+                    })
+                    ->orWhereHas('info', function ($infoQuery) use ($searchTerm) {
+                        $infoQuery->where('manual_maid_name', 'like', '%' . $searchTerm . '%')
+                            ->orWhere('manual_maid_passport_num', 'like', '%' . $searchTerm . '%')
+                            ->orWhere('visa_number', 'like', '%' . $searchTerm . '%')
+                            ->orWhere('msaned_number', 'like', '%' . $searchTerm . '%')
+                            ->orWhere('tafwed_number', 'like', '%' . $searchTerm . '%');
+                    });
             })
-            ->with(['maid.nationality', 'info', 'user'])
-            ->latest()
+            ->limit(50)
             ->get()
-            ->map(function ($contract) {
-                $warrantyStatus = '';
-                if ($contract->status === ContractStatusEnum::Completed->value) {
-                    $warrantyStatus = ' (مكتمل)';
-                } elseif ($contract->status === ContractStatusEnum::UnderWarranty->value) {
-                    $warrantyStatus = ' (تحت الضمان)';
-                } elseif ($contract->status === ContractStatusEnum::Closed->value) {
-                    $warrantyStatus = ' (مكتمل)';
-                }
-
-                return [
-                    'id' => $contract->id,
-                    'desc' => $contract->desc . $warrantyStatus,
-                    'passport_number' => $contract->maid ? $contract->maid->passport_num : '',
-                    'maid_name' => $contract->maid ? $contract->maid->name : '',
-                    'maid_name_snapshot' => optional($contract->info)->worker_name_snapshot ?? ($contract->maid->name ?? ''),
-                    'maid_nationality' => $contract->maid && $contract->maid->nationality ? $contract->maid->nationality->name_ar : '',
-                    'maid_nationality_snapshot' => optional($contract->info)->worker_nationality_snapshot ?? (($contract->maid && $contract->maid->nationality) ? $contract->maid->nationality->name_ar : ''),
-                    'passport_snapshot' => optional($contract->info)->passport_number_snapshot ?? ($contract->maid->passport_num ?? ''),
-                    'client_name' => optional($contract->info)->client_name_snapshot ?? ($contract->user->name ?? ''),
-                    'client_national_id' => optional($contract->info)->client_national_id ?? ($contract->user->national_num ?? ''),
-                    'sponsorship_price' => optional($contract->info)->sponsorship_price ?? '',
-                    'receipt_date' => optional($contract->info)->receipt_form_date ?? optional($contract->info)->arrival_date ?? ($contract->contract_date ?? ''),
-                    'receipt_text' => optional($contract->info)->receipt_form_text ?? '',
-                    'has_residency' => optional($contract->info)->workers_have_residency ?? '',
-                    'medical_exam' => optional($contract->info)->performing_medical_examination ?? '',
-                    'service_type' => optional($contract->info)->worker_service_type ?? '',
-                    'status' => $contract->status,
-                ];
-            });
+            ->map(fn ($contract) => $this->formatShelterSelectableContract($contract));
 
         return response()->json(['contracts' => $contracts]);
     }
@@ -976,7 +1018,8 @@ class ShelterContractController extends Controller
     public function store(ShelterContactStore $request)
     {
         $contract = Contract::with(['maid.nationality', 'user', 'info'])->find($request->contract_id);
-        $displayOnSite = $request->wants_to_work === 'yes' && $request->boolean('is_available_for_instant');
+        $wantsToWork = $request->input('wants_to_work') ?: 'unknown';
+        $displayOnSite = $wantsToWork === 'yes' && $request->boolean('is_available_for_instant');
         $existingAttachments = $contract->info ? ($contract->info->shelter_attachments ?? []) : [];
         $attachments = $this->prepareShelterAttachments($request, $existingAttachments);
 
@@ -986,7 +1029,7 @@ class ShelterContractController extends Controller
             'maid_date_back' => $request->maid_date_back,
             'salary_final_status' => $request->salary_final_status,
             'duration_from_enter' => $request->duration_from_enter,
-            'wants_to_work' => $request->wants_to_work,
+            'wants_to_work' => $wantsToWork,
             'back_reasons' => $request->back_reasons,
             'arrival_date' => $request->arrival_date,
             'is_available_for_instant' => $displayOnSite,
@@ -1091,15 +1134,15 @@ class ShelterContractController extends Controller
             'shelter_id' => 'required|exists:shelter_places,id',
             'receipt_source' => 'required|string',
             'maid_date_back' => 'required|date',
-            'salary_final_status' => 'required|in:received,not_received',
+            'salary_final_status' => 'nullable|in:received,not_received',
             'duration_from_enter' => 'required',
-            'wants_to_work' => 'required|in:yes,no,unknown',
-            'is_available_for_instant' => 'required|boolean',
+            'wants_to_work' => 'nullable|in:yes,no,unknown',
+            'is_available_for_instant' => 'nullable|boolean',
             'back_reasons' => 'nullable|string',
             'arrival_date' => 'required|date',
-            'workers_have_residency' => 'required|in:yes,no',
-            'performing_medical_examination' => 'required|in:yes,no',
-            'worker_service_type' => 'required|in:deportation,transfer',
+            'workers_have_residency' => 'nullable|in:yes,no',
+            'performing_medical_examination' => 'nullable|in:yes,no',
+            'worker_service_type' => 'nullable|in:deportation,transfer',
             'receipt_form_text' => 'nullable|string',
             'shelter_quick_tags' => 'nullable|string|max:1000',
             'attachments' => 'nullable|array',
@@ -1107,7 +1150,8 @@ class ShelterContractController extends Controller
         ]);
 
         $contract = Contract::with('maid')->findOrFail($id);
-        $displayOnSite = $request->wants_to_work === 'yes' && $request->boolean('is_available_for_instant');
+        $wantsToWork = $request->input('wants_to_work') ?: 'unknown';
+        $displayOnSite = $wantsToWork === 'yes' && $request->boolean('is_available_for_instant');
         // $existingAttachments = $contract->info ? ($contract->info->shelter_attachments ?? []) : [];
         $existingAttachments = $contract->info && $contract->info->shelter_attachments ?
             (
@@ -1124,7 +1168,7 @@ class ShelterContractController extends Controller
             'maid_date_back' => $request->maid_date_back,
             'salary_final_status' => $request->salary_final_status,
             'duration_from_enter' => $request->duration_from_enter,
-            'wants_to_work' => $request->wants_to_work,
+            'wants_to_work' => $wantsToWork,
             'is_available_for_instant' => $displayOnSite,
             'back_reasons' => $request->back_reasons,
             'arrival_date' => $request->arrival_date,

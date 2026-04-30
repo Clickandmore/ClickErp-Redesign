@@ -74,6 +74,21 @@ class RecruitmentTripAccountingService
             'created_external_office_cost_constraint' => false,
         ];
 
+        if ($invoice->arrival_revenue_constraint_id) {
+            $this->syncArrivalRevenueConstraintCostCenter(
+                (int) $invoice->arrival_revenue_constraint_id,
+                $costCenterId
+            );
+        }
+
+        if ($invoice->external_office_cost_constraint_id) {
+            $this->syncExternalOfficeCostConstraintCostCenter(
+                (int) $invoice->external_office_cost_constraint_id,
+                $nationalityName,
+                $costCenterId
+            );
+        }
+
         if (!$invoice->arrival_revenue_constraint_id) {
             $revenueConstraint = $this->findExistingConstraint(
                 $this->buildArrivalRevenueStatement($contract, $invoice),
@@ -94,6 +109,7 @@ class RecruitmentTripAccountingService
             }
 
             if ($revenueConstraint) {
+                $this->syncArrivalRevenueConstraintCostCenter($revenueConstraint->id, $costCenterId);
                 $invoice->arrival_revenue_constraint_id = $revenueConstraint->id;
                 $result['revenue_constraint_id'] = (int) $revenueConstraint->id;
             }
@@ -124,6 +140,11 @@ class RecruitmentTripAccountingService
             }
 
             if ($officeCostConstraint) {
+                $this->syncExternalOfficeCostConstraintCostCenter(
+                    $officeCostConstraint->id,
+                    $nationalityName,
+                    $costCenterId
+                );
                 $invoice->external_office_cost_constraint_id = $officeCostConstraint->id;
                 $result['external_office_cost_constraint_id'] = (int) $officeCostConstraint->id;
             }
@@ -233,11 +254,39 @@ class RecruitmentTripAccountingService
                 'debtor_value' => 0,
                 'creditor_value' => $amount,
                 'statement' => $statement,
-                'cost_center_id' => $costCenterId,
+                'cost_center_id' => null,
             ],
         ];
 
         return $this->storeConstraint($lines, $statement, $date, $amount, $activeYear);
+    }
+
+    private function syncArrivalRevenueConstraintCostCenter(int $constraintId, int $costCenterId): void
+    {
+        \Nami\Finance\Models\ConstraintDetails::query()
+            ->where('constraint_id', $constraintId)
+            ->update(['cost_center_id' => $costCenterId]);
+    }
+
+    private function syncExternalOfficeCostConstraintCostCenter(
+        int $constraintId,
+        string $nationalityName,
+        int $costCenterId
+    ): void {
+        $costOfSalesAccountId = $this->resolveCostOfSalesAccountId($nationalityName);
+        if (!$costOfSalesAccountId) {
+            throw new \RuntimeException('لا يوجد حساب تكلفة مبيعات مرتبط بجنسية العقد: ' . $nationalityName);
+        }
+
+        \Nami\Finance\Models\ConstraintDetails::query()
+            ->where('constraint_id', $constraintId)
+            ->update(['cost_center_id' => null]);
+
+        \Nami\Finance\Models\ConstraintDetails::query()
+            ->where('constraint_id', $constraintId)
+            ->where('account_id', $costOfSalesAccountId)
+            ->where('type', 'debtor')
+            ->update(['cost_center_id' => $costCenterId]);
     }
 
     private function storeConstraint(array $lines, string $statement, string $date, float $value, $activeYear): ?Constraint
