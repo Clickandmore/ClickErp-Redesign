@@ -16,6 +16,30 @@
             color: #1f2937;
         }
 
+        body:has(.finance-settings-page) {
+            overflow-x: hidden;
+        }
+
+        body:has(.finance-settings-page) .wrapper {
+            width: auto;
+            min-width: 0;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+
+        body:has(.finance-settings-page) .page-body,
+        body:has(.finance-settings-page) .container-fluid,
+        body:has(.finance-settings-page) .card,
+        body:has(.finance-settings-page) .card-body {
+            min-width: 0;
+            max-width: 100%;
+        }
+
+        body:has(.finance-settings-page) .card,
+        body:has(.finance-settings-page) .card-body {
+            overflow-x: hidden !important;
+        }
+
         .finance-settings-page *,
         .finance-settings-page *::before,
         .finance-settings-page *::after {
@@ -193,7 +217,7 @@
         }
 
         .settings-grid--three {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
         }
 
         .setting-field {
@@ -347,7 +371,6 @@
         }
 
         @media (min-width: 992px) and (max-width: 1199.98px) {
-            .settings-grid--three,
             .settings-nav {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }

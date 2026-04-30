@@ -661,7 +661,7 @@
 
 @section('content')
     <div class="statement-shell">
-        <section class="statement-hero">
+        {{-- <section class="statement-hero">
             <div>
                 <span class="statement-eyebrow">FINANCE REPORT</span>
                 <h1 class="statement-title">{{ $bladeTitle }}</h1>
@@ -676,7 +676,7 @@
                 <p>اختر الحساب ثم نفّذ البحث. النتيجة المعروضة بالأسفل أصبحت أقرب لنسخة ورقية، مع روابط مباشرة للقيد وكشف
                     الحسابات المقابلة.</p>
             </aside>
-        </section>
+        </section> --}}
 
         <form id="accountStatementFilters" class="statement-filter-card">
             <div class="statement-card-head">

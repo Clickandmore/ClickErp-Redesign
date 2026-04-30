@@ -4,8 +4,11 @@ namespace Nami\Finance\Http\Controllers;
 
 use App\Http\Controllers\admin\Controller;
 use Illuminate\Http\Request;
-use Nami\Finance\Enums\SalesTypeEnum;
-use Nami\Finance\Services\BillSalesService as ObjService;
+use Nami\Finance\Enums\ConfirmSettingTypes;
+use Nami\Finance\Models\Account;
+use Nami\Finance\Services\AccountService;
+use Nami\Finance\Services\ConfirmSettingService;
+use Nami\Finance\Services\ConstraintService;
 
 
 class SalesAnalysisController extends Controller
@@ -14,18 +17,77 @@ class SalesAnalysisController extends Controller
     public $mainRoute = "finance.sales-analysis";
     public $getData = ["from_date", "to_date"];
 
-    public function index(Request $request, ObjService $service)
+    public function index(
+        Request $request,
+        ConstraintService $constraintService,
+        AccountService $accountService,
+        ConfirmSettingService $confirmSettingService
+    )
     {
+        $accounts = $this->taxAccounts($confirmSettingService, ConfirmSettingTypes::RevenueTaxAccount->value);
+        $defaultAccountId = $accounts->first()?->id;
+        $dataSearch = array_merge([
+            'from_date' => '',
+            'to_date' => now()->format('Y-m-d'),
+            'type' => 'both',
+            'account_id' => $defaultAccountId,
+            'other_account' => 'yes',
+        ], array_filter($request->only(['from_date', 'to_date', 'type', 'account_id', 'other_account']), fn ($value) => $value !== null && $value !== ''));
+
         if ($request->ajax()) {
-            $dataSearch = $request->only($this->getData);
-            $data['result'] = $service->getByType(SalesTypeEnum::Sales->value, $dataSearch);
-            $returnHTML = view($this->folderPath . ".result",$data)->render();
-            return jsonSuccess(["html" => $returnHTML]);
+            $data = collect();
+            $firstBalance = null;
+            $otherAccount = [];
+            $selectedAccount = null;
+
+            if (!empty($dataSearch['account_id'])) {
+                $data = $constraintService->filterAccount($dataSearch);
+                $firstBalance = $constraintService->getFirstBalance($dataSearch);
+                $otherAccount = $dataSearch['other_account'] === 'yes' ? $constraintService->filterConstraints($dataSearch) : [];
+                $selectedAccount = $accountService->find($dataSearch['account_id']);
+            }
+
+            $hasOpeningBalance = abs((float) ($firstBalance->sum_debtor_value ?? 0)) > 0.01
+                || abs((float) ($firstBalance->sum_creditor_value ?? 0)) > 0.01;
+
+            $returnHTML = view('finance::finance.account_statement.result')->with([
+                'data' => $data,
+                'firstBalance' => $firstBalance,
+                'otherAccount' => $otherAccount,
+                'show_other_account' => $dataSearch['other_account'],
+                'accountName' => $selectedAccount->name ?? null,
+                'filters' => $dataSearch,
+                'reportTitle' => __('finance::finance.sales-analysis'),
+            ])->render();
+
+            return jsonSuccess([
+                'html' => $returnHTML,
+                'count' => ($data->count() > 0 || $hasOpeningBalance) ? 1 : 0,
+            ]);
         }
-        $data['dataTableRoute'] = route($this->mainRoute . ".index");
-        $data["bladeTitle"] = __("finance::finance.sales-analysis");
-        $data["addButtonText"] = __("finance::finance.sales-analysis");
-        return view($this->folderPath . '.index', $data);
+
+        return view('finance::finance.account_statement.index', [
+            'accounts' => $accounts,
+            'bladeTitle' => __('finance::finance.sales-analysis'),
+            'filters' => $dataSearch,
+            'statementRoute' => route($this->mainRoute . '.index'),
+            'printRoute' => route('finance.account-statement-print.index'),
+            'printPermission' => 'finance::finance.account-statement-print-read',
+        ]);
     }
 
+    private function taxAccounts(ConfirmSettingService $confirmSettingService, string $settingType)
+    {
+        $accountId = $confirmSettingService->getConfirmSetting($settingType)?->value;
+
+        if ($accountId) {
+            return Account::query()->whereKey((int) $accountId)->get();
+        }
+
+        return Account::query()
+            ->whereDoesntHave('children')
+            ->where('name', 'like', '%ضريب%')
+            ->orderBy('code')
+            ->get();
+    }
 }

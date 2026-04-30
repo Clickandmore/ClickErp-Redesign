@@ -294,6 +294,7 @@ Route::group(
             Route::get('RecruitmentContract/{contractId}/attachments/download', [RecruitmentContractController::class, 'downloadAttachments'])->name('RecruitmentContract.attachments.download');
             Route::get('RecruitmentContract/{contractId}/attachments/{attachment}/download', [RecruitmentContractController::class, 'downloadAttachment'])->name('RecruitmentContract.attachments.download.single');
             Route::delete('RecruitmentContract/{contractId}/attachments/{attachment}', [RecruitmentContractController::class, 'deleteAttachment'])->name('RecruitmentContract.attachments.delete');
+            Route::post('RecruitmentContract/refund', [RecruitmentContractController::class, 'refund'])->name('RecruitmentContract.refund');
 
             Route::resource('RecruitmentContract', RecruitmentContractController::class);
             Route::get('RecruitmentContractBack/{id}', [RecruitmentContractController::class, 'back'])->name('RecruitmentContract.back');
@@ -311,6 +312,9 @@ Route::group(
             Route::get('RentContract/existing-clients', [RentContractController::class, 'getExistingClients'])->name('RentContract.existing.clients');
 
             // Ø§Ù„ÙÙˆØ§ØªÙŠØ±
+            Route::post('invoices/{id}/queue-zatca-sale', [InvoiceController::class, 'queueZatcaSale'])->name('invoices.queue-zatca-sale');
+            Route::get('invoices/export/excel', [InvoiceController::class, 'exportExcel'])->name('invoices.export.excel');
+            Route::get('invoices/export/pdf', [InvoiceController::class, 'exportPdf'])->name('invoices.export.pdf');
             Route::resource('invoices', InvoiceController::class);
             Route::get('invoices/download/{id}', [InvoiceController::class, 'downloadInvoice'])->name('invoice.download');
             Route::resource('musaned-transfers', MusanedTransferController::class)->only(['index', 'create', 'store', 'show']);

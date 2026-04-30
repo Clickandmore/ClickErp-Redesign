@@ -31,6 +31,7 @@ use App\Models\RecruitmentOffices;
 use App\Models\TravelHistory;
 use App\NewPermKeys;
 use App\Services\ingaz\RecruitmentTripAccountingService;
+use App\Services\ingaz\RecruitmentContractRefundService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -285,6 +286,7 @@ class RecruitmentContractController extends Controller
             ContractStatusEnum::Tafwed->value,
             ContractStatusEnum::Taffez->value,
             ContractStatusEnum::Tazker->value,
+            ContractStatusEnum::Sari->value,
         ];
     }
 
@@ -412,6 +414,8 @@ class RecruitmentContractController extends Controller
                 'info.manualMaidOffice.translations',
                 'info.shelter.translations', // بيانات الإيواء
                 'contract_status_logs', // سجل حالات العقد (مطلوب لبعض العمليات)
+                'invoice.musanedTransferItem.transfer',
+                'recruitmentRefund',
                 'order', // بيانات الطلب
                 'order.details', // تفاصيل الطلب
                 'order.details.admin' // بيانات المسوق
@@ -1193,9 +1197,6 @@ class RecruitmentContractController extends Controller
                                     <i class="fas fa-eye"></i> عرض تفاصيل العقد
                                 </a></li>';
 
-                    $attachmentActions = '<li><hr class="dropdown-divider"></li>
-                                <li><h6 class="dropdown-header"><i class="fas fa-paperclip me-1"></i> المرفقات والمستندات</h6></li>';
-
                     if ($row->isCurrentRecruitmentContract() || $row->externalOfficeDispatch) {
                         $dispatchState = $row->getExternalOfficeDispatchState();
                         $dispatchManageLabel = $row->isCurrentRecruitmentContract()
@@ -1207,71 +1208,11 @@ class RecruitmentContractController extends Controller
                         $actions .= '<li><a class="dropdown-item" href="' . e(route('RecruitmentContract.externalOfficeDispatch.edit', $row->id)) . '">
                                         <i class="fas fa-paper-plane"></i> ' . e($dispatchManageLabel) . '
                                     </a></li>';
-
-                        if ($row->externalOfficeDispatch) {
-                            $attachmentActions .= '<li><a class="dropdown-item" href="' . e(route('RecruitmentContract.externalOfficeDispatch.print', $row->id)) . '" target="_blank" rel="noopener">
-                                            <i class="fas fa-file-lines"></i> معاينة إرسالية المكتب الخارجي
-                                        </a></li>';
-                            $attachmentActions .= '<li><a class="dropdown-item" href="' . e(route('RecruitmentContract.externalOfficeDispatch.print', ['contract' => $row->id, 'driver' => 'dompdf', 'download' => 1])) . '" target="_blank" rel="noopener">
-                                            <i class="fas fa-file-pdf"></i> تنزيل إرسالية المكتب الخارجي PDF
-                                        </a></li>';
-                        }
-                    }
-
-                    if (in_array($row->status, [ContractStatusEnum::Arrival->value, ContractStatusEnum::Completed->value], true)) {
-                        $attachmentActions .= '<li><a class="dropdown-item" href="' . e(route('contract_download_form.download', ['contract_id' => $row->id])) . '" target="_blank" rel="noopener">
-                                    <i class="fas fa-file-signature"></i> عرض نموذج تسليم العاملة
-                                </a></li>';
-                        $attachmentActions .= '<li><a class="dropdown-item" href="' . e(route('contract_download_form.download', ['contract_id' => $row->id, 'driver' => 'dompdf', 'download' => 1])) . '" target="_blank" rel="noopener">
-                                    <i class="fas fa-file-pdf"></i> تنزيل نموذج التسليم PDF
-                                </a></li>';
                     }
 
                     // الفاتورة
                     $invoice = Invoice::with('musanedTransferItem.transfer')->where('contract_id', $row->id)->first();
-                    if ($invoice) {
-                        $attachmentActions .= '<li><a class="dropdown-item" href="' . route('invoices.show', $invoice->id) . '" target="_blank">
-                                    <i class="fas fa-file-pdf"></i> عرض الفاتورة
-                                </a></li>';
-                        $attachmentActions .= '<li><a class="dropdown-item" href="' . route('invoice.download', ['id' => $invoice->id, 'autoprint' => 1]) . '" target="_blank">
-                                    <i class="fas fa-download"></i> تنزيل الفاتورة
-                                </a></li>';
-
-                        if ($invoice->arrival_revenue_constraint_id) {
-                            $attachmentActions .= '<li><a class="dropdown-item" href="' . route('finance.add-constraint.show', ['add_constraint' => $invoice->arrival_revenue_constraint_id, 'autoprint' => 1]) . '" target="_blank">
-                                    <i class="fas fa-book"></i> قيد إيراد الوصول
-                                </a></li>';
-                        }
-
-                        if ($invoice->external_office_cost_constraint_id) {
-                            $attachmentActions .= '<li><a class="dropdown-item" href="' . route('finance.add-constraint.show', ['add_constraint' => $invoice->external_office_cost_constraint_id, 'autoprint' => 1]) . '" target="_blank">
-                                    <i class="fas fa-book-open"></i> قيد تكلفة المكتب الخارجي
-                                </a></li>';
-                        }
-
-                        if ($invoice->musanedTransferItem && $invoice->musanedTransferItem->transfer) {
-                            $transfer = $invoice->musanedTransferItem->transfer;
-                            $attachmentActions .= '<li><a class="dropdown-item" href="' . route('musaned-transfers.show', $transfer->id) . '" target="_blank">
-                                    <i class="fas fa-money-bill-transfer"></i> عرض تحويل مساند
-                                </a></li>';
-
-                            if ($transfer->settlement_constraint_id) {
-                                $attachmentActions .= '<li><a class="dropdown-item" href="' . route('finance.add-constraint.show', ['add_constraint' => $transfer->settlement_constraint_id, 'autoprint' => 1]) . '" target="_blank">
-                                        <i class="fas fa-book"></i> قيد تسوية مساند
-                                    </a></li>';
-                            }
-
-                            if ($transfer->bank_transfer_constraint_id) {
-                                $attachmentActions .= '<li><a class="dropdown-item" href="' . route('finance.add-constraint.show', ['add_constraint' => $transfer->bank_transfer_constraint_id, 'autoprint' => 1]) . '" target="_blank">
-                                        <i class="fas fa-book-open"></i> قيد تحويل البنك لمساند
-                                    </a></li>';
-                            }
-                        } else {
-                            $actions .= '<li><a class="dropdown-item" href="' . route('musaned-transfers.create', ['contract_ids' => [$row->id]]) . '" target="_blank">
-                                    <i class="fas fa-money-bill-transfer"></i> تسجيل تحويل مساند
-                                </a></li>';
-                        }
-                    } else {
+                    if (!$invoice) {
                         $actions .= '<li><a class="dropdown-item" href="' . route('invoices.create') . '?contract_id=' . $row->id . '" target="_blank">
                                     <i class="fas fa-file-invoice"></i> اضافة فاتورة
                                 </a></li>';
@@ -1360,16 +1301,35 @@ class RecruitmentContractController extends Controller
                         }
                     }
 
-                    // زر إلغاء العقد - لا يظهر للعقود المكتملة أو المرتجعة أو التي في الإيواء
+                    // إجراء الاسترداد بدلاً من إلغاء العقد
                     if (
                         $row->status !== ContractStatusEnum::Completed->value &&
                         $row->status !== ContractStatusEnum::Back->value &&
                         $row->status !== ContractStatusEnum::Shelter->value
                     ) {
-                        if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_DELETE)) {
-                            $actions .= '<li><button class="dropdown-item cancel-contract-btn" data-contract-id="' . $row->id . '" data-contract-number="' . $row->id . '" data-client-name="' . ($row->user ? $row->user->name : 'غير محدد') . '" data-maid-name="' . ($row->maid ? $row->maid->name : 'غير محدد') . '">
-                                            <i class="fas fa-times-circle"></i> إلغاء العقد
-                                        </button></li>';
+                        if ($row->recruitmentRefund) {
+                            $actions .= '<li><span class="dropdown-item disabled">
+                                            <span class="badge bg-secondary">تم تسجيل استرداد العقد</span>
+                                        </span></li>';
+                        } elseif (
+                            $row->status === ContractStatusEnum::Sari->value &&
+                            @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_RETURN)
+                        ) {
+                            if ($invoice) {
+                                $hasMusanedTransfer = $invoice->musanedTransferItem && $invoice->musanedTransferItem->transfer;
+                                $actions .= '<li><button class="dropdown-item action-refund refund-contract-btn"
+                                                data-contract-id="' . $row->id . '"
+                                                data-contract-number="' . $row->id . '"
+                                                data-client-name="' . e($row->user ? $row->user->name : 'غير محدد') . '"
+                                                data-has-musaned-transfer="' . ($hasMusanedTransfer ? '1' : '0') . '"
+                                                data-contract-amount="' . e(number_format((float) $invoice->total_due, 2, '.', '')) . '">
+                                                <i class="fas fa-rotate-left"></i> استرداد العقد
+                                            </button></li>';
+                            } else {
+                                $actions .= '<li><span class="dropdown-item disabled">
+                                                <span class="badge bg-warning text-dark">أضف فاتورة قبل الاسترداد</span>
+                                            </span></li>';
+                            }
                         }
                     }
 
@@ -1379,17 +1339,12 @@ class RecruitmentContractController extends Controller
                                             <i class="fas fa-plus"></i> اضافة ملاحظة
                                         </button></li>';
 
-                    $attachmentActions .= '<li><a class="dropdown-item" href="' . route('contracts.details', $row->id) . '#contractAttachmentsSection">
-                                    <i class="fas fa-paperclip"></i> مرفقات العقد (' . (int) ($row->attachments_count ?? 0) . ')
+                    $actions .= '<li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="' . route('contracts.details', $row->id) . '#contractAttachmentsSection">
+                                    <i class="fas fa-paperclip"></i>
+                                    <span>مرفقات العقد والمالية</span>
+                                    <span class="badge bg-secondary attachment-count-badge">' . (int) ($row->attachments_count ?? 0) . '</span>
                                 </a></li>';
-
-                    if (($row->attachments_count ?? 0) > 0) {
-                        $attachmentActions .= '<li><a class="dropdown-item" href="' . route('RecruitmentContract.attachments.download', $row->id) . '">
-                                    <i class="fas fa-file-zipper"></i> تحميل مرفقات العقد
-                                </a></li>';
-                    }
-
-                    $actions .= $attachmentActions;
 
                     $actions .= '</ul></div>';
 
@@ -1670,23 +1625,32 @@ class RecruitmentContractController extends Controller
         ]);
 
         $documents = [];
+        $financialDocuments = [];
         $addDocument = function (string $key, string $label, string $category, string $url, string $icon = 'fas fa-file') use (&$documents) {
             $documents[] = compact('key', 'label', 'category', 'url', 'icon');
         };
+        $addFinancialDocument = function (string $key, string $label, string $url, string $icon = 'fas fa-file') use (&$financialDocuments) {
+            $financialDocuments[] = [
+                'key' => $key,
+                'label' => $label,
+                'url' => $url,
+                'icon' => $icon,
+            ];
+        };
 
         if ($contract->invoice) {
-            $addDocument('invoice-view', 'عرض الفاتورة', 'فاتورة', route('invoices.show', $contract->invoice->id), 'fas fa-file-invoice');
-            $addDocument('invoice-download', 'تنزيل الفاتورة', 'فاتورة', route('invoice.download', ['id' => $contract->invoice->id, 'autoprint' => 1]), 'fas fa-download');
+            $addFinancialDocument('invoice-view', 'عرض الفاتورة', route('invoices.show', $contract->invoice->id), 'fas fa-file-invoice');
+            $addFinancialDocument('invoice-download', 'تنزيل الفاتورة', route('invoice.download', ['id' => $contract->invoice->id, 'autoprint' => 1]), 'fas fa-download');
 
             if ($contract->invoice->arrival_revenue_constraint_id) {
-                $addDocument('invoice-arrival-revenue-constraint', 'قيد إيراد الوصول', 'معاملة مالية', route('finance.add-constraint.show', [
+                $addFinancialDocument('invoice-arrival-revenue-constraint', 'قيد إيراد الوصول', route('finance.add-constraint.show', [
                     'add_constraint' => $contract->invoice->arrival_revenue_constraint_id,
                     'autoprint' => 1,
                 ]), 'fas fa-book');
             }
 
             if ($contract->invoice->external_office_cost_constraint_id) {
-                $addDocument('invoice-office-cost-constraint', 'قيد تكلفة المكتب الخارجي', 'معاملة مالية', route('finance.add-constraint.show', [
+                $addFinancialDocument('invoice-office-cost-constraint', 'قيد تكلفة المكتب الخارجي', route('finance.add-constraint.show', [
                     'add_constraint' => $contract->invoice->external_office_cost_constraint_id,
                     'autoprint' => 1,
                 ]), 'fas fa-book-open');
@@ -1694,22 +1658,33 @@ class RecruitmentContractController extends Controller
 
             $transfer = $contract->invoice->musanedTransferItem?->transfer;
             if ($transfer) {
-                $addDocument('musaned-transfer', 'تحويل مساند', 'معاملة مالية', route('musaned-transfers.show', $transfer->id), 'fas fa-money-bill-transfer');
+                $addFinancialDocument('musaned-transfer', 'تحويل مساند', route('musaned-transfers.show', $transfer->id), 'fas fa-money-bill-transfer');
 
                 if ($transfer->settlement_constraint_id) {
-                    $addDocument('musaned-settlement-constraint', 'قيد تسوية مساند', 'معاملة مالية', route('finance.add-constraint.show', [
+                    $addFinancialDocument('musaned-settlement-constraint', 'قيد تسوية مساند', route('finance.add-constraint.show', [
                         'add_constraint' => $transfer->settlement_constraint_id,
                         'autoprint' => 1,
                     ]), 'fas fa-book');
                 }
 
                 if ($transfer->bank_transfer_constraint_id) {
-                    $addDocument('musaned-bank-transfer-constraint', 'قيد تحويل البنك لمساند', 'معاملة مالية', route('finance.add-constraint.show', [
+                    $addFinancialDocument('musaned-bank-transfer-constraint', 'قيد تحويل البنك لمساند', route('finance.add-constraint.show', [
                         'add_constraint' => $transfer->bank_transfer_constraint_id,
                         'autoprint' => 1,
                     ]), 'fas fa-book-open');
                 }
             }
+        }
+
+        if (!empty($financialDocuments)) {
+            $documents[] = [
+                'key' => 'financial-attachments',
+                'label' => 'المرفقات المالية',
+                'category' => 'فاتورة ومعاملات مالية',
+                'url' => $financialDocuments[0]['url'],
+                'icon' => 'fas fa-folder-open',
+                'items' => $financialDocuments,
+            ];
         }
 
         if ($contract->externalOfficeDispatch) {
@@ -4965,6 +4940,108 @@ class RecruitmentContractController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'حدث خطأ أثناء إلغاء العقد: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function refund(Request $request, RecruitmentContractRefundService $refundService)
+    {
+        try {
+            if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_RETURN)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ليس لديك صلاحية لاسترداد العقود'
+                ], 403);
+            }
+
+            $validated = $request->validate([
+                'contract_id' => 'required|exists:contracts,id',
+                'refund_date' => 'required|date',
+                'cancelled_by' => 'nullable|in:client,external_office',
+                'reason' => 'required|string|max:500',
+            ]);
+
+            $contract = Contract::with([
+                'maid',
+                'user',
+                'invoice.musanedTransferItem.transfer',
+                'recruitmentRefund',
+                'info',
+            ])->findOrFail($validated['contract_id']);
+
+            if ($contract->status !== ContractStatusEnum::Sari->value) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'استرداد العقد متاح فقط للعقد الساري'
+                ], 422);
+            }
+
+            if (!$contract->invoice) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن استرداد العقد قبل إضافة فاتورة له'
+                ], 422);
+            }
+
+            if ($contract->recruitmentRefund) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'تم تسجيل استرداد سابق لهذا العقد'
+                ], 422);
+            }
+
+            $refund = null;
+
+            DB::beginTransaction();
+
+            try {
+                $refund = $refundService->refund($contract, [
+                    'refund_date' => $validated['refund_date'],
+                    'cancelled_by' => $validated['cancelled_by'] ?? null,
+                    'reason' => $validated['reason'],
+                ]);
+
+                $contract->update([
+                    'status' => ContractStatusEnum::Back->value,
+                ]);
+
+                $contract->contract_status_logs()->create([
+                    'status' => ContractStatusEnum::Back->value,
+                    'date' => $validated['refund_date'],
+                    'notes' => 'تم استرداد العقد - السبب: ' . $validated['reason'],
+                ]);
+
+                DB::commit();
+            } catch (\Throwable $exception) {
+                DB::rollBack();
+                throw $exception;
+            }
+
+            $partyLabel = match ($refund->cancelled_by) {
+                'client' => 'العميل',
+                'external_office' => 'المكتب الخارجي',
+                default => 'قبل تحويل مساند',
+            };
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تسجيل استرداد العقد بنجاح. مبلغ الاسترداد: '
+                    . number_format((float) $refund->refund_amount, 2)
+                    . '، الغرامة: '
+                    . number_format((float) $refund->penalty_amount, 2)
+                    . '، الطرف: ' . $partyLabel,
+                'refund' => $refund,
+            ]);
+        } catch (\Throwable $e) {
+            logger()->error('Error refunding recruitment contract:', [
+                'contract_id' => $request->contract_id ?? null,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء استرداد العقد: ' . $e->getMessage()
             ], 500);
         }
     }

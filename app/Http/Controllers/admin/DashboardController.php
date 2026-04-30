@@ -136,6 +136,9 @@ class DashboardController extends Controller
             'active' => RentalContract::where('status', 'active')->count(),
             'in_workflow' => RentalContract::whereIn('status', ['contract_sent', 'contract_signed', 'maid_delivered'])->count(),
             'completed' => RentalContract::where('status', 'completed')->count(),
+            'sent' => RentalContract::where('status', 'contract_sent')->count(),
+            'signed' => RentalContract::where('status', 'contract_signed')->count(),
+            'delivered' => RentalContract::where('status', 'maid_delivered')->count(),
         ];
 
         $transferStats = [
@@ -786,8 +789,10 @@ class DashboardController extends Controller
             ]
         ];
 
-        $insideShelterCount = Contract::insideShelter()->count();
-        $outsideShelterCount = Contract::outsideShelter()->count();
+        $insideShelterQuery = Contract::insideShelter();
+        $outsideShelterQuery = Contract::outsideShelter();
+        $insideShelterCount = (clone $insideShelterQuery)->count();
+        $outsideShelterCount = (clone $outsideShelterQuery)->count();
         $shelterPlacesTotal = \App\Models\ShelterPlaces::count();
 
         $shelterStats = [
@@ -795,6 +800,16 @@ class DashboardController extends Controller
             'inside' => $insideShelterCount,
             'outside' => $outsideShelterCount,
             'places' => $shelterPlacesTotal,
+            'available_for_transfer' => (clone $insideShelterQuery)->whereHas('info', function ($query) {
+                $query->where(function ($q) {
+                    $q->where('wants_to_work', 'yes')
+                        ->orWhere('wants_to_work', 1);
+                });
+            })->count(),
+            'deportation_stage' => (clone $insideShelterQuery)->whereHas('info', function ($query) {
+                $query->where('wants_to_work', 'no');
+            })->count(),
+            'deported' => \App\Models\DeportationProcedure::where('status', 'completed')->count(),
         ];
 
         // الجنسيات

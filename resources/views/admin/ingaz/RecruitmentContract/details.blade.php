@@ -426,6 +426,36 @@
         flex-shrink: 0;
     }
 
+    .contract-document-link.has-items {
+        align-items: flex-start;
+    }
+
+    .contract-document-items {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        margin-top: 10px;
+    }
+
+    .contract-document-items a {
+        color: #0d6efd;
+        font-size: 12px;
+        text-decoration: none;
+    }
+
+    .contract-document-items a:hover {
+        text-decoration: underline;
+    }
+
+    .contract-document-link .contract-document-items a i {
+        width: auto;
+        height: auto;
+        display: inline;
+        border-radius: 0;
+        background: transparent;
+        color: inherit;
+    }
+
     /* تحسين Modal */
     .modal-content {
         border-radius: 15px;
@@ -1595,14 +1625,32 @@
                         @if (!empty($contractDocuments))
                             <div class="contract-document-list">
                                 @foreach ($contractDocuments as $document)
-                                    <a href="{{ $document['url'] }}" target="_blank" rel="noopener"
-                                        class="contract-document-link">
-                                        <i class="{{ $document['icon'] }}"></i>
-                                        <span>
-                                            <strong class="d-block">{{ $document['label'] }}</strong>
-                                            <small class="text-muted">{{ $document['category'] }}</small>
-                                        </span>
-                                    </a>
+                                    @if (!empty($document['items']))
+                                        <div class="contract-document-link has-items">
+                                            <i class="{{ $document['icon'] }}"></i>
+                                            <span>
+                                                <strong class="d-block">{{ $document['label'] }}</strong>
+                                                <small class="text-muted">{{ $document['category'] }}</small>
+                                                <span class="contract-document-items">
+                                                    @foreach ($document['items'] as $item)
+                                                        <a href="{{ $item['url'] }}" target="_blank" rel="noopener">
+                                                            <i class="{{ $item['icon'] }} me-1"></i>
+                                                            {{ $item['label'] }}
+                                                        </a>
+                                                    @endforeach
+                                                </span>
+                                            </span>
+                                        </div>
+                                    @else
+                                        <a href="{{ $document['url'] }}" target="_blank" rel="noopener"
+                                            class="contract-document-link">
+                                            <i class="{{ $document['icon'] }}"></i>
+                                            <span>
+                                                <strong class="d-block">{{ $document['label'] }}</strong>
+                                                <small class="text-muted">{{ $document['category'] }}</small>
+                                            </span>
+                                        </a>
+                                    @endif
                                 @endforeach
                             </div>
                         @else

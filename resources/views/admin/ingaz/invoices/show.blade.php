@@ -94,6 +94,28 @@
                                 <span>{{ $invoiceStatus }}</span>
                             </div>
                             <div class="d-flex justify-content-between mb-2">
+                                <strong>ارتباط هيئة الزكاة</strong>
+                                <span>
+                                    @if (!$invoice->send_to_zatca)
+                                        غير مطلوب
+                                    @elseif (!$invoice->finance_sale_id)
+                                        لم يتم إدراجها في فواتير المبيعات
+                                    @elseif ($invoice->financeSale?->zatca?->zatca_status)
+                                        {{ $invoice->financeSale->zatca->zatca_status }}
+                                    @else
+                                        معلقة في فواتير المبيعات #{{ $invoice->finance_sale_id }}
+                                    @endif
+                                </span>
+                            </div>
+                            @if ($invoice->finance_sale_id)
+                                <div class="d-flex justify-content-between mb-2">
+                                    <strong>فاتورة المبيعات المرتبطة</strong>
+                                    <a href="{{ route('finance.bill-sales.show', $invoice->finance_sale_id) }}">
+                                        #{{ $invoice->finance_sale_id }}
+                                    </a>
+                                </div>
+                            @endif
+                            <div class="d-flex justify-content-between mb-2">
                                 <strong>وصف الخدمة</strong>
                                 <span>{{ $serviceDesc }}</span>
                             </div>

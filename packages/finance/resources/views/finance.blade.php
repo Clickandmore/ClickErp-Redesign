@@ -949,6 +949,7 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
                                     'finance.sales-analysis.index',
                                     'finance.purchases-analysis.index',
                                     'finance.tax-declaration.index',
+                                    'finance.tax-invoice-statement.index',
                                 ]) &&
                                 (request()->query('status') == null || in_array(request()->query('status'), ['collected', 'refused']))
                                     ? 'active'
@@ -963,6 +964,7 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
                                          'finance.sales-analysis.index',
                                          'finance.purchases-analysis.index',
                                          'finance.tax-declaration.index',
+                                         'finance.tax-invoice-statement.index',
                                      ]) &&
                                      (request()->query('status') == null || in_array(request()->query('status'), ['collected', 'refused']))
                                          ? 'show'
@@ -985,6 +987,12 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
             </a>
         </li>
         {{--        @endif --}}
+        <li>
+            <a class="m-link {{ Route::currentRouteName() == 'finance.tax-invoice-statement.index' ? 'active' : '' }}"
+                href="{{ route('finance.tax-invoice-statement.index') }}">
+                <span class="ms-2"> {{ helperTrans('finance::finance.tax-invoice-statement') }} </span>
+            </a>
+        </li>
         {{--        @if (in_array('finance.tax-declaration-read', $user_permission_list)) --}}
         <li>
             <a class="m-link {{ Route::currentRouteName() == 'finance.tax-declaration.index' ? 'active' : '' }}"

@@ -640,6 +640,25 @@
                                 </div>
                             </div>
                         </div>
+
+                        <div class="mini-section">
+                            <div class="mini-title">
+                                <i class="fas fa-receipt"></i>
+                                هيئة الزكاة
+                            </div>
+
+                            <div class="form-check form-switch d-flex align-items-center gap-2">
+                                <input type="hidden" name="send_to_zatca" value="0">
+                                <input class="form-check-input" type="checkbox" role="switch" id="send_to_zatca"
+                                    name="send_to_zatca" value="1" {{ old('send_to_zatca', '1') ? 'checked' : '' }}>
+                                <label class="form-check-label fw-semibold" for="send_to_zatca">
+                                    إدراج الفاتورة ضمن فواتير الزكاة المعلقة
+                                </label>
+                            </div>
+                            <div class="field-note">
+                                عند تفعيل الخيار سيتم إنشاء فاتورة مبيعات مالية مرتبطة بهذه الفاتورة، وتظهر في صفحة فواتير المبيعات غير المرحلة للهيئة.
+                            </div>
+                        </div>
                     </div>
                 </div>
 

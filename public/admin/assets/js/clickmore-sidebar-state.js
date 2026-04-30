@@ -55,6 +55,52 @@
     ".sidebar .m-link[data-bs-toggle='collapse'][data-bs-target]"
   );
 
+  sidebar.querySelectorAll(".menu-list > li > .m-link").forEach((link) => {
+    const label = link.querySelector("span:not(.arrow)")?.textContent?.trim();
+    if (label) {
+      link.setAttribute("title", label);
+      link.setAttribute("aria-label", label);
+    }
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!sidebar.classList.contains("sidebar-mini")) {
+      sidebar.querySelectorAll(".cm-mini-open").forEach((item) => {
+        item.classList.remove("cm-mini-open");
+      });
+      return;
+    }
+
+    const toggle = event.target.closest(
+      ".sidebar .menu-list > li > .m-link[data-bs-toggle='collapse'][data-bs-target]"
+    );
+
+    if (toggle) {
+      const parentItem = toggle.closest("li");
+      const isOpen = parentItem?.classList.contains("cm-mini-open");
+
+      sidebar.querySelectorAll(".cm-mini-open").forEach((item) => {
+        if (item !== parentItem) {
+          item.classList.remove("cm-mini-open");
+        }
+      });
+
+      if (parentItem) {
+        parentItem.classList.toggle("cm-mini-open", !isOpen);
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    if (!event.target.closest(".sidebar")) {
+      sidebar.querySelectorAll(".cm-mini-open").forEach((item) => {
+        item.classList.remove("cm-mini-open");
+      });
+    }
+  }, true);
+
   toggles.forEach((toggle) => {
     const targetSelector = toggle.getAttribute("data-bs-target");
     if (!targetSelector || !targetSelector.startsWith("#")) {

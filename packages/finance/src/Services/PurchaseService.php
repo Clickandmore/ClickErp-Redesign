@@ -176,7 +176,8 @@ class PurchaseService extends MainService
                 return $q->whereDate("date", "<=", $dataSearch["to_date"]);
             })
             ->join('fn_purchase_items', 'fn_purchases.id', '=', 'fn_purchase_items.purchase_id')
-            ->groupBy('fn_purchase_items.discount_per')->selectRaw('fn_purchase_items.discount_per, SUM(fn_purchase_items.final_total) as sum_value, SUM(fn_purchase_items.discount_value) as sum_total_discount_value')
+            ->groupBy('fn_purchase_items.tax_per')
+            ->selectRaw('fn_purchase_items.tax_per, SUM(fn_purchase_items.final_total) as sum_value, SUM(fn_purchase_items.tax_value) as sum_total_tax_value')
             ->get();
     }
 

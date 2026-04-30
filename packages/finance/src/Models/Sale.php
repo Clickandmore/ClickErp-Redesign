@@ -92,8 +92,8 @@ class Sale extends Model
         return $this->hasMany(StockMovementSale::class, 'bill_id');
     }
 
-//    public function zatca()
-//    {
-//        return $this->belongsTo(ZatcaInvoice::class,'zatca_invoice_id');
-//    }
+    public function zatca()
+    {
+        return $this->belongsTo(ZatcaInvoice::class, 'zatca_invoice_id');
+    }
 }

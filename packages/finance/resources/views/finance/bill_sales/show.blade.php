@@ -1,190 +1,240 @@
 @extends('click.layout.indexs.index')
 
 @section('style')
-    <link rel="stylesheet" href="{{ asset('admin') }}/assets/cssbundle/dataTables.min.css">
     <style>
-        * {
-            box-sizing: border-box;
-            padding: 0;
-            margin: 0;
+        .bill-sale-page {
             direction: rtl;
-            text-align: start;
-            color: #000;
+            color: #111827;
+            background: #f5f7fb;
+            padding: 18px;
         }
 
-        h1,
-        h2,
-        h3,
-        h4,
-        h5,
-        h6,
-        p,
-        span,
-        div,
-        th,
-        td {
-            font-size: 100% !important;
-        }
-
-        body {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-            border: 1px solid #000;
-        }
-
-        header {
-            padding: 25px;
-        }
-
-        header .Logo {
+        .bill-sale-actions {
             display: flex;
-            align-items: center;
+            justify-content: flex-start;
+            margin-bottom: 14px;
+        }
+
+        .bill-sale-print-btn {
+            border-radius: 8px;
+            font-weight: 700;
+            padding: 9px 18px;
+        }
+
+        .bill-sale-document {
+            background: #fff;
+            border: 1px solid #d9e2ec;
+            border-radius: 8px;
+            box-shadow: 0 14px 35px rgba(15, 23, 42, 0.08);
+            max-width: 1120px;
+            margin: 0 auto;
+            padding: 22px;
+        }
+
+        .invoice-heading {
+            display: flex;
             justify-content: space-between;
+            gap: 18px;
+            align-items: stretch;
+            margin-top: 16px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 14px;
         }
 
-        header .Logo img {
-            width: 75px;
-        }
-
-        header .Title {
+        .invoice-qr {
+            width: 170px;
+            min-width: 170px;
             display: flex;
             align-items: center;
             justify-content: center;
-            flex-direction: column;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background: #fff;
+            padding: 8px;
         }
 
-        header .Title h1,
-        header .Title h2 {
-            font-size: 20px;
-            color: #4c818b;
-            font-weight: bold;
-            margin: 0;
-            padding: 0;
+        .invoice-qr img {
+            width: 150px;
+            height: 150px;
+            object-fit: contain;
         }
 
-        .main {
-            padding: 5px;
+        .invoice-info {
+            flex: 1;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden;
         }
 
-        .main .Title {
+        .invoice-info-title {
             display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .main .Title h2 {
-            text-align: center;
-            border: 1px solid #000;
-            padding: 15px;
-            border-radius: 12px;
-            font-size: 15px;
-            font-weight: bold;
-        }
-
-        .main .Head {
-            display: flex;
-            align-items: center;
+            justify-content: space-between;
             gap: 12px;
-            border: 1px solid #000;
-            padding: 10px;
-            border-top-left-radius: 12px;
-            border-bottom-right-radius: 12px;
-            border-right: none;
-            border-left: none;
+            background: #eef6f8;
+            color: #1f6f78;
+            font-weight: 800;
+            padding: 11px 14px;
+            border-bottom: 1px solid #d7e6ea;
         }
 
-        .main .Head .qr img {
-            width: 120px;
-            -o-object-fit: cover;
-            object-fit: cover;
+        .invoice-info-row {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr 1fr;
+            gap: 10px;
+            align-items: center;
+            padding: 9px 14px;
+            border-bottom: 1px solid #edf2f7;
         }
 
-        .info {
-            display: flex;
-            border: 1px solid #e6e0e0;
-            flex-direction: column;
-            border-top-left-radius: 12px;
-            border-bottom-right-radius: 12px;
+        .invoice-info-row:last-child {
+            border-bottom: 0;
+        }
+
+        .invoice-info-row .label {
+            font-weight: 800;
+            color: #334155;
+        }
+
+        .invoice-info-row .value {
+            text-align: center;
+            color: #0f172a;
+            font-weight: 700;
+            word-break: break-word;
+        }
+
+        .invoice-table-wrap {
+            margin-top: 18px;
+            overflow-x: auto;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+        }
+
+        .invoice-table {
             width: 100%;
-            padding: 10px;
-            gap: 6px;
+            border-collapse: collapse;
+            min-width: 820px;
         }
 
-        .info .info_title {
+        .invoice-table th {
+            background: #f1f5f9;
+            color: #0f172a;
+            font-weight: 800;
+            padding: 11px 10px;
+            border-bottom: 1px solid #cbd5e1;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .invoice-table td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #e5e7eb;
+            border-left: 1px solid #eef2f7;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .invoice-table tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .invoice-summary {
+            width: min(430px, 100%);
+            margin: 18px 0 0 auto;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .summary-row {
             display: flex;
-            align-items: center;
-            justify-content: space-evenly;
-        }
-
-        .info .info_title h2 {
-            font-size: 16px;
-        }
-
-        .info_content {
-            display: flex;
-            align-items: center;
             justify-content: space-between;
-            gap: 5px;
+            gap: 14px;
+            padding: 10px 14px;
+            border-bottom: 1px solid #e5e7eb;
         }
 
-        .info_content h3 {
-            font-size: 15px;
-            font-weight: bold;
+        .summary-row:last-child {
+            border-bottom: 0;
         }
 
-        .info_content h4 {
-            font-size: 13px;
+        .summary-row .label {
+            margin: 0;
+            color: #475569;
+            font-size: 14px;
+            font-weight: 800;
         }
 
-        .Tabel {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 5px;
-            margin-top: 10px;
-            border-top: 2px solid #000;
+        .summary-row .value {
+            margin: 0;
+            color: #0f172a;
+            font-size: 14px;
+            font-weight: 900;
         }
 
-        .Tabel table {
-            width: 100%;
+        .summary-row.net {
+            background: #eef6f8;
         }
 
-        .Tabel th {
-            padding: 5px;
-            border: 1px solid #000;
-            border-radius: 10px;
+        .invoice-signatures {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 18px;
+            margin-top: 28px;
+        }
+
+        .signature-box {
             text-align: center;
+            border-top: 1px dashed #64748b;
+            padding-top: 12px;
+            min-height: 68px;
         }
 
-        .Tabel td {
-            padding: 25px;
-            text-align: center;
-            border-left: 1px solid #eee;
-            border-bottom: 1px dashed #353434;
+        .signature-box h5 {
+            margin: 0;
+            color: #1f2937;
+            font-size: 14px;
+            font-weight: 800;
         }
 
-        .Tabel table tr th {
-            background-color: #eee;
-            font-size: 15px;
-        }
-
-        /*# sourceMappingURL=style.css.map */
-    </style>
-
-
-
-    <style>
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
+        @media (max-width: 768px) {
+            .bill-sale-page {
+                padding: 10px;
             }
 
-            100% {
-                transform: rotate(360deg);
+            .bill-sale-document {
+                padding: 14px;
+            }
+
+            .invoice-heading {
+                flex-direction: column;
+            }
+
+            .invoice-qr {
+                width: 100%;
+                min-width: 0;
+            }
+
+            .invoice-info-row {
+                grid-template-columns: 1fr;
+            }
+
+            .invoice-info-row .value {
+                text-align: start;
+            }
+
+            .invoice-signatures {
+                grid-template-columns: 1fr;
             }
         }
 
         @media print {
+            body {
+                background: #fff !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
             body * {
                 visibility: hidden;
             }
@@ -194,34 +244,31 @@
                 visibility: visible;
             }
 
+            .bill-sale-page {
+                padding: 0;
+                background: #fff;
+            }
+
             .print {
                 position: absolute;
-                left: 0;
-                top: 0;
+                inset: 0;
                 width: 100%;
-                padding: 20px;
-                font-size: 12pt;
+                padding: 0;
             }
 
-            .sidebar {
+            .bill-sale-document {
+                box-shadow: none;
+                border: 0;
+                border-radius: 0;
+                max-width: none;
+                padding: 12px;
+            }
+
+            .bill-sale-actions,
+            .sidebar,
+            #printButton {
                 display: none !important;
             }
-
-            #printButton {
-                display: none;
-            }
-
-        }
-
-        .invoice-summary {
-            margin-top: 20px;
-            padding: 20px;
-        }
-
-        .invoice-summary .summary-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
         }
     </style>
 @endsection
@@ -231,202 +278,153 @@
 @endsection
 
 @section('page-links')
-    <li class="breadcrumb-item active" aria-current="page"> {{ $bladeTitle }}</li>
+    <li class="breadcrumb-item active" aria-current="page">{{ $bladeTitle }}</li>
 @endsection
 
 @section('content')
-    <button id="printButton" class="btn btn-primary" style="margin: 20px;">طباعة</button>
-    <div class="print">
-        {{-- <header>
-            <div class="Logo">
-                <img src="@if (isset($setting_web) && isset($setting_web->logo_header)) {{ showFile($setting_web->logo_header) }}
-                @else
-                {{ url('/') }}/web/img/logo.svg @endif" alt="logo" />
-                <div class="Title">
-                    <h1> {{ (isset($setting_web) && isset($setting_web->website_name)) ? $setting_web->translate('ar')->website_name : 'مؤسسه صلات الوطنيه التجاريه '  }}</h1>
-                    <h2>{{ (isset($setting_web) && isset($setting_web->website_name)) ? $setting_web->translate('en')->website_name : ' National Selat Trading Company '  }}
-                    </h2>
+    @php
+        $groupedItems = $obj->items->groupBy('item_id');
+    @endphp
 
-                </div>
-            </div>
-        </header> --}}
-        @include('print-header')
+    <div class="bill-sale-page">
+        <div class="bill-sale-actions">
+            <button id="printButton" class="btn btn-primary bill-sale-print-btn">
+                <i class="fa fa-print"></i>
+                طباعة
+            </button>
+        </div>
 
-        <main class="main">
+        <div class="print bill-sale-document">
+            @includeIf('finance::finance.print-header')
 
-            <div class="Head">
+            <main>
+                <section class="invoice-heading">
+                    @if ($obj->zatca)
+                        <div class="invoice-qr">
+                            <img src="{{ (new \chillerlan\QRCode\QRCode())->render($obj->zatca->qr) }}" alt="QR">
+                        </div>
+                    @endif
 
-                {{-- <div class="qr">
-                    <img src="Assets/images/Asset.png" alt="qr" />
-                </div> --}}
-                @if ($obj->zatca)
-                    <div class="qr">
-                        <img style="width: 200px; height: 200px; background-color: white;"
-                            src="{{ new chillerlan\QRCode\QRCode()->render($obj->zatca->qr) }}" />
+                    <div class="invoice-info">
+                        <div class="invoice-info-title">
+                            <span>معلومات العميل</span>
+                            <span>Customer Information</span>
+                        </div>
+
+                        <div class="invoice-info-row">
+                            <span class="label">نوع العملية</span>
+                            <span class="value">فاتورة مبيعات ضريبية Sales Tax Invoice</span>
+                            <span class="label">Invoice Type</span>
+                        </div>
+                        <div class="invoice-info-row">
+                            <span class="label">رقم الفاتورة</span>
+                            <span class="value">{{ $obj->code }}</span>
+                            <span class="label">Invoice No</span>
+                        </div>
+                        <div class="invoice-info-row">
+                            <span class="label">التاريخ</span>
+                            <span class="value">{{ $obj->date }}</span>
+                            <span class="label">Date</span>
+                        </div>
+                        <div class="invoice-info-row">
+                            <span class="label">رقم الحساب</span>
+                            <span class="value">{{ @$obj->client->code }}</span>
+                            <span class="label">Account No</span>
+                        </div>
+                        <div class="invoice-info-row">
+                            <span class="label">السيد / السادة</span>
+                            <span class="value">{{ @$obj->client->name }}</span>
+                            <span class="label">Mr / Messrs</span>
+                        </div>
+                        <div class="invoice-info-row">
+                            <span class="label">الرقم الضريبي</span>
+                            <span class="value">{{ @$obj->client->tax_number }}</span>
+                            <span class="label">Customer VAT #</span>
+                        </div>
                     </div>
-                @endif
+                </section>
 
-                <div class="info">
+                <section class="invoice-table-wrap">
+                    <table class="invoice-table">
+                        <thead>
+                            <tr>
+                                <th>الإجمالي total</th>
+                                <th>الضريبة Tax</th>
+                                <th>الخصم Dis</th>
+                                <th>السعر price</th>
+                                <th>الكمية Qty</th>
+                                <th>البيان Description</th>
+                                <th>الرقم Code</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($groupedItems as $itemGroup)
+                                @php
+                                    $firstItem = $itemGroup->first();
+                                    $totalAmount = $itemGroup->sum('amount');
+                                    $price = $firstItem->price;
+                                    $totalFinalTotal = $itemGroup->sum('final_total');
+                                    $discount_value = $itemGroup->sum('discount_value');
+                                    $tax_value = $itemGroup->sum('tax_value');
+                                @endphp
+                                <tr>
+                                    <td>{{ number_format($totalFinalTotal, 2) }}</td>
+                                    <td>{{ number_format($tax_value, 2) }}</td>
+                                    <td>{{ number_format($discount_value, 2) }}</td>
+                                    <td>{{ number_format($price, 2) }}</td>
+                                    <td>{{ $totalAmount }}</td>
+                                    <td>{{ @$firstItem->item->name }}</td>
+                                    <td>{{ @$firstItem->item->code }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </section>
 
-                    <div class="info_title " style="margin-bottom: 12px;">
-                        <h2>معلومات العميل</h2>
-                        <h2> Customer Information</h2>
-
+                <section class="invoice-summary">
+                    <div class="summary-row">
+                        <h3 class="label">{{ __('finance::finance.Total before discount') }}</h3>
+                        <h3 class="value">{{ number_format($obj->total_item, 2) }}</h3>
                     </div>
-
-                    <div class="info_content">
-                        <h3>نوع العمليه</h3>
-                        <h4>فاتورة مبيعات ضريبة Sales Tax Invoice</h4>
-                        <h3>Invoice Type </h3>
+                    <div class="summary-row">
+                        <h3 class="label">{{ __('finance::finance.discount_value') }}</h3>
+                        <h3 class="value">{{ number_format($obj->discount, 2) }}</h3>
                     </div>
-                    <div class="info_content">
-                        <h3>رقم الفاتوره </h3>
-                        <h4>{{ $obj->code }} </h4>
-                        <h3>Invoice No </h3>
+                    <div class="summary-row">
+                        <h3 class="label">{{ __('finance::finance.Total after discount') }}</h3>
+                        <h3 class="value">{{ number_format($obj->total_item - $obj->discount, 2) }}</h3>
                     </div>
-
-                    <div class="info_content">
-                        <h3> التاريخ </h3>
-                        <h4>{{ $obj->date }} </h4>
-                        <h3> Date </h3>
+                    <div class="summary-row">
+                        <h3 class="label">{{ __('finance::finance.the_tax_value') }}</h3>
+                        <h3 class="value">{{ number_format($obj->total_tax_value, 2) }}</h3>
                     </div>
-
-                    <div class="info_content">
-                        <h3> رقم الحساب </h3>
-                        <h4>{{ @$obj->client->code }} </h4>
-                        <h3> Account No </h3>
+                    <div class="summary-row net">
+                        <h3 class="label">{{ __('finance::finance.net') }}</h3>
+                        <h3 class="value">{{ number_format($obj->final_total, 2) }}</h3>
                     </div>
-
-                    <div class="info_content">
-                        <h3> السيد / السـاده </h3>
-                        <h4> {{ @$obj->client->name }} </h4>
-                        <h3> Mr / Messrs </h3>
+                    <div class="summary-row">
+                        <h3 class="label">{{ __('finance::finance.profit_margin') }}</h3>
+                        <h3 class="value">{{ $obj->profit_with_margin }}</h3>
                     </div>
+                </section>
 
-                    <div class="info_content">
-                        <h3> الرقم الضريبي </h3>
-                        <h4> {{ @$obj->client->tax_number }} </h4>
-                        <h3> Customer VAT # </h3>
+                <section class="invoice-signatures">
+                    <div class="signature-box">
+                        <h5>توقيع المستلم Receiver signature</h5>
                     </div>
-                    {{-- <div class="info_content">
-                        <h3> رقم امر الشراء </h3>
-                        <h4> {{ $obj->client->tax_number }} </h4>
-                        <h3> Po# </h3>
-                    </div> --}}
+                    <div class="signature-box">
+                        <h5>Receiver Name اسم المستلم</h5>
+                    </div>
+                    <div class="signature-box">
+                        <h5>
+                            {{ isset($setting_web) && isset($setting_web->website_name) ? $setting_web->translate('ar')->website_name : 'مؤسسه صلات الوطنيه التجاريه ' }}
+                        </h5>
+                    </div>
+                </section>
+            </main>
 
-                </div>
-            </div>
-
-
-            <div class="Tabel">
-
-                <table>
-
-                    <tr>
-                        <th>الاجمالي total</th>
-                        <th> الضريبة Tax</th>
-                        <th> الخصم Dis</th>
-                        <th>السعر price</th>
-                        <th>الكميه Qty</th>
-                        <th>البيان Descreption</th>
-                        <th>الرقم Code</th>
-                    </tr>
-
-                    @php
-                        // Group items by 'item_id'
-                        $groupedItems = $obj->items->groupBy('item_id');
-                        $total_price = 0;
-                        $total_discount = 0;
-                        $total_tax = 0;
-                    @endphp
-                    @foreach ($groupedItems as $itemGroup)
-                        @php
-                            // Get the first item from the group
-                            $firstItem = $itemGroup->first();
-                            // Calculate total amount and final total for the group
-                            $totalAmount = $itemGroup->sum('amount');
-                            $price = $firstItem->price;
-                            //                            $price = $itemGroup->sum('price');
-                            $totalFinalTotal = $itemGroup->sum('final_total');
-                            $discount_value = $itemGroup->sum('discount_value');
-                            $tax_value = $itemGroup->sum('tax_value');
-                            $total_price += $totalFinalTotal;
-                            $total_discount += $discount_value;
-                        @endphp
-                        <tr>
-                            <td>{{ number_format($totalFinalTotal, 2) }}</td>
-                            <td> {{ number_format($tax_value, 2) }} </td>
-                            <td> {{ number_format($discount_value, 2) }} </td>
-                            <td>{{ number_format($price, 2) }}</td>
-                            <td>{{ $totalAmount }}</td>
-                            <td>{{ @$firstItem->item->name }}</td>
-                            <td>{{ @$firstItem->item->code }}</td>
-                        </tr>
-                    @endforeach
-                </table>
-
-
-            </div>
-
-            <div class="invoice-summary">
-                <div class="summary-row">
-                    <h3 class="label">{{ __('finance::finance.Total before discount') }} :</h3>
-                    <h3 class="value">{{ number_format($obj->total_item, 2) }} </h3>
-                </div>
-                <div class="summary-row">
-                    <h3 class="label">{{ __('finance::finance.discount_value') }} :</h3>
-                    <h3 class="value">{{ number_format($obj->discount, 2) }} </h3>
-                </div>
-                <div class="summary-row">
-                    <h3 class="label">{{ __('finance::finance.Total after discount') }} :</h3>
-                    <h3 class="value">{{ number_format($obj->total_item - $obj->discount, 2) }} </h3>
-                </div>
-                <div class="summary-row">
-                    <h3 class="label">{{ __('finance::finance.the_tax_value') }} :</h3>
-                    <h3 class="value">{{ number_format($obj->total_tax_value, 2) }} </h3>
-                </div>
-                <div class="summary-row">
-                    <h3 class="label">{{ __('finance::finance.net') }} :</h3>
-                    <h3 class="value">{{ number_format($obj->final_total, 2) }} </h3>
-                </div>
-                <div class="summary-row">
-                    <h3 class="label">{{ __('finance::finance.profit_margin') }} :</h3>
-                    <h3 class="value">{{ $obj->profit_with_margin, 2 }} </h3>
-                </div>
-            </div>
-
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 20px;">
-                <div style="display: flex; align-items: center;flex-direction: column; gap: 5px;">
-                    <h5> توقيع المستلم Receiver signature</h5>
-                    <span>..................................</span>
-
-                </div>
-
-                <div style="display: flex; align-items: center;flex-direction: column; gap: 5px;">
-                    <h5>Receiver Name اسم المستلم </h5>
-                    <span>..................................</span>
-
-                </div>
-
-
-                <div style="display: flex; align-items: center;flex-direction: column; gap: 5px;">
-                    <h5>{{ isset($setting_web) && isset($setting_web->website_name) ? $setting_web->translate('ar')->website_name : 'مؤسسه صلات الوطنيه التجاريه ' }}
-                    </h5>
-                    <span>..................................</span>
-
-                </div>
-
-            </div>
-
-
-
-
-
-
-
-        </main>
-
-        @include('print-footer')
+            @includeIf('finance::finance.print-footer')
+        </div>
     </div>
 @endsection
 

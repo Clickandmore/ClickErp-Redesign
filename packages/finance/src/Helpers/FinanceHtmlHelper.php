@@ -119,6 +119,15 @@ if (!function_exists('confirmBtn')) {
     }
 }
 
+if (!function_exists('shareZatcaBtn')) {
+    function shareZatcaBtn($id): string
+    {
+        return '<button type="button" class="btn btn-outline-success shareZatcaBtn" data-id="' . $id . '" title="مشاركة الفاتورة مع هيئة الزكاة">
+                    <i class="fa fa-share-alt"></i>
+                </button>';
+    }
+}
+
 if (!function_exists('downloadFileBtn')) {
     function downloadFileBtn($filePath, $fileName = null)
     {
@@ -196,4 +205,3 @@ if (!function_exists('deleteActionButton')) {
                 </button>';
     }
 }
-

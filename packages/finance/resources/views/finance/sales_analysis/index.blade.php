@@ -1,5 +1,21 @@
 @extends('click.layout.indexs.index')
 @section('style')
+    <style>
+        .loader {
+            border: 12px solid #f3f3f3;
+            border-top: 12px solid #3498db;
+            border-radius: 50%;
+            width: 90px;
+            height: 90px;
+            animation: spin 1.4s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
 @endsection
 @section('page-title')
     {{ $bladeTitle }}
@@ -16,7 +32,7 @@
 
         <div class="col-2">
             <label for="TextInput" class="form-label"> {{ __('finance::finance.To Date') }} </label>
-            <input type="date" name="to_date" value="" class="form-control search_keys" id="from_date">
+            <input type="date" name="to_date" value="" class="form-control search_keys" id="to_date">
         </div>
 
         <div class="col-1">
@@ -33,8 +49,7 @@
 @section('js')
     <script>
         $('.select2').select2();
-        $("#search_button").on("click", function(e) {
-            e.preventDefault()
+        function loadReport() {
             var data = $(".search_keys").serialize();
             let url = '{{ $dataTableRoute }}';
             $.ajax({
@@ -54,6 +69,13 @@
                     handleErrorResponce(errorObj);
                 }
             });
+        }
+
+        $("#search_button").on("click", function(e) {
+            e.preventDefault()
+            loadReport();
         });
+
+        loadReport();
     </script>
 @endsection

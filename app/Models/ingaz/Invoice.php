@@ -8,6 +8,7 @@ use App\Models\MusanedTransferItem;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Nami\Finance\Models\Constraint;
+use Nami\Finance\Models\Sale;
 
 class Invoice extends Model
 {
@@ -17,6 +18,7 @@ class Invoice extends Model
     protected $table = 'invoices';
     protected $casts = [
         'is_paid' => 'boolean',
+        'send_to_zatca' => 'boolean',
         'paid_at' => 'datetime',
     ];
 
@@ -47,5 +49,10 @@ class Invoice extends Model
     public function ingazDelegationCostConstraint()
     {
         return $this->belongsTo(Constraint::class, 'ingaz_delegation_cost_constraint_id');
+    }
+
+    public function financeSale()
+    {
+        return $this->belongsTo(Sale::class, 'finance_sale_id');
     }
 }

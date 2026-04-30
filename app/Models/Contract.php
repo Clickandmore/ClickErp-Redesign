@@ -92,6 +92,11 @@ class Contract extends Model
         return $this->hasOne(MusanedTransferItem::class, 'contract_id');
     }
 
+    public function recruitmentRefund()
+    {
+        return $this->hasOne(RecruitmentContractRefund::class, 'contract_id');
+    }
+
     public function notes(){
         return $this->hasMany(ContractNote::class, 'contract_id');
     }

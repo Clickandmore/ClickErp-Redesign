@@ -1,8 +1,7 @@
 <?php
 
-namespace App\Models\Zatca;
+namespace Nami\Finance\Models;
 
-use App\Models\Finance\Sale;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 

@@ -98,11 +98,13 @@
     <div class="row g-3 m-2 to_hide">
         <div class="col-3">
             <label for="TextInput" class="form-label"> {{ __('finance::finance.From Date') }}</label>
-            <input type="date" name="from_date" class="form-control search_keys" id="from_date">
+            <input type="date" name="from_date" class="form-control search_keys" id="from_date"
+                value="{{ $filters['from_date'] ?? '' }}">
         </div>
         <div class="col-3">
             <label for="TextInput" class="form-label"> {{ __('finance::finance.To Date') }} </label>
-            <input type="date" name="to_date" value="" class="form-control search_keys" id="from_date">
+            <input type="date" name="to_date" value="{{ $filters['to_date'] ?? date('Y-m-d') }}"
+                class="form-control search_keys" id="to_date">
         </div>
         <div class="col-1">
             <br>
@@ -120,8 +122,7 @@
 @section('js')
     <script>
         $('.select2').select2();
-        $("#search_button").on("click", function(e) {
-            e.preventDefault()
+        function loadTaxDeclaration() {
             var data = $(".search_keys").serialize();
             let url = '{{ route('finance.tax-declaration.index') }}';
             $.ajax({
@@ -141,6 +142,13 @@
                     handleErrorResponce(errorObj);
                 }
             });
+        }
+
+        $("#search_button").on("click", function(e) {
+            e.preventDefault()
+            loadTaxDeclaration();
         });
+
+        loadTaxDeclaration();
     </script>
 @endsection

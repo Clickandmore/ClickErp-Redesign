@@ -1,7 +1,7 @@
 @extends('admin.layout.indexs.index')
 
 @section('style')
-    <link rel="stylesheet" href="{{ asset('admin/assets/css/dashboard-new.css') }}?v=12">
+    <link rel="stylesheet" href="{{ asset('admin/assets/css/dashboard-new.css') }}?v=13">
     <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/main.min.css' rel='stylesheet' />
 @endsection
 
@@ -152,6 +152,8 @@
                     <a href="{{ route('RecruitmentContract.create') }}"><i class="fas fa-plus-circle ms-1"></i> عقد جديد</a>
                     <a href="{{ route('orders.index') }}"><i class="fas fa-shopping-basket ms-1"></i> الطلبات المباشرة</a>
                     <a href="{{ route('admins.index') }}"><i class="fas fa-users-cog ms-1"></i> إدارة الفرق</a>
+                    <a href="{{ route('reports.index') }}"><i class="fas fa-chart-pie ms-1"></i> التقارير</a>
+                    <a href="{{ route('finance.home.index') }}"><i class="fas fa-wallet ms-1"></i> المالية</a>
                 </div>
             </div>
             <div class="hero-controls">
@@ -193,6 +195,33 @@
         @if (!$hasAnyDashboardSection)
             @include('components.no_permissions')
         @endif
+
+        <div class="dashboard-route-grid">
+            <a href="{{ route('reports.index') }}" class="dashboard-route-card">
+                <span class="dashboard-route-icon"><i class="fas fa-chart-line"></i></span>
+                <span>
+                    <strong>مركز التقارير</strong>
+                    <small>تقارير العقود والطلبات والإيواء مع خيارات التصدير.</small>
+                </span>
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <a href="{{ route('finance.home.index') }}" class="dashboard-route-card">
+                <span class="dashboard-route-icon"><i class="fas fa-file-invoice-dollar"></i></span>
+                <span>
+                    <strong>لوحة التحكم المالية</strong>
+                    <small>ملخص الحسابات والفواتير والحركات المالية.</small>
+                </span>
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <a href="{{ route('ShelterContract.index') }}" class="dashboard-route-card">
+                <span class="dashboard-route-icon"><i class="fas fa-house-user"></i></span>
+                <span>
+                    <strong>إدارة الإيواء</strong>
+                    <small>الداخل والخارج والجاهز للنقل ومرحلة الترحيل.</small>
+                </span>
+                <i class="fas fa-arrow-left"></i>
+            </a>
+        </div>
 
         @if ($canViewTopStatsRow)
             <div class="stat-row">
@@ -554,10 +583,14 @@
                             </div>
                             <a href="{{ route('RentContract.index') }}" class="btn btn-sm btn-light text-dark">عرض</a>
                         </div>
-                        <div class="mt-3 stat-meta">نشطة: {{ number_format($rentalStats['active'] ?? 0) }} | تحت الإجراء:
-                            {{ number_format($rentalStats['in_workflow'] ?? 0) }} | مكتملة:
-                            {{ number_format($rentalStats['completed'] ?? 0) }}</div>
-                        <a href="{{ route('finance.home.index') }}" class="stat-meta d-inline-block mt-2 text-white-50">
+                        <div class="stat-chip-list mt-3">
+                            <span>نشطة: {{ number_format($rentalStats['active'] ?? 0) }}</span>
+                            <span>مرسلة: {{ number_format($rentalStats['sent'] ?? 0) }}</span>
+                            <span>موقعة: {{ number_format($rentalStats['signed'] ?? 0) }}</span>
+                            <span>تم التسليم: {{ number_format($rentalStats['delivered'] ?? 0) }}</span>
+                            <span>مكتملة: {{ number_format($rentalStats['completed'] ?? 0) }}</span>
+                        </div>
+                        <a href="{{ route('finance.home.index') }}" class="stat-meta stat-link d-inline-block mt-2">
                             التفاصيل المالية لعقود الإيجار <i class="fas fa-arrow-left ms-1"></i>
                         </a>
                     </div>
@@ -576,7 +609,7 @@
                             الإجراء:
                             {{ number_format($rentalOrderStats['under_process'] ?? 0) }} | مكتملة:
                             {{ number_format($rentalOrderStats['completed'] ?? 0) }}</div>
-                        <a href="{{ route('RentContract.index') }}" class="stat-meta d-inline-block mt-2 text-white-50">
+                        <a href="{{ route('RentContract.index') }}" class="stat-meta stat-link d-inline-block mt-2">
                             تحويل الطلب إلى عقد إيجار <i class="fas fa-arrow-left ms-1"></i>
                         </a>
                     </div>
@@ -625,10 +658,15 @@
                             </div>
                             <a href="{{ route('ShelterContract.index') }}" class="btn btn-sm btn-light text-dark">عرض</a>
                         </div>
-                        <div class="mt-3 stat-meta">داخل الإيواء: {{ number_format($shelterStats['inside'] ?? 0) }} |
-                            خارج الإيواء: {{ number_format($shelterStats['outside'] ?? 0) }} | أماكن:
-                            {{ number_format($shelterStats['places'] ?? 0) }}</div>
-                        <a href="{{ route('ShelterContract.outside') }}" class="stat-meta d-inline-block mt-2 text-white-50">
+                        <div class="stat-chip-list mt-3">
+                            <span>داخل الإيواء: {{ number_format($shelterStats['inside'] ?? 0) }}</span>
+                            <span>خارج الإيواء: {{ number_format($shelterStats['outside'] ?? 0) }}</span>
+                            <span>جاهز للنقل: {{ number_format($shelterStats['available_for_transfer'] ?? 0) }}</span>
+                            <span>مرحلة الترحيل: {{ number_format($shelterStats['deportation_stage'] ?? 0) }}</span>
+                            <span>تم الترحيل: {{ number_format($shelterStats['deported'] ?? 0) }}</span>
+                            <span>أماكن: {{ number_format($shelterStats['places'] ?? 0) }}</span>
+                        </div>
+                        <a href="{{ route('ShelterContract.outside') }}" class="stat-meta stat-link d-inline-block mt-2">
                             متابعة حركة الخروج للإيجار والنقل <i class="fas fa-arrow-left ms-1"></i>
                         </a>
                     </div>

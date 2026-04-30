@@ -182,6 +182,44 @@
         #dataTableObject tbody tr.table-primary > td {
             background-color: rgba(13, 110, 253, 0.08) !important;
         }
+
+        .actions-dropdown .dropdown-menu {
+            min-width: 250px;
+        }
+
+        .actions-dropdown .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 14px;
+            font-size: 0.9rem;
+        }
+
+        .actions-dropdown .dropdown-item i {
+            width: 18px;
+            text-align: center;
+            color: #64748b;
+            flex-shrink: 0;
+        }
+
+        .actions-dropdown .dropdown-header {
+            font-weight: 700;
+            color: #334155;
+        }
+
+        .actions-dropdown .dropdown-item.action-refund {
+            color: #0d6efd;
+            font-weight: 700;
+            background: rgba(13, 110, 253, 0.08);
+        }
+
+        .actions-dropdown .dropdown-item.action-refund i {
+            color: #0d6efd;
+        }
+
+        .actions-dropdown .attachment-count-badge {
+            margin-inline-start: auto;
+        }
     </style>
 @endsection
 
@@ -202,6 +240,7 @@
                 'tafwed',
                 'taffez',
                 'tazker',
+                'sari',
             ]);
             $showCompletedStatsInitially = !$requestedStatus || in_array($requestedStatus, ['completed_stage', 'completed', 'arrival']);
         @endphp
@@ -869,6 +908,79 @@
         </div>
 
 
+        <div class="modal fade" id="refundContractModal" tabindex="-1" aria-labelledby="refundContractModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="refundContractModalLabel">
+                            <i class="fas fa-rotate-left text-primary"></i>
+                            استرداد العقد
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-info">
+                            <p class="mb-1">العقد رقم <strong id="refundContractNumber"></strong></p>
+                            <p class="mb-1">العميل: <strong id="refundClientName"></strong></p>
+                            <p class="mb-0">قيمة العقد: <strong id="refundContractAmount"></strong></p>
+                        </div>
+
+                        <div class="alert alert-warning d-none" id="refundBeforeTransferNote">
+                            لم يتم تسجيل تحويل مساند لهذا العقد، لذلك سيتم الاسترداد بدون خصم على أي طرف وبدون قيد خصم مالي.
+                        </div>
+
+                        <form id="refundContractForm">
+                            @csrf
+                            <input type="hidden" id="refundContractId" name="contract_id">
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="refund_date" class="form-label">تاريخ الاسترداد</label>
+                                        <input type="date" class="form-control" id="refund_date" name="refund_date"
+                                            value="{{ date('Y-m-d') }}" max="{{ date('Y-m-d') }}" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-6" id="refundCancelledByWrapper">
+                                    <div class="form-group mb-3">
+                                        <label class="form-label">الطرف المتسبب في الإلغاء</label>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="cancelled_by"
+                                                id="refund_by_client" value="client">
+                                            <label class="form-check-label" for="refund_by_client">العميل</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="cancelled_by"
+                                                id="refund_by_external_office" value="external_office">
+                                            <label class="form-check-label" for="refund_by_external_office">المكتب الخارجي</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="form-group mb-3">
+                                        <label for="refund_reason" class="form-label">سبب الاسترداد</label>
+                                        <textarea class="form-control" id="refund_reason" name="reason" rows="3" required></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                        <button type="button" class="btn btn-primary" id="submitRefundContractBtn">
+                            <i class="fas fa-save me-1"></i>
+                            تسجيل الاسترداد
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
         @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_UPDATE))
             <!-- دايلوج إضافة ملاحظة -->
             <div class="modal fade" id="addContractNoteModal" tabindex="-1" aria-labelledby="addContractNoteModalLabel"
@@ -966,7 +1078,7 @@
             function toggleStatsSections() {
                 const statusValue = $('#statusFilter').val();
                 const currentStatuses = ['current', 'pending_maid_selection', 'new', 'msaned', 'tafwed', 'taffez',
-                    'tazker', 'accreditation_contracts'
+                    'tazker', 'sari', 'accreditation_contracts'
                 ];
                 const completedStatuses = ['completed_stage', 'completed', 'arrival'];
 
@@ -2115,6 +2227,70 @@
                 var maidName = button.data('maid-name');
 
                 openCancelContractModal(contractId, contractNumber, clientName, maidName);
+            });
+
+            $(document).on('click', '.refund-contract-btn', function(e) {
+                e.preventDefault();
+                var button = $(this);
+                var hasMusanedTransfer = String(button.data('has-musaned-transfer')) === '1';
+
+                $('#refundContractId').val(button.data('contract-id'));
+                $('#refundContractNumber').text(button.data('contract-number'));
+                $('#refundClientName').text(button.data('client-name'));
+                $('#refundContractAmount').text(Number(button.data('contract-amount') || 0).toFixed(2));
+                $('#refund_reason').val('');
+                $('#refund_date').val('{{ date('Y-m-d') }}');
+                $('input[name="cancelled_by"]').prop('checked', false).prop('required', hasMusanedTransfer);
+
+                if (hasMusanedTransfer) {
+                    $('#refundCancelledByWrapper').removeClass('d-none');
+                    $('#refundBeforeTransferNote').addClass('d-none');
+                } else {
+                    $('#refundCancelledByWrapper').addClass('d-none');
+                    $('#refundBeforeTransferNote').removeClass('d-none');
+                }
+
+                $('#refundContractModal').modal('show');
+            });
+
+            $('#submitRefundContractBtn').on('click', function() {
+                var button = $(this);
+                var originalHtml = button.html();
+                var form = $('#refundContractForm')[0];
+
+                if (!form.checkValidity()) {
+                    form.reportValidity();
+                    return;
+                }
+
+                button.prop('disabled', true).html('<i class="fa fa-spinner fa-spin me-1"></i>جاري الحفظ...');
+
+                $.ajax({
+                    url: '{{ route('RecruitmentContract.refund') }}',
+                    method: 'POST',
+                    data: $('#refundContractForm').serialize(),
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            $('#refundContractModal').modal('hide');
+                            Swal.fire('نجح', response.message, 'success');
+                            dataTable.ajax.reload(null, false);
+                        } else {
+                            Swal.fire('خطأ', response.message, 'error');
+                        }
+                    },
+                    error: function(xhr) {
+                        var message = xhr.responseJSON && xhr.responseJSON.message
+                            ? xhr.responseJSON.message
+                            : 'حدث خطأ أثناء تسجيل الاسترداد';
+                        Swal.fire('خطأ', message, 'error');
+                    },
+                    complete: function() {
+                        button.prop('disabled', false).html(originalHtml);
+                    }
+                });
             });
         });
     </script>

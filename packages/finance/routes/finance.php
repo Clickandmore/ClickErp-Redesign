@@ -113,6 +113,7 @@ use Nami\Finance\Http\Controllers\SupplierController;
 use Nami\Finance\Http\Controllers\SupplierFileController;
 use Nami\Finance\Http\Controllers\SupplierTypeController;
 use Nami\Finance\Http\Controllers\TaxDeclarationController;
+use Nami\Finance\Http\Controllers\TaxInvoiceStatementController;
 use Nami\Finance\Http\Controllers\TaxSettingController;
 use Nami\Finance\Http\Controllers\TazherCheckController;
 use Nami\Finance\Http\Controllers\TotalItemPurchaseController;
@@ -290,6 +291,8 @@ Route::group(
         Route::resource('item-collects', ItemCollectController::class);
         Route::get('item-collects-details', [ItemCollectController::class, 'getItemComponents'])->name('item-collects.details');
 
+        Route::get('bill-sales/export/excel', [BillSalesController::class, 'exportExcel'])->name('bill-sales.export.excel');
+        Route::get('bill-sales/export/pdf', [BillSalesController::class, 'exportPdf'])->name('bill-sales.export.pdf');
         Route::resource('bill-sales', BillSalesController::class);
         Route::resource('bill-sales-report', BillSaleReportController::class);
         Route::resource('confirm-bill-sales', ConfirmBillSaleController::class);
@@ -325,6 +328,7 @@ Route::group(
         Route::resource('sales-analysis', SalesAnalysisController::class);
         Route::resource('purchases-analysis', PurchasesAnalysisController::class);
         Route::resource('tax-declaration', TaxDeclarationController::class);
+        Route::resource('tax-invoice-statement', TaxInvoiceStatementController::class);
 
 
     });

@@ -4,15 +4,68 @@
     جميع الفواتير
 @endsection
 
+@section('style')
+    <style>
+        .invoice-index-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .invoice-index-title {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 900;
+        }
+
+        .invoice-index-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .invoice-index-actions .btn {
+            font-weight: 700;
+        }
+
+        #dataTableObject {
+            vertical-align: middle;
+        }
+
+        #dataTableObject th {
+            white-space: nowrap;
+            font-size: 12px;
+        }
+
+        #dataTableObject td {
+            vertical-align: middle;
+        }
+    </style>
+@endsection
+
 @section('content')
     <div class="container-fluid py-3 py-lg-4">
         <div class="card">
             <div class="card-body">
-                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
-                    <h4 class="mb-0">جميع الفواتير</h4>
-                    <a href="{{ route('invoices.create') }}" class="btn btn-primary">
-                        <i class="fas fa-plus me-1"></i> إضافة فاتورة
-                    </a>
+                <div class="invoice-index-toolbar">
+                    <div>
+                        <h4 class="invoice-index-title">جميع الفواتير</h4>
+                        <small class="text-muted">متابعة فواتير إنجاز وحالة الإدراج في فواتير هيئة الزكاة.</small>
+                    </div>
+                    <div class="invoice-index-actions">
+                        <a href="{{ route('invoices.export.excel') }}" class="btn btn-outline-success">
+                            <i class="fas fa-file-excel me-1"></i> Excel
+                        </a>
+                        <a href="{{ route('invoices.export.pdf') }}" class="btn btn-outline-danger">
+                            <i class="fas fa-file-pdf me-1"></i> PDF
+                        </a>
+                        <a href="{{ route('invoices.create') }}" class="btn btn-primary">
+                            <i class="fas fa-plus me-1"></i> إضافة فاتورة
+                        </a>
+                    </div>
                 </div>
 
                 <div class="table-responsive">
@@ -21,13 +74,14 @@
                             <tr>
                                 <th>#</th>
                                 <th>رقم الفاتورة</th>
-                                <th>رقم العقد</th>
+                                <th>مرتبطة بـ</th>
                                 <th>اسم العميل</th>
                                 <th>الإجمالي</th>
                                 <th>الضريبة</th>
                                 <th>الخصم</th>
                                 <th>المطلوب</th>
                                 <th>الحالة</th>
+                                <th>هيئة الزكاة</th>
                                 <th>تاريخ الإنشاء</th>
                                 <th></th>
                             </tr>
@@ -59,8 +113,10 @@
                         name: 'id'
                     },
                     {
-                        data: 'contract_number',
-                        name: 'contract_id'
+                        data: 'invoice_source',
+                        name: 'contract_id',
+                        orderable: false,
+                        searchable: false
                     },
                     {
                         data: 'client_name',
@@ -91,6 +147,12 @@
                         searchable: false
                     },
                     {
+                        data: 'zatca_status',
+                        name: 'zatca_status',
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
                         data: 'created_at',
                         name: 'created_at'
                     },
@@ -104,6 +166,12 @@
                 order: [
                     [1, 'desc']
                 ]
+            });
+
+            $(document).on('submit', '.queue-zatca-form', function(e) {
+                if (!confirm('سيتم إنشاء فاتورة مبيعات مالية مرتبطة بهذه الفاتورة لتظهر معلقة في هيئة الزكاة. هل تريد المتابعة؟')) {
+                    e.preventDefault();
+                }
             });
         });
     </script>

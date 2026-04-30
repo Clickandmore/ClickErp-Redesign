@@ -12,7 +12,7 @@
         @include('print-header')
         <div class="text-center" style="margin: 10px auto">
             <h5>
-                {{ __("finance.purchases-analysis") }}
+                {{ __("finance::finance.purchases-analysis") }}
                 {{ $fromDate ? __('finance::finance.from_date') . ' ' . $fromDate : '' }}
                 {{ $toDate ? __('finance::finance.to_date') . ' ' . $toDate : '' }}
             </h5>
@@ -111,7 +111,7 @@
         printWindow.document.write(`
             <html>
                 <head>
-                    <title>{{ __("finance::finance.sales-analysis") }}</title>
+                    <title>{{ __("finance::finance.purchases-analysis") }}</title>
                     ${styleSheet}
                 </head>
                 <body>

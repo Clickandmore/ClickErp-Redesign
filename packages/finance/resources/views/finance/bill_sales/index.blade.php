@@ -1,6 +1,47 @@
 @extends('click.layout.indexs.index')
 @section('style')
     <link rel="stylesheet" href="{{ asset('admin') }}/assets/cssbundle/dataTables.min.css">
+    <style>
+        .bill-sales-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .bill-sales-title {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 900;
+        }
+
+        .bill-sales-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .bill-sales-filters {
+            padding: 16px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: #fff;
+            margin-bottom: 16px;
+        }
+
+        .bill-sales-filters label {
+            font-size: 12px;
+            font-weight: 700;
+            color: #4b5563;
+        }
+
+        #dataTableObject th {
+            white-space: nowrap;
+            font-size: 12px;
+        }
+    </style>
 @endsection
 @section('page-title')
     {{ $bladeTitle }}
@@ -9,7 +50,23 @@
     <li class="breadcrumb-item active" aria-current="page"> {{ $bladeTitle }}</li>
 @endsection
 @section('content')
-    <div class="row mb-3">
+    <div class="bill-sales-toolbar">
+        <div>
+            <h4 class="bill-sales-title">{{ $bladeTitle }}</h4>
+            <small class="text-muted">متابعة فواتير المبيعات وحالة مشاركتها مع هيئة الزكاة.</small>
+        </div>
+        <div class="bill-sales-actions">
+            <a href="{{ route('finance.bill-sales.export.excel') }}" id="exportExcelLink" class="btn btn-outline-success">
+                <i class="fa fa-file-excel me-1"></i> Excel
+            </a>
+            <a href="{{ route('finance.bill-sales.export.pdf') }}" id="exportPdfLink" class="btn btn-outline-danger">
+                <i class="fa fa-file-pdf me-1"></i> PDF
+            </a>
+            {!! addHyperButton($createRoute, $addButtonText) !!}
+        </div>
+    </div>
+
+    <div class="row bill-sales-filters">
         <div class="col-md-2">
             <label for="">{{ __('finance::finance.from_date') }}</label>
             <input type="date" name="from_date" id="from_date" class="form-control">
@@ -35,7 +92,6 @@
             </select>
         </div>
     </div>
-    {!! addHyperButton($createRoute, $addButtonText) !!}
     <table id="dataTableObject" class="table display dataTable table-hover" style="width:100%">
         <thead>
             <tr>
@@ -62,6 +118,22 @@
     <script src="{{ asset('admin') }}/assets/js/bundle/dataTables.bundle.js"></script>
     <script>
         $(document).ready(function() {
+            function currentQueryString() {
+                return $.param({
+                    from_date: $('#from_date').val(),
+                    to_date: $('#to_date').val(),
+                    code: $('#code').val(),
+                    client_id: $('#client_id').val(),
+                    item_id: $('#item_id').val()
+                });
+            }
+
+            function updateExportLinks() {
+                let query = currentQueryString();
+                $('#exportExcelLink').attr('href', "{{ route('finance.bill-sales.export.excel') }}" + (query ? '?' + query : ''));
+                $('#exportPdfLink').attr('href', "{{ route('finance.bill-sales.export.pdf') }}" + (query ? '?' + query : ''));
+            }
+
             var table = $('#dataTableObject').DataTable({
                 "lengthMenu": [
                     [10, 25, 50, -1],
@@ -147,11 +219,14 @@
             });
 
             $('#from_date, #to_date, #client_id, #item_id').change(function() {
+                updateExportLinks();
                 table.draw();
             });
             $('#code').keyup(function() {
+                updateExportLinks();
                 table.draw();
             });
+            updateExportLinks();
         });
 
         $(document).ajaxComplete(function() {
