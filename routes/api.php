@@ -3,6 +3,11 @@
 use App\Http\Controllers\Api\ApiAuthController;
 use App\Http\Controllers\Api\ApiPhoneVerificationController;
 use App\Http\Controllers\Api\ApiUserFirebaseTokenController;
+use App\Http\Controllers\APPAPIControllers\AuthController as AppAuthController;
+use App\Http\Controllers\APPAPIControllers\AppHomeController;
+use App\Http\Controllers\APPAPIControllers\AppOrderController;
+use App\Http\Controllers\APPAPIControllers\AppComplaintController;
+use App\Http\Middleware\AppApiLang;
 use App\Http\Controllers\Webhook\WhatsAppWebhookController;
 use \Api\ApiSettingController;
 use \Api\ApiUserAddressController;
@@ -141,3 +146,59 @@ Route::group(['middleware' => 'lang', 'prefix' => 'client'], function () {
     
 });
 
+// *************************************************************************************************************
+// APIs For Application
+Route::group(
+    [
+        'middleware' => AppApiLang::class,
+        'prefix' => 'app'
+    ],
+    function () {
+        Route::group(['prefix' => 'auth'], function ($router) {
+            Route::post('/login', [AppAuthController::class, 'login']);
+            Route::post('/register', [AppAuthController::class, 'register']);
+            Route::post('/send-code', [AppAuthController::class, 'sendCode']);
+            Route::post('/confirm-code', [AppAuthController::class, 'confirmCode']);
+            Route::post('/reset-password', [AppAuthController::class, 'resetPassword'])->middleware('auth:api');
+            Route::post('/update/profile', [AppAuthController::class, 'updateProfile'])->middleware('auth:api');
+            Route::post('/logout', [AppAuthController::class, 'logout'])->middleware('auth:api');
+            Route::delete('/delete/profile', [AppAuthController::class, 'delete'])->middleware('auth:api');
+            
+            Route::post('/firebase/update', [ApiUserFirebaseTokenController::class, 'store'])->middleware('auth:api');
+        });
+    }
+);
+
+Route::group(['middleware' => AppApiLang::class, 'prefix' => 'user'], function () {
+    Route::get('sliders', [AppHomeController::class, 'sliders']);
+    Route::get('jobs', [AppHomeController::class, 'jobs']);
+    Route::get('nationalities', [AppHomeController::class, 'nationalities']);
+    Route::get('customers', [AppHomeController::class, 'customers']);
+    Route::get('job-types', [AppHomeController::class, 'jobTypes']);
+    Route::get('religions', [AppHomeController::class, 'religions']);
+    Route::get('packages', [AppHomeController::class, 'packages']);
+    Route::get('notifications', [AppHomeController::class, 'notifications']);
+    Route::get('maids', [AppHomeController::class, 'maids']);
+    Route::get('maidssearch', [AppHomeController::class, 'maidssearch']);
+    Route::get('maidssearch={search}', [AppHomeController::class, 'maidssearch']);
+});
+
+Route::group(['middleware' => AppApiLang::class, 'prefix' => 'user'], function () {
+    Route::get('address', [AppHomeController::class, 'address'])->middleware('auth:api');
+    Route::post('address', [AppHomeController::class, 'addAddress'])->middleware('auth:api');
+    Route::put('address/{id}', [AppHomeController::class, 'editAddress'])->middleware('auth:api');
+    Route::delete('address/{id}', [AppHomeController::class, 'deleteAddress'])->middleware('auth:api');
+    Route::post('contact-us', [AppHomeController::class, 'contactUs']);
+    Route::get('settings', [AppHomeController::class, 'settings']);
+    
+    Route::get('orders', [AppOrderController::class, 'orders'])->middleware('auth:api');
+    Route::get('orders/{id}', [AppOrderController::class, 'orderDetails'])->middleware('auth:api');
+    Route::post('special-requests', [AppOrderController::class, 'createSpecialRequest'])->middleware('auth:api');
+    Route::post('complaints', [AppComplaintController::class, 'addComplaint'])->middleware('auth:api');
+});
+
+Route::group(['middleware' => AppApiLang::class, 'prefix' => 'home'], function () {
+    Route::post('complete_request/{id}', [AppOrderController::class, 'createOrder'])->middleware('auth:api');
+});
+
+// *************************************************************************************************************
