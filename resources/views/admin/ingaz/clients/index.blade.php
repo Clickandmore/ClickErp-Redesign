@@ -58,6 +58,22 @@
             white-space: nowrap;
             font-size: 14px;
         }
+
+        .bulk-actions-card {
+            border: 1px solid #dbeafe;
+            border-radius: 14px;
+            background: #f8fbff;
+        }
+
+        .bulk-actions-card .form-select {
+            min-width: 170px;
+        }
+
+        #dataTableObject th:first-child,
+        #dataTableObject td:first-child {
+            width: 42px;
+            text-align: center;
+        }
     </style>
 @endsection
 
@@ -279,14 +295,50 @@
                         </button>
                     </div>
                 </div>
+                @if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_TOGGLE_STATUS))
+                    <div class="card bulk-actions-card shadow-sm mb-4 d-none" id="clientsBulkActions">
+                        <div class="card-body">
+                            <div class="row g-3 align-items-center">
+                                <div class="col-lg-4">
+                                    <div class="fw-semibold">
+                                        الإجراءات المجمعة
+                                        <span class="badge bg-primary ms-2" id="clientsBulkCount">0</span>
+                                    </div>
+                                    <div class="small text-muted mt-1" id="clientsBulkSummary">
+                                        اختر عملاء من الجدول لتفعيل الإجراءات المجمعة.
+                                    </div>
+                                </div>
+                                <div class="col-lg-3 col-md-4">
+                                    <select class="form-select" id="clientsBulkStatus">
+                                        <option value="active">تفعيل العملاء المحددين</option>
+                                        <option value="blocked">حظر العملاء المحددين</option>
+                                    </select>
+                                </div>
+                                <div class="col-lg-3 col-md-4 d-flex gap-2">
+                                    <button type="button" class="btn btn-primary" id="clientsBulkApply" disabled>
+                                        تنفيذ
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary" id="clientsBulkClear">
+                                        إلغاء التحديد
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endif
                 <div class="card shadow-sm border-0">
                     <div class="card-body">
                         <div class="table-responsive">
                             <table id="dataTableObject"
-                                class="table table-hover align-middle table-style
+                                class="table table-hover align-middle table-style"
                                 style="width:100%">
                                 <thead>
                                     <tr>
+                                        <th>
+                                            @if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_TOGGLE_STATUS))
+                                                <input class="form-check-input" type="checkbox" id="clientsBulkSelectPage">
+                                            @endif
+                                        </th>
                                         <th>#</th>
                                         <th>{{ helperTrans('ingaz.name') }}</th>
                                         <th>{{ helperTrans('ingaz.client_data') }}</th>
@@ -314,6 +366,39 @@
     <script src="{{ asset('admin') }}/assets/js/bundle/dataTables.bundle.js"></script>
     <script>
         $(function() {
+            const selectedClients = new Map();
+
+            function syncBulkCheckboxes() {
+                $('.client-bulk-checkbox').each(function() {
+                    $(this).prop('checked', selectedClients.has(String($(this).val())));
+                });
+
+                const pageCheckboxes = $('.client-bulk-checkbox');
+                const checkedPageCheckboxes = pageCheckboxes.filter(':checked');
+                $('#clientsBulkSelectPage').prop('checked', pageCheckboxes.length > 0 && checkedPageCheckboxes.length === pageCheckboxes.length);
+            }
+
+            function updateBulkActions() {
+                const selectedCount = selectedClients.size;
+                $('#clientsBulkCount').text(selectedCount);
+                $('#clientsBulkApply').prop('disabled', selectedCount === 0);
+
+                if (selectedCount === 0) {
+                    $('#clientsBulkActions').addClass('d-none');
+                    $('#clientsBulkSummary').text('اختر عملاء من الجدول لتفعيل الإجراءات المجمعة.');
+                } else {
+                    $('#clientsBulkActions').removeClass('d-none');
+                    $('#clientsBulkSummary').text('تم تحديد ' + selectedCount + ' عميل.');
+                }
+
+                syncBulkCheckboxes();
+            }
+
+            function clearBulkSelection() {
+                selectedClients.clear();
+                updateBulkActions();
+            }
+
             const table = $('#dataTableObject').DataTable({
                 processing: true,
                 serverSide: true,
@@ -330,6 +415,12 @@
                     }
                 },
                 columns: [{
+                        data: 'bulk_select',
+                        name: 'bulk_select',
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
                         data: 'DT_RowIndex',
                         name: 'DT_RowIndex',
                         orderable: false,
@@ -382,7 +473,7 @@
                     }
                 ],
                 order: [
-                    [5, 'desc']
+                    [8, 'desc']
                 ],
                 language: {
                     url: "{{ asset('admin/assets/js/datatable-ar.json') }}"
@@ -391,6 +482,7 @@
                     if (typeof bootstrap !== 'undefined') {
                         $('[data-bs-toggle="tooltip"]').tooltip();
                     }
+                    syncBulkCheckboxes();
                 }
             });
 
@@ -401,11 +493,110 @@
 
             $('#resetFilters').on('click', function() {
                 $('#clientsFilters')[0].reset();
+                clearBulkSelection();
                 table.draw();
             });
 
             $('.filter-trigger').on('change', function() {
+                clearBulkSelection();
                 table.draw();
+            });
+
+            $(document).on('change', '.client-bulk-checkbox', function() {
+                const id = String($(this).val());
+
+                if ($(this).is(':checked')) {
+                    selectedClients.set(id, {
+                        id: id,
+                        name: $(this).data('name') || '',
+                        status: $(this).data('status')
+                    });
+                } else {
+                    selectedClients.delete(id);
+                }
+
+                updateBulkActions();
+            });
+
+            $('#clientsBulkSelectPage').on('change', function() {
+                const checked = $(this).is(':checked');
+                $('.client-bulk-checkbox').each(function() {
+                    const id = String($(this).val());
+
+                    $(this).prop('checked', checked);
+                    if (checked) {
+                        selectedClients.set(id, {
+                            id: id,
+                            name: $(this).data('name') || '',
+                            status: $(this).data('status')
+                        });
+                    } else {
+                        selectedClients.delete(id);
+                    }
+                });
+
+                updateBulkActions();
+            });
+
+            $('#clientsBulkClear').on('click', function() {
+                clearBulkSelection();
+            });
+
+            $('#clientsBulkApply').on('click', function() {
+                const ids = Array.from(selectedClients.keys());
+                const status = $('#clientsBulkStatus').val();
+                const actionText = status === 'blocked' ? 'حظر' : 'تفعيل';
+
+                if (ids.length === 0) {
+                    return;
+                }
+
+                const runRequest = () => {
+                    const btn = $('#clientsBulkApply');
+                    btn.prop('disabled', true).text('جاري التنفيذ...');
+
+                    $.ajax({
+                        url: "{{ route('clients.bulk-update-status') }}",
+                        type: 'POST',
+                        data: {
+                            _token: "{{ csrf_token() }}",
+                            ids: ids,
+                            status: status
+                        },
+                        success: function(response) {
+                            successToster('{{ __('auth.done successfully') }}', response.message);
+                            clearBulkSelection();
+                            table.ajax.reload(null, false);
+                        },
+                        error: function(xhr) {
+                            const message = xhr.responseJSON && xhr.responseJSON.message
+                                ? xhr.responseJSON.message
+                                : 'حصل خطأ، حاول مرة أخرى';
+                            errorToster('خطأ!', message);
+                        },
+                        complete: function() {
+                            btn.text('تنفيذ');
+                            updateBulkActions();
+                        }
+                    });
+                };
+
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        title: 'تأكيد الإجراء',
+                        text: 'سيتم ' + actionText + ' ' + ids.length + ' عميل.',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'تنفيذ',
+                        cancelButtonText: 'إلغاء'
+                    }).then(function(result) {
+                        if (result.isConfirmed) {
+                            runRequest();
+                        }
+                    });
+                } else if (confirm('سيتم ' + actionText + ' ' + ids.length + ' عميل. هل تريد المتابعة؟')) {
+                    runRequest();
+                }
             });
 
             const collapseEl = document.getElementById('clientsFiltersCollapse');

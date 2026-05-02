@@ -18,6 +18,10 @@
         <tr>
             <th>#</th>
             <th>{{helperTrans("ingaz.title")}}</th>
+            <th>{{helperTrans("ingaz.shelter_capacity")}}</th>
+            <th>{{helperTrans("ingaz.current_occupancy")}}</th>
+            <th>{{helperTrans("ingaz.shelter_location")}}</th>
+            <th>{{helperTrans("ingaz.shelter_management")}}</th>
             <th>{{helperTrans("ingaz.created_at")}}</th>
             <th>{{helperTrans("ingaz.actions")}}</th>
         </tr>
@@ -39,6 +43,10 @@
             let columns = [
                 {"data": 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
                 {"data": "title", orderable: true, searchable: true},
+                {"data": "capacity", orderable: false, searchable: false},
+                {"data": "current_occupancy", orderable: false, searchable: false},
+                {"data": "location", orderable: false, searchable: true},
+                {"data": "management", orderable: false, searchable: true},
                 {"data": "created_at", orderable: false, searchable: false},
                 {"data": "actions", orderable: false, searchable: false}
             ];

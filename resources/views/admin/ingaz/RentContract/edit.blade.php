@@ -188,6 +188,20 @@
         margin-bottom: 1rem;
     }
 
+    .payment-box {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 1rem;
+    }
+
+    .payment-summary {
+        background: white;
+        border-radius: 8px;
+        border: 1px dashed #cbd5e0;
+        padding: 0.85rem;
+    }
+
     .maid-photo {
         width: 60px;
         height: 60px;
@@ -234,7 +248,7 @@
         </div>
     </div>
 
-    <form id="editRentalContractForm" method="post" action="{{ route('RentContract.update', $contract->id) }}">
+    <form id="editRentalContractForm" method="post" action="{{ route('RentContract.update', $contract->id) }}" enctype="multipart/form-data">
         @csrf
         @method('PUT')
 
@@ -292,10 +306,10 @@
                         </label>
                         <select class="form-select select2" id="client_nationality_id" name="client_nationality_id" required>
                             <option value="" disabled>اختر الجنسية...</option>
-                            @foreach($nationalities as $nationality)
-                                <option value="{{$nationality->id}}"
-                                    {{ ($contract->user->nationality_id ?? '') == $nationality->id ? 'selected' : '' }}>
-                                    {{ $nationality->translations->first()->title ?? $nationality->name }}
+                            @foreach($countries as $country)
+                                <option value="{{$country->id}}"
+                                    {{ ($contract->user->nationality_id ?? '') == $country->id ? 'selected' : '' }}>
+                                    {{ $country->name_ar }}
                                 </option>
                             @endforeach
                         </select>
@@ -312,46 +326,33 @@
 
                 <div class="col-md-6">
                     <div class="form-group">
-                        <label class="form-label">
-                            <span class="required-star">*</span>
-                            تاريخ الميلاد
-                        </label>
+                        <label class="form-label">تاريخ الميلاد</label>
                         <input type="date" class="form-control" id="client_birthdate" name="client_birthdate"
-                               value="{{ @$contract->user->birthdate ? \Carbon\Carbon::parse($contract->user->birthdate)->format('Y-m-d') : '' }}"
-                               required>
+                               value="{{ @$contract->user->birthdate ? \Carbon\Carbon::parse($contract->user->birthdate)->format('Y-m-d') : '' }}">
                     </div>
                 </div>
 
                 <div class="col-md-6">
                     <div class="form-group">
-                        <label class="form-label">
-                            <span class="required-star">*</span>
-                            المهنة
-                        </label>
+                        <label class="form-label">المهنة</label>
                         <input type="text" class="form-control" id="profession" name="profession"
-                               value="{{ $contract->user->profession ?? '' }}" required>
+                               value="{{ $contract->user->profession ?? '' }}">
                     </div>
                 </div>
 
                 <div class="col-md-6">
                     <div class="form-group">
-                        <label class="form-label">
-                            <span class="required-star">*</span>
-                            الدخل الشهري (ريال)
-                        </label>
+                        <label class="form-label">الدخل الشهري (ريال)</label>
                         <input type="number" class="form-control" id="monthly_income" name="monthly_income"
-                               value="{{ $contract->user->monthly_income ?? '' }}" min="0" step="0.01" required>
+                               value="{{ $contract->user->monthly_income ?? '' }}" min="0" step="0.01">
                     </div>
                 </div>
 
                 <div class="col-md-8">
                     <div class="form-group">
-                        <label class="form-label">
-                            <span class="required-star">*</span>
-                            العنوان
-                        </label>
+                        <label class="form-label">العنوان</label>
                         <input type="text" class="form-control" id="client_address" name="client_address"
-                               value="{{ $contract->user->address ?? '' }}" required>
+                               value="{{ $contract->user->address ?? '' }}">
                     </div>
                 </div>
 
@@ -455,6 +456,116 @@
         <div class="form-section">
             <div class="section-header">
                 <div class="section-icon">
+                    <i class="fas fa-receipt"></i>
+                </div>
+                <div>
+                    <h5 class="section-title">الباقة والدفع</h5>
+                    <p class="section-subtitle">تفاصيل الباقة وحالة السداد</p>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-lg-6">
+                    <div class="form-group">
+                        <label for="package_id" class="form-label">
+                            <span class="required-star">*</span>
+                            اختر الباقة
+                        </label>
+                        <select name="package_id" id="package_id" class="form-select select2" required>
+                            <option value="">اختر الباقة...</option>
+                            @foreach($packages ?? [] as $package)
+                                <option value="{{ $package->id }}"
+                                        data-days="{{ $package->days_count }}"
+                                        data-rental-type="{{ $package->rental_type ?? 'monthly' }}"
+                                        data-working-hours="{{ $package->working_hours_per_day }}"
+                                        data-price="{{ $package->price_after_discount }}"
+                                        data-total="{{ $package->price_with_tax }}"
+                                        {{ (int) ($contract->info->package_id ?? 0) === (int) $package->id ? 'selected' : '' }}>
+                                    {{ $package->title }} - {{ $package->rental_type_label }} - {{ $package->duration_count ?: max(1, (int) ceil(($package->days_count ?: 30) / 30)) }} {{ $package->duration_unit_label }} - {{ number_format((float) $package->price_with_tax, 2) }} ريال
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+
+                <div class="col-lg-6">
+                    <div class="payment-summary h-100 d-flex flex-column justify-content-center">
+                        <div>إجمالي العقد: <strong id="paymentTotalValue">{{ number_format((float) ($contract->info->contract_value ?? 0), 2) }} ريال</strong></div>
+                        <div class="mt-1">المتبقي بعد الدفع: <strong id="paymentRemainingText">{{ number_format((float) ($contract->info->remaining_amount ?? 0), 2) }} ريال</strong></div>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="payment-box">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label for="payment_type" class="form-label">
+                                    <span class="required-star">*</span>
+                                    طريقة الدفع
+                                </label>
+                                <select name="payment_type" id="payment_type" class="form-select" required>
+                                    <option value="">اختر الطريقة</option>
+                                    <option value="cash" {{ ($contract->info->payment_type ?? '') === 'cash' ? 'selected' : '' }}>نقداً</option>
+                                    <option value="bank_transfer" {{ ($contract->info->payment_type ?? '') === 'bank_transfer' ? 'selected' : '' }}>تحويل بنكي</option>
+                                    <option value="mada" {{ ($contract->info->payment_type ?? '') === 'mada' ? 'selected' : '' }}>مدى</option>
+                                    <option value="tabby" {{ ($contract->info->payment_type ?? '') === 'tabby' ? 'selected' : '' }}>تابي</option>
+                                    <option value="tamara" {{ ($contract->info->payment_type ?? '') === 'tamara' ? 'selected' : '' }}>تمارا</option>
+                                    <option value="pay_later" {{ ($contract->info->payment_type ?? '') === 'pay_later' ? 'selected' : '' }}>الدفع لاحقاً</option>
+                                    <option value="other" {{ ($contract->info->payment_type ?? '') === 'other' ? 'selected' : '' }}>أخرى</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="payment_status" class="form-label">
+                                    <span class="required-star">*</span>
+                                    حالة الدفع
+                                </label>
+                                <select name="payment_status" id="payment_status" class="form-select" required>
+                                    <option value="">اختر الحالة</option>
+                                    <option value="paid" {{ ($contract->info->payment_status ?? '') === 'paid' ? 'selected' : '' }}>تم الدفع</option>
+                                    <option value="partial" {{ ($contract->info->payment_status ?? '') === 'partial' ? 'selected' : '' }}>مدفوع جزئياً</option>
+                                    <option value="pending" {{ ($contract->info->payment_status ?? '') === 'pending' ? 'selected' : '' }}>معلق</option>
+                                    <option value="later" {{ ($contract->info->payment_status ?? '') === 'later' ? 'selected' : '' }}>الدفع لاحقاً</option>
+                                    <option value="bank_pending" {{ ($contract->info->payment_status ?? '') === 'bank_pending' ? 'selected' : '' }}>بانتظار التحويل</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="payment_receipt" class="form-label">إيصال الدفع</label>
+                                <input type="file" id="payment_receipt" name="payment_receipt" class="form-control" accept=".jpg,.jpeg,.png,.pdf">
+                                @if($contract->info->payment_receipt_url)
+                                    <a href="{{ $contract->info->payment_receipt_url }}" target="_blank" class="small d-inline-block mt-2">
+                                        عرض الإيصال الحالي
+                                    </a>
+                                @endif
+                            </div>
+
+                            <div class="col-md-4" id="paidAmountWrapper">
+                                <label for="paid_amount" class="form-label">المبلغ المدفوع</label>
+                                <input type="number" id="paid_amount" name="paid_amount" class="form-control" step="0.01" min="0"
+                                       value="{{ $contract->info->paid_amount ?? '0.00' }}">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="remaining_amount" class="form-label">المبلغ المتبقي</label>
+                                <input type="number" id="remaining_amount" name="remaining_amount" class="form-control" step="0.01" min="0" readonly
+                                       value="{{ $contract->info->remaining_amount ?? '0.00' }}">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label for="total_contract_value" class="form-label">تكلفة العقد الإجمالية</label>
+                                <input type="number" id="total_contract_value" name="total_contract_value" class="form-control" readonly
+                                       value="{{ $contract->info->contract_value ?? '0.00' }}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-section">
+            <div class="section-header">
+                <div class="section-icon">
                     <i class="fas fa-file-contract"></i>
                 </div>
                 <div>
@@ -495,23 +606,17 @@
 
                 <div class="col-md-4">
                     <div class="form-group">
-                        <label class="form-label">
-                            <span class="required-star">*</span>
-                            ساعات العمل يومياً
-                        </label>
+                        <label class="form-label">ساعات العمل يومياً</label>
                         <input type="number" class="form-control" id="working_hours_per_day" name="working_hours_per_day"
-                               value="{{ $contract->info->working_hours_per_day ?? '' }}" min="1" max="24" required>
+                               value="{{ $contract->info->working_hours_per_day ?? '' }}" min="1" max="24">
                     </div>
                 </div>
 
                 <div class="col-md-4">
                     <div class="form-group">
-                        <label class="form-label">
-                            <span class="required-star">*</span>
-                            أجرة الساعة (ريال)
-                        </label>
+                        <label class="form-label">أجرة الساعة (ريال)</label>
                         <input type="number" class="form-control" id="hourly_rate" name="hourly_rate"
-                               value="{{ $contract->info->hourly_rate ?? '' }}" min="0" step="0.01" required>
+                               value="{{ $contract->info->hourly_rate ?? '' }}" min="0" step="0.01">
                     </div>
                 </div>
 
@@ -525,23 +630,17 @@
 
                 <div class="col-md-6">
                     <div class="form-group">
-                        <label class="form-label">
-                            <span class="required-star">*</span>
-                            مبلغ نقل الكفالة (ريال)
-                        </label>
+                        <label class="form-label">مبلغ نقل الكفالة (ريال)</label>
                         <input type="number" class="form-control" id="sponsorship_transfer_amount" name="sponsorship_transfer_amount"
-                               value="{{ $contract->info->sponsorship_transfer_amount ?? '' }}" min="0" step="0.01" required>
+                               value="{{ $contract->info->sponsorship_transfer_amount ?? '' }}" min="0" step="0.01">
                     </div>
                 </div>
 
                 <div class="col-md-6">
                     <div class="form-group">
-                        <label class="form-label">
-                            <span class="required-star">*</span>
-                            الراتب بعد نقل الكفالة (ريال)
-                        </label>
+                        <label class="form-label">الراتب بعد نقل الكفالة (ريال)</label>
                         <input type="number" class="form-control" id="salary_after_sponsorship" name="salary_after_sponsorship"
-                               value="{{ $contract->info->salary_after_sponsorship ?? '' }}" min="0" step="0.01" required>
+                               value="{{ $contract->info->salary_after_sponsorship ?? '' }}" min="0" step="0.01">
                     </div>
                 </div>
 
@@ -684,6 +783,7 @@ $(document).ready(function() {
 
     $('#monthly_cost, #contract_duration_months').on('input', function() {
         calculateContractValue();
+        syncPaymentSummary();
     });
 
     $('#contract_duration_months').on('input', function() {
@@ -692,6 +792,18 @@ $(document).ready(function() {
 
     $('#ingaz_from, #contract_duration_days').on('change', function() {
         calculateIngazTo();
+    });
+
+    $('#package_id').on('change', function() {
+        applyPackageData();
+    });
+
+    $('#payment_status').on('change', function() {
+        updatePaymentState();
+    });
+
+    $('#paid_amount').on('input', function() {
+        syncPaymentSummary();
     });
 
     // Form submission
@@ -704,6 +816,10 @@ $(document).ready(function() {
     });
 
     // Functions
+    function formatCurrency(value) {
+        return `${(parseFloat(value) || 0).toFixed(2)} ريال`;
+    }
+
     function calculateMonthlySalary() {
         const hourlyRate = parseFloat($('#hourly_rate').val()) || 0;
         const workingHours = parseInt($('#working_hours_per_day').val()) || 0;
@@ -719,12 +835,79 @@ $(document).ready(function() {
         const durationMonths = parseInt($('#contract_duration_months').val()) || 0;
         const totalValue = monthlyCost * durationMonths;
 
+        $('#total_contract_value').val(totalValue ? totalValue.toFixed(2) : '0.00');
         $('#summary-monthly-cost').text(monthlyCost.toLocaleString() + ' ريال');
         $('#summary-duration').text(durationMonths + ' شهر');
         $('#summary-total-value').text(totalValue.toLocaleString() + ' ريال');
 
         const dailyRate = monthlyCost / 30;
         $('#summary-daily-rate').text(dailyRate.toLocaleString() + ' ريال');
+    }
+
+    function syncPaymentSummary() {
+        const totalValue = parseFloat($('#total_contract_value').val()) || 0;
+        const status = $('#payment_status').val();
+        let paidAmount = parseFloat($('#paid_amount').val()) || 0;
+
+        if (status === 'paid') {
+            paidAmount = totalValue;
+            $('#paid_amount').val(totalValue ? totalValue.toFixed(2) : '0.00');
+        } else if (!['partial', 'paid'].includes(status)) {
+            paidAmount = 0;
+            $('#paid_amount').val('0.00');
+        }
+
+        paidAmount = Math.min(paidAmount, totalValue);
+        const remainingAmount = Math.max(totalValue - paidAmount, 0);
+
+        $('#remaining_amount').val(remainingAmount.toFixed(2));
+        $('#paymentTotalValue').text(formatCurrency(totalValue));
+        $('#paymentRemainingText').text(formatCurrency(remainingAmount));
+    }
+
+    function updatePaymentState() {
+        const paymentStatus = $('#payment_status').val();
+
+        if (paymentStatus === 'paid') {
+            $('#paidAmountWrapper').removeClass('d-none');
+            $('#paid_amount').prop('readonly', true);
+        } else if (paymentStatus === 'partial') {
+            $('#paidAmountWrapper').removeClass('d-none');
+            $('#paid_amount').prop('readonly', false);
+        } else {
+            $('#paidAmountWrapper').addClass('d-none');
+            $('#paid_amount').prop('readonly', false);
+        }
+
+        syncPaymentSummary();
+    }
+
+    function applyPackageData() {
+        const selectedOption = $('#package_id').find('option:selected');
+        const packageId = $('#package_id').val();
+
+        if (!packageId) {
+            return;
+        }
+
+        const days = parseInt(selectedOption.data('days'), 10) || 0;
+        const workingHours = parseInt(selectedOption.data('working-hours'), 10) || 0;
+        const totalPrice = parseFloat(selectedOption.data('total')) || 0;
+        const months = Math.max(1, Math.ceil(days / 30));
+        const monthlyCost = months ? (totalPrice / months) : 0;
+
+        $('#contract_duration_months').val(months);
+        $('#contract_duration_days').val(days);
+        $('#monthly_cost').val(monthlyCost ? monthlyCost.toFixed(2) : '');
+        $('#total_contract_value').val(totalPrice ? totalPrice.toFixed(2) : '0.00');
+
+        if (workingHours) {
+            $('#working_hours_per_day').val(workingHours);
+        }
+
+        calculateIngazTo();
+        calculateContractValue();
+        updatePaymentState();
     }
 
     function calculateDurationInDays() {
@@ -764,6 +947,21 @@ $(document).ready(function() {
                 title: 'خطأ في البيانات',
                 text: 'يرجى تعبئة جميع الحقول المطلوبة'
             });
+            return false;
+        }
+
+        const totalContractValue = parseFloat($('#total_contract_value').val()) || 0;
+        const paidAmount = parseFloat($('#paid_amount').val()) || 0;
+        const paymentStatus = $('#payment_status').val();
+
+        if (paymentStatus === 'partial' && paidAmount <= 0) {
+            Swal.fire('خطأ', 'أدخل المبلغ المدفوع عند اختيار حالة مدفوع جزئياً', 'error');
+            return false;
+        }
+
+        if (paymentStatus === 'partial' && paidAmount >= totalContractValue) {
+            Swal.fire('خطأ', 'إذا تم سداد كامل المبلغ اختر حالة تم الدفع بدلاً من مدفوع جزئياً', 'error');
+            return false;
         }
 
         return isValid;
@@ -815,6 +1013,7 @@ $(document).ready(function() {
 
     // Initialize calculations on page load
     calculateContractValue();
+    updatePaymentState();
 });
 </script>
 @endsection

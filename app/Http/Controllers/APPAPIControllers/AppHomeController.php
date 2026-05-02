@@ -156,13 +156,13 @@ class AppHomeController extends Controller
 
     public function packages(Request $request)
     {
-        $query = Package::with('translations');
+        $query = Package::with('translations')->visible();
 
         if ($request->filled('nationality_id')) {
-            $query->where('nationality_id', $request->nationality_id);
+            $query->forNationality($request->nationality_id);
         }
 
-        return jsonSuccess(PackageResource::collection($query->get()), __('api.All items'));
+        return jsonSuccess(PackageResource::collection($query->orderBy('days_count')->orderBy('price_with_tax')->get()), __('api.All items'));
     }
 
     public function notifications(Request $request)

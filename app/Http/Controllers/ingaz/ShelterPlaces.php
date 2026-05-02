@@ -5,6 +5,7 @@ namespace App\Http\Controllers\ingaz;
 use App\Http\Actions\ingaz\ShelterPlaceAction as objAction;
 use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\ShelterPlaceRequest as objRequest;
+use App\Models\auth\Admin;
 use App\Models\ShelterPlaces as objModel;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
@@ -12,7 +13,19 @@ use Yajra\DataTables\Facades\DataTables;
 class ShelterPlaces extends Controller
 {
     public $folderPath = "admin.ingaz.shelter-places";
-    public $postData = ['title:ar', 'title:en'];
+    public $postData = [
+        'title:ar',
+        'title:en',
+        'female_capacity',
+        'male_capacity',
+        'address',
+        'map_url',
+        'latitude',
+        'longitude',
+        'supervisor_admin_id',
+        'responsible_admin_id',
+        'notes',
+    ];
     public $mainRoute = "shelter-places";
 
     function __construct()
@@ -27,9 +40,60 @@ class ShelterPlaces extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $rows = objModel::query()->latest();
+            $rows = objModel::query()
+                ->with(['supervisor', 'responsible'])
+                ->withCount([
+                    'contractInfos as current_occupancy_count' => function ($query) {
+                        $query->whereHas('contract', function ($contractQuery) {
+                            $contractQuery->insideShelter();
+                        });
+                    },
+                ])
+                ->latest();
             return DataTables::of($rows)
                 ->addIndexColumn()
+                ->addColumn('capacity', function ($row) {
+                    $femaleCapacity = $row->female_capacity !== null ? number_format($row->female_capacity) : '-';
+                    $maleCapacity = $row->male_capacity !== null ? number_format($row->male_capacity) : '-';
+
+                    return '<div class="small">'
+                        . '<div><strong>' . helperTrans('ingaz.female_capacity') . ':</strong> ' . $femaleCapacity . '</div>'
+                        . '<div><strong>' . helperTrans('ingaz.male_capacity') . ':</strong> ' . $maleCapacity . '</div>'
+                        . '</div>';
+                })
+                ->addColumn('current_occupancy', function ($row) {
+                    $count = (int) $row->current_occupancy_count;
+                    $capacity = $row->female_capacity;
+                    $badgeClass = ($capacity !== null && $capacity > 0 && $count >= $capacity) ? 'bg-danger' : 'bg-success';
+
+                    return '<span class="badge ' . $badgeClass . '">' . number_format($count) . '</span>';
+                })
+                ->addColumn('location', function ($row) {
+                    $parts = [];
+                    if ($row->address) {
+                        $parts[] = e($row->address);
+                    }
+
+                    if ($row->map_url) {
+                        $parts[] = '<a href="' . e($row->map_url) . '" target="_blank" rel="noopener">'
+                            . helperTrans('ingaz.open_map') . '</a>';
+                    } elseif ($row->latitude !== null && $row->longitude !== null) {
+                        $mapUrl = 'https://www.google.com/maps?q=' . $row->latitude . ',' . $row->longitude;
+                        $parts[] = '<a href="' . e($mapUrl) . '" target="_blank" rel="noopener">'
+                            . helperTrans('ingaz.open_map') . '</a>';
+                    }
+
+                    return $parts ? implode('<br>', $parts) : '-';
+                })
+                ->addColumn('management', function ($row) {
+                    $supervisor = $row->supervisor?->name ?: '-';
+                    $responsible = $row->responsible?->name ?: '-';
+
+                    return '<div class="small">'
+                        . '<div><strong>' . helperTrans('ingaz.shelter_supervisor') . ':</strong> ' . e($supervisor) . '</div>'
+                        . '<div><strong>' . helperTrans('ingaz.shelter_responsible') . ':</strong> ' . e($responsible) . '</div>'
+                        . '</div>';
+                })
                 ->editColumn('created_at', function ($row) {
                     return ($row->created_at->format('Y-m-d h:i A'));
                 })
@@ -58,7 +122,8 @@ class ShelterPlaces extends Controller
     public function create(Request $request)
     {
         if ($request->ajax()) {
-            $returnHTML = view($this->folderPath . ".create")->render();
+            $admins = $this->adminOptions();
+            $returnHTML = view($this->folderPath . ".create", compact('admins'))->render();
             return jsonSuccess(["html" => $returnHTML]);
         }
     }
@@ -76,8 +141,9 @@ class ShelterPlaces extends Controller
     {
         if ($request->ajax()) {
             $obj = objModel::findorfail($id);
+            $admins = $this->adminOptions($obj);
             $returnHTML = view($this->folderPath . '.edit')
-                ->with(['obj' => $obj])->render();
+                ->with(['obj' => $obj, 'admins' => $admins])->render();
             return jsonSuccess(["html" => $returnHTML]);
         }
     }
@@ -93,5 +159,26 @@ class ShelterPlaces extends Controller
     {
         $action->deleteWithFile($id, 'image');
         return jsonSuccess();
+    }
+
+    private function adminOptions(?objModel $shelterPlace = null)
+    {
+        $selectedIds = collect([
+            $shelterPlace?->supervisor_admin_id,
+            $shelterPlace?->responsible_admin_id,
+        ])->filter()->values()->all();
+
+        return Admin::withTrashed()
+            ->select('id', 'name', 'phone')
+            ->where(function ($query) use ($selectedIds) {
+                $query->whereNull('deleted_at');
+
+                if ($selectedIds) {
+                    $query->orWhereIn('id', $selectedIds);
+                }
+            })
+            ->orderByRaw('CASE WHEN deleted_at IS NULL AND status = "active" THEN 0 ELSE 1 END')
+            ->orderBy('name')
+            ->get();
     }
 }

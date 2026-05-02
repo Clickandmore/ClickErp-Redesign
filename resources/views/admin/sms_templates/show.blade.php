@@ -43,6 +43,18 @@
                                             <td>{{ $smsTemplate->title }}</td>
                                         </tr>
                                         <tr>
+                                            <td class="fw-bold">القناة:</td>
+                                            <td>
+                                                <span class="badge {{ $smsTemplate->channel === 'sms' ? 'bg-info text-dark' : ($smsTemplate->channel === 'whatsapp' ? 'bg-success' : 'bg-primary') }}">
+                                                    {{ $smsTemplate->channel_label }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="fw-bold">الترتيب:</td>
+                                            <td>{{ $smsTemplate->sort_order ?? 0 }}</td>
+                                        </tr>
+                                        <tr>
                                             <td class="fw-bold">الحالة:</td>
                                             <td>
                                                 @if ($smsTemplate->is_active)

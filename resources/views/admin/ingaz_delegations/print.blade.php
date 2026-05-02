@@ -112,7 +112,7 @@
                 <th>التاريخ الميلادي</th>
                 <td>{{ optional($delegation->delegation_date_gregorian)->format('Y-m-d') }}</td>
                 <th>التاريخ الهجري</th>
-                <td>{{ $delegation->delegation_date_hijri }}</td>
+                <td>{{ $delegation->delegation_date_hijri ?: '-' }}</td>
             </tr>
             <tr>
                 <th>الجنسية</th>
@@ -140,7 +140,10 @@
             </tr>
             <tr>
                 <th>الجوال</th>
-                <td>{{ trim(($delegation->user?->phone_code ?: '') . ' ' . ($delegation->user?->phone ?: '-')) }}</td>
+                <td>
+                    @php($phone = $delegation->user?->phone)
+                    {{ $phone && !str_starts_with($phone, 'ingaz-delegation-') ? trim(($delegation->user?->phone_code ?: '') . ' ' . $phone) : '-' }}
+                </td>
                 <th>العنوان</th>
                 <td>{{ $delegation->user?->address ?: '-' }}</td>
             </tr>
@@ -148,17 +151,17 @@
     </div>
 
     <div class="section">
-        <h3>بيانات التأشيرة والعاملة</h3>
+        <h3>بيانات التأشيرة والعامل</h3>
         <table>
             <tr>
                 <th>نوع التأشيرة</th>
                 <td>{{ $visaTypeOptions[$delegation->visa_type] ?? $delegation->visa_type }}</td>
-                <th>اسم العاملة</th>
-                <td>{{ $delegation->maid?->name ?? $delegation->worker_name }}</td>
+                <th>اسم العامل</th>
+                <td>{{ $delegation->maid?->name ?? $delegation->worker_name ?: '-' }}</td>
             </tr>
             <tr>
                 <th>رقم الجواز</th>
-                <td>{{ $delegation->maid?->passport_num ?? $delegation->worker_passport_number }}</td>
+                <td>{{ $delegation->maid?->passport_num ?? $delegation->worker_passport_number ?: '-' }}</td>
                 <th>تاريخ إصدار الجواز</th>
                 <td>{{ optional($delegation->worker_passport_issue_date)->format('Y-m-d') ?: '-' }}</td>
             </tr>
@@ -182,7 +185,7 @@
         <table>
             <tr>
                 <th>اسم المكتب</th>
-                <td>{{ $delegation->external_office_name }}</td>
+                <td>{{ $delegation->external_office_name ?: '-' }}</td>
                 <th>رقم الترخيص</th>
                 <td>{{ $delegation->external_office_license_number ?: '-' }}</td>
             </tr>

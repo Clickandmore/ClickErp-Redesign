@@ -20,6 +20,12 @@ class SponsorshipTransfer extends Model
         'contract_value',
         'paid_amount',
         'remaining_amount',
+        'payment_type',
+        'payment_status',
+        'payment_receipt_path',
+        'attachments',
+        'payment_confirmed_at',
+        'payment_confirmed_by',
         'notes',
         'status',
         'approved_by',
@@ -34,6 +40,11 @@ class SponsorshipTransfer extends Model
         'transferred_at',
         'failed_at',
         'failure_reason',
+        'failure_settlement_type',
+        'failure_settlement_amount',
+        'failure_clear_remaining_amount',
+        'failure_client_iban',
+        'failure_client_iban_attachment_path',
         'transferred_by',
         'failed_by',
         'signature',
@@ -50,9 +61,13 @@ class SponsorshipTransfer extends Model
         'trial_started_at' => 'datetime',
         'transferred_at' => 'datetime',
         'failed_at' => 'datetime',
+        'payment_confirmed_at' => 'datetime',
         'contract_value' => 'decimal:2',
         'paid_amount' => 'decimal:2',
-        'remaining_amount' => 'decimal:2'
+        'remaining_amount' => 'decimal:2',
+        'failure_settlement_amount' => 'decimal:2',
+        'failure_clear_remaining_amount' => 'decimal:2',
+        'attachments' => 'array'
     ];
 
     // العلاقات
@@ -99,6 +114,11 @@ class SponsorshipTransfer extends Model
     public function maidDeliveredBy()
     {
         return $this->belongsTo(Admin::class, 'maid_delivered_by');
+    }
+
+    public function paymentConfirmedBy()
+    {
+        return $this->belongsTo(Admin::class, 'payment_confirmed_by');
     }
 
     public function transferServiceContract()
@@ -189,6 +209,43 @@ class SponsorshipTransfer extends Model
         }
 
         return now()->startOfDay()->diffInDays($this->trial_end_date->copy()->startOfDay(), false);
+    }
+
+    public function getPaymentTypeTextAttribute()
+    {
+        $types = [
+            'cash' => 'نقداً',
+            'bank_transfer' => 'تحويل بنكي',
+            'mada' => 'مدى',
+            'tabby' => 'تابي',
+            'tamara' => 'تمارا',
+            'pay_later' => 'الدفع لاحقاً',
+            'other' => 'أخرى',
+        ];
+
+        return $types[$this->payment_type] ?? 'غير محدد';
+    }
+
+    public function getPaymentStatusTextAttribute()
+    {
+        $statuses = [
+            'paid' => 'تم الدفع',
+            'partial' => 'مدفوع جزئياً',
+            'pending' => 'معلق',
+            'later' => 'الدفع لاحقاً',
+            'bank_pending' => 'بانتظار التحويل',
+        ];
+
+        return $statuses[$this->payment_status] ?? 'غير محدد';
+    }
+
+    public function getFailureSettlementTypeTextAttribute()
+    {
+        $types = [
+            'refund' => 'استرجاع للعميل',
+        ];
+
+        return $types[$this->failure_settlement_type] ?? 'غير محدد';
     }
 
     // Methods

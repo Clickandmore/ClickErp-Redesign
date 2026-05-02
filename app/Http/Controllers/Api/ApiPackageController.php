@@ -16,7 +16,12 @@ class ApiPackageController extends Controller
      */
     public function index(Request $request)
     {
-       $religions = objModel::with('translations')->where(['nationality_id'=>$request->nationality_id])->get();
+       $religions = objModel::with('translations')
+           ->visible()
+           ->forNationality($request->nationality_id)
+           ->orderBy('days_count')
+           ->orderBy('price_with_tax')
+           ->get();
        $data = objResource::collection($religions);
        return jsonSuccess($data,__('api.All items'));
     }

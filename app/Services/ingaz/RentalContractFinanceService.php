@@ -104,6 +104,70 @@ class RentalContractFinanceService
         ];
     }
 
+    public function syncPaymentForContract(RentalContract $contract, ?Package $package = null): array
+    {
+        $contract->loadMissing(['user', 'maid.nationality', 'info', 'financeInvoice']);
+
+        if (!$contract->financeInvoice) {
+            return $this->createForContract($contract, $package);
+        }
+
+        $invoice = $contract->financeInvoice;
+        $info = $contract->info;
+
+        if (!$info) {
+            throw new \RuntimeException('لا توجد بيانات مالية مرتبطة بعقد الإيجار.');
+        }
+
+        $package = $package
+            ?: ($info->package_id ? Package::query()->find($info->package_id) : null);
+
+        $amounts = $this->buildInvoiceAmounts($contract, $package);
+
+        $invoice->update([
+            'package_id' => $info->package_id,
+            'subtotal' => $amounts['subtotal'],
+            'discount' => $amounts['discount'],
+            'vat_amount' => $amounts['vat_amount'],
+            'total_due' => $amounts['total_due'],
+            'paid_amount' => $amounts['paid_amount'],
+            'remaining_amount' => $amounts['remaining_amount'],
+            'payment_type' => $info->payment_type,
+            'payment_status' => $info->payment_status,
+            'is_paid' => $amounts['remaining_amount'] <= 0,
+            'paid_at' => $amounts['paid_amount'] > 0
+                ? ($info->payment_confirmed_at ?: now())
+                : null,
+            'service_description' => $this->buildServiceDescription($contract, $package),
+        ]);
+
+        $receiptBond = $invoice->receiptBond;
+        $receiptConstraint = $invoice->receiptConstraint;
+        $receiptCreated = false;
+
+        if ($amounts['paid_amount'] > 0 && !$invoice->receipt_bond_id) {
+            $clientAccountId = $this->ensureClientAccountId($contract);
+            $receipt = $this->storeReceiptBond($invoice->fresh(), $contract, $clientAccountId, $amounts['paid_amount']);
+            $receiptBond = $receipt['bond'];
+            $receiptConstraint = $receipt['constraint'];
+            $receiptCreated = true;
+
+            $invoice->update([
+                'receipt_bond_id' => $receiptBond?->id,
+                'receipt_constraint_id' => $receiptConstraint?->id,
+                'receipt_account_id' => $receiptBond?->debit_account_id,
+            ]);
+        }
+
+        return [
+            'invoice' => $invoice->fresh(['invoiceConstraint', 'receiptBond', 'receiptConstraint', 'receiptAccount']),
+            'invoice_constraint' => $invoice->invoiceConstraint,
+            'receipt_bond' => $receiptBond,
+            'receipt_constraint' => $receiptConstraint,
+            'receipt_created' => $receiptCreated,
+        ];
+    }
+
     private function buildInvoiceAmounts(RentalContract $contract, ?Package $package): array
     {
         $grossTotal = $this->roundMoney((float) ($contract->info?->contract_value ?? 0));

@@ -393,6 +393,7 @@ class RentContractController extends Controller
         )->get();
 
         $packages = Package::with(['translations', 'nationality.translations'])
+            ->visible()
             ->orderBy('days_count')
             ->orderBy('price_with_tax')
             ->get();
@@ -831,18 +832,27 @@ class RentContractController extends Controller
         // الحصول على العاملات المتاحة من نوع تأجير
         $availableRentalMaids = $this->getAvailableRentalMaidsQuery($contract->maid_id)->get();
 
+        $packages = Package::with(['translations', 'nationality.translations'])
+            ->visible()
+            ->orderBy('days_count')
+            ->orderBy('price_with_tax')
+            ->get();
+
         $marketers = Admin::whereNull('deleted_at')->orderBy('name')->get();
         $nationalities = Nationality::with('translations')->get();
+        $countries = Country::active()->ordered()->get();
 
         return view($this->folderPath . '.edit', compact(
             'contract',
             'availableRentalMaids',
+            'packages',
             'marketers',
-            'nationalities'
+            'nationalities',
+            'countries'
         ));
     }
 
-    public function update(StoreRentalContractRequest $request, $id)
+    public function update(StoreRentalContractRequest $request, RentalContractFinanceService $rentalContractFinanceService, $id)
     {
         try {
             DB::beginTransaction();
@@ -873,29 +883,60 @@ class RentContractController extends Controller
                 'contract_date' => $request->contract_date,
             ]);
 
-            // حساب تاريخ انتهاء الإنجاز
-            $ingazTo = \Carbon\Carbon::parse($request->ingaz_from)
-                                  ->addDays($request->contract_duration_days);
+            $selectedPackage = Package::find($request->package_id);
+            $contractDurationDays = (int) ($request->contract_duration_days ?: ($selectedPackage?->days_count ?: ($request->contract_duration_months * 30)));
+            $contractDurationMonths = (int) ($request->contract_duration_months ?: max(1, (int) ceil($contractDurationDays / 30)));
 
             // حساب قيمة العقد
-            $contractValue = $request->monthly_cost * $request->contract_duration_months;
+            $contractValue = (float) ($request->total_contract_value ?: ($request->monthly_cost * $contractDurationMonths));
+            $paidAmount = 0.0;
+
+            if ($request->payment_status === 'paid') {
+                $paidAmount = $contractValue;
+            } elseif ($request->payment_status === 'partial') {
+                $paidAmount = min((float) $request->paid_amount, $contractValue);
+            }
+
+            $remainingAmount = max(0, $contractValue - $paidAmount);
+            $paymentReceiptPath = $contract->info?->payment_receipt_path;
+
+            if ($request->hasFile('payment_receipt')) {
+                $paymentReceiptPath = $request->file('payment_receipt')
+                    ->store('rental-contracts/edit/receipts', 'public');
+            }
 
             // تحديث معلومات العقد
             $contract->info->update([
-                'working_hours_per_day' => $request->working_hours_per_day,
+                'package_id' => $request->package_id,
+                'payment_type' => $request->payment_type,
+                'payment_status' => $request->payment_status,
+                'payment_receipt_path' => $paymentReceiptPath,
+                'payment_confirmed_at' => $paidAmount > 0
+                    ? ($contract->info->payment_confirmed_at ?: now())
+                    : null,
+                'payment_confirmed_by' => $paidAmount > 0
+                    ? ($contract->info->payment_confirmed_by ?: auth('admin')->id())
+                    : null,
+                'working_hours_per_day' => $request->working_hours_per_day ?: 8,
                 'hourly_rate' => $request->hourly_rate,
                 'monthly_salary' => $request->monthly_salary,
                 'sponsorship_transfer_amount' => $request->sponsorship_transfer_amount,
                 'salary_after_sponsorship' => $request->salary_after_sponsorship,
+                'rental_type' => $request->rental_type,
                 'monthly_cost' => $request->monthly_cost,
-                'contract_duration_months' => $request->contract_duration_months,
-                'contract_duration_days' => $request->contract_duration_days,
+                'contract_duration_months' => $contractDurationMonths,
+                'contract_duration_days' => $contractDurationDays,
                 'contract_value' => $contractValue,
+                'paid_amount' => $paidAmount,
+                'remaining_amount' => $remainingAmount,
                 'ingaz_from' => $request->ingaz_from,
-                'ingaz_to' => $ingazTo,
+                'ingaz_to' => $request->ingaz_to ?: \Carbon\Carbon::parse($request->ingaz_from)->addDays($contractDurationDays),
                 'notes' => $request->notes,
                 'additional_terms' => $request->additional_terms,
             ]);
+
+            $contract->loadMissing(['user', 'maid.nationality', 'info', 'financeInvoice']);
+            $financeResult = $rentalContractFinanceService->syncPaymentForContract($contract, $selectedPackage);
 
             // تحديث حالة العاملات
             if ($oldMaidId && $oldMaidId != $request->maid_id) {
@@ -915,6 +956,20 @@ class RentContractController extends Controller
             }
 
             DB::commit();
+
+            if ($request->ajax()) {
+                $receiptBond = $financeResult['receipt_bond'] ?? null;
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'تم تحديث عقد التأجير بنجاح',
+                    'redirect_url' => route($this->mainRoute . '.show', $contract->id),
+                    'receipt_bond_print_url' => $receiptBond
+                        ? route('finance.bonds-print.show', ['bonds_print' => $receiptBond->id, 'type' => 'qabd'])
+                        : null,
+                    'receipt_created' => (bool) ($financeResult['receipt_created'] ?? false),
+                ]);
+            }
 
             return redirect()->route($this->mainRoute . '.index')->with('success', 'تم تحديث عقد التأجير بنجاح');
 

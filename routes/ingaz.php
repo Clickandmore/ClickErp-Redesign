@@ -185,6 +185,7 @@ Route::group(
             Route::resource('country-polices', CountryPoliceController::class);
             Route::resource('police-settings', PoliceSettingController::class);
             Route::resource('about-us', AboutUsController::class);
+            Route::post('clients/bulk-update-status', [UserController::class, 'bulkUpdateStatus'])->name('clients.bulk-update-status');
             Route::resource('clients', UserController::class);
             Route::post('clients/{id}/attachments', [UserController::class, 'storeAttachments'])->name('clients.attachments.store');
             Route::get('clients/{id}/attachments/download', [UserController::class, 'downloadAttachments'])->name('clients.attachments.download');

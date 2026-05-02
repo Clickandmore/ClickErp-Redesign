@@ -103,7 +103,32 @@
                             </div>
 
                             <div class="row">
-                                <div class="col-md-6">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="channel" class="form-label">
+                                            <i class="fas fa-paper-plane me-1"></i>
+                                            قناة الإرسال <span class="text-danger">*</span>
+                                        </label>
+                                        <select name="channel" id="channel" class="form-control" required>
+                                            @foreach ($channels as $channelKey => $channelLabel)
+                                                <option value="{{ $channelKey }}" {{ old('channel', $smsTemplate->channel) === $channelKey ? 'selected' : '' }}>
+                                                    {{ $channelLabel }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="sort_order" class="form-label">
+                                            <i class="fas fa-sort-numeric-down me-1"></i>
+                                            الترتيب
+                                        </label>
+                                        <input type="number" name="sort_order" id="sort_order" min="0"
+                                            class="form-control" value="{{ old('sort_order', $smsTemplate->sort_order ?? 0) }}">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
                                     <div class="mb-3">
                                         <div class="form-check form-switch">
                                             <input type="hidden" name="is_active" value="0">

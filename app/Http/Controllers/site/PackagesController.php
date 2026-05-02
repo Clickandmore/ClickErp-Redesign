@@ -15,7 +15,12 @@ class PackagesController extends Controller
                          UserAddressAction $userAddressAction, JobTypeAction $jobTypeAction,)
     {
         $data['maid'] = $action->find($id);
-        $data['packages'] = $packageAction->getWhere(['nationality_id' => $data['maid']->nationality_id]);
+        $data['packages'] = \App\Models\ingaz\Package::with('translations')
+            ->visible()
+            ->forNationality($data['maid']->nationality_id)
+            ->orderBy('days_count')
+            ->orderBy('price_with_tax')
+            ->get();
         $data['addresses'] = $userAddressAction->getwhere(['user_id' => getGuardedUser('id')]);
         $data['type'] = $jobTypeAction->find(2);
         $data['countries'] = Country::all();

@@ -572,6 +572,32 @@
                                         placeholder="ابحث برقم العقد">
                                 </div>
                                 <div class="col-md-3">
+                                    <label for="filterMaidName" class="form-label">اسم / رقم العاملة</label>
+                                    <input type="text" id="filterMaidName" class="form-control"
+                                        placeholder="ابحث باسم أو رقم العاملة">
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="filterPassport" class="form-label">رقم الجواز</label>
+                                    <input type="text" id="filterPassport" class="form-control"
+                                        placeholder="ابحث برقم الجواز">
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="filterMaidType" class="form-label">نوع العاملة</label>
+                                    <select id="filterMaidType" class="form-select">
+                                        <option value="">الكل</option>
+                                        @foreach ($jobTypes as $type)
+                                            @php
+                                                $locale = app()->getLocale();
+                                                $translation = $type->translations
+                                                    ->where('locale', $locale)
+                                                    ->first();
+                                                $title = $translation ? $translation->title : $type->title;
+                                            @endphp
+                                            <option value="{{ $type->id }}">{{ $title }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
                                     <label for="filterNationality" class="form-label">الجنسية</label>
                                     <select id="filterNationality" class="form-select">
                                         <option value="">الكل</option>
@@ -1056,6 +1082,9 @@
                         console.log('Sending request with data:', d);
                         // إضافة الفلاتر
                         d.contract_number = $('#filterContractNumber').val();
+                        d.maid_name = $('#filterMaidName').val();
+                        d.passport_num = $('#filterPassport').val();
+                        d.maid_type = $('#filterMaidType').val();
                         d.nationality = $('#filterNationality').val();
                         d.shelter = $('#filterShelter').val();
                         d.receipt_source = $('#filterReceiptSource').val();
@@ -1238,6 +1267,9 @@
             // Clear filters
             $('#clearFilters').on('click', function() {
                 $('#filterContractNumber').val('');
+                $('#filterMaidName').val('');
+                $('#filterPassport').val('');
+                $('#filterMaidType').val('');
                 $('#filterNationality').val('');
                 $('#filterShelter').val('');
                 $('#filterReceiptSource').val('');
@@ -1273,6 +1305,9 @@
             function buildExportUrl(format) {
                 const filters = {
                     contract_number: $('#filterContractNumber').val(),
+                    maid_name: $('#filterMaidName').val(),
+                    passport_num: $('#filterPassport').val(),
+                    maid_type: $('#filterMaidType').val(),
                     nationality: $('#filterNationality').val(),
                     shelter: $('#filterShelter').val(),
                     receipt_source: $('#filterReceiptSource').val(),

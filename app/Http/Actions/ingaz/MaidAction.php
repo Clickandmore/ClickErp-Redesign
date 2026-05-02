@@ -430,7 +430,7 @@ class MaidAction extends MainAction
                             'contract_date' => now()->toDateString(),
                             'msaned_number' => '',
                             'shelter_id' => 1,
-                            'wants_to_work' => 'unknown',
+                            'wants_to_work' => $this->isRentalTypeRequest($request) ? 'yes' : 'unknown',
                             'receipt_source' => 'company',
                         ]);
 
@@ -1405,7 +1405,7 @@ class MaidAction extends MainAction
                 'contract_date' => now()->toDateString(),
                 'msaned_number' => '',
                 'shelter_id' => 1,
-                'wants_to_work' => 'unknown',
+                'wants_to_work' => $this->isRentalMaid($maid) ? 'yes' : 'unknown',
                 'receipt_source' => 'company',
             ]);
 

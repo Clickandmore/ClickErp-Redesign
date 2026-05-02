@@ -81,7 +81,7 @@ class StoreRentalContractRequest extends FormRequest
             'total_contract_value' => 'nullable|numeric|min:0',
             'ingaz_from' => 'required|date',
             'ingaz_to' => 'nullable|date',
-            'rental_type' => 'nullable|string|in:daily,weekly,monthly,yearly',
+            'rental_type' => 'nullable|string|in:hourly,daily,weekly,monthly,yearly',
 
             // معلومات إضافية
             'notes' => 'nullable|string|max:1000',
@@ -110,15 +110,22 @@ class StoreRentalContractRequest extends FormRequest
             'maid_id' => 'required|exists:maids,id',
             'marketer_id' => 'required|exists:admins,id',
             'contract_date' => 'required|date',
-            'working_hours_per_day' => 'required|integer|min:1|max:24',
-            'hourly_rate' => 'required|numeric|min:0',
+            'working_hours_per_day' => 'nullable|integer|min:1|max:24',
+            'hourly_rate' => 'nullable|numeric|min:0',
             'monthly_salary' => 'nullable|numeric|min:0',
             'sponsorship_transfer_amount' => 'nullable|numeric|min:0',
             'salary_after_sponsorship' => 'nullable|numeric|min:0',
+            'package_id' => 'required|exists:packages,id',
+            'payment_type' => 'required|string|in:cash,bank_transfer,mada,tabby,tamara,pay_later,other',
+            'payment_status' => 'required|string|in:paid,partial,pending,later,bank_pending',
+            'payment_receipt' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+            'paid_amount' => 'nullable|numeric|min:0',
+            'remaining_amount' => 'nullable|numeric|min:0',
             'monthly_cost' => 'required|numeric|min:0',
             'contract_duration_months' => 'required|integer|min:1',
             'contract_duration_days' => 'nullable|integer|min:1',
             'ingaz_from' => 'required|date',
+            'rental_type' => 'nullable|string|in:hourly,daily,weekly,monthly,yearly',
             'notes' => 'nullable|string|max:1000',
         ];
     }

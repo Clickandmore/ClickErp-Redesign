@@ -193,6 +193,7 @@
                 <div class="bg-light rounded-3 p-3 mb-3">
                     <div class="fw-semibold mb-2">الإعدادات الحالية</div>
                     <div class="row g-3 small">
+                        <div class="col-md-2"><strong>البوابة:</strong> {{ data_get($currentSettings, 'sms.provider', 'msegat') === 'taqnyat' ? 'تقنيات' : 'Msegat' }}</div>
                         <div class="col-md-4"><strong>رابط API:</strong> {{ data_get($currentSettings, 'sms.url') ?: 'غير محدد' }}</div>
                         <div class="col-md-2"><strong>اسم المستخدم:</strong> {{ data_get($currentSettings, 'sms.username') ?: 'غير محدد' }}</div>
                         <div class="col-md-2"><strong>API Key:</strong> {{ $maskSecret(data_get($currentSettings, 'sms.api_key')) }}</div>
@@ -203,6 +204,8 @@
                         <div class="col-md-2"><strong>الترميز:</strong> {{ data_get($currentSettings, 'sms.encoding', 'UTF8') }}</div>
                         <div class="col-md-2"><strong>حد الإرسال:</strong> {{ data_get($currentSettings, 'sms.bulk_send_limit', 200) }}</div>
                         <div class="col-md-2"><strong>كلمة التأكيد:</strong> {{ data_get($currentSettings, 'sms.bulk_confirmation_keyword', 'SEND_ALL_SMS') }}</div>
+                        <div class="col-md-4"><strong>رابط تقنيات:</strong> {{ data_get($currentSettings, 'sms.taqnyat.base_url') ?: 'https://api.taqnyat.sa' }}</div>
+                        <div class="col-md-3"><strong>Bearer Token تقنيات:</strong> {{ $maskSecret(data_get($currentSettings, 'sms.taqnyat.bearer_token')) }}</div>
                     </div>
                 </div>
 
@@ -210,20 +213,37 @@
                     @csrf
                     <input type="hidden" name="section" value="sms">
 
+                    <div class="col-md-3">
+                        <label class="form-label">بوابة SMS</label>
+                        <select name="sms[provider]" class="form-control">
+                            <option value="msegat" {{ data_get($smsData, 'provider', 'msegat') === 'msegat' ? 'selected' : '' }}>Msegat</option>
+                            <option value="taqnyat" {{ data_get($smsData, 'provider') === 'taqnyat' ? 'selected' : '' }}>تقنيات Taqnyat</option>
+                        </select>
+                    </div>
                     <div class="col-md-4">
-                        <label class="form-label">رابط API</label>
+                        <label class="form-label">رابط API لـ Msegat</label>
                         <input type="url" name="sms[url]" class="form-control"
                             value="{{ data_get($smsData, 'url') }}">
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label">اسم المستخدم</label>
+                    <div class="col-md-3">
+                        <label class="form-label">اسم مستخدم Msegat</label>
                         <input type="text" name="sms[username]" class="form-control"
                             value="{{ data_get($smsData, 'username') }}">
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label">API Key</label>
+                    <div class="col-md-2">
+                        <label class="form-label">API Key لـ Msegat</label>
                         <input type="password" name="sms[api_key]" class="form-control"
                             placeholder="{{ data_get($currentSettings, 'sms.api_key') ? 'هناك API Key محفوظ، اترك الحقل فارغًا للإبقاء عليه' : 'اتركه فارغًا إذا لا توجد قيمة' }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">رابط API لبوابة تقنيات</label>
+                        <input type="url" name="sms[taqnyat][base_url]" class="form-control"
+                            value="{{ data_get($smsData, 'taqnyat.base_url', 'https://api.taqnyat.sa') }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Bearer Token لبوابة تقنيات</label>
+                        <input type="password" name="sms[taqnyat][bearer_token]" class="form-control"
+                            placeholder="{{ data_get($currentSettings, 'sms.taqnyat.bearer_token') ? 'هناك Bearer Token محفوظ، اترك الحقل فارغًا للإبقاء عليه' : 'اتركه فارغًا إذا لا توجد قيمة' }}">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">المرسل الافتراضي</label>

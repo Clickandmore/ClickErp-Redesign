@@ -706,10 +706,14 @@
                                                         data-nationality-label="{{ $package->nationality?->sub_title ?? $package->nationality?->title ?? '' }}"
                                                         data-title="{{ $package->title }}"
                                                         data-days="{{ $package->days_count }}"
+                                                        data-rental-type="{{ $package->rental_type ?? 'monthly' }}"
+                                                        data-duration-count="{{ $package->duration_count ?: max(1, (int) ceil(($package->days_count ?: 30) / 30)) }}"
+                                                        data-duration-unit="{{ $package->duration_unit ?? 'month' }}"
+                                                        data-working-hours="{{ $package->working_hours_per_day }}"
                                                         data-original-price="{{ $package->original_price }}"
                                                         data-price="{{ $package->price_after_discount }}"
                                                         data-total="{{ $package->price_with_tax }}">
-                                                    {{ $package->title }} - {{ $package->days_count }} يوم - {{ number_format((float) $package->price_with_tax, 2) }} ريال
+                                                    {{ $package->title }} - {{ $package->rental_type_label }} - {{ $package->duration_count ?: max(1, (int) ceil(($package->days_count ?: 30) / 30)) }} {{ $package->duration_unit_label }} - {{ number_format((float) $package->price_with_tax, 2) }} ريال
                                                 </option>
                                             @endforeach
                                         </select>
@@ -885,6 +889,7 @@
                                         <select name="rental_type" id="rental_type" class="form-select">
                                             <option value="">اختر نوع التأجير</option>
                                             <option value="daily">يومي</option>
+                                            <option value="hourly">بالساعات</option>
                                             <option value="weekly">أسبوعي</option>
                                             <option value="monthly">شهري</option>
                                             <option value="yearly">سنوي</option>
@@ -1198,6 +1203,8 @@
                 }
 
                 const days = parseInt(selectedOption.data('days'), 10) || 0;
+                const rentalType = selectedOption.data('rental-type') || '';
+                const workingHours = parseInt(selectedOption.data('working-hours'), 10) || 0;
                 const totalPrice = parseFloat(selectedOption.data('total')) || 0;
                 const beforeTax = parseFloat(selectedOption.data('price')) || 0;
                 const months = Math.max(1, Math.ceil(days / 30));
@@ -1213,6 +1220,11 @@
                 $('#contract_duration_days').val(days);
                 $('#monthly_cost').val(monthlyCost ? monthlyCost.toFixed(2) : '');
                 $('#total_contract_value').val(totalPrice ? totalPrice.toFixed(2) : '');
+                $('#rental_type').val(rentalType).trigger('change');
+
+                if (workingHours) {
+                    $('#working_hours').val(workingHours);
+                }
 
                 calculateIngazTo();
                 updatePaymentState();

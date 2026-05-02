@@ -89,6 +89,7 @@ class NotificationSettingsController extends Controller
         $validated = $request->validate([
             'section' => 'required|in:sms',
             'sms' => 'required|array',
+            'sms.provider' => 'required|in:msegat,taqnyat',
             'sms.url' => 'nullable|url|max:255',
             'sms.username' => 'nullable|string|max:255',
             'sms.api_key' => 'nullable|string|max:1000',
@@ -99,8 +100,12 @@ class NotificationSettingsController extends Controller
             'sms.encoding' => 'required|string|max:50',
             'sms.bulk_send_limit' => 'required|integer|min:1|max:10000',
             'sms.bulk_confirmation_keyword' => 'required|string|max:50',
+            'sms.taqnyat' => 'required|array',
+            'sms.taqnyat.base_url' => 'nullable|url|max:255',
+            'sms.taqnyat.bearer_token' => 'nullable|string|max:5000',
         ], [
             'sms.url.url' => 'رابط مزود الرسائل النصية غير صحيح.',
+            'sms.taqnyat.base_url.url' => 'رابط بوابة تقنيات غير صحيح.',
         ]);
 
         return $validated['sms'];

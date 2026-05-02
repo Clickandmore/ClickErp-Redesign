@@ -26,10 +26,16 @@ class PackageRequest extends MainRequest
     {
         return [
             'original_price' => 'required|numeric|min:0',
-            'price_after_discount' => 'nullable|numeric|min:0|lt:original_price',
-            'price_with_tax' => 'required|numeric|min:0',
-            'nationality_id' => 'required|exists:nationalities,id',
-            'days_count' => 'required|numeric|min:0',
+            'price_after_discount' => 'nullable|numeric|min:0|lte:original_price',
+            'price_with_tax' => 'nullable|numeric|min:0',
+            'nationality_id' => 'nullable|exists:nationalities,id',
+            'days_count' => 'nullable|numeric|min:0',
+            'rental_type' => 'required|string|in:hourly,daily,weekly,monthly,yearly',
+            'duration_unit' => 'required|string|in:hour,day,week,month,year',
+            'duration_count' => 'required|integer|min:1',
+            'working_hours_per_day' => 'nullable|integer|min:1|max:24',
+            'is_show' => 'nullable|boolean',
+            'description' => 'nullable|string|max:1000',
             'title:en' => 'required',
             'title:ar' => 'required',
         ];

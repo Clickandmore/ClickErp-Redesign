@@ -124,6 +124,18 @@ class UserController extends Controller
 
             return DataTables::of($units)
                 ->addIndexColumn()
+                ->addColumn('bulk_select', function ($row) {
+                    if (!@AdminGuardHasPerm(\App\PermKeys::CLIENTS_TOGGLE_STATUS)) {
+                        return '';
+                    }
+
+                    return '<div class="form-check m-0 d-flex justify-content-center">
+                                <input class="form-check-input client-bulk-checkbox" type="checkbox"
+                                    value="' . (int) $row->id . '"
+                                    data-name="' . e($row->name) . '"
+                                    data-status="' . (int) $row->is_blocked . '">
+                            </div>';
+                })
                 ->editColumn('name', function ($row) {
 
                     $badge = $row->is_blocked == 0
@@ -298,7 +310,7 @@ class UserController extends Controller
                     }
 
                     return '<div class="dropdown actions-dropdown">
-                                <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" aria-expanded="false">
                                     <i class="fas fa-cogs me-1"></i>' . helperTrans('ingaz.actions_menu') . '
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end shadow-lg">
@@ -306,7 +318,7 @@ class UserController extends Controller
                                 </ul>
                             </div>';
                 })
-                ->rawColumns(['name', 'actions', 'is_blocked', 'account_id', 'client_data', 'created_at', 'metrics', 'last_activity'])
+                ->rawColumns(['bulk_select', 'name', 'actions', 'is_blocked', 'account_id', 'client_data', 'created_at', 'metrics', 'last_activity'])
                 ->make(true);
         }
         $data["createRoute"] = route($this->mainRoute . ".create");
@@ -324,6 +336,29 @@ class UserController extends Controller
         $data['nationalities'] = Country::active()->ordered()->get(['id', 'name_ar', 'name_en']);
         $data['cities'] = City::active()->ordered()->get(['id', 'name_ar', 'name_en']);
         return view($this->folderPath . '.index', $data);
+    }
+
+    public function bulkUpdateStatus(Request $request)
+    {
+        if (!@AdminGuardHasPerm(\App\PermKeys::CLIENTS_TOGGLE_STATUS)) {
+            return response()->json([
+                'message' => 'ليس لديك صلاحية لتغيير حالة العملاء'
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'ids' => ['required', 'array', 'min:1'],
+            'ids.*' => ['integer', 'distinct', 'exists:users,id'],
+            'status' => ['required', 'in:active,blocked'],
+        ]);
+
+        $isBlocked = $validated['status'] === 'blocked' ? 1 : 0;
+        $updated = objModel::whereIn('id', $validated['ids'])->update(['is_blocked' => $isBlocked]);
+
+        return response()->json([
+            'message' => 'تم تحديث حالة ' . $updated . ' عميل بنجاح.',
+            'updated' => $updated,
+        ]);
     }
 
     /**

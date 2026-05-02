@@ -37,7 +37,7 @@
                         <div class="card-body">
                             <table class="table table-borderless mb-0">
                                 <tr><th width="35%">التاريخ الميلادي</th><td>{{ optional($delegation->delegation_date_gregorian)->format('Y-m-d') }}</td></tr>
-                                <tr><th>التاريخ الهجري</th><td>{{ $delegation->delegation_date_hijri }}</td></tr>
+                                <tr><th>التاريخ الهجري</th><td>{{ $delegation->delegation_date_hijri ?: '-' }}</td></tr>
                                 <tr><th>الجنسية</th><td>{{ $delegation->nationality?->sub_title ?? $delegation->nationality?->title ?? '-' }}</td></tr>
                                 <tr><th>المهنة</th><td>{{ $delegation->profession?->title ?? '-' }}</td></tr>
                                 <tr><th>المسوق</th><td>{{ $delegation->marketer?->name ?? '-' }}</td></tr>
@@ -56,7 +56,13 @@
                             <table class="table table-borderless mb-0">
                                 <tr><th width="35%">اسم العميل</th><td>{{ $delegation->user?->name ?? '-' }}</td></tr>
                                 <tr><th>رقم الهوية</th><td>{{ $delegation->user?->national_num ?: '-' }}</td></tr>
-                                <tr><th>الجوال</th><td>{{ trim(($delegation->user?->phone_code ?: '') . ' ' . ($delegation->user?->phone ?: '-')) }}</td></tr>
+                                <tr>
+                                    <th>الجوال</th>
+                                    <td>
+                                        @php($phone = $delegation->user?->phone)
+                                        {{ $phone && !str_starts_with($phone, 'ingaz-delegation-') ? trim(($delegation->user?->phone_code ?: '') . ' ' . $phone) : '-' }}
+                                    </td>
+                                </tr>
                                 <tr><th>العنوان</th><td>{{ $delegation->user?->address ?: '-' }}</td></tr>
                                 <tr><th>رقم العميل</th><td>{{ $delegation->user?->id ?? '-' }}</td></tr>
                             </table>
@@ -66,13 +72,13 @@
 
                 <div class="col-lg-6">
                     <div class="card shadow-sm border-0 h-100">
-                        <div class="card-header bg-light"><h5 class="mb-0">بيانات التأشيرة والعاملة</h5></div>
+                        <div class="card-header bg-light"><h5 class="mb-0">بيانات التأشيرة والعامل</h5></div>
                         <div class="card-body">
                             <table class="table table-borderless mb-0">
                                 <tr><th width="35%">نوع التأشيرة</th><td>{{ $visaTypeOptions[$delegation->visa_type] ?? $delegation->visa_type }}</td></tr>
-                                <tr><th>اسم العاملة</th><td>{{ $delegation->maid?->name ?? $delegation->worker_name }}</td></tr>
-                                <tr><th>رقم الجواز</th><td>{{ $delegation->maid?->passport_num ?? $delegation->worker_passport_number }}</td></tr>
-                                <tr><th>رقم العاملة</th><td>{{ $delegation->maid?->id ?? '-' }}</td></tr>
+                                <tr><th>اسم العامل</th><td>{{ $delegation->maid?->name ?? $delegation->worker_name ?: '-' }}</td></tr>
+                                <tr><th>رقم الجواز</th><td>{{ $delegation->maid?->passport_num ?? $delegation->worker_passport_number ?: '-' }}</td></tr>
+                                <tr><th>رقم العامل</th><td>{{ $delegation->maid?->id ?? '-' }}</td></tr>
                                 <tr><th>تاريخ إصدار الجواز</th><td>{{ optional($delegation->worker_passport_issue_date)->format('Y-m-d') ?: '-' }}</td></tr>
                                 <tr><th>رقم التأشيرة</th><td>{{ $delegation->visa_number }}</td></tr>
                                 <tr><th>تاريخ التأشيرة</th><td>{{ optional($delegation->visa_date)->format('Y-m-d') ?: '-' }}</td></tr>
@@ -88,10 +94,10 @@
                         <div class="card-header bg-light"><h5 class="mb-0">المكتب الخارجي</h5></div>
                         <div class="card-body">
                             <table class="table table-borderless mb-0">
-                                <tr><th width="35%">اسم المكتب</th><td>{{ $delegation->external_office_name }}</td></tr>
-                                <tr><th>رقم الترخيص</th><td>{{ $delegation->external_office_license_number }}</td></tr>
-                                <tr><th>العنوان</th><td>{{ $delegation->external_office_address }}</td></tr>
-                                <tr><th>الهاتف</th><td>{{ $delegation->external_office_phone }}</td></tr>
+                                <tr><th width="35%">اسم المكتب</th><td>{{ $delegation->external_office_name ?: '-' }}</td></tr>
+                                <tr><th>رقم الترخيص</th><td>{{ $delegation->external_office_license_number ?: '-' }}</td></tr>
+                                <tr><th>العنوان</th><td>{{ $delegation->external_office_address ?: '-' }}</td></tr>
+                                <tr><th>الهاتف</th><td>{{ $delegation->external_office_phone ?: '-' }}</td></tr>
                             </table>
                         </div>
                     </div>

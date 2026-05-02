@@ -13,7 +13,21 @@ class PackageController extends Controller
 {
 
     public $folderPath = "admin.ingaz.packages";
-    public $postData = ["original_price", "price_after_discount",'nationality_id', "price_with_tax", "days_count","title:ar","title:en"];
+    public $postData = [
+        "original_price",
+        "price_after_discount",
+        'nationality_id',
+        "price_with_tax",
+        "days_count",
+        "rental_type",
+        "duration_unit",
+        "duration_count",
+        "working_hours_per_day",
+        "is_show",
+        "description",
+        "title:ar",
+        "title:en",
+    ];
     public $mainRoute = "packages";
 
     function __construct()
@@ -49,10 +63,13 @@ class PackageController extends Controller
                     'DT_RowIndex' => $index + 1,
                     'title' => $row->title,
                     'nationality' => $this->resolveNationalityLabel($row),
+                    'rental_type' => $row->rental_type_label,
+                    'duration' => ($row->duration_count ?: 1) . ' ' . $row->duration_unit_label,
                     'original_price' => $row->original_price,
                     'price_after_discount' => $row->price_after_discount,
                     'price_with_tax' => $row->price_with_tax,
                     'days_count' => $row->days_count,
+                    'is_show' => $row->is_show ? '<span class="badge bg-success">ظاهر</span>' : '<span class="badge bg-secondary">مخفي</span>',
                     'actions' => $editButton . " " . $deleteButton,
                 ];
             });
@@ -106,7 +123,7 @@ class PackageController extends Controller
      * @param \Illuminate\Http\Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function store(Request $request, objAction $action)
+    public function store(PackageRequest $request, objAction $action)
     {
 
         $data = $request->only($this->postData);

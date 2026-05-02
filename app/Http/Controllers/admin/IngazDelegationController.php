@@ -20,6 +20,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Yajra\DataTables\Facades\DataTables;
@@ -89,7 +90,8 @@ class IngazDelegationController extends Controller
                 ->editColumn('id', fn (IngazDelegation $row) => $row->id)
                 ->addColumn('client', function (IngazDelegation $row) {
                     $name = e($row->user?->name ?? '-');
-                    $meta = e($row->user?->phone ?: ($row->user?->national_num ?: '-'));
+                    $phone = $this->isInternalDelegationClientPhone($row->user?->phone) ? null : $row->user?->phone;
+                    $meta = e($phone ?: ($row->user?->national_num ?: '-'));
 
                     return '<div>' . $name . '</div><small class="text-muted">' . $meta . '</small>';
                 })
@@ -354,30 +356,30 @@ class IngazDelegationController extends Controller
     private function buildDelegationPayload(
         StoreIngazDelegationRequest $request,
         User $client,
-        Maid $maid,
+        ?Maid $maid,
         ?IngazDelegation $delegation = null
     ): array {
         return [
             'delegation_date_gregorian' => $request->delegation_date_gregorian,
-            'delegation_date_hijri' => $request->delegation_date_hijri,
+            'delegation_date_hijri' => $request->filled('delegation_date_hijri') ? $request->delegation_date_hijri : null,
             'nationality_id' => $request->nationality_id,
-            'profession_id' => $request->profession_id,
+            'profession_id' => $request->filled('profession_id') ? $request->profession_id : null,
             'user_id' => $client->id,
-            'maid_id' => $maid->id,
-            'marketer_id' => $request->marketer_id,
+            'maid_id' => $maid?->id,
+            'marketer_id' => $request->filled('marketer_id') ? $request->marketer_id : null,
             'client_source_type' => $request->client_source_type,
             'visa_type' => $request->filled('visa_type') ? $request->visa_type : 'electronic_ingaz_delegation',
-            'worker_name' => $request->worker_name,
-            'worker_passport_number' => $request->worker_passport_number,
+            'worker_name' => $request->filled('worker_name') ? $request->worker_name : null,
+            'worker_passport_number' => $request->filled('worker_passport_number') ? $request->worker_passport_number : null,
             'worker_passport_issue_date' => $request->worker_passport_issue_date,
             'visa_number' => $request->visa_number,
             'visa_date' => $request->visa_date,
-            'worker_religion' => $request->worker_religion,
-            'worker_experience' => $request->worker_experience,
-            'external_office_name' => $request->external_office_name,
-            'external_office_license_number' => $request->external_office_license_number,
-            'external_office_address' => $request->external_office_address,
-            'external_office_phone' => $request->external_office_phone,
+            'worker_religion' => $request->filled('worker_religion') ? $request->worker_religion : 'unspecified',
+            'worker_experience' => $request->filled('worker_experience') ? $request->worker_experience : 'unspecified',
+            'external_office_name' => $request->filled('external_office_name') ? $request->external_office_name : null,
+            'external_office_license_number' => $request->filled('external_office_license_number') ? $request->external_office_license_number : null,
+            'external_office_address' => $request->filled('external_office_address') ? $request->external_office_address : null,
+            'external_office_phone' => $request->filled('external_office_phone') ? $request->external_office_phone : null,
             'status' => $delegation?->status ?? IngazDelegation::STATUS_UNDER_PROCESS,
             'ingaz_number' => $request->ingaz_number,
             'msaned_contract_number' => $request->msaned_contract_number,
@@ -395,7 +397,7 @@ class IngazDelegationController extends Controller
         $phone = $this->normalizePhone($request->separate_client_phone);
         $identityNumber = trim((string) $request->separate_client_identity_number);
 
-        $existingByPhone = User::where('phone', $phone)->first();
+        $existingByPhone = $phone !== '' ? User::where('phone', $phone)->first() : null;
         $existingByIdentity = $identityNumber !== ''
             ? User::where('national_num', $identityNumber)->first()
             : null;
@@ -430,8 +432,8 @@ class IngazDelegationController extends Controller
 
         $user = $existingByPhone ?: $existingByIdentity ?: new User();
         $user->name = $request->separate_client_name;
-        $user->phone_code = $user->phone_code ?: '+966';
-        $user->phone = $phone;
+        $user->phone_code = $phone !== '' ? ($user->phone_code ?: '+966') : ($user->phone_code ?: '');
+        $user->phone = $phone !== '' ? $phone : ($user->phone ?: $this->internalDelegationClientPhone());
         $user->national_num = $identityNumber !== '' ? $identityNumber : $user->national_num;
         $user->address = $request->separate_client_address;
 
@@ -445,9 +447,15 @@ class IngazDelegationController extends Controller
         return $user;
     }
 
-    private function resolveMaid(StoreIngazDelegationRequest $request, ?Maid $currentMaid = null): Maid
+    private function resolveMaid(StoreIngazDelegationRequest $request, ?Maid $currentMaid = null): ?Maid
     {
         $passportNumber = trim((string) $request->worker_passport_number);
+        $workerName = trim((string) $request->worker_name);
+
+        if ($passportNumber === '' || $workerName === '') {
+            return null;
+        }
+
         $religionId = $this->resolveReligionId($request->worker_religion);
         $experienceStatus = $this->mapExperienceToMaidStatus($request->worker_experience);
 
@@ -474,7 +482,7 @@ class IngazDelegationController extends Controller
             $maid->nationality_id = (int) $request->nationality_id;
         }
 
-        $maid->name = $request->worker_name;
+        $maid->name = $workerName;
         $maid->passport_num = $passportNumber;
         $maid->religion_id = $religionId;
         $maid->experience_status = $experienceStatus;
@@ -482,15 +490,17 @@ class IngazDelegationController extends Controller
         $maid->request_type = Maid::resolveRequestType($maid->request_type);
         $maid->save();
 
-        MaidJobTitles::firstOrCreate([
-            'maid_id' => $maid->id,
-            'job_title_id' => (int) $request->profession_id,
-        ]);
+        if ($request->filled('profession_id')) {
+            MaidJobTitles::firstOrCreate([
+                'maid_id' => $maid->id,
+                'job_title_id' => (int) $request->profession_id,
+            ]);
+        }
 
         return $maid;
     }
 
-    private function resolveReligionId(string $workerReligion): int
+    private function resolveReligionId(?string $workerReligion): int
     {
         $labels = match ($workerReligion) {
             'muslim' => ['ar' => 'مسلم', 'en' => 'Muslim'],
@@ -528,7 +538,7 @@ class IngazDelegationController extends Controller
         return $religion->id;
     }
 
-    private function mapExperienceToMaidStatus(string $experience): string
+    private function mapExperienceToMaidStatus(?string $experience): string
     {
         return in_array($experience, ['previously_worked', 'appointed_by_client', 'known_service'], true)
             ? 'has_experience'
@@ -700,5 +710,19 @@ class IngazDelegationController extends Controller
     private function normalizePhone(?string $phone): string
     {
         return preg_replace('/\s+/', '', trim((string) $phone)) ?? '';
+    }
+
+    private function internalDelegationClientPhone(): string
+    {
+        do {
+            $phone = 'ingaz-delegation-' . Str::uuid();
+        } while (User::where('phone', $phone)->exists());
+
+        return $phone;
+    }
+
+    private function isInternalDelegationClientPhone(?string $phone): bool
+    {
+        return is_string($phone) && str_starts_with($phone, 'ingaz-delegation-');
     }
 }

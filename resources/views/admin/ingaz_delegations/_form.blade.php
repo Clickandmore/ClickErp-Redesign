@@ -2,7 +2,7 @@
     $delegation = $delegation ?? null;
     $linkedUser = $delegation?->user;
     $linkedMaid = $delegation?->maid;
-    $clientSourceType = old('client_source_type', $delegation->client_source_type ?? 'existing_in_program');
+    $clientSourceType = old('client_source_type', $delegation->client_source_type ?? 'separate_client');
     $existingUserId = old('existing_user_id', $clientSourceType === 'existing_in_program' ? ($linkedUser?->id) : null);
     $selectedNationalityId = old('nationality_id', $delegation->nationality_id ?? null);
     $selectedProfessionId = old('profession_id', $delegation->profession_id ?? null);
@@ -11,6 +11,9 @@
     $selectedWorkerExperience = old('worker_experience', $delegation->worker_experience ?? 'unspecified');
     $selectedMarketerId = old('marketer_id', $delegation->marketer_id ?? null);
     $selectedExternalOfficeId = old('existing_external_office_id');
+    $linkedUserPhone = $linkedUser?->phone && !str_starts_with($linkedUser->phone, 'ingaz-delegation-')
+        ? $linkedUser->phone
+        : '';
 
     if ($selectedExternalOfficeId === null && isset($recruitmentOffices)) {
         $matchedOffice = $recruitmentOffices->first(function ($office) use ($delegation) {
@@ -55,7 +58,7 @@
                         <div class="form-text">إذا كان المكتب موجودًا في النظام سيتم تعبئة البيانات تلقائيًا، وإذا لم يكن موجودًا يمكنك إدخالها يدويًا في الحقول التالية.</div>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">تاريخ تفويض الإنجاز (ميلادي) <span class="text-danger">*</span></label>
+                        <label class="form-label">تاريخ التفويض <span class="text-danger">*</span></label>
                         <input type="date" name="delegation_date_gregorian"
                                value="{{ old('delegation_date_gregorian', optional($delegation?->delegation_date_gregorian)->format('Y-m-d')) }}"
                                class="form-control @error('delegation_date_gregorian') is-invalid @enderror">
@@ -64,7 +67,7 @@
                         @enderror
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">تاريخ تفويض الإنجاز (هجري) <span class="text-danger">*</span></label>
+                        <label class="form-label">تاريخ تفويض الإنجاز (هجري)</label>
                         <input type="text" name="delegation_date_hijri"
                                value="{{ old('delegation_date_hijri', $delegation->delegation_date_hijri ?? '') }}"
                                class="form-control @error('delegation_date_hijri') is-invalid @enderror"
@@ -88,7 +91,7 @@
                         @enderror
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">المهنة <span class="text-danger">*</span></label>
+                        <label class="form-label">المهنة</label>
                         <select name="profession_id" class="form-select @error('profession_id') is-invalid @enderror">
                             <option value="">اختر المهنة</option>
                             @foreach ($professions as $profession)
@@ -140,11 +143,11 @@
                             @foreach ($existingUsers as $user)
                                 <option value="{{ $user->id }}"
                                         data-name="{{ $user->name }}"
-                                        data-phone="{{ trim(($user->phone_code ?: '') . ' ' . ($user->phone ?: '')) }}"
+                                        data-phone="{{ $user->phone && !str_starts_with($user->phone, 'ingaz-delegation-') ? trim(($user->phone_code ?: '') . ' ' . $user->phone) : '' }}"
                                         data-national="{{ $user->national_num }}"
                                         data-address="{{ $user->address }}"
                                         {{ $existingUserId == $user->id ? 'selected' : '' }}>
-                                    {{ $user->name }}{{ $user->national_num ? ' - ' . $user->national_num : '' }}{{ $user->phone ? ' - ' . $user->phone : '' }}
+                                    {{ $user->name }}{{ $user->national_num ? ' - ' . $user->national_num : '' }}{{ $user->phone && !str_starts_with($user->phone, 'ingaz-delegation-') ? ' - ' . $user->phone : '' }}
                                 </option>
                             @endforeach
                         </select>
@@ -171,7 +174,7 @@
                                 @enderror
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">رقم الهوية <span class="text-danger">*</span></label>
+                                <label class="form-label">رقم الهوية</label>
                                 <input type="text" name="separate_client_identity_number"
                                        value="{{ old('separate_client_identity_number', $clientSourceType === 'separate_client' ? ($linkedUser?->national_num ?? '') : '') }}"
                                        class="form-control @error('separate_client_identity_number') is-invalid @enderror">
@@ -180,7 +183,7 @@
                                 @enderror
                             </div>
                             <div class="col-md-8">
-                                <label class="form-label">عنوان العميل <span class="text-danger">*</span></label>
+                                <label class="form-label">عنوان العميل</label>
                                 <input type="text" name="separate_client_address"
                                        value="{{ old('separate_client_address', $clientSourceType === 'separate_client' ? ($linkedUser?->address ?? '') : '') }}"
                                        class="form-control @error('separate_client_address') is-invalid @enderror">
@@ -189,9 +192,9 @@
                                 @enderror
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">جوال العميل <span class="text-danger">*</span></label>
+                                <label class="form-label">جوال العميل</label>
                                 <input type="text" name="separate_client_phone"
-                                       value="{{ old('separate_client_phone', $clientSourceType === 'separate_client' ? ($linkedUser?->phone ?? '') : '') }}"
+                                       value="{{ old('separate_client_phone', $clientSourceType === 'separate_client' ? $linkedUserPhone : '') }}"
                                        class="form-control @error('separate_client_phone') is-invalid @enderror">
                                 @error('separate_client_phone')
                                     <div class="invalid-feedback">{{ $message }}</div>
@@ -207,7 +210,7 @@
     <div class="col-12">
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-light">
-                <h5 class="mb-0">بيانات التأشيرة والعاملة</h5>
+                <h5 class="mb-0">بيانات التأشيرة والعامل</h5>
             </div>
             <div class="card-body">
                 <div class="row g-3">
@@ -226,7 +229,7 @@
                         @enderror
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">اسم العاملة <span class="text-danger">*</span></label>
+                        <label class="form-label">اسم العامل</label>
                         <input type="text" name="worker_name" id="worker_name"
                                value="{{ old('worker_name', $delegation->worker_name ?? $linkedMaid?->name ?? '') }}"
                                class="form-control @error('worker_name') is-invalid @enderror">
@@ -235,7 +238,7 @@
                         @enderror
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">رقم جواز العاملة <span class="text-danger">*</span></label>
+                        <label class="form-label">رقم جواز العامل</label>
                         <input type="text" name="worker_passport_number" id="worker_passport_number"
                                value="{{ old('worker_passport_number', $delegation->worker_passport_number ?? $linkedMaid?->passport_num ?? '') }}"
                                class="form-control @error('worker_passport_number') is-invalid @enderror">
@@ -245,7 +248,7 @@
                         <div id="maid-lookup-result" class="small mt-2 text-muted"></div>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">تاريخ إصدار جواز سفر العاملة</label>
+                        <label class="form-label">تاريخ إصدار جواز سفر العامل</label>
                         <input type="date" name="worker_passport_issue_date"
                                value="{{ old('worker_passport_issue_date', optional($delegation?->worker_passport_issue_date)->format('Y-m-d')) }}"
                                class="form-control @error('worker_passport_issue_date') is-invalid @enderror">
@@ -272,7 +275,7 @@
                         @enderror
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">الديانة <span class="text-danger">*</span></label>
+                        <label class="form-label">الديانة</label>
                         <select name="worker_religion" id="worker_religion" class="form-select @error('worker_religion') is-invalid @enderror">
                             @foreach ($religionOptions as $value => $label)
                                 <option value="{{ $value }}" {{ $selectedWorkerReligion === $value ? 'selected' : '' }}>
@@ -285,7 +288,7 @@
                         @enderror
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">الخبرة <span class="text-danger">*</span></label>
+                        <label class="form-label">الخبرة</label>
                         <select name="worker_experience" id="worker_experience" class="form-select @error('worker_experience') is-invalid @enderror">
                             @foreach ($experienceOptions as $value => $label)
                                 <option value="{{ $value }}" {{ $selectedWorkerExperience === $value ? 'selected' : '' }}>
@@ -310,7 +313,7 @@
             <div class="card-body">
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label class="form-label">اسم المكتب <span class="text-danger">*</span></label>
+                        <label class="form-label">اسم المكتب</label>
                         <input type="text" name="external_office_name" id="external_office_name"
                                value="{{ old('external_office_name', $delegation->external_office_name ?? '') }}"
                                class="form-control @error('external_office_name') is-invalid @enderror">
@@ -319,7 +322,7 @@
                         @enderror
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">رقم ترخيص المكتب <span class="text-danger">*</span></label>
+                        <label class="form-label">رقم ترخيص المكتب</label>
                         <input type="text" name="external_office_license_number" id="external_office_license_number"
                                value="{{ old('external_office_license_number', $delegation->external_office_license_number ?? '') }}"
                                class="form-control @error('external_office_license_number') is-invalid @enderror">
@@ -328,7 +331,7 @@
                         @enderror
                     </div>
                     <div class="col-md-8">
-                        <label class="form-label">عنوان المكتب <span class="text-danger">*</span></label>
+                        <label class="form-label">عنوان المكتب</label>
                         <input type="text" name="external_office_address" id="external_office_address"
                                value="{{ old('external_office_address', $delegation->external_office_address ?? '') }}"
                                class="form-control @error('external_office_address') is-invalid @enderror">
@@ -337,7 +340,7 @@
                         @enderror
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label">هاتف المكتب <span class="text-danger">*</span></label>
+                        <label class="form-label">هاتف المكتب</label>
                         <input type="text" name="external_office_phone" id="external_office_phone"
                                value="{{ old('external_office_phone', $delegation->external_office_phone ?? '') }}"
                                class="form-control @error('external_office_phone') is-invalid @enderror">
@@ -358,7 +361,7 @@
             <div class="card-body">
                 <div class="row g-3">
                     <div class="col-md-4">
-                        <label class="form-label">المسوق <span class="text-danger">*</span></label>
+                        <label class="form-label">المسوق</label>
                         <select name="marketer_id" class="form-select @error('marketer_id') is-invalid @enderror">
                             <option value="">اختر المسوق</option>
                             @foreach ($marketers as $marketer)
@@ -552,12 +555,12 @@
                 const data = await response.json();
 
                 if (!data?.found) {
-                    maidLookupResult.textContent = 'لم يتم العثور على عاملة بهذا الجواز. سيتم إنشاء سجل جديد عند الحفظ.';
+                    maidLookupResult.textContent = 'لم يتم العثور على عامل بهذا الجواز. سيتم إنشاء سجل جديد عند الحفظ إذا أدخلت اسم العامل ورقم الجواز.';
                     maidLookupResult.className = 'small mt-2 text-muted';
                     return;
                 }
 
-                maidLookupResult.textContent = `تم العثور على العاملة: ${data.maid.name || '-'} (ID: ${data.maid.id})`;
+                maidLookupResult.textContent = `تم العثور على العامل: ${data.maid.name || '-'} (ID: ${data.maid.id})`;
                 maidLookupResult.className = 'small mt-2 text-success';
 
                 if (data.maid.name && !workerNameInput.value.trim()) {

@@ -392,8 +392,10 @@
             : ($isDelegationInvoice ? ($selectedIngazDelegation?->status_label ?? 'غير محدد') : 'غير محدد');
         $currentClient = $isDelegationInvoice ? $selectedIngazDelegation?->user : $currentContract?->user;
         $currentClientName = $currentClient?->name ?? 'غير محدد';
-        $currentClientPhone =
-            trim(($currentClient?->phone_code ?? '') . ($currentClient?->phone ?? '')) ?: 'غير محدد';
+        $currentClientRawPhone = $currentClient?->phone;
+        $currentClientPhone = $currentClientRawPhone && !str_starts_with($currentClientRawPhone, 'ingaz-delegation-')
+            ? trim(($currentClient?->phone_code ?? '') . $currentClientRawPhone)
+            : 'غير محدد';
         $currentClientIdentity = $currentClient?->national_num ?? 'غير محدد';
         $canCreateInvoice = $isDelegationInvoice || (bool) $currentContract || $contracts->isNotEmpty();
     @endphp

@@ -51,6 +51,7 @@ class CommunicationSettings
                 'mail.from.address' => $settings['email']['from_address'] !== '' ? $settings['email']['from_address'] : config('mail.from.address'),
                 'mail.from.name' => $settings['email']['from_name'] !== '' ? $settings['email']['from_name'] : config('mail.from.name'),
 
+                'msegat.provider' => $settings['sms']['provider'],
                 'msegat.url' => $settings['sms']['url'],
                 'msegat.username' => $settings['sms']['username'],
                 'msegat.api_key' => $settings['sms']['api_key'],
@@ -61,6 +62,8 @@ class CommunicationSettings
                 'msegat.encoding' => $settings['sms']['encoding'],
                 'msegat.bulk_send_limit' => (int) $settings['sms']['bulk_send_limit'],
                 'msegat.bulk_confirmation_keyword' => $settings['sms']['bulk_confirmation_keyword'],
+                'services.taqnyat.sms.base_url' => $settings['sms']['taqnyat']['base_url'],
+                'services.taqnyat.sms.bearer_token' => $settings['sms']['taqnyat']['bearer_token'],
 
                 'services.whatsapp.driver' => $settings['whatsapp']['driver'],
                 'services.whatsapp.graph_version' => $settings['whatsapp']['meta']['graph_version'],
@@ -161,6 +164,9 @@ class CommunicationSettings
         $data['email']['from_address'] = self::trimString($data['email']['from_address'] ?? '');
         $data['email']['from_name'] = self::trimString($data['email']['from_name'] ?? '');
 
+        $data['sms']['provider'] = in_array((string) ($data['sms']['provider'] ?? ''), ['msegat', 'taqnyat'], true)
+            ? (string) $data['sms']['provider']
+            : $defaults['sms']['provider'];
         $data['sms']['url'] = self::trimString($data['sms']['url'] ?? '');
         $data['sms']['username'] = self::trimString($data['sms']['username'] ?? '');
         $data['sms']['api_key'] = self::preserveSecret(
@@ -178,6 +184,16 @@ class CommunicationSettings
         $data['sms']['bulk_send_limit'] = max(1, (int) ($data['sms']['bulk_send_limit'] ?? $defaults['sms']['bulk_send_limit']));
         $data['sms']['bulk_confirmation_keyword'] = self::trimString($data['sms']['bulk_confirmation_keyword'] ?? '')
             ?: $defaults['sms']['bulk_confirmation_keyword'];
+        $data['sms']['taqnyat']['base_url'] = rtrim(
+            self::trimString($data['sms']['taqnyat']['base_url'] ?? $defaults['sms']['taqnyat']['base_url'])
+                ?: $defaults['sms']['taqnyat']['base_url'],
+            '/'
+        );
+        $data['sms']['taqnyat']['bearer_token'] = self::preserveSecret(
+            $data['sms']['taqnyat']['bearer_token'] ?? '',
+            $current['sms']['taqnyat']['bearer_token'] ?? '',
+            $preserveSecrets
+        );
 
         $data['whatsapp']['driver'] = in_array((string) ($data['whatsapp']['driver'] ?? ''), ['meta', 'ultramsg'], true)
             ? (string) $data['whatsapp']['driver']
@@ -287,6 +303,18 @@ class CommunicationSettings
             }
         }
 
+        if (in_array('sms', $validatedSections, true) && $payload['sms']['provider'] === 'taqnyat') {
+            if ($payload['sms']['sender'] === '') {
+                $errors['sms.sender'] = 'اسم المرسل مطلوب عند استخدام بوابة تقنيات.';
+            }
+            if ($payload['sms']['taqnyat']['base_url'] === '') {
+                $errors['sms.taqnyat.base_url'] = 'رابط API لبوابة تقنيات مطلوب.';
+            }
+            if ($payload['sms']['taqnyat']['bearer_token'] === '') {
+                $errors['sms.taqnyat.bearer_token'] = 'Bearer Token لبوابة تقنيات مطلوب.';
+            }
+        }
+
         if (in_array('whatsapp', $validatedSections, true) && $payload['whatsapp']['driver'] === 'meta') {
             if ($payload['whatsapp']['meta']['phone_number_id'] === '') {
                 $errors['whatsapp.meta.phone_number_id'] = 'رقم تعريف الهاتف في Meta مطلوب.';
@@ -334,6 +362,7 @@ class CommunicationSettings
                 'from_name' => (string) config('mail.from.name', ''),
             ],
             'sms' => [
+                'provider' => (string) config('msegat.provider', 'msegat'),
                 'url' => (string) config('msegat.url', 'https://www.msegat.com/gw/sendsms.php'),
                 'username' => (string) config('msegat.username', ''),
                 'api_key' => (string) config('msegat.api_key', ''),
@@ -344,6 +373,10 @@ class CommunicationSettings
                 'encoding' => (string) config('msegat.encoding', 'UTF8'),
                 'bulk_send_limit' => (int) config('msegat.bulk_send_limit', 200),
                 'bulk_confirmation_keyword' => (string) config('msegat.bulk_confirmation_keyword', 'SEND_ALL_SMS'),
+                'taqnyat' => [
+                    'base_url' => (string) config('services.taqnyat.sms.base_url', config('msegat.taqnyat.base_url', 'https://api.taqnyat.sa')),
+                    'bearer_token' => (string) config('services.taqnyat.sms.bearer_token', config('msegat.taqnyat.bearer_token', '')),
+                ],
             ],
             'whatsapp' => [
                 'driver' => (string) config('services.whatsapp.driver', 'meta'),

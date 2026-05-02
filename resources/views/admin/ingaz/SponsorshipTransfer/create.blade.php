@@ -32,7 +32,7 @@
                         <i class="fas fa-exclamation-triangle me-2"></i>{{ session('warning') }}
                     </div>
                 @endif
-                <form id="sponsorshipTransferForm" class="row g-4">
+                <form id="sponsorshipTransferForm" class="row g-4" enctype="multipart/form-data">
                     @csrf
                     <!-- اختيار العقد -->
                     <div class="col-12">
@@ -144,6 +144,52 @@
                         <input type="number" name="remaining_amount" id="remaining_amount" class="form-control bg-white" readonly>
                     </div>
                     <div class="col-12">
+                        <div class="border rounded-3 p-3 bg-light">
+                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                <div class="fw-bold">
+                                    <i class="fas fa-credit-card text-primary me-2"></i>بيانات الدفع
+                                </div>
+                                <small class="text-muted">طريقة الدفع وحالة السداد والمرفقات</small>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label for="payment_type" class="form-label fw-bold">طريقة الدفع <span class="text-danger">*</span></label>
+                                    <select name="payment_type" id="payment_type" class="form-select" required>
+                                        <option value="">اختر الطريقة</option>
+                                        <option value="cash">نقداً</option>
+                                        <option value="bank_transfer">تحويل بنكي</option>
+                                        <option value="mada">مدى</option>
+                                        <option value="tabby">تابي</option>
+                                        <option value="tamara">تمارا</option>
+                                        <option value="pay_later">الدفع لاحقاً</option>
+                                        <option value="other">أخرى</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="payment_status" class="form-label fw-bold">حالة الدفع <span class="text-danger">*</span></label>
+                                    <select name="payment_status" id="payment_status" class="form-select" required>
+                                        <option value="">اختر الحالة</option>
+                                        <option value="paid">تم الدفع</option>
+                                        <option value="partial">مدفوع جزئياً</option>
+                                        <option value="pending">معلق</option>
+                                        <option value="later">الدفع لاحقاً</option>
+                                        <option value="bank_pending">بانتظار التحويل</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="payment_receipt" class="form-label fw-bold">إيصال الدفع</label>
+                                    <input type="file" name="payment_receipt" id="payment_receipt" class="form-control" accept=".jpg,.jpeg,.png,.pdf">
+                                    <div class="form-text d-none" id="payment_receipt_hint">الإيصال مطلوب عند اختيار تم الدفع أو مدفوع جزئياً.</div>
+                                </div>
+                                <div class="col-12">
+                                    <label for="attachments" class="form-label fw-bold">مرفقات إضافية</label>
+                                    <input type="file" name="attachments[]" id="attachments" class="form-control" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx" multiple>
+                                    <div class="form-text">يمكن رفع أكثر من ملف متعلق بطلب نقل الكفالة.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12">
                         <label class="form-label fw-bold">ملاحظات إضافية</label>
                         <textarea name="notes" class="form-control" rows="2" maxlength="1000" placeholder="اكتب أي ملاحظات إضافية هنا..."></textarea>
                     </div>
@@ -235,6 +281,17 @@ $(document).ready(function() {
         let remaining = contractValue - paidAmount;
         $('#remaining_amount').val(remaining >= 0 ? remaining.toFixed(2) : 0);
     });
+
+    function syncPaymentReceiptRequirement() {
+        const paymentStatus = $('#payment_status').val();
+        const receiptRequired = paymentStatus === 'paid' || paymentStatus === 'partial';
+        $('#payment_receipt').prop('required', receiptRequired);
+        $('#payment_receipt_hint').toggleClass('d-none', !receiptRequired);
+    }
+
+    $('#payment_status').on('change', syncPaymentReceiptRequirement);
+    syncPaymentReceiptRequirement();
+
     // إرسال الطلب
     $('#sponsorshipTransferForm').on('submit', function(e) {
         e.preventDefault();
@@ -244,7 +301,9 @@ $(document).ready(function() {
         $.ajax({
             url: '{{ route('SponsorshipTransfer.store') }}',
             type: 'POST',
-            data: form.serialize(),
+            data: new FormData(this),
+            processData: false,
+            contentType: false,
             success: function(response) {
                 if (response.success) {
                     Swal.fire({

@@ -481,6 +481,7 @@
                                     @else
                                         <th>تاريخ الفشل</th>
                                         <th>سبب الفشل</th>
+                                        <th>المستحق للعميل</th>
                                         <th>سجل بواسطة</th>
                                     @endif
                                     <th>{{ helperTrans("ingaz.status") }}</th>
@@ -591,6 +592,14 @@
                                                 </div>
                                             </td>
                                             <td>
+                                                <div class="fw-bold text-danger">
+                                                    {{ number_format((float) $transfer->failure_settlement_amount, 2) }} ريال
+                                                </div>
+                                                <small class="text-muted">
+                                                    تصفير المتبقي: {{ number_format((float) $transfer->failure_clear_remaining_amount, 2) }} ريال
+                                                </small>
+                                            </td>
+                                            <td>
                                                 @if($transfer->failedBy)
                                                     <div>
                                                         <strong>{{ $transfer->failedBy->name }}</strong><br>
@@ -624,7 +633,11 @@
                                                             </a>
                                                         </li>
                                                         <li>
-                                                            <a class="dropdown-item cancel-transfer-action" href="#" data-id="{{ $transfer->id }}">
+                                                            <a class="dropdown-item cancel-transfer-action" href="#"
+                                                                data-id="{{ $transfer->id }}"
+                                                                data-contract-value="{{ (float) $transfer->contract_value }}"
+                                                                data-paid-amount="{{ (float) $transfer->paid_amount }}"
+                                                                data-remaining-amount="{{ (float) $transfer->remaining_amount }}">
                                                                 <i class="fas fa-times-circle"></i> إلغاء النقل
                                                             </a>
                                                         </li>
@@ -744,28 +757,140 @@
 
                 $(document).on('click', '.cancel-transfer-action', function (event) {
                     event.preventDefault();
-                    const id = $(this).data('id');
+                    const button = $(this);
+                    const id = button.data('id');
+                    const contractValue = Number(button.data('contract-value')) || 0;
+                    const paidAmount = Number(button.data('paid-amount')) || 0;
+                    const remainingAmount = Number(button.data('remaining-amount')) || 0;
+                    const money = (value) => Number(value || 0).toLocaleString('ar-SA', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    });
 
                     Swal.fire({
-                        title: 'سبب فشل النقل',
-                        input: 'textarea',
-                        inputPlaceholder: 'اكتب سبب الفشل أو الإلغاء',
-                        inputAttributes: {
-                            dir: 'rtl'
-                        },
+                        title: 'تأكيد فشل التجربة',
+                        html: `
+                            <div class="text-start" dir="rtl">
+                                <div class="alert alert-light border mb-3">
+                                    <div>قيمة العقد: <strong>${money(contractValue)} ريال</strong></div>
+                                    <div>الدائن (المدفوع): <strong>${money(paidAmount)} ريال</strong></div>
+                                    <div>المدين (المتبقي): <strong>${money(remainingAmount)} ريال</strong></div>
+                                    <div>إجمالي الخصومات: <strong>0.00 ريال</strong></div>
+                                </div>
+                                <label class="form-label">نوع التسوية</label>
+                                <select id="failureSettlementType" class="form-select mb-2">
+                                    <option value="refund" selected>استرجاع للعميل (يُسجل كمستحق للعميل)</option>
+                                </select>
+                                <label class="form-label">مبلغ التسوية</label>
+                                <input type="number" id="failureSettlementAmount" class="form-control mb-1" min="0" step="0.01" value="${paidAmount.toFixed(2)}">
+                                <div class="form-text mb-2">يتم احتساب الاسترجاع تلقائيا من المبلغ المدفوع ويمكن تعديله</div>
+                                <label class="form-label">آيبان العميل <span class="text-danger">*</span></label>
+                                <input type="text" id="failureClientIban" class="form-control mb-2" dir="ltr" maxlength="34" placeholder="SA0000000000000000000000">
+                                <label class="form-label">مرفق الآيبان <span class="text-danger">*</span></label>
+                                <input type="file" id="failureClientIbanAttachment" class="form-control mb-2" accept=".jpg,.jpeg,.png,.pdf">
+                                <div class="alert alert-warning py-2 mb-2">سيتم تصفير المبلغ المتبقي عند إلغاء النقل حسب المبلغ المحدد أدناه.</div>
+                                <label class="form-label">مبلغ تصفير المتبقي</label>
+                                <input type="number" id="failureClearRemainingAmount" class="form-control mb-1" min="0" step="0.01" value="${remainingAmount.toFixed(2)}">
+                                <div class="form-text mb-2">يمكنك تعديل مبلغ التصفير حسب الحاجة</div>
+                                <div class="alert alert-info mb-2" id="failureSettlementPreview"></div>
+                                <label class="form-label">سبب الفشل</label>
+                                <textarea id="failureReason" class="form-control" rows="3" placeholder="اكتب سبب الفشل أو الإلغاء"></textarea>
+                            </div>
+                        `,
                         showCancelButton: true,
                         confirmButtonColor: '#d33',
                         cancelButtonColor: '#6c757d',
                         confirmButtonText: 'حفظ وإلغاء النقل',
-                        cancelButtonText: 'إلغاء'
+                        cancelButtonText: 'إلغاء',
+                        didOpen: () => {
+                            const updatePreview = () => {
+                                const settlementAmount = Number($('#failureSettlementAmount').val()) || 0;
+                                const clearRemainingAmount = Number($('#failureClearRemainingAmount').val()) || 0;
+                                $('#failureSettlementPreview').html(`
+                                    الدائن بعد التسوية: <strong>${money(paidAmount)} ريال</strong><br>
+                                    المدين بعد التسوية: <strong>${money(Math.max(0, remainingAmount - clearRemainingAmount))} ريال</strong><br>
+                                    المستحق للعميل بعد التسوية: <strong>${money(settlementAmount)} ريال</strong>
+                                `);
+                            };
+
+                            $('#failureSettlementAmount, #failureClearRemainingAmount').on('input', updatePreview);
+                            updatePreview();
+                        },
+                        preConfirm: () => {
+                            const settlementAmount = Number($('#failureSettlementAmount').val()) || 0;
+                            const clearRemainingAmount = Number($('#failureClearRemainingAmount').val()) || 0;
+                            const iban = ($('#failureClientIban').val() || '').trim();
+                            const attachment = $('#failureClientIbanAttachment')[0]?.files?.[0] || null;
+
+                            if (settlementAmount > paidAmount) {
+                                Swal.showValidationMessage('مبلغ الاسترجاع لا يمكن أن يكون أكبر من المبلغ المدفوع.');
+                                return false;
+                            }
+
+                            if (clearRemainingAmount > remainingAmount) {
+                                Swal.showValidationMessage('مبلغ تصفير المتبقي لا يمكن أن يكون أكبر من المبلغ المتبقي.');
+                                return false;
+                            }
+
+                            if (settlementAmount > 0 && !iban && !attachment) {
+                                Swal.showValidationMessage('يرجى إدخال آيبان العميل أو إرفاق مرفق الآيبان.');
+                                return false;
+                            }
+
+                            return {
+                                failure_reason: ($('#failureReason').val() || '').trim(),
+                                failure_settlement_type: $('#failureSettlementType').val(),
+                                failure_settlement_amount: settlementAmount,
+                                failure_clear_remaining_amount: clearRemainingAmount,
+                                failure_client_iban: iban,
+                                failure_client_iban_attachment: attachment
+                            };
+                        }
                     }).then((result) => {
                         if (result.isConfirmed) {
-                            performAction('cancel-transfer', id, {
-                                failure_reason: (result.value || '').trim()
-                            });
+                            performCancelTransfer(id, result.value);
                         }
                     });
                 });
+
+                function performCancelTransfer(id, payload) {
+                    const formData = new FormData();
+                    formData.append('_token', '{{ csrf_token() }}');
+                    formData.append('failure_reason', payload.failure_reason || '');
+                    formData.append('failure_settlement_type', payload.failure_settlement_type || 'refund');
+                    formData.append('failure_settlement_amount', payload.failure_settlement_amount || 0);
+                    formData.append('failure_clear_remaining_amount', payload.failure_clear_remaining_amount || 0);
+                    formData.append('failure_client_iban', payload.failure_client_iban || '');
+
+                    if (payload.failure_client_iban_attachment) {
+                        formData.append('failure_client_iban_attachment', payload.failure_client_iban_attachment);
+                    }
+
+                    $.ajax({
+                        url: `/admin/SponsorshipTransfer/${id}/cancel-transfer`,
+                        type: 'POST',
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Accept': 'application/json'
+                        },
+                        success: function(response) {
+                            if (response.success) {
+                                Swal.fire('نجح!', response.message, 'success').then(() => {
+                                    window.location.reload();
+                                });
+                            } else {
+                                Swal.fire('خطأ!', response.message, 'error');
+                            }
+                        },
+                        error: function(xhr) {
+                            const message = xhr.responseJSON?.message || Object.values(xhr.responseJSON?.errors || {})[0]?.[0] || 'حدث خطأ غير متوقع';
+                            Swal.fire('خطأ!', message, 'error');
+                        }
+                    });
+                }
 
                 function performAction(action, id, payload = {}) {
                     $.ajax({

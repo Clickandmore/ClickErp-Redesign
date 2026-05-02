@@ -195,6 +195,10 @@
             color: #e67e22;
         }
 
+        .info-value.danger {
+            color: var(--danger-color);
+        }
+
         /* --- الشارات (Badges) --- */
         .details-badge {
             padding: 6px 12px;
@@ -426,6 +430,66 @@
                         <span class="info-label">المبلغ المتبقي:</span>
                         <span class="info-value warning">{{ number_format($transfer->remaining_amount, 2) }} ريال</span>
                     </div>
+                    @if ($transfer->status === 'failed')
+                        <div class="info-row">
+                            <span class="info-label">نوع التسوية:</span>
+                            <span class="info-value">{{ $transfer->failure_settlement_type_text }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">المستحق للعميل:</span>
+                            <span class="info-value danger">{{ number_format((float) $transfer->failure_settlement_amount, 2) }} ريال</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">مبلغ تصفير المتبقي:</span>
+                            <span class="info-value">{{ number_format((float) $transfer->failure_clear_remaining_amount, 2) }} ريال</span>
+                        </div>
+                        @if ($transfer->failure_client_iban)
+                            <div class="info-row">
+                                <span class="info-label">آيبان العميل:</span>
+                                <span class="info-value" dir="ltr">{{ $transfer->failure_client_iban }}</span>
+                            </div>
+                        @endif
+                        @if ($transfer->failure_client_iban_attachment_path)
+                            <div class="info-row">
+                                <span class="info-label">مرفق الآيبان:</span>
+                                <span class="info-value">
+                                    <a href="{{ Storage::disk('public')->url($transfer->failure_client_iban_attachment_path) }}" target="_blank" class="text-primary">
+                                        عرض المرفق
+                                    </a>
+                                </span>
+                            </div>
+                        @endif
+                    @endif
+                    <div class="info-row">
+                        <span class="info-label">طريقة الدفع:</span>
+                        <span class="info-value">{{ $transfer->payment_type_text }}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">حالة الدفع:</span>
+                        <span class="info-value">{{ $transfer->payment_status_text }}</span>
+                    </div>
+                    @if ($transfer->payment_receipt_path)
+                        <div class="info-row">
+                            <span class="info-label">إيصال الدفع:</span>
+                            <span class="info-value">
+                                <a href="{{ Storage::disk('public')->url($transfer->payment_receipt_path) }}" target="_blank" class="text-primary">
+                                    عرض الإيصال
+                                </a>
+                            </span>
+                        </div>
+                    @endif
+                    @if (!empty($transfer->attachments))
+                        <div class="info-row">
+                            <span class="info-label">المرفقات:</span>
+                            <span class="info-value">
+                                @foreach ($transfer->attachments as $attachment)
+                                    <a href="{{ Storage::disk('public')->url($attachment['path'] ?? '') }}" target="_blank" class="d-block text-primary">
+                                        {{ $attachment['name'] ?? 'مرفق' }}
+                                    </a>
+                                @endforeach
+                            </span>
+                        </div>
+                    @endif
                     <div class="info-row">
                         <span class="info-label">نسبة السداد:</span>
                         <span class="info-value">

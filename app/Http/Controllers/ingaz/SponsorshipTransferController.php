@@ -252,7 +252,11 @@ class SponsorshipTransferController extends Controller
                     //                 </a></li>';
                     // }
                     if ($transfer->status == 'trial_started') {
-                        $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="cancel-transfer" data-id="' . $transfer->id . '" data-text="إلغاء النقل وإعادة العقد إلى الإيواء">
+                        $actions .= '<li><a class="dropdown-item cancel-transfer-action" href="#"
+                                        data-id="' . $transfer->id . '"
+                                        data-contract-value="' . (float) $transfer->contract_value . '"
+                                        data-paid-amount="' . (float) $transfer->paid_amount . '"
+                                        data-remaining-amount="' . (float) $transfer->remaining_amount . '">
                                         <i class="fas fa-times-circle"></i> إلغاء النقل
                                     </a></li>';
                     }
@@ -503,6 +507,11 @@ class SponsorshipTransferController extends Controller
                 'trial_start_date' => 'required|date',
                 'contract_value' => 'required|numeric|min:0',
                 'paid_amount' => 'required|numeric|min:0|lte:contract_value',
+                'payment_type' => 'required|in:cash,bank_transfer,mada,tabby,tamara,pay_later,other',
+                'payment_status' => 'required|in:paid,partial,pending,later,bank_pending',
+                'payment_receipt' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+                'attachments' => 'nullable|array',
+                'attachments.*' => 'file|mimes:jpg,jpeg,png,pdf,doc,docx|max:8192',
                 'notes' => 'nullable|string|max:1000',
             ], [
                 'contract_id.required' => 'يجب اختيار العقد',
@@ -528,8 +537,24 @@ class SponsorshipTransferController extends Controller
                 'paid_amount.numeric' => 'المبلغ المدفوع يجب أن يكون رقماً',
                 'paid_amount.min' => 'المبلغ المدفوع يجب أن يكون أكبر من أو يساوي صفر',
                 'paid_amount.lte' => 'المبلغ المدفوع لا يمكن أن يكون أكبر من قيمة العقد',
+                'payment_type.required' => 'يجب اختيار طريقة الدفع',
+                'payment_type.in' => 'طريقة الدفع غير صحيحة',
+                'payment_status.required' => 'يجب اختيار حالة الدفع',
+                'payment_status.in' => 'حالة الدفع غير صحيحة',
+                'payment_receipt.file' => 'صيغة إيصال الدفع غير صحيحة',
+                'payment_receipt.mimes' => 'صيغة إيصال الدفع يجب أن تكون pdf أو jpg أو jpeg أو png',
+                'payment_receipt.max' => 'حجم إيصال الدفع يجب ألا يتجاوز 4 ميجابايت',
+                'attachments.*.file' => 'صيغة أحد المرفقات غير صحيحة',
+                'attachments.*.mimes' => 'صيغة المرفقات يجب أن تكون pdf أو jpg أو jpeg أو png أو doc أو docx',
+                'attachments.*.max' => 'حجم كل مرفق يجب ألا يتجاوز 8 ميجابايت',
                 'notes.max' => 'الملاحظات يجب أن تكون أقل من 1000 حرف',
             ]);
+
+            if (in_array($validated['payment_status'], ['paid', 'partial'], true) && !$request->hasFile('payment_receipt')) {
+                throw ValidationException::withMessages([
+                    'payment_receipt' => 'يجب إرفاق إيصال الدفع عند تحديد حالة الدفع تم الدفع أو مدفوع جزئياً',
+                ]);
+            }
 
             $contract = Contract::with('info')->find($validated['contract_id']);
 
@@ -566,6 +591,20 @@ class SponsorshipTransferController extends Controller
                 ]);
             }
 
+            $paymentReceiptPath = $request->hasFile('payment_receipt')
+                ? $request->file('payment_receipt')->store('sponsorship-transfers/receipts', 'public')
+                : null;
+
+            $attachments = [];
+            foreach ($request->file('attachments', []) as $file) {
+                $attachments[] = [
+                    'path' => $file->store('sponsorship-transfers/attachments', 'public'),
+                    'name' => $file->getClientOriginalName(),
+                    'mime_type' => $file->getClientMimeType(),
+                    'size' => $file->getSize(),
+                ];
+            }
+
             // حفظ بيانات طلب نقل الكفالة
             $transferData = [
                 'contract_id' => $contract->id,
@@ -576,6 +615,12 @@ class SponsorshipTransferController extends Controller
                 'contract_value' => $validated['contract_value'],
                 'paid_amount' => $validated['paid_amount'],
                 'remaining_amount' => $validated['contract_value'] - $validated['paid_amount'],
+                'payment_type' => $validated['payment_type'],
+                'payment_status' => $validated['payment_status'],
+                'payment_receipt_path' => $paymentReceiptPath,
+                'attachments' => $attachments ?: null,
+                'payment_confirmed_at' => (float) $validated['paid_amount'] > 0 ? now() : null,
+                'payment_confirmed_by' => (float) $validated['paid_amount'] > 0 ? auth('admin')->id() : null,
                 'notes' => $validated['notes'] ?? null,
                 'status' => 'waiting_contract_send', // الحالة الجديدة: انتظار إرسال العقد
             ];
@@ -1015,6 +1060,18 @@ class SponsorshipTransferController extends Controller
      */
     public function cancelTransfer(Request $request, $id)
     {
+        $validated = $request->validate([
+            'failure_reason' => 'nullable|string|max:1000',
+            'failure_settlement_type' => 'nullable|in:refund',
+            'failure_settlement_amount' => 'nullable|numeric|min:0',
+            'failure_clear_remaining_amount' => 'nullable|numeric|min:0',
+            'failure_client_iban' => 'nullable|string|max:34',
+            'failure_client_iban_attachment' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+        ], [
+            'failure_client_iban_attachment.mimes' => 'مرفق الآيبان يجب أن يكون pdf أو jpg أو jpeg أو png',
+            'failure_client_iban_attachment.max' => 'حجم مرفق الآيبان يجب ألا يتجاوز 4 ميجابايت',
+        ]);
+
         try {
             $transfer = SponsorshipTransfer::with(['contract.info', 'transferServiceContract'])->findOrFail($id);
 
@@ -1028,10 +1085,38 @@ class SponsorshipTransferController extends Controller
             DB::beginTransaction();
 
             $failedAt = now();
-            $failureReason = trim((string) $request->input('failure_reason', ''));
+            $failureReason = trim((string) ($validated['failure_reason'] ?? ''));
             if ($failureReason === '') {
                 $failureReason = 'لم يتم تحديد سبب الإلغاء';
             }
+
+            $settlementType = $validated['failure_settlement_type'] ?? 'refund';
+            $settlementAmount = round((float) ($validated['failure_settlement_amount'] ?? $transfer->paid_amount), 2);
+            $clearRemainingAmount = round((float) ($validated['failure_clear_remaining_amount'] ?? $transfer->remaining_amount), 2);
+            $paidAmount = round((float) $transfer->paid_amount, 2);
+            $remainingAmount = round((float) $transfer->remaining_amount, 2);
+
+            if ($settlementAmount > $paidAmount) {
+                throw ValidationException::withMessages([
+                    'failure_settlement_amount' => 'مبلغ الاسترجاع لا يمكن أن يكون أكبر من المبلغ المدفوع.',
+                ]);
+            }
+
+            if ($clearRemainingAmount > $remainingAmount) {
+                throw ValidationException::withMessages([
+                    'failure_clear_remaining_amount' => 'مبلغ تصفير المتبقي لا يمكن أن يكون أكبر من المبلغ المتبقي.',
+                ]);
+            }
+
+            if ($settlementAmount > 0 && empty($validated['failure_client_iban']) && !$request->hasFile('failure_client_iban_attachment')) {
+                throw ValidationException::withMessages([
+                    'failure_client_iban' => 'عند وجود مبلغ استرجاع يجب إدخال آيبان العميل أو إرفاق مرفق الآيبان.',
+                ]);
+            }
+
+            $ibanAttachmentPath = $request->hasFile('failure_client_iban_attachment')
+                ? $request->file('failure_client_iban_attachment')->store('sponsorship-transfers/failure-settlements/iban', 'public')
+                : null;
 
             $contract = $transfer->contract;
             if ($contract) {
@@ -1039,13 +1124,7 @@ class SponsorshipTransferController extends Controller
                     'status' => ContractStatusEnum::Shelter->value,
                 ]);
 
-                $this->createContractStatusLog($contract, ContractStatusEnum::Shelter->value);
-
-                if ($contract->info) {
-                    $contract->info->update([
-                        'wants_to_work' => 'yes',
-                    ]);
-                }
+                $this->returnShelterContractInsideForTransfer($transfer, $failureReason);
             }
 
             if ($transfer->transferServiceContract && $transfer->transferServiceContract->status !== 'completed') {
@@ -1062,15 +1141,27 @@ class SponsorshipTransferController extends Controller
                 'failed_by' => auth()->guard('admin')->id(),
                 'failed_at' => $failedAt,
                 'failure_reason' => $failureReason,
+                'failure_settlement_type' => $settlementType,
+                'failure_settlement_amount' => $settlementAmount,
+                'failure_clear_remaining_amount' => $clearRemainingAmount,
+                'failure_client_iban' => $validated['failure_client_iban'] ?? null,
+                'failure_client_iban_attachment_path' => $ibanAttachmentPath,
+                'remaining_amount' => max(0, $remainingAmount - $clearRemainingAmount),
             ]);
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم إلغاء النقل وإعادة العقد إلى الإيواء'
+                'message' => 'تم إلغاء النقل وإعادة العقد إلى الإيواء وتسجيل مبلغ الاسترجاع للعميل'
             ]);
 
+        } catch (ValidationException $e) {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+
+            throw $e;
         } catch (\Exception $e) {
             if (DB::transactionLevel() > 0) {
                 DB::rollBack();
@@ -1247,6 +1338,7 @@ class SponsorshipTransferController extends Controller
                 'sort_options' => [
                     'status_date' => 'تاريخ الفشل',
                     'contract_value' => 'قيمة العقد',
+                    'failure_settlement_amount' => 'المستحق للعميل',
                     'created_at' => 'تاريخ الطلب',
                 ],
                 'default_sort' => 'status_date',
@@ -1365,6 +1457,7 @@ class SponsorshipTransferController extends Controller
             case 'remaining_amount':
             case 'contract_value':
             case 'paid_amount':
+            case 'failure_settlement_amount':
             case 'created_at':
                 $query->orderBy($sort, $direction);
                 break;
@@ -1673,6 +1766,33 @@ class SponsorshipTransferController extends Controller
             'status' => ContractStatusEnum::Trial->value,
             'date' => now(),
             'notes' => 'تم إخراج العاملة من داخل الإيواء بسبب بدء فترة تجربة نقل كفالة رقم ' . $transfer->id,
+        ]);
+    }
+
+    private function returnShelterContractInsideForTransfer(SponsorshipTransfer $transfer, ?string $reason = null): void
+    {
+        if (!$transfer->contract) {
+            return;
+        }
+
+        $contract = $transfer->contract;
+        $contract->loadMissing('info');
+
+        $contract->info()->updateOrCreate([], [
+            'wants_to_work' => 'yes',
+            'is_outside_shelter' => false,
+            'outside_shelter_at' => null,
+            'outside_shelter_reason' => null,
+            'outside_shelter_reference_type' => null,
+            'outside_shelter_reference_id' => null,
+            'outside_shelter_by' => null,
+        ]);
+
+        $contract->contract_status_logs()->create([
+            'status' => ContractStatusEnum::Shelter->value,
+            'date' => now(),
+            'notes' => 'تمت إعادة العاملة إلى داخل الإيواء بعد فشل/إلغاء نقل كفالة رقم ' . $transfer->id
+                . ($reason ? ' - السبب: ' . $reason : ''),
         ]);
     }
 

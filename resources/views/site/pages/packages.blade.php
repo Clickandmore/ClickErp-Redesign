@@ -296,11 +296,21 @@
                                             <label for="p1{{ $package->id }}"
                                                 onclick="render_data('package',{{ $package->id }})">
                                                 <div class="location" id="package-{{ $package->id }}">
-                                                    <h6>{{ helperTrans('web.package') }}
-                                                        <span>{{ $package->days_count }}</span>
-                                                        {{ helperTrans('web.day') }}
+                                                    <h6>{{ $package->title ?: helperTrans('web.package') }}
+                                                        <span>{{ $package->rental_type_label }}</span>
                                                     </h6>
                                                     <ul>
+                                                        <li class="d-flex align-items-center justify-content-between">
+                                                            <p>مدة الباقة</p>
+                                                            <span>{{ $package->duration_count ?: max(1, (int) ceil(($package->days_count ?: 30) / 30)) }}
+                                                                {{ $package->duration_unit_label }}</span>
+                                                        </li>
+                                                        @if($package->working_hours_per_day)
+                                                            <li class="d-flex align-items-center justify-content-between">
+                                                                <p>ساعات العمل اليومية</p>
+                                                                <span>{{ $package->working_hours_per_day }} ساعات</span>
+                                                            </li>
+                                                        @endif
                                                         <li class="d-flex align-items-center justify-content-between">
                                                             <p>{{ helperTrans('web.package_price_before_discount') }}
                                                             </p>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\admin;
 
 use App\Models\ComplaintFeedback;
+use App\Support\SmsGateway;
 use Illuminate\Http\Request;
 
 class ComplaintFeedbackController extends Controller
@@ -93,29 +94,7 @@ class ComplaintFeedbackController extends Controller
      */
     private static function sendSMS($phone, $message)
     {
-        $ch = curl_init(config('msegat.url'));
-        $data = array(
-            'userName' => config('msegat.username'),
-            'apiKey' => config('msegat.api_key'),
-            'numbers' => $phone,
-            "userSender" => config('msegat.sender'),
-            'msg' => $message,
-            'msgEncoding' => config('msegat.encoding'),
-        );
-        $response_data = json_encode($data);
-        curl_setopt($ch, CURLOPT_POST, 1);
-        //Attach our encoded JSON string to the POST fields.
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $response_data);
-        //Set the content type to application/json
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
-        //Execute the request
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-
-        $result = curl_exec($ch);
-
-        logger()->info("Msegat SMS Sent Successfully (Complaint Feedback): ", ['phone' => $phone, 'msg' => $msg, 'response' => $result]);
-
-        return $result;
+        return SmsGateway::send($phone, $message);
     }
 
     /**

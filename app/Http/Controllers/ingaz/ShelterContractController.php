@@ -1861,6 +1861,28 @@ class ShelterContractController extends Controller
             $rows->where('id', 'like', '%' . $contractNumber . '%');
         }
 
+        if ($request->filled('maid_name')) {
+            $maidName = trim((string) $request->input('maid_name'));
+            $rows->whereHas('maid', function ($query) use ($maidName) {
+                $query->where('name', 'like', '%' . $maidName . '%')
+                    ->orWhere('id', 'like', '%' . $maidName . '%');
+            });
+        }
+
+        if ($request->filled('passport_num')) {
+            $passportNum = trim((string) $request->input('passport_num'));
+            $rows->whereHas('maid', function ($query) use ($passportNum) {
+                $query->where('passport_num', 'like', '%' . $passportNum . '%');
+            });
+        }
+
+        if ($request->filled('maid_type')) {
+            $maidType = $request->input('maid_type');
+            $rows->whereHas('maid.jobTypes', function ($query) use ($maidType) {
+                $query->where('job_types.id', $maidType);
+            });
+        }
+
         if ($request->filled('nationality')) {
             $nationality = $request->input('nationality');
             $rows->whereHas('maid.nationality', function ($query) use ($nationality) {
