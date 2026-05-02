@@ -4,7 +4,7 @@
     </div>
 
     <div id="print_section">
-        @include('print-header')
+        @include('finance::finance.print-header')
         <div class="text-center" style="margin: 10px auto">
             <h5>{{ __("finance::finance.Income statement") }} {{ request('from_date') ? __('finance::finance.from_date') : '' }} {{ request('from_date') }} {{ request('to_date') ? __('finance::finance.to_date') : '' }} {{ request('to_date') }}</h5>
         </div>
