@@ -1,5 +1,5 @@
 @if (@AdminGuardHasPerm(\App\PermKeys::NATIONALITIES_CONTROL))
-<form class="row g-3 from-submit-global" method="post" action="{{route("nationalities.store")}}">
+<form class="row g-3 from-submit-global" method="post" action="{{route("nationalities.store")}}" enctype="multipart/form-data">
     @csrf
     <div class="col-12">
         <label for="TextInput" class="form-label">{{helperTrans("ingaz.image")}}   </label>
@@ -47,6 +47,12 @@
         </label>
         <input type="number" step="0.01" name="monthly_salary" class="form-control" placeholder="الراتب الشهري">
     </div>
+    <div class="col-12">
+        <label for="expected_duration" class="form-label">
+            {{ helperTrans('ingaz.expected_duration') }}
+        </label>
+        <input type="number" id="expected_duration" name="expected_duration" class="form-control" min="45" value="{{ old('expected_duration', 45) }}" placeholder="{{ helperTrans('ingaz.expected_duration') }}" data-validation="required">
+    </div>
 
     @foreach (config('translatable.locales') as $locale)
         <div class="col-6">
@@ -77,7 +83,11 @@
 
     <div class="col-12 modal-footer">
         <button class="btn btn-primary" type="submit">{{__("buttons.save")}}</button>
-        <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">{{__("buttons.close")}}</button>
+        @if (request()->ajax())
+            <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">{{__("buttons.close")}}</button>
+        @else
+            <a class="btn btn-outline-secondary" href="{{ route('nationalities.index') }}">{{ helperTrans('ingaz.back') }}</a>
+        @endif
     </div>
 </form>
 

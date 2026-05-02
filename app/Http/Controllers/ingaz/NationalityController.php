@@ -204,6 +204,8 @@ class NationalityController extends Controller
             $returnHTML = view($this->folderPath . ".create")->render();
             return jsonSuccess(["html" => $returnHTML]);
         }
+
+        return view($this->folderPath . '.create-page');
     }
 
 
