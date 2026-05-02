@@ -986,7 +986,11 @@ $(document).ready(function() {
                     text: 'تم تحديث عقد التأجير بنجاح',
                     confirmButtonText: 'حسناً'
                 }).then(() => {
-                    window.location.href = "{{ route('RentContract.show', $contract->id) }}";
+                    if (response.receipt_created && response.receipt_bond_print_url) {
+                        window.open(response.receipt_bond_print_url, '_blank');
+                    }
+
+                    window.location.href = response.redirect_url || "{{ route('RentContract.show', $contract->id) }}";
                 });
             },
             error: function(xhr) {
