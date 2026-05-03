@@ -61,4 +61,11 @@ return [
         ],
     ],
 
+    'taqnyat' => [
+        'sms' => [
+            'base_url' => env('TAQNYAT_BASE_URL'),
+            'bearer' => env('TAQNYAT_BEARER'),
+        ]
+    ],
+
 ];
