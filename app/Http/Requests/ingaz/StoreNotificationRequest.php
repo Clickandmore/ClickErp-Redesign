@@ -3,6 +3,7 @@
 namespace App\Http\Requests\ingaz;
 
 use App\Http\Requests\MainRequest;
+use App\Support\CommunicationSettings;
 use Illuminate\Validation\Validator;
 
 class StoreNotificationRequest extends MainRequest
@@ -55,8 +56,9 @@ class StoreNotificationRequest extends MainRequest
             }
 
             if ($type === 'whatsapp') {
-                $purpose = (string) $this->input('whatsapp_purpose', config('services.whatsapp.default_purpose', 'verification'));
-                $allowAdvertising = (bool) config('services.whatsapp.allow_advertising', false);
+                $whatsAppSettings = CommunicationSettings::whatsapp();
+                $purpose = (string) $this->input('whatsapp_purpose', $whatsAppSettings['default_purpose'] ?? 'verification');
+                $allowAdvertising = (bool) ($whatsAppSettings['allow_advertising'] ?? false);
 
                 if ($purpose === 'advertising' && !$allowAdvertising) {
                     $validator->errors()->add('whatsapp_purpose', 'الإرسال الدعائي عبر واتساب غير مفعل حاليًا.');
@@ -102,9 +104,9 @@ class StoreNotificationRequest extends MainRequest
     private function resolveExpectedKeyword(string $type): string
     {
         if ($type === 'whatsapp') {
-            return (string) config('services.whatsapp.bulk_confirmation_keyword', 'SEND_ALL_WHATSAPP');
+            return (string) (CommunicationSettings::whatsapp()['bulk_confirmation_keyword'] ?? 'SEND_ALL_WHATSAPP');
         }
 
-        return (string) config('msegat.bulk_confirmation_keyword', 'SEND_ALL_SMS');
+        return (string) (CommunicationSettings::sms()['bulk_confirmation_keyword'] ?? 'SEND_ALL_SMS');
     }
 }

@@ -8,7 +8,8 @@ class SmsGateway
 {
     public static function send($phone, string $message, $code = null, $senderType = null): ?string
     {
-        $provider = strtolower((string) config('msegat.provider', 'msegat'));
+        $smsSettings = CommunicationSettings::sms();
+        $provider = strtolower((string) ($smsSettings['provider'] ?? 'msegat'));
 
         logger()->info('SMS provider: ', [
             'provider' => $provider,
@@ -23,36 +24,38 @@ class SmsGateway
 
     public static function resolveSenderName($senderType = null, $code = null): string
     {
+        $smsSettings = CommunicationSettings::sms();
         $resolvedType = strtolower(trim((string) ($senderType ?? '')));
         if ($resolvedType === '') {
             $resolvedType = $code !== null
                 ? 'verification'
-                : strtolower((string) config('msegat.default_sender_type', 'advertising'));
+                : strtolower((string) ($smsSettings['default_sender_type'] ?? 'advertising'));
         }
 
         if ($resolvedType === 'verification') {
-            return (string) config('msegat.verification_sender', config('msegat.sender', ''));
+            return (string) ($smsSettings['verification_sender'] ?: ($smsSettings['sender'] ?? ''));
         }
 
         if ($resolvedType === 'advertising') {
-            return (string) config('msegat.advertising_sender', config('msegat.sender', ''));
+            return (string) ($smsSettings['advertising_sender'] ?: ($smsSettings['sender'] ?? ''));
         }
 
-        return (string) config('msegat.sender', '');
+        return (string) ($smsSettings['sender'] ?? '');
     }
 
     private static function sendViaMsegat($phone, string $message, $code = null, $senderType = null): ?string
     {
+        $smsSettings = CommunicationSettings::sms();
         $resolvedSender = self::resolveSenderName($senderType, $code);
 
-        $ch = curl_init(config('msegat.url'));
+        $ch = curl_init((string) ($smsSettings['url'] ?? 'https://www.msegat.com/gw/sendsms.php'));
         $data = [
-            'userName' => config('msegat.username'),
-            'apiKey' => config('msegat.api_key'),
+            'userName' => (string) ($smsSettings['username'] ?? ''),
+            'apiKey' => (string) ($smsSettings['api_key'] ?? ''),
             'numbers' => $phone,
             'userSender' => $resolvedSender,
             'msg' => $message,
-            'msgEncoding' => config('msegat.encoding'),
+            'msgEncoding' => (string) ($smsSettings['encoding'] ?? 'UTF8'),
         ];
 
         curl_setopt($ch, CURLOPT_POST, 1);
@@ -77,17 +80,10 @@ class SmsGateway
 
     private static function sendViaTaqnyat($phone, string $message, $code = null, $senderType = null): ?string
     {
+        $smsSettings = CommunicationSettings::sms();
         $resolvedSender = self::resolveSenderName($senderType, $code);
-        $baseUrl = rtrim((string) config(
-            'services.taqnyat.sms.base_url',
-            config('msegat.taqnyat.base_url', 'https://api.taqnyat.sa')
-        ), '/');
-        $bearerToken = trim((string) (
-            config('services.taqnyat.sms.bearer_token')
-            ?? config('services.taqnyat.sms.bearer')
-            ?? config('msegat.taqnyat.bearer_token')
-            ?? ''
-        ));
+        $baseUrl = rtrim((string) data_get($smsSettings, 'taqnyat.base_url', 'https://api.taqnyat.sa'), '/');
+        $bearerToken = trim((string) data_get($smsSettings, 'taqnyat.bearer_token', ''));
 
         $recipients = self::normalizeRecipients($phone);
         if ($recipients === []) {

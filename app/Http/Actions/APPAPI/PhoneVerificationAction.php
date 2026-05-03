@@ -11,6 +11,7 @@ use App\Models\ingaz\PhoneVerification;
 use App\Models\ingaz\User;
 use App\Models\SmsTemplate;
 use App\Services\WhatsApp\WhatsAppMessagingService;
+use App\Support\CommunicationSettings;
 use Illuminate\Support\Facades\Auth;
 
 class PhoneVerificationAction extends MainAction
@@ -29,10 +30,9 @@ class PhoneVerificationAction extends MainAction
             ->where('phone_code', $request->phone_code)
             ->first();
 
-        $code = '12345';
-        if (env('MESSAGE_Live') == true) {
-            $code = sprintf("%05d", rand(0, 99999));
-        }
+        $code = CommunicationSettings::smsIsConfigured()
+            ? sprintf('%05d', rand(0, 99999))
+            : '12345';
 
         if ($phoneExists) {
             $phoneExists->update(['code' => $code]);
@@ -42,7 +42,7 @@ class PhoneVerificationAction extends MainAction
             $code = $storedData->code;
         }
 
-        $appDomainName = config('msegat.app_domain_for_msegat', 'click.com');
+        $appDomainName = (string) (CommunicationSettings::sms()['app_domain_name'] ?? 'aqro.sa');
         $template = SmsTemplate::getByName('phone_verification_code');
         $variables = [
             'verification_code' => $code,
