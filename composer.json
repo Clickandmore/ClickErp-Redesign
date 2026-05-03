@@ -26,6 +26,7 @@
         "spatie/laravel-activitylog": "^4.8",
         "spatie/laravel-permission": "^6.9",
         "spatie/laravel-translatable": "^5.2",
+        "taqnyat/php": "^1.0",
         "tymon/jwt-auth": "^1.0@dev",
         "yajra/laravel-datatables-oracle": "~9.0"
     },
