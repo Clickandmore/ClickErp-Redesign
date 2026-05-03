@@ -90,7 +90,8 @@ class CommunicationSettings
                 'msegat.sender' => $settings['sms']['sender'],
                 'msegat.advertising_sender' => $settings['sms']['advertising_sender'],
                 'msegat.verification_sender' => $settings['sms']['verification_sender'],
-                'msegat.app_domain_name' => $settings['sms']['app_domain_name'],
+                'msegat.app_domain_name' => $settings['sms']['app_domain_for_msegat'],
+                'msegat.app_domain_for_msegat' => $settings['sms']['app_domain_for_msegat'],
                 'msegat.default_sender_type' => $settings['sms']['default_sender_type'],
                 'msegat.encoding' => $settings['sms']['encoding'],
                 'msegat.bulk_send_limit' => (int) $settings['sms']['bulk_send_limit'],
@@ -210,8 +211,10 @@ class CommunicationSettings
         $data['sms']['sender'] = self::trimString($data['sms']['sender'] ?? '');
         $data['sms']['advertising_sender'] = self::trimString($data['sms']['advertising_sender'] ?? '');
         $data['sms']['verification_sender'] = self::trimString($data['sms']['verification_sender'] ?? '');
-        $data['sms']['app_domain_name'] = self::trimString($data['sms']['app_domain_name'] ?? '')
-            ?: $defaults['sms']['app_domain_name'];
+        $legacySmsAppDomain = self::trimString($data['sms']['app_domain_name'] ?? $current['sms']['app_domain_name'] ?? '');
+        $data['sms']['app_domain_for_msegat'] = self::trimString($data['sms']['app_domain_for_msegat'] ?? '')
+            ?: ($legacySmsAppDomain !== '' ? $legacySmsAppDomain : $defaults['sms']['app_domain_for_msegat']);
+        unset($data['sms']['app_domain_name']);
         $data['sms']['default_sender_type'] = in_array((string) ($data['sms']['default_sender_type'] ?? ''), ['advertising', 'verification'], true)
             ? (string) $data['sms']['default_sender_type']
             : $defaults['sms']['default_sender_type'];
@@ -404,7 +407,7 @@ class CommunicationSettings
                 'sender' => '',
                 'advertising_sender' => '',
                 'verification_sender' => '',
-                'app_domain_name' => 'aqro.sa',
+                'app_domain_for_msegat' => 'aqro.sa',
                 'default_sender_type' => 'advertising',
                 'encoding' => 'UTF8',
                 'bulk_send_limit' => 200,

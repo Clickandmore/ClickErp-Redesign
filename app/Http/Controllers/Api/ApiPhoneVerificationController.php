@@ -96,7 +96,7 @@ class ApiPhoneVerificationController extends Controller
         ], 200);
     }
 
-    public function reset_password_otp(ConfirmCodeRequest $request, PhoneVerificationAction $phoneVerificationAction, UserAction $userAction){
+    public function reset_password_otp(ConfirmCodeRequest $request, PhoneVerificationAction $phoneVerificationAction){
         $data = $request->validated();
         $response = $phoneVerificationAction->confirmCode($request);
         if (!$response) {
@@ -106,7 +106,14 @@ class ApiPhoneVerificationController extends Controller
             ], 422);
         }
 
-        $user = $userAction->find($response->getData()->data->id);
+        $user = $phoneVerificationAction->getUser($request);
+        if (!$user) {
+            return response()->json([
+                'status'  => false,
+                'message' => __('api.not found'),
+            ], 404);
+        }
+
         $encryptedPhone = Crypt::encryptString($user->phone);
 
          return response()->json([

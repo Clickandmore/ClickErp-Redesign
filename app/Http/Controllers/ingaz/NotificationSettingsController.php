@@ -96,7 +96,7 @@ class NotificationSettingsController extends Controller
             'sms.sender' => 'nullable|string|max:255',
             'sms.advertising_sender' => 'nullable|string|max:255',
             'sms.verification_sender' => 'nullable|string|max:255',
-            'sms.app_domain_name' => 'nullable|string|max:255',
+            'sms.app_domain_for_msegat' => 'nullable|string|max:255',
             'sms.default_sender_type' => 'required|in:advertising,verification',
             'sms.encoding' => 'required|string|max:50',
             'sms.bulk_send_limit' => 'required|integer|min:1|max:10000',

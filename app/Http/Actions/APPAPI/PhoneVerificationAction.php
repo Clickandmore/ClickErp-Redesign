@@ -42,7 +42,7 @@ class PhoneVerificationAction extends MainAction
             $code = $storedData->code;
         }
 
-        $appDomainName = (string) (CommunicationSettings::sms()['app_domain_name'] ?? 'aqro.sa');
+        $appDomainName = (string) (CommunicationSettings::sms()['app_domain_for_msegat'] ?? 'aqro.sa');
         $template = SmsTemplate::getByName('phone_verification_code');
         $variables = [
             'verification_code' => $code,
