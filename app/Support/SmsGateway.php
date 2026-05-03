@@ -2,11 +2,17 @@
 
 namespace App\Support;
 
+use Illuminate\Support\Facades\Http;
+
 class SmsGateway
 {
     public static function send($phone, string $message, $code = null, $senderType = null): ?string
     {
         $provider = strtolower((string) config('msegat.provider', 'msegat'));
+
+        logger()->info('SMS provider: ', [
+            'provider' => $provider,
+        ]);
 
         if ($provider === 'taqnyat') {
             return self::sendViaTaqnyat($phone, $message, $code, $senderType);
@@ -72,28 +78,75 @@ class SmsGateway
     private static function sendViaTaqnyat($phone, string $message, $code = null, $senderType = null): ?string
     {
         $resolvedSender = self::resolveSenderName($senderType, $code);
-        $baseUrl = rtrim((string) config('services.taqnyat.sms.base_url', 'https://api.taqnyat.sa'), '/');
-        $bearerToken = (string) config('services.taqnyat.sms.bearer_token', '');
+        $baseUrl = rtrim((string) config(
+            'services.taqnyat.sms.base_url',
+            config('msegat.taqnyat.base_url', 'https://api.taqnyat.sa')
+        ), '/');
+        $bearerToken = trim((string) (
+            config('services.taqnyat.sms.bearer_token')
+            ?? config('services.taqnyat.sms.bearer')
+            ?? config('msegat.taqnyat.bearer_token')
+            ?? ''
+        ));
 
         $recipients = self::normalizeRecipients($phone);
+        if ($recipients === []) {
+            logger()->warning('Taqnyat SMS aborted: no valid recipients.', [
+                'phone' => $phone,
+                'sender_type' => $senderType,
+            ]);
 
-        $ch = curl_init($baseUrl . '/v1/messages');
-        $data = [
-            'sender' => $resolvedSender,
-            'recipients' => $recipients,
-            'body' => $message,
-        ];
+            return null;
+        }
 
-        curl_setopt($ch, CURLOPT_POST, 1);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data, JSON_UNESCAPED_UNICODE));
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Content-Type: application/json',
-            'Authorization: Bearer ' . $bearerToken,
-        ]);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        if ($bearerToken === '') {
+            logger()->error('Taqnyat SMS aborted: missing bearer token.', [
+                'phone' => $phone,
+                'sender_type' => $senderType,
+                'sender' => $resolvedSender,
+            ]);
 
-        $result = curl_exec($ch);
-        curl_close($ch);
+            return null;
+        }
+
+        try {
+            $response = Http::withToken($bearerToken)
+                ->acceptJson()
+                ->asJson()
+                ->timeout(15)
+                ->post($baseUrl . '/v1/messages', [
+                    'recipients' => $recipients,
+                    'sender' => $resolvedSender,
+                    'body' => $message,
+                ]);
+        } catch (\Throwable $exception) {
+            logger()->error('Taqnyat SMS request failed.', [
+                'code' => $code,
+                'phone' => $phone,
+                'msg' => $message,
+                'sender_type' => $senderType,
+                'sender' => $resolvedSender,
+                'error' => $exception->getMessage(),
+            ]);
+
+            return null;
+        }
+
+        $result = $response->body();
+
+        if (!$response->successful()) {
+            logger()->warning('Taqnyat SMS rejected.', [
+                'code' => $code,
+                'phone' => $phone,
+                'msg' => $message,
+                'sender_type' => $senderType,
+                'sender' => $resolvedSender,
+                'status' => $response->status(),
+                'response' => $result,
+            ]);
+
+            return null;
+        }
 
         logger()->info('Taqnyat SMS Sent Successfully: ', [
             'code' => $code,
@@ -101,10 +154,11 @@ class SmsGateway
             'msg' => $message,
             'sender_type' => $senderType,
             'sender' => $resolvedSender,
+            'status' => $response->status(),
             'response' => $result,
         ]);
 
-        return $result === false ? null : (string) $result;
+        return $result === '' ? null : $result;
     }
 
     private static function normalizeRecipients($phone): array
