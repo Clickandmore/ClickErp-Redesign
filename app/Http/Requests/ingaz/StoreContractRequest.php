@@ -36,12 +36,28 @@ class StoreContractRequest extends MainRequest
             $normalizedData['marketer_id'] = $currentAdmin->id;
         }
 
-        if ($this->filled('new_existing_client_id') && !$this->filled('client_id')) {
+        foreach (['client_id', 'new_existing_client_id'] as $clientField) {
+            if ($this->filled($clientField) && !ctype_digit((string) $this->input($clientField))) {
+                $normalizedData[$clientField] = null;
+            }
+        }
+
+        if (
+            !isset($normalizedData['new_existing_client_id'])
+            && $this->filled('new_existing_client_id')
+            && !$this->filled('client_id')
+        ) {
             $normalizedData['client_id'] = $this->input('new_existing_client_id');
         }
 
         if ($this->filled('new_new_maid_id') && !$this->filled('maid_id')) {
             $normalizedData['maid_id'] = $this->input('new_new_maid_id');
+        }
+
+        foreach (['new_client_birthdate', 'client_birthdate'] as $dateField) {
+            if ($this->filled($dateField)) {
+                $normalizedData[$dateField] = $this->normalizeFlexibleDate($this->input($dateField));
+            }
         }
 
         foreach ([
@@ -110,7 +126,13 @@ class StoreContractRequest extends MainRequest
             'maid_selection_mode' => 'nullable|in:existing,manual,postponed',
             'maid_selection_postponed' => 'nullable|boolean',
             'manual_maid_name' => 'required_if:maid_selection_mode,manual|nullable|string|max:255',
-            'manual_maid_passport_num' => 'required_if:maid_selection_mode,manual|nullable|string|max:100',
+            'manual_maid_passport_num' => [
+                'required_if:maid_selection_mode,manual',
+                'nullable',
+                'string',
+                'max:100',
+                Rule::unique('maids', 'passport_num'),
+            ],
             'manual_maid_nationality_id' => 'required_if:maid_selection_mode,manual|nullable|exists:nationalities,id',
             'manual_maid_office_id' => 'required_if:maid_selection_mode,manual|nullable|exists:recruitment_offices,id',
             'manual_maid_attachment' => 'nullable|file|max:5120|mimes:jpg,jpeg,png,pdf,doc,docx',
@@ -144,6 +166,7 @@ class StoreContractRequest extends MainRequest
             'maid_selection_mode.in' => 'طريقة إضافة العاملة غير صحيحة',
             'manual_maid_name.required_if' => 'يرجى إدخال اسم العاملة المختصر',
             'manual_maid_passport_num.required_if' => 'يرجى إدخال رقم جواز العاملة المختصر',
+            'manual_maid_passport_num.unique' => 'رقم جواز العاملة المختصرة مسجل مسبقاً في النظام',
             'manual_maid_nationality_id.required_if' => 'يرجى اختيار جنسية العاملة المختصرة',
             'manual_maid_nationality_id.exists' => 'جنسية العاملة المختصرة غير موجودة',
             'manual_maid_office_id.required_if' => 'يرجى اختيار المكتب الخارجي للعاملة المختصرة',
@@ -169,5 +192,31 @@ class StoreContractRequest extends MainRequest
         }
 
         parent::failedValidation($validator);
+    }
+
+    private function normalizeFlexibleDate(?string $value): ?string
+    {
+        $value = trim((string) $value);
+        if ($value === '') {
+            return null;
+        }
+
+        $value = strtr($value, [
+            '٠' => '0', '١' => '1', '٢' => '2', '٣' => '3', '٤' => '4',
+            '٥' => '5', '٦' => '6', '٧' => '7', '٨' => '8', '٩' => '9',
+            '۰' => '0', '۱' => '1', '۲' => '2', '۳' => '3', '۴' => '4',
+            '۵' => '5', '۶' => '6', '۷' => '7', '۸' => '8', '۹' => '9',
+            '/' => '-', '.' => '-',
+        ]);
+
+        if (preg_match('/^(\d{4})-(\d{1,2})-(\d{1,2})$/', $value, $matches)) {
+            return sprintf('%04d-%02d-%02d', $matches[1], $matches[2], $matches[3]);
+        }
+
+        if (preg_match('/^(\d{1,2})-(\d{1,2})-(\d{4})$/', $value, $matches)) {
+            return sprintf('%04d-%02d-%02d', $matches[3], $matches[2], $matches[1]);
+        }
+
+        return $value;
     }
 }

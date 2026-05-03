@@ -272,6 +272,13 @@ class AdminContractController extends Controller
             // التحقق من وجود العقد
             $contract = \App\Models\RentalContract::findOrFail($contractId);
 
+            if ($contract->signature || !$contract->canSignContract()) {
+                return response()->json([
+                    "success" => false,
+                    "message" => "التوقيع غير متاح لهذا العقد حالياً"
+                ], 403);
+            }
+
             // التحقق من البيانات المرسلة
             $request->validate([
                 "signature" => "required|string"

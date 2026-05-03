@@ -53,7 +53,8 @@
 
         <div class="col-md-6">
             <label for="client_birthdate" class="form-label">{{helperTrans("ingaz.birthdate")}} <span class="text-danger">*</span></label>
-            <input type="date" id="client_birthdate" name="client_birthdate" class="form-control" data-validation="required" >
+            <input type="text" id="client_birthdate" name="client_birthdate" class="form-control" data-validation="required"
+                   placeholder="مثال: 1990-05-20 أو 1410/10/20">
         </div>
 
         <div class="col-md-6">

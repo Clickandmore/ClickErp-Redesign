@@ -92,6 +92,11 @@ Route::group(
         'middleware' => ['localeSessionRedirect', 'localizationRedirect', 'localeViewPath'],
     ],
     function () {
+        Route::group(["prefix" => "admin"], function () {
+            Route::get('print/rental-contract/{id}', [AdminContractController::class, 'printRentalContract'])->name('print.rental.contract');
+            Route::post('RentContract/{id}/save-signature', [AdminContractController::class, 'saveSignature'])->name('RentContract.saveSignature');
+        });
+
         Route::group(["prefix" => "admin", "middleware" => ["auth:admin", "admin.route.permission"]], function () {
 
             Route::resource('partenrs', ClientController::class);
@@ -126,7 +131,6 @@ Route::group(
             Route::get('viewFullOrderContract', [AdminFullOrderContractController::class, 'viewFullOrderContract'])->name('viewFullOrderContract');
             Route::post('createFullOrderContract', [AdminFullOrderContractController::class, 'createFullOrderContract'])->name('createFullOrderContract');
             /** */
-            Route::get('print/rental-contract/{id}', [AdminContractController::class, 'printRentalContract'])->name('print.rental.contract');
             Route::post('contracts/{id}/save-signature', [AdminContractController::class, 'saveSignature'])->name('admin.contracts.save-signature');
             //** */
             Route::get('/shelter_workers', [ShelterWorkersController::class, 'index'])->name('shelter_workers');
@@ -337,7 +341,6 @@ Route::group(
             Route::post('RentContract/{id}/deliver-maid', [RentContractController::class, 'deliverMaid'])->name('RentContract.deliverMaid');
             Route::post('RentContract/{id}/activate-contract', [RentContractController::class, 'activateContract'])->name('RentContract.activateContract');
             Route::post('RentContract/{id}/extend', [RentContractController::class, 'extend'])->name('RentContract.extend');
-            Route::post('RentContract/{id}/save-signature', [RentContractController::class, 'saveSignature'])->name('RentContract.saveSignature');
             Route::post('RentContract/{id}/change-maid', [RentContractController::class, 'changeMaid'])->name('RentContract.changeMaid');
 
             // Ø¥Ø¯Ø§Ø±Ø© Ø¨Ù†ÙˆØ¯ Ø¹Ù‚Ø¯ Ø§Ù„ØªØ£Ø¬ÙŠØ±

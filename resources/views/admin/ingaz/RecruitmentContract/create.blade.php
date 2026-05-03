@@ -336,8 +336,8 @@
                         <div class="card-body">
                             <div class="row g-3 align-items-end contract-picker-row">
                                 <div class="col-lg-9">
-                                    <label for="new_existing_client_id" class="form-label">اختر عميل <span
-                                            class="text-danger">*</span></label>
+                                    <label for="new_existing_client_id" class="form-label">اختر عميل
+                                        <small class="text-muted">(اختياري)</small></label>
                                     <select name="new_existing_client_id" id="new_existing_client_id"
                                         class="form-select select2 ajax-client-select" style="width:100%"
                                         data-placeholder="ابحث بالاسم أو الجوال أو الهوية">
@@ -345,9 +345,10 @@
                                     </select>
                                 </div>
                                 <div class="col-lg-3">
-                                    <a href="{{ route('clients.create') }}" target="_blank"
-                                        class="btn btn-outline-primary quick-create-client w-100" title="إضافة عميل جديد"><i
-                                            class="fas fa-user-plus"></i> إضافة عميل جديد</a>
+                                    <button type="button" id="use-direct-client-data"
+                                        class="btn btn-outline-primary quick-create-client w-100"
+                                        title="إدخال بيانات عميل جديد داخل نفس الشاشة"><i
+                                            class="fas fa-user-plus"></i> عميل جديد من البيانات</button>
                                 </div>
                             </div>
 
@@ -412,9 +413,9 @@
                                             <div class="col-md-6 mb-2">
                                                 <label class="form-label">{{ helperTrans('ingaz.birthdate') }} <span
                                                         class="text-danger">*</span></label>
-                                                <input type="date" id="new_client_birthdate"
+                                                <input type="text" id="new_client_birthdate"
                                                     name="new_client_birthdate" class="form-control"
-                                                    data-validation="required" max="{{ date('Y-m-d') }}">
+                                                    data-validation="required" placeholder="مثال: 1990-05-20 أو 1410/10/20">
                                             </div>
                                             <div class="col-md-6 mb-2">
                                                 <label class="form-label">{{ helperTrans('ingaz.phone2') }} <span
@@ -624,8 +625,7 @@
                                             <div class="col-12">
                                                 <div class="alert alert-info mb-0">
                                                     <i class="fas fa-circle-info me-2"></i>
-                                                    سيتم حفظ هذه البيانات كملخص مؤقت داخل العقد، مع إمكانية ربط عاملة فعلية
-                                                    لاحقاً من صفحة العقود.
+                                                    سيتم إنشاء عاملة مختصرة وربطها بالعقد مباشرة. مرفق الجواز اختياري.
                                                 </div>
                                             </div>
                                         </div>
@@ -1017,6 +1017,7 @@
         var currentContractsRoute = "{{ route('RecruitmentContract.index', ['status' => 'current']) }}";
         var searchClientsRoute = "{{ route('RecruitmentContract.searchClients') }}";
         var availableMaidsRoute = "{{ route('RecruitmentContract.availableMaids') }}";
+        var passportUniqueRoute = "{{ route('check.passport.unique') }}";
         var selectedOrder = @json($selectedOrder);
         var hasOrderId = {{ isset($orderId) ? 'true' : 'false' }};
     </script>
@@ -1187,6 +1188,25 @@
         function handleContractCreated(response, redirectToInvoice, invoiceCreateUrl) {
             if (redirectToInvoice && response.contract && response.contract.id) {
                 window.location.href = invoiceCreateUrl + '?contract_id=' + response.contract.id;
+                return;
+            }
+
+            if (response.next_action === 'select_maid' && response.next_url) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'تم إنشاء العقد بنجاح',
+                    text: response.message || 'تم إنشاء العقد بنجاح',
+                    showDenyButton: true,
+                    confirmButtonText: 'اختيار العاملة الآن',
+                    denyButtonText: 'العقود بانتظار اختيار العاملة',
+                    allowOutsideClick: false
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location.href = response.next_url;
+                    } else {
+                        window.location.href = indexRoute + '?status=pending_maid_selection';
+                    }
+                });
                 return;
             }
 
@@ -1619,7 +1639,78 @@
 
             applyNewMaidMode(getNewMaidMode());
 
+            var manualPassportCheckTimeout;
+            var isManualPassportDuplicate = false;
+
+            $('#manual_maid_passport_num').on('input', function() {
+                var passportNum = $(this).val().trim();
+                var $field = $(this);
+                var $feedback = $('#err_manual_maid_passport_num');
+
+                clearTimeout(manualPassportCheckTimeout);
+                isManualPassportDuplicate = false;
+                $field.removeClass('is-valid is-invalid');
+                $feedback.removeClass('valid-feedback invalid-feedback').text('');
+
+                if (!passportNum) {
+                    return;
+                }
+
+                manualPassportCheckTimeout = setTimeout(function() {
+                    $.ajax({
+                        url: passportUniqueRoute,
+                        type: 'POST',
+                        data: {
+                            passport_num: passportNum,
+                            _token: $('input[name="_token"]').first().val()
+                        },
+                        success: function(response) {
+                            if (response.exists) {
+                                isManualPassportDuplicate = true;
+                                $field.addClass('is-invalid');
+                                $feedback.addClass('invalid-feedback').text(
+                                    'رقم الجواز مسجل مسبقاً في النظام، يرجى التحقق من الرقم أو اختيار رقم آخر'
+                                );
+                            } else {
+                                $field.addClass('is-valid');
+                                $feedback.addClass('valid-feedback').text('رقم الجواز متاح');
+                            }
+                        },
+                        error: function() {
+                            $field.removeClass('is-valid is-invalid');
+                            $feedback.removeClass('valid-feedback invalid-feedback').text('');
+                        }
+                    });
+                }, 500);
+            });
+
             // عند اختيار عميل في التبويب الجديد: عبئ بيانات العميل (حقول منفصلة)
+            var isFillingClientFromSelection = false;
+
+            function clearSelectedClientForDirectEntry() {
+                $('#new_existing_client_id').val('').trigger('change');
+                $('#new_existing_client_id').removeClass('is-invalid');
+                $('#err_new_existing_client_id').remove();
+            }
+
+            $('#use-direct-client-data').on('click', function() {
+                clearSelectedClientForDirectEntry();
+                $('#new_client_name').trigger('focus');
+            });
+
+            $('#new_client_name, #new_client_phone, #new_client_email, #new_client_national_num, #new_client_birthdate, #new_client_phone2, #new_client_address, #new_client_beds_num, #new_client_family_num, #new_client_children, #new_client_job')
+                .on('input', function() {
+                    if (!isFillingClientFromSelection && $('#new_existing_client_id').val()) {
+                        clearSelectedClientForDirectEntry();
+                    }
+                });
+
+            $('#new_client_nationality_id, #new_client_city').on('change', function() {
+                if (!isFillingClientFromSelection && $('#new_existing_client_id').val()) {
+                    clearSelectedClientForDirectEntry();
+                }
+            });
+
             $('#new_existing_client_id').on('change', function() {
                 $(this).removeClass('is-invalid');
                 $('#err_new_existing_client_id').remove();
@@ -1627,6 +1718,7 @@
                 var selectedOption = $(this).find('option:selected');
                 var selectedClient = select2SelectedData(this);
                 if (selectedOption.val()) {
+                    isFillingClientFromSelection = true;
                     // Debug: طباعة بيانات العميل المختار
                     console.log('Selected client data:', {
                         name: optionOrAjaxData(selectedOption, selectedClient, 'name'),
@@ -1686,12 +1778,12 @@
                         children: $('#new_client_children').val(),
                         job: $('#new_client_job').val()
                     });
+                    isFillingClientFromSelection = false;
                 } else {
                     // مسح جميع الحقول عند عدم اختيار عميل
-                    $('#new_client_name, #new_client_phone, #new_client_email, #new_client_national_num, #new_client_birthdate, #new_client_phone2, #new_client_address, #new_client_beds_num, #new_client_family_num, #new_client_children, #new_client_job')
-                        .val('');
-                    $('#new_client_city').val('').trigger('change');
-                    $('#new_client_nationality_id').val('').trigger('change');
+                    if (isFillingClientFromSelection) {
+                        return;
+                    }
                 }
             });
             // عند اختيار عاملة في التبويب الجديد: عبئ بيانات العاملة (حقول منفصلة)
@@ -2103,18 +2195,8 @@
 
                 // التحقق من الحقول فقط إذا كان التبويب الجديد نشط
                 if (isNewContractTab) {
-                    if (!clientId) {
-                        isValid = false;
-                        $('#new_existing_client_id').addClass('is-invalid');
-                        if ($('#err_new_existing_client_id').length === 0) {
-                            $('#new_existing_client_id').parent().append(
-                                '<div class="invalid-feedback d-block" id="err_new_existing_client_id">يرجى اختيار العميل أولاً.</div>'
-                            );
-                        }
-                    } else {
-                        $('#new_existing_client_id').removeClass('is-invalid');
-                        $('#err_new_existing_client_id').remove();
-                    }
+                    $('#new_existing_client_id').removeClass('is-invalid');
+                    $('#err_new_existing_client_id').remove();
 
                     // تحقق الاسم ثلاثي
                     clientName = getTrimmedInputValue('#new_client_name');
@@ -2224,9 +2306,18 @@
                             isValid = false;
                             $('#manual_maid_passport_num').addClass('is-invalid');
                             $('#err_manual_maid_passport_num').text('يرجى إدخال رقم الجواز');
+                        } else if (isManualPassportDuplicate) {
+                            isValid = false;
+                            $('#manual_maid_passport_num').addClass('is-invalid');
+                            $('#err_manual_maid_passport_num')
+                                .removeClass('valid-feedback')
+                                .addClass('invalid-feedback')
+                                .text('رقم الجواز مسجل مسبقاً في النظام');
                         } else {
                             $('#manual_maid_passport_num').removeClass('is-invalid');
-                            $('#err_manual_maid_passport_num').text('');
+                            if (!$('#manual_maid_passport_num').hasClass('is-valid')) {
+                                $('#err_manual_maid_passport_num').text('');
+                            }
                         }
 
                         if (!manualMaidNationality) {
@@ -2488,7 +2579,9 @@
                 formData.append('_token', csrfToken);
                 formData.append('contract_type', contractType);
                 formData.append('client_type', 'new_client');
-                formData.append('client_id', clientId);
+                if (clientId && /^\d+$/.test(String(clientId))) {
+                    formData.append('client_id', clientId);
+                }
                 formData.append('maid_selection_mode', maidSelectionMode);
                 formData.append('maid_id', maidSelectionMode === 'existing' && maidId ? maidId : '');
 

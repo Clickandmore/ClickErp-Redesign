@@ -35,6 +35,13 @@ return [
         'secret_key' => env('RECAPTCHA_SECRET_KEY'),
     ],
 
+    'taqnyat' => [
+        'sms' => [
+            'base_url' => env('TAQNYAT_SMS_BASE_URL', 'https://api.taqnyat.sa'),
+            'bearer_token' => env('TAQNYAT_SMS_BEARER_TOKEN', ''),
+        ],
+    ],
+
     'whatsapp' => [
         'driver' => env('WHATSAPP_DRIVER', 'meta'),
         'graph_version' => env('WHATSAPP_GRAPH_VERSION', 'v23.0'),

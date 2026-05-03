@@ -2240,6 +2240,46 @@ class RecruitmentContractController extends Controller
         return view('admin.ingaz.RecruitmentContract.create', compact('orders', 'endedOrders', 'countries', 'maidNationalities', 'maidReligions', 'maidJobTitles', 'recruitmentOffices', 'saudiCities', 'all_available_maids', 'selectedOrder', 'orderId', 'existing_clients', 'currentUser', 'canSelectAnyMarketer', 'marketers'));
     }
 
+    private function createMaidFromManualContractSummary(StoreContractRequest $request): Maid
+    {
+        $maidData = [
+            'name' => trim((string) $request->manual_maid_name),
+            'passport_num' => trim((string) $request->manual_maid_passport_num),
+            'nationality_id' => $request->manual_maid_nationality_id,
+            'office_id' => $request->manual_maid_office_id,
+            'religion_id' => Religion::query()->value('id'),
+            'price' => 0,
+            'salary' => 0,
+            'age' => 0,
+            'height' => '160',
+            'weight' => '60',
+            'status' => 'available',
+            'available' => true,
+            'available_at' => now()->toDateString(),
+            'arrival_date' => now()->toDateString(),
+            'is_show' => false,
+            'experience_status' => 'no_experience',
+            'experience_years' => '0',
+            'request_type' => Maid::resolveRequestType(null),
+            'added_by' => Auth::guard('admin')->id() ?? auth()->id(),
+        ];
+
+        if ($request->hasFile('manual_maid_attachment')) {
+            $uploadedPath = uploadFile($request->file('manual_maid_attachment'), 'maids/');
+            $maidData['cv_file'] = $uploadedPath;
+
+            $extension = strtolower((string) $request->file('manual_maid_attachment')->getClientOriginalExtension());
+            if (in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp'], true)) {
+                $maidData['image'] = $uploadedPath;
+            }
+        }
+
+        $maid = Maid::create($maidData);
+        $maid->jobTypes()->syncWithoutDetaching([1]);
+
+        return $maid;
+    }
+
 
     public function store(StoreContractRequest $request)
     {
@@ -2300,7 +2340,19 @@ class RecruitmentContractController extends Controller
                     || $request->filled('manual_maid_office_id')
                     || $request->hasFile('manual_maid_attachment')
                 );
+
+            $manualMaid = null;
+            if ($isManualMaidSummary) {
+                $manualMaid = $this->createMaidFromManualContractSummary($request);
+                $maidId = $manualMaid->id;
+                $isNoMaid = false;
+                $isMaidSelectionPostponed = false;
+            }
+
             $shouldCreateWithoutAssignedMaid = $isNoMaid || $isMaidSelectionPostponed || $isManualMaidSummary;
+            if ($manualMaid) {
+                $shouldCreateWithoutAssignedMaid = false;
+            }
 
             // تحديد حالة العقد
             $contractStatus = ContractStatusEnum::New->value;
@@ -2384,10 +2436,6 @@ class RecruitmentContractController extends Controller
                     $user = User::find($request->client_id);
                 }
 
-                if (!$user && $request->filled('client_phone')) {
-                    $user = User::where('phone', $request->client_phone)->first();
-                }
-
                 if (!$user) {
                     $user = User::create([
                         'name' => $request->client_name,
@@ -2463,13 +2511,13 @@ class RecruitmentContractController extends Controller
                 'visa_milad_date' => $request->visa_milad_date,
                 'visa_hijry_date' => $request->visa_hijry_date,
                 'contract_duration' => $request->contract_duration,
-                'manual_maid_name' => $isManualMaidSummary ? $request->manual_maid_name : null,
-                'manual_maid_passport_num' => $isManualMaidSummary ? $request->manual_maid_passport_num : null,
-                'manual_maid_nationality_id' => $isManualMaidSummary ? $request->manual_maid_nationality_id : null,
-                'manual_maid_office_id' => $isManualMaidSummary ? $request->manual_maid_office_id : null,
+                'manual_maid_name' => null,
+                'manual_maid_passport_num' => null,
+                'manual_maid_nationality_id' => null,
+                'manual_maid_office_id' => null,
             ];
 
-            if ($isManualMaidSummary && $request->hasFile('manual_maid_attachment')) {
+            if ($isManualMaidSummary && !$manualMaid && $request->hasFile('manual_maid_attachment')) {
                 $contractInfo['manual_maid_attachment'] = uploadFile(
                     $request->file('manual_maid_attachment'),
                     'contracts/manual_maid_attachments/'
@@ -2492,7 +2540,7 @@ class RecruitmentContractController extends Controller
             }
 
             // تحديث حالة العاملات تلقائياً
-            if ($contract->maid_id && !$isNoMaid && !$isMaidSelectionPostponed && !$isManualMaidSummary) {
+            if ($contract->maid_id && !$isNoMaid && !$isMaidSelectionPostponed) {
                 $maid = Maid::find($contract->maid_id);
                 if ($maid) {
                     $maid->update([
@@ -2522,14 +2570,21 @@ class RecruitmentContractController extends Controller
 
             $successMessage = 'تم إنشاء العقد بنجاح';
             if ($isManualMaidSummary) {
-                $successMessage = 'تم إنشاء العقد بنجاح مع حفظ بيانات عاملة مختصرة. يمكنك ربط عاملة فعلية لاحقاً من صفحة العقود.';
+                $successMessage = 'تم إنشاء العقد بنجاح مع إنشاء عاملة مختصرة وربطها بالعقد.';
             } elseif ($isNoMaid || $isMaidSelectionPostponed) {
-                $successMessage = 'تم إنشاء العقد بنجاح. يمكنك إضافة عاملة لاحقاً من صفحة العقود.';
+                $successMessage = 'تم إنشاء العقد بنجاح. يرجى اختيار العاملة لإكمال العقد.';
             }
+
+            $nextUrl = $shouldCreateWithoutAssignedMaid
+                ? route('RecruitmentContract.selectMaid', $contract->id)
+                : null;
 
             return response()->json([
                 'success' => true,
                 'message' => $successMessage,
+                'next_url' => $nextUrl,
+                'next_action' => $shouldCreateWithoutAssignedMaid ? 'select_maid' : null,
+                'contract_id' => $contract->id,
                 'contract' => $contract->load(['user', 'maid', 'info'])
             ]);
         } catch (\Exception $e) {
