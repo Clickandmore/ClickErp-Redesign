@@ -16,6 +16,38 @@ class CommunicationSettings
         return self::normalize(self::storedPayload(), false);
     }
 
+    public static function email(): array
+    {
+        return self::all()['email'] ?? self::defaults()['email'];
+    }
+
+    public static function sms(): array
+    {
+        return self::all()['sms'] ?? self::defaults()['sms'];
+    }
+
+    public static function whatsapp(): array
+    {
+        return self::all()['whatsapp'] ?? self::defaults()['whatsapp'];
+    }
+
+    public static function smsIsConfigured(?array $settings = null): bool
+    {
+        $settings ??= self::sms();
+        $provider = strtolower((string) ($settings['provider'] ?? 'msegat'));
+
+        if ($provider === 'taqnyat') {
+            return self::trimString($settings['sender'] ?? '') !== ''
+                && self::trimString(data_get($settings, 'taqnyat.base_url', '')) !== ''
+                && self::trimString(data_get($settings, 'taqnyat.bearer_token', '')) !== '';
+        }
+
+        return self::trimString($settings['url'] ?? '') !== ''
+            && self::trimString($settings['username'] ?? '') !== ''
+            && self::trimString($settings['api_key'] ?? '') !== ''
+            && self::trimString($settings['sender'] ?? '') !== '';
+    }
+
     public static function persist(array $payload, ?array $validatedSections = null): array
     {
         $normalized = self::normalize($payload, true);
@@ -58,6 +90,7 @@ class CommunicationSettings
                 'msegat.sender' => $settings['sms']['sender'],
                 'msegat.advertising_sender' => $settings['sms']['advertising_sender'],
                 'msegat.verification_sender' => $settings['sms']['verification_sender'],
+                'msegat.app_domain_name' => $settings['sms']['app_domain_name'],
                 'msegat.default_sender_type' => $settings['sms']['default_sender_type'],
                 'msegat.encoding' => $settings['sms']['encoding'],
                 'msegat.bulk_send_limit' => (int) $settings['sms']['bulk_send_limit'],
@@ -177,6 +210,8 @@ class CommunicationSettings
         $data['sms']['sender'] = self::trimString($data['sms']['sender'] ?? '');
         $data['sms']['advertising_sender'] = self::trimString($data['sms']['advertising_sender'] ?? '');
         $data['sms']['verification_sender'] = self::trimString($data['sms']['verification_sender'] ?? '');
+        $data['sms']['app_domain_name'] = self::trimString($data['sms']['app_domain_name'] ?? '')
+            ?: $defaults['sms']['app_domain_name'];
         $data['sms']['default_sender_type'] = in_array((string) ($data['sms']['default_sender_type'] ?? ''), ['advertising', 'verification'], true)
             ? (string) $data['sms']['default_sender_type']
             : $defaults['sms']['default_sender_type'];
@@ -362,20 +397,21 @@ class CommunicationSettings
                 'from_name' => (string) config('mail.from.name', ''),
             ],
             'sms' => [
-                'provider' => (string) config('msegat.provider', 'msegat'),
-                'url' => (string) config('msegat.url', 'https://www.msegat.com/gw/sendsms.php'),
-                'username' => (string) config('msegat.username', ''),
-                'api_key' => (string) config('msegat.api_key', ''),
-                'sender' => (string) config('msegat.sender', ''),
-                'advertising_sender' => (string) config('msegat.advertising_sender', ''),
-                'verification_sender' => (string) config('msegat.verification_sender', ''),
-                'default_sender_type' => (string) config('msegat.default_sender_type', 'advertising'),
-                'encoding' => (string) config('msegat.encoding', 'UTF8'),
-                'bulk_send_limit' => (int) config('msegat.bulk_send_limit', 200),
-                'bulk_confirmation_keyword' => (string) config('msegat.bulk_confirmation_keyword', 'SEND_ALL_SMS'),
+                'provider' => 'msegat',
+                'url' => 'https://www.msegat.com/gw/sendsms.php',
+                'username' => '',
+                'api_key' => '',
+                'sender' => '',
+                'advertising_sender' => '',
+                'verification_sender' => '',
+                'app_domain_name' => 'aqro.sa',
+                'default_sender_type' => 'advertising',
+                'encoding' => 'UTF8',
+                'bulk_send_limit' => 200,
+                'bulk_confirmation_keyword' => 'SEND_ALL_SMS',
                 'taqnyat' => [
-                    'base_url' => (string) config('services.taqnyat.sms.base_url', config('msegat.taqnyat.base_url', 'https://api.taqnyat.sa')),
-                    'bearer_token' => (string) config('services.taqnyat.sms.bearer_token', config('msegat.taqnyat.bearer_token', '')),
+                    'base_url' => 'https://api.taqnyat.sa',
+                    'bearer_token' => '',
                 ],
             ],
             'whatsapp' => [

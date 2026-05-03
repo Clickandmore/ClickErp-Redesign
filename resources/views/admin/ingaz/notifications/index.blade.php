@@ -36,7 +36,7 @@
                 <div class="alert alert-warning mb-4">
                     <strong>تنبيه:</strong>
                     الإرسال الجماعي يتطلب تأكيدًا إضافيًا ويخضع لحد أقصى
-                    <strong>{{ (int) config('msegat.bulk_send_limit', 200) }}</strong> رسالة لكل دفعة.
+                    <strong>{{ $smsConfig['bulk_limit'] }}</strong> رسالة لكل دفعة.
                 </div>
 
                 <form id="smsDispatchForm" class="row g-3 from-submit-global" method="post" action="{{ route('notifications.store') }}">
@@ -57,10 +57,10 @@
                         <label for="sender_name_type" class="form-label">اسم المرسل</label>
                         <select name="sender_name_type" id="sender_name_type" class="form-control" required>
                             <option value="advertising" selected>
-                                إعلاني ({{ config('msegat.advertising_sender', config('msegat.sender', '')) ?: 'غير محدد' }})
+                                إعلاني ({{ $smsConfig['advertising_sender'] ?: ($smsConfig['sender'] ?: 'غير محدد') }})
                             </option>
                             <option value="verification">
-                                تحقق ({{ config('msegat.verification_sender', config('msegat.sender', '')) ?: 'غير محدد' }})
+                                تحقق ({{ $smsConfig['verification_sender'] ?: ($smsConfig['sender'] ?: 'غير محدد') }})
                             </option>
                         </select>
                     </div>
@@ -124,7 +124,7 @@
                             </div>
                             <div>
                                 <label for="bulk_confirmation_text" class="form-label">
-                                    اكتب كلمة التأكيد: <code>{{ config('msegat.bulk_confirmation_keyword', 'SEND_ALL_SMS') }}</code>
+                                    اكتب كلمة التأكيد: <code>{{ $smsConfig['bulk_keyword'] }}</code>
                                 </label>
                                 <input type="text" name="bulk_confirmation_text" id="bulk_confirmation_text" class="form-control"
                                     autocomplete="off" placeholder="اكتب كلمة التأكيد كما هي">

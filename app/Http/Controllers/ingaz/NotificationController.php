@@ -8,6 +8,7 @@ use App\Http\Requests\ingaz\StoreNotificationRequest;
 use App\Models\ingaz\User;
 use App\Models\SmsTemplate;
 use App\Services\WhatsApp\WhatsAppMessagingService;
+use App\Support\CommunicationSettings;
 
 class NotificationController extends Controller
 {
@@ -23,24 +24,33 @@ class NotificationController extends Controller
             ->get(['id', 'name', 'title', 'message', 'variables']);
 
         $totalEligibleUsers = $appUsers->count();
+        $smsSettings = CommunicationSettings::sms();
+        $smsConfig = [
+            'bulk_limit' => max(1, (int) ($smsSettings['bulk_send_limit'] ?? 200)),
+            'bulk_keyword' => (string) ($smsSettings['bulk_confirmation_keyword'] ?? 'SEND_ALL_SMS'),
+            'sender' => (string) ($smsSettings['sender'] ?? ''),
+            'advertising_sender' => (string) ($smsSettings['advertising_sender'] ?? ''),
+            'verification_sender' => (string) ($smsSettings['verification_sender'] ?? ''),
+        ];
 
-        return view($this->folderPath . '.index', compact('appUsers', 'smsTemplates', 'totalEligibleUsers'));
+        return view($this->folderPath . '.index', compact('appUsers', 'smsTemplates', 'totalEligibleUsers', 'smsConfig'));
     }
 
     public function indexWhatsApp(WhatsAppMessagingService $whatsAppService)
     {
         $appUsers = $this->eligibleUsers();
         $totalEligibleUsers = $appUsers->count();
+        $whatsAppSettings = CommunicationSettings::whatsapp();
 
         $whatsappConfig = [
             'driver' => $whatsAppService->driver(),
             'provider_label' => $whatsAppService->providerLabel(),
             'configured' => $whatsAppService->isConfigured(),
             'missing' => $whatsAppService->missingConfigKeys(),
-            'bulk_limit' => (int) config('services.whatsapp.bulk_send_limit', 200),
-            'bulk_keyword' => (string) config('services.whatsapp.bulk_confirmation_keyword', 'SEND_ALL_WHATSAPP'),
-            'default_purpose' => (string) config('services.whatsapp.default_purpose', 'verification'),
-            'allow_advertising' => (bool) config('services.whatsapp.allow_advertising', false),
+            'bulk_limit' => max(1, (int) ($whatsAppSettings['bulk_send_limit'] ?? 200)),
+            'bulk_keyword' => (string) ($whatsAppSettings['bulk_confirmation_keyword'] ?? 'SEND_ALL_WHATSAPP'),
+            'default_purpose' => (string) ($whatsAppSettings['default_purpose'] ?? 'verification'),
+            'allow_advertising' => (bool) ($whatsAppSettings['allow_advertising'] ?? false),
             'webhook_verify_url' => route('api.webhooks.whatsapp.verify', [], false),
             'webhook_receive_url' => route('api.webhooks.whatsapp.receive', [], false),
             'senders' => $whatsAppService->availableSenders(),
@@ -68,7 +78,7 @@ class NotificationController extends Controller
 
         if ($channel === 'whatsapp' && !$request->filled('whatsapp_purpose')) {
             $request->merge([
-                'whatsapp_purpose' => (string) config('services.whatsapp.default_purpose', 'verification'),
+                'whatsapp_purpose' => (string) (CommunicationSettings::whatsapp()['default_purpose'] ?? 'verification'),
             ]);
         }
 

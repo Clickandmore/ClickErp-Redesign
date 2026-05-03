@@ -10,6 +10,7 @@ use App\Models\ingaz\Notification;
 use App\Models\ingaz\User;
 use App\Models\SmsTemplate;
 use App\Services\WhatsApp\WhatsAppMessagingService;
+use App\Support\CommunicationSettings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -100,12 +101,13 @@ class NotificationAction extends MainAction
 
     private function storeWhatsAppMessages(Request $request): array
     {
-        $purpose = (string) $request->input('whatsapp_purpose', config('services.whatsapp.default_purpose', 'verification'));
+        $whatsAppSettings = CommunicationSettings::whatsapp();
+        $purpose = (string) $request->input('whatsapp_purpose', $whatsAppSettings['default_purpose'] ?? 'verification');
         $message = trim((string) $request->input('message_override', ''));
         $senderKey = trim((string) $request->input('whatsapp_sender_key', ''));
 
         $allowedPurposes = ['verification', 'follow_up'];
-        if ((bool) config('services.whatsapp.allow_advertising', false)) {
+        if ((bool) ($whatsAppSettings['allow_advertising'] ?? false)) {
             $allowedPurposes[] = 'advertising';
         }
 
@@ -256,14 +258,16 @@ class NotificationAction extends MainAction
     private function resolveBulkProtectionConfig(string $channel): array
     {
         if ($channel === 'whatsapp') {
-            $keyword = (string) config('services.whatsapp.bulk_confirmation_keyword', 'SEND_ALL_WHATSAPP');
-            $limit = max(1, (int) config('services.whatsapp.bulk_send_limit', 200));
+            $settings = CommunicationSettings::whatsapp();
+            $keyword = (string) ($settings['bulk_confirmation_keyword'] ?? 'SEND_ALL_WHATSAPP');
+            $limit = max(1, (int) ($settings['bulk_send_limit'] ?? 200));
 
             return [$keyword, $limit];
         }
 
-        $keyword = (string) config('msegat.bulk_confirmation_keyword', 'SEND_ALL_SMS');
-        $limit = max(1, (int) config('msegat.bulk_send_limit', 200));
+        $settings = CommunicationSettings::sms();
+        $keyword = (string) ($settings['bulk_confirmation_keyword'] ?? 'SEND_ALL_SMS');
+        $limit = max(1, (int) ($settings['bulk_send_limit'] ?? 200));
 
         return [$keyword, $limit];
     }
