@@ -91,24 +91,87 @@ class IngazDelegationController extends Controller
 
             return DataTables::eloquent($rows)
                 ->editColumn('id', fn (IngazDelegation $row) => $row->id)
+                ->editColumn('delegation_date_gregorian', function (IngazDelegation $row) {
+                    if (!$row->delegation_date_gregorian) {
+                        return '<span class="text-muted">-</span>';
+                    }
+
+                    return '<div class="delegation-date-stack">
+                        <span class="delegation-date-main">' . e($row->delegation_date_gregorian->format('Y-m-d')) . '</span>
+                        <small class="text-muted">تاريخ التفويض</small>
+                    </div>';
+                })
+                ->editColumn('created_at', function (IngazDelegation $row) {
+                    if (!$row->created_at) {
+                        return '<span class="text-muted">-</span>';
+                    }
+
+                    return '<div class="delegation-date-stack">
+                        <span class="delegation-date-main">' . e($row->created_at->format('Y-m-d H:i')) . '</span>
+                        <small class="text-muted">' . e($row->created_at->diffForHumans()) . '</small>
+                    </div>';
+                })
                 ->addColumn('client', function (IngazDelegation $row) {
                     $name = e($row->user?->name ?? '-');
                     $phone = $this->isInternalDelegationClientPhone($row->user?->phone) ? null : $row->user?->phone;
+                    $phone = $phone ? trim(($row->user?->phone_code ?: '') . ' ' . $phone) : null;
                     $meta = e($phone ?: ($row->user?->national_num ?: '-'));
 
-                    return '<div>' . $name . '</div><small class="text-muted">' . $meta . '</small>';
+                    return '<div class="delegation-person-cell">
+                        <span class="delegation-person-name">' . $name . '</span>
+                        <small class="text-muted">' . $meta . '</small>
+                    </div>';
                 })
-                ->addColumn('msaned_transfer', fn (IngazDelegation $row) => e($row->msaned_contract_number ?: '-'))
+                ->addColumn('msaned_transfer', function (IngazDelegation $row) {
+                    $contractNumber = e($row->msaned_contract_number ?: '-');
+                    $transfer = $row->invoice?->musanedTransferItem?->transfer;
+
+                    if ($transfer) {
+                        return '<div class="delegation-date-stack">
+                            <span class="delegation-date-main">' . $contractNumber . '</span>
+                            <small class="text-success"><i class="fa fa-check-circle me-1"></i>تم تسجيل التحويل</small>
+                        </div>';
+                    }
+
+                    if ($row->invoice) {
+                        return '<div class="delegation-date-stack">
+                            <span class="delegation-date-main">' . $contractNumber . '</span>
+                            <small class="text-muted">لم يسجل تحويل</small>
+                        </div>';
+                    }
+
+                    return '<span class="text-muted">' . $contractNumber . '</span>';
+                })
                 ->addColumn('country_name', function (IngazDelegation $row) {
                     return e($this->delegationCountryName($row));
                 })
                 ->addColumn('profession_name', fn (IngazDelegation $row) => e($row->profession?->title ?? '-'))
                 ->addColumn('invoice', function (IngazDelegation $row) {
                     if ($row->invoice) {
-                        return '<a href="' . route('invoices.show', $row->invoice->id) . '" class="btn btn-sm btn-outline-success">عرض الفاتورة</a>';
+                        $actions = [
+                            '<a href="' . route('invoices.show', $row->invoice->id) . '" class="btn btn-sm btn-outline-success">
+                                <i class="fa fa-file-invoice me-1"></i>الفاتورة
+                            </a>',
+                        ];
+
+                        $transfer = $row->invoice->musanedTransferItem?->transfer;
+
+                        if ($transfer) {
+                            $actions[] = '<a href="' . route('musaned-transfers.show', $transfer->id) . '" class="btn btn-sm btn-outline-info">
+                                <i class="fa fa-arrow-right-arrow-left me-1"></i>التحويل
+                            </a>';
+                        } else {
+                            $actions[] = '<a href="' . route('musaned-transfers.create', ['ingaz_delegation_ids' => [$row->id]]) . '" class="btn btn-sm btn-outline-info">
+                                <i class="fa fa-plus me-1"></i>تحويل
+                            </a>';
+                        }
+
+                        return '<div class="delegation-inline-actions">' . implode('', $actions) . '</div>';
                     }
 
-                    return '<a href="' . route('invoices.create', ['ingaz_delegation_id' => $row->id]) . '" class="btn btn-sm btn-outline-primary">إضافة فاتورة</a>';
+                    return '<a href="' . route('invoices.create', ['ingaz_delegation_id' => $row->id]) . '" class="btn btn-sm btn-outline-primary">
+                        <i class="fa fa-plus me-1"></i>إضافة فاتورة
+                    </a>';
                 })
                 ->addColumn('status', fn (IngazDelegation $row) => $this->statusBadgeHtml($row))
                 ->addColumn('status_control', function (IngazDelegation $row) use ($canChangeDelegationStatus) {
@@ -128,14 +191,7 @@ class IngazDelegationController extends Controller
                         </select>
                     ';
                 })
-                ->addColumn('print_action', function (IngazDelegation $row) use ($canPrintDelegation) {
-                    if (!$canPrintDelegation) {
-                        return '<span class="text-muted">-</span>';
-                    }
-
-                    return '<a href="' . route('ingaz-delegations.print', $row) . '" target="_blank" class="btn btn-sm btn-outline-dark"><i class="fa fa-print"></i></a>';
-                })
-                ->addColumn('actions', function (IngazDelegation $row) use ($canViewDelegation, $canEditDelegation, $canDeleteDelegation) {
+                ->addColumn('actions', function (IngazDelegation $row) use ($canViewDelegation, $canEditDelegation, $canDeleteDelegation, $canPrintDelegation) {
                     $showUrl = route('ingaz-delegations.show', $row);
                     $editUrl = route('ingaz-delegations.edit', $row);
                     $deleteUrl = route('ingaz-delegations.destroy', $row);
@@ -143,31 +199,31 @@ class IngazDelegationController extends Controller
                     $actions = [];
 
                     if ($canViewDelegation) {
-                        $actions[] = '<a href="' . $showUrl . '" class="btn btn-outline-info">عرض</a>';
+                        $actions[] = '<a href="' . $showUrl . '" class="btn btn-sm btn-outline-info" title="عرض التفاصيل">
+                            <i class="fa fa-eye me-1"></i>عرض
+                        </a>';
                     }
 
                     if ($canEditDelegation) {
-                        $actions[] = '<a href="' . $editUrl . '" class="btn btn-outline-primary">تعديل</a>';
+                        $actions[] = '<a href="' . $editUrl . '" class="btn btn-sm btn-outline-primary" title="تعديل التفويض">
+                            <i class="fa fa-pen me-1"></i>تعديل
+                        </a>';
                     }
 
-                    if ($row->invoice) {
-                        $actions[] = '<a href="' . route('invoices.show', $row->invoice->id) . '" class="btn btn-outline-success">الفاتورة</a>';
-                        $transfer = $row->invoice->musanedTransferItem?->transfer;
-                        if ($transfer) {
-                            $actions[] = '<a href="' . route('musaned-transfers.show', $transfer->id) . '" class="btn btn-outline-info">تحويل مساند</a>';
-                        } else {
-                            $actions[] = '<a href="' . route('musaned-transfers.create', ['ingaz_delegation_ids' => [$row->id]]) . '" class="btn btn-outline-info">تسجيل تحويل مساند</a>';
-                        }
-                    } else {
-                        $actions[] = '<a href="' . route('invoices.create', ['ingaz_delegation_id' => $row->id]) . '" class="btn btn-outline-success">إضافة فاتورة</a>';
+                    if ($canPrintDelegation) {
+                        $actions[] = '<a href="' . route('ingaz-delegations.print', $row) . '" target="_blank" class="btn btn-sm btn-outline-dark" title="طباعة التفويض">
+                            <i class="fa fa-print me-1"></i>طباعة
+                        </a>';
                     }
 
                     if ($canDeleteDelegation) {
                         $actions[] = '
-                            <form action="' . $deleteUrl . '" method="POST" class="d-inline-block" onsubmit="return confirm(\'هل أنت متأكد من حذف هذا التفويض؟\');">
+                            <form action="' . $deleteUrl . '" method="POST" onsubmit="return confirm(\'هل أنت متأكد من حذف هذا التفويض؟\');">
                                 <input type="hidden" name="_token" value="' . $csrf . '">
                                 <input type="hidden" name="_method" value="DELETE">
-                                <button type="submit" class="btn btn-outline-danger">حذف</button>
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="حذف التفويض">
+                                    <i class="fa fa-trash me-1"></i>حذف
+                                </button>
                             </form>
                         ';
                     }
@@ -176,9 +232,9 @@ class IngazDelegationController extends Controller
                         return '<span class="text-muted">-</span>';
                     }
 
-                    return '<div class="btn-group btn-group-sm">' . implode('', $actions) . '</div>';
+                    return '<div class="delegation-row-actions">' . implode('', $actions) . '</div>';
                 })
-                ->rawColumns(['client', 'invoice', 'status', 'status_control', 'print_action', 'actions'])
+                ->rawColumns(['delegation_date_gregorian', 'created_at', 'client', 'msaned_transfer', 'invoice', 'status', 'status_control', 'actions'])
                 ->make(true);
         }
 

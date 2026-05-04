@@ -141,7 +141,9 @@
             <tr>
                 <th>الجوال</th>
                 <td>
-                    @php($phone = $delegation->user?->phone)
+                    @php
+                        $phone = $delegation->user?->phone;
+                    @endphp
                     {{ $phone && !str_starts_with($phone, 'ingaz-delegation-') ? trim(($delegation->user?->phone_code ?: '') . ' ' . $phone) : '-' }}
                 </td>
                 <th>العنوان</th>

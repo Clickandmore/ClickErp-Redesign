@@ -1403,7 +1403,9 @@
                                                 <h4>{{ __('ingaz.contract_renewal') }}</h4>
                                                 <div class="title">
                                                     <p>#{{ $renew->id }}</p>
-                                                    @php($status = \App\Enums\ingaz\RequestsStatusEnum::tryFrom($renew->status))
+                                                    @php
+                                                        $status = \App\Enums\ingaz\RequestsStatusEnum::tryFrom($renew->status);
+                                                    @endphp
                                                     <span class="badge {{ $renew->status == 'approved' ? 'bg-success' : ($renew->status == 'rejected' ? 'bg-danger' : 'bg-secondary') }}">
                                                         {{ $status ? $status->lang() : $renew->status }}
                                                     </span>

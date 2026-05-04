@@ -38,6 +38,8 @@
                             <table class="table table-borderless mb-0">
                                 <tr><th width="35%">التاريخ الميلادي</th><td>{{ optional($delegation->delegation_date_gregorian)->format('Y-m-d') }}</td></tr>
                                 <tr><th>التاريخ الهجري</th><td>{{ $delegation->delegation_date_hijri ?: '-' }}</td></tr>
+                                <tr><th>تاريخ الإضافة</th><td>{{ optional($delegation->created_at)->format('Y-m-d H:i') ?: '-' }}</td></tr>
+                                <tr><th>آخر تعديل</th><td>{{ optional($delegation->updated_at)->format('Y-m-d H:i') ?: '-' }}</td></tr>
                                 <tr><th>الدولة</th><td>{{ $delegation->country?->title ?? $delegation->country?->name_ar ?? $delegation->nationality?->sub_title ?? $delegation->nationality?->title ?? '-' }}</td></tr>
                                 <tr><th>المهنة</th><td>{{ $delegation->profession?->title ?? '-' }}</td></tr>
                                 <tr><th>المسوق</th><td>{{ $delegation->marketer?->name ?? '-' }}</td></tr>
@@ -59,7 +61,9 @@
                                 <tr>
                                     <th>الجوال</th>
                                     <td>
-                                        @php($phone = $delegation->user?->phone)
+                                        @php
+                                            $phone = $delegation->user?->phone;
+                                        @endphp
                                         {{ $phone && !str_starts_with($phone, 'ingaz-delegation-') ? trim(($delegation->user?->phone_code ?: '') . ' ' . $phone) : '-' }}
                                     </td>
                                 </tr>

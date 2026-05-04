@@ -1497,7 +1497,9 @@
                                 </div>
                             @endif
                             @if ($order->status == \App\Enums\ingaz\OrderEnum::New->value && $order->jobType->id == 1)
-                                @php($responsibleAdmin = $order->resolveResponsibleAdmin())
+                                @php
+                                    $responsibleAdmin = $order->resolveResponsibleAdmin();
+                                @endphp
                                 <div class="cta">
                                     <p>
                                         {{ __('ingaz.Please contact A.') }}{{ $responsibleAdmin?->name }}

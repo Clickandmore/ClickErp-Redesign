@@ -216,7 +216,9 @@
                         </h5>
                     </div>
                     <div class="card-body">
-                        @php($responsibleAdmin = $order->resolveResponsibleAdmin())
+                        @php
+                            $responsibleAdmin = $order->resolveResponsibleAdmin();
+                        @endphp
                         @if($responsibleAdmin)
                             <div class="text-center mb-3">
                                 <div class="avatar-circle mx-auto mb-3">

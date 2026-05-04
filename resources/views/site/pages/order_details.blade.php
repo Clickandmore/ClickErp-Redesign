@@ -95,7 +95,9 @@
                             </div>
                         </div>
                     </div>
-                    @php($responsibleAdmin = $order->resolveResponsibleAdmin())
+                    @php
+                        $responsibleAdmin = $order->resolveResponsibleAdmin();
+                    @endphp
                     @if ($responsibleAdmin)
                         <!-- customerInfo -->
                         <div class="selectedCustomerInfo">

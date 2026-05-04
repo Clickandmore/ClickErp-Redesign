@@ -1,7 +1,9 @@
 <div class="signature-container no-print">
     <div class="signature-title">توقيع الطرف الثاني ({{ data_get($contract, 'user.name', 'العميل') }})</div>
 
-    @php($contractSignature = data_get($contract, 'signature'))
+    @php
+        $contractSignature = data_get($contract, 'signature');
+    @endphp
 
     <div class="signature-status {{ $contractSignature ? 'signed' : 'not-signed' }}">
         {{ $contractSignature ? 'تم التوقيع على العقد' : 'لم يتم التوقيع بعد' }}

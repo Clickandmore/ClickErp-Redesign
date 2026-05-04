@@ -66,7 +66,9 @@
                                         </div>
                                     </div>
                                     <div class="profileCustomerInfo">
-                                        @php($responsibleAdmin = $order->resolveResponsibleAdmin())
+                                        @php
+                                            $responsibleAdmin = $order->resolveResponsibleAdmin();
+                                        @endphp
                                         @if ($responsibleAdmin)
                                             <div class="info">
                                                 <img src="{{asset('site/assets/images/avater2.webp')}}" alt="">

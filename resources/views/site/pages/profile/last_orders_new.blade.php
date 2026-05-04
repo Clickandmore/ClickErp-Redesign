@@ -1359,7 +1359,9 @@
                                                             </div>
                                                         </div>
                                                         @if ($current_order->status == \App\Enums\ingaz\OrderEnum::New->value && $current_order->jobType->id == 1)
-                                                            @php($responsibleAdmin = $current_order->resolveResponsibleAdmin())
+                                                            @php
+                                                                $responsibleAdmin = $current_order->resolveResponsibleAdmin();
+                                                            @endphp
                                                             <div class="cta">
                                                                 <p>
                                                                     {{ helperTrans('web.please_contact_with') . ' ' . ($responsibleAdmin?->name ?? '') . ' ' . helperTrans('web.in_24_for_cv') }}
