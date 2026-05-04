@@ -72,6 +72,18 @@
                 <div class="alert alert-success">{{ session('success') }}</div>
             @endif
 
+            @if (session('import_errors'))
+                <div class="alert alert-warning">
+                    <div class="fw-bold mb-2">ملاحظات على الصفوف التي لم يتم استيرادها:</div>
+                    @foreach (session('import_errors') as $error)
+                        <div>{{ $error }}</div>
+                    @endforeach
+                    @if (count(session('import_errors')) >= 10)
+                        <div class="mt-2 text-muted">تم عرض أول 10 ملاحظات فقط.</div>
+                    @endif
+                </div>
+            @endif
+
             @if ($errors->any())
                 <div class="alert alert-danger">
                     @foreach ($errors->all() as $error)

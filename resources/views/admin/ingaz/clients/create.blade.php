@@ -184,7 +184,7 @@
         <div class="client-create-header">
             <div>
                 <h4>{{ helperTrans('ingaz.add_client') }}</h4>
-                <p>الحقول المطلوبة: اسم العميل ورقم الجوال فقط، ويمكن إكمال بقية البيانات لاحقًا.</p>
+                <p>الحقول المطلوبة: اسم العميل ورقم الجوال ورقم الهوية. رقم الهوية يستخدم كرقم ربط غير مكرر للطلبات والعقود.</p>
             </div>
 
             <a href="{{ route('clients.index') }}" class="btn btn-outline-secondary">
@@ -230,7 +230,7 @@
                         <i class="fas fa-id-card"></i>
                         <span>بيانات إضافية</span>
                     </div>
-                    <span class="optional-label">اختياري</span>
+                    <span class="required-label">رقم الهوية مطلوب</span>
                 </div>
 
                 <div class="card-body">
@@ -255,7 +255,7 @@
                         <div class="col-lg-6">
                             <label class="form-label" for="national_num">{{ helperTrans('ingaz.national_num') }}</label>
                             <input type="text" id="national_num" name="national_num" class="form-control"
-                                   value="{{ old('national_num') }}">
+                                   value="{{ old('national_num') }}" required>
                         </div>
 
                         <div class="col-lg-6">

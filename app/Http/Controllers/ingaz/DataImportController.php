@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\ingaz;
 
 use App\Http\Controllers\admin\Controller;
+use App\Services\ingaz\DataImportExecutionService;
 use App\Services\ingaz\DataImportTemplateService;
 use App\Services\ingaz\MaidBulkImportService;
 use Illuminate\Http\Request;
@@ -30,7 +31,12 @@ class DataImportController extends Controller
         return $templates->createTemplateDownloadResponse($type);
     }
 
-    public function store(Request $request, DataImportTemplateService $templates, MaidBulkImportService $maidImportService)
+    public function store(
+        Request $request,
+        DataImportTemplateService $templates,
+        MaidBulkImportService $maidImportService,
+        DataImportExecutionService $importer
+    )
     {
         $availableTypes = array_keys($templates->templates());
 
@@ -55,10 +61,12 @@ class DataImportController extends Controller
                 ->with('success', 'تم رفع ملف السير وتحليل البيانات بنجاح. راجع الصفوف قبل الاعتماد.');
         }
 
-        $path = $templates->storeUploadedFile($data['type'], $request->file('file'), $adminId);
+        $result = $importer->import($data['type'], $request->file('file'), $adminId);
+        $message = "تمت معالجة {$result['total']} صف. جديد: {$result['created']}، محدث: {$result['updated']}، متجاوز: {$result['skipped']}.";
 
         return redirect()
             ->route('reports.import.index')
-            ->with('success', 'تم رفع ملف الاستيراد وحفظه داخل النظام: ' . basename($path));
+            ->with('success', $message)
+            ->with('import_errors', array_slice($result['errors'], 0, 10));
     }
 }

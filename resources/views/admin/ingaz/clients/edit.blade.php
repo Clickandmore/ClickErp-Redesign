@@ -268,7 +268,7 @@
                             <div class="col-lg-6">
                                 <label for="national_num" class="form-label">{{ helperTrans('ingaz.national_num') }}</label>
                                 <input type="text" id="national_num" name="national_num" class="form-control"
-                                       value="{{ old('national_num', $client->national_num) }}">
+                                       value="{{ old('national_num', $client->national_num) }}" required>
                             </div>
 
                             <div class="col-lg-6">

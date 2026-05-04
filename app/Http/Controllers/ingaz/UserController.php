@@ -399,7 +399,7 @@ class UserController extends Controller
             'email' => 'nullable|email|max:255|unique:users,email',
             'client_category_id' => 'nullable|exists:fn_client_categories,id',
             'nationality_id' => 'nullable|exists:countries,id',
-            'national_num' => 'nullable|string|max:50',
+            'national_num' => 'required|string|max:50|unique:users,national_num',
             'birthdate' => 'nullable|date',
             'phone2' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:255',
@@ -409,7 +409,8 @@ class UserController extends Controller
             'children' => 'nullable|integer|min:0',
             'job' => 'nullable|string|max:100'
         ], [
-            // رسائل الفاليديشن
+            'national_num.required' => 'رقم الهوية مطلوب لربط العميل بالطلبات والعقود.',
+            'national_num.unique' => 'رقم الهوية مستخدم مسبقاً لعميل آخر.',
         ]);
 
         $normalizedPhone = $this->normalizeSaudiPhone($data['phone']);
@@ -836,7 +837,7 @@ class UserController extends Controller
             'email' => 'nullable|email|max:255|unique:users,email,' . $client->id,
             'nationality_id' => 'nullable|exists:countries,id',
             'client_category_id' => 'nullable|exists:fn_client_categories,id',
-            'national_num' => 'nullable|string|max:50',
+            'national_num' => 'required|string|max:50|unique:users,national_num,' . $client->id,
             'birthdate' => 'nullable|date',
             'phone2' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:255',
@@ -860,6 +861,8 @@ class UserController extends Controller
             'nationality_id.exists' => __('ingaz.client_nationality_not_found'),
             'national_num.string' => __('ingaz.client_national_num_max'),
             'national_num.max' => __('ingaz.client_national_num_max'),
+            'national_num.required' => 'رقم الهوية مطلوب لربط العميل بالطلبات والعقود.',
+            'national_num.unique' => 'رقم الهوية مستخدم مسبقاً لعميل آخر.',
             'birthdate.date' => __('ingaz.client_birthdate_invalid'),
             'phone2.string' => __('ingaz.client_phone2_max'),
             'phone2.max' => __('ingaz.client_phone2_max'),
