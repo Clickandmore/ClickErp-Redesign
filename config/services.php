@@ -37,8 +37,9 @@ return [
 
     'taqnyat' => [
         'sms' => [
-            'base_url' => env('TAQNYAT_SMS_BASE_URL', 'https://api.taqnyat.sa'),
-            'bearer_token' => env('TAQNYAT_SMS_BEARER_TOKEN', ''),
+            'base_url' => env('TAQNYAT_SMS_BASE_URL', env('TAQNYAT_BASE_URL', 'https://api.taqnyat.sa')),
+            'bearer_token' => env('TAQNYAT_SMS_BEARER_TOKEN', env('TAQNYAT_BEARER', '')),
+            'bearer' => env('TAQNYAT_SMS_BEARER_TOKEN', env('TAQNYAT_BEARER', '')),
         ],
     ],
 

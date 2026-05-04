@@ -23,9 +23,9 @@ return [
     'encoding' => env('MSEGAT_ENCODING', 'UTF8'),
     'bulk_send_limit' => (int) env('MSEGAT_BULK_SEND_LIMIT', 200),
     'bulk_confirmation_keyword' => env('MSEGAT_BULK_CONFIRMATION_KEYWORD', 'SEND_ALL_SMS'),
-    'app_domain_for_msegat' => env('APP_DOMAIN_FOR_MSEGAT'),
+    'app_domain_name' => env('APP_DOMAIN_FOR_MSEGAT'),
     'taqnyat' => [
-        'base_url' => env('TAQNYAT_SMS_BASE_URL', 'https://api.taqnyat.sa'),
-        'bearer_token' => env('TAQNYAT_SMS_BEARER_TOKEN', ''),
+        'base_url' => env('TAQNYAT_SMS_BASE_URL', env('TAQNYAT_BASE_URL', 'https://api.taqnyat.sa')),
+        'bearer_token' => env('TAQNYAT_SMS_BEARER_TOKEN', env('TAQNYAT_BEARER', '')),
     ],
 ];

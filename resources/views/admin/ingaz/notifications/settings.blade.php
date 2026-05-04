@@ -210,6 +210,7 @@
                         <div class="col-md-2"><strong>النوع الافتراضي:</strong> {{ data_get($currentSettings, 'sms.default_sender_type') === 'verification' ? 'تحقق' : 'إعلاني' }}</div>
                         <div class="col-md-3"><strong>مرسل الإعلانات:</strong> {{ data_get($currentSettings, 'sms.advertising_sender') ?: 'غير محدد' }}</div>
                         <div class="col-md-3"><strong>مرسل التحقق:</strong> {{ data_get($currentSettings, 'sms.verification_sender') ?: 'غير محدد' }}</div>
+                        <div class="col-md-3"><strong>App Domain:</strong> {{ data_get($currentSettings, 'sms.app_domain_for_msegat', 'aqro.sa') ?: 'aqro.sa' }}</div>
                         <div class="col-md-2"><strong>الترميز:</strong> {{ data_get($currentSettings, 'sms.encoding', 'UTF8') }}</div>
                         <div class="col-md-2"><strong>حد الإرسال:</strong> {{ data_get($currentSettings, 'sms.bulk_send_limit', 200) }}</div>
                         <div class="col-md-2"><strong>كلمة التأكيد:</strong> {{ data_get($currentSettings, 'sms.bulk_confirmation_keyword', 'SEND_ALL_SMS') }}</div>
@@ -297,6 +298,12 @@
                         <label class="form-label">مرسل التحقق</label>
                         <input type="text" name="sms[verification_sender]" class="form-control"
                             value="{{ data_get($smsData, 'verification_sender') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">APP_DOMAIN_FOR_MSEGAT</label>
+                        <input type="text" name="sms[app_domain_for_msegat]" class="form-control"
+                            value="{{ data_get($smsData, 'app_domain_for_msegat', data_get($smsData, 'app_domain_name', 'aqro.sa')) }}"
+                            placeholder="aqro.sa">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">نوع المرسل الافتراضي</label>
