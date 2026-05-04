@@ -382,8 +382,10 @@
             !$selectedContract && $selectedContractId ? $contracts->firstWhere('id', (int) $selectedContractId) : null;
         $currentContract = $selectedContract ?: $selectedContractFromList;
         $currentNationality = $isDelegationInvoice
-            ? (optional($selectedIngazDelegation?->nationality)->sub_title ?:
-                (optional($selectedIngazDelegation?->nationality)->title ?: 'غير محدد'))
+            ? (optional($selectedIngazDelegation?->country)->title ?:
+                (optional($selectedIngazDelegation?->country)->name_ar ?:
+                    (optional($selectedIngazDelegation?->nationality)->sub_title ?:
+                        (optional($selectedIngazDelegation?->nationality)->title ?: 'غير محدد'))))
             : (optional($currentContract?->maid?->nationality ?? $currentContract?->requiredMaidNationality)->sub_title ?:
                 (optional($currentContract?->maid?->nationality ?? $currentContract?->requiredMaidNationality)->title ?:
                     'غير محدد'));
@@ -690,7 +692,7 @@
                                             id="previewClientName">{{ $currentClientName }}</strong>
                                     </div>
                                     <div class="meta-item">
-                                        <span class="meta-label">الجنسية</span>
+                                        <span class="meta-label">{{ $isDelegationInvoice ? 'الدولة' : 'الجنسية' }}</span>
                                         <strong class="meta-value"
                                             id="previewNationality">{{ $currentNationality }}</strong>
                                     </div>

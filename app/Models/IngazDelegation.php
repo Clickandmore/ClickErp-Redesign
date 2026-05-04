@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Country;
 use App\Models\ingaz\Nationality;
 use App\Models\auth\Admin;
 use App\Models\ingaz\JobTitle;
@@ -22,6 +23,7 @@ class IngazDelegation extends Model
         'delegation_date_gregorian',
         'delegation_date_hijri',
         'nationality_id',
+        'country_id',
         'profession_id',
         'user_id',
         'maid_id',
@@ -69,6 +71,11 @@ class IngazDelegation extends Model
     public function nationality()
     {
         return $this->belongsTo(Nationality::class, 'nationality_id');
+    }
+
+    public function country()
+    {
+        return $this->belongsTo(Country::class, 'country_id');
     }
 
     public function profession()

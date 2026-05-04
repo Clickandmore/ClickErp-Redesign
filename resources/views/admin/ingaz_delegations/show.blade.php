@@ -38,7 +38,7 @@
                             <table class="table table-borderless mb-0">
                                 <tr><th width="35%">التاريخ الميلادي</th><td>{{ optional($delegation->delegation_date_gregorian)->format('Y-m-d') }}</td></tr>
                                 <tr><th>التاريخ الهجري</th><td>{{ $delegation->delegation_date_hijri ?: '-' }}</td></tr>
-                                <tr><th>الجنسية</th><td>{{ $delegation->nationality?->sub_title ?? $delegation->nationality?->title ?? '-' }}</td></tr>
+                                <tr><th>الدولة</th><td>{{ $delegation->country?->title ?? $delegation->country?->name_ar ?? $delegation->nationality?->sub_title ?? $delegation->nationality?->title ?? '-' }}</td></tr>
                                 <tr><th>المهنة</th><td>{{ $delegation->profession?->title ?? '-' }}</td></tr>
                                 <tr><th>المسوق</th><td>{{ $delegation->marketer?->name ?? '-' }}</td></tr>
                                 <tr><th>رقم إنجاز</th><td>{{ $delegation->ingaz_number }}</td></tr>

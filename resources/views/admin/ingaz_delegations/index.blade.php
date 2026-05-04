@@ -10,7 +10,7 @@
             <div class="d-flex align-items-center justify-content-between mb-4">
                 <div>
                     <h3 class="mb-1">إدارة تفاويض الإنجاز</h3>
-                    <p class="text-muted mb-0">متابعة تفاويض الإنجاز وعرض بيانات العميل وتحويل مساند والجنسية والمهنة.</p>
+                    <p class="text-muted mb-0">متابعة تفاويض الإنجاز وعرض بيانات العميل وتحويل مساند والدولة والمهنة.</p>
                 </div>
                 @if ($canCreateDelegation)
                     <a href="{{ route('ingaz-delegations.create') }}" class="btn btn-primary">
@@ -29,12 +29,12 @@
                                    placeholder="إنجاز، مساند، التأشيرة، العميل، الجواز">
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">الجنسية</label>
-                            <select name="nationality_id" class="form-select">
+                            <label class="form-label">الدولة</label>
+                            <select name="country_id" class="form-select select2" data-placeholder="الكل">
                                 <option value="">الكل</option>
-                                @foreach ($nationalities as $nationality)
-                                    <option value="{{ $nationality->id }}" {{ request('nationality_id') == $nationality->id ? 'selected' : '' }}>
-                                        {{ $nationality->sub_title ?? $nationality->title ?? ('#' . $nationality->id) }}
+                                @foreach ($countries as $country)
+                                    <option value="{{ $country->id }}" {{ request('country_id') == $country->id ? 'selected' : '' }}>
+                                        {{ $country->name_ar ?: $country->name_en }}{{ $country->code ? ' - ' . $country->code : '' }}
                                     </option>
                                 @endforeach
                             </select>
@@ -72,7 +72,7 @@
                                     <th>رقم تعريف</th>
                                     <th>عميل</th>
                                     <th>تحويل مساند</th>
-                                    <th>الجنسية</th>
+                                    <th>الدولة</th>
                                     <th>المهنة</th>
                                     <th>فاتورة</th>
                                     <th>الحالة</th>
@@ -92,6 +92,14 @@
 @section('js')
     <script>
         $(document).ready(function () {
+            if ($.fn.select2) {
+                $('select[name="country_id"]').select2({
+                    width: '100%',
+                    allowClear: true,
+                    placeholder: $('select[name="country_id"]').data('placeholder') || 'الكل'
+                });
+            }
+
             const table = $('#ingaz-delegations-table').DataTable({
                 processing: true,
                 serverSide: true,
@@ -104,7 +112,7 @@
                     type: 'GET',
                     data: function (d) {
                         d.global_search = $('input[name="search"]').val();
-                        d.nationality_id = $('select[name="nationality_id"]').val();
+                        d.country_id = $('select[name="country_id"]').val();
                         d.client_source_type = $('select[name="client_source_type"]').val();
                         d.from_date = $('input[name="from_date"]').val();
                         d.to_date = $('input[name="to_date"]').val();
@@ -114,7 +122,7 @@
                     { data: 'id', name: 'id' },
                     { data: 'client', name: 'client', orderable: false, searchable: false },
                     { data: 'msaned_transfer', name: 'msaned_contract_number' },
-                    { data: 'nationality_name', name: 'nationality_name', orderable: false, searchable: false },
+                    { data: 'country_name', name: 'country_name', orderable: false, searchable: false },
                     { data: 'profession_name', name: 'profession_name', orderable: false, searchable: false },
                     { data: 'invoice', name: 'invoice', orderable: false, searchable: false },
                     { data: 'status_control', name: 'status', orderable: false, searchable: false },

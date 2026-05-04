@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\admin;
 
 use App\Http\Requests\StoreIngazDelegationRequest;
+use App\Models\Country;
 use App\Models\auth\Admin;
 use App\Models\ingaz\JobTitle;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\MaidJobTitles;
 use App\Models\ingaz\Nationality;
+use App\Models\ingaz\NationalitiesTranslation;
 use App\Models\ingaz\Religion;
 use App\Models\ingaz\ReligionsTranslation;
 use App\Models\ingaz\User;
@@ -19,6 +21,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -40,7 +43,7 @@ class IngazDelegationController extends Controller
 
     public function index(Request $request): View|JsonResponse
     {
-        $query = IngazDelegation::with(['nationality', 'profession', 'user', 'maid', 'marketer', 'invoice.musanedTransferItem.transfer']);
+        $query = IngazDelegation::with(['country', 'nationality', 'profession', 'user', 'maid', 'marketer', 'invoice.musanedTransferItem.transfer']);
 
         $searchInput = $request->input('global_search', $request->query('search'));
 
@@ -61,8 +64,8 @@ class IngazDelegationController extends Controller
             });
         }
 
-        if ($request->filled('nationality_id')) {
-            $query->where('nationality_id', $request->nationality_id);
+        if ($request->filled('country_id')) {
+            $query->where('country_id', $request->country_id);
         }
 
         if ($request->filled('client_source_type')) {
@@ -96,8 +99,8 @@ class IngazDelegationController extends Controller
                     return '<div>' . $name . '</div><small class="text-muted">' . $meta . '</small>';
                 })
                 ->addColumn('msaned_transfer', fn (IngazDelegation $row) => e($row->msaned_contract_number ?: '-'))
-                ->addColumn('nationality_name', function (IngazDelegation $row) {
-                    return e($row->nationality?->sub_title ?? $row->nationality?->title ?? '-');
+                ->addColumn('country_name', function (IngazDelegation $row) {
+                    return e($this->delegationCountryName($row));
                 })
                 ->addColumn('profession_name', fn (IngazDelegation $row) => e($row->profession?->title ?? '-'))
                 ->addColumn('invoice', function (IngazDelegation $row) {
@@ -179,15 +182,15 @@ class IngazDelegationController extends Controller
                 ->make(true);
         }
 
-        $nationalities = Nationality::query()->orderByTranslation('sub_title', 'asc')->get(['id']);
+        $countries = Country::query()->ordered()->get(['id', 'name_ar', 'name_en', 'code', 'phone_code', 'sort_order']);
         $canCreateDelegation = $this->adminCanAny($this->delegationCreatePermissions());
 
-        return view('admin.ingaz_delegations.index', compact('nationalities', 'canCreateDelegation'));
+        return view('admin.ingaz_delegations.index', compact('countries', 'canCreateDelegation'));
     }
 
     public function print(IngazDelegation $ingazDelegation): View
     {
-        $ingazDelegation->load(['nationality', 'profession', 'user', 'maid.religion', 'marketer', 'invoice.musanedTransferItem.transfer']);
+        $ingazDelegation->load(['country', 'nationality', 'profession', 'user', 'maid.religion', 'marketer', 'invoice.musanedTransferItem.transfer']);
 
         return view('admin.ingaz_delegations.print', [
             'delegation' => $ingazDelegation,
@@ -206,9 +209,11 @@ class IngazDelegationController extends Controller
     {
         DB::transaction(function () use ($request) {
             $client = $this->resolveClient($request);
-            $maid = $this->resolveMaid($request);
+            $country = $this->resolveCountry($request);
+            $nationality = $this->resolveNationalityForCountry($country);
+            $maid = $this->resolveMaid($request, null, $nationality);
 
-            IngazDelegation::create($this->buildDelegationPayload($request, $client, $maid));
+            IngazDelegation::create($this->buildDelegationPayload($request, $client, $country, $nationality, $maid));
         });
 
         return redirect()
@@ -218,7 +223,7 @@ class IngazDelegationController extends Controller
 
     public function show(IngazDelegation $ingazDelegation): View
     {
-        $ingazDelegation->load(['nationality', 'profession', 'user', 'maid.religion', 'marketer', 'invoice']);
+        $ingazDelegation->load(['country', 'nationality', 'profession', 'user', 'maid.religion', 'marketer', 'invoice']);
 
         return view('admin.ingaz_delegations.show', [
             'delegation' => $ingazDelegation,
@@ -231,7 +236,7 @@ class IngazDelegationController extends Controller
 
     public function edit(IngazDelegation $ingazDelegation): View
     {
-        $ingazDelegation->load(['nationality', 'profession', 'user', 'maid.religion', 'marketer']);
+        $ingazDelegation->load(['country', 'nationality', 'profession', 'user', 'maid.religion', 'marketer']);
 
         return view('admin.ingaz_delegations.edit', array_merge(
             $this->formData(),
@@ -243,9 +248,11 @@ class IngazDelegationController extends Controller
     {
         DB::transaction(function () use ($request, $ingazDelegation) {
             $client = $this->resolveClient($request);
-            $maid = $this->resolveMaid($request, $ingazDelegation->maid);
+            $country = $this->resolveCountry($request);
+            $nationality = $this->resolveNationalityForCountry($country);
+            $maid = $this->resolveMaid($request, $ingazDelegation->maid, $nationality);
 
-            $ingazDelegation->update($this->buildDelegationPayload($request, $client, $maid, $ingazDelegation));
+            $ingazDelegation->update($this->buildDelegationPayload($request, $client, $country, $nationality, $maid, $ingazDelegation));
         });
 
         return redirect()
@@ -310,7 +317,7 @@ class IngazDelegationController extends Controller
     private function formData(): array
     {
         return [
-            'nationalities' => Nationality::query()->orderByTranslation('sub_title', 'asc')->get(['id']),
+            'countries' => Country::query()->ordered()->get(['id', 'name_ar', 'name_en', 'code', 'phone_code', 'sort_order']),
             'professions' => JobTitle::with('translations')->orderByTranslation('title', 'asc')->get(['id']),
             'recruitmentOffices' => RecruitmentOffice::query()
                 ->orderByTranslation('title', 'asc')
@@ -356,13 +363,16 @@ class IngazDelegationController extends Controller
     private function buildDelegationPayload(
         StoreIngazDelegationRequest $request,
         User $client,
+        Country $country,
+        Nationality $nationality,
         ?Maid $maid,
         ?IngazDelegation $delegation = null
     ): array {
         return [
             'delegation_date_gregorian' => $request->delegation_date_gregorian,
             'delegation_date_hijri' => $request->filled('delegation_date_hijri') ? $request->delegation_date_hijri : null,
-            'nationality_id' => $request->nationality_id,
+            'nationality_id' => $nationality->id,
+            'country_id' => $country->id,
             'profession_id' => $request->filled('profession_id') ? $request->profession_id : null,
             'user_id' => $client->id,
             'maid_id' => $maid?->id,
@@ -386,6 +396,71 @@ class IngazDelegationController extends Controller
             'notes' => $request->notes,
             'attachments' => $this->storeAttachments($request, $delegation),
         ];
+    }
+
+    private function resolveCountry(StoreIngazDelegationRequest $request): Country
+    {
+        return Country::findOrFail($request->country_id);
+    }
+
+    private function resolveNationalityForCountry(Country $country): Nationality
+    {
+        $names = collect([$country->name_ar, $country->name_en])
+            ->filter(fn ($name) => trim((string) $name) !== '')
+            ->values()
+            ->all();
+
+        $nationality = Nationality::whereHas('translations', function ($query) use ($names) {
+            $query->where(function ($inner) use ($names) {
+                foreach ($names as $name) {
+                    $inner->orWhere('title', $name)
+                        ->orWhere('sub_title', $name);
+                }
+            });
+        })->first();
+
+        if ($nationality) {
+            return $nationality;
+        }
+
+        $payload = [
+            'logo' => '',
+            'phone_code' => (string) ($country->phone_code ?? ''),
+        ];
+
+        if (Schema::hasColumn('nationalities', 'is_show')) {
+            $payload['is_show'] = false;
+        }
+
+        $nationality = Nationality::create($payload);
+
+        $this->syncNationalityTranslation($nationality, 'ar', $country->name_ar ?: $country->name_en);
+        $this->syncNationalityTranslation($nationality, 'en', $country->name_en ?: $country->name_ar);
+
+        return $nationality->fresh(['translations']) ?? $nationality;
+    }
+
+    private function syncNationalityTranslation(Nationality $nationality, string $locale, string $name): void
+    {
+        NationalitiesTranslation::updateOrCreate(
+            [
+                'nationality_id' => $nationality->id,
+                'locale' => $locale,
+            ],
+            [
+                'title' => $name,
+                'sub_title' => $name,
+            ]
+        );
+    }
+
+    private function delegationCountryName(IngazDelegation $delegation): string
+    {
+        return $delegation->country?->title
+            ?? $delegation->country?->name_ar
+            ?? $delegation->nationality?->sub_title
+            ?? $delegation->nationality?->title
+            ?? '-';
     }
 
     private function resolveClient(StoreIngazDelegationRequest $request): User
@@ -447,7 +522,7 @@ class IngazDelegationController extends Controller
         return $user;
     }
 
-    private function resolveMaid(StoreIngazDelegationRequest $request, ?Maid $currentMaid = null): ?Maid
+    private function resolveMaid(StoreIngazDelegationRequest $request, ?Maid $currentMaid, Nationality $nationality): ?Maid
     {
         $passportNumber = trim((string) $request->worker_passport_number);
         $workerName = trim((string) $request->worker_name);
@@ -479,7 +554,7 @@ class IngazDelegationController extends Controller
         }
 
         if (!$maid->exists || empty($maid->nationality_id)) {
-            $maid->nationality_id = (int) $request->nationality_id;
+            $maid->nationality_id = $nationality->id;
         }
 
         $maid->name = $workerName;
@@ -560,7 +635,7 @@ class IngazDelegationController extends Controller
             return $attachments;
         }
 
-        foreach ($request->file('attachments') as $file) {
+        foreach ($this->flattenUploadedFiles($request->file('attachments', [])) as $file) {
             $attachments[] = [
                 'path' => $file->store('ingaz-delegations', 'public'),
                 'name' => $file->getClientOriginalName(),
@@ -569,6 +644,24 @@ class IngazDelegationController extends Controller
         }
 
         return $attachments;
+    }
+
+    private function flattenUploadedFiles(array $files): array
+    {
+        $flattened = [];
+
+        foreach ($files as $file) {
+            if (is_array($file)) {
+                $flattened = array_merge($flattened, $this->flattenUploadedFiles($file));
+                continue;
+            }
+
+            if ($file) {
+                $flattened[] = $file;
+            }
+        }
+
+        return $flattened;
     }
 
     private function deleteAttachments(array $attachments): void

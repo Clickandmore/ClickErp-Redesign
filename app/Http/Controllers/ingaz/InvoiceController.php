@@ -186,7 +186,7 @@ class InvoiceController extends Controller
 
         if ($ingazDelegationId) {
             $selectedIngazDelegation = IngazDelegation::query()
-                ->with(['user', 'nationality', 'profession', 'invoice'])
+                ->with(['user', 'country', 'nationality', 'profession', 'invoice'])
                 ->findOrFail($ingazDelegationId);
 
             if ($selectedIngazDelegation->invoice) {
@@ -885,7 +885,7 @@ class InvoiceController extends Controller
     ): array
     {
         $delegation = IngazDelegation::query()
-            ->with(['user', 'nationality', 'profession'])
+            ->with(['user', 'country', 'nationality', 'profession'])
             ->lockForUpdate()
             ->findOrFail($request->ingaz_delegation_id);
 
@@ -1181,6 +1181,7 @@ class InvoiceController extends Controller
             'contract.requiredMaidJobTitle',
             'contract.info',
             'ingazDelegation.user',
+            'ingazDelegation.country',
             'ingazDelegation.nationality',
             'ingazDelegation.profession',
             'musanedTransferItem.transfer',
@@ -1370,12 +1371,14 @@ class InvoiceController extends Controller
 
             $clientName = $delegation->user?->name ?: 'غير محدد';
             $jobTitle = $delegation->profession?->title ?: 'غير محدد';
-            $nationality = $delegation->nationality?->sub_title ?: ($delegation->nationality?->title ?: 'غير محدد');
+            $country = $delegation->country?->title
+                ?: ($delegation->country?->name_ar
+                    ?: ($delegation->nationality?->sub_title ?: ($delegation->nationality?->title ?: 'غير محدد')));
 
             return 'تفويض إنجاز - العميل: ' . $clientName
                 . ' - رقم التفويض: ' . $delegation->id
                 . ' - المهنة: ' . $jobTitle
-                . ' - الجنسية: ' . $nationality
+                . ' - الدولة: ' . $country
                 . ' - نوع التأشيرة: ' . ($delegation->visa_type ?: 'غير محدد')
                 . ' - رقم التأشيرة: ' . ($delegation->visa_number ?: '-')
                 . ' - رقم إنجاز: ' . ($delegation->ingaz_number ?: '-')

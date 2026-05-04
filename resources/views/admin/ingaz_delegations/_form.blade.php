@@ -4,7 +4,7 @@
     $linkedMaid = $delegation?->maid;
     $clientSourceType = old('client_source_type', $delegation->client_source_type ?? 'separate_client');
     $existingUserId = old('existing_user_id', $clientSourceType === 'existing_in_program' ? ($linkedUser?->id) : null);
-    $selectedNationalityId = old('nationality_id', $delegation->nationality_id ?? null);
+    $selectedCountryId = old('country_id', $delegation->country_id ?? null);
     $selectedProfessionId = old('profession_id', $delegation->profession_id ?? null);
     $selectedVisaType = old('visa_type', $delegation->visa_type ?? 'electronic_ingaz_delegation');
     $selectedWorkerReligion = old('worker_religion', $delegation->worker_religion ?? 'unspecified');
@@ -77,16 +77,18 @@
                         @enderror
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">الجنسية <span class="text-danger">*</span></label>
-                        <select name="nationality_id" class="form-select @error('nationality_id') is-invalid @enderror">
-                            <option value="">اختر الجنسية</option>
-                            @foreach ($nationalities as $nationality)
-                                <option value="{{ $nationality->id }}" {{ $selectedNationalityId == $nationality->id ? 'selected' : '' }}>
-                                    {{ $nationality->sub_title ?? $nationality->title ?? ('#' . $nationality->id) }}
+                        <label class="form-label">الدولة <span class="text-danger">*</span></label>
+                        <select name="country_id" id="country_id"
+                                class="form-select select2 @error('country_id') is-invalid @enderror"
+                                data-placeholder="اختر الدولة">
+                            <option value="">اختر الدولة</option>
+                            @foreach ($countries as $country)
+                                <option value="{{ $country->id }}" {{ (string) $selectedCountryId === (string) $country->id ? 'selected' : '' }}>
+                                    {{ $country->name_ar ?: $country->name_en }}{{ $country->code ? ' - ' . $country->code : '' }}
                                 </option>
                             @endforeach
                         </select>
-                        @error('nationality_id')
+                        @error('country_id')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
@@ -403,8 +405,14 @@
                     </div>
                     <div class="col-12">
                         <label class="form-label">المرفقات</label>
-                        <input type="file" name="attachments[]" multiple
-                               class="form-control @error('attachments') is-invalid @enderror @error('attachments.*') is-invalid @enderror">
+                        <div id="attachments-inputs" class="vstack gap-2">
+                            <input type="file" name="attachments[]" multiple
+                                   class="form-control @error('attachments') is-invalid @enderror @error('attachments.*') is-invalid @enderror">
+                        </div>
+                        <button type="button" id="add-attachment-input" class="btn btn-sm btn-outline-primary mt-2">
+                            إضافة مرفق آخر
+                        </button>
+                        <div class="form-text">يمكن اختيار عدة ملفات دفعة واحدة أو إضافة حقول مرفقات متعددة.</div>
                         @error('attachments')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -463,6 +471,9 @@
         const externalOfficeLicenseInput = document.getElementById('external_office_license_number');
         const externalOfficeAddressInput = document.getElementById('external_office_address');
         const externalOfficePhoneInput = document.getElementById('external_office_phone');
+        const countrySelect = document.getElementById('country_id');
+        const attachmentsInputs = document.getElementById('attachments-inputs');
+        const addAttachmentInputButton = document.getElementById('add-attachment-input');
         const externalOfficePickerWrapper = externalOfficeSelect?.closest('.col-12');
         const externalOfficeNameColumn = externalOfficeNameInput?.closest('.col-md-6');
 
@@ -603,6 +614,25 @@
                     })
                     .on('select2:select select2:clear', fillExternalOfficeFields);
             }
+        }
+
+        if (countrySelect && window.jQuery && typeof window.jQuery.fn.select2 === 'function') {
+            window.jQuery(countrySelect).select2({
+                width: '100%',
+                placeholder: countrySelect.dataset.placeholder || 'اختر الدولة',
+            });
+        }
+
+        if (attachmentsInputs && addAttachmentInputButton) {
+            addAttachmentInputButton.addEventListener('click', function () {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.name = 'attachments[]';
+                input.multiple = true;
+                input.className = 'form-control';
+
+                attachmentsInputs.appendChild(input);
+            });
         }
 
         if (passportInput) {

@@ -335,6 +335,7 @@ class MusanedTransferController extends Controller
                 'contract.maid.nationality',
                 'contract.requiredMaidNationality',
                 'ingazDelegation.user',
+                'ingazDelegation.country',
                 'ingazDelegation.nationality',
                 'musanedTransferItem',
             ])

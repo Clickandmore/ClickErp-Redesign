@@ -115,8 +115,8 @@
                 <td>{{ $delegation->delegation_date_hijri ?: '-' }}</td>
             </tr>
             <tr>
-                <th>الجنسية</th>
-                <td>{{ $delegation->nationality?->sub_title ?? $delegation->nationality?->title ?? '-' }}</td>
+                <th>الدولة</th>
+                <td>{{ $delegation->country?->title ?? $delegation->country?->name_ar ?? $delegation->nationality?->sub_title ?? $delegation->nationality?->title ?? '-' }}</td>
                 <th>المهنة</th>
                 <td>{{ $delegation->profession?->title ?? '-' }}</td>
             </tr>

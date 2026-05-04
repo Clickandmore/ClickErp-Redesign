@@ -16,7 +16,7 @@ class StoreIngazDelegationRequest extends FormRequest
         return [
             'delegation_date_gregorian' => ['required', 'date'],
             'delegation_date_hijri' => ['nullable', 'string', 'max:50'],
-            'nationality_id' => ['required', 'exists:nationalities,id'],
+            'country_id' => ['required', 'exists:countries,id'],
             'profession_id' => ['nullable', 'exists:job_titles,id'],
 
             'client_source_type' => ['required', 'in:existing_in_program,separate_client'],
@@ -54,7 +54,7 @@ class StoreIngazDelegationRequest extends FormRequest
     {
         return [
             'delegation_date_gregorian.required' => 'تاريخ تفويض الإنجاز الميلادي مطلوب.',
-            'nationality_id.required' => 'يرجى اختيار الجنسية.',
+            'country_id.required' => 'يرجى اختيار الدولة.',
             'client_source_type.required' => 'يرجى اختيار نوع العميل.',
             'existing_user_id.required_if' => 'يرجى اختيار العميل من قائمة العملاء.',
             'separate_client_name.required_if' => 'اسم العميل المنفصل مطلوب.',
