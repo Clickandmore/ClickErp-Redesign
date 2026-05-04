@@ -11,6 +11,7 @@ use App\Http\Actions\ingaz\NationalityAction;
 use App\Http\Controllers\admin\Controller;
 use App\Models\auth\Admin;
 use App\Models\ingaz\Maid;
+use App\Models\ingaz\Skill;
 use Illuminate\Http\Request;
 
 class ApiMaidController extends Controller
@@ -81,6 +82,8 @@ class ApiMaidController extends Controller
             $q->withCount('maids');
         }])->find($id);
 
+         $skills = Skill::all();
+
         $customerServices = Admin::query()
             ->whereNull('deleted_at')
             ->where('admin_type', AdminTypes::CustomerService->value)
@@ -98,6 +101,7 @@ class ApiMaidController extends Controller
             'maid' => $maid,
             'type' => $type,
             'customerServices' => $customerServices,
+            'skills' => $skills,
         ];
 
         return apiResponse(true, 'تم جلب البيانات بنجاح.', $data, 200);
