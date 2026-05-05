@@ -220,6 +220,21 @@
         .actions-dropdown .attachment-count-badge {
             margin-inline-start: auto;
         }
+
+        .dropdown-menu.dropdown-menu-end.recruitment-actions-floating-menu {
+            position: fixed !important;
+            top: var(--recruitment-actions-top) !important;
+            left: var(--recruitment-actions-left) !important;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            z-index: 2147483647 !important;
+            right: auto !important;
+            transform: none !important;
+            min-width: 250px;
+            max-height: min(460px, calc(100vh - 24px));
+            overflow-y: auto;
+        }
     </style>
 @endsection
 
@@ -1595,12 +1610,94 @@
                     // تمكين التفاعل بعد التحميل
                     $('#dataTableObject').removeClass('loading');
                     syncSelectedRows();
+                    closeRecruitmentActionsDropdown();
 
                     // إعادة تهيئة tooltips إذا كانت موجودة
                     if (typeof $().tooltip === 'function') {
                         $('[data-bs-toggle="tooltip"]').tooltip();
                     }
                 }
+            });
+
+            function closeRecruitmentActionsDropdown() {
+                $('#recruitmentActionsFloatingMenu').remove();
+
+                $('#dataTableObject .actions-dropdown').each(function() {
+                    $(this).removeClass('show');
+                    $(this).find('.actions-btn').attr('aria-expanded', 'false').removeClass('show');
+                    $(this).find('.dropdown-menu').removeClass('show').removeAttr('style');
+                });
+            }
+
+            function placeRecruitmentActionsMenu($button, $menu) {
+                const rect = $button[0].getBoundingClientRect();
+                const menuWidth = Math.max($menu.outerWidth() || 250, 250);
+                const menuHeight = Math.max($menu.outerHeight() || 280, 180);
+                const viewportPadding = 12;
+                const topSpace = rect.top - viewportPadding;
+                const bottomSpace = window.innerHeight - rect.bottom - viewportPadding;
+                const openUp = bottomSpace < menuHeight && topSpace > bottomSpace;
+                const top = openUp
+                    ? Math.max(viewportPadding, rect.top - menuHeight - 6)
+                    : Math.max(
+                        viewportPadding,
+                        Math.min(window.innerHeight - viewportPadding - menuHeight, rect.bottom + 6)
+                    );
+                const left = Math.max(
+                    viewportPadding,
+                    Math.min(window.innerWidth - viewportPadding - menuWidth, rect.right - menuWidth)
+                );
+
+                $menu.css({
+                    '--recruitment-actions-top': top + 'px',
+                    '--recruitment-actions-left': left + 'px',
+                    right: 'auto',
+                    transform: 'none',
+                    zIndex: 2147483647,
+                    display: 'block',
+                    minWidth: menuWidth + 'px'
+                });
+            }
+
+            document.addEventListener('click', function(e) {
+                const button = e.target.closest('#dataTableObject .actions-btn');
+
+                if (!button) {
+                    return;
+                }
+
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+
+                const $button = $(button);
+                const $dropdown = $button.closest('.actions-dropdown');
+                const $sourceMenu = $dropdown.find('.dropdown-menu');
+                const isOpen = $button.attr('aria-expanded') === 'true';
+
+                closeRecruitmentActionsDropdown();
+
+                if (isOpen) {
+                    return;
+                }
+
+                const $menu = $('<ul id="recruitmentActionsFloatingMenu" class="dropdown-menu dropdown-menu-end shadow-lg show recruitment-actions-floating-menu"></ul>');
+                $menu.html($sourceMenu.html());
+                $('body').append($menu);
+
+                $dropdown.addClass('show');
+                $button.attr('aria-expanded', 'true').addClass('show');
+                placeRecruitmentActionsMenu($button, $menu);
+            }, true);
+
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('#dataTableObject .actions-dropdown, #recruitmentActionsFloatingMenu').length) {
+                    closeRecruitmentActionsDropdown();
+                }
+            });
+
+            $(document).on('click', '#recruitmentActionsFloatingMenu .dropdown-item, #recruitmentActionsFloatingMenu form button', function() {
+                setTimeout(closeRecruitmentActionsDropdown, 0);
             });
 
             $(document).on('change', '.contract-bulk-checkbox', function() {

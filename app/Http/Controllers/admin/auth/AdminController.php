@@ -37,7 +37,7 @@ class AdminController extends Controller
         $this->middleware('permission:users_view,admin', ['only' => ['index']]);
         $this->middleware('permission:users_create,admin', ['only' => ['create', 'store']]);
         $this->middleware('permission:users_edit,admin', ['only' => ['edit', 'update']]);
-        $this->middleware('permission:users_delete,admin', ['only' => ['destroy', 'restore']]);
+        $this->middleware('permission:users_delete,admin', ['only' => ['destroy', 'restore', 'forceDelete']]);
     }
 
 
@@ -113,46 +113,66 @@ class AdminController extends Controller
                         : '<span class="badge bg-success"> ' . __('admin.active') . ' </span>';
                 })
                 ->addColumn('actions', function ($row) {
-                    $editButton = '';
-                    $deleteButton = '';
-                    $suspendAction = '';
-                    $restoreButton = '';
+                    $menuItems = [];
 
                     if ($row->trashed()) {
                         if (Auth::guard('admin')->user()->can('users_delete')) {
-                            $restoreButton = '<button type="button" class="btn btn-sm btn-info restore-admin" data-id="' . $row->id . '">' .
-                                __('ingaz.restore') .
-                                '</button>';
+                            $menuItems[] = '<li><button type="button" class="dropdown-item restore-admin" data-id="' . $row->id . '">'
+                                . '<i class="fa fa-undo"></i> ' . __('ingaz.restore')
+                                . '</button></li>';
+                            $reassignmentCounts = $this->getReassignmentCounts((int) $row->id);
+                            $menuItems[] = '<li><button type="button" class="dropdown-item text-danger admin-force-delete-button"'
+                                . ' data-id="' . $row->id . '"'
+                                . ' data-name="' . e($row->name) . '"'
+                                . ' data-delete-route="' . route($this->mainRoute . ".force-delete", $row->id) . '"'
+                                . ' data-requires-reassignment="' . ($reassignmentCounts['total'] > 0 ? 1 : 0) . '"'
+                                . ' data-orders-count="' . $reassignmentCounts['orders'] . '"'
+                                . ' data-bookings-count="' . $reassignmentCounts['bookings'] . '"'
+                                . ' data-contracts-count="' . $reassignmentCounts['contracts'] . '"'
+                                . ' title="حذف نهائي">'
+                                . '<i class="fa fa-trash-o"></i> حذف نهائي'
+                                . '</button></li>';
                         }
 
-                        return $restoreButton;
+                        return $this->renderAdminActionsDropdown($menuItems);
                     }
 
                     if (Auth::guard('admin')->user()->can('users_edit')) {
-                        $editButton = editButton(route($this->mainRoute . ".edit", $row->id), $row->name);
+                        $menuItems[] = '<li><button type="button" class="dropdown-item editButton" data-bs-toggle="modal" data-bs-target="#createModal"'
+                            . ' model-route="' . route($this->mainRoute . ".edit", $row->id) . '"'
+                            . ' model-title="' . e(__("buttons.edit") . ' ' . $row->name) . '">'
+                            . '<i class="fa fa-pencil"></i> ' . __('buttons.edit')
+                            . '</button></li>';
                     }
 
                     if (Auth::guard('admin')->user()->can('users_delete')) {
                         if ($row->id != Auth::guard('admin')->user()->id) {
-                            $deleteButton = '<button type="button" class="btn btn-sm btn-danger admin-delete-button"'
+                            $reassignmentCounts = $this->getReassignmentCounts((int) $row->id);
+                            $menuItems[] = '<li><button type="button" class="dropdown-item text-danger admin-delete-button"'
                                 . ' data-id="' . $row->id . '"'
                                 . ' data-name="' . e($row->name) . '"'
                                 . ' data-delete-route="' . route($this->mainRoute . ".destroy", $row->id) . '"'
-                                . ' title="حذف نهائي">'
+                                . ' data-requires-reassignment="' . ($reassignmentCounts['total'] > 0 ? 1 : 0) . '"'
+                                . ' data-orders-count="' . $reassignmentCounts['orders'] . '"'
+                                . ' data-bookings-count="' . $reassignmentCounts['bookings'] . '"'
+                                . ' data-contracts-count="' . $reassignmentCounts['contracts'] . '"'
+                                . ' title="حذف">'
                                 . '<i class="fa fa-trash-o"></i> ' . __('ingaz.delete')
-                                . '</button>';
+                                . '</button></li>';
                         }
                     }
 
                     if (Auth::guard('admin')->user()->can('users_edit')) {
-                        $suspendAction = '<a href="' . route("admins.toggle-status", $row->id) . '" class="btn btn-sm ' .
-                            ($row->status === 'suspended' ? 'btn-success' : 'btn-warning') .
-                            ' toggle-status" data-id="' . $row->id . '">' .
-                            ($row->status === 'suspended' ? __('admin.activate') : __('admin.suspend')) .
-                            '</a>';
+                        $isSuspended = $row->status === 'suspended';
+                        $menuItems[] = '<li><a href="' . route("admins.toggle-status", $row->id) . '" class="dropdown-item '
+                            . ($isSuspended ? 'text-success' : 'text-warning')
+                            . ' toggle-status" data-id="' . $row->id . '">'
+                            . '<i class="fa ' . ($isSuspended ? 'fa-check-circle' : 'fa-ban') . '"></i> '
+                            . ($isSuspended ? __('admin.activate') : __('admin.suspend'))
+                            . '</a></li>';
                     }
 
-                    return $editButton . " " . $deleteButton . " " . $suspendAction;
+                    return $this->renderAdminActionsDropdown($menuItems);
                 })->escapeColumns([])->make(true);
         }
         $data["createRoute"] = route($this->mainRoute . ".create");
@@ -300,6 +320,65 @@ class AdminController extends Controller
 
             if ($validator->fails()) {
                 return response()->json([
+                    'message' => 'اختر موظفاً بديلاً لإسناد الطلبات والعقود قبل حذف الموظف.',
+                    'requires_reassignment' => true,
+                    'assignment_counts' => $assignmentCounts,
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+        }
+
+        DB::transaction(function () use ($admin, $request, $assignmentCounts) {
+            if ($assignmentCounts['total'] > 0) {
+                $this->reassignAdminWork((int) $admin->id, (int) $request->reassigned_admin_id);
+            }
+
+            $admin->delete();
+        });
+
+        return jsonSuccess(null, 'تم حذف الموظف ويمكن استعادته من فلتر المحذوفين.');
+    }
+
+    public function forceDelete($id, Request $request)
+    {
+        $admin = ObjModel::withTrashed()->findOrFail($id);
+
+        if ((int) $admin->id === (int) Auth::guard('admin')->id()) {
+            return response()->json([
+                'message' => __('admin.dontDeleteYourself'),
+                'errors' => [
+                    'admin' => [__('admin.dontDeleteYourself')],
+                ],
+            ], 422);
+        }
+
+        $assignmentCounts = $this->getReassignmentCounts((int) $admin->id);
+        if ($assignmentCounts['total'] > 0) {
+            $validator = Validator::make($request->all(), [
+                'reassigned_admin_id' => [
+                    'required',
+                    'integer',
+                    function ($attribute, $value, $fail) use ($admin) {
+                        if ((int) $value === (int) $admin->id) {
+                            $fail('يجب اختيار موظف آخر غير الموظف المراد حذفه.');
+                            return;
+                        }
+
+                        $exists = ObjModel::query()
+                            ->whereKey($value)
+                            ->whereNull('deleted_at')
+                            ->where('status', 'active')
+                            ->exists();
+
+                        if (!$exists) {
+                            $fail('الموظف البديل غير صالح أو غير نشط.');
+                        }
+                    },
+                ],
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
                     'message' => 'اختر موظفاً بديلاً لإسناد الطلبات والعقود قبل الحذف النهائي.',
                     'requires_reassignment' => true,
                     'assignment_counts' => $assignmentCounts,
@@ -330,7 +409,7 @@ class AdminController extends Controller
             $admin->forceDelete();
         });
 
-        return jsonSuccess(null, 'تم حذف الموظف نهائياً وإسناد الأعمال المرتبطة بنجاح.');
+        return jsonSuccess(null, 'تم حذف الموظف نهائياً.');
     }
 
     public function restore($id)
@@ -348,6 +427,22 @@ class AdminController extends Controller
 
         $admin->restore();
         return jsonSuccess(['id' => $admin->id], 'تم استرجاع الموظف بنجاح.');
+    }
+
+    private function renderAdminActionsDropdown(array $menuItems): string
+    {
+        if ($menuItems === []) {
+            return '<span class="text-muted small">لا توجد إجراءات</span>';
+        }
+
+        return '<div class="dropdown actions-dropdown admin-actions-dropdown">'
+            . '<button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="الإجراءات المتاحة">'
+            . '<i class="fas fa-cogs me-1"></i> ' . __("ingaz.actions")
+            . '</button>'
+            . '<ul class="dropdown-menu dropdown-menu-end shadow-lg">'
+            . implode('', $menuItems)
+            . '</ul>'
+            . '</div>';
     }
 
     private function getActiveAssignmentCounts(int $adminId): array

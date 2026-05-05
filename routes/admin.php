@@ -54,6 +54,7 @@ Route::group(
                 Route::resource('admins', 'AdminController');
                 Route::post('admins/{id}/toggle-status', 'AdminController@toggleStatus')->name('admins.toggle-status');
                 Route::post('admins/{id}/restore', 'AdminController@restore')->name('admins.restore');
+                Route::delete('admins/{id}/force-delete', 'AdminController@forceDelete')->name('admins.force-delete');
             });
 
         });
