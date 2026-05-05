@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
@@ -133,7 +134,13 @@ class AdminController extends Controller
 
                     if (Auth::guard('admin')->user()->can('users_delete')) {
                         if ($row->id != Auth::guard('admin')->user()->id) {
-                            $deleteButton = deleteButton(route($this->mainRoute . ".destroy", $row->id));
+                            $deleteButton = '<button type="button" class="btn btn-sm btn-danger admin-delete-button"'
+                                . ' data-id="' . $row->id . '"'
+                                . ' data-name="' . e($row->name) . '"'
+                                . ' data-delete-route="' . route($this->mainRoute . ".destroy", $row->id) . '"'
+                                . ' title="حذف نهائي">'
+                                . '<i class="fa fa-trash-o"></i> ' . __('ingaz.delete')
+                                . '</button>';
                         }
                     }
 
@@ -164,6 +171,12 @@ class AdminController extends Controller
             ],
             'suspension' => true
         ];
+        $data["reassignmentAdmins"] = ObjModel::query()
+            ->select('id', 'name')
+            ->whereNull('deleted_at')
+            ->where('status', 'active')
+            ->orderBy('name')
+            ->get();
         return view($this->folderPath . '.index', $data);
     }
 
@@ -247,7 +260,7 @@ class AdminController extends Controller
     }
 
 
-    public function destroy($id, ObjAction $action)
+    public function destroy($id, Request $request, ObjAction $action)
     {
         $admin = ObjModel::findOrFail($id);
 
@@ -260,13 +273,64 @@ class AdminController extends Controller
             ], 422);
         }
 
-        $assignmentCounts = $this->getActiveAssignmentCounts((int) $admin->id);
+        $assignmentCounts = $this->getReassignmentCounts((int) $admin->id);
         if ($assignmentCounts['total'] > 0) {
-            return $this->assignmentBlockedResponse($assignmentCounts);
+            $validator = Validator::make($request->all(), [
+                'reassigned_admin_id' => [
+                    'required',
+                    'integer',
+                    function ($attribute, $value, $fail) use ($admin) {
+                        if ((int) $value === (int) $admin->id) {
+                            $fail('يجب اختيار موظف آخر غير الموظف المراد حذفه.');
+                            return;
+                        }
+
+                        $exists = ObjModel::query()
+                            ->whereKey($value)
+                            ->whereNull('deleted_at')
+                            ->where('status', 'active')
+                            ->exists();
+
+                        if (!$exists) {
+                            $fail('الموظف البديل غير صالح أو غير نشط.');
+                        }
+                    },
+                ],
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'message' => 'اختر موظفاً بديلاً لإسناد الطلبات والعقود قبل الحذف النهائي.',
+                    'requires_reassignment' => true,
+                    'assignment_counts' => $assignmentCounts,
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
         }
 
-        $admin->delete();
-        return jsonSuccess(null, __('admin.deletedSuccessfully'));
+        DB::transaction(function () use ($admin, $request, $assignmentCounts) {
+            if ($assignmentCounts['total'] > 0) {
+                $this->reassignAdminWork((int) $admin->id, (int) $request->reassigned_admin_id);
+            }
+
+            if (Schema::hasTable('model_has_roles')) {
+                DB::table('model_has_roles')
+                    ->where('model_id', $admin->id)
+                    ->where('model_type', ObjModel::class)
+                    ->delete();
+            }
+
+            if (Schema::hasTable('model_has_permissions')) {
+                DB::table('model_has_permissions')
+                    ->where('model_id', $admin->id)
+                    ->where('model_type', ObjModel::class)
+                    ->delete();
+            }
+
+            $admin->forceDelete();
+        });
+
+        return jsonSuccess(null, 'تم حذف الموظف نهائياً وإسناد الأعمال المرتبطة بنجاح.');
     }
 
     public function restore($id)
@@ -326,6 +390,77 @@ class AdminController extends Controller
             'contracts' => $contractsCount,
             'total' => $ordersCount + $bookingsCount + $contractsCount,
         ];
+    }
+
+    private function getReassignmentCounts(int $adminId): array
+    {
+        $ordersCount = Order::query()
+            ->where(function ($query) use ($adminId) {
+                if (Schema::hasColumn('orders', 'customer_id')) {
+                    $query->where('customer_id', $adminId);
+                }
+
+                if (Schema::hasTable('order_details') && Schema::hasColumn('order_details', 'admin_id')) {
+                    $query->orWhereHas('details', function ($detailsQuery) use ($adminId) {
+                        $detailsQuery->where('admin_id', $adminId);
+                    });
+                }
+            })
+            ->count();
+
+        $bookingsCount = Schema::hasTable('rental_contracts') && Schema::hasColumn('rental_contracts', 'marketer_id')
+            ? RentalContract::query()->where('marketer_id', $adminId)->count()
+            : 0;
+
+        $contractsCount = Schema::hasTable('contracts') && Schema::hasColumn('contracts', 'marketer_id')
+            ? Contract::query()->where('marketer_id', $adminId)->count()
+            : 0;
+
+        return [
+            'orders' => $ordersCount,
+            'bookings' => $bookingsCount,
+            'contracts' => $contractsCount,
+            'total' => $ordersCount + $bookingsCount + $contractsCount,
+        ];
+    }
+
+    private function reassignAdminWork(int $fromAdminId, int $toAdminId): void
+    {
+        if (Schema::hasColumn('orders', 'customer_id')) {
+            DB::table('orders')
+                ->where('customer_id', $fromAdminId)
+                ->update([
+                    'customer_id' => $toAdminId,
+                    'updated_at' => now(),
+                ]);
+        }
+
+        if (Schema::hasTable('order_details') && Schema::hasColumn('order_details', 'admin_id')) {
+            DB::table('order_details')
+                ->where('admin_id', $fromAdminId)
+                ->update([
+                    'admin_id' => $toAdminId,
+                    'updated_at' => now(),
+                ]);
+        }
+
+        if (Schema::hasTable('contracts') && Schema::hasColumn('contracts', 'marketer_id')) {
+            DB::table('contracts')
+                ->where('marketer_id', $fromAdminId)
+                ->update([
+                    'marketer_id' => $toAdminId,
+                    'updated_at' => now(),
+                ]);
+        }
+
+        if (Schema::hasTable('rental_contracts') && Schema::hasColumn('rental_contracts', 'marketer_id')) {
+            DB::table('rental_contracts')
+                ->where('marketer_id', $fromAdminId)
+                ->update([
+                    'marketer_id' => $toAdminId,
+                    'updated_at' => now(),
+                ]);
+        }
     }
 
     private function assignmentBlockedResponse(array $assignmentCounts)

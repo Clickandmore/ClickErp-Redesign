@@ -477,7 +477,7 @@ class MaidController extends Controller
                     }
 
                     return '<div class="dropdown actions-dropdown">
-                                <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" aria-expanded="false">
                                     <i class="fas fa-cogs me-1"></i>' . helperTrans('ingaz.actions_menu') . '
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end shadow-lg">

@@ -101,7 +101,10 @@ class StoreContractRequest extends MainRequest
             'client_type' => 'required|in:new_client,ex_client',
             'client_id' => 'nullable|exists:users,id',
             'client_name' => 'required_if:client_type,new_client',
-            'client_phone' => 'required_if:client_type,new_client',
+            'client_phone' => [
+                'required_if:client_type,new_client',
+                Rule::unique('users', 'phone')->ignore($this->input('client_id')),
+            ],
             'client_nationality_id' => 'required_if:client_type,new_client',
             'client_email' => 'nullable|email',
             'new_client_national_num' => 'nullable',
@@ -155,6 +158,7 @@ class StoreContractRequest extends MainRequest
             'client_id.exists' => 'العميل المختار غير موجود',
             'client_name.required_if' => 'يرجي ادخال اسم العميل',
             'client_phone.required_if' => 'يرجي ادخال رقم هاتف العميل',
+            'client_phone.unique' => 'رقم جوال العميل مسجل مسبقاً في النظام، يرجى اختيار العميل الموجود أو إدخال رقم آخر',
 
             'client_nationality_id.required_if' => 'يرجي اختيار جنسية العميل',
             'new_client_national_num.required' => 'يرجي ادخال رقم هوية العميل',

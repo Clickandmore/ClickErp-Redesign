@@ -84,6 +84,7 @@
         $(document).ready(function () {
             let baseUrl = "{{route("admins.index")}}";
             const restoreAdminRouteTemplate = "{{ route('admins.restore', ['id' => 'ADMIN_ID']) }}";
+            const reassignmentAdmins = @json($reassignmentAdmins->map(fn($admin) => ['id' => $admin->id, 'name' => $admin->name])->values());
             let tableInstance;
 
             let columns = [
@@ -161,6 +162,72 @@
                         reloadWithFilters();
                     },
                     error: handleErrorResponce
+                });
+            });
+
+            $(document).on('click', '.admin-delete-button', function (e) {
+                e.preventDefault();
+                if (!checkInternetConnection()) {
+                    validToster("{{ __('auth.no_internet') }}")
+                    return;
+                }
+
+                const button = $(this);
+                const adminId = Number(button.data('id'));
+                const deleteRoute = button.data('delete-route');
+                const adminName = button.data('name') || '';
+                const replacementOptions = {};
+
+                reassignmentAdmins.forEach(function (admin) {
+                    if (Number(admin.id) !== adminId) {
+                        replacementOptions[admin.id] = admin.name;
+                    }
+                });
+
+                Swal.fire({
+                    title: 'حذف نهائي للموظف',
+                    text: 'سيتم حذف ' + adminName + ' نهائياً. إذا كان لديه طلبات أو عقود يجب اختيار موظف بديل لإسنادها له.',
+                    icon: 'warning',
+                    input: 'select',
+                    inputOptions: replacementOptions,
+                    inputPlaceholder: 'اختر الموظف البديل عند وجود أعمال مرتبطة',
+                    showCancelButton: true,
+                    confirmButtonColor: '#DD6B55',
+                    confirmButtonText: 'حذف نهائي',
+                    cancelButtonText: "{{ __('buttons.cancel') }}",
+                    inputValidator: function () {
+                        return null;
+                    }
+                }).then(function (result) {
+                    if (!result.isConfirmed) {
+                        return;
+                    }
+
+                    $.ajax({
+                        url: deleteRoute,
+                        type: 'DELETE',
+                        data: {
+                            _token: "{{ csrf_token() }}",
+                            reassigned_admin_id: result.value || ''
+                        },
+                        success: function (data) {
+                            handleSuccessResponce(data);
+                            Swal.fire({
+                                icon: 'success',
+                                title: data.message || 'تم حذف الموظف نهائياً',
+                                confirmButtonText: "{{ __('buttons.close') }}",
+                            });
+                            reloadWithFilters();
+                        },
+                        error: function (errorObj) {
+                            if (errorObj.responseJSON && errorObj.responseJSON.requires_reassignment) {
+                                Swal.fire('تنبيه', errorObj.responseJSON.message, 'warning');
+                                return;
+                            }
+
+                            handleErrorResponce(errorObj);
+                        }
+                    });
                 });
             });
         });

@@ -35,6 +35,7 @@ use App\Services\ingaz\RecruitmentTripAccountingService;
 use App\Services\ingaz\RecruitmentContractRefundService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -2587,6 +2588,33 @@ class RecruitmentContractController extends Controller
                 'contract_id' => $contract->id,
                 'contract' => $contract->load(['user', 'maid', 'info'])
             ]);
+        } catch (QueryException $e) {
+            DB::rollBack();
+
+            logger()->error('Error creating contract:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->all(),
+                'order_id' => $request->order_id,
+                'client_type' => $request->client_type
+            ]);
+
+            if ($e->getCode() === '23000' && Str::contains($e->getMessage(), 'users_phone_unique')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'رقم جوال العميل مسجل مسبقاً في النظام، يرجى اختيار العميل الموجود أو إدخال رقم آخر',
+                    'errors' => [
+                        'client_phone' => [
+                            'رقم جوال العميل مسجل مسبقاً في النظام، يرجى اختيار العميل الموجود أو إدخال رقم آخر',
+                        ],
+                    ],
+                ], 422);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء إنشاء العقد'
+            ], 500);
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -2600,7 +2628,7 @@ class RecruitmentContractController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'حدث خطأ أثناء إنشاء العقد: ' . $e->getMessage()
+                'message' => 'حدث خطأ أثناء إنشاء العقد'
             ], 500);
         }
     }

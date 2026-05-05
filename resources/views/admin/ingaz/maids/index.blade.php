@@ -79,6 +79,21 @@
             border-color: #820000;
             color: #820000;
         }
+
+        .dropdown-menu.dropdown-menu-end.maids-actions-floating-menu {
+            position: fixed !important;
+            top: var(--maids-actions-top) !important;
+            left: var(--maids-actions-left) !important;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            z-index: 2147483647 !important;
+            right: auto !important;
+            transform: none !important;
+            min-width: 220px;
+            max-height: min(420px, calc(100vh - 24px));
+            overflow-y: auto;
+        }
     </style>
 @endsection
 
@@ -539,6 +554,47 @@
                     });
                 });
             };
+
+            function closeMaidsActionsDropdown() {
+                $('#maidsActionsFloatingMenu').remove();
+
+                $('#dataTableObject .actions-dropdown').each(function() {
+                    $(this).removeClass('show');
+                    $(this).find('.actions-btn').attr('aria-expanded', 'false').removeClass('show');
+                    $(this).find('.dropdown-menu').removeClass('show').removeAttr('style');
+                });
+            }
+
+            function placeMaidsActionsMenu($button, $menu) {
+                const rect = $button[0].getBoundingClientRect();
+                const menuWidth = Math.max($menu.outerWidth() || 220, 220);
+                const menuHeight = Math.max($menu.outerHeight() || 240, 160);
+                const viewportPadding = 12;
+                const topSpace = rect.top - viewportPadding;
+                const bottomSpace = window.innerHeight - rect.bottom - viewportPadding;
+                const openUp = bottomSpace < menuHeight && topSpace > bottomSpace;
+                const top = openUp
+                    ? Math.max(viewportPadding, rect.top - menuHeight - 6)
+                    : Math.max(
+                        viewportPadding,
+                        Math.min(window.innerHeight - viewportPadding - menuHeight, rect.bottom + 6)
+                    );
+                const left = Math.max(
+                    viewportPadding,
+                    Math.min(window.innerWidth - viewportPadding - menuWidth, rect.right - menuWidth)
+                );
+
+                $menu.css({
+                    '--maids-actions-top': top + 'px',
+                    '--maids-actions-left': left + 'px',
+                    right: 'auto',
+                    transform: 'none',
+                    zIndex: 2147483647,
+                    display: 'block',
+                    minWidth: menuWidth + 'px'
+                });
+            }
+
             const table = $('#dataTableObject').DataTable({
                 processing: true,
                 serverSide: true,
@@ -617,8 +673,49 @@
                 ],
                 language: {
                     url: "{{ asset('admin/assets/js/datatable-ar.json') }}"
+                },
+                drawCallback: function() {
+                    $('#dataTableObject .actions-btn').removeAttr('data-bs-toggle data-bs-auto-close data-bs-display');
+                    closeMaidsActionsDropdown();
                 }
             });
+
+            $(document).on('click', '#dataTableObject .actions-btn', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+
+                const $button = $(this);
+                $button.removeAttr('data-bs-toggle data-bs-auto-close data-bs-display');
+                const $dropdown = $button.closest('.actions-dropdown');
+                const $sourceMenu = $dropdown.find('.dropdown-menu');
+                const isOpen = $button.attr('aria-expanded') === 'true';
+
+                closeMaidsActionsDropdown();
+
+                if (isOpen) {
+                    return;
+                }
+
+                const $menu = $('<ul id="maidsActionsFloatingMenu" class="dropdown-menu dropdown-menu-end shadow-lg show maids-actions-floating-menu"></ul>');
+                $menu.html($sourceMenu.html());
+                $('body').append($menu);
+
+                $dropdown.addClass('show');
+                $button.attr('aria-expanded', 'true').addClass('show');
+                placeMaidsActionsMenu($button, $menu);
+            });
+
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('#dataTableObject .actions-dropdown, #maidsActionsFloatingMenu').length) {
+                    closeMaidsActionsDropdown();
+                }
+            });
+
+            $(document).on('click', '#maidsActionsFloatingMenu .dropdown-item, #maidsActionsFloatingMenu form button', function() {
+                setTimeout(closeMaidsActionsDropdown, 0);
+            });
+
             const statsCards = $('.filter-stat-card');
             const defaultStatCard = statsCards.filter('[data-card="total"]').first();
             const maidFiltersForm = document.getElementById('maidFilters');
