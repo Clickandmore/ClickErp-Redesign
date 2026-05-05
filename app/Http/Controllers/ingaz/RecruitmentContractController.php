@@ -2609,6 +2609,10 @@ class RecruitmentContractController extends Controller
     public function show($id, Request $request)
     {
         try {
+            if (!$request->ajax() && !$request->expectsJson() && !$request->has('status') && !$request->has('next_status')) {
+                return $this->details($id);
+            }
+
             if (!$this->canViewRecruitmentContracts()) {
                 return response()->json([
                     'success' => false,

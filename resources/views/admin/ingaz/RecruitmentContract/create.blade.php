@@ -1018,6 +1018,8 @@
         var searchClientsRoute = "{{ route('RecruitmentContract.searchClients') }}";
         var availableMaidsRoute = "{{ route('RecruitmentContract.availableMaids') }}";
         var passportUniqueRoute = "{{ route('check.passport.unique') }}";
+        var manualPassportCheckTimeout;
+        var isManualPassportDuplicate = false;
         var selectedOrder = @json($selectedOrder);
         var hasOrderId = {{ isset($orderId) ? 'true' : 'false' }};
     </script>
@@ -1638,9 +1640,6 @@
             });
 
             applyNewMaidMode(getNewMaidMode());
-
-            var manualPassportCheckTimeout;
-            var isManualPassportDuplicate = false;
 
             $('#manual_maid_passport_num').on('input', function() {
                 var passportNum = $(this).val().trim();
