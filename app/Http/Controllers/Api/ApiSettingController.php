@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\admin\Controller;
+use App\Http\Resources\Api\SettingPoliciesResource;
 use App\Http\Resources\Api\SettingResource as objResource;
 use App\Http\Traits\API\ApiResponse;
 use App\Models\ingaz\Setting as objModel;
@@ -25,6 +26,21 @@ class ApiSettingController extends Controller
        } else {
             return $this->successResponse(null, __('api.not found'), 201);
        }
+    }
+
+    public function policies()
+    {
+        $data = objModel::with('translations')->first();
+
+        if (isset($data->id)) {
+            return $this->successResponse(
+                SettingPoliciesResource::make($data),
+                __('api.All items'),
+                200
+            );
+        }
+
+        return $this->successResponse(null, __('api.not found'), 201);
     }
 
     /**
