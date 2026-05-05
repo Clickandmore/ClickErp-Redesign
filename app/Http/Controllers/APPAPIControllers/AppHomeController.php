@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Resources\Api\JobTitleResource;
 use App\Http\Resources\Api\NotificationResource;
 use App\Http\Resources\Api\PackageResource;
+use App\Http\Resources\Api\SettingPoliciesResource;
 use App\Http\Resources\Api\UserAddressResource;
 use App\Models\auth\Admin;
 use App\Models\ingaz\Contact;
@@ -413,6 +414,17 @@ class AppHomeController extends Controller
         }
 
         return jsonSuccess($this->transformLegacySettings($setting), __('api.All items'));
+    }
+
+    public function settingsPolicies()
+    {
+        $setting = Setting::with('translations')->first();
+
+        if (!$setting) {
+            return jsonSuccess(null, __('api.not found'), 201);
+        }
+
+        return jsonSuccess(SettingPoliciesResource::make($setting), __('api.All items'));
     }
 
     public function formatLegacyMaid(Maid $maid): array

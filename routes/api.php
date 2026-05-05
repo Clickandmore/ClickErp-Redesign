@@ -130,6 +130,7 @@ Route::group(['middleware' => 'lang', 'prefix' => 'client'], function () {
     Route::resource('known-service', ApiKnownServiceController::class)->only(['index', 'store']);
     Route::resource('select-worker', ApiSelectWorkerController::class)->only(['index']);
     Route::resource('contact-us', ApiContactController::class);
+    Route::get('settings/policies', [App\Http\Controllers\Api\ApiSettingController::class, 'policies']);
     Route::resource('settings', ApiSettingController::class);
     // Route::resource('maids', ApiMaidController::class);
     Route::resource('jobs', ApiJobTitleController::class);
@@ -189,6 +190,7 @@ Route::group(['middleware' => AppApiLang::class, 'prefix' => 'user'], function (
     Route::put('address/{id}', [AppHomeController::class, 'editAddress'])->middleware('auth:api');
     Route::delete('address/{id}', [AppHomeController::class, 'deleteAddress'])->middleware('auth:api');
     Route::post('contact-us', [AppHomeController::class, 'contactUs']);
+    Route::get('settings/policies', [AppHomeController::class, 'settingsPolicies']);
     Route::get('settings', [AppHomeController::class, 'settings']);
     
     Route::get('orders', [AppOrderController::class, 'orders'])->middleware('auth:api');
