@@ -90,7 +90,7 @@ class DataImportExecutionService
 
         $headers = [];
         for ($column = 1; $column <= $highestColumnIndex; $column++) {
-            $header = $this->cellValue($sheet->getCellByColumnAndRow($column, 1)->getValue());
+            $header = $this->cellValue($sheet->getCell($this->cellCoordinate($column, 1))->getValue());
             $headers[$column] = $labelMap[$this->normalizeHeader($header)] ?? $header;
         }
 
@@ -103,7 +103,7 @@ class DataImportExecutionService
                     continue;
                 }
 
-                $row[$key] = $this->cellValue($sheet->getCellByColumnAndRow($column, $rowNumber)->getValue());
+                $row[$key] = $this->cellValue($sheet->getCell($this->cellCoordinate($column, $rowNumber))->getValue());
             }
 
             $values = collect($row)->filter(fn ($value) => $value !== null && $value !== '');
@@ -949,6 +949,11 @@ class DataImportExecutionService
     private function cellValue($value): string
     {
         return trim((string) $value);
+    }
+
+    private function cellCoordinate(int $column, int $row): string
+    {
+        return \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($column) . $row;
     }
 
     private function normalizeHeader(string $value): string
