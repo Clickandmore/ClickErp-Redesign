@@ -74,6 +74,10 @@
             width: 42px;
             text-align: center;
         }
+
+        #dataTableObject .actions-dropdown .dropdown-menu {
+            z-index: 2147483647;
+        }
     </style>
 @endsection
 
@@ -399,6 +403,49 @@
                 updateBulkActions();
             }
 
+            function closeClientsActionsDropdown(exceptDropdown) {
+                $('#dataTableObject .actions-dropdown').each(function() {
+                    if (exceptDropdown && this === exceptDropdown[0]) {
+                        return;
+                    }
+
+                    $(this).removeClass('show');
+                    $(this).find('.actions-btn').attr('aria-expanded', 'false').removeClass('show');
+                    $(this).find('.dropdown-menu').removeClass('show').removeAttr('style');
+                });
+            }
+
+            function placeClientsActionsMenu($button, $menu) {
+                const rect = $button[0].getBoundingClientRect();
+                const menuWidth = Math.max($menu.outerWidth() || 220, 220);
+                const menuHeight = Math.max($menu.outerHeight() || 240, 160);
+                const viewportPadding = 12;
+                const topSpace = rect.top - viewportPadding;
+                const bottomSpace = window.innerHeight - rect.bottom - viewportPadding;
+                const openUp = bottomSpace < menuHeight && topSpace > bottomSpace;
+                const top = openUp
+                    ? Math.max(viewportPadding, rect.top - menuHeight - 6)
+                    : Math.max(
+                        viewportPadding,
+                        Math.min(window.innerHeight - viewportPadding - menuHeight, rect.bottom + 6)
+                    );
+                const left = Math.max(
+                    viewportPadding,
+                    Math.min(window.innerWidth - viewportPadding - menuWidth, rect.right - menuWidth)
+                );
+
+                $menu.css({
+                    position: 'fixed',
+                    top: top + 'px',
+                    left: left + 'px',
+                    right: 'auto',
+                    transform: 'none',
+                    zIndex: 2147483647,
+                    display: 'block',
+                    minWidth: menuWidth + 'px'
+                });
+            }
+
             const table = $('#dataTableObject').DataTable({
                 processing: true,
                 serverSide: true,
@@ -482,7 +529,43 @@
                     if (typeof bootstrap !== 'undefined') {
                         $('[data-bs-toggle="tooltip"]').tooltip();
                     }
+                    closeClientsActionsDropdown();
                     syncBulkCheckboxes();
+                }
+            });
+
+            $(document).on('click', '#dataTableObject .actions-btn', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+
+                const $button = $(this);
+                const $dropdown = $button.closest('.actions-dropdown');
+                const $menu = $dropdown.find('.dropdown-menu');
+                const isOpen = $menu.hasClass('show');
+
+                closeClientsActionsDropdown($dropdown);
+
+                if (isOpen) {
+                    $dropdown.removeClass('show');
+                    $button.attr('aria-expanded', 'false').removeClass('show');
+                    $menu.removeClass('show').removeAttr('style');
+                    return;
+                }
+
+                $dropdown.addClass('show');
+                $button.attr('aria-expanded', 'true').addClass('show');
+                $menu.addClass('show');
+                placeClientsActionsMenu($button, $menu);
+            });
+
+            $(document).on('click', '#dataTableObject .actions-dropdown .dropdown-menu', function(e) {
+                e.stopPropagation();
+            });
+
+            $(document).on('click scroll', function(e) {
+                if (!$(e.target).closest('#dataTableObject .actions-dropdown').length) {
+                    closeClientsActionsDropdown();
                 }
             });
 
