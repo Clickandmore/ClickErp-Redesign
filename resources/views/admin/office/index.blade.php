@@ -496,7 +496,7 @@
             officeTable = $('#dataTableObject').DataTable({
                 responsive: true,
                 ordering: true,
-                searching: false,
+                searching: true,
                 iDisplayLength: 10,
                 lengthMenu: [
                     [5, 10, 25, 50, -1],

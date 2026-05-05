@@ -238,6 +238,9 @@
 
     $(document).on('submit', '.from-submit-global', function (e) {
         e.preventDefault();
+        if (window.tinymce && tinymce.editors && tinymce.editors.length) {
+            tinymce.triggerSave();
+        }
         let formData = new FormData(this);
         let url = $(this).attr('action');
         let submitButton = $(e.originalEvent.submitter);
@@ -288,6 +291,9 @@
 
     $(document).on('submit', '.from-submit-update-global', function (e) {
         e.preventDefault();
+        if (window.tinymce && tinymce.editors && tinymce.editors.length) {
+            tinymce.triggerSave();
+        }
         let formData = new FormData(this);
         let url = $(this).attr('action');
         let submitButton = $(e.originalEvent.submitter);
