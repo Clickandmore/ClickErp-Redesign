@@ -1,14 +1,20 @@
 @extends('admin.layout.indexs.index')
 @section('content')
+@php
+    $isEditMode = $isEditMode ?? false;
+    $formAction = $isEditMode
+        ? route('SponsorshipTransfer.update', $transfer->id)
+        : route('SponsorshipTransfer.store');
+@endphp
 <div class="row justify-content-center">
     <div class="col-lg-10 col-md-12">
         <div class="card shadow-sm border-0 mt-3">
             <div class="card-header bg-white border-bottom-0 pb-0">
                 <h3 class="card-title mb-0" style="font-weight:700;font-size:1.5rem;">
                     <i class="fas fa-exchange-alt text-primary me-2"></i>
-                    {{helperTrans("ingaz.add_sponsorship_transfer_request")}}
+                    {{ $isEditMode ? 'تعديل طلب نقل الكفالة' : helperTrans("ingaz.add_sponsorship_transfer_request") }}
                 </h3>
-                @if(isset($selectedOrder) && $selectedOrder)
+                @if(!$isEditMode && isset($selectedOrder) && $selectedOrder)
                     <div class="alert alert-info mt-3">
                         <h6><i class="fas fa-info-circle me-2"></i>طلب من الموقع</h6>
                         <div class="row">
@@ -34,6 +40,9 @@
                 @endif
                 <form id="sponsorshipTransferForm" class="row g-4" enctype="multipart/form-data">
                     @csrf
+                    @if($isEditMode)
+                        @method('PUT')
+                    @endif
                     <!-- اختيار العقد -->
                     <div class="col-12">
                         <label class="form-label fw-bold">اختيار العقد المتاح للنقل <span class="text-danger">*</span></label>
@@ -125,23 +134,23 @@
                     <!-- معلومات العمل التجريبي والتكاليف -->
                     <div class="col-md-6">
                         <label class="form-label fw-bold">عدد أيام العمل التجريبي <span class="text-danger">*</span></label>
-                        <input type="number" name="trial_days" class="form-control" min="1" max="90" required>
+                        <input type="number" name="trial_days" class="form-control" min="1" max="90" value="{{ old('trial_days', $transfer->trial_days ?? '') }}" required>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-bold">تاريخ بداية العمل التجريبي <span class="text-danger">*</span></label>
-                        <input type="date" name="trial_start_date" class="form-control" required>
+                        <input type="date" name="trial_start_date" class="form-control" value="{{ old('trial_start_date', isset($transfer) && $transfer->trial_start_date ? $transfer->trial_start_date->format('Y-m-d') : '') }}" required>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label fw-bold">قيمة العقد <span class="text-danger">*</span></label>
-                        <input type="number" name="contract_value" id="contract_value" class="form-control" min="0" step="0.01" required>
+                        <input type="number" name="contract_value" id="contract_value" class="form-control" min="0" step="0.01" value="{{ old('contract_value', $transfer->contract_value ?? '') }}" required>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label fw-bold">المبلغ المدفوع <span class="text-danger">*</span></label>
-                        <input type="number" name="paid_amount" id="paid_amount" class="form-control" min="0" step="0.01" required>
+                        <input type="number" name="paid_amount" id="paid_amount" class="form-control" min="0" step="0.01" value="{{ old('paid_amount', $transfer->paid_amount ?? '') }}" required>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label fw-bold">المبلغ المتبقي</label>
-                        <input type="number" name="remaining_amount" id="remaining_amount" class="form-control bg-white" readonly>
+                        <input type="number" name="remaining_amount" id="remaining_amount" class="form-control bg-white" value="{{ old('remaining_amount', $transfer->remaining_amount ?? '') }}" readonly>
                     </div>
                     <div class="col-12">
                         <div class="border rounded-3 p-3 bg-light">
@@ -156,49 +165,57 @@
                                     <label for="payment_type" class="form-label fw-bold">طريقة الدفع <span class="text-danger">*</span></label>
                                     <select name="payment_type" id="payment_type" class="form-select" required>
                                         <option value="">اختر الطريقة</option>
-                                        <option value="cash">نقداً</option>
-                                        <option value="bank_transfer">تحويل بنكي</option>
-                                        <option value="mada">مدى</option>
-                                        <option value="tabby">تابي</option>
-                                        <option value="tamara">تمارا</option>
-                                        <option value="pay_later">الدفع لاحقاً</option>
-                                        <option value="other">أخرى</option>
+                                        @php($selectedPaymentType = old('payment_type', $transfer->payment_type ?? ''))
+                                        <option value="cash" {{ $selectedPaymentType === 'cash' ? 'selected' : '' }}>نقداً</option>
+                                        <option value="bank_transfer" {{ $selectedPaymentType === 'bank_transfer' ? 'selected' : '' }}>تحويل بنكي</option>
+                                        <option value="mada" {{ $selectedPaymentType === 'mada' ? 'selected' : '' }}>مدى</option>
+                                        <option value="tabby" {{ $selectedPaymentType === 'tabby' ? 'selected' : '' }}>تابي</option>
+                                        <option value="tamara" {{ $selectedPaymentType === 'tamara' ? 'selected' : '' }}>تمارا</option>
+                                        <option value="pay_later" {{ $selectedPaymentType === 'pay_later' ? 'selected' : '' }}>الدفع لاحقاً</option>
+                                        <option value="other" {{ $selectedPaymentType === 'other' ? 'selected' : '' }}>أخرى</option>
                                     </select>
                                 </div>
                                 <div class="col-md-4">
                                     <label for="payment_status" class="form-label fw-bold">حالة الدفع <span class="text-danger">*</span></label>
                                     <select name="payment_status" id="payment_status" class="form-select" required>
                                         <option value="">اختر الحالة</option>
-                                        <option value="paid">تم الدفع</option>
-                                        <option value="partial">مدفوع جزئياً</option>
-                                        <option value="pending">معلق</option>
-                                        <option value="later">الدفع لاحقاً</option>
-                                        <option value="bank_pending">بانتظار التحويل</option>
+                                        @php($selectedPaymentStatus = old('payment_status', $transfer->payment_status ?? ''))
+                                        <option value="paid" {{ $selectedPaymentStatus === 'paid' ? 'selected' : '' }}>تم الدفع</option>
+                                        <option value="partial" {{ $selectedPaymentStatus === 'partial' ? 'selected' : '' }}>مدفوع جزئياً</option>
+                                        <option value="pending" {{ $selectedPaymentStatus === 'pending' ? 'selected' : '' }}>معلق</option>
+                                        <option value="later" {{ $selectedPaymentStatus === 'later' ? 'selected' : '' }}>الدفع لاحقاً</option>
+                                        <option value="bank_pending" {{ $selectedPaymentStatus === 'bank_pending' ? 'selected' : '' }}>بانتظار التحويل</option>
                                     </select>
                                 </div>
                                 <div class="col-md-4">
                                     <label for="payment_receipt" class="form-label fw-bold">إيصال الدفع</label>
                                     <input type="file" name="payment_receipt" id="payment_receipt" class="form-control" accept=".jpg,.jpeg,.png,.pdf">
                                     <div class="form-text d-none" id="payment_receipt_hint">الإيصال مطلوب عند اختيار تم الدفع أو مدفوع جزئياً.</div>
+                                    @if($isEditMode && $transfer->payment_receipt_path)
+                                        <div class="form-text text-success">يوجد إيصال محفوظ حالياً، ورفع ملف جديد سيستبدله.</div>
+                                    @endif
                                 </div>
                                 <div class="col-12">
                                     <label for="attachments" class="form-label fw-bold">مرفقات إضافية</label>
                                     <input type="file" name="attachments[]" id="attachments" class="form-control" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx" multiple>
                                     <div class="form-text">يمكن رفع أكثر من ملف متعلق بطلب نقل الكفالة.</div>
+                                    @if($isEditMode && !empty($transfer->attachments))
+                                        <div class="form-text text-success">عدد المرفقات المحفوظة حالياً: {{ count($transfer->attachments) }}. رفع مرفقات جديدة سيضيفها إلى القائمة.</div>
+                                    @endif
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="col-12">
                         <label class="form-label fw-bold">ملاحظات إضافية</label>
-                        <textarea name="notes" class="form-control" rows="2" maxlength="1000" placeholder="اكتب أي ملاحظات إضافية هنا..."></textarea>
+                        <textarea name="notes" class="form-control" rows="2" maxlength="1000" placeholder="اكتب أي ملاحظات إضافية هنا...">{{ old('notes', $transfer->notes ?? '') }}</textarea>
                     </div>
                     <div class="col-12 d-flex justify-content-end mt-3">
                         <button type="button" class="btn btn-secondary me-2" onclick="window.history.back()">
                             <i class="fas fa-arrow-left me-2"></i>رجوع
                         </button>
                         <button type="submit" class="btn btn-primary px-4">
-                            <i class="fas fa-save me-2"></i>حفظ الطلب
+                            <i class="fas fa-save me-2"></i>{{ $isEditMode ? 'حفظ التعديلات' : 'حفظ الطلب' }}
                         </button>
                     </div>
                 </form>
@@ -284,7 +301,8 @@ $(document).ready(function() {
 
     function syncPaymentReceiptRequirement() {
         const paymentStatus = $('#payment_status').val();
-        const receiptRequired = paymentStatus === 'paid' || paymentStatus === 'partial';
+        const hasSavedReceipt = {{ $isEditMode && !empty($transfer->payment_receipt_path) ? 'true' : 'false' }};
+        const receiptRequired = (paymentStatus === 'paid' || paymentStatus === 'partial') && !hasSavedReceipt;
         $('#payment_receipt').prop('required', receiptRequired);
         $('#payment_receipt_hint').toggleClass('d-none', !receiptRequired);
     }
@@ -299,7 +317,7 @@ $(document).ready(function() {
         let btn = form.find('button[type=submit]');
         btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...');
         $.ajax({
-            url: '{{ route('SponsorshipTransfer.store') }}',
+            url: '{{ $formAction }}',
             type: 'POST',
             data: new FormData(this),
             processData: false,
@@ -332,7 +350,7 @@ $(document).ready(function() {
                 Swal.fire('خطأ!', msg, 'error');
             },
             complete: function() {
-                btn.prop('disabled', false).html('<i class="fas fa-save me-2"></i>حفظ الطلب');
+                btn.prop('disabled', false).html('<i class="fas fa-save me-2"></i>{{ $isEditMode ? 'حفظ التعديلات' : 'حفظ الطلب' }}');
             }
         });
     });

@@ -268,9 +268,19 @@ class SponsorshipTransferController extends Controller
                                     </a></li>';
                     }
 
-                    // حذف (فقط إذا كان في الانتظار)
-                    if ($transfer->status == 'pending') {
-                        $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="destroy" data-id="' . $transfer->id . '" data-text="حذف الطلب">
+                    if ($transfer->canEditDetails() && @AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_EDIT)) {
+                        $actions .= '<li><hr class="dropdown-divider"></li>';
+                        $actions .= '<li><a class="dropdown-item" href="' . route('SponsorshipTransfer.edit', $transfer->id) . '">
+                                        <i class="fas fa-edit"></i> تعديل
+                                    </a></li>';
+                    }
+
+                    if ($transfer->canDeleteDetails() && @AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_DELETE)) {
+                        if (!($transfer->canEditDetails() && @AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_EDIT))) {
+                            $actions .= '<li><hr class="dropdown-divider"></li>';
+                        }
+
+                        $actions .= '<li><a class="dropdown-item text-danger confirm-action" href="#" data-action="destroy" data-id="' . $transfer->id . '" data-text="حذف الطلب من القائمة بدون حذفه نهائياً">
                                         <i class="fas fa-trash"></i> حذف
                                     </a></li>';
                     }
@@ -680,9 +690,11 @@ class SponsorshipTransferController extends Controller
      */
     public function edit($id)
     {
+        abort_unless(@AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_EDIT), 403);
+
         $transfer = SponsorshipTransfer::with(['contract.maid.nationality', 'oldSponsor', 'newSponsor'])->findOrFail($id);
 
-        if ($transfer->status !== 'pending') {
+        if (!$transfer->canEditDetails()) {
             return redirect()->back()->with('error', 'لا يمكن تحرير هذا الطلب');
         }
 
@@ -694,7 +706,21 @@ class SponsorshipTransferController extends Controller
             ->latest()
             ->get();
 
-        return view($this->folderPath . '.edit', compact('transfer', 'contracts'));
+        $isEditMode = true;
+        $selectedContractId = $transfer->contract_id;
+        $selectedNewSponsorId = $transfer->new_sponsor_id;
+        $selectedNewSponsor = $transfer->newSponsor;
+        $selectedOrder = null;
+
+        return view($this->folderPath . '.create', compact(
+            'transfer',
+            'contracts',
+            'isEditMode',
+            'selectedContractId',
+            'selectedOrder',
+            'selectedNewSponsorId',
+            'selectedNewSponsor'
+        ));
     }
 
     /**
@@ -702,42 +728,131 @@ class SponsorshipTransferController extends Controller
      */
     public function update(Request $request, $id)
     {
+        abort_unless(@AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_EDIT), 403);
+
         try {
             $transfer = SponsorshipTransfer::findOrFail($id);
 
-            if ($transfer->status !== 'pending') {
+            if (!$transfer->canEditDetails()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'لا يمكن تحديث هذا الطلب'
                 ], 400);
             }
 
-            // Validation
-            $request->validate([
-                'new_sponsor_id' => 'required|exists:users,id',
+            $validated = $request->validate([
+                'contract_id' => 'required|exists:contracts,id',
+                'new_sponsor_mode' => 'required|in:existing,new',
+                'new_sponsor_id' => 'required_if:new_sponsor_mode,existing|nullable|exists:users,id',
+                'new_sponsor_name' => 'required_if:new_sponsor_mode,new|nullable|string|max:255',
+                'new_sponsor_phone' => 'required_if:new_sponsor_mode,new|nullable|string|max:20',
+                'new_sponsor_national_num' => 'nullable|string|max:50',
                 'trial_days' => 'required|integer|min:1|max:90',
                 'trial_start_date' => 'required|date',
                 'contract_value' => 'required|numeric|min:0',
-                'paid_amount' => 'required|numeric|min:0',
+                'paid_amount' => 'required|numeric|min:0|lte:contract_value',
+                'payment_type' => 'required|in:cash,bank_transfer,mada,tabby,tamara,pay_later,other',
+                'payment_status' => 'required|in:paid,partial,pending,later,bank_pending',
+                'payment_receipt' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+                'attachments' => 'nullable|array',
+                'attachments.*' => 'file|mimes:jpg,jpeg,png,pdf,doc,docx|max:8192',
                 'notes' => 'nullable|string|max:1000',
             ]);
 
+            if (
+                in_array($validated['payment_status'], ['paid', 'partial'], true)
+                && !$request->hasFile('payment_receipt')
+                && !$transfer->payment_receipt_path
+            ) {
+                throw ValidationException::withMessages([
+                    'payment_receipt' => 'يجب إرفاق إيصال الدفع عند تحديد حالة الدفع تم الدفع أو مدفوع جزئياً',
+                ]);
+            }
+
+            $contract = Contract::with('info')->find($validated['contract_id']);
+
+            if (!$contract || !$contract->info || $contract->info->wants_to_work !== 'yes') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'هذا العقد غير متاح للنقل'
+                ], 400);
+            }
+
+            DB::beginTransaction();
+
+            $newSponsor = $validated['new_sponsor_mode'] === 'existing'
+                ? User::find($validated['new_sponsor_id'])
+                : $this->findOrCreateNewSponsor($validated);
+
+            if (!$newSponsor) {
+                throw ValidationException::withMessages([
+                    'new_sponsor_id' => 'الكفيل الجديد غير موجود',
+                ]);
+            }
+
+            if ((int) $newSponsor->id === (int) $contract->user_id) {
+                throw ValidationException::withMessages([
+                    'new_sponsor_id' => 'لا يمكن اختيار نفس العميل الحالي ككفيل جديد',
+                ]);
+            }
+
+            $paymentReceiptPath = $transfer->payment_receipt_path;
+            if ($request->hasFile('payment_receipt')) {
+                $paymentReceiptPath = $request->file('payment_receipt')->store('sponsorship-transfers/receipts', 'public');
+            }
+
+            $attachments = $transfer->attachments ?: [];
+            foreach ($request->file('attachments', []) as $file) {
+                $attachments[] = [
+                    'path' => $file->store('sponsorship-transfers/attachments', 'public'),
+                    'name' => $file->getClientOriginalName(),
+                    'mime_type' => $file->getClientMimeType(),
+                    'size' => $file->getSize(),
+                ];
+            }
+
             $transfer->update([
-                'new_sponsor_id' => $request->new_sponsor_id,
-                'trial_days' => $request->trial_days,
-                'trial_start_date' => $request->trial_start_date,
-                'contract_value' => $request->contract_value,
-                'paid_amount' => $request->paid_amount,
-                'remaining_amount' => $request->contract_value - $request->paid_amount,
-                'notes' => $request->notes,
+                'contract_id' => $contract->id,
+                'old_sponsor_id' => $contract->user_id,
+                'new_sponsor_id' => $newSponsor->id,
+                'trial_days' => $validated['trial_days'],
+                'trial_start_date' => $validated['trial_start_date'],
+                'contract_value' => $validated['contract_value'],
+                'paid_amount' => $validated['paid_amount'],
+                'remaining_amount' => $validated['contract_value'] - $validated['paid_amount'],
+                'payment_type' => $validated['payment_type'],
+                'payment_status' => $validated['payment_status'],
+                'payment_receipt_path' => $paymentReceiptPath,
+                'attachments' => $attachments ?: null,
+                'payment_confirmed_at' => (float) $validated['paid_amount'] > 0 ? ($transfer->payment_confirmed_at ?? now()) : null,
+                'payment_confirmed_by' => (float) $validated['paid_amount'] > 0 ? ($transfer->payment_confirmed_by ?? auth('admin')->id()) : null,
+                'notes' => $validated['notes'] ?? null,
             ]);
+
+            DB::commit();
 
             return response()->json([
                 'success' => true,
                 'message' => 'تم تحديث طلب نقل الكفالة بنجاح'
             ]);
 
-        } catch (\Exception $e) {
+        } catch (ValidationException $e) {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => collect($e->errors())->flatten()->first() ?? 'البيانات المدخلة غير صحيحة',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Throwable $e) {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+
+            \Log::error('Error in SponsorshipTransfer update: ' . $e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'حدث خطأ في تحديث طلب نقل الكفالة'
@@ -852,10 +967,12 @@ class SponsorshipTransferController extends Controller
      */
     public function destroy($id)
     {
+        abort_unless(@AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_DELETE), 403);
+
         try {
             $transfer = SponsorshipTransfer::findOrFail($id);
 
-            if ($transfer->status !== 'pending') {
+            if (!$transfer->canDeleteDetails()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'لا يمكن حذف هذا الطلب'
@@ -866,7 +983,7 @@ class SponsorshipTransferController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم حذف طلب نقل الكفالة بنجاح'
+                'message' => 'تم حذف طلب نقل الكفالة من القائمة بنجاح'
             ]);
 
         } catch (\Exception $e) {

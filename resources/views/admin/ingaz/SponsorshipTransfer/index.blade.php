@@ -150,7 +150,7 @@
 @endsection
 
 @section('content')
-@if(auth()->guard('admin')->user()->can('sponsor_transfer_view'))
+@if(@AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_VIEW) || @AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_CONTROL))
     <div class="container-fluid">
         <!-- Header Section -->
         <div class="d-sm-flex align-items-center justify-content-between mb-4">
@@ -159,14 +159,18 @@
                 {{helperTrans("ingaz.sponsorship_transfer_requests")}}
             </h1>
             <div class="d-flex gap-2">
-                <a href="{{ route('SponsorshipTransfer.webRequests') }}" class="btn btn-info">
-                    <i class="fas fa-globe me-2"></i>
-                    طلبات الموقع الخارجي
-                </a>
-                <a href="{{ route('SponsorshipTransfer.create') }}" class="btn btn-primary">
-                    <i class="fas fa-plus me-2"></i>
-                    {{helperTrans("ingaz.add_sponsorship_transfer_request")}}
-                </a>
+                @if(@AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_WEB_REQUESTS_VIEW) || @AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_CONTROL))
+                    <a href="{{ route('SponsorshipTransfer.webRequests') }}" class="btn btn-info">
+                        <i class="fas fa-globe me-2"></i>
+                        طلبات الموقع الخارجي
+                    </a>
+                @endif
+                @if(@AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_CREATE) || @AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_CONTROL))
+                    <a href="{{ route('SponsorshipTransfer.create') }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>
+                        {{helperTrans("ingaz.add_sponsorship_transfer_request")}}
+                    </a>
+                @endif
             </div>
         </div>
 

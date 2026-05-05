@@ -359,7 +359,7 @@
             <a href="{{ route('SponsorshipTransfer.index') }}" class="btn-icon btn-back" title="العودة">
                 <i class="fas fa-arrow-right"></i>
             </a>
-            @if ($transfer->status === 'pending')
+            @if ($transfer->canEditDetails() && @AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_EDIT))
                 <a href="{{ route('SponsorshipTransfer.edit', $transfer->id) }}" class="btn-icon btn-edit" title="تحرير">
                     <i class="fas fa-edit"></i>
                 </a>

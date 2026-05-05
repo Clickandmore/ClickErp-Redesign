@@ -4,12 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\ingaz\User;
 use App\Models\auth\Admin;
 
 class SponsorshipTransfer extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'contract_id',
@@ -252,6 +253,16 @@ class SponsorshipTransfer extends Model
     public function canPrintContract()
     {
         return $this->status === 'waiting_contract_send';
+    }
+
+    public function canEditDetails(): bool
+    {
+        return in_array($this->status, ['pending', 'waiting_contract_send'], true);
+    }
+
+    public function canDeleteDetails(): bool
+    {
+        return in_array($this->status, ['pending', 'waiting_contract_send'], true);
     }
 
     public function canCreateContract()
