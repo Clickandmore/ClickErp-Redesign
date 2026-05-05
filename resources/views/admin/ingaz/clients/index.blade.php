@@ -78,6 +78,27 @@
         #dataTableObject .actions-dropdown .dropdown-menu {
             z-index: 2147483647;
         }
+
+        #dataTableObject .actions-dropdown .dropdown-menu.show {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+
+        .dropdown-menu.dropdown-menu-end.clients-actions-floating-menu {
+            position: fixed !important;
+            top: var(--clients-actions-top) !important;
+            left: var(--clients-actions-left) !important;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            z-index: 2147483647 !important;
+            right: auto !important;
+            transform: none !important;
+            min-width: 220px;
+            max-height: min(420px, calc(100vh - 24px));
+            overflow-y: auto;
+        }
     </style>
 @endsection
 
@@ -404,6 +425,8 @@
             }
 
             function closeClientsActionsDropdown(exceptDropdown) {
+                $('#clientsActionsFloatingMenu').remove();
+
                 $('#dataTableObject .actions-dropdown').each(function() {
                     if (exceptDropdown && this === exceptDropdown[0]) {
                         return;
@@ -435,9 +458,8 @@
                 );
 
                 $menu.css({
-                    position: 'fixed',
-                    top: top + 'px',
-                    left: left + 'px',
+                    '--clients-actions-top': top + 'px',
+                    '--clients-actions-left': left + 'px',
                     right: 'auto',
                     transform: 'none',
                     zIndex: 2147483647,
@@ -529,6 +551,7 @@
                     if (typeof bootstrap !== 'undefined') {
                         $('[data-bs-toggle="tooltip"]').tooltip();
                     }
+                    $('#dataTableObject .actions-btn').removeAttr('data-bs-toggle data-bs-auto-close data-bs-display');
                     closeClientsActionsDropdown();
                     syncBulkCheckboxes();
                 }
@@ -540,31 +563,32 @@
                 e.stopImmediatePropagation();
 
                 const $button = $(this);
+                $button.removeAttr('data-bs-toggle data-bs-auto-close data-bs-display');
                 const $dropdown = $button.closest('.actions-dropdown');
-                const $menu = $dropdown.find('.dropdown-menu');
-                const isOpen = $menu.hasClass('show');
+                const $sourceMenu = $dropdown.find('.dropdown-menu');
+                const isOpen = $button.attr('aria-expanded') === 'true';
 
-                closeClientsActionsDropdown($dropdown);
+                closeClientsActionsDropdown();
 
                 if (isOpen) {
-                    $dropdown.removeClass('show');
-                    $button.attr('aria-expanded', 'false').removeClass('show');
-                    $menu.removeClass('show').removeAttr('style');
                     return;
                 }
 
+                const $menu = $('<ul id="clientsActionsFloatingMenu" class="dropdown-menu dropdown-menu-end shadow-lg show clients-actions-floating-menu"></ul>');
+                $menu.html($sourceMenu.html());
+                $('body').append($menu);
+
                 $dropdown.addClass('show');
                 $button.attr('aria-expanded', 'true').addClass('show');
-                $menu.addClass('show');
                 placeClientsActionsMenu($button, $menu);
             });
 
-            $(document).on('click', '#dataTableObject .actions-dropdown .dropdown-menu', function(e) {
+            $(document).on('click', '#clientsActionsFloatingMenu', function(e) {
                 e.stopPropagation();
             });
 
-            $(document).on('click scroll', function(e) {
-                if (!$(e.target).closest('#dataTableObject .actions-dropdown').length) {
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('#dataTableObject .actions-dropdown, #clientsActionsFloatingMenu').length) {
                     closeClientsActionsDropdown();
                 }
             });
