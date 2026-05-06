@@ -6,7 +6,33 @@
     @include('site.includes.css')
 
     @yield('style')
-    <title> @yield('title') | {{ isset($settings) ? optional($settings->translate(app()->getLocale()))->website_name : documentSetting('website_name', config('app.name')) }}</title>
+    <title> @yield('title') |
+        {{ isset($settings) ? optional($settings->translate(app()->getLocale()))->website_name : documentSetting('website_name', config('app.name')) }}
+    </title>
+    <!-- Google tag (gtag.js) event -->
+    <script>
+        gtag('event', 'ads_conversion___1', {
+            // <event_parameters>
+        });
+    </script>
+    <!-- Google tag (gtag.js) event -->
+    <script>
+        gtag('event', 'ads_conversion___2', {
+            // <event_parameters>
+        });
+    </script>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-923324756"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+
+        function gtag() {
+            dataLayer.push(arguments);
+        }
+        gtag('js', new Date());
+
+        gtag('config', 'AW-923324756');
+    </script>
 
 </head>
 
