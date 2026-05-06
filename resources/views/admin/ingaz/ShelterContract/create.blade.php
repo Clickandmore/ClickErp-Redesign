@@ -856,12 +856,17 @@
                     setReturnDateToToday();
                 }
                 toggleInstantDisplayField();
-                calculateDurationFromArrivalDate($('#arrival_date').val());
 
                 const initialOption = $('#contract_id').find('option:selected');
                 if (initialOption.length && initialOption.val()) {
+                    const initialArrivalDate = initialOption.data('arrivalDate');
+                    if (initialArrivalDate && !$('#arrival_date').val()) {
+                        $('#arrival_date').val(initialArrivalDate);
+                    }
                     fillSnapshotFields(initialOption.data(), true);
                 }
+
+                calculateDurationFromArrivalDate($('#arrival_date').val());
             });
 
             // تعيين تاريخ الإرجاع عند تغيير العقد
@@ -980,6 +985,7 @@
                     let contractData = selectedOption.data();
                     if (contractData.arrivalDate) {
                         $('#arrival_date').val(contractData.arrivalDate);
+                        $('#arrival_date').trigger('change');
                         return;
                     }
 
@@ -1003,113 +1009,9 @@
                 }
             });
 
-            // Select2 AJAX للعملاء
-            $('#existing_client_id').select2({
-                placeholder: '{{ helperTrans('ingaz.choose') }}',
-                allowClear: true,
-                ajax: {
-                    url: '{{ route('Contract.searchClients') }}',
-                    dataType: 'json',
-                    delay: 250,
-                    data: function(params) {
-                        return {
-                            search: params.term || ''
-                        };
-                    },
-                    processResults: function(data) {
-                        return {
-                            results: data.results || []
-                        };
-                    },
-                    cache: true
-                },
-                minimumInputLength: 1,
-                language: {
-                    noResults: function() {
-                        return "{{ helperTrans('ingaz.no_results_found') }}";
-                    },
-                    searching: function() {
-                        return "{{ helperTrans('ingaz.searching') }}";
-                    }
-                }
-            });
-
-            // Select2 AJAX للعاملة
-            $('#maid_id').select2({
-                placeholder: '{{ helperTrans('ingaz.choose') }}',
-                allowClear: true,
-                ajax: {
-                    url: '{{ route('Contract.searchMaids') }}',
-                    dataType: 'json',
-                    delay: 250,
-                    data: function(params) {
-                        return {
-                            search: params.term || ''
-                        };
-                    },
-                    processResults: function(data) {
-                        return {
-                            results: (data.maids || []).map(function(item) {
-                                return {
-                                    id: item.id,
-                                    text: item.text,
-                                    maid: item.maid || item
-                                };
-                            })
-                        };
-                    },
-                    cache: true
-                },
-                minimumInputLength: 1,
-                language: {
-                    noResults: function() {
-                        return "{{ helperTrans('ingaz.no_maids_found') }}";
-                    },
-                    searching: function() {
-                        return "{{ helperTrans('ingaz.searching') }}";
-                    }
-                }
-            });
-
-            // عند اختيار العاملة، عرض التفاصيل
-            $('#maid_id').on('select2:select', function(e) {
-                var maid = e.params.data.maid;
-                console.log(maid);
-
-                if (maid) {
-                    $('#maid_name_display').text(maid.name);
-                    $('#maid_passport_display').text(maid.passport_num);
-                    $('#maid_nationality_display').text(maid.nationality || 'غير محدد');
-                    $('#maid_age_display').text(maid.age || 'غير محدد');
-                    $('#maid_salary_display').text(maid.salary || 'غير محدد');
-                    $('#maid_experience_display').text(maid.experience_years || 'غير محدد');
-                    $('#maid_details').show();
-                }
-            });
-
-            $('#maid_id').on('select2:clear', function(e) {
-                $('#maid_details').hide();
-            });
-
-            // استيراد بيانات العميل عند اختياره
-            $('#existing_client_id').on('select2:select', function(e) {
-                var client = e.params.data;
-                if (client) {
-                    // استيراد رقم الهوية
-                    if (client.national_num) {
-                        $('#client_national_num').val(client.national_num);
-                    }
-
-                    // استيراد تاريخ الميلاد
-                    if (client.birthdate) {
-                        $('#client_birthdate').val(client.birthdate);
-                    }
-                }
-            });
-
-            // إعادة تهيئة Select2 عند فتح المودال
-            $('#createContractModal').on('shown.bs.modal', function() {
-                $('#existing_client_id').select2('destroy').select2({
+            function initCompletedContractClientSelect() {
+                $('#existing_client_id').select2({
+                    dropdownParent: $('#createContractModal'),
                     placeholder: '{{ helperTrans('ingaz.choose') }}',
                     allowClear: true,
                     ajax: {
@@ -1118,36 +1020,34 @@
                         delay: 250,
                         data: function(params) {
                             return {
-                                search: params.term || ''
+                                search: params.term || '',
+                                page: params.page || 1
                             };
                         },
                         processResults: function(data) {
                             return {
-                                results: data.results || []
+                                results: data.results || [],
+                                pagination: data.pagination || {
+                                    more: false
+                                }
                             };
                         },
                         cache: true
                     },
-                    minimumInputLength: 1
-                });
-
-                // استيراد بيانات العميل عند اختياره في المودال
-                $('#existing_client_id').off('select2:select').on('select2:select', function(e) {
-                    var client = e.params.data;
-                    if (client) {
-                        // استيراد رقم الهوية
-                        if (client.national_num) {
-                            $('#client_national_num').val(client.national_num);
-                        }
-
-                        // استيراد تاريخ الميلاد
-                        if (client.birthdate) {
-                            $('#client_birthdate').val(client.birthdate);
+                    language: {
+                        noResults: function() {
+                            return "{{ helperTrans('ingaz.no_results_found') }}";
+                        },
+                        searching: function() {
+                            return "{{ helperTrans('ingaz.searching') }}";
                         }
                     }
                 });
+            }
 
-                $('#maid_id').select2('destroy').select2({
+            function initCompletedContractMaidSelect() {
+                $('#maid_id').select2({
+                    dropdownParent: $('#createContractModal'),
                     placeholder: '{{ helperTrans('ingaz.choose') }}',
                     allowClear: true,
                     ajax: {
@@ -1172,8 +1072,114 @@
                         },
                         cache: true
                     },
-                    minimumInputLength: 1
+                    language: {
+                        noResults: function() {
+                            return "{{ helperTrans('ingaz.no_maids_found') }}";
+                        },
+                        searching: function() {
+                            return "{{ helperTrans('ingaz.searching') }}";
+                        }
+                    }
                 });
+            }
+
+            initCompletedContractClientSelect();
+            initCompletedContractMaidSelect();
+
+            $('#maid_id').on('select2:open', function() {
+                if ($(this).find('option').length > 1) {
+                    return;
+                }
+
+                $.ajax({
+                    url: '{{ route('Contract.searchMaids') }}',
+                    dataType: 'json',
+                    data: {
+                        search: ''
+                    },
+                    success: function(data) {
+                        var $select = $('#maid_id');
+                        $select.empty().append(new Option('{{ helperTrans('ingaz.choose') }}', '', true, false));
+
+                        (data.maids || []).forEach(function(item) {
+                            var option = new Option(item.text, item.id, false, false);
+                            $(option).data('data', {
+                                id: item.id,
+                                text: item.text,
+                                maid: item.maid || item
+                            });
+                            $select.append(option);
+                        });
+                    }
+                });
+            });
+
+            // عند اختيار العاملة، عرض التفاصيل
+            $('#maid_id').on('select2:select', function(e) {
+                var selectedMaid = e.params.data;
+                var maid = selectedMaid.maid || ($(selectedMaid.element).data('data') || {}).maid;
+                console.log(maid);
+
+                if (maid) {
+                    $('#maid_name_display').text(maid.name);
+                    $('#maid_passport_display').text(maid.passport_num);
+                    $('#maid_nationality_display').text(maid.nationality || 'غير محدد');
+                    $('#maid_age_display').text(maid.age || 'غير محدد');
+                    $('#maid_salary_display').text(maid.salary || 'غير محدد');
+                    $('#maid_experience_display').text(maid.experience_years || 'غير محدد');
+                    $('#maid_details').show();
+                }
+            });
+
+            $('#maid_id').on('select2:clear', function(e) {
+                $('#maid_details').hide();
+            });
+
+            // استيراد بيانات العميل عند اختياره
+            $('#existing_client_id').on('select2:select', function(e) {
+                var selectedClient = e.params.data;
+                var client = $(selectedClient.element).data('data') || selectedClient;
+                if (client) {
+                    // استيراد رقم الهوية
+                    if (client.national_num) {
+                        $('#client_national_num').val(client.national_num);
+                    }
+
+                    // استيراد تاريخ الميلاد
+                    if (client.birthdate) {
+                        $('#client_birthdate').val(client.birthdate);
+                    }
+                }
+            });
+
+            // إعادة تهيئة Select2 عند فتح المودال
+            $('#createContractModal').on('shown.bs.modal', function() {
+                if ($('#existing_client_id').hasClass('select2-hidden-accessible')) {
+                    $('#existing_client_id').select2('destroy');
+                }
+                initCompletedContractClientSelect();
+
+                // استيراد بيانات العميل عند اختياره في المودال
+                $('#existing_client_id').off('select2:select').on('select2:select', function(e) {
+                    var selectedClient = e.params.data;
+                    var client = $(selectedClient.element).data('data') || selectedClient;
+                    if (client) {
+                        // استيراد رقم الهوية
+                        if (client.national_num) {
+                            $('#client_national_num').val(client.national_num);
+                        }
+
+                        // استيراد تاريخ الميلاد
+                        if (client.birthdate) {
+                            $('#client_birthdate').val(client.birthdate);
+                        }
+                    }
+                });
+
+                if ($('#maid_id').hasClass('select2-hidden-accessible')) {
+                    $('#maid_id').select2('destroy');
+                }
+                initCompletedContractMaidSelect();
             });
 
             // تبديل نوع العميل
@@ -1417,6 +1423,7 @@
             // إعادة تعيين النموذج عند إغلاق modal
             $('#createContractModal').on('hidden.bs.modal', function() {
                 $('#createContractForm')[0].reset();
+                $('#existing_client_id, #maid_id').val(null).trigger('change');
                 $('#maid_details').hide();
                 $('.new-client-field').hide();
                 $('.new-maid-field').hide();

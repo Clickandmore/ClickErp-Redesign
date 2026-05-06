@@ -479,19 +479,24 @@ class Contract extends Model
             ->latest('id')
             ->first();
 
-        if (!$travelHistory) {
-            $this->update(['warranty_status' => 'not_applicable']);
-            return;
-        }
-
         $arrivalDateTime = null;
 
-        if ($travelHistory->arrival_date && $travelHistory->arrival_time) {
+        if ($travelHistory && $travelHistory->arrival_date && $travelHistory->arrival_time) {
             $arrivalDateTime = \Carbon\Carbon::parse($travelHistory->arrival_date . ' ' . $travelHistory->arrival_time);
-        } elseif ($travelHistory->arrival_date) {
+        } elseif ($travelHistory && $travelHistory->arrival_date) {
             $arrivalDateTime = \Carbon\Carbon::parse($travelHistory->arrival_date);
-        } elseif (!empty($travelHistory->arrived_at)) {
+        } elseif ($travelHistory && !empty($travelHistory->arrived_at)) {
             $arrivalDateTime = \Carbon\Carbon::parse($travelHistory->arrived_at);
+        }
+
+        $infoArrivalDate = $this->info?->arrival_date;
+        if (!$arrivalDateTime && $infoArrivalDate) {
+            $arrivalDateTime = \Carbon\Carbon::parse($infoArrivalDate);
+        }
+
+        $maidArrivalDate = $this->maid?->arrival_date;
+        if (!$arrivalDateTime && $maidArrivalDate) {
+            $arrivalDateTime = \Carbon\Carbon::parse($maidArrivalDate);
         }
 
         if (!$arrivalDateTime) {

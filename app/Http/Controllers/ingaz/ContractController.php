@@ -30,17 +30,28 @@ class ContractController extends Controller
     public function searchClients(Request $request)
     {
         try {
-            $search = $request->get('search', '');
+            $search = trim((string) $request->get('search', ''));
+            $phoneSearchTerms = $this->buildPhoneSearchTerms($search);
+            $page = max(1, (int) $request->get('page', 1));
+            $perPage = 50;
 
-            $clients = User::query()
-                ->when($search, function($query) use ($search) {
-                    $query->where(function($q) use ($search) {
+            $clientsQuery = User::query()
+                ->when($search, function($query) use ($search, $phoneSearchTerms) {
+                    $query->where(function($q) use ($search, $phoneSearchTerms) {
                         $q->where('name', 'like', "%{$search}%")
-                          ->orWhere('phone', 'like', "%{$search}%");
+                          ->orWhere('national_num', 'like', "%{$search}%");
+
+                        foreach ($phoneSearchTerms as $phoneSearchTerm) {
+                            $q->orWhere('phone', 'like', "%{$phoneSearchTerm}%")
+                                ->orWhere('phone2', 'like', "%{$phoneSearchTerm}%");
+                        }
                     });
                 })
-                ->limit(20)
-                ->get(['id', 'name', 'phone', 'national_num', 'birthdate']);
+                ->latest('id');
+
+            $clients = (clone $clientsQuery)
+                ->forPage($page, $perPage)
+                ->get(['id', 'name', 'phone', 'phone2', 'national_num', 'birthdate']);
 
             $results = $clients->map(function($client) {
                 return [
@@ -51,7 +62,12 @@ class ContractController extends Controller
                 ];
             });
 
-            return response()->json(['results' => $results]);
+            return response()->json([
+                'results' => $results,
+                'pagination' => [
+                    'more' => (clone $clientsQuery)->count() > ($page * $perPage),
+                ],
+            ]);
 
         } catch (\Exception $e) {
             return response()->json([
@@ -59,6 +75,31 @@ class ContractController extends Controller
                 'error' => 'حدث خطأ أثناء البحث عن العملاء'
             ], 500);
         }
+    }
+
+    private function buildPhoneSearchTerms(string $search): array
+    {
+        $digits = preg_replace('/\D+/', '', $search);
+
+        if ($digits === '') {
+            return [$search];
+        }
+
+        $local = $digits;
+        if (str_starts_with($local, '966')) {
+            $local = substr($local, 3);
+        }
+        if (str_starts_with($local, '0')) {
+            $local = substr($local, 1);
+        }
+
+        return array_values(array_unique(array_filter([
+            $search,
+            $digits,
+            $local,
+            '0' . $local,
+            '966' . $local,
+        ])));
     }
 
     /**
@@ -224,7 +265,6 @@ class ContractController extends Controller
                 'tafwed_number' => $contractData['tafwed_number'] ?? null,
                 'visa_milad_date' => $contractData['visa_milad_date'] ?? null,
                 'status' => $contractData['contract_status'] ?? 'active',
-                'desc' => $maid->name . ' - ' . $maid->passport_num
             ]);
 
             // Update maid status
@@ -354,7 +394,6 @@ class ContractController extends Controller
                 'contract_date' => $contractData['contract_date'],
                 'visa_number' => $contractData['visa_number'],
                 'msaned_number' => $contractData['msaned_number'] ?? '',
-                'desc' => $maid->name . ' - ' . $maid->passport_num,
             ]);
 
             // Create contract info with arrival date
@@ -368,6 +407,9 @@ class ContractController extends Controller
 
             // Update maid status to completed
             $maid->update(['status' => 'completed']);
+
+            $contract->setRelation('info', $contractInfo);
+            $contract->calculateWarrantyStatus();
 
             DB::commit();
 
