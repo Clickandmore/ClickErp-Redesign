@@ -244,7 +244,7 @@ class FormSettingsController extends Controller
             'supplierOtherPhone' => $this->printableSetting('other_phone', '+966 55 765 4321'),
             'supplierEmail' => $this->printableSetting('email', 'info@clickerp.test'),
             'supplierTaxNumber' => $this->printableSetting('tax_number', '314232024200003'),
-            'supplierLogo' => documentLogoUrl(asset('admin/assets/img/company_logo.png')),
+            'supplierLogo' => documentLogoUrl(asset('admin/assets/img/company_logo.jpeg')),
             'invoiceTitle' => (string) documentSetting('invoice_title', 'فاتورة ضريبية مبسطة'),
             'invoiceSubtitle' => (string) documentSetting('invoice_subtitle', 'Simplified Tax Invoice'),
             'invoiceFooterText' => (string) replaceDocumentPlaceholders(documentSetting('invoice_footer_text', '')),

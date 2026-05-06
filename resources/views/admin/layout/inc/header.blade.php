@@ -320,11 +320,11 @@ $quickLinks = collect([
                             ? showFile($settings->admin_logo)
                             : (isset($settings) && !empty($settings->logo_header)
                                 ? showFile($settings->logo_header)
-                                : asset('site/assets/images/company_logo.png'));
+                                : asset('admin/assets/img/company_logo.jpeg'));
                 @endphp
                 <a href="{{ route('dashboard.index') }}" class="brand-icon cm-brand d-flex align-items-center mx-2 mx-sm-3">
                     <img class="cm-header-logo" src="{{ $headerLogo }}" alt="logo"
-                        onerror="this.onerror=null;this.src='{{ asset('site/assets/images/company_logo.png') }}';">
+                        onerror="this.onerror=null;this.src='{{ asset('admin/assets/img/company_logo.jpeg') }}';">
                     <span class="cm-brand-text">
                         <small class="cm-brand-subtitle">{{ $headerDashboardName ?: helperTrans('ingaz.dashboard') }}</small>
                     </span>
