@@ -486,7 +486,7 @@ if (!function_exists('documentBranding')) {
         return [
             'company_name' => $companyName,
             'office_name' => $officeName,
-            'logo_url' => documentLogoUrl(asset('admin/assets/img/company_logo.png')),
+            'logo_url' => documentLogoUrl(asset('admin/assets/img/company_logo.jpeg')),
             'logo_path' => documentLogoPath(),
             'footer_note' => replaceDocumentPlaceholders($footerTemplate, [
                 'اسم_الشركة' => $companyName,

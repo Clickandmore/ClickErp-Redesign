@@ -4,4 +4,12 @@
 <meta name="description" content="">
 <meta name="keyword" content="">
 <meta name="csrf-token" content="{{ csrf_token() }}">
-<link rel="icon" href="{{ asset('admin') }}/assets/img/fav.png" type="image/x-icon">
+
+@php
+    $favicon =
+        isset($settings) && !empty($settings->favicon)
+            ? showFile($settings->favicon)
+                : asset('admin/assets/img/fav.png');
+@endphp
+
+<link rel="icon" href="{{ $favicon }}" type="image/x-icon">
