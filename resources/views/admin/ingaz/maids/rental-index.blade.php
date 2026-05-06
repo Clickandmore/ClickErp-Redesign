@@ -99,6 +99,21 @@
             min-width: 118px;
         }
 
+        .dropdown-menu.dropdown-menu-end.rental-actions-floating-menu {
+            position: fixed !important;
+            top: var(--rental-actions-top) !important;
+            left: var(--rental-actions-left) !important;
+            right: auto !important;
+            transform: none !important;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            z-index: 2147483647 !important;
+            min-width: 220px;
+            max-height: min(420px, calc(100vh - 24px));
+            overflow-y: auto;
+        }
+
         @media (max-width: 768px) {
             .rental-page .table-responsive {
                 font-size: 0.875rem;
@@ -485,6 +500,46 @@
                 ? new bootstrap.Modal(rentalFinanceItemsModalElement)
                 : null;
 
+            function closeRentalActionsDropdown() {
+                $('#rentalActionsFloatingMenu').remove();
+
+                $('#dataTableObject .actions-dropdown').each(function() {
+                    $(this).removeClass('show');
+                    $(this).find('.actions-btn').attr('aria-expanded', 'false').removeClass('show');
+                    $(this).find('.dropdown-menu').removeClass('show').removeAttr('style');
+                });
+            }
+
+            function placeRentalActionsMenu($button, $menu) {
+                const rect = $button[0].getBoundingClientRect();
+                const menuWidth = Math.max($menu.outerWidth() || 220, 220);
+                const menuHeight = Math.max($menu.outerHeight() || 240, 160);
+                const viewportPadding = 12;
+                const topSpace = rect.top - viewportPadding;
+                const bottomSpace = window.innerHeight - rect.bottom - viewportPadding;
+                const openUp = bottomSpace < menuHeight && topSpace > bottomSpace;
+                const top = openUp
+                    ? Math.max(viewportPadding, rect.top - menuHeight - 6)
+                    : Math.max(
+                        viewportPadding,
+                        Math.min(window.innerHeight - viewportPadding - menuHeight, rect.bottom + 6)
+                    );
+                const left = Math.max(
+                    viewportPadding,
+                    Math.min(window.innerWidth - viewportPadding - menuWidth, rect.right - menuWidth)
+                );
+
+                $menu.css({
+                    '--rental-actions-top': top + 'px',
+                    '--rental-actions-left': left + 'px',
+                    right: 'auto',
+                    transform: 'none',
+                    zIndex: 2147483647,
+                    display: 'block',
+                    minWidth: menuWidth + 'px'
+                });
+            }
+
             const columns = [
                 { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, className: 'd-none d-md-table-cell' },
                 { data: 'cv_file', orderable: false, searchable: false },
@@ -583,7 +638,47 @@
                 columnDefs: [{
                     targets: '_all',
                     className: 'align-middle'
-                }]
+                }],
+                drawCallback: function() {
+                    $('#dataTableObject .actions-btn').removeAttr('data-bs-toggle data-bs-auto-close data-bs-display');
+                    closeRentalActionsDropdown();
+                }
+            });
+
+            $(document).on('click', '#dataTableObject .actions-btn', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+
+                const $button = $(this);
+                $button.removeAttr('data-bs-toggle data-bs-auto-close data-bs-display');
+                const $dropdown = $button.closest('.actions-dropdown');
+                const $sourceMenu = $dropdown.find('.dropdown-menu');
+                const isOpen = $button.attr('aria-expanded') === 'true';
+
+                closeRentalActionsDropdown();
+
+                if (isOpen) {
+                    return;
+                }
+
+                const $menu = $('<ul id="rentalActionsFloatingMenu" class="dropdown-menu dropdown-menu-end shadow-lg show rental-actions-floating-menu"></ul>');
+                $menu.html($sourceMenu.html());
+                $('body').append($menu);
+
+                $dropdown.addClass('show');
+                $button.attr('aria-expanded', 'true').addClass('show');
+                placeRentalActionsMenu($button, $menu);
+            });
+
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('#dataTableObject .actions-dropdown, #rentalActionsFloatingMenu').length) {
+                    closeRentalActionsDropdown();
+                }
+            });
+
+            $(document).on('click', '#rentalActionsFloatingMenu .dropdown-item, #rentalActionsFloatingMenu form button', function() {
+                setTimeout(closeRentalActionsDropdown, 0);
             });
 
             function updateFilterToggleState() {

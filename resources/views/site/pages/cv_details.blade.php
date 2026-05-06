@@ -732,7 +732,8 @@
             <a href="{{ route('site.packages.show', $maid->id) }}"
                 class="btn book">{{ __('ingaz.labor_rental_request') }}</a>
         @else
-            <button type="button" class="btn book" data-bs-toggle="modal" data-bs-target="#cvBookingModal">
+            <button type="button" class="btn book" id="cvBookingOpenBtn" data-bs-toggle="modal"
+                data-bs-target="#cvBookingModal">
                 {{ __('ingaz.book_cv') }}
             </button>
         @endif
@@ -1075,6 +1076,8 @@
                 const stepService = $('#bookingStepService');
                 const serviceCards = $('.booking-customer-choose .customerOption .btn');
                 const hasServices = bookingForm.find('input[name="customer"]').length > 0;
+                const trackingMaidId = @json((string) $maid->id);
+                const trackingServiceType = @json($type ?: 'estqdam');
                 const resendDefaultText = resendOtpBtn.length ? resendOtpBtn.text().trim() : '';
                 const resendWaitPrefix = "{{ app()->getLocale() === 'ar' ? 'إعادة الإرسال خلال' : 'Resend in' }}";
                 const secondUnit = "{{ app()->getLocale() === 'ar' ? 'ث' : 's' }}";
@@ -1087,6 +1090,30 @@
 
                 if (!bookingForm.length) {
                     return;
+                }
+
+                function updateBookingTrackingUrl(extraParams = {}) {
+                    const currentUrl = new URL(window.location.href);
+
+                    currentUrl.searchParams.set('booking', '1');
+                    currentUrl.searchParams.set('booking_step', extraParams.booking_step || 'opened');
+                    currentUrl.searchParams.set('maid_id', trackingMaidId);
+                    currentUrl.searchParams.set('service_type', trackingServiceType);
+                    currentUrl.searchParams.set('tracking_source', 'cv_details');
+                    currentUrl.searchParams.set('tracking_action', 'book_cv');
+
+                    Object.keys(extraParams).forEach(function(key) {
+                        const value = extraParams[key];
+
+                        if (value === null || value === undefined || value === '') {
+                            currentUrl.searchParams.delete(key);
+                            return;
+                        }
+
+                        currentUrl.searchParams.set(key, value);
+                    });
+
+                    window.history.replaceState({}, '', currentUrl.toString());
                 }
 
                 function setBtnLoading($btn, loading, text) {
@@ -1490,6 +1517,16 @@
                 bookingForm.on('change', 'input[name="customer"]', function() {
                     refreshServiceCards();
                     updateFooterActions();
+                    updateBookingTrackingUrl({
+                        booking_step: 'customer_selected',
+                        customer_service_id: $(this).val()
+                    });
+                });
+
+                $('#cvBookingOpenBtn').on('click', function() {
+                    updateBookingTrackingUrl({
+                        booking_step: isUserAuthenticated ? 'customer_service' : 'auth'
+                    });
                 });
 
                 authTabs.on('click', function() {
@@ -1587,6 +1624,10 @@
                     }
 
                     submitBtn.prop('disabled', true);
+                    updateBookingTrackingUrl({
+                        booking_step: 'submitted',
+                        customer_service_id: selectedCustomer
+                    });
                     submitBtn.html(
                         '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>'
                     );
