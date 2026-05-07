@@ -150,8 +150,12 @@ class AuthController extends Controller
         $user->setRememberToken(\Illuminate\Support\Str::random(60));
         $user->save();
 
+        $user = $user->fresh();
+        $token = JWTAuth::fromUser($user);
+
         return apiResponse(true, __('ingaz.change_password_successfully'), [
-            'user' => new UserResource($user->fresh()),
+            'user' => new UserResource($user),
+            'token' => $token,
         ]);
     }
 
