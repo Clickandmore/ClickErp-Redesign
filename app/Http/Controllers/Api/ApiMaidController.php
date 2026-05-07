@@ -78,7 +78,7 @@ class ApiMaidController extends Controller
     {
         $type = $request->query('type') ?? null;
 
-        $maid = Maid::with(['jobTitles', 'religion', 'nationality', 'recruitmentOffice' => function ($q) {
+        $maid = Maid::with(['jobTitles', 'religion', 'nationality', 'expertises.country', 'expertises.jobTitle', 'recruitmentOffice' => function ($q) {
             $q->withCount('maids');
         }])->find($id);
 
@@ -99,6 +99,19 @@ class ApiMaidController extends Controller
 
         $data = [
             'maid' => $maid,
+            'experience' => [
+                'status' => $maid->experience_status,
+                'countries' => $maid->expertises->map(function ($expertise) {
+                    return [
+                        'country_id' => $expertise->country_id,
+                        'country_name_ar' => $expertise->country?->name_ar,
+                        'country_name_en' => $expertise->country?->name_en,
+                        'number_of_years' => $expertise->number_of_years,
+                        'job_title_id' => $expertise->job_title_id,
+                        'job_title' => $expertise->jobTitle?->title,
+                    ];
+                })->values(),
+            ],
             'type' => $type,
             'customerServices' => $customerServices,
             'skills' => $skills,
