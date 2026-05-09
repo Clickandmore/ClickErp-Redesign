@@ -277,7 +277,7 @@ class MaidAction extends MainAction
             'languages' => $data['languages'] ?? null,
             'percentage' => $data['percentage'] ?? null,
             'cv_file' => $data['cv_file'] ?? '',
-            'image' => $data['image'] ?? null,
+            'image' => $data['image'] ?? '',
             'video_link' => $data['video_link'] ?? null,
             'video' => $data['video'] ?? null,
             'cv_preview' => $data['cv_preview'] ?? null,
@@ -494,7 +494,7 @@ class MaidAction extends MainAction
         $createData['weight'] = $createData['weight'] ?? '60';
         $createData['available_at'] = $createData['available_at'] ?? now()->toDateString();
         $createData['arrival_date'] = $createData['arrival_date'] ?? now()->toDateString();
-        $createData['image'] = $createData['image'] ?? null;
+        $createData['image'] = $createData['image'] ?? '';
         $createData['request_type'] = Maid::resolveRequestType($createData['request_type'] ?? null);
 
         $maid = $this->createMaidRecord($createData);
@@ -505,6 +505,7 @@ class MaidAction extends MainAction
 
     protected function createMaidRecord(array $createData): Maid
     {
+        $createData['image'] = $createData['image'] ?? '';
         $createData['added_by'] = $this->resolveValidMaidAddedBy($createData['added_by'] ?? null);
 
         try {

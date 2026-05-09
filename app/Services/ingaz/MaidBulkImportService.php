@@ -223,7 +223,7 @@ class MaidBulkImportService
     public function approveImport(MaidBulkImport $import, MaidAction $maidAction, int $adminId): array
     {
         $rows = $import->rows()
-            ->where('status', 'pending')
+            ->whereIn('status', ['pending', 'failed'])
             ->orderBy('row_number')
             ->get();
 
