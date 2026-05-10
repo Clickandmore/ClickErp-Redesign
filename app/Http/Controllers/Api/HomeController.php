@@ -10,6 +10,8 @@ use App\Http\Actions\ingaz\AboutUsAction;
 use App\Http\Actions\ingaz\ClientAction;
 use App\Http\Actions\ingaz\FeatureAction;
 use App\Http\Actions\ingaz\NationalityAction;
+use App\Http\Actions\ingaz\PackageAction;
+use App\Http\Actions\ingaz\QuestionAction;
 use App\Http\Actions\ingaz\RequirementAction;
 use App\Http\Actions\ingaz\ServiceAction;
 use App\Http\Actions\ingaz\SliderAction;
@@ -21,6 +23,7 @@ use App\Http\Actions\ingaz\WhatDoSettingAction;
 use App\Http\Actions\ingaz\WhyUsAction;
 use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\API\DailyLabotDemandRequest;
+use App\Http\Resources\Api\PackageResource;
 use App\Http\Traits\API\ApiResponse;
 use App\Http\Traits\SendSMSTrait;
 use App\Http\Traits\StoreMessageTrait;
@@ -307,6 +310,8 @@ class HomeController extends Controller
         RequirementAction $requirement_action,
         AboutUsAction $about,
         FeatureAction $feature,
+        PackageAction $packageAction,
+        QuestionAction $questionAction,
     ) {
 
         $sliders = $sliderAction->get();
@@ -318,6 +323,11 @@ class HomeController extends Controller
         $whatDoSetting = $whatDoSettingAction->first();
         $about = $about->first();
         $features = $feature->get();
+        $packages = $packageAction->get()
+            ->filter(fn ($package) => $package->is_show === true || $package->is_show === null)
+            ->sortBy(fn ($package) => sprintf('%010d-%020.2f', (int) $package->days_count, (float) $package->price_with_tax))
+            ->values();
+        $questions = $questionAction->get()->where('is_show', 1)->values();
         $nationalities = method_exists($nationalityAction, 'getVisible')
             ? $nationalityAction->getVisible()
             : $nationalityAction->get();
@@ -342,6 +352,8 @@ class HomeController extends Controller
             'what_do_setting' => $whatDoSetting,
             'about' => $about,
             'features' => $features,
+            'packages' => PackageResource::collection($packages),
+            'questions' => $questions,
             'nationalities' => $nationalities,
             'customerService' => $customerService,
             'requirements' => [
