@@ -32,7 +32,7 @@ class RecruitmentOfficeController extends Controller
             return DataTables::of($rows)
                 ->addIndexColumn()
                 ->editColumn('nationality_id', function ($row) {
-                    return $row->nationality ? $row->nationality->sub_title : '';
+                    return $row->nationality ? $row->nationality->display_name : '';
                 })
                 ->editColumn('created_at', function ($row) {
                     return ($row->created_at->format('Y-m-d h:i A'));
