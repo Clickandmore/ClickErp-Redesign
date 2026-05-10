@@ -9,8 +9,10 @@ use App\Http\Actions\ingaz\JobTitleAction;
 use App\Http\Actions\ingaz\MaidAction;
 use App\Http\Actions\ingaz\NationalityAction;
 use App\Http\Controllers\admin\Controller;
+use App\Http\Resources\Api\PackageResource;
 use App\Models\auth\Admin;
 use App\Models\ingaz\Maid;
+use App\Models\ingaz\Package;
 use App\Models\ingaz\Skill;
 use Illuminate\Http\Request;
 
@@ -82,7 +84,7 @@ class ApiMaidController extends Controller
             $q->withCount('maids');
         }])->find($id);
 
-         $skills = Skill::all();
+        $skills = Skill::all();
 
         $customerServices = Admin::query()
             ->whereNull('deleted_at')
@@ -97,8 +99,16 @@ class ApiMaidController extends Controller
             return apiResponse(false, 'العاملة غير موجودة', null, 404);
         }
 
+        $packages = Package::with('translations')
+            ->visible()
+            ->forNationality($maid->nationality_id)
+            ->orderBy('days_count')
+            ->orderBy('price_with_tax')
+            ->get();
+
         $data = [
             'maid' => $maid,
+            'packages' => PackageResource::collection($packages),
             'experience' => [
                 'status' => $maid->experience_status,
                 'countries' => $maid->expertises->map(function ($expertise) {

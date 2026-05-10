@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\ApiAuthController;
 use App\Http\Controllers\Api\ApiPhoneVerificationController;
+use App\Http\Controllers\Api\EagarRequestController;
 use App\Http\Controllers\Api\ApiUserFirebaseTokenController;
 use App\Http\Controllers\APPAPIControllers\AuthController as AppAuthController;
 use App\Http\Controllers\APPAPIControllers\AppHomeController;
@@ -88,6 +89,8 @@ Route::group(
             Route::get('complaints-types', [App\Http\Controllers\Api\ApiComplaintController::class, 'complaints_types']);
             Route::get('orders/tracking', [App\Http\Controllers\Api\ApiOrderController::class, 'tracking']);
             Route::resource('orders', ApiOrderController::class);
+            Route::post('eagar-request', [EagarRequestController::class, 'store']);
+            Route::apiResource('user-addresses', ApiUserAddressController::class)->only(['index', 'store', 'update', 'destroy']);
             Route::get('recruitment-request/{id}', [App\Http\Controllers\Api\ApiOrderController::class, 'showRecruitmentRequest']);
             Route::get('recruitment-request', [App\Http\Controllers\Api\ApiRecruitmentRequest::class, 'index']);
             Route::post('recruitment-request', [App\Http\Controllers\Api\ApiRecruitmentRequest::class, 'store']);
