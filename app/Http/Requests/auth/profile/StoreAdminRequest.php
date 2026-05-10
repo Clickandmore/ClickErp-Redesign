@@ -25,6 +25,8 @@ class StoreAdminRequest extends MainRequest
             'role_id' => ['required', Rule::exists('roles', 'id')->where('guard_name', 'admin')],
             'whatsapp' => ['nullable', 'string', 'max:255'],
             'verification_phone' => ['nullable', 'string', 'max:255'],
+            'identity_number' => ['required', 'string', 'max:255', 'unique:admins,identity_number'],
+            'identity_expiry_date' => ['required', 'date'],
             'sex_type' => ['required', "in:0,1"],
             'sort' => ['nullable'],
 

@@ -27,6 +27,16 @@
         </div>
 
         <div class="col-4">
+            <label for="identity_number" class="form-label">رقم الهوية </label>
+            <input type="text" id="identity_number" name="identity_number" class="form-control" data-validation="required">
+        </div>
+
+        <div class="col-4">
+            <label for="identity_expiry_date" class="form-label">تاريخ انتهاء الهوية </label>
+            <input type="date" id="identity_expiry_date" name="identity_expiry_date" class="form-control" data-validation="required">
+        </div>
+
+        <div class="col-4">
             <label for="TextInput" class="form-label">البريد الالكترونى </label>
             <input type="text" name="email" class="form-control">
         </div>

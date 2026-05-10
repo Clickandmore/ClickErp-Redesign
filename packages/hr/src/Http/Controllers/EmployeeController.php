@@ -17,8 +17,10 @@ if (class_exists($class)) {
 
 
 use App\Http\Controllers\admin\Controller;
+use App\Models\auth\Admin;
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Nami\Hr\Http\Requests\Employee\EditEmployeeRequest;
 use Nami\Hr\Http\Requests\Employee\EmployeeRequest;
 use Nami\Hr\Models\Employee as objModel;
@@ -29,7 +31,7 @@ use Yajra\DataTables\Facades\DataTables;
 class EmployeeController extends Controller
 {
     public $folderPath = "hr::hr.employees";
-    public $postData = ['name', 'image', 'code', 'address', 'phone', 'birthday', 'email', 'national_num', 'country_id', 'deparment_id'
+    public $postData = ['name', 'image', 'code', 'address', 'phone', 'birthday', 'email', 'national_num', 'identity_expiry_date', 'country_id', 'deparment_id'
         , 'job_id', 'hired_date', 'contract_end_date', 'salary', 'responsible_employee_id', 'net_salary'];
     public $mainRoute = "employees";
 
@@ -202,6 +204,14 @@ class EmployeeController extends Controller
 
     public function create(Request $request, objService $action)
     {
+        $sourceAdmin = null;
+
+        if ($request->filled('admin_id')) {
+            $sourceAdmin = Admin::query()
+                ->whereNull('deleted_at')
+                ->find($request->integer('admin_id'));
+        }
+
         return view($this->folderPath . ".create")->with([
             'employees' => $action->getEmployeesName(),
             'countries' => $action->getCountries(),
@@ -212,6 +222,7 @@ class EmployeeController extends Controller
             'vacations' => $action->getVacation(),
             'insurances' => $action->getActiveInsurance(),
             'taxs' => $action->getActiveTax(),
+            'sourceAdmin' => $sourceAdmin,
             // "admin_typeis"=> $action->getAdminTypies(),
         ]);
     }
@@ -219,6 +230,9 @@ class EmployeeController extends Controller
     public function store(EmployeeRequest $request, objService $action)
     {
         $dataInsert = $request->only($this->postData);
+        if (Schema::hasColumn('hr_employee', 'admin_id') && $request->filled('admin_id')) {
+            $dataInsert['admin_id'] = $request->integer('admin_id');
+        }
         $data = $action->storeEmployee($dataInsert, $request);
         return jsonSuccess($data, null, 201);
     }

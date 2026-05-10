@@ -971,7 +971,7 @@ class ShelterContractController extends Controller
         // إذا تم تمرير contract_id في الطلب، نختار العقد المحدد
         $selectedContractId = request('contract_id');
 
-        $nationalities = Nationality::with('translations')->where('status', 1)->get();
+        $nationalities = $this->shelterContractNationalities();
         $quickTagSuggestions = $this->getQuickTagSuggestions();
 
         return view($this->folderPath . '.create', compact('shelters', 'contracts', 'selectedContractId', 'nationalities', 'quickTagSuggestions'));
@@ -1108,7 +1108,7 @@ class ShelterContractController extends Controller
         $shelters = \App\Models\ShelterPlaces::latest()->get();
         $contracts = collect([$contract]);
         $selectedContractId = $contract->id;
-        $nationalities = Nationality::with('translations')->where('status', 1)->get();
+        $nationalities = $this->shelterContractNationalities();
         $quickTagSuggestions = $this->getQuickTagSuggestions();
         $isEditMode = true;
         $editingContract = $contract;
@@ -1125,6 +1125,14 @@ class ShelterContractController extends Controller
                 'editingContract'
             )
         );
+    }
+
+    private function shelterContractNationalities()
+    {
+        return Nationality::with('translations')
+            ->get()
+            ->sortBy(fn (Nationality $nationality) => $nationality->display_name)
+            ->values();
     }
 
 

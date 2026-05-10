@@ -16,6 +16,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
@@ -27,7 +28,7 @@ use Yajra\DataTables\DataTables;
 class AdminController extends Controller
 {
     public $folderPath = "admin.auth.admin";
-    public $postData = ["name", "phone", "email", 'whatsapp', 'verification_phone', "password", "admin_type", 'sex_type', 'role_id', 'sort', 'status', 'note'];
+    public $postData = ["name", "phone", "email", 'whatsapp', 'verification_phone', 'identity_number', 'identity_expiry_date', "password", "admin_type", 'sex_type', 'role_id', 'sort', 'status', 'note'];
     public $mainRoute = "admins";
     public $suspensionReasons = ['violation', 'manual_review', 'fraud_suspect', 'other'];
 
@@ -135,6 +136,20 @@ class AdminController extends Controller
                         }
 
                         return $this->renderAdminActionsDropdown($menuItems);
+                    }
+
+                    if (Route::has('employees.create') && Auth::guard('admin')->user()->can(\App\PermKeys::HR_MODULE)) {
+                        $linkedEmployee = $this->findLinkedHrEmployee((int) $row->id);
+
+                        if ($linkedEmployee && Route::has('employees.edit')) {
+                            $menuItems[] = '<li><a href="' . route('employees.edit', $linkedEmployee->id) . '" class="dropdown-item text-success">'
+                                . '<i class="fa fa-id-card"></i> ملف الموظف'
+                                . '</a></li>';
+                        } else {
+                            $menuItems[] = '<li><a href="' . route('employees.create', ['admin_id' => $row->id]) . '" class="dropdown-item text-success">'
+                                . '<i class="fa fa-user-plus"></i> توظيف المستخدم'
+                                . '</a></li>';
+                        }
                     }
 
                     if (Auth::guard('admin')->user()->can('users_edit')) {
@@ -443,6 +458,20 @@ class AdminController extends Controller
             . implode('', $menuItems)
             . '</ul>'
             . '</div>';
+    }
+
+    private function findLinkedHrEmployee(int $adminId)
+    {
+        if (!class_exists(\Nami\Hr\Models\Employee::class)
+            || !Schema::hasTable('hr_employee')
+            || !Schema::hasColumn('hr_employee', 'admin_id')) {
+            return null;
+        }
+
+        return \Nami\Hr\Models\Employee::query()
+            ->withAllCategories()
+            ->where('admin_id', $adminId)
+            ->first();
     }
 
     private function getActiveAssignmentCounts(int $adminId): array

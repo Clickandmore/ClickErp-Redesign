@@ -115,9 +115,10 @@
     const menuId = target.id;
     const parentItem = toggle.closest("li");
     const hasActiveChild = !!target.querySelector(".m-link.active");
+    const shouldDefaultOpen = target.dataset.defaultOpen === "true";
 
     if (!hasActiveChild) {
-      const shouldOpen = openedMenusSet.has(menuId);
+      const shouldOpen = shouldDefaultOpen;
       if (shouldOpen) {
         target.classList.add("show");
         toggle.setAttribute("aria-expanded", "true");

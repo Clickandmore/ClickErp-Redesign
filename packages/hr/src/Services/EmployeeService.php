@@ -154,6 +154,8 @@ class EmployeeService extends MainService
             $adminData['phone'] = $employee->phone;
             $adminData['email'] = $employee->email;
             $adminData['password'] = $request->password;
+            $adminData['identity_number'] = $employee->national_num;
+            $adminData['identity_expiry_date'] = $employee->identity_expiry_date;
 //            $adminData['image'] = $image ?? '';
             $adminData['admin_type'] = AdminTypeisEnum::Employee->value;
             $admin = $this->adminService->store($adminData);
@@ -271,6 +273,8 @@ class EmployeeService extends MainService
         if($employee->admin){
             $adminData['email'] = $request->email;
             $adminData['password'] = $request->password ? Hash::make($request->password) : $employee->admin->password;
+            $adminData['identity_number'] = $employee->national_num;
+            $adminData['identity_expiry_date'] = $employee->identity_expiry_date;
             $employee->admin->update($adminData);
         }
         if ($request->create_admin_account) {
@@ -278,6 +282,8 @@ class EmployeeService extends MainService
             $adminData['phone'] = $employee->phone;
             $adminData['email'] = $employee->email;
             $adminData['password'] = $request->password;
+            $adminData['identity_number'] = $employee->national_num;
+            $adminData['identity_expiry_date'] = $employee->identity_expiry_date;
             if (isset($request->images)){
                 $adminData['image'] = $request->images;
             }

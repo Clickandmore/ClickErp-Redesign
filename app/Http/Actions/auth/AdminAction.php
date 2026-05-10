@@ -32,6 +32,8 @@ class AdminAction extends MainAction
             'whatsapp' => !empty($data['whatsapp']) ? $data['whatsapp'] : $data['phone'],
             'phone' => $data['phone'],
             'verification_phone' => !empty($data['verification_phone']) ? $data['verification_phone'] : $data['phone'],
+            'identity_number' => $data['identity_number'] ?? null,
+            'identity_expiry_date' => $data['identity_expiry_date'] ?? null,
             'admin_type' => $data['admin_type'],
             'sex_type' => $data['sex_type'],
             'role_id' => $role?->id,

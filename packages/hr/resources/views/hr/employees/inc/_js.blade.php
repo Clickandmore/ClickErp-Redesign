@@ -23,9 +23,11 @@
             }
 
             let originalOptions = $select.find('option').map(function () {
+                let optionText = ($(this).data('name') || $(this).text() || '').toString();
+
                 return {
                     value: this.value,
-                    text: $(this).text(),
+                    text: optionText,
                     selected: this.selected,
                 };
             }).get();
@@ -57,6 +59,7 @@
 
                 filteredOptions.forEach(function (option) {
                     let optionElement = new Option(option.text, option.value, false, option.value === currentValue);
+                    optionElement.setAttribute('data-name', option.text);
                     $select.append(optionElement);
                 });
             });
@@ -64,6 +67,39 @@
     }
 
     registerEmployeeFilterInputs();
+
+    function registerEmployeeCountryInputs() {
+        $('.employee-country-input').each(function () {
+            let $input = $(this);
+            let $hidden = $($input.data('target'));
+
+            if (!$hidden.length || $input.data('employee-country-ready')) {
+                return;
+            }
+
+            $input.data('employee-country-ready', true);
+
+            function syncCountryId() {
+                let value = ($input.val() || '').toString().trim();
+                let selectedId = '';
+
+                $input.siblings('datalist').find('option').each(function () {
+                    if ($(this).val() === value) {
+                        selectedId = $(this).data('id') || '';
+                        return false;
+                    }
+                });
+
+                $hidden.val(selectedId);
+                checkOther();
+            }
+
+            $input.on('input change blur', syncCountryId);
+            syncCountryId();
+        });
+    }
+
+    registerEmployeeCountryInputs();
 
     function calculateTotal() {
         var totalDaysInput = document.getElementsByClassName('total_days');
@@ -223,6 +259,7 @@
         $('#salary').trigger('input');
         updateNetSalary();
         registerEmployeeFilterInputs();
+        registerEmployeeCountryInputs();
 
         $('#createAdminToggle').on('change', function () {
             if ($(this).is(':checked')) {

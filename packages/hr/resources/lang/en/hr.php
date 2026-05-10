@@ -214,6 +214,7 @@ return [
     "date of birth" => "date of birth",
     "Email" => "Email",
     "ID Number" => "ID Number",
+    "Identity expiry date" => "Identity expiry date",
     "Countries" => "Countries",
     "image" => "image",
     "Shifts" => "Shifts",

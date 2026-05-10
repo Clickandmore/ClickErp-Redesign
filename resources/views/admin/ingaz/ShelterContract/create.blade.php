@@ -499,7 +499,7 @@
                                     <input type="text" name="new_maid_passport" class="form-control">
                                 </div>
                                 <div class="col-md-6 new-maid-field" style="display:none;">
-                                    <label class="form-label">الجنسية</label>
+                                    <label class="form-label">الجنسية *</label>
                                     <select name="new_maid_nationality_id" class="form-select">
                                         <option value="">{{ helperTrans('ingaz.choose') }}</option>
                                         @foreach ($nationalities as $nationality)
@@ -1215,7 +1215,7 @@
                 } else {
                     $('#existing_maid_section').hide();
                     $('.new-maid-field').show();
-                    $('.new-maid-field input[name="new_maid_name"], .new-maid-field input[name="new_maid_passport"]')
+                    $('.new-maid-field input[name="new_maid_name"], .new-maid-field input[name="new_maid_passport"], .new-maid-field select[name="new_maid_nationality_id"]')
                         .prop('required', true);
                     $('#maid_id').prop('required', false);
                 }

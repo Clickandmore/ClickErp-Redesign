@@ -47,7 +47,7 @@
 @include("click.layout.inc._js")
 @include("click.layout.inc._js_custom")
 <script src="{{ asset('admin/assets/js/clickmore-loader.js') }}?v=2"></script>
-<script src="{{ asset('admin/assets/js/clickmore-sidebar-state.js') }}?v=2"></script>
+<script src="{{ asset('admin/assets/js/clickmore-sidebar-state.js') }}?v=5"></script>
 
 <script>
     $("input[type=search]").on("input", function () {

@@ -151,6 +151,7 @@
                     $isFinance = $moduleSegment === 'finance';
                     $isZatcka = $moduleSegment === 'zatca';
                     $isCrm = $moduleSegment === 'crm';
+                    $isDashboardHome = Route::currentRouteName() === 'dashboard.index';
                 @endphp
 
                 @if ($canViewCrm)
@@ -183,14 +184,15 @@
                     </li>
                 @endif
                 @if ($canViewOperations)
-                    <li class="sidebar-module sidebar-module--operations collapsed">
+                    <li class="sidebar-module sidebar-module--operations {{ $isDashboardHome ? '' : 'collapsed' }}">
                         <a class="m-link" data-bs-toggle="collapse" data-bs-target="#Operations_Management"
                             href="#">
                             <i class="fa fa-tasks me-2"></i>
                             <span class="ms-2">{{ helperTrans('ingaz.Operations_Management') }}</span>
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
-                        <ul class="sub-menu collapse show" id="Operations_Management">
+                        <ul class="sub-menu collapse {{ $isDashboardHome ? 'show' : '' }}"
+                            id="Operations_Management" data-default-open="{{ $isDashboardHome ? 'true' : 'false' }}">
                             <!-- CV Management Section -->
                             @if ($canViewCv)
                                 <li class="collapsed">
@@ -266,21 +268,21 @@
                                         id="my_dashboard2">
                                         @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_VIEW))
                                             <li>
-                                                <a class="m-link {{ !request()->input('status') ? 'active' : '' }}"
+                                                <a class="m-link {{ Route::currentRouteName() == 'orders.index' && !request()->input('status') ? 'active' : '' }}"
                                                     href="{{ route('orders.index') }}">
                                                     <i class="fa fa-arrow-left"></i>
                                                     <span class="ms-2">{{ helperTrans('ingaz.all orders') }}</span>
                                                 </a>
                                             </li>
                                             <li>
-                                                <a class="m-link {{ request()->input('status') === 'current' ? 'active' : '' }}"
+                                                <a class="m-link {{ Route::currentRouteName() == 'orders.index' && request()->input('status') === 'current' ? 'active' : '' }}"
                                                     href="{{ route('orders.index', ['status' => 'current']) }}">
                                                     <i class="fa fa-arrow-left"></i>
                                                     <span class="ms-2">{{ helperTrans('ingaz.new orders') }}</span>
                                                 </a>
                                             </li>
                                             <li>
-                                                <a class="m-link {{ request()->input('status') === 'completed' ? 'active' : '' }}"
+                                                <a class="m-link {{ Route::currentRouteName() == 'orders.index' && request()->input('status') === 'completed' ? 'active' : '' }}"
                                                     href="{{ route('orders.index', ['status' => 'completed']) }}">
                                                     <i class="fa fa-arrow-left"></i>
                                                     <span

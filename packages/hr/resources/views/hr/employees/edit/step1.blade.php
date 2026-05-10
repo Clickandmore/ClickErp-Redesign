@@ -32,23 +32,29 @@
                data-validation="required">
     </div>
 
+    <div class="col-md-4 col-12">
+        <label for="identity_expiry_date" class="form-label">{{ __("hr::hr.Identity expiry date") }} </label>
+        <input type="date" id="identity_expiry_date" name="identity_expiry_date" value="{{ $obj->identity_expiry_date }}" class="form-control" data-validation="required">
+    </div>
 
-    <div class="col-md-6 col-12">
-        <label for="TextInput" class="form-label"> {{ __("hr::hr.nationality") }} </label>
-        <input type="search" class="form-control employee-select-filter mb-2" data-target="#country_id" placeholder="{{ __("hr::hr.Search by nationality or country") }}">
-        <select class="form-select employee-native-select" id="country_id" name="country_id" data-validation="required">
-            <option value="">{{ __("hr::hr.Choose") }} {{ __("hr::hr.nationality") }}</option>
+    <div class="col-md-4 col-12">
+        @php
+            $currentCountry = collect($countries)->firstWhere('id', $obj->country_id);
+            $currentCountryLabel = $currentCountry
+                ? (trim((string) ($currentCountry->name ?? '')) ?: __("hr::hr.Countries") . ' #' . $currentCountry->id)
+                : '';
+        @endphp
+        <label for="country_name" class="form-label"> {{ __("hr::hr.nationality") }} </label>
+        <input type="search" id="country_name" class="form-control employee-country-input" list="countries_list" data-target="#country_id" value="{{ $currentCountryLabel }}" placeholder="{{ __("hr::hr.Search by nationality or country") }}" data-validation="required" autocomplete="off">
+        <input type="hidden" id="country_id" name="country_id" value="{{ $obj->country_id }}">
+        <datalist id="countries_list">
             @foreach ($countries as $country)
                 @php
-                    $countryLabel = trim(implode(' - ', array_filter([
-                        $country->nationality ?? null,
-                        $country->name ?? null,
-                    ]))) ?: __("hr::hr.Countries") . ' #' . $country->id;
+                    $countryLabel = trim((string) ($country->name ?? '')) ?: __("hr::hr.Countries") . ' #' . $country->id;
                 @endphp
-                <option value="{{ $country->id }}"
-                    {{(($country->id==$obj->country_id) ? 'selected' : '')}}>{{ $countryLabel }}</option>
+                <option value="{{ $countryLabel }}" data-id="{{ $country->id }}"></option>
             @endforeach
-        </select>
+        </datalist>
         @if($obj->maid_id && optional($obj->maid)->nationality)
             <small class="text-muted d-block mt-2">{{ __("hr::hr.CV nationality") }}: {{ $obj->maid->nationality->sub_title ?? $obj->maid->nationality->title }}</small>
         @else
@@ -56,7 +62,7 @@
         @endif
     </div>
 
-    <div class="col-md-6 col-12">
+    <div class="col-md-4 col-12">
         <label for="TextInput" class="form-label"> {{ __("hr::hr.Email") }} </label>
         <input type="text" name="email" value="{{$obj->email}}" class="form-control" data-validation="required">
     </div>

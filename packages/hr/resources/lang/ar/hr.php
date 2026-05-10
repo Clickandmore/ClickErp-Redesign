@@ -212,6 +212,7 @@ return [
     "date of birth" => "تاريخ الميلاد ",
     "Email" => "الايميل",
     "ID Number" => "رقم الهوية ",
+    "Identity expiry date" => "تاريخ انتهاء الهوية",
     "Countries" => "الدول",
     "image" => "الصورة",
     "Shifts" => "الشفتات",

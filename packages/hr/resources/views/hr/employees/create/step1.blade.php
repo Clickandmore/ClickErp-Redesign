@@ -1,12 +1,16 @@
 <div class="row g-2">
+    @if(!empty($sourceAdmin))
+        <input type="hidden" name="admin_id" value="{{ $sourceAdmin->id }}">
+    @endif
+
     <div class="col-md-4 col-12">
         <label for="TextInput" class="form-label">{{ __("hr::hr.name") }}   <i class="fa fa-asterisk text-danger fs-10"></i> </label>
-        <input type="text" name="name" class="form-control" data-validation="required" onchange="checkOther()">
+        <input type="text" name="name" class="form-control" value="{{ old('name', $sourceAdmin->name ?? '') }}" data-validation="required" onchange="checkOther()">
     </div>
 
     <div class="col-md-4 col-12">
         <label for="TextInput" class="form-label">{{ __("hr::hr.Employee Code") }}   <i class="fa fa-asterisk text-danger fs-10"></i> </label>
-        <input type="text" name="code" class="form-control" data-validation="required" onchange="checkOther()">
+        <input type="text" name="code" class="form-control" value="{{ old('code', !empty($sourceAdmin) ? 'USR-' . $sourceAdmin->id : '') }}" data-validation="required" onchange="checkOther()">
     </div>
 
     <div class="col-md-4 col-12">
@@ -16,7 +20,7 @@
 
     <div class="col-md-4 col-12">
         <label for="TextInput" class="form-label">{{ __("hr::hr.phone") }}   <i class="fa fa-asterisk text-danger fs-10"></i> </label>
-        <input type="number" name="phone" class="form-control" data-validation="required,number" onchange="checkOther()">
+        <input type="number" name="phone" class="form-control" value="{{ old('phone', $sourceAdmin->contact_phone ?? $sourceAdmin->phone ?? '') }}" data-validation="required,number" onchange="checkOther()">
     </div>
 
     <div class="col-md-4 col-12">
@@ -27,40 +31,51 @@
 
     <div class="col-md-4 col-12">
         <label for="TextInput" class="form-label"> {{ __("hr::hr.ID Number") }}  <i class="fa fa-asterisk text-danger fs-10"></i> </label>
-        <input type="number" name="national_num" class="form-control" data-validation="required,number" onchange="checkOther()">
+        <input type="number" name="national_num" class="form-control" value="{{ old('national_num', $sourceAdmin->identity_number ?? '') }}" data-validation="required,number" onchange="checkOther()">
     </div>
 
+    <div class="col-md-4 col-12">
+        <label for="identity_expiry_date" class="form-label"> {{ __("hr::hr.Identity expiry date") }}  <i class="fa fa-asterisk text-danger fs-10"></i> </label>
+        <input type="date" id="identity_expiry_date" name="identity_expiry_date" class="form-control" value="{{ old('identity_expiry_date', $sourceAdmin->identity_expiry_date ?? '') }}" data-validation="required" onchange="checkOther()">
+    </div>
 
-    <div class="col-md-6 col-12">
-        <label for="TextInput" class="form-label"> {{ __("hr::hr.nationality") }}   <i class="fa fa-asterisk text-danger fs-10"></i> </label>
-        <input type="search" class="form-control employee-select-filter mb-2" data-target="#country_id" placeholder="{{ __("hr::hr.Search by nationality or country") }}">
-        <select class="form-select employee-native-select" id="country_id" name="country_id" data-validation="required" onchange="checkOther()">
-            <option value="">{{ __("hr::hr.Choose") }} {{ __("hr::hr.nationality") }}</option>
+    <div class="col-md-4 col-12">
+        <label for="country_name" class="form-label"> {{ __("hr::hr.nationality") }}   <i class="fa fa-asterisk text-danger fs-10"></i> </label>
+        <input type="search" id="country_name" class="form-control employee-country-input" list="countries_list" data-target="#country_id" placeholder="{{ __("hr::hr.Search by nationality or country") }}" data-validation="required" autocomplete="off">
+        <input type="hidden" id="country_id" name="country_id" value="">
+        <datalist id="countries_list">
             @foreach ($countries as $country)
                 @php
-                    $countryLabel = trim(implode(' - ', array_filter([
-                        $country->nationality ?? null,
-                        $country->name ?? null,
-                    ]))) ?: __("hr::hr.Countries") . ' #' . $country->id;
+                    $countryLabel = trim((string) ($country->name ?? '')) ?: __("hr::hr.Countries") . ' #' . $country->id;
                 @endphp
-                <option value="{{ $country->id }}">{{ $countryLabel }}</option>
+                <option value="{{ $countryLabel }}" data-id="{{ $country->id }}"></option>
             @endforeach
-        </select>
+        </datalist>
         <small class="text-muted d-block mt-2">{{ __("hr::hr.Nationality search hint") }}</small>
     </div>
 
-    <div class="col-md-6 col-12">
+    <div class="col-md-4 col-12">
         <label for="TextInput" class="form-label"> {{ __("hr::hr.Email") }}   <i class="fa fa-asterisk text-danger fs-10"></i> </label>
-        <input type="text" name="email" class="form-control" data-validation="required" onchange="checkOther()">
+        <input type="text" name="email" class="form-control" value="{{ old('email', $sourceAdmin->email ?? '') }}" data-validation="required" onchange="checkOther()">
     </div>
 
-    <div class="col-md-6 col-12 mt-5">
-        <label class="form-check-label">
-            <input type="checkbox" id="createAdminToggle" class="form-check-input">
-            {{ __("hr::hr.Create admin account") }}
+    @if(!empty($sourceAdmin))
+        <div class="col-md-6 col-12 mt-5">
+            <span class="badge bg-success">
+                <i class="fa fa-link"></i>
+                مرتبط بحساب المستخدم: {{ $sourceAdmin->name }}
+            </span>
             <input type="hidden" name="create_admin_account" id="createAdminAccountInput" value="0">
-        </label>
-    </div>
+        </div>
+    @else
+        <div class="col-md-6 col-12 mt-5">
+            <label class="form-check-label">
+                <input type="checkbox" id="createAdminToggle" class="form-check-input">
+                {{ __("hr::hr.Create admin account") }}
+                <input type="hidden" name="create_admin_account" id="createAdminAccountInput" value="0">
+            </label>
+        </div>
+    @endif
 
     <div class="col-md-6 col-12" id="passwordField" style="display: none;">
         <label for="TextInput" class="form-label"> {{ __("crm.password") }} </label>

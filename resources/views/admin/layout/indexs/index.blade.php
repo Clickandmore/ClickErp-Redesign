@@ -49,7 +49,7 @@
 @include("admin.layout.inc._js")
 @include("admin.layout.inc._js_custom")
 <script src="{{ asset('admin/assets/js/clickmore-loader.js') }}?v=2"></script>
-<script src="{{ asset('admin/assets/js/clickmore-sidebar-state.js') }}?v=4"></script>
+<script src="{{ asset('admin/assets/js/clickmore-sidebar-state.js') }}?v=5"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 

@@ -103,7 +103,7 @@ class Employee extends Model
 
     public function nationality()
     {
-        return $this->belongsTo( Country::class,'country_id');
+        return $this->belongsTo(\App\Models\Country::class, 'country_id');
     }
 
     public function salary()
