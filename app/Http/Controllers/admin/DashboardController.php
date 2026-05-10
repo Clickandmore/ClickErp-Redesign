@@ -106,6 +106,7 @@ class DashboardController extends Controller
                 $q->where('available', false)
                     ->orWhere('status', Maid::STATUS_RESERVED['en']);
             })->count(),
+            'completed' => $action->orderedCvCount(),
             'newThisWeek' => Maid::whereBetween('created_at', [$weekStart, $weekEnd])->count(),
             'newThisMonth' => Maid::whereMonth('created_at', $currentMonth)->whereYear('created_at', $currentYear)->count(),
         ];
@@ -128,6 +129,10 @@ class DashboardController extends Controller
             'with_orders' => $clientsWithOrders,
             'with_contracts' => $clientsWithContracts,
             'no_orders' => max(0, $clientTotal - $clientsWithOrders),
+        ];
+
+        $contactsStats = [
+            'total' => $action->getContactsCount(),
         ];
 
         // الإيجار ونقل الكفالة
@@ -892,6 +897,7 @@ class DashboardController extends Controller
             'ordersStats',
             'cvStats',
             'clientsStats',
+            'contactsStats',
             'rentalStats',
             'rentalOrderStats',
             'transferStats',

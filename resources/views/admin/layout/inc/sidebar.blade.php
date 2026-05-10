@@ -130,7 +130,7 @@
             <ul class="menu-list">
                 <!-- Dashboard Section -->
                 <li class="divider py-2 lh-sm"><span class="small">{{ helperTrans('ingaz.dashboard') }}</span></li>
-                @if (@AdminGuardHasPerm(\App\PermKeys::DASHBOARD_VIEW))
+                @if (@AdminGuardCanAccessDashboard())
                     <li>
                         <a class="m-link {{ Route::currentRouteName() == 'dashboard.index' ? 'active' : '' }}"
                             href="{{ route('dashboard.index') }}">

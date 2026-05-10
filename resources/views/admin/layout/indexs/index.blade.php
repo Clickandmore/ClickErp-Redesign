@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ app()->getLocale() }}" dir="{{ app()->getLocale() === 'ar' ? 'rtl' : 'ltr' }}">
 <head>
     @include("admin.layout.inc._meta")
     <title>@yield('page-title')</title>
@@ -56,9 +56,11 @@
 @section('js')
     <script src="{{asset('admin/assets/js/notifications.js')}}"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/locale/ar.js"></script>
+    @if (app()->getLocale() === 'ar')
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/locale/ar.js"></script>
+    @endif
     <script>
-        moment.locale('ar');
+        moment.locale('{{ app()->getLocale() }}');
     </script>
 @endsection
 

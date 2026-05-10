@@ -9,6 +9,39 @@ use Illuminate\Support\Str;
 
 class AdminRoutePermissionMatrix
 {
+    public static function dashboardAccessPermissions(): array
+    {
+        return [
+            PermKeys::DASHBOARD_VIEW,
+            PermKeys::DASHBOARD_VIEW_STATISTICS,
+            PermKeys::DASHBOARD_ANALYTICS,
+            PermKeys::DASHBOARD_MANAGE,
+            PermKeys::DASHBOARD_RECRUITMENT_ORDERS_COUNT,
+            PermKeys::DASHBOARD_RECRUITMENT_CONTRACTS_COUNT,
+            PermKeys::DASHBOARD_CLIENTS_COUNT,
+            PermKeys::DASHBOARD_CONTACTS_COUNT,
+            PermKeys::DASHBOARD_CURRENT_ORDERS_COUNT,
+            PermKeys::DASHBOARD_CV_COUNT,
+            PermKeys::DASHBOARD_EMPLOYEES_COUNT,
+            PermKeys::DASHBOARD_COMPLETED_CV_COUNT,
+            PermKeys::DASHBOARD_RENTAL_CONTRACTS_COUNT,
+            PermKeys::DASHBOARD_RENTAL_ORDERS_COUNT,
+            PermKeys::DASHBOARD_SPONSORSHIP_TRANSFERS_COUNT,
+            PermKeys::DASHBOARD_SPONSORSHIP_TRANSFER_REQUESTS_COUNT,
+            PermKeys::DASHBOARD_SHELTER_COUNT,
+            PermKeys::DASHBOARD_ORDERS_STATISTICS,
+            PermKeys::DASHBOARD_OPERATIONS_OVERVIEW,
+            PermKeys::DASHBOARD_CONTRACTS_OVERVIEW,
+            PermKeys::DASHBOARD_NATIONALITIES_STATISTICS,
+            PermKeys::DASHBOARD_OFFICES_STATISTICS,
+            PermKeys::DASHBOARD_RECENT_ACTIVITIES,
+            PermKeys::DASHBOARD_CALENDAR_EVENTS,
+            PermKeys::DASHBOARD_EMPLOYEE_PERFORMANCE,
+            PermKeys::DASHBOARD_TOP_CUSTOMER_SERVICES,
+            PermKeys::DASHBOARD_ORDERS_TYPES,
+        ];
+    }
+
     public static function primaryRouteNames(): array
     {
         return [
@@ -138,9 +171,9 @@ class AdminRoutePermissionMatrix
     private static function dashboardDefinitions(): array
     {
         return [
-            'dashboard.index' => [PermKeys::DASHBOARD_VIEW],
-            'dashboard.professional' => [PermKeys::DASHBOARD_VIEW],
-            'dashboard.old' => [PermKeys::DASHBOARD_VIEW],
+            'dashboard.index' => self::dashboardAccessPermissions(),
+            'dashboard.professional' => self::dashboardAccessPermissions(),
+            'dashboard.old' => self::dashboardAccessPermissions(),
             'dashboard.employees.show' => [PermKeys::DASHBOARD_VIEW],
         ];
     }

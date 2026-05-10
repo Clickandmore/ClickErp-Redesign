@@ -31,7 +31,7 @@ class AccountGuideManagementController extends Controller
 
         if ($request->ajax()) {
             $dataTable = $service->getDatatableData();
-            return DataTables::eloquent($dataTable)
+            return DataTables::of($dataTable)
                 ->addIndexColumn()
                 ->editColumn('type', function ($row) {
                     return $row->type?->lang() ?? "";

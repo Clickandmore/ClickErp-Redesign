@@ -6,7 +6,7 @@
 @endsection
 
 @section('page-title')
-    لوحة التحكم
+    {{ __('admin.dashboard') }}
 @endsection
 
 @section('content')
@@ -58,9 +58,16 @@
             true,
         );
         $canViewCvCard = $canViewDashboardSection(\App\PermKeys::DASHBOARD_CV_COUNT, [], true);
+        $canViewCompletedCvCard = $canViewDashboardSection(\App\PermKeys::DASHBOARD_COMPLETED_CV_COUNT, [], true);
         $canViewClientsCard = $canViewDashboardSection(\App\PermKeys::DASHBOARD_CLIENTS_COUNT, [], true);
+        $canViewContactsCard = $canViewDashboardSection(\App\PermKeys::DASHBOARD_CONTACTS_COUNT, [], true);
         $canViewTopStatsRow =
-            $canViewRecruitmentOrdersCard || $canViewRecruitmentContractsCard || $canViewCvCard || $canViewClientsCard;
+            $canViewRecruitmentOrdersCard ||
+            $canViewRecruitmentContractsCard ||
+            $canViewCvCard ||
+            $canViewCompletedCvCard ||
+            $canViewClientsCard ||
+            $canViewContactsCard;
 
         $canViewRentalContractsCard = $canViewDashboardSection(
             \App\PermKeys::DASHBOARD_RENTAL_CONTRACTS_COUNT,
@@ -141,47 +148,47 @@
     @if ($hasDashboardAccess)
         <div class="dashboard-hero surface-card">
             <div class="hero-main">
-                <p class="hero-eyebrow">مؤشرات فورية</p>
-                <h1>مرحباً {{ auth()->guard('admin')->user()->name ?? '' }} 👋</h1>
-                <p>تابع أداء العقود والطلبات والإيرادات لحظة بلحظة مع إمكانية التحكم في الأقسام التي تهمك.</p>
+                <p class="hero-eyebrow">{{ __('admin.dashboard_new.instant_indicators') }}</p>
+                <h1>{{ __('admin.dashboard_new.welcome_user', ['name' => auth()->guard('admin')->user()->name ?? '']) }} 👋</h1>
+                <p>{{ __('admin.dashboard_new.hero_description') }}</p>
                 <div class="hero-meta">
-                    <span class="live-pill">محدث الآن</span>
-                    <span>آخر تحديث {{ now()->translatedFormat('d F Y - H:i') }}</span>
+                    <span class="live-pill">{{ __('admin.dashboard_new.updated_now') }}</span>
+                    <span>{{ __('admin.dashboard_new.last_update', ['date' => now()->translatedFormat('d F Y - H:i')]) }}</span>
                 </div>
                 <div class="hero-quick-actions">
-                    <a href="{{ route('RecruitmentContract.create') }}"><i class="fas fa-plus-circle ms-1"></i> عقد جديد</a>
-                    <a href="{{ route('orders.index') }}"><i class="fas fa-shopping-basket ms-1"></i> الطلبات المباشرة</a>
-                    <a href="{{ route('admins.index') }}"><i class="fas fa-users-cog ms-1"></i> إدارة الفرق</a>
-                    <a href="{{ route('reports.index') }}"><i class="fas fa-chart-pie ms-1"></i> التقارير</a>
-                    <a href="{{ route('finance.home.index') }}"><i class="fas fa-wallet ms-1"></i> المالية</a>
+                    <a href="{{ route('RecruitmentContract.create') }}"><i class="fas fa-plus-circle ms-1"></i> {{ __('admin.dashboard_new.new_contract') }}</a>
+                    <a href="{{ route('orders.index') }}"><i class="fas fa-shopping-basket ms-1"></i> {{ __('admin.dashboard_new.direct_orders') }}</a>
+                    <a href="{{ route('admins.index') }}"><i class="fas fa-users-cog ms-1"></i> {{ __('admin.dashboard_new.team_management') }}</a>
+                    <a href="{{ route('reports.index') }}"><i class="fas fa-chart-pie ms-1"></i> {{ __('admin.dashboard_new.reports') }}</a>
+                    <a href="{{ route('finance.home.index') }}"><i class="fas fa-wallet ms-1"></i> {{ __('admin.dashboard_new.finance') }}</a>
                 </div>
             </div>
             <div class="hero-controls">
                 <div class="d-flex justify-content-between align-items-center">
                     <div>
-                        <small>اختر الفترة</small>
-                        <h5 class="mb-0">تحديث القيم فوراً</h5>
+                        <small>{{ __('admin.dashboard_new.select_period') }}</small>
+                        <h5 class="mb-0">{{ __('admin.dashboard_new.refresh_values') }}</h5>
                     </div>
                     <i class="fas fa-sliders-h"></i>
                 </div>
-                <div class="range-switch" role="group" aria-label="تصفية الإحصائيات حسب الفترة">
-                    <button class="range-btn active" data-range="today">اليوم</button>
-                    <button class="range-btn" data-range="week">هذا الأسبوع</button>
-                    <button class="range-btn" data-range="month">هذا الشهر</button>
-                    <button class="range-btn" data-range="total">الإجمالي</button>
+                <div class="range-switch" role="group" aria-label="{{ __('admin.dashboard_new.stats_filter_period') }}">
+                    <button class="range-btn active" data-range="today">{{ __('admin.dashboard_new.today') }}</button>
+                    <button class="range-btn" data-range="week">{{ __('admin.dashboard_new.this_week') }}</button>
+                    <button class="range-btn" data-range="month">{{ __('admin.dashboard_new.this_month') }}</button>
+                    <button class="range-btn" data-range="total">{{ __('admin.dashboard_new.total') }}</button>
                 </div>
                 <div class="hero-micro-grid">
                     <div>
-                        <small data-range-label data-today="طلبات اليوم" data-week="طلبات هذا الأسبوع"
-                            data-month="طلبات هذا الشهر" data-total="إجمالي الطلبات">طلبات اليوم</small>
+                        <small data-range-label data-today="{{ __('admin.dashboard_new.today_orders') }}" data-week="{{ __('admin.dashboard_new.week_orders') }}"
+                            data-month="{{ __('admin.dashboard_new.month_orders') }}" data-total="{{ __('admin.dashboard_new.total_orders') }}">{{ __('admin.dashboard_new.today_orders') }}</small>
                         <strong data-range-value data-range-format="number" data-today="{{ $ordersStats['today'] ?? 0 }}"
                             data-week="{{ $ordersStats['thisWeek'] ?? 0 }}"
                             data-month="{{ $ordersStats['thisMonth'] ?? 0 }}"
                             data-total="{{ $ordersStats['total'] ?? 0 }}">{{ number_format($ordersStats['today'] ?? 0) }}</strong>
                     </div>
                     <div>
-                        <small data-range-label data-today="عقود اليوم" data-week="عقود هذا الأسبوع"
-                            data-month="عقود هذا الشهر" data-total="عقود هذا الشهر">عقود اليوم</small>
+                        <small data-range-label data-today="{{ __('admin.dashboard_new.today_contracts') }}" data-week="{{ __('admin.dashboard_new.week_contracts') }}"
+                            data-month="{{ __('admin.dashboard_new.month_contracts') }}" data-total="{{ __('admin.dashboard_new.month_contracts') }}">{{ __('admin.dashboard_new.today_contracts') }}</small>
                         <strong data-range-value data-range-format="number"
                             data-today="{{ $contractsStats['today'] ?? 0 }}"
                             data-week="{{ $contractsStats['thisWeek'] ?? 0 }}"
@@ -200,24 +207,24 @@
             <a href="{{ route('reports.index') }}" class="dashboard-route-card">
                 <span class="dashboard-route-icon"><i class="fas fa-chart-line"></i></span>
                 <span>
-                    <strong>مركز التقارير</strong>
-                    <small>تقارير العقود والطلبات والإيواء مع خيارات التصدير.</small>
+                    <strong>{{ __('admin.dashboard_new.reports_center') }}</strong>
+                    <small>{{ __('admin.dashboard_new.reports_center_hint') }}</small>
                 </span>
                 <i class="fas fa-arrow-left"></i>
             </a>
             <a href="{{ route('finance.home.index') }}" class="dashboard-route-card">
                 <span class="dashboard-route-icon"><i class="fas fa-file-invoice-dollar"></i></span>
                 <span>
-                    <strong>لوحة التحكم المالية</strong>
-                    <small>ملخص الحسابات والفواتير والحركات المالية.</small>
+                    <strong>{{ __('admin.dashboard_new.finance_dashboard') }}</strong>
+                    <small>{{ __('admin.dashboard_new.finance_dashboard_hint') }}</small>
                 </span>
                 <i class="fas fa-arrow-left"></i>
             </a>
             <a href="{{ route('ShelterContract.index') }}" class="dashboard-route-card">
                 <span class="dashboard-route-icon"><i class="fas fa-house-user"></i></span>
                 <span>
-                    <strong>إدارة الإيواء</strong>
-                    <small>الداخل والخارج والجاهز للنقل ومرحلة الترحيل.</small>
+                    <strong>{{ __('admin.dashboard_new.shelter_management') }}</strong>
+                    <small>{{ __('admin.dashboard_new.shelter_management_hint') }}</small>
                 </span>
                 <i class="fas fa-arrow-left"></i>
             </a>
@@ -229,13 +236,13 @@
                     <div class="stat-card is-1">
                         <div class="stat-head d-flex justify-content-between align-items-center">
                             <div>
-                                <small class="stat-label">طلبات الاستقدام</small>
+                                <small class="stat-label">{{ __('admin.dashboard_new.recruitment_orders') }}</small>
                                 <h3 class="mb-0">{{ number_format($ordersStats['total'] ?? 0) }}</h3>
                             </div>
-                            <a href="{{ route('orders.index') }}" class="btn btn-sm btn-light text-dark">عرض</a>
+                            <a href="{{ route('orders.index') }}" class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
                         </div>
-                        <div class="mt-3 stat-meta">جديدة: {{ number_format($ordersStats['new'] ?? 0) }} | تحت الإجراء:
-                            {{ number_format($ordersStats['under_process'] ?? 0) }} | تم التعاقد:
+                        <div class="mt-3 stat-meta">{{ __('admin.dashboard_new.new') }}: {{ number_format($ordersStats['new'] ?? 0) }} | {{ __('admin.dashboard_new.under_process') }}:
+                            {{ number_format($ordersStats['under_process'] ?? 0) }} | {{ __('admin.dashboard_new.contracted') }}:
                             {{ number_format($ordersStats['contracted'] ?? 0) }}</div>
                         <div class="progress mt-2" style="height:6px;">
                             @php $orderTotal = max($ordersStats['total'] ?? 1, 1); @endphp
@@ -252,7 +259,7 @@
                     <div class="stat-card is-2">
                         <div class="stat-head d-flex justify-content-between align-items-center">
                             <div>
-                                <small class="stat-label">عقود الاستقدام هذا الشهر</small>
+                                <small class="stat-label">{{ __('admin.dashboard_new.recruitment_contracts_this_month') }}</small>
                                 <h3 class="mb-0">{{ number_format($contractsStats['total'] ?? 0) }}</h3>
                             </div>
                             <a href="{{ route('RecruitmentContract.index', [
@@ -260,11 +267,11 @@
                                 'date_to' => $contractMonthEndDate ?? now()->endOfMonth()->toDateString(),
                                 'exclude_back' => 1,
                             ]) }}"
-                                class="btn btn-sm btn-light text-dark">عرض</a>
+                                class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
                         </div>
-                        <div class="mt-3 stat-meta">قبل الوصول: {{ number_format($contractsPipeline['pre_arrival'] ?? 0) }}
+                        <div class="mt-3 stat-meta">{{ __('admin.dashboard_new.pre_arrival') }}: {{ number_format($contractsPipeline['pre_arrival'] ?? 0) }}
                             |
-                            مرحلة الوصول: {{ number_format($contractsPipeline['arrival_stage'] ?? 0) }} | تحت الضمان:
+                            {{ __('admin.dashboard_new.arrival_stage') }}: {{ number_format($contractsPipeline['arrival_stage'] ?? 0) }} | {{ __('admin.dashboard_new.under_warranty') }}:
                             {{ number_format($contractsPipeline['under_warranty'] ?? 0) }}</div>
                         <div class="progress mt-2" style="height:6px;">
                             @php $ctTotal = max($contractsStats['total'] ?? 1, 1); @endphp
@@ -281,12 +288,12 @@
                     <div class="stat-card is-3">
                         <div class="stat-head d-flex justify-content-between align-items-center">
                             <div>
-                                <small class="stat-label">السير الذاتية</small>
+                                <small class="stat-label">{{ __('admin.dashboard_new.cvs') }}</small>
                                 <h3 class="mb-0">{{ number_format($cvStats['total'] ?? 0) }}</h3>
                             </div>
-                            <a href="{{ url('admin/maids') }}" class="btn btn-sm btn-light text-dark">عرض</a>
+                            <a href="{{ url('admin/maids') }}" class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
                         </div>
-                        <div class="mt-3 stat-meta">متاحة: {{ number_format($cvStats['available'] ?? 0) }} | محجوزة:
+                        <div class="mt-3 stat-meta">{{ __('admin.dashboard_new.available') }}: {{ number_format($cvStats['available'] ?? 0) }} | {{ __('admin.dashboard_new.booked') }}:
                             {{ number_format($cvStats['booked'] ?? 0) }}</div>
                         <div class="progress mt-2" style="height:6px;">
                             @php $cvTotal = max($cvStats['total'] ?? 1, 1); @endphp
@@ -298,18 +305,36 @@
                     </div>
                 @endif
 
+                @if ($canViewCompletedCvCard)
+                    <div class="stat-card is-3">
+                        <div class="stat-head d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="stat-label">{{ __('admin.dashboard_new.completed_cvs') }}</small>
+                                <h3 class="mb-0">{{ number_format($cvStats['completed'] ?? 0) }}</h3>
+                            </div>
+                            <a href="{{ url('admin/maids') }}" class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
+                        </div>
+                        <div class="mt-3 stat-meta">{{ __('admin.dashboard_new.total_cvs') }}: {{ number_format($cvStats['total'] ?? 0) }} | {{ __('admin.dashboard_new.available') }}:
+                            {{ number_format($cvStats['available'] ?? 0) }}</div>
+                        <div class="progress mt-2" style="height:6px;">
+                            @php $completedCvTotal = max($cvStats['total'] ?? 1, 1); @endphp
+                            <div class="progress-bar bg-success"
+                                style="width: {{ round((($cvStats['completed'] ?? 0) / $completedCvTotal) * 100) }}%"></div>
+                        </div>
+                    </div>
+                @endif
+
                 @if ($canViewClientsCard)
                     <div class="stat-card is-4">
                         <div class="stat-head d-flex justify-content-between align-items-center">
                             <div>
-                                <small class="stat-label">العملاء</small>
+                                <small class="stat-label">{{ __('admin.dashboard_new.clients') }}</small>
                                 <h3 class="mb-0">{{ number_format($clientsStats['total'] ?? 0) }}</h3>
                             </div>
-                            <a href="{{ url('admin/clients') }}" class="btn btn-sm btn-light text-dark">عرض</a>
+                            <a href="{{ url('admin/clients') }}" class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
                         </div>
-                        <div class="mt-3 stat-meta">لديهم طلبات: {{ number_format($clientsStats['with_orders'] ?? 0) }} |
-                            بدون
-                            طلبات: {{ number_format($clientsStats['no_orders'] ?? 0) }}</div>
+                        <div class="mt-3 stat-meta">{{ __('admin.dashboard_new.with_orders') }}: {{ number_format($clientsStats['with_orders'] ?? 0) }} |
+                            {{ __('admin.dashboard_new.without_orders') }}: {{ number_format($clientsStats['no_orders'] ?? 0) }}</div>
                         <div class="progress mt-2" style="height:6px;">
                             @php $clTotal = max($clientsStats['total'] ?? 1, 1); @endphp
                             <div class="progress-bar bg-success"
@@ -317,6 +342,19 @@
                             <div class="progress-bar bg-secondary"
                                 style="width: {{ round((($clientsStats['no_orders'] ?? 0) / $clTotal) * 100) }}%"></div>
                         </div>
+                    </div>
+                @endif
+
+                @if ($canViewContactsCard)
+                    <div class="stat-card is-4">
+                        <div class="stat-head d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="stat-label">{{ __('admin.dashboard_new.contact_messages') }}</small>
+                                <h3 class="mb-0">{{ number_format($contactsStats['total'] ?? 0) }}</h3>
+                            </div>
+                            <a href="{{ route('contact.index') }}" class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
+                        </div>
+                        <div class="mt-3 stat-meta">{{ __('admin.dashboard_new.contact_messages_hint') }}</div>
                     </div>
                 @endif
             </div>
@@ -337,10 +375,10 @@
 
             $operationsHighlights = [
                 [
-                    'title' => 'عقود جديدة',
-                    'subtitle' => 'أول مرحلة تشغيلية',
+                    'title' => __('admin.dashboard_new.new_contracts'),
+                    'subtitle' => __('admin.dashboard_new.first_operation_stage'),
                     'value' => $statusCounts[\App\Enums\ingaz\ContractStatusEnum::New->value] ?? 0,
-                    'meta' => 'اليوم: ' . number_format($contractsStats['today'] ?? 0),
+                    'meta' => __('admin.dashboard_new.today') . ': ' . number_format($contractsStats['today'] ?? 0),
                     'video' => asset('admin/assets/img/new-dashboard/contracted.webm'),
                     'icon' => 'fas fa-file-signature',
                     'link' => route('RecruitmentContract.index', [
@@ -348,31 +386,31 @@
                     ]),
                 ],
                 [
-                    'title' => 'حركة وصول اليوم',
-                    'subtitle' => 'تذاكر مؤكدة وتحتاج متابعة الاستلام',
+                    'title' => __('admin.dashboard_new.arrival_stage'),
+                    'subtitle' => __('admin.dashboard_new.tickets_ready'),
                     'value' => $arrivalTodayCount,
-                    'meta' => 'تذاكر جاهزة: ' . number_format($ticketsReady) . ' | راجع الإيواء بعد الوصول',
+                    'meta' => __('admin.dashboard_new.tickets_ready') . ': ' . number_format($ticketsReady),
                     'video' => asset('admin/assets/img/new-dashboard/daily-arraivel.webm'),
                     'icon' => 'fas fa-plane-arrival',
                     'link' => route('RecruitmentContract.index', ['status' => 'arrival_today']),
                 ],
                 [
-                    'title' => 'المتأخرة بالوصول',
-                    'subtitle' => 'تجاوزت 60 يوماً بدون تذاكر',
+                    'title' => __('admin.dashboard_new.delayed_arrival'),
+                    'subtitle' => __('admin.dashboard_new.delayed_arrival_hint'),
                     'value' => $delayedWithoutTickets,
-                    'meta' => 'مطلوب متابعة عاجلة',
+                    'meta' => __('admin.dashboard_new.urgent_followup_required'),
                     'video' => asset('admin/assets/img/new-dashboard/ezgif.com-resize.webm'),
                     'icon' => 'fas fa-triangle-exclamation',
                     'link' => route('RecruitmentContract.index', ['status' => 'delayed_arrival']),
                 ],
                 [
-                    'title' => 'عقود منتهية',
-                    'subtitle' => 'أقدم من عامين',
+                    'title' => __('admin.dashboard_new.expired_contracts'),
+                    'subtitle' => __('admin.dashboard_new.older_than_two_years'),
                     'value' => $expiredLongTerm,
                     'meta' =>
-                        'ضمان ' .
+                        __('admin.dashboard_new.under_warranty') . ' ' .
                         number_format($warrantyActive) .
-                        ' | مكتملة ' .
+                        ' | ' . __('admin.dashboard_new.completed') . ' ' .
                         number_format($completedContractsCount),
                     'video' => asset('admin/assets/img/new-dashboard/ended-contracted.webm'),
                     'icon' => 'fas fa-hourglass-end',
@@ -382,7 +420,7 @@
 
             $operationsLeft = [
                 [
-                    'title' => 'عقود جديدة',
+                    'title' => __('admin.dashboard_new.new_contracts'),
                     'subtitle' => __('ingaz.new'),
                     'value' => $statusCounts[\App\Enums\ingaz\ContractStatusEnum::New->value] ?? 0,
                     'icon' => 'fas fa-file-signature',
@@ -393,7 +431,7 @@
                 ],
                 [
                     'title' => __('ingaz.msaned'),
-                    'subtitle' => 'بعد اعتماد العقد الجديد',
+                    'subtitle' => __('admin.dashboard_new.after_new_contract_approval'),
                     'value' => $statusCounts[\App\Enums\ingaz\ContractStatusEnum::Msaned->value] ?? 0,
                     'icon' => 'fas fa-folder-open',
                     'color' => 'var(--dash-chart-2)',
@@ -403,7 +441,7 @@
                 ],
                 [
                     'title' => __('ingaz.tafwed'),
-                    'subtitle' => 'إجراءات التفويض',
+                    'subtitle' => __('admin.dashboard_new.authorization_steps'),
                     'value' => $statusCounts[\App\Enums\ingaz\ContractStatusEnum::Tafwed->value] ?? 0,
                     'icon' => 'fas fa-key',
                     'color' => 'var(--dash-chart-3)',
@@ -413,7 +451,7 @@
                 ],
                 [
                     'title' => __('ingaz.taffez'),
-                    'subtitle' => 'التفييز والتجهيز',
+                    'subtitle' => __('admin.dashboard_new.visa_preparation'),
                     'value' => $statusCounts[\App\Enums\ingaz\ContractStatusEnum::Taffez->value] ?? 0,
                     'icon' => 'fas fa-check-double',
                     'color' => 'var(--dash-chart-4)',
@@ -426,7 +464,7 @@
             $operationsRight = [
                 [
                     'title' => __('ingaz.tazker'),
-                    'subtitle' => 'تذاكر معتمدة',
+                    'subtitle' => __('admin.dashboard_new.approved_tickets'),
                     'value' => $ticketsReady,
                     'icon' => 'fas fa-ticket-alt',
                     'color' => 'var(--dash-chart-5)',
@@ -435,8 +473,8 @@
                     ]),
                 ],
                 [
-                    'title' => 'تحت الضمان',
-                    'subtitle' => 'آخر 90 يوماً',
+                    'title' => __('admin.dashboard_new.under_warranty'),
+                    'subtitle' => __('admin.dashboard_new.last_90_days'),
                     'value' => $warrantyActive,
                     'icon' => 'fas fa-shield-alt',
                     'color' => 'var(--warning)',
@@ -446,8 +484,8 @@
                     ]),
                 ],
                 [
-                    'title' => 'عقود مكتملة',
-                    'subtitle' => 'محصلة نهائية',
+                    'title' => __('admin.dashboard_new.completed_contracts'),
+                    'subtitle' => __('admin.dashboard_new.final_total'),
                     'value' => $completedContractsCount,
                     'icon' => 'fas fa-check-circle',
                     'color' => 'var(--success)',
@@ -473,11 +511,11 @@
             <div class="data-section" id="operations">
                 <div class="section-head">
                     <div>
-                        <p class="section-eyebrow">العمليات</p>
-                        <h3 class="mb-0">مؤشرات التشغيل السريعة</h3>
+                        <p class="section-eyebrow">{{ __('admin.dashboard_new.operations') }}</p>
+                        <h3 class="mb-0">{{ __('admin.dashboard_new.quick_operations_indicators') }}</h3>
                     </div>
                     <button class="section-toggle" data-toggle-section="operations" aria-expanded="true">
-                        <i class="fas fa-eye"></i> طي / عرض
+                        <i class="fas fa-eye"></i> {{ __('admin.dashboard_new.collapse_show') }}
                     </button>
                 </div>
                 <div class="section-body operations-showcase" data-section-body="operations">
@@ -495,7 +533,7 @@
                                     <span>{{ $highlight['title'] }}</span>
                                     <span>{{ $highlight['meta'] }}</span>
                                 </div>
-                                <span class="operation-cta">عرض التفاصيل <i class="fas fa-arrow-left ms-1"></i></span>
+                                <span class="operation-cta">{{ __('admin.dashboard_new.show_details') }} <i class="fas fa-arrow-left ms-1"></i></span>
                             </a>
                         @endforeach
                     </div>
@@ -503,8 +541,8 @@
                     <div class="operations-detail-grid">
                         <div class="operations-column">
                             <div class="operations-column-head">
-                                <strong>مراحل ما قبل الوصول</strong>
-                                <small>سير التنفيذ من الاعتماد حتى التذاكر</small>
+                                <strong>{{ __('admin.dashboard_new.before_arrival_stages') }}</strong>
+                                <small>{{ __('admin.dashboard_new.before_arrival_stages_hint') }}</small>
                             </div>
                             @foreach ($operationsLeft as $card)
                                 @php
@@ -525,7 +563,7 @@
                                         <span class="mini-operation-value">{{ number_format($card['value']) }}</span>
                                     </div>
                                     <div class="mini-operation-meter">
-                                        <small>{{ $cardShare }}% من مؤشرات العمليات</small>
+                                        <small>{{ $cardShare }}% {{ __('admin.dashboard_new.from_operations_indicators') }}</small>
                                         <div class="stage-progress">
                                             <span
                                                 style="width: {{ $cardShare }}%; background: {{ $card['color'] }};"></span>
@@ -536,8 +574,8 @@
                         </div>
                         <div class="operations-column">
                             <div class="operations-column-head">
-                                <strong>مراحل ما بعد الوصول</strong>
-                                <small>الضمان والإغلاق وإعادة المعالجة</small>
+                                <strong>{{ __('admin.dashboard_new.after_arrival_stages') }}</strong>
+                                <small>{{ __('admin.dashboard_new.after_arrival_stages_hint') }}</small>
                             </div>
                             @foreach ($operationsRight as $card)
                                 @php
@@ -558,7 +596,7 @@
                                         <span class="mini-operation-value">{{ number_format($card['value']) }}</span>
                                     </div>
                                     <div class="mini-operation-meter">
-                                        <small>{{ $cardShare }}% من مؤشرات العمليات</small>
+                                        <small>{{ $cardShare }}% {{ __('admin.dashboard_new.from_operations_indicators') }}</small>
                                         <div class="stage-progress">
                                             <span
                                                 style="width: {{ $cardShare }}%; background: {{ $card['color'] }};"></span>
@@ -578,20 +616,20 @@
                     <div class="stat-card is-5">
                         <div class="stat-head d-flex justify-content-between align-items-center">
                             <div>
-                                <small class="stat-label">عقود الإيجار</small>
+                                <small class="stat-label">{{ __('admin.dashboard_new.rental_contracts') }}</small>
                                 <h3 class="mb-0">{{ number_format($rentalStats['total'] ?? 0) }}</h3>
                             </div>
-                            <a href="{{ route('RentContract.index') }}" class="btn btn-sm btn-light text-dark">عرض</a>
+                            <a href="{{ route('RentContract.index') }}" class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
                         </div>
                         <div class="stat-chip-list mt-3">
-                            <span>نشطة: {{ number_format($rentalStats['active'] ?? 0) }}</span>
-                            <span>مرسلة: {{ number_format($rentalStats['sent'] ?? 0) }}</span>
-                            <span>موقعة: {{ number_format($rentalStats['signed'] ?? 0) }}</span>
-                            <span>تم التسليم: {{ number_format($rentalStats['delivered'] ?? 0) }}</span>
-                            <span>مكتملة: {{ number_format($rentalStats['completed'] ?? 0) }}</span>
+                            <span>{{ __('admin.dashboard_new.active') }}: {{ number_format($rentalStats['active'] ?? 0) }}</span>
+                            <span>{{ __('admin.dashboard_new.sent') }}: {{ number_format($rentalStats['sent'] ?? 0) }}</span>
+                            <span>{{ __('admin.dashboard_new.signed') }}: {{ number_format($rentalStats['signed'] ?? 0) }}</span>
+                            <span>{{ __('admin.dashboard_new.delivered') }}: {{ number_format($rentalStats['delivered'] ?? 0) }}</span>
+                            <span>{{ __('admin.dashboard_new.completed') }}: {{ number_format($rentalStats['completed'] ?? 0) }}</span>
                         </div>
                         <a href="{{ route('finance.home.index') }}" class="stat-meta stat-link d-inline-block mt-2">
-                            التفاصيل المالية لعقود الإيجار <i class="fas fa-arrow-left ms-1"></i>
+                            {{ __('admin.dashboard_new.rental_finance_details') }} <i class="fas fa-arrow-left ms-1"></i>
                         </a>
                     </div>
                 @endif
@@ -600,17 +638,16 @@
                     <div class="stat-card is-6">
                         <div class="stat-head d-flex justify-content-between align-items-center">
                             <div>
-                                <small class="stat-label">طلبات الإيجار من الموقع</small>
+                                <small class="stat-label">{{ __('admin.dashboard_new.rental_orders') }}</small>
                                 <h3 class="mb-0">{{ number_format($rentalOrderStats['total'] ?? 0) }}</h3>
                             </div>
-                            <a href="{{ route('rental-orders.index') }}" class="btn btn-sm btn-light text-dark">عرض</a>
+                            <a href="{{ route('rental-orders.index') }}" class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
                         </div>
-                        <div class="mt-3 stat-meta">جديدة: {{ number_format($rentalOrderStats['new'] ?? 0) }} | تحت
-                            الإجراء:
-                            {{ number_format($rentalOrderStats['under_process'] ?? 0) }} | مكتملة:
+                        <div class="mt-3 stat-meta">{{ __('admin.dashboard_new.new') }}: {{ number_format($rentalOrderStats['new'] ?? 0) }} | {{ __('admin.dashboard_new.under_process') }}:
+                            {{ number_format($rentalOrderStats['under_process'] ?? 0) }} | {{ __('admin.dashboard_new.completed') }}:
                             {{ number_format($rentalOrderStats['completed'] ?? 0) }}</div>
                         <a href="{{ route('RentContract.index') }}" class="stat-meta stat-link d-inline-block mt-2">
-                            تحويل الطلب إلى عقد إيجار <i class="fas fa-arrow-left ms-1"></i>
+                            {{ __('admin.dashboard_new.convert_to_rental_contract') }} <i class="fas fa-arrow-left ms-1"></i>
                         </a>
                     </div>
                 @endif
@@ -619,15 +656,15 @@
                     <div class="stat-card is-2">
                         <div class="stat-head d-flex justify-content-between align-items-center">
                             <div>
-                                <small class="stat-label">معاملات نقل الكفالة</small>
+                                <small class="stat-label">{{ __('admin.dashboard_new.sponsorship_transfers') }}</small>
                                 <h3 class="mb-0">{{ number_format($transferStats['total'] ?? 0) }}</h3>
                             </div>
                             <a href="{{ route('SponsorshipTransfer.index') }}"
-                                class="btn btn-sm btn-light text-dark">عرض</a>
+                                class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
                         </div>
-                        <div class="mt-3 stat-meta">قيد المراجعة: {{ number_format($transferStats['pending'] ?? 0) }} |
-                            معتمدة:
-                            {{ number_format($transferStats['approved'] ?? 0) }} | منقولة:
+                        <div class="mt-3 stat-meta">{{ __('admin.dashboard_new.pending_review') }}: {{ number_format($transferStats['pending'] ?? 0) }} |
+                            {{ __('admin.dashboard_new.approved') }}:
+                            {{ number_format($transferStats['approved'] ?? 0) }} | {{ __('admin.dashboard_new.transferred') }}:
                             {{ number_format($transferStats['transferred'] ?? 0) }}</div>
                     </div>
                 @endif
@@ -636,15 +673,15 @@
                     <div class="stat-card is-1">
                         <div class="stat-head d-flex justify-content-between align-items-center">
                             <div>
-                                <small class="stat-label">طلبات نقل الكفالة من الموقع</small>
+                                <small class="stat-label">{{ __('admin.dashboard_new.sponsorship_transfer_requests') }}</small>
                                 <h3 class="mb-0">{{ number_format($transferWebRequestStats['total'] ?? 0) }}</h3>
                             </div>
                             <a href="{{ route('SponsorshipTransfer.webRequests') }}"
-                                class="btn btn-sm btn-light text-dark">عرض</a>
+                                class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
                         </div>
-                        <div class="mt-3 stat-meta">جديدة: {{ number_format($transferWebRequestStats['new'] ?? 0) }} |
-                            مدفوعة:
-                            {{ number_format($transferWebRequestStats['paid'] ?? 0) }} | مكتملة:
+                        <div class="mt-3 stat-meta">{{ __('admin.dashboard_new.new') }}: {{ number_format($transferWebRequestStats['new'] ?? 0) }} |
+                            {{ __('admin.dashboard_new.paid') }}:
+                            {{ number_format($transferWebRequestStats['paid'] ?? 0) }} | {{ __('admin.dashboard_new.completed') }}:
                             {{ number_format($transferWebRequestStats['completed'] ?? 0) }}</div>
                     </div>
                 @endif
@@ -653,21 +690,21 @@
                     <div class="stat-card is-7">
                         <div class="stat-head d-flex justify-content-between align-items-center">
                             <div>
-                                <small class="stat-label">الإيواء</small>
+                                <small class="stat-label">{{ __('admin.dashboard_new.shelter') }}</small>
                                 <h3 class="mb-0">{{ number_format($shelterStats['total'] ?? 0) }}</h3>
                             </div>
-                            <a href="{{ route('ShelterContract.index') }}" class="btn btn-sm btn-light text-dark">عرض</a>
+                            <a href="{{ route('ShelterContract.index') }}" class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
                         </div>
                         <div class="stat-chip-list mt-3">
-                            <span>داخل الإيواء: {{ number_format($shelterStats['inside'] ?? 0) }}</span>
-                            <span>خارج الإيواء: {{ number_format($shelterStats['outside'] ?? 0) }}</span>
-                            <span>جاهز للنقل: {{ number_format($shelterStats['available_for_transfer'] ?? 0) }}</span>
-                            <span>مرحلة الترحيل: {{ number_format($shelterStats['deportation_stage'] ?? 0) }}</span>
-                            <span>تم الترحيل: {{ number_format($shelterStats['deported'] ?? 0) }}</span>
-                            <span>أماكن: {{ number_format($shelterStats['places'] ?? 0) }}</span>
+                            <span>{{ __('admin.dashboard_new.inside_shelter') }}: {{ number_format($shelterStats['inside'] ?? 0) }}</span>
+                            <span>{{ __('admin.dashboard_new.outside_shelter') }}: {{ number_format($shelterStats['outside'] ?? 0) }}</span>
+                            <span>{{ __('admin.dashboard_new.ready_for_transfer') }}: {{ number_format($shelterStats['available_for_transfer'] ?? 0) }}</span>
+                            <span>{{ __('admin.dashboard_new.deportation_stage') }}: {{ number_format($shelterStats['deportation_stage'] ?? 0) }}</span>
+                            <span>{{ __('admin.dashboard_new.deported') }}: {{ number_format($shelterStats['deported'] ?? 0) }}</span>
+                            <span>{{ __('admin.dashboard_new.places') }}: {{ number_format($shelterStats['places'] ?? 0) }}</span>
                         </div>
                         <a href="{{ route('ShelterContract.outside') }}" class="stat-meta stat-link d-inline-block mt-2">
-                            متابعة حركة الخروج للإيجار والنقل <i class="fas fa-arrow-left ms-1"></i>
+                            {{ __('admin.dashboard_new.follow_shelter_exit') }} <i class="fas fa-arrow-left ms-1"></i>
                         </a>
                     </div>
                 @endif
@@ -686,68 +723,68 @@
             $professionSummary = $contractProfessionSummary ?? [];
             $contractOverviewCards = [
                 [
-                    'label' => 'إجمالي العقود',
+                    'label' => __('admin.dashboard_new.contracts_total'),
                     'value' => $analyticsStats['total'] ?? 0,
                     'meta' =>
-                        $contractFiltersApplied ?? false ? 'العقود المطابقة للفلاتر الحالية' : 'جميع العقود المسجلة',
+                        $contractFiltersApplied ?? false ? __('admin.dashboard_new.filtered_contracts') : __('admin.dashboard_new.all_registered_contracts'),
                     'color' => 'var(--dash-chart-1)',
                 ],
                 [
-                    'label' => 'عقود سنة ' . ($currentYearSeries['year'] ?? now()->year),
+                    'label' => __('admin.dashboard_new.contracts_year', ['year' => ($currentYearSeries['year'] ?? now()->year)]),
                     'value' => $currentYearSeries['total'] ?? 0,
-                    'meta' => 'بحسب تاريخ العقد فقط',
+                    'meta' => __('admin.dashboard_new.by_contract_date_only'),
                     'color' => 'var(--dash-chart-2)',
                 ],
                 [
-                    'label' => 'عقود هذا الشهر',
+                    'label' => __('admin.dashboard_new.month_contracts'),
                     'value' => $analyticsStats['thisMonth'] ?? 0,
-                    'meta' => 'بحسب تاريخ العقد فقط',
+                    'meta' => __('admin.dashboard_new.by_contract_date_only'),
                     'color' => 'var(--success)',
                 ],
                 [
-                    'label' => 'عقود مكتملة',
+                    'label' => __('admin.dashboard_new.completed_contracts'),
                     'value' => $analyticsStats['completed'] ?? 0,
-                    'meta' => 'وصول + مكتمل كما في صفحة العقود',
+                    'meta' => __('admin.dashboard_new.arrival_completed_like_contracts'),
                     'color' => 'var(--warning)',
                 ],
             ];
             $contractStageRows = [
                 [
-                    'label' => 'عقود جديدة',
+                    'label' => __('admin.dashboard_new.new_contracts'),
                     'value' =>
                         $analyticsStatusCounts[\App\Enums\ingaz\ContractStatusEnum::New->value] ??
                         ($analyticsPipeline['pre_arrival'] ?? 0),
-                    'meta' => 'أول مرحلة تشغيلية قبل مساند',
+                    'meta' => __('admin.dashboard_new.first_stage_before_musaned'),
                     'color' => 'var(--dash-chart-1)',
                 ],
                 [
-                    'label' => 'مرحلة الوصول اليوم',
+                    'label' => __('admin.dashboard_new.arrival_stage'),
                     'value' => $analyticsPipeline['arrival_stage'] ?? 0,
-                    'meta' => 'تذاكر مؤكدة في الطريق',
+                    'meta' => __('admin.dashboard_new.confirmed_tickets_on_way'),
                     'color' => 'var(--dash-chart-2)',
                 ],
                 [
-                    'label' => 'تحت الضمان',
+                    'label' => __('admin.dashboard_new.under_warranty'),
                     'value' => $analyticsPipeline['under_warranty'] ?? 0,
-                    'meta' => 'حسب تاريخ انتهاء الضمان',
+                    'meta' => __('admin.dashboard_new.by_warranty_end_date'),
                     'color' => 'var(--warning)',
                 ],
                 [
-                    'label' => 'مكتمل',
+                    'label' => __('admin.dashboard_new.completed'),
                     'value' => $analyticsPipeline['completed'] ?? 0,
-                    'meta' => 'وصول + مكتمل',
+                    'meta' => __('admin.dashboard_new.arrival_completed'),
                     'color' => 'var(--success)',
                 ],
                 [
-                    'label' => 'متأخر بالوصول',
+                    'label' => __('admin.dashboard_new.delayed_arrival'),
                     'value' => $analyticsPipeline['delayed_arrival'] ?? 0,
-                    'meta' => 'تجاوز 60 يوماً بلا تذكرة',
+                    'meta' => __('admin.dashboard_new.delayed_arrival_hint'),
                     'color' => 'var(--dash-chart-5)',
                 ],
                 [
-                    'label' => 'عقود منتهية (> سنتين)',
+                    'label' => __('admin.dashboard_new.expired_contracts_over_two_years'),
                     'value' => $analyticsPipeline['expired_over_2y'] ?? 0,
-                    'meta' => 'مراجعة أرشيفية',
+                    'meta' => __('admin.dashboard_new.archive_review'),
                     'color' => 'var(--danger)',
                 ],
             ];
@@ -774,17 +811,17 @@
             <div id="contracts-overview" class="surface-card mt-3 contracts-overview-section">
                 <div class="contract-section-header">
                     <div class="contract-section-heading">
-                        <p class="section-eyebrow">العقود</p>
-                        <h4 class="mb-0">إجمالي العقود</h4>
-                        <small>عرض تحليلي لآخر 3 سنوات مع فلترة مباشرة حسب الجنسية والمهنة.</small>
+                        <p class="section-eyebrow">{{ __('admin.dashboard_new.contracts') }}</p>
+                        <h4 class="mb-0">{{ __('admin.dashboard_new.contracts_total') }}</h4>
+                        <small>{{ __('admin.dashboard_new.contracts_analytics_hint') }}</small>
                     </div>
                     <div class="contract-section-summary">
-                        <span class="contract-summary-pill">آخر 3 سنوات:
-                            {{ number_format($contractsThreeYearsDisplayedTotal) }} عقد</span>
-                        <span class="contract-summary-pill">عقود اليوم:
+                        <span class="contract-summary-pill">{{ __('admin.dashboard_new.last_three_years') }}:
+                            {{ number_format($contractsThreeYearsDisplayedTotal) }} {{ __('admin.dashboard_new.contract') }}</span>
+                        <span class="contract-summary-pill">{{ __('admin.dashboard_new.today_contracts_short') }}:
                             {{ number_format($analyticsStats['today'] ?? 0) }}</span>
                         @if ($missingContractDateCount > 0)
-                            <span class="contract-summary-pill">بدون تاريخ عقد:
+                            <span class="contract-summary-pill">{{ __('admin.dashboard_new.missing_contract_date') }}:
                                 {{ number_format($missingContractDateCount) }}</span>
                         @endif
                     </div>
@@ -794,9 +831,9 @@
                         action="{{ route('dashboard.index') }}#contracts-overview">
                         <div class="contract-filter-grid">
                             <label class="contract-filter-field">
-                                <span>الجنسية</span>
+                                <span>{{ __('admin.dashboard_new.nationality') }}</span>
                                 <select name="contract_nationality_id">
-                                    <option value="">كل الجنسيات</option>
+                                    <option value="">{{ __('admin.dashboard_new.all_nationalities') }}</option>
                                     @foreach ($contractNationalityOptions ?? [] as $nationalityOption)
                                         <option value="{{ $nationalityOption['id'] }}"
                                             {{ (int) ($selectedContractNationalityId ?? 0) === (int) $nationalityOption['id'] ? 'selected' : '' }}>
@@ -808,9 +845,9 @@
                             </label>
 
                             <label class="contract-filter-field">
-                                <span>المهنة</span>
+                                <span>{{ __('admin.dashboard_new.profession') }}</span>
                                 <select name="contract_profession_id">
-                                    <option value="">كل المهن</option>
+                                    <option value="">{{ __('admin.dashboard_new.all_professions') }}</option>
                                     @foreach ($contractProfessionOptions ?? [] as $professionOption)
                                         <option value="{{ $professionOption['id'] }}"
                                             {{ (int) ($selectedContractProfessionId ?? 0) === (int) $professionOption['id'] ? 'selected' : '' }}>
@@ -822,25 +859,25 @@
                             </label>
 
                             <div class="contract-filter-actions">
-                                <button type="submit" class="btn btn-primary">تطبيق الفلترة</button>
+                                <button type="submit" class="btn btn-primary">{{ __('admin.dashboard_new.apply_filter') }}</button>
                                 <a href="{{ route('dashboard.index') }}#contracts-overview"
-                                    class="btn btn-outline-secondary">إعادة الضبط</a>
+                                    class="btn btn-outline-secondary">{{ __('admin.dashboard_new.reset') }}</a>
                             </div>
                         </div>
 
                         @if ($contractFiltersApplied ?? false)
                             <div class="contract-active-filters">
-                                <span class="contract-summary-pill">الفلاتر النشطة</span>
+                                <span class="contract-summary-pill">{{ __('admin.dashboard_new.active_filters') }}</span>
                                 @if (!empty($selectedContractNationalityTitle))
-                                    <span class="contract-summary-pill">الجنسية:
+                                    <span class="contract-summary-pill">{{ __('admin.dashboard_new.nationality') }}:
                                         {{ $selectedContractNationalityTitle }}</span>
                                 @endif
                                 @if (!empty($selectedContractProfessionTitle))
-                                    <span class="contract-summary-pill">المهنة:
+                                    <span class="contract-summary-pill">{{ __('admin.dashboard_new.profession') }}:
                                         {{ $selectedContractProfessionTitle }}</span>
                                 @endif
-                                <span class="contract-summary-pill">النتائج:
-                                    {{ number_format($analyticsStats['total'] ?? 0) }} عقد</span>
+                                <span class="contract-summary-pill">{{ __('admin.dashboard_new.results') }}:
+                                    {{ number_format($analyticsStats['total'] ?? 0) }} {{ __('admin.dashboard_new.contract') }}</span>
                             </div>
                         @endif
                     </form>
@@ -859,8 +896,8 @@
                         <div class="contracts-chart-panel">
                             <div class="contracts-chart-head">
                                 <div>
-                                    <strong>حركة العقود خلال 3 سنوات</strong>
-                                    <small>كل سنة تظهر بلون مختلف لتسهيل المقارنة الشهرية.</small>
+                                    <strong>{{ __('admin.dashboard_new.contracts_movement_three_years') }}</strong>
+                                    <small>{{ __('admin.dashboard_new.contracts_movement_three_years_hint') }}</small>
                                 </div>
                                 <span class="contract-summary-pill">هذا الأسبوع:
                                     {{ number_format($analyticsStats['thisWeek'] ?? 0) }}</span>
@@ -873,16 +910,15 @@
                         <div class="contract-stage-panel">
                             <div class="contract-stage-head">
                                 <div class="contract-stage-heading">
-                                    <strong>مراحل العقود</strong>
-                                    <small>متابعة مباشرة لتدفق العقود حسب المرحلة</small>
+                                    <strong>{{ __('admin.dashboard_new.contract_stages') }}</strong>
+                                    <small>{{ __('admin.dashboard_new.contract_stages_hint') }}</small>
                                 </div>
                                 <div class="contract-stage-total">
                                     <small>الإجمالي</small>
                                     <strong>{{ number_format($contractStagesRawTotal) }}</strong>
                                 </div>
                             </div>
-                            <a href="{{ route('RecruitmentContract.index') }}" class="contract-stage-link">عرض جميع
-                                العقود</a>
+                            <a href="{{ route('RecruitmentContract.index') }}" class="contract-stage-link">{{ __('admin.dashboard_new.all_contracts') }}</a>
                             <div class="contract-stages mt-3 flex-grow-1">
                                 @foreach ($contractStageRows as $stage)
                                     @php
@@ -904,7 +940,7 @@
                                             @if (!empty($stage['meta']))
                                                 <small>{{ $stage['meta'] }}</small>
                                             @else
-                                                <small>بدون وصف إضافي</small>
+                                                <small>{{ __('admin.dashboard_new.no_extra_description') }}</small>
                                             @endif
                                             <small>{{ $stageWidth }}%</small>
                                         </div>
@@ -921,19 +957,19 @@
                     <div class="contract-profession-panel">
                         <div class="contract-profession-head">
                             <div>
-                                <strong>العقود حسب المهنة</strong>
-                                <small>تفصيل العقود المرتبطة بكل مهنة أسفل إجمالي العقود مباشرة.</small>
+                                <strong>{{ __('admin.dashboard_new.contracts_by_profession') }}</strong>
+                                <small>{{ __('admin.dashboard_new.contracts_by_profession_hint') }}</small>
                             </div>
                             <div class="contract-profession-pills">
-                                <span class="contract-profession-pill">المهن المرصودة:
+                                <span class="contract-profession-pill">{{ __('admin.dashboard_new.observed_professions') }}:
                                     {{ number_format($professionSummary['tracked_professions'] ?? 0) }}</span>
                                 @if (!empty($professionSummary['top_profession']))
-                                    <span class="contract-profession-pill">الأعلى:
+                                    <span class="contract-profession-pill">{{ __('admin.dashboard_new.top') }}:
                                         {{ $professionSummary['top_profession'] }}</span>
                                 @endif
-                                <span class="contract-profession-pill">المعروف:
+                                <span class="contract-profession-pill">{{ __('admin.dashboard_new.known') }}:
                                     {{ number_format($professionSummary['known_contracts'] ?? 0) }}</span>
-                                <span class="contract-profession-pill">غير محدد:
+                                <span class="contract-profession-pill">{{ __('admin.dashboard_new.undefined') }}:
                                     {{ number_format($professionSummary['unknown_contracts'] ?? 0) }}</span>
                             </div>
                         </div>
@@ -961,12 +997,12 @@
                                                 class="contract-profession-share">{{ number_format((int) ($profession['share'] ?? 0)) }}%</span>
                                         </div>
                                         <strong
-                                            class="contract-profession-name">{{ $profession['profession'] ?? 'غير محدد' }}</strong>
+                                            class="contract-profession-name">{{ $profession['profession'] ?? __('admin.dashboard_new.undefined') }}</strong>
                                         <div class="contract-profession-total">
                                             {{ number_format((int) ($profession['total'] ?? 0)) }}</div>
                                         <div class="contract-profession-meta">
-                                            <span>{{ number_format((int) ($profession['total'] ?? 0)) }} عقد</span>
-                                            <span>{{ $isUnknownProfession ? 'تحتاج ربط مهنة' : 'من إجمالي العقود' }}</span>
+                                            <span>{{ number_format((int) ($profession['total'] ?? 0)) }} {{ __('admin.dashboard_new.contract') }}</span>
+                                            <span>{{ $isUnknownProfession ? __('admin.dashboard_new.needs_profession_link') : __('admin.dashboard_new.from_total_contracts') }}</span>
                                         </div>
                                         <div class="stage-progress contract-profession-progress">
                                             <span
@@ -976,7 +1012,7 @@
                                 @endforeach
                             </div>
                         @else
-                            <div class="empty-state py-3">لا توجد بيانات متاحة لعرض العقود حسب المهنة.</div>
+                            <div class="empty-state py-3">{{ __('admin.dashboard_new.no_profession_contracts') }}</div>
                         @endif
                     </div>
                 </div>
@@ -990,10 +1026,10 @@
                         <div class="panel-card h-100">
                             <div class="panel-head">
                                 <div>
-                                    <p class="section-eyebrow">التوزيع الجنسي</p>
-                                    <h4 class="mb-0">أبرز الجنسيات المتاحة</h4>
+                                    <p class="section-eyebrow">{{ __('admin.dashboard_new.nationality_distribution') }}</p>
+                                    <h4 class="mb-0">{{ __('admin.dashboard_new.top_available_nationalities') }}</h4>
                                 </div>
-                                <small>إجمالي {{ array_sum($nationalityData ?? []) }} عاملة</small>
+                                <small>{{ __('admin.dashboard_new.workers_total', ['count' => array_sum($nationalityData ?? [])]) }}</small>
                             </div>
                             <div class="chart-holder" style="height: 260px;">
                                 <canvas id="nationalitiesChart"></canvas>
@@ -1007,7 +1043,7 @@
                                         </li>
                                     @endforeach
                                 @else
-                                    <li class="empty-state">لا توجد بيانات متاحة</li>
+                                    <li class="empty-state">{{ __('admin.dashboard_new.no_data_available') }}</li>
                                 @endif
                             </ul>
                         </div>
@@ -1018,10 +1054,10 @@
                         <div class="panel-card h-100">
                             <div class="panel-head">
                                 <div>
-                                    <p class="section-eyebrow">المكاتب الخارجية</p>
-                                    <h4 class="mb-0">المخزون لكل مكتب</h4>
+                                    <p class="section-eyebrow">{{ __('admin.dashboard_new.external_offices') }}</p>
+                                    <h4 class="mb-0">{{ __('admin.dashboard_new.office_inventory') }}</h4>
                                 </div>
-                                <small>{{ count($officeStats ?? []) }} مكتب</small>
+                                <small>{{ __('admin.dashboard_new.office_count', ['count' => count($officeStats ?? [])]) }}</small>
                             </div>
                             <div class="office-stock-list">
                                 @forelse($officeStats ?? [] as $office)
@@ -1105,10 +1141,10 @@
                         <div class="panel-card h-100">
                             <div class="panel-head">
                                 <div>
-                                    <p class="section-eyebrow">التحديثات الفورية</p>
-                                    <h4 class="mb-0">آخر الأنشطة</h4>
+                                    <p class="section-eyebrow">{{ __('admin.dashboard_new.recent_updates') }}</p>
+                                    <h4 class="mb-0">{{ __('admin.dashboard_new.recent_activities') }}</h4>
                                 </div>
-                                <small>{{ count($recentActivities ?? []) }} عنصر</small>
+                                <small>{{ __('admin.dashboard_new.item_count', ['count' => count($recentActivities ?? [])]) }}</small>
                             </div>
                             <div class="activity-feed">
                                 @forelse($recentActivities ?? [] as $activity)
@@ -1140,10 +1176,10 @@
                         <div class="panel-card h-100">
                             <div class="panel-head">
                                 <div>
-                                    <p class="section-eyebrow">الجدول الزمني</p>
-                                    <h4 class="mb-0">مواعيد وتذكيرات هامة</h4>
+                                    <p class="section-eyebrow">{{ __('admin.dashboard_new.timeline') }}</p>
+                                    <h4 class="mb-0">{{ __('admin.dashboard_new.important_dates') }}</h4>
                                 </div>
-                                <small id="calendarCount">{{ count($calendarEvents ?? []) }} موعداً</small>
+                                <small id="calendarCount">{{ __('admin.dashboard_new.appointment_count', ['count' => count($calendarEvents ?? [])]) }}</small>
                             </div>
                             <div id="calendar" class="calendar-shell"></div>
                         </div>
@@ -1154,10 +1190,10 @@
                         <div class="panel-card h-100">
                             <div class="panel-head">
                                 <div>
-                                    <p class="section-eyebrow">طاقم العمل</p>
-                                    <h4 class="mb-0">حجوزات وعقود الموظفين</h4>
+                                    <p class="section-eyebrow">{{ __('admin.dashboard_new.staff') }}</p>
+                                    <h4 class="mb-0">{{ __('admin.dashboard_new.employee_bookings_contracts') }}</h4>
                                 </div>
-                                <a href="{{ route('admins.index') }}" class="btn btn-outline-primary btn-sm">إدارة</a>
+                                <a href="{{ route('admins.index') }}" class="btn btn-outline-primary btn-sm">{{ __('admin.dashboard_new.manage') }}</a>
                             </div>
                             <div class="employee-summary-row">
                                 <span class="employee-summary-pill">نشطون:

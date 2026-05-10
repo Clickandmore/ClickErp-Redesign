@@ -268,7 +268,6 @@
 
 @section('js')
     <script src="{{ asset('admin') }}/assets/js/bundle/dataTables.bundle.js"></script>
-    <script src="{{ asset('admin') }}/assets/js/bundle/dataTables.bundle.js"></script>
     <script>
         $(document).ready(function() {
             const exportRouteTemplate = @json($exportRouteTemplate);
@@ -360,18 +359,7 @@
                     sInfoEmpty: "{{ trans('dataTable.sInfoEmpty') }}",
                     sInfoFiltered: "{{ trans('dataTable.sInfoFiltered') }}",
                     sSearch: "{{ trans('dataTable.sSearch') }}:",
-                    sProcessing: "{{ trans('dataTable.sProcessing') }}",
-                    sLengthMenu: "{{ trans('dataTable.sLengthMenu') }}",
-                    sZeroRecords: "{{ trans('dataTable.sZeroRecords') }}",
-                    sInfo: "{{ trans('dataTable.sInfo') }}",
-                    sInfoEmpty: "{{ trans('dataTable.sInfoEmpty') }}",
-                    sInfoFiltered: "{{ trans('dataTable.sInfoFiltered') }}",
-                    sSearch: "{{ trans('dataTable.sSearch') }}:",
                     oPaginate: {
-                        sFirst: "{{ trans('dataTable.sFirst') }}",
-                        sPrevious: "{{ trans('dataTable.sPrevious') }}",
-                        sNext: "{{ trans('dataTable.sNext') }}",
-                        sLast: "{{ trans('dataTable.sLast') }}"
                         sFirst: "{{ trans('dataTable.sFirst') }}",
                         sPrevious: "{{ trans('dataTable.sPrevious') }}",
                         sNext: "{{ trans('dataTable.sNext') }}",

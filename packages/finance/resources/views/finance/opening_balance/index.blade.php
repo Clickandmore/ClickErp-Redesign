@@ -4,6 +4,20 @@
         .required-asterisk {
             color: red;
         }
+
+        .opening-balance-group-row {
+            background: #f7f9fb;
+            cursor: pointer;
+            font-weight: 700;
+        }
+
+        .opening-balance-group-row .fa {
+            width: 16px;
+        }
+
+        .input-error {
+            border-color: #dc3545 !important;
+        }
     </style>
 @endsection
 @section('page-title')
@@ -16,7 +30,7 @@
     <form id="formFilter" class="to_hide">
         <div class="row mb-2 p-2 rounded-3">
 
-            <div class="col-4">
+            <div class="col-3">
                 <div class="form-group">
                     <label for="year_id" class="form-label">{{ __('finance::finance.Select the Annual Year') }} <span
                             class="required-asterisk" id="spanYear">*</span></label>
@@ -26,6 +40,25 @@
                 </div>
             </div>
 
+            <div class="col-3">
+                <div class="form-group">
+                    <label for="keyword" class="form-label">بحث برقم أو اسم الحساب</label>
+                    <input type="text" id="keyword" name="keyword" class="form-control"
+                        placeholder="مثال: 1201 أو العملاء">
+                </div>
+            </div>
+
+            <div class="col-2">
+                <div class="form-group">
+                    <label for="level" class="form-label">المستوى</label>
+                    <select id="level" name="level" class="form-control">
+                        <option value="">كل المستويات</option>
+                        @foreach ($accountLevels as $level)
+                            <option value="{{ $level }}">المستوى {{ $level }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
 
             <div class="col-4">
                 <button type="button" id="FilterBtn" class="btn mt-4 btn-success"
@@ -41,6 +74,12 @@
 @section('js')
     <script>
         $(document).ready(function() {
+            let openingBalanceTotals = {
+                debtor: 0,
+                creditor: 0,
+                invalidRows: new Set(),
+            };
+
             $('#year_id').change(function() {
                 if ($(this).val() !== '') {
                     $('#FilterBtn').prop('disabled', false);
@@ -78,6 +117,7 @@
                     success: function(data) {
                         // On success actions
                         $('#resultTable').html(data.data.html);
+                        initOpeningBalanceState();
 
                         // Append print and export buttons
                         var printButtonHtml =
@@ -106,50 +146,97 @@
                 });
             });
 
-            $(document).on('change', 'input[type="number"]', function() {
-                $(this).attr('data-edited', 'true');
-                recalculateTotal();
-            });
+            function numericValue(value) {
+                let parsedValue = parseFloat(value);
+                return isNaN(parsedValue) ? 0 : parsedValue;
+            }
 
-            function recalculateTotal() {
-                let totalDebtor = 0;
-                let totalCreditor = 0;
+            function initOpeningBalanceState() {
+                openingBalanceTotals.debtor = 0;
+                openingBalanceTotals.creditor = 0;
+                openingBalanceTotals.invalidRows = new Set();
 
-                // Calculate total debtor value
                 $('.debtor-input').each(function() {
-                    let value = parseFloat($(this).val());
-                    if (!isNaN(value)) {
-                        totalDebtor += value;
-                    }
+                    let value = numericValue($(this).val());
+                    $(this).data('last-value', value);
+                    openingBalanceTotals.debtor += value;
                 });
 
-                // Calculate total creditor value
                 $('.creditor-input').each(function() {
-                    let value = parseFloat($(this).val());
-                    if (!isNaN(value)) {
-                        totalCreditor += value;
-                    }
+                    let value = numericValue($(this).val());
+                    $(this).data('last-value', value);
+                    openingBalanceTotals.creditor += value;
                 });
-                $('#total_value').val(totalDebtor);
-                // Calculate total value
-                let totalValue = totalDebtor - totalCreditor;
 
-                // Set total value in the input field
+                $('.debtor-input').each(function() {
+                    updateRowValidity($(this).data('account-id'));
+                });
+
+                updateBalanceState();
+            }
+
+            function updateBalanceState() {
+                let totalValue = openingBalanceTotals.debtor - openingBalanceTotals.creditor;
+                $('#total_value').val(openingBalanceTotals.debtor);
                 $('#balance').val(totalValue.toFixed(2));
+                $('[data-total-debtor]').text(openingBalanceTotals.debtor.toFixed(2));
+                $('[data-total-creditor]').text(openingBalanceTotals.creditor.toFixed(2));
+                $('[data-total-difference]').text(totalValue.toFixed(2));
 
-                // Check validity and handle UI accordingly
-                if (totalValue !== 0) {
+                if (Math.abs(totalValue) > 0.00001 || openingBalanceTotals.invalidRows.size > 0) {
                     $('#addOrUpdateConstraints').prop('disabled', true);
-                    $('.error-span').removeAttr('hidden');
-                    $('.debtor-input').addClass('input-error');
-                    $('.creditor-input').addClass('input-error');
+                    $('#openingBalanceSummary').removeClass('alert-info alert-success').addClass('alert-warning');
                 } else {
                     $('#addOrUpdateConstraints').prop('disabled', false);
-                    $('.error-span').attr('hidden', true);
-                    $('.debtor-input').removeClass('input-error');
-                    $('.creditor-input').removeClass('input-error');
+                    $('#openingBalanceSummary').removeClass('alert-info alert-warning').addClass('alert-success');
                 }
             }
+
+            function updateRowValidity(accountId) {
+                let debtorInput = $('.debtor-input[data-account-id="' + accountId + '"]');
+                let creditorInput = $('.creditor-input[data-account-id="' + accountId + '"]');
+                let debtorValue = numericValue(debtorInput.val());
+                let creditorValue = numericValue(creditorInput.val());
+                let rowHasBothSides = debtorValue > 0 && creditorValue > 0;
+
+                if (rowHasBothSides) {
+                    openingBalanceTotals.invalidRows.add(String(accountId));
+                    debtorInput.addClass('input-error').siblings('.error-span').removeAttr('hidden');
+                    creditorInput.addClass('input-error').siblings('.error-span').removeAttr('hidden');
+                } else {
+                    openingBalanceTotals.invalidRows.delete(String(accountId));
+                    debtorInput.removeClass('input-error').siblings('.error-span').attr('hidden', true);
+                    creditorInput.removeClass('input-error').siblings('.error-span').attr('hidden', true);
+                }
+            }
+
+            $(document).on('input change', '.debtor-input, .creditor-input', function() {
+                let input = $(this);
+                let currentValue = numericValue(input.val());
+                let lastValue = numericValue(input.data('last-value'));
+                let diff = currentValue - lastValue;
+
+                input.data('last-value', currentValue);
+                input.attr('data-edited', 'true');
+
+                if (input.hasClass('debtor-input')) {
+                    openingBalanceTotals.debtor += diff;
+                } else {
+                    openingBalanceTotals.creditor += diff;
+                }
+
+                updateRowValidity(input.data('account-id'));
+                updateBalanceState();
+            });
+
+            $(document).on('click', '.opening-balance-group-row', function() {
+                let groupTarget = $(this).data('group-target');
+                let rows = $('.' + groupTarget);
+                let icon = $(this).find('.fa').first();
+
+                rows.toggle();
+                icon.toggleClass('fa-folder-open fa-folder');
+            });
 
             // Form submission handling
             $(document).on('submit', '#formOfFirstBalance', function(e) {
@@ -157,6 +244,7 @@
 
                 let buttonObj = $('#addOrUpdateConstraints');
                 let isValid = true;
+                updateBalanceState();
                 let totalValue = parseFloat($('#balance').val());
                 let statement = $('#statement').val();
                 let date = $('#date').val();
@@ -164,7 +252,7 @@
                 let year_id = $('#year_id').val();
 
                 // Validation example
-                if (isNaN(totalValue) || totalValue !== 0) {
+                if (isNaN(totalValue) || Math.abs(totalValue) > 0.00001) {
                     isValid = false;
                     alert('يرجي ادخال بيانات صحيحة للدائن والمدين');
                 }
@@ -174,22 +262,39 @@
                 let accountStatuses = [];
                 let debtorValues = [];
                 let creditorValues = [];
+                let hasRowWithBothSides = false;
 
                 // Collect only edited account_id, debtor_value, and creditor_value
                 $('input[data-edited="true"]').each(function() {
                     let accountId = $(this).data('account-id');
                     let accountStatus = $(this).data('account-status');
-                    let debtorValue = $('.debtor-input[data-account-id="' + accountId + '"]').val();
+                    let debtorValue = $('.debtor-input[data-account-id="' + accountId + '"]').val() || 0;
                     let creditorValue = $('.creditor-input[data-account-id="' + accountId + '"]')
-                        .val();
+                        .val() || 0;
+                    let debtorNumber = numericValue(debtorValue);
+                    let creditorNumber = numericValue(creditorValue);
 
-                    if (accountIds.indexOf(accountId) === -1) {
+                    if (debtorNumber > 0 && creditorNumber > 0) {
+                        hasRowWithBothSides = true;
+                    }
+
+                    if (accountIds.indexOf(accountId) === -1 && (debtorNumber > 0 || creditorNumber > 0)) {
                         accountIds.push(accountId);
                         accountStatuses.push(accountStatus);
                         debtorValues.push(debtorValue);
                         creditorValues.push(creditorValue);
                     }
                 });
+
+                if (hasRowWithBothSides) {
+                    isValid = false;
+                    alert('لا يمكن إدخال مدين ودائن لنفس الحساب في نفس الصف');
+                }
+
+                if (!accountIds.length) {
+                    isValid = false;
+                    alert('يرجي إدخال رصيد افتتاحي لحساب واحد على الأقل');
+                }
 
                 // Prepare the form data
                 let formData = {
@@ -226,7 +331,7 @@
                             console.log('Error:', error);
                             console.log('Status:', status);
                             console.dir(xhr);
-                            // Optionally, handle error UI feedback
+                            handleErrorResponce(xhr);
                         },
                         complete: function() {
                             buttonObj.html('{{ __('web.Confirm') }}');
@@ -275,7 +380,13 @@
     <script>
         function exportTable(btnId, tableId, excelFileName) {
             // Export to Excel functionality
-            document.getElementById(btnId).addEventListener('click', function() {
+            const exportButton = document.getElementById(btnId);
+
+            if (!exportButton) {
+                return;
+            }
+
+            exportButton.addEventListener('click', function() {
                 var wb = XLSX.utils.book_new();
                 var table = document.getElementById(tableId);
                 var ws = XLSX.utils.table_to_sheet(table);

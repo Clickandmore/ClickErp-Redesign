@@ -98,9 +98,11 @@
     $(document).ready(function() {
         $('.datatable').DataTable({
             responsive: true,
-            language: {
-                url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/ar.json'
-            }
+            @if (app()->getLocale() === 'ar')
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/ar.json'
+                }
+            @endif
         });
     });
 </script>

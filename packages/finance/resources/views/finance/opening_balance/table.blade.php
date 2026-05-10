@@ -26,55 +26,60 @@
             <tr>
                 <th>{{ __('finance::finance.Account code') }}</th>
                 <th>{{ __('finance::finance.Account Name') }}</th>
+                <th>الحساب الرئيسي</th>
+                <th>المستوى</th>
                 <th>{{ __('finance::finance.debtor') }}</th>
                 <th>{{ __('finance::finance.creditor') }}</th>
             </tr>
         </thead>
         <tbody>
-            @foreach ($data['accounts_with_no_children'] as $row)
-                <tr title="">
-                    <td>{{ $row->code }}</td>
-                    <td>{{ $row->name }}</td>
-                    @php
-                        $accountData = $data['constraint_details']->where('account_id', $row->id)->first();
-                        $debtorValue = $accountData['debtor_value'] ?? null;
-                        $creditorValue = $accountData['creditor_value'] ?? null;
-                    @endphp
-                    @if ($data['constraint'])
-                        <td>{{ $debtorValue ?? 0 }}</td>
-                        <td>{{ $creditorValue ?? 0 }}</td>
-                    @else
-                        <td>
-                            <input id="debtor_value{{ $row->id }}" data-edited="false"
-                                class="form-control debtor-input" type="number" value="0"
-                                data-account-id="{{ $row->id }}"
-                                data-account-status="{{ @$row->status->value }}">
-                            <span class="error-span" hidden
-                                style='color:red'>{{ __('finance::finance.Enter Valid Values') }}</span>
-                        </td>
-                        <td>
-                            <input id="creditor_value{{ $row->id }}" data-edited="false"
-                                class="form-control creditor-input" type="number" value="0"
-                                data-account-id="{{ $row->id }}"
-                                data-account-status="{{ @$row->status->value }}">
-                            <span class="error-span" hidden
-                                style='color:red'>{{ __('finance::finance.Enter Valid Values') }}</span>
-                        </td>
-                    @endif
-                    {{--                @if ($row->can_updated) --}}
-                    {{--                    <td> --}}
-                    {{--                        <input id="debtor_value{{$row->id}}" data-edited="false" class="form-control debtor-input" --}}
-                    {{--                               type="number" value="0" data-account-id="{{$row->id}}" data-account-status="{{$row->status}}"> --}}
-                    {{--                    </td> --}}
-                    {{--                    <td> --}}
-                    {{--                        <input id="creditor_value{{$row->id}}" data-edited="false"  class="form-control creditor-input" --}}
-                    {{--                               type="number" value="0" data-account-id="{{$row->id}}" data-account-status="{{$row->status}}"> --}}
-                    {{--                    </td> --}}
-                    {{--                @else --}}
-                    {{--                    <td>{{ $debtorValue }}</td> --}}
-                    {{--                    <td>{{ $creditorValue }}</td> --}}
-                    {{--                @endif --}}
+            @foreach ($data['accounts_with_no_children']->groupBy('parent_id') as $parentId => $accounts)
+                @php
+                    $parent = $accounts->first()->parent;
+                    $groupId = 'opening-balance-group-' . ($parentId ?: 'root');
+                    $groupTitle = $parent ? $parent->code . ' - ' . $parent->name : 'بدون حساب رئيسي';
+                @endphp
+                <tr class="opening-balance-group-row" data-group-target="{{ $groupId }}">
+                    <td colspan="6">
+                        <i class="fa fa-folder-open"></i>
+                        {{ $groupTitle }}
+                        <span class="badge bg-secondary ms-2">{{ $accounts->count() }}</span>
+                    </td>
                 </tr>
+                @foreach ($accounts as $row)
+                    <tr title="" class="opening-balance-account-row {{ $groupId }}">
+                        <td>{{ $row->code }}</td>
+                        <td>{{ $row->name }}</td>
+                        <td>{{ $groupTitle }}</td>
+                        <td>{{ $row->level }}</td>
+                        @php
+                            $accountData = $data['constraint_details']->where('account_id', $row->id)->first();
+                            $debtorValue = $accountData['debtor_value'] ?? null;
+                            $creditorValue = $accountData['creditor_value'] ?? null;
+                        @endphp
+                        @if ($data['constraint'])
+                            <td>{{ $debtorValue ?? 0 }}</td>
+                            <td>{{ $creditorValue ?? 0 }}</td>
+                        @else
+                            <td>
+                                <input id="debtor_value{{ $row->id }}" data-edited="false"
+                                    data-last-value="0" class="form-control debtor-input" type="number"
+                                    min="0" step="0.01" value="0" data-account-id="{{ $row->id }}"
+                                    data-account-status="{{ @$row->status->value }}">
+                                <span class="error-span" hidden
+                                    style='color:red'>{{ __('finance::finance.Enter Valid Values') }}</span>
+                            </td>
+                            <td>
+                                <input id="creditor_value{{ $row->id }}" data-edited="false"
+                                    data-last-value="0" class="form-control creditor-input" type="number"
+                                    min="0" step="0.01" value="0" data-account-id="{{ $row->id }}"
+                                    data-account-status="{{ @$row->status->value }}">
+                                <span class="error-span" hidden
+                                    style='color:red'>{{ __('finance::finance.Enter Valid Values') }}</span>
+                            </td>
+                        @endif
+                    </tr>
+                @endforeach
             @endforeach
         </tbody>
     </table>
@@ -84,6 +89,13 @@
                 <input name="balance" id="balance" type="hidden">
                 <input name="year_id" value="{{ $data['year_id'] }}" type="hidden">
                 <input name="value" id="total_value" type="hidden">
+                <div class="col-9 mt-2">
+                    <div id="openingBalanceSummary" class="alert alert-info py-2 mb-0">
+                        إجمالي المدين: <strong data-total-debtor>0.00</strong>
+                        | إجمالي الدائن: <strong data-total-creditor>0.00</strong>
+                        | الفرق: <strong data-total-difference>0.00</strong>
+                    </div>
+                </div>
                 <div class="col-3">
                     <button type="submit" class="btn btn-primary mt-2"
                         id="addOrUpdateConstraints">{{ __('finance::finance.Confirm') }}</button>

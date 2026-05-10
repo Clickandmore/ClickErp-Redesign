@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\App;
 use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 
 class AdminLocalizationMiddleware
@@ -17,9 +18,15 @@ class AdminLocalizationMiddleware
      */
     public function handle(Request $request, Closure $next)
     {
-        if (LaravelLocalization::getCurrentLocale() != "ar" ) {
-            return redirect(LaravelLocalization::getLocalizedURL("ar", null, [], true));
+        $locale = LaravelLocalization::getCurrentLocale();
+        $supportedLocales = array_keys(LaravelLocalization::getSupportedLocales());
+
+        if (!in_array($locale, $supportedLocales, true)) {
+            $locale = config('app.locale', 'ar');
         }
+
+        App::setLocale($locale);
+
         return $next($request);
     }
 }

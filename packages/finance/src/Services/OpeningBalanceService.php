@@ -19,7 +19,7 @@ class OpeningBalanceService extends MainService
 
     public function getOpeningBalances($data)
     {
-        $data['accounts_with_no_children'] = $this->getAccountsWithoutChildren();
+        $data['accounts_with_no_children'] = $this->getAccountsWithoutChildren($data);
         $data['constraint_details'] = $this->assignConstraintDetail($data['year_id']);
         $data['constraint'] = $this->checkHasFirstBalance($data['year_id']);
         $data['check_previous_constraint'] = $this->hasPreviousConstraint($data['constraint']);
@@ -27,9 +27,35 @@ class OpeningBalanceService extends MainService
         return $data;
     }
 
-    public function getAccountsWithoutChildren()
+    public function getAccountsWithoutChildren(array $data = [])
     {
-        return $this->accountService->getAccountWithNoChild();
+        return $this->model
+            ->query()
+            ->select(['id', 'code', 'name', 'status', 'level', 'parent_id'])
+            ->with('parent:id,name,code')
+            ->doesntHave('children')
+            ->when(!empty($data['level']), function ($query) use ($data) {
+                $query->where('level', $data['level']);
+            })
+            ->when(!empty($data['keyword']), function ($query) use ($data) {
+                $keyword = trim((string) $data['keyword']);
+
+                $query->where(function ($subQuery) use ($keyword) {
+                    $subQuery->where('name', 'like', "%{$keyword}%")
+                        ->orWhere('code', 'like', "%{$keyword}%")
+                        ->orWhereHas('parent', function ($parentQuery) use ($keyword) {
+                            $parentQuery->where('name', 'like', "%{$keyword}%")
+                                ->orWhere('code', 'like', "%{$keyword}%");
+                        });
+                });
+            })
+            ->orderBy('code')
+            ->get();
+    }
+
+    public function getAccountLevels(): array
+    {
+        return $this->accountService->getLevels();
     }
 
     public function assignConstraintDetail($year_id)

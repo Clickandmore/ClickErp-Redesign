@@ -345,6 +345,11 @@ function AdminGuardHasAllPerms($permissions)
     return true;
 }
 
+function AdminGuardCanAccessDashboard(): bool
+{
+    return AdminGuardHasAnyPerm(\App\Support\AdminRoutePermissionMatrix::dashboardAccessPermissions());
+}
+
 function AdminGuardPermissionNames(): array
 {
     $user = Auth::guard('admin')->user();
