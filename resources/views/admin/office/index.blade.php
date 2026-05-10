@@ -352,7 +352,8 @@
                             <select id="nationalityFilter" class="form-select">
                                 <option value="">{{ helperTrans('ingaz.all_nationalities') }}</option>
                                 @foreach ($nationalities as $nationality)
-                                    <option value="{{ mb_strtolower($nationality->title) }}">{{ $nationality->title }}</option>
+                                    @php($nationalityName = $nationality->sub_title ?: ($nationality->title ?: helperTrans('ingaz.not_specified')))
+                                    <option value="{{ mb_strtolower($nationalityName) }}">{{ $nationalityName }}</option>
                                 @endforeach
                             </select>
                         </div>

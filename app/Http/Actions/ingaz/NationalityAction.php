@@ -5,6 +5,7 @@ namespace App\Http\Actions\ingaz;
 use App\Http\Actions\MainAction;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\Nationality;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class NationalityAction extends MainAction
@@ -23,7 +24,28 @@ class NationalityAction extends MainAction
         }
 
         $data['is_show'] = isset($data['is_show']) ? 1 : 0;
-        return parent::store($data);
+
+        return DB::transaction(function () use ($data) {
+            $translations = $this->extractTranslations($data);
+            $baseData = $this->clearRequesrt($this->withoutTranslations($data));
+
+            $nationality = $this->model->create($baseData);
+
+            foreach ($translations as $locale => $translationData) {
+                $translationData = $this->clearRequesrt($translationData);
+
+                if (empty($translationData)) {
+                    continue;
+                }
+
+                $nationality->translations()->updateOrCreate(
+                    ['locale' => $locale],
+                    $translationData
+                );
+            }
+
+            return $nationality->load('translations');
+        });
     }
 
     public function updateNationality($id, $data)
@@ -55,5 +77,35 @@ class NationalityAction extends MainAction
         return $this->model->where('is_show', true)
             ->orderByTranslation('sub_title', 'asc')
             ->get();
+    }
+
+    private function extractTranslations(array $data): array
+    {
+        $translations = [];
+
+        foreach ($data as $key => $value) {
+            if (!str_contains($key, ':')) {
+                continue;
+            }
+
+            [$attribute, $locale] = explode(':', $key, 2);
+
+            if (!in_array($attribute, $this->model->translatedAttributes, true)) {
+                continue;
+            }
+
+            $translations[$locale][$attribute] = $value;
+        }
+
+        return $translations;
+    }
+
+    private function withoutTranslations(array $data): array
+    {
+        return array_filter(
+            $data,
+            fn ($key) => !str_contains($key, ':'),
+            ARRAY_FILTER_USE_KEY
+        );
     }
 }

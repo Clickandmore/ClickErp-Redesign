@@ -261,7 +261,7 @@
                                         @foreach ($nationalities as $nationality)
                                             <option value="{{ $nationality->id }}"
                                                 {{ (string) old('nationality_id', $office?->nationality_id) === (string) $nationality->id ? 'selected' : '' }}>
-                                                {{ $nationality->title }}
+                                                {{ $nationality->sub_title ?: ($nationality->title ?: helperTrans('ingaz.not_specified')) }}
                                             </option>
                                         @endforeach
                                     </select>

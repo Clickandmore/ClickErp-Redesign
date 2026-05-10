@@ -459,7 +459,7 @@
                                             style="{{ $procedure->salary_received === true ? '' : 'display:none;' }}">
                                             <input type="date" class="form-control" name="salary_received_date"
                                                 id="salary_received_date"
-                                                value="{{ $procedure->salary_received_date ? \Carbon\Carbon::parse($procedure->salary_received_date)->format('Y-m-d') : '' }}"
+                                                value="{{ $procedure->salary_received_date ? \Carbon\Carbon::parse($procedure->salary_received_date)->format('Y-m-d') : date('Y-m-d') }}"
                                                 {{ $procedure->status === 'completed' || $procedure->procedures_confirmed ? 'disabled' : '' }}>
                                         </div>
                                     </div>
@@ -471,7 +471,7 @@
                                             </label>
                                             <input type="file" class="form-control form-control-sm"
                                                 name="salary_attachments[]" multiple accept=".pdf,.jpg,.jpeg,.png">
-                                            <small class="text-muted">إيصال الراتب، صورة من الوثيقة، إلخ</small>
+                                            <small class="text-muted">اختياري: إيصال الراتب، صورة من الوثيقة، إلخ</small>
 
                                             @if ($procedure->attachments && count($procedure->attachments) > 0)
                                                 @php
@@ -547,7 +547,7 @@
                                             </label>
                                             <input type="file" class="form-control form-control-sm"
                                                 name="passport_attachments[]" multiple accept=".pdf,.jpg,.jpeg,.png">
-                                            <small class="text-muted">صورة من الجواز، وثائق السفر، إلخ</small>
+                                            <small class="text-muted">اختياري: صورة من الجواز، وثائق السفر، إلخ</small>
 
                                             @if ($procedure->attachments && count($procedure->attachments) > 0)
                                                 @php
@@ -621,7 +621,7 @@
                                             </label>
                                             <input type="file" class="form-control form-control-sm"
                                                 name="letter_attachments[]" multiple accept=".pdf,.jpg,.jpeg,.png">
-                                            <small class="text-muted">خطاب الترحيل، الوثائق الرسمية، إلخ</small>
+                                            <small class="text-muted">اختياري: خطاب الترحيل، الوثائق الرسمية، إلخ</small>
 
                                             @if ($procedure->attachments && count($procedure->attachments) > 0)
                                                 @php
@@ -683,7 +683,7 @@
                                         </div>
                                         <div class="col-md-3" id="settlement_date_container">
                                             <input type="date" class="form-control" name="settlement_date"
-                                                value="{{ $procedure->settlement_date ? \Carbon\Carbon::parse($procedure->settlement_date)->format('Y-m-d') : '' }}">
+                                                value="{{ $procedure->settlement_date ? \Carbon\Carbon::parse($procedure->settlement_date)->format('Y-m-d') : date('Y-m-d') }}">
                                         </div>
                                     </div>
                                     <!-- مرفقات جلسة التسوية -->
@@ -694,7 +694,7 @@
                                             </label>
                                             <input type="file" class="form-control form-control-sm"
                                                 name="settlement_attachments[]" multiple accept=".pdf,.jpg,.jpeg,.png">
-                                            <small class="text-muted">محضر الجلسة، الوثائق الموقعة، إلخ</small>
+                                            <small class="text-muted">اختياري: محضر الجلسة، الوثائق الموقعة، إلخ</small>
 
                                             @if ($procedure->attachments && count($procedure->attachments) > 0)
                                                 @php
@@ -770,7 +770,7 @@
                                         </label>
                                         <input type="file" class="form-control form-control-sm"
                                             name="exit_attachments[]" multiple accept=".pdf,.jpg,.jpeg,.png">
-                                        <small class="text-muted">تأكيد الخروج، تذكرة السفر، إلخ</small>
+                                        <small class="text-muted">اختياري: تأكيد الخروج، تذكرة السفر، إلخ</small>
 
                                         @if ($procedure->attachments && count($procedure->attachments) > 0)
                                             @php
@@ -1193,6 +1193,14 @@
                 console.log('Procedures confirmed:', proceduresConfirmed);
                 console.log('Status:', status);
 
+                const today = new Date().toISOString().slice(0, 10);
+                function fillDateIfEmpty(selector) {
+                    const input = $(selector);
+                    if (input.length && !input.val()) {
+                        input.val(today);
+                    }
+                }
+
                 // إذا كانت الإجراءات مؤكدة أو الحالة مكتملة، تعطيل زر الحفظ
                 if (proceduresConfirmed || status === 'completed') {
                     $('.btn-save').prop('disabled', true).hide();
@@ -1203,6 +1211,7 @@
                 $('input[name="salary_received"]').on('change', function() {
                     console.log('Salary changed to:', $(this).val());
                     if ($(this).val() === '1') {
+                        fillDateIfEmpty('input[name="salary_received_date"]');
                         $('#salary_date_container').show();
                     } else {
                         $('#salary_date_container').hide();
@@ -1213,6 +1222,7 @@
                 $('input[name="has_passport"]').on('change', function() {
                     console.log('Passport changed to:', $(this).val());
                     if ($(this).val() === '1') {
+                        fillDateIfEmpty('input[name="passport_date"]');
                         $('#passport_date_container').show();
                     } else {
                         $('#passport_date_container').hide();
@@ -1223,6 +1233,7 @@
                 $('input[name="has_deportation_letter"]').on('change', function() {
                     console.log('Letter changed to:', $(this).val());
                     if ($(this).val() === '1') {
+                        fillDateIfEmpty('input[name="deportation_letter_date"]');
                         $('#letter_date_container').show();
                     } else {
                         $('#letter_date_container').hide();
@@ -1233,6 +1244,7 @@
                 $('input[name="has_settlement_session"]').on('change', function() {
                     console.log('Settlement changed to:', $(this).val());
                     // دائماً نظهر حقل التاريخ لجلسة التسوية
+                    fillDateIfEmpty('input[name="settlement_date"]');
                     $('#settlement_date_container').show();
                 });
 
@@ -1240,6 +1252,7 @@
                 $('input[name="has_final_exit"]').on('change', function() {
                     console.log('Exit changed to:', $(this).val());
                     if ($(this).val() === '1') {
+                        fillDateIfEmpty('input[name="final_exit_date"]');
                         $('#exit_date_container').show();
                     } else {
                         $('#exit_date_container').hide();

@@ -102,6 +102,83 @@ class ContractController extends Controller
         ])));
     }
 
+    private function normalizeSaudiLocalPhone(?string $phone): string
+    {
+        $digits = preg_replace('/\D+/', '', (string) $phone);
+
+        if ($digits === '') {
+            return '';
+        }
+
+        if (str_starts_with($digits, '966')) {
+            $digits = substr($digits, 3);
+        }
+
+        if (str_starts_with($digits, '0')) {
+            $digits = substr($digits, 1);
+        }
+
+        return $digits;
+    }
+
+    private function findClientByPhone(?string $phone): ?User
+    {
+        $localPhone = $this->normalizeSaudiLocalPhone($phone);
+        $rawPhone = trim((string) $phone);
+
+        $phoneTerms = array_values(array_unique(array_filter([
+            $rawPhone,
+            $localPhone,
+            $localPhone !== '' ? '0' . $localPhone : null,
+            $localPhone !== '' ? '966' . $localPhone : null,
+        ])));
+
+        if (empty($phoneTerms)) {
+            return null;
+        }
+
+        return User::whereIn('phone', $phoneTerms)->first();
+    }
+
+    private function resolveClientForCompletedContract(array $clientData): User
+    {
+        $client = $this->findClientByPhone($clientData['client_phone'] ?? null);
+
+        if (!$client) {
+            return User::create([
+                'name' => $clientData['client_name'],
+                'phone' => $this->normalizeSaudiLocalPhone($clientData['client_phone']) ?: $clientData['client_phone'],
+                'email' => $clientData['client_email'] ?? null,
+                'nationality_id' => $clientData['client_nationality_id'] ?? null,
+                'national_num' => $clientData['client_national_num'] ?? null,
+                'birthdate' => $clientData['client_birthdate'] ?? null,
+                'city' => $clientData['city'] ?? null,
+                'address' => $clientData['address'] ?? null,
+            ]);
+        }
+
+        $updates = [];
+        foreach ([
+            'name' => 'client_name',
+            'email' => 'client_email',
+            'nationality_id' => 'client_nationality_id',
+            'national_num' => 'client_national_num',
+            'birthdate' => 'client_birthdate',
+            'city' => 'city',
+            'address' => 'address',
+        ] as $column => $inputKey) {
+            if (blank($client->{$column}) && filled($clientData[$inputKey] ?? null)) {
+                $updates[$column] = $clientData[$inputKey];
+            }
+        }
+
+        if (!empty($updates)) {
+            $client->update($updates);
+        }
+
+        return $client;
+    }
+
     /**
      * Search maids by name or passport
      */
@@ -213,17 +290,7 @@ class ContractController extends Controller
                     'address' => 'nullable|string'
                 ]);
 
-                $client = User::create([
-                    'name' => $clientData['client_name'],
-                    'phone' => $clientData['client_phone'],
-                    'email' => $clientData['client_email'] ?? null,
-                    'nationality_id' => $clientData['client_nationality_id'] ?? null,
-                    'national_num' => $clientData['client_national_num'] ?? null,
-                    'city' => $clientData['city'] ?? null,
-                    'address' => $clientData['address'] ?? null,
-                ]);
-
-                $clientId = $client->id;
+                $clientId = $this->resolveClientForCompletedContract($clientData)->id;
             }
 
             // Validate contract data
@@ -317,18 +384,7 @@ class ContractController extends Controller
                     'address' => 'nullable|string',
                 ]);
 
-                $client = User::create([
-                    'name' => $clientData['client_name'],
-                    'phone' => $clientData['client_phone'],
-                    'email' => $clientData['client_email'] ?? null,
-                    'nationality_id' => $clientData['client_nationality_id'] ?? null,
-                    'national_num' => $clientData['client_national_num'] ?? null,
-                    'birthdate' => $clientData['client_birthdate'] ?? null,
-                    'city' => $clientData['city'] ?? null,
-                    'address' => $clientData['address'] ?? null,
-                ]);
-
-                $clientId = $client->id;
+                $clientId = $this->resolveClientForCompletedContract($clientData)->id;
             } elseif (!$clientId) {
                 return response()->json([
                     'success' => false,

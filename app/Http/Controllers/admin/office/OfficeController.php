@@ -60,7 +60,7 @@ class OfficeController extends Controller
             return DataTables::of($offices)
                 ->addIndexColumn()
                 ->editColumn('nationality_id', function ($row) {
-                    return $row->nationality->title ?? $row->nationality->sub_title ?? '';
+                    return $row->nationality?->sub_title ?: ($row->nationality?->title ?: '');
                 })
                 ->editColumn('title', function ($row) {
                     return $row->title ?? '';

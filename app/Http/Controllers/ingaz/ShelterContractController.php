@@ -3000,46 +3000,27 @@ class ShelterContractController extends Controller
                 'notes'
             ]);
 
+            $defaultDate = now()->format('Y-m-d');
+            $salaryReceived = $request->input('salary_received');
+            $hasPassport = $request->input('has_passport');
+            $hasDeportationLetter = $request->input('has_deportation_letter');
+            $hasSettlementSession = $request->input('has_settlement_session');
+            $hasFinalExit = $request->input('has_final_exit');
+
             // Update procedure data
             $updateData = [
-                'salary_received' => $request->input('salary_received') !== null ? ($request->input('salary_received') == '1' ? true : false) : null,
-                'salary_received_date' => ($request->input('salary_received') == '1' && $request->salary_received_date) ? $request->salary_received_date : null,
-                'has_passport' => $request->input('has_passport') !== null ? ($request->input('has_passport') == '1' ? true : false) : null,
-                'passport_date' => ($request->input('has_passport') == '1' && $request->passport_date) ? $request->passport_date : null,
-                'has_deportation_letter' => $request->input('has_deportation_letter') !== null ? ($request->input('has_deportation_letter') == '1' ? true : false) : null,
-                'deportation_letter_date' => ($request->input('has_deportation_letter') == '1' && $request->deportation_letter_date) ? $request->deportation_letter_date : null,
-                'has_settlement_session' => $request->input('has_settlement_session') !== null ? ($request->input('has_settlement_session') == '1' ? true : false) : null,
-                'settlement_date' => $request->settlement_date, // حفظ التاريخ دائماً في جلسة التسوية
-                'has_final_exit' => $request->input('has_final_exit') !== null ? ($request->input('has_final_exit') == '1' ? true : false) : null,
-                'final_exit_date' => ($request->input('has_final_exit') == '1' && $request->final_exit_date) ? $request->final_exit_date : null,
+                'salary_received' => $salaryReceived !== null ? ($salaryReceived == '1' ? true : false) : null,
+                'salary_received_date' => $salaryReceived == '1' ? ($request->salary_received_date ?: $defaultDate) : null,
+                'has_passport' => $hasPassport !== null ? ($hasPassport == '1' ? true : false) : null,
+                'passport_date' => $hasPassport == '1' ? ($request->passport_date ?: $defaultDate) : null,
+                'has_deportation_letter' => $hasDeportationLetter !== null ? ($hasDeportationLetter == '1' ? true : false) : null,
+                'deportation_letter_date' => $hasDeportationLetter == '1' ? ($request->deportation_letter_date ?: $defaultDate) : null,
+                'has_settlement_session' => $hasSettlementSession !== null ? ($hasSettlementSession == '1' ? true : false) : null,
+                'settlement_date' => $hasSettlementSession !== null ? ($request->settlement_date ?: $defaultDate) : null,
+                'has_final_exit' => $hasFinalExit !== null ? ($hasFinalExit == '1' ? true : false) : null,
+                'final_exit_date' => $hasFinalExit == '1' ? ($request->final_exit_date ?: $defaultDate) : null,
                 'notes' => $request->notes
             ];
-
-            $existingAttachmentsGrouped = collect($procedure->attachments ?? [])->groupBy(function ($item) {
-                return is_array($item) && isset($item['type']) ? $item['type'] : 'unknown';
-            });
-
-            $attachmentRequirements = [
-                'salary_received' => ['field' => 'salary_attachments', 'type' => 'salary', 'label' => 'مرفقات استلام الراتب'],
-                'has_passport' => ['field' => 'passport_attachments', 'type' => 'passport', 'label' => 'مرفقات الجواز'],
-                'has_deportation_letter' => ['field' => 'letter_attachments', 'type' => 'letter', 'label' => 'مرفقات خطاب الترحيل'],
-                'has_settlement_session' => ['field' => 'settlement_attachments', 'type' => 'settlement', 'label' => 'مرفقات جلسة التسوية'],
-                'has_final_exit' => ['field' => 'exit_attachments', 'type' => 'exit', 'label' => 'مرفقات الخروج النهائي'],
-            ];
-
-            foreach ($attachmentRequirements as $field => $config) {
-                if (array_key_exists($field, $updateData) && $updateData[$field] === true) {
-                    $hasNew = $request->hasFile($config['field']) && count($request->file($config['field'])) > 0;
-                    $hasExisting = $existingAttachmentsGrouped->has($config['type']) && $existingAttachmentsGrouped[$config['type']]->count() > 0;
-
-                    if (!$hasNew && !$hasExisting) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'يرجى إرفاق ' . $config['label'] . ' قبل الحفظ.'
-                        ], 422);
-                    }
-                }
-            }
 
             // إذا كان حفظ جزئي، لا نغير الحالة إلى in_progress
             if (!$isPartialSave) {
