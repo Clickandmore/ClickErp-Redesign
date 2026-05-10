@@ -53,4 +53,23 @@ class Nationality extends Model
     {
         return asset('storage/' . $this->logo) ?? null;
     }
+
+    public function getDisplayNameAttribute(): string
+    {
+        $name = trim((string) ($this->sub_title ?: $this->title));
+
+        if ($name !== '') {
+            return $name;
+        }
+
+        foreach ($this->translations as $translation) {
+            $name = trim((string) ($translation->sub_title ?: $translation->title));
+
+            if ($name !== '') {
+                return $name;
+            }
+        }
+
+        return (string) $this->id;
+    }
 }

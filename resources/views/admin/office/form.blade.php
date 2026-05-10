@@ -180,8 +180,10 @@
 @section('content')
     @php
         $isEdit = filled($office);
-        $selectedJobTypes = collect(old('job_title_id', $office?->jobTypes?->pluck('id')->map(fn ($id) => (string) $id)->all() ?? []))
-            ->map(fn ($id) => (string) $id)
+        $selectedJobTypes = collect(
+            old('job_title_id', $office?->jobTypes?->pluck('id')->map(fn($id) => (string) $id)->all() ?? []),
+        )
+            ->map(fn($id) => (string) $id)
             ->all();
         $attachment = $office?->attachment;
         $statusEnum = $isEdit ? \App\Enums\Office\OfficesStatusEnum::tryFrom($office->status) : null;
@@ -201,7 +203,9 @@
                             {{ $isEdit ? helperTrans('ingaz.edit_office') : helperTrans('ingaz.add_office') }}
                         </h3>
                         <p class="text-muted mb-0">
-                            {{ helperTrans('ingaz.office_information') }} ، {{ helperTrans('ingaz.office_manager_information') }} ، {{ helperTrans('ingaz.bank_account_details') }}
+                            {{ helperTrans('ingaz.office_information') }} ،
+                            {{ helperTrans('ingaz.office_manager_information') }} ،
+                            {{ helperTrans('ingaz.bank_account_details') }}
                         </p>
                     </div>
 
@@ -211,7 +215,8 @@
                         @endif
 
                         @if ($statusEnum)
-                            <span class="office-status-pill {{ $statusEnum->value === \App\Enums\Office\OfficesStatusEnum::DisActive->value ? 'is-inactive' : '' }}">
+                            <span
+                                class="office-status-pill {{ $statusEnum->value === \App\Enums\Office\OfficesStatusEnum::DisActive->value ? 'is-inactive' : '' }}">
                                 {{ $statusEnum->lang() }}
                             </span>
                         @endif
@@ -225,7 +230,9 @@
             </div>
         </div>
 
-        <form class="from-submit-global" action="{{ $isEdit ? route('offices.update', $office->id) : route('offices.store') }}" method="POST" enctype="multipart/form-data">
+        <form class="from-submit-global"
+            action="{{ $isEdit ? route('offices.update', $office->id) : route('offices.store') }}" method="POST"
+            enctype="multipart/form-data">
             @csrf
             @if ($isEdit)
                 @method('PUT')
@@ -245,7 +252,8 @@
                                             {{ helperTrans('ingaz.title') }} ({{ helperTrans('ingaz.' . $locale) }})
                                             <span class="office-required">*</span>
                                         </label>
-                                        <input type="text" name="title:{{ $locale }}" class="form-control office-input"
+                                        <input type="text" name="title:{{ $locale }}"
+                                            class="form-control office-input"
                                             value="{{ old('title:' . $locale, optional($office?->translate($locale))->title) }}"
                                             data-validation="required">
                                     </div>
@@ -256,12 +264,13 @@
                                         {{ helperTrans('ingaz.nationality') }}
                                         <span class="office-required">*</span>
                                     </label>
-                                    <select name="nationality_id" class="form-select office-select" data-validation="required">
+                                    <select name="nationality_id" class="form-select office-select"
+                                        data-validation="required">
                                         <option value="">{{ helperTrans('ingaz.choose') }}</option>
                                         @foreach ($nationalities as $nationality)
                                             <option value="{{ $nationality->id }}"
                                                 {{ (string) old('nationality_id', $office?->nationality_id) === (string) $nationality->id ? 'selected' : '' }}>
-                                                {{ $nationality->sub_title ?: ($nationality->title ?: helperTrans('ingaz.not_specified')) }}
+                                                {{ $nationality->display_name }}
                                             </option>
                                         @endforeach
                                     </select>
@@ -370,13 +379,15 @@
 
                                 <div class="col-12 col-md-3 office-field">
                                     <label>{{ helperTrans('ingaz.cost_of_dollar') }}</label>
-                                    <input type="number" step="0.01" name="cost_of_dollar" class="form-control office-input"
+                                    <input type="number" step="0.01" name="cost_of_dollar"
+                                        class="form-control office-input"
                                         value="{{ old('cost_of_dollar', $office?->cost_of_dollar) }}">
                                 </div>
 
                                 <div class="col-12 col-md-3 office-field mb-0">
                                     <label>{{ helperTrans('ingaz.cost_of_other') }}</label>
-                                    <input type="number" step="0.01" name="cost_of_other" class="form-control office-input"
+                                    <input type="number" step="0.01" name="cost_of_other"
+                                        class="form-control office-input"
                                         value="{{ old('cost_of_other', $office?->cost_of_other) }}">
                                 </div>
                             </div>
@@ -399,20 +410,23 @@
                                     <div class="office-meta-item">
                                         <span class="office-meta-label">{{ __('finance::finance.account_code') }}</span>
                                         <span class="office-meta-value">
-                                            {{ $isEdit ? ($office->account?->code ?? 'يُنشأ تلقائياً') : 'يُنشأ تلقائياً تحت 221' }}
+                                            {{ $isEdit ? $office->account?->code ?? 'يُنشأ تلقائياً' : 'يُنشأ تلقائياً تحت 221' }}
                                         </span>
                                     </div>
                                     <div class="office-meta-item">
                                         <span class="office-meta-label">{{ helperTrans('ingaz.linked_cvs') }}</span>
-                                        <span class="office-meta-value">{{ $isEdit ? ($office->maids_count ?? 0) : 0 }}</span>
+                                        <span
+                                            class="office-meta-value">{{ $isEdit ? $office->maids_count ?? 0 : 0 }}</span>
                                     </div>
                                     <div class="office-meta-item">
                                         <span class="office-meta-label">{{ helperTrans('ingaz.created_at') }}</span>
-                                        <span class="office-meta-value">{{ $isEdit ? optional($office->created_at)->format('Y-m-d') : '-' }}</span>
+                                        <span
+                                            class="office-meta-value">{{ $isEdit ? optional($office->created_at)->format('Y-m-d') : '-' }}</span>
                                     </div>
                                     <div class="office-meta-item">
                                         <span class="office-meta-label">{{ helperTrans('ingaz.updated_at') }}</span>
-                                        <span class="office-meta-value">{{ $isEdit ? optional($office->updated_at)->format('Y-m-d') : '-' }}</span>
+                                        <span
+                                            class="office-meta-value">{{ $isEdit ? optional($office->updated_at)->format('Y-m-d') : '-' }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -425,7 +439,8 @@
                             <div class="office-section-body">
                                 <div class="office-field">
                                     <label>{{ helperTrans('ingaz.file') }}</label>
-                                    <input type="file" class="dropify" name="file" data-default-file="{{ $defaultAttachment }}">
+                                    <input type="file" class="dropify" name="file"
+                                        data-default-file="{{ $defaultAttachment }}">
                                 </div>
 
                                 <div class="office-field mb-0">
