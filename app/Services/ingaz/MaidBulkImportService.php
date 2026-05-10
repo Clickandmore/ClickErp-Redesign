@@ -80,7 +80,7 @@ class MaidBulkImportService
             ['key' => 'religion', 'label' => 'الديانة', 'required' => false],
             ['key' => 'type_id', 'label' => 'نوع السيرة', 'required' => true],
             ['key' => 'job_titles', 'label' => 'المهنة', 'required' => true],
-            ['key' => 'arrival_date', 'label' => 'تاريخ الوصول', 'required' => true],
+            ['key' => 'arrival_date', 'label' => 'تاريخ الوصول', 'required' => false],
             ['key' => 'experience_status', 'label' => 'حالة الخبرة', 'required' => true],
             ['key' => 'experience_years', 'label' => 'سنوات الخبرة', 'required' => false],
             ['key' => 'salary', 'label' => 'الراتب', 'required' => false],
@@ -268,6 +268,7 @@ class MaidBulkImportService
                     $data = $payload;
                     $data['status'] = 'available';
                     $data['added_by'] = $adminId;
+                    $data['preserve_null_arrival_date'] = true;
 
                     $maid = $maidAction->storeMaid($data, $request);
 
@@ -762,7 +763,7 @@ class MaidBulkImportService
             'height' => 'nullable|numeric|min:0',
             'weight' => 'nullable|numeric|min:0',
             'childrens_count' => 'nullable|integer|min:0',
-            'arrival_date' => 'required|date',
+            'arrival_date' => 'nullable|date',
             'id_expiry_date' => 'nullable|date',
             'video_link' => 'nullable|url',
             'experience_status' => 'required|in:has_experience,no_experience',
@@ -772,7 +773,6 @@ class MaidBulkImportService
             'create_shelter_contract' => 'nullable|in:0,1',
         ], [
             'passport_num.unique' => 'رقم الجواز موجود مسبقاً في النظام.',
-            'arrival_date.required' => 'تاريخ الوصول مطلوب.',
             'video_link.url' => 'رابط الفيديو غير صالح.',
         ]);
 
