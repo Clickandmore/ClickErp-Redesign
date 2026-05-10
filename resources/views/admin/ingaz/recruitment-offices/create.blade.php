@@ -14,7 +14,7 @@
         <select name="nationality_id" id="nationality_id" class="form-select form-control" data-validation="required">
             <option value="">{{helperTrans('ingaz.choose')}}</option>
             @foreach($nationalities as $nationality)
-                <option value="{{$nationality->id}}">{{$nationality->sub_title}}</option>
+                <option value="{{$nationality->id}}">{{$nationality->display_name}}</option>
             @endforeach
         </select>
     </div>
