@@ -138,6 +138,21 @@ class AdminController extends Controller
                         return $this->renderAdminActionsDropdown($menuItems);
                     }
 
+                    $adminUser = Auth::guard('admin')->user();
+                    $canViewEmployeeAnalytics = Route::has('dashboard.employees.show')
+                        && (
+                            $adminUser->can(\App\PermKeys::DASHBOARD_VIEW)
+                            || $adminUser->can(\App\PermKeys::DASHBOARD_EMPLOYEE_PERFORMANCE)
+                            || $adminUser->can(\App\PermKeys::DASHBOARD_MANAGE)
+                            || $adminUser->can(\App\PermKeys::DASHBOARD_ANALYTICS)
+                        );
+
+                    if ($canViewEmployeeAnalytics) {
+                        $menuItems[] = '<li><a href="' . route('dashboard.employees.show', ['employee' => $row->id, 'range' => 'all']) . '" class="dropdown-item text-primary">'
+                            . '<i class="fa fa-line-chart"></i> الملف التحليلي'
+                            . '</a></li>';
+                    }
+
                     if (Route::has('employees.create') && Auth::guard('admin')->user()->can(\App\PermKeys::HR_MODULE)) {
                         $linkedEmployee = $this->findLinkedHrEmployee((int) $row->id);
 

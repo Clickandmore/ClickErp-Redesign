@@ -174,7 +174,12 @@ class AdminRoutePermissionMatrix
             'dashboard.index' => self::dashboardAccessPermissions(),
             'dashboard.professional' => self::dashboardAccessPermissions(),
             'dashboard.old' => self::dashboardAccessPermissions(),
-            'dashboard.employees.show' => [PermKeys::DASHBOARD_VIEW],
+            'dashboard.employees.show' => [
+                PermKeys::DASHBOARD_VIEW,
+                PermKeys::DASHBOARD_EMPLOYEE_PERFORMANCE,
+                PermKeys::DASHBOARD_MANAGE,
+                PermKeys::DASHBOARD_ANALYTICS,
+            ],
         ];
     }
 
