@@ -17,13 +17,15 @@
                         <a href="{{ route('ingaz-delegations.edit', $delegation) }}" class="btn btn-primary">تعديل</a>
                     @endif
                     @if ($delegation->invoice)
-                        <a href="{{ route('invoices.show', $delegation->invoice->id) }}" class="btn btn-success">عرض الفاتورة</a>
-                        @if ($delegation->invoice->musanedTransferItem?->transfer)
+                        @if ($canViewInvoices)
+                            <a href="{{ route('invoices.show', $delegation->invoice->id) }}" class="btn btn-success">عرض الفاتورة</a>
+                        @endif
+                        @if ($delegation->invoice->musanedTransferItem?->transfer && $canViewMusanedTransfers)
                             <a href="{{ route('musaned-transfers.show', $delegation->invoice->musanedTransferItem->transfer->id) }}" class="btn btn-info">عرض تحويل مساند</a>
-                        @else
+                        @elseif (!$delegation->invoice->musanedTransferItem?->transfer && $canCreateMusanedTransfers)
                             <a href="{{ route('musaned-transfers.create', ['ingaz_delegation_ids' => [$delegation->id]]) }}" class="btn btn-info">تسجيل تحويل مساند</a>
                         @endif
-                    @else
+                    @elseif ($canCreateInvoices)
                         <a href="{{ route('invoices.create', ['ingaz_delegation_id' => $delegation->id]) }}" class="btn btn-success">إضافة فاتورة</a>
                     @endif
                     <a href="{{ route('ingaz-delegations.index') }}" class="btn btn-outline-secondary">رجوع</a>

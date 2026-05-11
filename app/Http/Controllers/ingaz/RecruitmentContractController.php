@@ -951,6 +951,17 @@ class RecruitmentContractController extends Controller
                             . '</div>';
                     }
 
+                    if ((int) ($row->notes_count ?? 0) > 0) {
+                        $notesCount = (int) $row->notes_count;
+                        $contractInfo .= '<div class="mt-2">'
+                            . '<a class="contract-notes-indicator" href="' . e(route('contracts.details', $row->id) . '#contractNotesSection') . '" title="عرض ملاحظات العقد">'
+                            . '<i class="fas fa-sticky-note"></i>'
+                            . '<span>عليه ملاحظات</span>'
+                            . '<span class="badge bg-warning text-dark">' . $notesCount . '</span>'
+                            . '</a>'
+                            . '</div>';
+                    }
+
                     return $contractInfo ?: '<span class="text-muted"><i class="fas fa-minus-circle me-1"></i>غير محدد</span>';
                 })
                 ->addColumn('duration', function ($row) {
@@ -1351,8 +1362,17 @@ class RecruitmentContractController extends Controller
                         }
                     }
 
+                    $notesCount = (int) ($row->notes_count ?? 0);
+                    if ($notesCount > 0) {
+                        $actions .= '<li><a class="dropdown-item" href="' . e(route('contracts.details', $row->id) . '#contractNotesSection') . '">
+                                        <i class="fas fa-sticky-note"></i>
+                                        <span>عرض ملاحظات العقد</span>
+                                        <span class="badge bg-warning text-dark attachment-count-badge">' . $notesCount . '</span>
+                                    </a></li>';
+                    }
+
                     // اضافة ملاحظة على العقد
-                    $actions .= '<li><button class="dropdown-item add-contract-note-btn" data-contract-id="' . $row->id . '" data-notes-count="' . ($row->notes_count ?? 0) . '" data-bs-toggle="modal"
+                    $actions .= '<li><button class="dropdown-item add-contract-note-btn" data-contract-id="' . $row->id . '" data-notes-count="' . $notesCount . '" data-bs-toggle="modal"
                                     data-bs-target="#addContractNoteModal">
                                             <i class="fas fa-plus"></i> اضافة ملاحظة
                                         </button></li>';

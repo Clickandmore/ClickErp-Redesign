@@ -587,6 +587,63 @@
                 e.stopPropagation();
             });
 
+            $(document).on('click', '.client-status-action', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const $button = $(this);
+                const id = $button.data('id');
+                const status = $button.data('status');
+                const clientName = $button.data('name') || '';
+                const actionText = status === 'blocked' ? 'حظر' : 'إلغاء حظر';
+
+                const runRequest = () => {
+                    $button.prop('disabled', true);
+
+                    $.ajax({
+                        url: "{{ route('clients.bulk-update-status') }}",
+                        type: 'POST',
+                        data: {
+                            _token: "{{ csrf_token() }}",
+                            ids: [id],
+                            status: status
+                        },
+                        success: function(response) {
+                            successToster('{{ __('auth.done successfully') }}', response.message);
+                            clearBulkSelection();
+                            closeClientsActionsDropdown();
+                            table.ajax.reload(null, false);
+                        },
+                        error: function(xhr) {
+                            const message = xhr.responseJSON && xhr.responseJSON.message
+                                ? xhr.responseJSON.message
+                                : 'حصل خطأ، حاول مرة أخرى';
+                            errorToster('خطأ!', message);
+                        },
+                        complete: function() {
+                            $button.prop('disabled', false);
+                        }
+                    });
+                };
+
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        title: 'تأكيد الإجراء',
+                        text: 'سيتم ' + actionText + ' العميل' + (clientName ? ': ' + clientName : '') + '.',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'تنفيذ',
+                        cancelButtonText: 'إلغاء'
+                    }).then(function(result) {
+                        if (result.isConfirmed) {
+                            runRequest();
+                        }
+                    });
+                } else if (confirm('سيتم ' + actionText + ' العميل' + (clientName ? ': ' + clientName : '') + '. هل تريد المتابعة؟')) {
+                    runRequest();
+                }
+            });
+
             $(document).on('click', function(e) {
                 if (!$(e.target).closest('#dataTableObject .actions-dropdown, #clientsActionsFloatingMenu').length) {
                     closeClientsActionsDropdown();

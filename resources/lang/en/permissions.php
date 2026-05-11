@@ -384,6 +384,8 @@ return [
     'renew_contracts' => 'Contract Renewal Requests',
     'rec_contracts' => 'Recruitment Contracts',
     'ingaz_delegations' => 'Ingaz Delegations',
+    'invoices' => 'Invoices',
+    'musaned_transfers' => 'Musaned Transfers',
     'cancel_contracts' => 'Cancellation Contracts',
     'rent_contracts' => 'Rental Contracts',
     'rental_orders' => 'Rental Orders',
@@ -435,6 +437,14 @@ return [
     'ingaz_delegations_print' => 'Print Ingaz Delegation',
     'ingaz_delegations_change_status' => 'Change Ingaz Delegation Status',
     'ingaz_delegations_control' => 'Manage Ingaz Delegations',
+    'invoices_view' => 'View Invoices',
+    'invoices_create' => 'Create Invoices',
+    'invoices_export' => 'Export Invoices',
+    'invoices_print' => 'Print Invoices',
+    'invoices_control' => 'Manage Invoices',
+    'musaned_transfers_view' => 'View Musaned Transfers',
+    'musaned_transfers_create' => 'Create Musaned Transfer',
+    'musaned_transfers_control' => 'Manage Musaned Transfers',
 
     // Contract Status Change Permissions (Step by Step)
     'rec_contracts_change_to_msaned' => 'Change from Pending Approval to Msaned',

@@ -320,5 +320,6 @@
             return new bootstrap.Tooltip(tooltipTriggerEl)
         })
     </script>
+    @php($bondTableType = 'sarf')
     @include('finance::finance.bond._js_bond')
 @endsection

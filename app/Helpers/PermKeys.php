@@ -160,6 +160,18 @@ const PARTENR_CONTROL = 'partenr_control';
     const INGAZ_DELEGATIONS_CHANGE_STATUS = 'ingaz_delegations_change_status';
     const INGAZ_DELEGATIONS_CONTROL = 'ingaz_delegations_control';
 
+    // فواتير عقود الاستقدام وتفاويض الإنجاز
+    const INVOICES_VIEW = 'invoices_view';
+    const INVOICES_CREATE = 'invoices_create';
+    const INVOICES_EXPORT = 'invoices_export';
+    const INVOICES_PRINT = 'invoices_print';
+    const INVOICES_CONTROL = 'invoices_control';
+
+    // تحويلات مساند
+    const MUSANED_TRANSFERS_VIEW = 'musaned_transfers_view';
+    const MUSANED_TRANSFERS_CREATE = 'musaned_transfers_create';
+    const MUSANED_TRANSFERS_CONTROL = 'musaned_transfers_control';
+
     // ========================================
     // الشكاوى
     // ========================================

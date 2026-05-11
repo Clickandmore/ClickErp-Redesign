@@ -58,17 +58,17 @@
                                 target="_blank" title="طباعة الفاتورة">
                                 <i class="fa-solid fa-print"></i>
                             </a>
-                            @if ($invoice->musanedTransferItem && $invoice->musanedTransferItem->transfer)
+                            @if ($invoice->musanedTransferItem && $invoice->musanedTransferItem->transfer && AdminGuardHasAnyPerm([\App\PermKeys::MUSANED_TRANSFERS_VIEW, \App\PermKeys::MUSANED_TRANSFERS_CONTROL, \App\PermKeys::REC_CONTRACTS_VIEW, \App\PermKeys::REC_CONTRACTS_MANAGE]))
                                 <a href="{{ route('musaned-transfers.show', $invoice->musanedTransferItem->transfer->id) }}"
                                     class="btn btn-light border" title="عرض تحويل مساند">
                                     <i class="fa-solid fa-money-bill-transfer"></i>
                                 </a>
-                            @elseif ($invoice->contract_id)
+                            @elseif ($invoice->contract_id && AdminGuardHasAnyPerm([\App\PermKeys::MUSANED_TRANSFERS_CREATE, \App\PermKeys::MUSANED_TRANSFERS_CONTROL, \App\PermKeys::REC_CONTRACTS_CREATE, \App\PermKeys::REC_CONTRACTS_MANAGE]))
                                 <a href="{{ route('musaned-transfers.create', ['contract_ids' => [$invoice->contract_id]]) }}"
                                     class="btn btn-light border" title="تسجيل تحويل مساند">
                                     <i class="fa-solid fa-money-bill-transfer"></i>
                                 </a>
-                            @elseif ($invoice->ingaz_delegation_id)
+                            @elseif ($invoice->ingaz_delegation_id && AdminGuardHasAnyPerm([\App\PermKeys::MUSANED_TRANSFERS_CREATE, \App\PermKeys::MUSANED_TRANSFERS_CONTROL, \App\PermKeys::REC_CONTRACTS_CREATE, \App\PermKeys::REC_CONTRACTS_MANAGE]))
                                 <a href="{{ route('musaned-transfers.create', ['ingaz_delegation_ids' => [$invoice->ingaz_delegation_id]]) }}"
                                     class="btn btn-light border" title="تسجيل تحويل مساند">
                                     <i class="fa-solid fa-money-bill-transfer"></i>

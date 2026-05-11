@@ -13,9 +13,11 @@
                 </div>
             </div>
             <div class="d-flex gap-2">
-                <a href="{{ route('musaned-transfers.create') }}" class="btn btn-outline-primary">
-                    <i class="fas fa-plus me-1"></i>تحويل جديد
-                </a>
+                @if (AdminGuardHasAnyPerm([\App\PermKeys::MUSANED_TRANSFERS_CREATE, \App\PermKeys::MUSANED_TRANSFERS_CONTROL, \App\PermKeys::REC_CONTRACTS_CREATE, \App\PermKeys::REC_CONTRACTS_MANAGE]))
+                    <a href="{{ route('musaned-transfers.create') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-plus me-1"></i>تحويل جديد
+                    </a>
+                @endif
                 <a href="{{ route('musaned-transfers.index') }}" class="btn btn-outline-secondary">
                     <i class="fas fa-arrow-right me-1"></i>الرجوع
                 </a>

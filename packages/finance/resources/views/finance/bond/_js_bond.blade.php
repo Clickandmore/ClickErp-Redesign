@@ -129,6 +129,49 @@
                 }
                 },
                 columns: [
+                    @if (($bondTableType ?? null) === 'sarf')
+                    {
+                        "data": 'DT_RowIndex',
+                        name: 'DT_RowIndex',
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
+                        "data": "bond_num",
+                        orderable: false,
+                        searchable: true
+                    },
+                    {
+                        "data": "date",
+                        orderable: false,
+                        searchable: true
+                    },
+                    {
+                        "data": "debit_account",
+                        orderable: false,
+                        searchable: true
+                    },
+                    {
+                        "data": "credit_account",
+                        orderable: false,
+                        searchable: true
+                    },
+                    {
+                        "data": "value",
+                        orderable: false,
+                        searchable: true
+                    },
+                    {
+                        "data": "payment_type_name",
+                        orderable: false,
+                        searchable: true
+                    },
+                    {
+                        "data": "actions",
+                        orderable: false,
+                        searchable: false
+                    }
+                    @else
                     {
                         "data": "id",
                         searchable: true,
@@ -149,6 +192,7 @@
                     {"data": "date", searchable: true},
                     {"data": "print_action", orderable: false, searchable: false, className: "receipt-print"},
                     {"data": "actions", orderable: false, searchable: false, className: "receipt-actions"}
+                    @endif
                 ],
             language: {
                 sProcessing: "{{trans('dataTable.sProcessing')}}",

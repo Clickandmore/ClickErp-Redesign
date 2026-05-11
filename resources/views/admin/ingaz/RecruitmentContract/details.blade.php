@@ -355,6 +355,80 @@
         border-radius: 14px;
     }
 
+    .contract-activity-section,
+    .contract-notes-section {
+        clear: both;
+        position: relative;
+        z-index: 1;
+    }
+
+    .contract-activity-section .info-card,
+    .contract-notes-section .info-card {
+        height: auto;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .contract-notes-section {
+        margin-top: 4px;
+    }
+
+    .contract-activity-section .table-responsive,
+    .contract-notes-section .table-responsive {
+        overflow-x: auto;
+        overflow-y: visible;
+    }
+
+    .contract-activity-section .info-table,
+    .contract-notes-section .info-table {
+        table-layout: fixed;
+        min-width: 760px;
+    }
+
+    .contract-activity-section .info-table th,
+    .contract-activity-section .info-table td,
+    .contract-notes-section .info-table th,
+    .contract-notes-section .info-table td {
+        vertical-align: top;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .contract-status-cell {
+        width: 24%;
+    }
+
+    .contract-date-cell {
+        width: 22%;
+    }
+
+    .contract-details-cell {
+        width: 54%;
+        line-height: 1.8;
+    }
+
+    .contract-note-cell {
+        width: 58%;
+        line-height: 1.8;
+    }
+
+    .contract-user-cell {
+        width: 20%;
+    }
+
+    .contract-notes-section .contract-date-cell {
+        width: 22%;
+    }
+
+    .contract-activity-section .status-badge {
+        display: inline-flex;
+        max-width: 100%;
+        line-height: 1.6;
+        white-space: normal;
+        text-align: center;
+    }
+
     .attachment-upload-panel {
         background: #f8fbff;
         border: 1px solid #dbe7f3;
@@ -1555,7 +1629,7 @@
             @endif
 
             <!-- سجل الحالات -->
-            <div class="row">
+            <div class="row contract-activity-section">
                 <div class="col-12 mb-4">
                     <div class="info-card">
                         @if ($statusTimelineItems->count())
@@ -1636,21 +1710,21 @@
                             <table class="info-table">
                                 <thead>
                                     <tr>
-                                        <th>الحالة</th>
-                                        <th>التاريخ</th>
-                                        <th>التفاصيل</th>
+                                        <th class="contract-status-cell">الحالة</th>
+                                        <th class="contract-date-cell">التاريخ</th>
+                                        <th class="contract-details-cell">التفاصيل</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @forelse ($statusHistory as $log)
                                         <tr>
-                                            <td>
+                                            <td class="contract-status-cell">
                                                 <span class="status-badge bg-info">
                                                     {{ $log['status_label'] }}
                                                 </span>
                                             </td>
-                                            <td>{{ $log['display_date'] }}</td>
-                                            <td>{!! $log['notes'] ? nl2br(e($log['notes'])) : '<span class="text-muted">لا توجد تفاصيل</span>' !!}</td>
+                                            <td class="contract-date-cell">{{ $log['display_date'] }}</td>
+                                            <td class="contract-details-cell">{!! $log['notes'] ? nl2br(e($log['notes'])) : '<span class="text-muted">لا توجد تفاصيل</span>' !!}</td>
                                         </tr>
                                     @empty
                                         <tr>
@@ -1665,7 +1739,7 @@
             </div>
 
             <!-- ملاحظات العقد -->
-            <div class="row">
+            <div class="row contract-notes-section" id="contractNotesSection">
                 <div class="col-12 mb-4">
                     <div class="info-card">
                         <div class="d-flex align-items-center justify-content-between mb-3">
@@ -1687,17 +1761,17 @@
                                 <table class="info-table">
                                     <thead>
                                         <tr>
-                                            <th>الملاحظة</th>
-                                            <th>المستخدم</th>
-                                            <th>التاريخ</th>
+                                            <th class="contract-note-cell">الملاحظة</th>
+                                            <th class="contract-user-cell">المستخدم</th>
+                                            <th class="contract-date-cell">التاريخ</th>
                                         </tr>
                                     </thead>
                                     <tbody id="contractNotesTableBody">
                                         @foreach ($contract->notes as $note)
                                             <tr>
-                                                <td>{!! nl2br(e($note->note)) !!}</td>
-                                                <td>{{ $note->admin->name ?? 'غير محدد' }}</td>
-                                                <td>{{ $note->created_at ? $note->created_at->format('Y-m-d H:i') : '' }}</td>
+                                                <td class="contract-note-cell">{!! nl2br(e($note->note)) !!}</td>
+                                                <td class="contract-user-cell">{{ $note->admin->name ?? 'غير محدد' }}</td>
+                                                <td class="contract-date-cell">{{ $note->created_at ? $note->created_at->format('Y-m-d H:i') : '' }}</td>
                                             </tr>
                                         @endforeach
                                     </tbody>

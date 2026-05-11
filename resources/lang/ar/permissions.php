@@ -348,6 +348,8 @@ return [
     'renew_contracts' => 'طلبات تجديد العقود',
     'rec_contracts' => 'عقود التوظيف',
     'ingaz_delegations' => 'تفاويض الإنجاز',
+    'invoices' => 'الفواتير',
+    'musaned_transfers' => 'تحويلات مساند',
     'cancel_contracts' => 'عقود الإلغاء',
     'rent_contracts' => 'عقود الإيجار',
     'rental_orders' => 'طلبات الإيجار',
@@ -435,6 +437,14 @@ return [
     'ingaz_delegations_print' => 'طباعة تفويض الإنجاز',
     'ingaz_delegations_change_status' => 'تغيير حالة تفويض الإنجاز',
     'ingaz_delegations_control' => 'إدارة تفاويض الإنجاز',
+    'invoices_view' => 'عرض الفواتير',
+    'invoices_create' => 'إضافة الفواتير',
+    'invoices_export' => 'تصدير الفواتير',
+    'invoices_print' => 'طباعة الفواتير',
+    'invoices_control' => 'إدارة الفواتير',
+    'musaned_transfers_view' => 'عرض تحويلات مساند',
+    'musaned_transfers_create' => 'تسجيل تحويل مساند',
+    'musaned_transfers_control' => 'إدارة تحويلات مساند',
 
     // صلاحيات تغيير حالة العقد (مرحلة بمرحلة)
     'rec_contracts_change_to_msaned' => 'تغيير إلى عقود مساند',

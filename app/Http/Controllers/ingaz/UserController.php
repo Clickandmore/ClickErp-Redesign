@@ -301,6 +301,24 @@ class UserController extends Controller
                         </a></li>';
                     }
 
+                    if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_TOGGLE_STATUS)) {
+                        if ($menuItems !== '' && !$hasManagementDivider) {
+                            $menuItems .= '<li><hr class="dropdown-divider"></li>';
+                            $hasManagementDivider = true;
+                        }
+
+                        $targetStatus = (int) $row->is_blocked === 1 ? 'active' : 'blocked';
+                        $actionLabel = $targetStatus === 'blocked' ? 'حظر العميل' : 'إلغاء حظر العميل';
+                        $iconClass = $targetStatus === 'blocked' ? 'fa-user-slash text-danger' : 'fa-user-check text-success';
+
+                        $menuItems .= '<li><button type="button" class="dropdown-item client-status-action"
+                                data-id="' . (int) $row->id . '"
+                                data-name="' . e($row->name) . '"
+                                data-status="' . $targetStatus . '">
+                            <i class="fas ' . $iconClass . ' me-2"></i>' . $actionLabel . '
+                        </button></li>';
+                    }
+
                     if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_DELETE)) {
                         if ($menuItems !== '' && !$hasManagementDivider) {
                             $menuItems .= '<li><hr class="dropdown-divider"></li>';

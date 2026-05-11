@@ -56,15 +56,19 @@
                         <small class="text-muted">متابعة فواتير إنجاز وحالة الإدراج في فواتير هيئة الزكاة.</small>
                     </div>
                     <div class="invoice-index-actions">
-                        <a href="{{ route('invoices.export.excel') }}" class="btn btn-outline-success">
-                            <i class="fas fa-file-excel me-1"></i> Excel
-                        </a>
-                        <a href="{{ route('invoices.export.pdf') }}" class="btn btn-outline-danger">
-                            <i class="fas fa-file-pdf me-1"></i> PDF
-                        </a>
-                        <a href="{{ route('invoices.create') }}" class="btn btn-primary">
-                            <i class="fas fa-plus me-1"></i> إضافة فاتورة
-                        </a>
+                        @if (AdminGuardHasAnyPerm([\App\PermKeys::INVOICES_EXPORT, \App\PermKeys::INVOICES_CONTROL, \App\PermKeys::REC_CONTRACTS_EXPORT, \App\PermKeys::REC_CONTRACTS_MANAGE]))
+                            <a href="{{ route('invoices.export.excel') }}" class="btn btn-outline-success">
+                                <i class="fas fa-file-excel me-1"></i> Excel
+                            </a>
+                            <a href="{{ route('invoices.export.pdf') }}" class="btn btn-outline-danger">
+                                <i class="fas fa-file-pdf me-1"></i> PDF
+                            </a>
+                        @endif
+                        @if (AdminGuardHasAnyPerm([\App\PermKeys::INVOICES_CREATE, \App\PermKeys::INVOICES_CONTROL, \App\PermKeys::REC_CONTRACTS_CREATE, \App\PermKeys::REC_CONTRACTS_MANAGE]))
+                            <a href="{{ route('invoices.create') }}" class="btn btn-primary">
+                                <i class="fas fa-plus me-1"></i> إضافة فاتورة
+                            </a>
+                        @endif
                     </div>
                 </div>
 
