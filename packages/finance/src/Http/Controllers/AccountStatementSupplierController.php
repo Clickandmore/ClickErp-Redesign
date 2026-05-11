@@ -9,7 +9,6 @@ use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Nami\Finance\Enums\AccountTypesEnum;
 use Nami\Finance\Services\AccountService;
 use Nami\Finance\Services\ConstraintService as ObjService;
 use Throwable;
@@ -69,7 +68,7 @@ class AccountStatementSupplierController extends Controller
             ]);
         }
 
-        $data["accounts"] = $service->getAccounts(AccountTypesEnum::Supplier->value);
+        $data["accounts"] = $accountService->getSupplierStatementAccounts();
         $data["ajaxRoute"] = route($this->mainRoute . ".index");
         $data["bladeTitle"] = __("finance::finance.account-statement-suppliers");
         $data["filters"] = $dataSearch;

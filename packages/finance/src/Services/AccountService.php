@@ -256,6 +256,20 @@ class AccountService extends MainService
         })->get();
     }
 
+    public function getSupplierStatementAccounts()
+    {
+        return $this->model
+            ->doesntHave('children')
+            ->where(function ($query) {
+                $query->where('type', AccountTypesEnum::Supplier->value)
+                    ->orWhereHas('parent', function ($parentQuery) {
+                        $parentQuery->where('code', 221);
+                    });
+            })
+            ->orderBy('code')
+            ->get();
+    }
+
     public function getByType($type)
     {
         return $this->model->where("type", $type)->get();

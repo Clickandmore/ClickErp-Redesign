@@ -44,18 +44,12 @@ class AccountGuideManagementController extends Controller
                 })
                 ->addColumn('actions', function ($row) {
                     $deleteButton = "";
-                    $editButton = "";
                     $hasConstraints = (int) ($row->constraint_details_count ?? 0) > 0;
                     $addButton = '<button type="button" class="btn btn-success addButton ms-1" data-bs-toggle="modal" data-bs-target="#createModal"
                         model-route="' . route($this->accountMainRoute . '.create', ['parent_id' => $row->id]) . '" model-title="' . $row->name . '">
                         <i class="fa fa-plus-circle"></i>
                         </button>';
-                    if (($row->operation_type == 3 ||
-                            auth('admin')->user()->admin_type == \App\Enums\AdminTypeisEnum::Developer->value) &&
-                            !$hasConstraints
-                    ) {
-                        $editButton = editButton(route($this->accountMainRoute . ".edit", $row->id), $row->name);
-                    }
+                    $editButton = editButton(route($this->mainRoute . ".edit", $row->id), $row->name);
                     if ($row->operation_type == 3 && !$hasConstraints) {
                         $deleteButton = '<button type="button" class="btn btn-sm btn-danger btn-delete deleteButton" delete-route="' . route($this->accountMainRoute . ".destroy", $row->id) . '" title="حذف">
                               <i class="fa fa-trash-o"></i>
@@ -175,10 +169,9 @@ class AccountGuideManagementController extends Controller
     public function update(ObjRequest $request, int $id, ObjService $service)
     {
         $dataUpdated = $request->validated();
-        $getLevelParentById = $service->getLevelParentById($id);
-        $getLastChildByParentID = $service->getLastChildByParentID($id);
-        $data = $service->updateAccount($id, $dataUpdated, $getLevelParentById, $getLastChildByParentID);
-        return jsonSuccess($data, null, 201);
+        $account = $service->find($id);
+        $account->update(['name' => $dataUpdated['name']]);
+        return jsonSuccess(true, null, 201);
     }
 
     /**
