@@ -83,6 +83,9 @@ class MaidAction extends MainAction
             }));
         }
 
+        $preserveNullArrivalDate = (bool)($data['preserve_null_arrival_date'] ?? false);
+        unset($data['preserve_null_arrival_date']);
+
         // Set default values for required fields if they're empty
         $data['name'] = $data['name:en'] ?? '';
         $data['nationality_id'] = $data['nationality_id'] ?? null;
@@ -101,7 +104,7 @@ class MaidAction extends MainAction
         $data['cv_file'] = $data['cv_file'] ?? '';
         $data['available'] = $data['available'] ?? 1;
         $data['available_at'] = $data['available_at'] ?? date('Y-m-d');
-        $data['arrival_date'] = $data['arrival_date'] ?? date('Y-m-d');
+        $data['arrival_date'] = $data['arrival_date'] ?? ($preserveNullArrivalDate ? null : date('Y-m-d'));
         $data['is_show'] = $data['is_show'] ?? 1;
 
         // Clean the data but preserve required fields - only remove truly empty strings, not zeros or nulls
