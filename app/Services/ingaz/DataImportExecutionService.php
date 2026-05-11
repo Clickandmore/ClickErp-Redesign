@@ -652,9 +652,15 @@ class DataImportExecutionService
             return null;
         }
 
+        if (is_numeric($value) && Nationality::query()->whereKey((int) $value)->exists()) {
+            return (int) $value;
+        }
+
         return Nationality::query()
-            ->where('title', $value)
-            ->orWhere('sub_title', $value)
+            ->whereHas('translations', function ($query) use ($value) {
+                $query->where('title', $value)
+                    ->orWhere('sub_title', $value);
+            })
             ->value('id');
     }
 
