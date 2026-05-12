@@ -3,6 +3,8 @@
 namespace App\Models\auth;
 
 use App\Models\ingaz\ComplaintComment;
+use App\Models\office\AdminOffice;
+use App\Models\office\Office;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -22,6 +24,34 @@ class Admin extends Authenticatable
     public function role()
     {
         return $this->belongsTo(Role::class, 'role_id');
+    }
+
+    public function agentOfficeLink()
+    {
+        return $this->hasOne(AdminOffice::class, 'admin_id');
+    }
+
+    public function agentOfficeLinks()
+    {
+        return $this->hasMany(AdminOffice::class, 'admin_id');
+    }
+
+    public function agentOffices()
+    {
+        return $this->belongsToMany(Office::class, 'admin_offices', 'admin_id', 'office_id');
+    }
+
+    public function isExternalOfficeAgent(): bool
+    {
+        return $this->agentOfficeLinks()->exists();
+    }
+
+    public function isExternalOfficeOnlyAgent(): bool
+    {
+        return $this->isExternalOfficeAgent()
+            && empty($this->role_id)
+            && ! $this->roles()->exists()
+            && ! $this->permissions()->exists();
     }
 
     public function maids()

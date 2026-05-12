@@ -642,6 +642,20 @@ class AdminController extends Controller
         $user = objModel::where('phone', $request->login)
             ->orWhere('email', $request->login)->first();
         if (isset($user->email)) {
+            if ($user->isExternalOfficeOnlyAgent()) {
+                if (($user->status ?? 'active') === 'suspended') {
+                    return jsonSuccess(null, 'هذا الحساب موقوف حالياً.', 403);
+                }
+
+                if (auth()->guard("agent")->attempt(["email" => $user->email, "password" => $request->password], $request->boolean('rememberme'))) {
+                    $request->session()->regenerate();
+
+                    return jsonSuccess(['url' => route('agent.dashboard')], 'تم تسجيل الدخول للوحة الوكيل الخارجي');
+                }
+
+                return jsonSuccess(null, __("auth.password"), 402);
+            }
+
             if (auth()->guard("admin")->attempt(["email" => $user->email, "password" => $request->password, "admin_type" => "employee"])) {
                 return jsonSuccess(['url' => route('employeeProfile.index')], __("auth.login successful"));
             } elseif (auth()->guard("admin")->attempt(["email" => $user->email, "password" => $request->password])) {

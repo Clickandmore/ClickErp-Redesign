@@ -73,6 +73,7 @@ class Kernel extends HttpKernel
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'admin' => Admin::class,
+        'agent' => \App\Http\Middleware\ExternalOfficeAgent::class,
         'auth_web' => Web::class,
         'site_auth' => SiteAuthMiddleware::class,
         'localize' => \Mcamara\LaravelLocalization\Middleware\LaravelLocalizationRoutes::class,
