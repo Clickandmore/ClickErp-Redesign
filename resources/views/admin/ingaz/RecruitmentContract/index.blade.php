@@ -288,6 +288,10 @@
                 {{ helperTrans('ingaz.All Recruitment contracts') }}
             </h3>
             <div class="d-flex flex-wrap gap-2">
+                <a href="{{ route('musaned-transfers.create') }}" class="btn btn-outline-info">
+                    <i class="fas fa-money-bill-transfer me-2"></i>
+                    تسجيل تحويل مساند
+                </a>
                 <a href="{{ route('RecruitmentContract.externalOfficeDispatch.index') }}" class="btn btn-outline-primary">
                     <i class="fas fa-paper-plane me-2"></i>
                     إرسالات المكتب الخارجي

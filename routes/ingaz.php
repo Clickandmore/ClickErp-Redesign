@@ -296,6 +296,7 @@ Route::group(
             Route::get('RecruitmentContract/export/pdf', [RecruitmentContractController::class, 'exportPdf'])->name('RecruitmentContract.export.pdf');
             Route::get('RecruitmentContract/export/excel', [RecruitmentContractController::class, 'exportExcel'])->name('RecruitmentContract.export.excel');
             Route::get('RecruitmentContract/external-office-dispatches', [RecruitmentContractExternalOfficeDispatchController::class, 'index'])->name('RecruitmentContract.externalOfficeDispatch.index');
+            Route::post('RecruitmentContract/external-office-dispatches/bulk', [RecruitmentContractExternalOfficeDispatchController::class, 'bulkStore'])->name('RecruitmentContract.externalOfficeDispatch.bulkStore');
             Route::get('RecruitmentContract/{contract}/external-office-dispatch', [RecruitmentContractExternalOfficeDispatchController::class, 'edit'])->name('RecruitmentContract.externalOfficeDispatch.edit');
             Route::post('RecruitmentContract/{contract}/external-office-dispatch', [RecruitmentContractExternalOfficeDispatchController::class, 'store'])->name('RecruitmentContract.externalOfficeDispatch.store');
             Route::get('RecruitmentContract/{contract}/external-office-dispatch/print', [RecruitmentContractExternalOfficeDispatchController::class, 'print'])->name('RecruitmentContract.externalOfficeDispatch.print');

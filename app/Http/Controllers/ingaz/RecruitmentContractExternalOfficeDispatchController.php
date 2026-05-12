@@ -87,6 +87,11 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
                 ->addColumn('contract_number', function (Contract $contract) {
                     return '<a href="' . e(route('contracts.details', $contract->id)) . '" class="fw-semibold text-decoration-none">#' . e($contract->id) . '</a>';
                 })
+                ->addColumn('selection', function (Contract $contract) {
+                    $disabled = $contract->canManageExternalOfficeDispatch() ? '' : ' disabled';
+
+                    return '<input type="checkbox" class="form-check-input dispatch-contract-checkbox" value="' . e($contract->id) . '"' . $disabled . '>';
+                })
                 ->addColumn('client', function (Contract $contract) {
                     $name = e($contract->user?->name ?? 'غير محدد');
                     $identity = e($contract->user?->national_num ?? '-');
@@ -147,6 +152,7 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
                     return $actions;
                 })
                 ->rawColumns([
+                    'selection',
                     'contract_number',
                     'client',
                     'worker',
@@ -270,40 +276,106 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
                 ->with('error', implode(' ', $sourceErrors));
         }
 
-        $officeContractCostUsd = number_format((float) $validated['office_contract_cost_usd'], 2, '.', '');
-        $sourceSnapshot = $contract->buildExternalOfficeDispatchSourceData($officeContractCostUsd);
         $adminId = auth('admin')->id() ?? auth()->id();
 
-        DB::transaction(function () use ($contract, $validated, $sourceSnapshot, $adminId, $officeContractCostUsd) {
-            $existingDispatch = $contract->externalOfficeDispatch;
-
-            $payload = array_merge($sourceSnapshot, [
-                'dispatch_date' => $validated['dispatch_date'],
-                'arrival_station' => trim((string) $validated['arrival_station']),
-                'source_hash' => $contract->buildExternalOfficeDispatchSourceHash($officeContractCostUsd),
-                'updated_by_admin_id' => $adminId,
-            ]);
-
-            if (!$existingDispatch) {
-                $payload['created_by_admin_id'] = $adminId;
-            }
-
-            $contract->externalOfficeDispatch()->updateOrCreate(
-                ['contract_id' => $contract->id],
-                $payload
-            );
-
-            $travelHistory = $contract->travelHistory()->latest('id')->first();
-            if ($travelHistory && $travelHistory->arrival_airport !== $payload['arrival_station']) {
-                $travelHistory->update([
-                    'arrival_airport' => $payload['arrival_station'],
-                ]);
-            }
-        });
+        $this->persistExternalOfficeDispatch(
+            $contract,
+            $validated['dispatch_date'],
+            trim((string) $validated['arrival_station']),
+            number_format((float) $validated['office_contract_cost_usd'], 2, '.', ''),
+            $adminId
+        );
 
         return redirect()
             ->route('RecruitmentContract.externalOfficeDispatch.edit', $contract->id)
             ->with('success', 'تم حفظ إرسالية المكتب الخارجي بنجاح.');
+    }
+
+    public function bulkStore(Request $request)
+    {
+        if (!$this->canUpdateRecruitmentContracts()) {
+            return redirect()->back()->with('error', 'ليس لديك صلاحية لتحديث إرساليات المكتب الخارجي.');
+        }
+
+        $validated = $request->validate([
+            'contract_ids' => 'required|array|min:1',
+            'contract_ids.*' => 'integer|distinct|exists:contracts,id',
+            'dispatch_date' => 'required|date',
+            'arrival_station' => 'nullable|string|max:255',
+        ], [
+            'contract_ids.required' => 'يجب تحديد عقد واحد على الأقل.',
+            'contract_ids.min' => 'يجب تحديد عقد واحد على الأقل.',
+            'dispatch_date.required' => 'تاريخ الإرسالية مطلوب.',
+            'dispatch_date.date' => 'تاريخ الإرسالية غير صحيح.',
+            'arrival_station.max' => 'محطة الوصول طويلة جداً.',
+        ]);
+
+        $contracts = Contract::query()
+            ->with([
+                'user',
+                'maid.religion',
+                'maid.office',
+                'maid.recruitmentOffice',
+                'info.manualMaidOffice',
+                'externalOfficeDispatch',
+                'travelHistory',
+            ])
+            ->whereIn('id', $validated['contract_ids'])
+            ->get();
+
+        $adminId = auth('admin')->id() ?? auth()->id();
+        $createdCount = 0;
+        $errors = [];
+        $commonArrivalStation = trim((string) ($validated['arrival_station'] ?? ''));
+
+        foreach ($contracts as $contract) {
+            if (!$contract->canManageExternalOfficeDispatch()) {
+                $errors[] = 'العقد #' . $contract->id . ': يمكن إنشاء أو تحديث الإرسالية للعقود الجارية فقط.';
+                continue;
+            }
+
+            $officeContractCostUsd = $contract->buildExternalOfficeDispatchSourceData(
+                $contract->externalOfficeDispatch?->office_contract_cost_usd
+            )['office_contract_cost_usd'];
+
+            if ((float) ($officeContractCostUsd ?? 0) <= 0) {
+                $errors[] = 'العقد #' . $contract->id . ': تكلفة المكتب بالدولار غير محددة.';
+                continue;
+            }
+
+            $sourceErrors = $contract->externalOfficeDispatchSourceValidationErrors($officeContractCostUsd);
+            if (!empty($sourceErrors)) {
+                $errors[] = 'العقد #' . $contract->id . ': ' . implode(' ', $sourceErrors);
+                continue;
+            }
+
+            $arrivalStation = $commonArrivalStation !== ''
+                ? $commonArrivalStation
+                : ($contract->resolveExternalOfficeDispatchArrivalStation() ?: '');
+
+            if ($arrivalStation === '') {
+                $errors[] = 'العقد #' . $contract->id . ': محطة الوصول غير محددة.';
+                continue;
+            }
+
+            $this->persistExternalOfficeDispatch(
+                $contract,
+                $validated['dispatch_date'],
+                $arrivalStation,
+                $officeContractCostUsd,
+                $adminId
+            );
+            $createdCount++;
+        }
+
+        $message = $createdCount > 0
+            ? 'تم حفظ ' . $createdCount . ' إرسالية مكتب خارجي بنجاح.'
+            : 'لم يتم حفظ أي إرسالية.';
+
+        return redirect()
+            ->route('RecruitmentContract.externalOfficeDispatch.index', ['dispatch_filter' => 'sent'])
+            ->with($createdCount > 0 ? 'success' : 'error', $message)
+            ->with('bulk_dispatch_errors', $errors);
     }
 
     public function print(Contract $contract, Request $request)
@@ -418,5 +490,43 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
         }
 
         $query->whereHas('externalOfficeDispatch');
+    }
+
+    private function persistExternalOfficeDispatch(
+        Contract $contract,
+        string $dispatchDate,
+        string $arrivalStation,
+        string $officeContractCostUsd,
+        $adminId
+    ): void {
+        $officeContractCostUsd = number_format((float) str_replace(',', '', $officeContractCostUsd), 2, '.', '');
+        $sourceSnapshot = $contract->buildExternalOfficeDispatchSourceData($officeContractCostUsd);
+
+        DB::transaction(function () use ($contract, $dispatchDate, $arrivalStation, $sourceSnapshot, $adminId, $officeContractCostUsd) {
+            $existingDispatch = $contract->externalOfficeDispatch;
+
+            $payload = array_merge($sourceSnapshot, [
+                'dispatch_date' => $dispatchDate,
+                'arrival_station' => $arrivalStation,
+                'source_hash' => $contract->buildExternalOfficeDispatchSourceHash($officeContractCostUsd),
+                'updated_by_admin_id' => $adminId,
+            ]);
+
+            if (!$existingDispatch) {
+                $payload['created_by_admin_id'] = $adminId;
+            }
+
+            $contract->externalOfficeDispatch()->updateOrCreate(
+                ['contract_id' => $contract->id],
+                $payload
+            );
+
+            $travelHistory = $contract->travelHistory()->latest('id')->first();
+            if ($travelHistory && $travelHistory->arrival_airport !== $payload['arrival_station']) {
+                $travelHistory->update([
+                    'arrival_airport' => $payload['arrival_station'],
+                ]);
+            }
+        });
     }
 }

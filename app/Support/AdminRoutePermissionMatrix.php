@@ -317,6 +317,7 @@ class AdminRoutePermissionMatrix
             'RecruitmentContract.externalOfficeDispatch.index' => [NewPermKeys::REC_CONTRACTS_VIEW, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.externalOfficeDispatch.edit' => [NewPermKeys::REC_CONTRACTS_EDIT, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.externalOfficeDispatch.store' => [NewPermKeys::REC_CONTRACTS_EDIT, NewPermKeys::REC_CONTRACTS_MANAGE],
+            'RecruitmentContract.externalOfficeDispatch.bulkStore' => [NewPermKeys::REC_CONTRACTS_EDIT, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.externalOfficeDispatch.print' => [NewPermKeys::REC_CONTRACTS_VIEW, NewPermKeys::REC_CONTRACTS_MANAGE],
             'ingaz-delegations.index' => [
                 PermKeys::INGAZ_DELEGATIONS_VIEW,

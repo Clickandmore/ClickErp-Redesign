@@ -89,6 +89,11 @@ class StoreContractRequest extends MainRequest
             $marketerRules[] = Rule::in([$currentAdmin->id]);
         }
 
+        $selectedClientId = $this->input('client_id') ?: $this->input('new_existing_client_id');
+        $clientPhoneRules = $selectedClientId
+            ? ['nullable']
+            : ['required_if:client_type,new_client', Rule::unique('users', 'phone')];
+
         return [
             'contract_date' => 'required',
             'msaned_number' => 'required',
@@ -100,11 +105,9 @@ class StoreContractRequest extends MainRequest
             'order_id' => 'required_if:client_type,ex_client',
             'client_type' => 'required|in:new_client,ex_client',
             'client_id' => 'nullable|exists:users,id',
+            'new_existing_client_id' => 'nullable|exists:users,id',
             'client_name' => 'required_if:client_type,new_client',
-            'client_phone' => [
-                'required_if:client_type,new_client',
-                Rule::unique('users', 'phone')->ignore($this->input('client_id')),
-            ],
+            'client_phone' => $clientPhoneRules,
             'client_nationality_id' => 'required_if:client_type,new_client',
             'client_email' => 'nullable|email',
             'new_client_national_num' => 'nullable',
