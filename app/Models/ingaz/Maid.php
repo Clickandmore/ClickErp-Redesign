@@ -108,7 +108,7 @@ class Maid extends Model
         'deleted_at' => 'datetime',
     ];
 
-    public $translatedAttributes = ['marital_status', 'languages'];
+    public $translatedAttributes = ['marital_status'];
     protected $translationForeignKey = 'maid_id';
     public $translationModel = MaidTranslation::class;
     protected $with = ['translations'];
@@ -138,7 +138,170 @@ class Maid extends Model
         return asset('storage/' . $this->cv_file);
     }
 
+    public function getLanguagesAttribute($value): array
+    {
+        $languages = $this->normalizeLanguageList($value);
+        if ($languages !== []) {
+            return $languages;
+        }
 
+        foreach ($this->languageFallbackLocales() as $locale) {
+            $translation = $this->relationLoaded('translations')
+                ? $this->translations->firstWhere($this->getLocaleKey(), $locale)
+                : $this->translations()->where($this->getLocaleKey(), $locale)->first();
+
+            $languages = $this->normalizeLanguageList($translation?->languages);
+            if ($languages !== []) {
+                return $languages;
+            }
+        }
+
+        return [];
+    }
+
+    public function setLanguagesAttribute($value): void
+    {
+        $this->attributes['languages'] = json_encode(
+            $this->normalizeLanguageList($value),
+            JSON_UNESCAPED_UNICODE
+        );
+    }
+
+    public function getPercentageAttribute($value): array
+    {
+        return $this->normalizeLanguagePercentages($value);
+    }
+
+    public function setPercentageAttribute($value): void
+    {
+        $this->attributes['percentage'] = json_encode(
+            $this->normalizeLanguagePercentages($value),
+            JSON_UNESCAPED_UNICODE
+        );
+    }
+
+    protected function languageFallbackLocales(): array
+    {
+        return collect([
+            app()->getLocale(),
+            config('app.fallback_locale'),
+            'ar',
+            'en',
+        ])
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    protected function normalizeLanguageList($value): array
+    {
+        $value = $this->decodeJsonLikeValue($value);
+
+        if (is_string($value)) {
+            $value = trim($value);
+            if ($value === '') {
+                return [];
+            }
+
+            $value = preg_split('/\s*,\s*/', $value) ?: [];
+        }
+
+        if (!is_array($value)) {
+            return [];
+        }
+
+        $languages = [];
+        foreach ($value as $key => $language) {
+            if (is_array($language)) {
+                $language = $language['title'] ?? $language['value'] ?? null;
+            }
+
+            if ($this->isCheckedLanguageValue($language) && !is_int($key)) {
+                $language = $key;
+            }
+
+            if ($language === null || $language === false) {
+                continue;
+            }
+
+            $language = $this->normalizeLanguageKey((string) $language);
+            if ($language !== '') {
+                $languages[] = $language;
+            }
+        }
+
+        return array_values(array_unique($languages));
+    }
+
+    protected function normalizeLanguagePercentages($value): array
+    {
+        $value = $this->decodeJsonLikeValue($value);
+
+        if (!is_array($value)) {
+            return [];
+        }
+
+        $percentages = [];
+        foreach ($value as $language => $percentage) {
+            if ($percentage === null || $percentage === '') {
+                continue;
+            }
+
+            $language = $this->normalizeLanguageKey((string) $language);
+            if ($language !== '') {
+                $percentages[$language] = $percentage;
+            }
+        }
+
+        return $percentages;
+    }
+
+    protected function decodeJsonLikeValue($value)
+    {
+        for ($i = 0; $i < 3 && is_string($value); $i++) {
+            $trimmed = trim($value);
+            if ($trimmed === '') {
+                return [];
+            }
+
+            $decoded = json_decode($trimmed, true);
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                return $value;
+            }
+
+            $value = $decoded;
+        }
+
+        return $value;
+    }
+
+    protected function isCheckedLanguageValue($value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (is_numeric($value)) {
+            return (int) $value === 1;
+        }
+
+        return in_array(strtolower(trim((string) $value)), ['1', 'true', 'yes', 'on'], true);
+    }
+
+    protected function normalizeLanguageKey(string $language): string
+    {
+        $language = strtolower(trim($language));
+
+        return match ($language) {
+            'ar' => 'arabic',
+            'en' => 'english',
+            'amh' => 'amharic',
+            'amharic_language' => 'amharic',
+            'mother_language' => 'mother',
+            default => $language,
+        };
+    }
 
     ####### relations
     public function nationality()

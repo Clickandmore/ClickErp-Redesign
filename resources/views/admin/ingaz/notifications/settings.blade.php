@@ -214,6 +214,7 @@
                         <div class="col-md-2"><strong>الترميز:</strong> {{ data_get($currentSettings, 'sms.encoding', 'UTF8') }}</div>
                         <div class="col-md-2"><strong>حد الإرسال:</strong> {{ data_get($currentSettings, 'sms.bulk_send_limit', 200) }}</div>
                         <div class="col-md-2"><strong>كلمة التأكيد:</strong> {{ data_get($currentSettings, 'sms.bulk_confirmation_keyword', 'SEND_ALL_SMS') }}</div>
+                        <div class="col-md-3"><strong>التحقق بالجوال:</strong> {{ data_get($currentSettings, 'sms.disable_phone_verification') ? 'ملغى - الرمز 12345' : 'مفعل' }}</div>
                     </div>
                 </div>
 
@@ -227,6 +228,17 @@
                             <option value="msegat" {{ data_get($smsData, 'provider', 'msegat') === 'msegat' ? 'selected' : '' }}>Msegat</option>
                             <option value="taqnyat" {{ data_get($smsData, 'provider') === 'taqnyat' ? 'selected' : '' }}>تقنيات Taqnyat</option>
                         </select>
+                    </div>
+                    <div class="col-md-6 d-flex align-items-end">
+                        <div class="form-check">
+                            <input type="hidden" name="sms[disable_phone_verification]" value="0">
+                            <input class="form-check-input" type="checkbox" name="sms[disable_phone_verification]" id="smsDisablePhoneVerification" value="1"
+                                {{ data_get($smsData, 'disable_phone_verification') ? 'checked' : '' }}>
+                            <label class="form-check-label" for="smsDisablePhoneVerification">
+                                إلغاء التحقق عن طريق الجوال
+                            </label>
+                            <div class="form-text">عند التفعيل يتم قبول الرمز 12345 ولا يتم إرسال رسالة تحقق للعميل.</div>
+                        </div>
                     </div>
 
                     <div class="col-12">

@@ -17,6 +17,24 @@
         </label>
         <input type="number" name="price" class="form-control" placeholder="يترك فارغ في حالة تحديد سعر خاص لكل عاملة">
     </div>
+    <div class="col-md-4 col-12">
+        <label for="TextInput" class="form-label">
+            الاستقدام المباشر
+        </label>
+        <input type="number" step="0.01" min="0" name="direct_recruitment_cost" class="form-control" placeholder="تكلفة الاستقدام المباشر">
+    </div>
+    <div class="col-md-4 col-12">
+        <label for="TextInput" class="form-label">
+            الاستقدام الخارجي
+        </label>
+        <input type="number" step="0.01" min="0" name="external_recruitment_cost" class="form-control" placeholder="تكلفة الاستقدام الخارجي">
+    </div>
+    <div class="col-md-4 col-12">
+        <label for="TextInput" class="form-label">
+            التكاليف الحكومية
+        </label>
+        <input type="number" step="0.01" min="0" name="government_cost" class="form-control" placeholder="التكاليف الحكومية">
+    </div>
     <div class="col-6">
         <label for="TextInput" class="form-label">
             راتب العاملة سبق لها العمل

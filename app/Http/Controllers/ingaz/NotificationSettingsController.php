@@ -101,6 +101,7 @@ class NotificationSettingsController extends Controller
             'sms.encoding' => 'required|string|max:50',
             'sms.bulk_send_limit' => 'required|integer|min:1|max:10000',
             'sms.bulk_confirmation_keyword' => 'required|string|max:50',
+            'sms.disable_phone_verification' => 'nullable|boolean',
             'sms.taqnyat' => 'required|array',
             'sms.taqnyat.base_url' => 'nullable|url|max:255',
             'sms.taqnyat.bearer_token' => 'nullable|string|max:5000',

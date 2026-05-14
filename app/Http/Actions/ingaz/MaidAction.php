@@ -1250,11 +1250,6 @@ class MaidAction extends MainAction
         $data['languages'] = json_encode($langs, JSON_UNESCAPED_UNICODE);
         $data['percentage'] = json_encode($percs, JSON_UNESCAPED_UNICODE);
 
-        // Also store localized languages list
-        $translation = $maid->translateOrNew(app()->getLocale());
-        $translation->languages = json_encode($langs, JSON_UNESCAPED_UNICODE);
-        $translation->save();
-
         if ($requestTypeColumnExists) {
             $data['request_type'] = array_key_exists('request_type', $data)
                 ? Maid::resolveRequestType($data['request_type'])
@@ -1323,6 +1318,7 @@ class MaidAction extends MainAction
         }
 
         $row->update($data);
+        $this->syncLegacyMaidLanguageTranslations($row, $langs);
 
         if (isset($data['expertises']) && $experienceStatusValue === 'has_experience') {
             $row->expertises()->delete();
@@ -1340,22 +1336,7 @@ class MaidAction extends MainAction
             $row->translateOrNew('en')->marital_status = $maritalStatusEn;
         }
 
-        if (isset($languagesData)) {
-            if (is_array($languagesData)) {
-                $languagesArray = [];
-                foreach ($languagesData as $key => $value) {
-                    if ($value === 'نعم' || $value === 'yes') {
-                        $languagesArray[] = $key;
-                    }
-                }
-                $languagesString = implode(', ', $languagesArray);
-            } else {
-                $languagesString = $languagesData;
-            }
-            $row->translateOrNew('ar')->languages = $languagesString;
-        }
-
-        if (isset($maritalStatus) || isset($languagesData)) {
+        if (isset($maritalStatusAr) || isset($maritalStatusEn)) {
             $row->save();
         }
 
@@ -1375,6 +1356,22 @@ class MaidAction extends MainAction
 
         $this->syncHrMaidRecord($maid->fresh(['jobTypes', 'nationality', 'office']));
         return parent::find($id);
+    }
+
+    private function syncLegacyMaidLanguageTranslations(Maid $maid, array $languages): void
+    {
+        $encodedLanguages = json_encode(array_values($languages), JSON_UNESCAPED_UNICODE);
+        $locales = collect([app()->getLocale(), 'ar', 'en'])
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        foreach ($locales as $locale) {
+            $maid->translateOrNew($locale)->languages = $encodedLanguages;
+        }
+
+        $maid->save();
     }
 
     /**
