@@ -219,6 +219,7 @@ Route::group(
             Route::post('maids/bulk-import', [MaidBulkImportController::class, 'store'])->name('maids.bulk-import.store');
             Route::get('maids/bulk-import/{maidBulkImport}', [MaidBulkImportController::class, 'show'])->name('maids.bulk-import.show');
             Route::post('maids/bulk-import/{maidBulkImport}/approve', [MaidBulkImportController::class, 'approve'])->name('maids.bulk-import.approve');
+            Route::post('maids/extract-cv-data', [MaidController::class, 'extractCvData'])->name('maids.extract-cv-data');
             // Limit maid parameter to numeric IDs to avoid catching custom pages like create_rapid_cv
             Route::resource('maids', MaidController::class)->whereNumber('maid');
             Route::get('maids/create_rapid_cv', [MaidController::class, 'create_rapid_cv'])->name('maids.create_rapid_cv');

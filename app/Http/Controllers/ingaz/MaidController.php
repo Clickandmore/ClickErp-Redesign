@@ -22,6 +22,7 @@ use App\Models\ingaz\Nationality;
 use App\Models\ingaz\Skill;
 use App\Models\MaidUnavailableRecord;
 use App\Models\RecruitmentOffices;
+use App\Services\ingaz\MaidCvExtractionService;
 use App\Services\ingaz\RentalMaidFinanceService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -43,7 +44,7 @@ class MaidController extends Controller
         $this->middleware('permission:maids_rental_view,admin', ['only' => ['rentalIndex']]);
         $this->middleware('permission:maids_backout_view,admin', ['only' => ['noneAvailableMaids']]);
         $this->middleware('permission:maids_deleted_view,admin', ['only' => ['deletedCvs']]);
-        $this->middleware('permission:maids_create,admin', ['only' => ['create', 'createRental', 'create_rapid_cv', 'store', 'store_rapid_cv']]);
+        $this->middleware('permission:maids_create,admin', ['only' => ['create', 'createRental', 'create_rapid_cv', 'store', 'store_rapid_cv', 'extractCvData']]);
         $this->middleware('permission:maids_edit,admin', ['only' => ['edit', 'update', 'update_cv', 'updateOffer', 'backout', 'clearBackout', 'suspendCv']]);
         $this->middleware('permission:maids_delete,admin', ['only' => ['destroy', 'restore']]);
         $this->middleware('permission:maids_toggle_status,admin', ['only' => ['show']]);
@@ -1532,6 +1533,32 @@ class MaidController extends Controller
         }
 
         return response()->json(['code' => 200, 'message' => 'تم إضافة العاملة بنجاح']);
+    }
+
+    public function extractCvData(Request $request, MaidCvExtractionService $extractor)
+    {
+        $request->validate([
+            'cv_import_file' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png,webp,bmp,tif,tiff', 'max:10240'],
+        ], [
+            'cv_import_file.required' => 'يرجى اختيار ملف السيرة أولاً.',
+            'cv_import_file.mimes' => 'صيغة ملف السيرة يجب أن تكون PDF أو صورة.',
+            'cv_import_file.max' => 'حجم ملف السيرة يجب ألا يتجاوز 10MB.',
+        ]);
+
+        try {
+            $result = $extractor->extract($request->file('cv_import_file'));
+        } catch (\Throwable $exception) {
+            return response()->json([
+                'code' => 422,
+                'message' => $exception->getMessage(),
+            ], 422);
+        }
+
+        return response()->json([
+            'code' => 200,
+            'message' => 'تم استخراج بيانات السيرة. راجع الحقول قبل الحفظ.',
+            'data' => $result,
+        ]);
     }
 
     public function store_rapid_cv(StoreRapidCv $request, objAction $action)

@@ -66,11 +66,20 @@
 
                     <div class="col-6">
                         <label for="TextInput" class="form-label">صورة شخصية </label>
-                        <input type="file" data-default-file="" name="image" class="dropify" required>
+                        <input type="file" data-default-file="" name="image" id="maid_image" class="dropify" required
+                            accept="image/*">
                     </div>
                     <div class="col-6">
                         <label for="TextInput" class="form-label">صورة كاملة </label>
-                        <input type="file" data-default-file="" name="cv_file" class="dropify">
+                        <input type="file" data-default-file="" name="cv_file" id="cv_file" class="dropify"
+                            accept=".pdf,image/*">
+                        <div class="d-flex align-items-center gap-2 mt-2 flex-wrap">
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="extract_cv_data_btn">
+                                <i class="fas fa-file-import me-1"></i>
+                                قراءة بيانات السيرة
+                            </button>
+                            <span class="small text-muted" id="cv_extract_status"></span>
+                        </div>
                     </div>
 
                     <!-- اسم العاملة -->
@@ -769,6 +778,212 @@
             });
             $('.dropify').dropify();
             $('.js-example-basic-multiple').select2();
+            let extractedWorkerImageFile = null;
+
+            function setInputValue(name, value) {
+                if (value === null || typeof value === 'undefined' || value === '') {
+                    return;
+                }
+
+                const $field = $('[name="' + name + '"]');
+                if (!$field.length) {
+                    return;
+                }
+
+                $field.val(value).trigger('input').trigger('change');
+            }
+
+            function setSelectValue(name, value) {
+                if (value === null || typeof value === 'undefined' || value === '') {
+                    return;
+                }
+
+                const $field = $('[name="' + name + '"]');
+                if (!$field.length) {
+                    return;
+                }
+
+                $field.val(value).trigger('change');
+            }
+
+            function setMultiSelectValue(name, values) {
+                if (!Array.isArray(values) || values.length === 0) {
+                    return;
+                }
+
+                const $field = $('[name="' + name + '[]"]');
+                if (!$field.length) {
+                    return;
+                }
+
+                const existingValues = $field.val() || [];
+                $field.val(Array.from(new Set(existingValues.concat(values)))).trigger('change');
+            }
+
+            function applyExtractedCvFields(fields) {
+                setSelectValue('nationality_id', fields.nationality_id);
+                setSelectValue('religion_id', fields.religion_id);
+                setMultiSelectValue('job_id', fields.job_id || []);
+                setMultiSelectValue('skills', fields.skills || []);
+
+                setInputValue('name:en', fields['name:en']);
+                setInputValue('passport_num', fields.passport_num);
+                setInputValue('salary', fields.salary);
+                setInputValue('duration', fields.duration);
+                setInputValue('birth_date', fields.birth_date);
+                setInputValue('age', fields.age);
+                setInputValue('height', fields.height);
+                setInputValue('weight', fields.weight);
+                setInputValue('childrens_count', fields.childrens_count);
+                setInputValue('additional_notes', fields.additional_notes);
+                setSelectValue('experience_status', fields.experience_status);
+                setSelectValue('marital_status:ar', fields['marital_status:ar']);
+                setInputValue('marital_status:en', fields['marital_status:en']);
+
+                if (!fields.birth_date && fields.age) {
+                    fillBirthDateFromAge(fields.age);
+                }
+
+                if (fields.languages) {
+                    Object.keys(fields.languages).forEach(function(language) {
+                        const $checkbox = $('#' + language);
+                        if ($checkbox.length && !$checkbox.is(':checked')) {
+                            $checkbox.prop('checked', true).trigger('change');
+                        }
+                    });
+                }
+
+                if (fields.experience_status === 'has_experience') {
+                    $('#experience_section').show();
+                }
+            }
+
+            function fillBirthDateFromAge(ageValue) {
+                const age = parseInt(ageValue, 10);
+                if (Number.isNaN(age) || age < 18 || age > 90) {
+                    return;
+                }
+
+                const today = new Date();
+                const year = today.getFullYear() - age;
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                const day = String(today.getDate()).padStart(2, '0');
+                $('#birth_date').val(`${year}-${month}-${day}`).trigger('change');
+            }
+
+            function base64ToFile(dataUrl, filename) {
+                const parts = dataUrl.split(',');
+                const mimeMatch = parts[0].match(/:(.*?);/);
+                const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+                const binary = atob(parts[1]);
+                const bytes = new Uint8Array(binary.length);
+
+                for (let i = 0; i < binary.length; i++) {
+                    bytes[i] = binary.charCodeAt(i);
+                }
+
+                return new File([bytes], filename, {
+                    type: mime
+                });
+            }
+
+            function applyExtractedWorkerImage(workerImage) {
+                if (!workerImage || !workerImage.data_url) {
+                    return false;
+                }
+
+                if (typeof DataTransfer === 'undefined') {
+                    return false;
+                }
+
+                const file = base64ToFile(workerImage.data_url, workerImage.filename || 'maid-photo.jpg');
+                extractedWorkerImageFile = file;
+
+                const dropify = $('#maid_image').data('dropify');
+                if (dropify) {
+                    dropify.resetPreview();
+                    dropify.settings.defaultFile = workerImage.data_url;
+                    dropify.destroy();
+                    dropify.init();
+                }
+
+                return setMaidImageInputFile(file);
+            }
+
+            function setMaidImageInputFile(file) {
+                const imageInput = $('#maid_image').get(0);
+                if (!imageInput || !file || typeof DataTransfer === 'undefined') {
+                    return false;
+                }
+
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                imageInput.files = dataTransfer.files;
+                $('#maid_image').trigger('change');
+
+                return imageInput.files && imageInput.files.length > 0;
+            }
+
+            $('#extract_cv_data_btn').on('click', function() {
+                const fileInput = $('#cv_file').get(0);
+                const file = fileInput && fileInput.files && fileInput.files.length ? fileInput.files[0] : null;
+                const $button = $(this);
+                const $status = $('#cv_extract_status');
+
+                if (!file) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'ملف السيرة مطلوب',
+                        text: 'اختر ملف PDF أو صورة من خانة صورة كاملة أولاً.',
+                        confirmButtonText: 'حسناً'
+                    });
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append('cv_import_file', file);
+                formData.append('_token', $('meta[name="csrf-token"]').attr('content'));
+
+                $button.prop('disabled', true).data('original-text', $button.html());
+                $button.html('<span class="spinner-border spinner-border-sm me-1"></span> جاري القراءة');
+                $status.removeClass('text-danger text-success').addClass('text-muted').text('قد تستغرق القراءة عدة ثواني.');
+
+                $.ajax({
+                    url: '{{ route('maids.extract-cv-data') }}',
+                    method: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        const payload = response.data || {};
+                        const fields = payload.fields || {};
+                        applyExtractedCvFields(fields);
+                        const imageApplied = applyExtractedWorkerImage(payload.worker_image || null);
+
+                        const foundFields = payload.confidence ? payload.confidence.found_fields : Object.keys(fields).length;
+                        $status.removeClass('text-muted text-danger').addClass('text-success').text('تمت تعبئة ' + foundFields + ' حقول' + (imageApplied ? ' مع صورة العاملة' : '') + '. راجع البيانات قبل الحفظ.');
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'تمت قراءة السيرة',
+                            text: response.message || 'تمت تعبئة الحقول المتاحة.',
+                            confirmButtonText: 'حسناً'
+                        });
+                    },
+                    error: function(xhr) {
+                        const message = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'تعذر قراءة ملف السيرة.';
+                        $status.removeClass('text-muted text-success').addClass('text-danger').text(message);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'تعذر استخراج البيانات',
+                            text: message,
+                            confirmButtonText: 'حسناً'
+                        });
+                    },
+                    complete: function() {
+                        $button.prop('disabled', false).html($button.data('original-text'));
+                    }
+                });
+            });
 
             const defaultTypeId = @json($defaultTypeId);
             const defaultShelterContract = @json($defaultShelterContract);
@@ -1233,6 +1448,12 @@
                 $('#age').val(age);
             });
 
+            $('#age').on('input change', function() {
+                if (!$('#birth_date').val()) {
+                    fillBirthDateFromAge($(this).val());
+                }
+            });
+
             // Handle nationality change to filter offices and set price/salary
             $('#Pnationality_id').change(function() {
                 var nationalityId = $(this).val();
@@ -1284,7 +1505,11 @@
                 var typeContext = getTypeContext();
 
                 // التحقق من الملفات
-                var image = $('input[name="image"]').get(0).files.length;
+                var imageInput = $('#maid_image').get(0);
+                if (imageInput && (!imageInput.files || imageInput.files.length === 0) && extractedWorkerImageFile) {
+                    setMaidImageInputFile(extractedWorkerImageFile);
+                }
+                var image = imageInput && imageInput.files ? imageInput.files.length : 0;
 
                 if (!image) {
                     errors.push('الرجاء اختيار صورة العاملة');
@@ -1388,6 +1613,9 @@
 
                 // إرسال النموذج باستخدام AJAX
                 var formData = new FormData(this);
+                if (!formData.get('image') && extractedWorkerImageFile) {
+                    formData.set('image', extractedWorkerImageFile, extractedWorkerImageFile.name || 'maid-photo.jpg');
+                }
 
                 // إضافة قيم افتراضية للحقول الاختيارية
                 if (!formData.get('cv_file')) {
