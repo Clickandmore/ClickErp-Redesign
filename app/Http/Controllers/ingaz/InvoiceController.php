@@ -6,6 +6,7 @@ use App\Http\Controllers\admin\Controller;
 use App\Models\Contract;
 use App\Models\IngazDelegation;
 use App\Models\ingaz\Invoice;
+use App\Models\ingaz\Nationality;
 use App\Models\ingaz\Setting;
 use App\Models\ingaz\User as ClientUser;
 use App\Services\ingaz\InvoiceCalculationService;
@@ -286,6 +287,7 @@ class InvoiceController extends Controller
                 $nationalityAccountId = $nationality?->account_id;
 
                 $nationalityName = $nationality?->sub_title ?? $nationality?->title ?? null;
+                $this->persistMissingNationalityInvoiceCosts($nationality, $invoicePayload);
 
                 if ($nationalityAccountId && !$this->isRecruitmentLiabilityAccount((int) $nationalityAccountId)) {
                     $nationalityAccountId = null;
@@ -898,6 +900,8 @@ class InvoiceController extends Controller
         }
 
         $clientAccountId = $this->ensureClientUserAccountId($delegation->user);
+        $this->persistMissingNationalityInvoiceCosts($delegation->nationality, $invoicePayload);
+
         $invoice = Invoice::create([
             'contract_id' => null,
             'ingaz_delegation_id' => $delegation->id,
@@ -1358,6 +1362,38 @@ class InvoiceController extends Controller
             'vat_amount' => $totals['vat_amount'],
             'total_due' => $totals['total_due'],
         ]);
+    }
+
+    private function persistMissingNationalityInvoiceCosts(?Nationality $nationality, array $invoicePayload): void
+    {
+        if (!$nationality || !Schema::hasTable('nationalities')) {
+            return;
+        }
+
+        $columns = [
+            'direct_recruitment_cost',
+            'external_recruitment_cost',
+            'government_cost',
+        ];
+
+        $updates = [];
+
+        foreach ($columns as $column) {
+            if (!Schema::hasColumn('nationalities', $column)) {
+                continue;
+            }
+
+            $currentValue = $nationality->{$column};
+            $incomingValue = (float) ($invoicePayload[$column] ?? 0);
+
+            if (($currentValue === null || (float) $currentValue <= 0) && $incomingValue > 0) {
+                $updates[$column] = $incomingValue;
+            }
+        }
+
+        if ($updates !== []) {
+            $nationality->forceFill($updates)->save();
+        }
     }
 
     private function buildServiceDescription(Invoice $invoice): string

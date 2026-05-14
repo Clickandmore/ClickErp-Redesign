@@ -10,6 +10,7 @@ use Illuminate\Validation\ValidationException;
 class CommunicationSettings
 {
     private const SETTINGS_KEY = 'communication_channels';
+    private const PHONE_VERIFICATION_BYPASS_CODE = '12345';
 
     public static function all(): array
     {
@@ -24,6 +25,16 @@ class CommunicationSettings
     public static function sms(): array
     {
         return self::all()['sms'] ?? self::defaults()['sms'];
+    }
+
+    public static function phoneVerificationIsDisabled(): bool
+    {
+        return (bool) (self::sms()['disable_phone_verification'] ?? false);
+    }
+
+    public static function phoneVerificationBypassCode(): string
+    {
+        return self::PHONE_VERIFICATION_BYPASS_CODE;
     }
 
     public static function whatsapp(): array
@@ -96,6 +107,7 @@ class CommunicationSettings
                 'msegat.encoding' => $settings['sms']['encoding'],
                 'msegat.bulk_send_limit' => (int) $settings['sms']['bulk_send_limit'],
                 'msegat.bulk_confirmation_keyword' => $settings['sms']['bulk_confirmation_keyword'],
+                'msegat.disable_phone_verification' => (bool) $settings['sms']['disable_phone_verification'],
                 'services.taqnyat.sms.base_url' => $settings['sms']['taqnyat']['base_url'],
                 'services.taqnyat.sms.bearer_token' => $settings['sms']['taqnyat']['bearer_token'],
 
@@ -222,6 +234,10 @@ class CommunicationSettings
         $data['sms']['bulk_send_limit'] = max(1, (int) ($data['sms']['bulk_send_limit'] ?? $defaults['sms']['bulk_send_limit']));
         $data['sms']['bulk_confirmation_keyword'] = self::trimString($data['sms']['bulk_confirmation_keyword'] ?? '')
             ?: $defaults['sms']['bulk_confirmation_keyword'];
+        $data['sms']['disable_phone_verification'] = filter_var(
+            $data['sms']['disable_phone_verification'] ?? false,
+            FILTER_VALIDATE_BOOLEAN
+        );
         $data['sms']['taqnyat']['base_url'] = rtrim(
             self::trimString($data['sms']['taqnyat']['base_url'] ?? $defaults['sms']['taqnyat']['base_url'])
                 ?: $defaults['sms']['taqnyat']['base_url'],
@@ -412,6 +428,7 @@ class CommunicationSettings
                 'encoding' => 'UTF8',
                 'bulk_send_limit' => 200,
                 'bulk_confirmation_keyword' => 'SEND_ALL_SMS',
+                'disable_phone_verification' => false,
                 'taqnyat' => [
                     'base_url' => 'https://api.taqnyat.sa',
                     'bearer_token' => '',

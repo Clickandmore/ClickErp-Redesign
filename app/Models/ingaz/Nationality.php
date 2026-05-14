@@ -17,6 +17,9 @@ class Nationality extends Model
         'logo',
         'phone_code',
         'price',
+        'direct_recruitment_cost',
+        'external_recruitment_cost',
+        'government_cost',
         'salary_with_experience',
         'salary_with_no_experience',
         'service_transportation_cost',
@@ -27,6 +30,9 @@ class Nationality extends Model
 
     protected $casts = [
         'price' => 'decimal:2',
+        'direct_recruitment_cost' => 'decimal:2',
+        'external_recruitment_cost' => 'decimal:2',
+        'government_cost' => 'decimal:2',
         'service_transportation_cost' => 'decimal:2',
         'rental_cost' => 'decimal:2',
         'monthly_salary' => 'decimal:2',

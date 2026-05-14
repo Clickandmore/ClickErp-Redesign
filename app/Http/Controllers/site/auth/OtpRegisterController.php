@@ -5,6 +5,7 @@ namespace App\Http\Controllers\site\auth;
 use App\Http\Actions\ingaz\PhoneVerificationAction;
 use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\site\auth\OtpRequest;
+use App\Support\CommunicationSettings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Crypt;
 
@@ -14,7 +15,11 @@ class OtpRegisterController extends Controller
     {
         $phone = Crypt::decryptString($request->phone);
         $type = 'register';
-        return view('site.pages.auth.otp', compact('phone','type'));
+        $fixedOtpCode = CommunicationSettings::phoneVerificationIsDisabled()
+            ? CommunicationSettings::phoneVerificationBypassCode()
+            : null;
+
+        return view('site.pages.auth.otp', compact('phone', 'type', 'fixedOtpCode'));
     }
 
     public function store(
