@@ -640,6 +640,9 @@ class AdminRoutePermissionMatrix
                 'destroy' => [PermKeys::OFFICE_DELETE, PermKeys::OFFICE_CONTROL],
             ]),
             [
+                'offices.login-as-agent' => [PermKeys::OFFICE_CONTROL],
+            ],
+            [
                 'countries.index' => [PermKeys::COUNTRIES_VIEW, PermKeys::COUNTRIES_CONTROL],
                 'countries.show' => [PermKeys::COUNTRIES_VIEW, PermKeys::COUNTRIES_CONTROL],
                 'countries.create' => [PermKeys::COUNTRIES_CREATE, PermKeys::COUNTRIES_CONTROL],

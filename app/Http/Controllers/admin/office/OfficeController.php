@@ -16,8 +16,10 @@ use App\Http\Requests\office\OfficeRequest;
 use App\Models\office\Office as objModel;
 use App\Services\office\OfficeFinanceAccountService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Route;
 use Spatie\Activitylog\Models\Activity;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -48,7 +50,7 @@ class OfficeController extends Controller
         if ($request->ajax()) {
             $offices = objModel::query()
                 ->select('recruitment_offices.*')
-                ->with(['nationality', 'file', 'account'])
+                ->with(['nationality', 'file', 'account', 'officeManager'])
                 ->selectSub($linkedContractsCountSubquery, 'linked_contracts_count')
                 ->withCount(['maids as linked_cvs_count'])
                 ->get()
@@ -110,6 +112,7 @@ class OfficeController extends Controller
                     $deleteButton = '';
                     $fileButton = '';
                     $sendEmailButton = '';
+                    $loginAsAgentButton = '';
                     // if (Auth::guard('admin')->user()->hasPermission('programs-update')) {
                     $editButton = '<a href="' . route('offices.edit', $row->id) . '" class="dropdown-item">
                                     <i class="fa fa-pencil"></i> ' . __("ingaz.edit") . '
@@ -136,6 +139,14 @@ class OfficeController extends Controller
                     if (filled($row->manager_email)) {
                         $sendEmailButton = '<button class="dropdown-item sendEmailResetPassword" data-id="' . $row->id . '"data-email="' . $row->manager_email . '">' . '  <i class="fa fa-email"></i> ' . __("ingaz.send_email_reset_password") . '</button>';
                     }
+                    if (Route::has('offices.login-as-agent')) {
+                        $loginAsAgentButton = '<form action="' . route('offices.login-as-agent', $row->id) . '" method="POST" target="_blank" class="m-0">'
+                            . csrf_field()
+                            . '<button type="submit" class="dropdown-item">'
+                            . '<i class="fa fa-sign-in-alt"></i> تسجيل كوكيل'
+                            . '</button>'
+                            . '</form>';
+                    }
 
                     // Action Buttons
                     $actions = '
@@ -149,6 +160,7 @@ class OfficeController extends Controller
                                         <li>' . $deleteButton . '</li>
                                         <li>' . $fileButton . '</li>
                                         <li>' . $sendEmailButton . '</li>
+                                        <li>' . $loginAsAgentButton . '</li>
                                     </ul>
                                 </div>';
                     return $actions;
@@ -295,6 +307,24 @@ class OfficeController extends Controller
             'office' => $office,
             'activities' => $activities,
         ]);
+    }
+
+    public function loginAsAgent($id)
+    {
+        $office = objModel::with('officeManager.admin')->findOrFail($id);
+
+        $adminUser = Auth::guard('admin')->user();
+
+        if (! $adminUser) {
+            abort(403);
+        }
+
+        session(['_agent_impersonate_office_id' => (int) $office->id]);
+
+        Auth::guard('agent')->login($adminUser);
+        request()->session()->regenerate();
+
+        return redirect()->route('agent.dashboard');
     }
 
     /**

@@ -56,6 +56,9 @@ class RouteServiceProvider extends ServiceProvider
                 ->group(base_path('routes/ingaz.php'));
 
             Route::middleware('web')
+                ->group(base_path('routes/agent.php'));
+
+            Route::middleware('web')
                 ->group(base_path('routes/office.php'));
 
             Route::middleware('web')
