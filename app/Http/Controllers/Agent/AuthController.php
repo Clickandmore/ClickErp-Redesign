@@ -33,8 +33,11 @@ class AuthController extends Controller
 
         $login = trim((string) $request->input('login'));
         $agent = Admin::query()
-            ->where('email', $login)
-            ->orWhere('phone', $login)
+            ->whereHas('agentOfficeLinks')
+            ->where(function ($query) use ($login) {
+                $query->where('email', $login)
+                    ->orWhere('phone', $login);
+            })
             ->first();
 
         if (! $agent || ! Hash::check((string) $request->input('password'), (string) $agent->password)) {
