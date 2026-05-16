@@ -18,6 +18,9 @@ Route::group(
             Route::middleware('agent')->group(function () {
                 Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
                 Route::get('maids', [DashboardController::class, 'maids'])->name('maids.index');
+                Route::get('maids/create', [DashboardController::class, 'createMaid'])->name('maids.create');
+                Route::post('maids/store', [DashboardController::class, 'storeMaid'])->name('maids.store');
+                Route::post('maids/extract-cv', [DashboardController::class, 'extractCv'])->name('maids.extract-cv');
                 Route::get('contracts', [DashboardController::class, 'contracts'])->name('contracts.index');
                 Route::get('contracts/{contract}', [DashboardController::class, 'showContract'])->name('contracts.show');
                 Route::get('external-office-dispatches', [DashboardController::class, 'dispatches'])->name('dispatches.index');

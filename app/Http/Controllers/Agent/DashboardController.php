@@ -4,7 +4,11 @@ namespace App\Http\Controllers\Agent;
 
 use App\Http\Controllers\Controller;
 use App\Models\Contract;
+use App\Models\ingaz\JobType;
 use App\Models\ingaz\Maid;
+use App\Models\ingaz\Nationality;
+use App\Models\ingaz\Religion;
+use App\Models\RecruitmentOffices;
 use App\Models\office\Office;
 use App\Enums\ingaz\ContractStatusEnum;
 use Illuminate\Database\Eloquent\Builder;
@@ -78,6 +82,92 @@ class DashboardController extends Controller
         $maids = $query->paginate(15)->appends($request->query());
 
         return view('agent.maids.index', compact('maids'));
+    }
+
+    public function createMaid()
+    {
+        $nationalities = Nationality::all();
+        $religions = Religion::all();
+        $offices = $this->agentOffices();
+        $jobTypes = JobType::all();
+
+        return view('agent.maids.create', compact('nationalities', 'religions', 'offices', 'jobTypes'));
+    }
+
+    public function extractCv(Request $request)
+    {
+        $text = (string) $request->input('text');
+        
+        // Basic extraction logic using regex
+        $data = [
+            'name' => null,
+            'passport_num' => null,
+            'nationality_id' => null,
+            'age' => null,
+            'religion_id' => null,
+            'experience_years' => null,
+        ];
+
+        // Name extraction (very basic mock)
+        if (preg_match('/Name[:\s]+([a-zA-Z\s]+)/i', $text, $matches)) {
+            $data['name'] = trim($matches[1]);
+        }
+
+        // Passport extraction
+        if (preg_match('/Passport[:\s#]+([A-Z0-9]+)/i', $text, $matches)) {
+            $data['passport_num'] = trim($matches[1]);
+        }
+
+        // Age extraction
+        if (preg_match('/Age[:\s]+(\d+)/i', $text, $matches)) {
+            $data['age'] = (int) $matches[1];
+        }
+
+        // Nationality extraction (matching by title)
+        $nationalities = Nationality::all();
+        foreach ($nationalities as $nationality) {
+            if (stripos($text, $nationality->title) !== false || stripos($text, $nationality->sub_title) !== false) {
+                $data['nationality_id'] = $nationality->id;
+                break;
+            }
+        }
+
+        return response()->json($data);
+    }
+
+    public function storeMaid(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'passport_num' => 'required|string|max:255',
+            'nationality_id' => 'required|exists:nationalities,id',
+            'office_id' => 'required|exists:recruitment_offices,id',
+        ]);
+
+        $officeIds = $this->agentOfficeIds();
+        if (!$officeIds->contains($request->office_id)) {
+            abort(403, 'Unauthorized office');
+        }
+
+        $maid = Maid::create([
+            'name' => $request->name,
+            'passport_num' => $request->passport_num,
+            'nationality_id' => $request->nationality_id,
+            'office_id' => $request->office_id,
+            'religion_id' => $request->religion_id,
+            'age' => $request->age,
+            'experience_years' => $request->experience_years,
+            'status' => 'available',
+            'available' => 1,
+            'is_show' => 0, // Admin must review
+            'added_by' => auth()->id(),
+        ]);
+
+        if ($request->has('job_type_ids')) {
+            $maid->jobTypes()->sync($request->job_type_ids);
+        }
+
+        return redirect()->route('agent.maids.index')->with('success', 'CV added successfully and pending review.');
     }
 
     public function contracts(Request $request)
@@ -277,6 +367,12 @@ class DashboardController extends Controller
             ->firstOrFail();
 
         return view('agent.contracts.show', compact('contract'));
+    }
+
+    private function agentOffices(): Collection
+    {
+        $officeIds = $this->agentOfficeIds();
+        return RecruitmentOffices::whereIn('id', $officeIds->all())->get();
     }
 
     private function agentOfficeIds(): Collection

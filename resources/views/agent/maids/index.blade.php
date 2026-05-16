@@ -4,14 +4,19 @@
 
 @section('content')
     <section class="agent-section">
-        <form action="{{ route('agent.maids.index') }}" method="GET" class="agent-filter">
-            <input type="search" name="search" value="{{ request('search') }}" placeholder="Search by name or passport">
-            <input type="text" name="status" value="{{ request('status') }}" placeholder="Status">
-            <button type="submit" class="agent-button">
-                <i class="fa fa-magnifying-glass"></i>
-                <span>Search</span>
-            </button>
-        </form>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <form action="{{ route('agent.maids.index') }}" method="GET" class="agent-filter mb-0">
+                <input type="search" name="search" value="{{ request('search') }}" placeholder="{{ app()->getLocale() === 'ar' ? 'البحث بالاسم أو الجواز' : 'Search by name or passport' }}">
+                <button type="submit" class="agent-button">
+                    <i class="fa fa-magnifying-glass"></i>
+                    <span>{{ app()->getLocale() === 'ar' ? 'بحث' : 'Search' }}</span>
+                </button>
+            </form>
+            <a href="{{ route('agent.maids.create') }}" class="agent-button" style="background: var(--agent-accent);">
+                <i class="fa fa-plus"></i>
+                <span>{{ app()->getLocale() === 'ar' ? 'إضافة سيرة جديدة' : 'Add New CV' }}</span>
+            </a>
+        </div>
 
         <div class="agent-table-wrap">
             <table class="agent-table">
