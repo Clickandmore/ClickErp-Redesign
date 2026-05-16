@@ -655,7 +655,9 @@ class AdminController extends Controller
             if (auth()->guard("agent")->attempt(["email" => $agentUser->email, "password" => $request->password], $request->boolean('rememberme'))) {
                 $request->session()->regenerate();
 
-                return jsonSuccess(['url' => route('agent.dashboard')], 'ØªÙ… ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„ Ù„Ù„ÙˆØ­Ø© Ø§Ù„ÙˆÙƒÙŠÙ„ Ø§Ù„Ø®Ø§Ø±Ø¬ÙŠ');
+                return jsonSuccess([
+                    'url' => \Mcamara\LaravelLocalization\Facades\LaravelLocalization::getLocalizedURL('en', route('agent.dashboard'), [], true),
+                ], 'Agent login successful');
             }
 
             return jsonSuccess(null, __("auth.password"), 402);

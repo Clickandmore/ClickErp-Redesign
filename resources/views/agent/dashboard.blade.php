@@ -1,61 +1,63 @@
 @extends('agent.layout')
 
-@section('page-title', 'الرئيسية')
+@php $isAr = app()->getLocale() === 'ar'; @endphp
+
+@section('page-title', $isAr ? 'لوحة التحكم' : 'Dashboard')
 
 @section('content')
     <section class="agent-grid">
         <div class="agent-card">
-            <span>إجمالي السير</span>
+            <span>{{ $isAr ? 'إجمالي السير الذاتية' : 'Total CVs' }}</span>
             <strong>{{ $stats['maids_count'] }}</strong>
         </div>
         <div class="agent-card">
-            <span>السير المتاحة</span>
+            <span>{{ $isAr ? 'السير الذاتية المتاحة' : 'Available CVs' }}</span>
             <strong>{{ $stats['available_maids_count'] }}</strong>
         </div>
         <div class="agent-card">
-            <span>إجمالي العقود</span>
+            <span>{{ $isAr ? 'إجمالي العقود' : 'Total Contracts' }}</span>
             <strong>{{ $stats['contracts_count'] }}</strong>
         </div>
         <div class="agent-card">
-            <span>العقود النشطة</span>
+            <span>{{ $isAr ? 'العقود النشطة' : 'Active Contracts' }}</span>
             <strong>{{ $stats['active_contracts_count'] }}</strong>
         </div>
     </section>
 
     <section class="agent-section">
         <div class="agent-section-header">
-            <h3>بيانات المكتب</h3>
+            <h3>{{ $isAr ? 'معلومات المكتب' : 'Office Information' }}</h3>
         </div>
         <div class="agent-detail-grid">
             @forelse ($offices as $office)
                 <div class="agent-detail-item">
-                    <span>اسم المكتب</span>
+                    <span>{{ $isAr ? 'اسم المكتب' : 'Office Name' }}</span>
                     <strong>{{ $office->title ?? '-' }}</strong>
                 </div>
                 <div class="agent-detail-item">
-                    <span>الجنسية</span>
+                    <span>{{ $isAr ? 'الجنسية' : 'Nationality' }}</span>
                     <strong>{{ $office->nationality?->sub_title ?: ($office->nationality?->title ?: '-') }}</strong>
                 </div>
                 <div class="agent-detail-item">
-                    <span>الهاتف</span>
+                    <span>{{ $isAr ? 'الهاتف' : 'Phone' }}</span>
                     <strong>{{ $office->phone_office ?: '-' }}</strong>
                 </div>
                 <div class="agent-detail-item">
-                    <span>مدير المكتب</span>
+                    <span>{{ $isAr ? 'مدير المكتب' : 'Office Manager' }}</span>
                     <strong>{{ $office->manager_name ?: '-' }}</strong>
                 </div>
             @empty
-                <p class="agent-empty">لا توجد مكاتب مرتبطة بهذا الحساب.</p>
+                <p class="agent-empty">{{ $isAr ? 'لا توجد مكاتب مرتبطة بهذا الحساب.' : 'No offices are linked to this account.' }}</p>
             @endforelse
         </div>
     </section>
 
     <section class="agent-section">
         <div class="agent-section-header">
-            <h3>أحدث السير الذاتية</h3>
+            <h3>{{ $isAr ? 'أحدث السير الذاتية' : 'Latest CVs' }}</h3>
             <a href="{{ route('agent.maids.index') }}" class="agent-button">
                 <i class="fa fa-list"></i>
-                <span>عرض الكل</span>
+                <span>{{ $isAr ? 'عرض الكل' : 'View All' }}</span>
             </a>
         </div>
         <div class="agent-table-wrap">
@@ -63,10 +65,10 @@
                 <thead>
                     <tr>
                         <th>#</th>
-                        <th>الاسم</th>
-                        <th>الجنسية</th>
-                        <th>جواز السفر</th>
-                        <th>الحالة</th>
+                        <th>{{ $isAr ? 'الاسم' : 'Name' }}</th>
+                        <th>{{ $isAr ? 'الجنسية' : 'Nationality' }}</th>
+                        <th>{{ $isAr ? 'جواز السفر' : 'Passport' }}</th>
+                        <th>{{ $isAr ? 'الحالة' : 'Status' }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -80,7 +82,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5">لا توجد سير ذاتية حتى الآن.</td>
+                            <td colspan="5">{{ $isAr ? 'لا توجد سير ذاتية حتى الآن.' : 'No CVs have been added yet.' }}</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -90,10 +92,10 @@
 
     <section class="agent-section">
         <div class="agent-section-header">
-            <h3>أحدث العقود</h3>
+            <h3>{{ $isAr ? 'أحدث العقود' : 'Latest Contracts' }}</h3>
             <a href="{{ route('agent.contracts.index') }}" class="agent-button">
                 <i class="fa fa-list"></i>
-                <span>عرض الكل</span>
+                <span>{{ $isAr ? 'عرض الكل' : 'View All' }}</span>
             </a>
         </div>
         <div class="agent-table-wrap">
@@ -101,10 +103,10 @@
                 <thead>
                     <tr>
                         <th>#</th>
-                        <th>العميل</th>
-                        <th>العاملة</th>
-                        <th>الحالة</th>
-                        <th>تاريخ الإنشاء</th>
+                        <th>{{ $isAr ? 'العميل' : 'Client' }}</th>
+                        <th>{{ $isAr ? 'العاملة' : 'Worker' }}</th>
+                        <th>{{ $isAr ? 'الحالة' : 'Status' }}</th>
+                        <th>{{ $isAr ? 'تاريخ الإنشاء' : 'Created At' }}</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -119,13 +121,13 @@
                             <td>
                                 <a href="{{ route('agent.contracts.show', $contract) }}" class="agent-button">
                                     <i class="fa fa-eye"></i>
-                                    <span>عرض</span>
+                                    <span>{{ $isAr ? 'عرض' : 'View' }}</span>
                                 </a>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6">لا توجد عقود حتى الآن.</td>
+                            <td colspan="6">{{ $isAr ? 'لا توجد عقود حتى الآن.' : 'No contracts have been added yet.' }}</td>
                         </tr>
                     @endforelse
                 </tbody>

@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
+use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 use Spatie\Activitylog\Models\Activity;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -307,7 +308,7 @@ class OfficeController extends Controller
         Auth::guard('agent')->login($adminUser);
         request()->session()->regenerate();
 
-        return redirect()->route('agent.dashboard');
+        return redirect(LaravelLocalization::getLocalizedURL('en', route('agent.dashboard'), [], true));
     }
 
     /**

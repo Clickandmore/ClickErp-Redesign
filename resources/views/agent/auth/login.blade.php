@@ -1,15 +1,15 @@
 @extends('admin.auth.layout')
 
-@section('auth-page-title', 'تسجيل دخول الوكيل')
-@section('auth-heading', 'لوحة الوكيل الخارجي')
-@section('auth-subtitle', 'تسجيل دخول المكاتب الخارجية')
+@section('auth-page-title', 'Agent Login')
+@section('auth-heading', 'External Agent Dashboard')
+@section('auth-subtitle', 'Sign in to the external office workspace')
 
 @section('auth-body')
     <form action="{{ route('agent.login') }}" method="POST" novalidate>
         @csrf
         <div class="form-group">
             <div class="input-field">
-                <label for="login">البريد الإلكتروني أو رقم الهاتف*</label>
+                <label for="login">Email or phone number*</label>
                 <div class="input-shell">
                     <span class="input-icon">
                         <img src="{{ asset('admin/login') }}/imgs/email.svg" alt="login">
@@ -20,7 +20,7 @@
             </div>
 
             <div class="input-field">
-                <label for="password">كلمة المرور*</label>
+                <label for="password">Password*</label>
                 <div class="input-shell">
                     <span class="input-icon">
                         <img src="{{ asset('admin/login') }}/imgs/password.svg" alt="password">
@@ -38,10 +38,10 @@
             </label>
         </div>
 
-        <button type="submit" class="primary-btn">دخول</button>
+        <button type="submit" class="primary-btn">Sign In</button>
     </form>
 @endsection
 
 @section('auth-footer')
-    <a class="secondary-link" href="{{ route('admin.form.login') }}">دخول الإدارة</a>
+    <a class="secondary-link" href="{{ route('admin.form.login') }}">Admin Login</a>
 @endsection

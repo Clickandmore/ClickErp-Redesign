@@ -1,15 +1,15 @@
 @extends('agent.layout')
 
-@section('page-title', 'السير الذاتية')
+@section('page-title', 'CVs')
 
 @section('content')
     <section class="agent-section">
         <form action="{{ route('agent.maids.index') }}" method="GET" class="agent-filter">
-            <input type="search" name="search" value="{{ request('search') }}" placeholder="بحث بالاسم أو جواز السفر">
-            <input type="text" name="status" value="{{ request('status') }}" placeholder="الحالة">
+            <input type="search" name="search" value="{{ request('search') }}" placeholder="Search by name or passport">
+            <input type="text" name="status" value="{{ request('status') }}" placeholder="Status">
             <button type="submit" class="agent-button">
                 <i class="fa fa-magnifying-glass"></i>
-                <span>بحث</span>
+                <span>Search</span>
             </button>
         </form>
 
@@ -18,12 +18,12 @@
                 <thead>
                     <tr>
                         <th>#</th>
-                        <th>الاسم</th>
-                        <th>الجنسية</th>
-                        <th>جواز السفر</th>
-                        <th>العمر</th>
-                        <th>السعر</th>
-                        <th>الحالة</th>
+                        <th>Name</th>
+                        <th>Nationality</th>
+                        <th>Passport</th>
+                        <th>Age</th>
+                        <th>Price</th>
+                        <th>Status</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -39,7 +39,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7">لا توجد بيانات مطابقة.</td>
+                            <td colspan="7">No matching records were found.</td>
                         </tr>
                     @endforelse
                 </tbody>

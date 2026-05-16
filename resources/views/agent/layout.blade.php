@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ app()->getLocale() }}" dir="{{ app()->getLocale() === 'ar' ? 'rtl' : 'ltr' }}">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('page-title', 'لوحة الوكيل الخارجي')</title>
+    <title>@yield('page-title', 'Agent Dashboard')</title>
     <link rel="stylesheet" href="{{ asset('admin') }}/assets/css/luno-style.css">
     <link rel="stylesheet" href="{{ asset('admin/login') }}/css/fontawesome.min.css">
     <style>
@@ -16,7 +16,12 @@
             --agent-line: #d9e0ea;
             --agent-primary: #0f766e;
             --agent-primary-dark: #115e59;
-            --agent-accent: #b45309;
+            --agent-accent: #2563eb;
+            --agent-sidebar: #172033;
+        }
+
+        * {
+            box-sizing: border-box;
         }
 
         body {
@@ -31,10 +36,14 @@
             min-height: 100vh;
             display: grid;
             grid-template-columns: 260px minmax(0, 1fr);
+            grid-template-areas: "sidebar main";
         }
 
+        .agent-sidebar { grid-area: sidebar; }
+        .agent-main    { grid-area: main; }
+
         .agent-sidebar {
-            background: #172033;
+            background: var(--agent-sidebar);
             color: #fff;
             padding: 22px 18px;
             position: sticky;
@@ -110,6 +119,167 @@
 
         .agent-main {
             min-width: 0;
+        }
+
+        .agent-admin-header {
+            min-height: 76px;
+            background: rgba(255, 255, 255, .96);
+            border-bottom: 1px solid #e8edf4;
+            box-shadow: 0 10px 26px rgba(15, 23, 42, .06);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 12px 24px;
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            backdrop-filter: blur(10px);
+        }
+
+        .agent-header-brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 210px;
+        }
+
+        .agent-header-logo {
+            width: 46px;
+            height: 46px;
+            border-radius: 10px;
+            object-fit: contain;
+            background: #fff;
+            border: 1px solid #eef2f7;
+            box-shadow: 0 6px 18px rgba(15, 23, 42, .08);
+        }
+
+        .agent-header-brand strong {
+            display: block;
+            font-size: 16px;
+            color: #111827;
+        }
+
+        .agent-header-brand span {
+            display: block;
+            margin-top: 2px;
+            font-size: 12px;
+            color: var(--agent-muted);
+        }
+
+        .agent-header-meta {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            flex: 1;
+        }
+
+        .agent-meta-card {
+            min-height: 46px;
+            border: 1px solid #e8edf4;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+            padding: 0 14px;
+            background: #f8fafc;
+            color: #111827;
+            white-space: nowrap;
+        }
+
+        .agent-meta-card i {
+            width: 28px;
+            height: 28px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 999px;
+            background: #e0f2fe;
+            color: var(--agent-accent);
+        }
+
+        .agent-header-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+            min-width: 220px;
+        }
+
+        .agent-header-action,
+        .agent-lang-button {
+            min-height: 44px;
+            border: 1px solid #e1e8f2;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 0 14px;
+            background: #fff;
+            color: #1f2937;
+            text-decoration: none;
+            box-shadow: 0 6px 16px rgba(15, 23, 42, .05);
+            cursor: pointer;
+            font: inherit;
+        }
+
+        .agent-header-action:hover,
+        .agent-lang-button:hover {
+            color: var(--agent-primary-dark);
+            border-color: #cbd5e1;
+            text-decoration: none;
+        }
+
+        .agent-open-site {
+            background: var(--agent-primary);
+            color: #fff;
+            border-color: var(--agent-primary);
+        }
+
+        .agent-open-site:hover {
+            background: var(--agent-primary-dark);
+            color: #fff;
+            border-color: var(--agent-primary-dark);
+        }
+
+        .agent-language {
+            position: relative;
+        }
+
+        .agent-language-menu {
+            position: absolute;
+            top: calc(100% + 4px);
+            right: 0;
+            width: 190px;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            background: #fff;
+            box-shadow: 0 18px 45px rgba(15, 23, 42, .16);
+            padding: 6px;
+            display: none;
+            z-index: 30;
+        }
+
+        .agent-language-menu a {
+            min-height: 38px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0 10px;
+            color: #1f2937;
+            text-decoration: none;
+        }
+
+        .agent-language-menu a:hover,
+        .agent-language-menu a.active {
+            background: #edf5ff;
+            color: var(--agent-accent);
+        }
+
+        .agent-page {
             padding: 24px;
         }
 
@@ -134,6 +304,7 @@
         .agent-user {
             color: var(--agent-muted);
             font-size: 13px;
+            margin-top: 4px;
         }
 
         .agent-grid {
@@ -295,6 +466,12 @@
             margin-top: 14px;
         }
 
+        @media (max-width: 1100px) {
+            .agent-header-meta {
+                display: none;
+            }
+        }
+
         @media (max-width: 992px) {
             .agent-shell {
                 grid-template-columns: 1fr;
@@ -305,13 +482,35 @@
                 height: auto;
             }
 
+            .agent-admin-header {
+                position: static;
+            }
+
             .agent-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
         }
 
+        @media (max-width: 720px) {
+            .agent-admin-header {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .agent-header-brand,
+            .agent-header-actions {
+                min-width: 0;
+                width: 100%;
+            }
+
+            .agent-header-actions {
+                justify-content: flex-start;
+                flex-wrap: wrap;
+            }
+        }
+
         @media (max-width: 640px) {
-            .agent-main {
+            .agent-page {
                 padding: 14px;
             }
 
@@ -329,14 +528,69 @@
         }
     </style>
     @stack('style')
+    @if(app()->getLocale() === 'ar')
+    <style>
+        /* RTL grid: sidebar goes to the RIGHT */
+        .agent-shell {
+            grid-template-columns: minmax(0, 1fr) 260px;
+            grid-template-areas: "main sidebar";
+        }
+
+        /* Force RTL direction on all content areas */
+        .agent-main,
+        .agent-page,
+        .agent-admin-header,
+        .agent-topbar,
+        .agent-card,
+        .agent-section,
+        .agent-detail-item,
+        .agent-section-header,
+        .agent-filter,
+        .agent-nav {
+            direction: rtl;
+        }
+
+        /* Text alignment for content */
+        .agent-card span,
+        .agent-card strong,
+        .agent-topbar h2,
+        .agent-topbar .agent-user,
+        .agent-section-header h3,
+        .agent-detail-item span,
+        .agent-detail-item strong,
+        .agent-empty {
+            text-align: right;
+        }
+
+        /* Table cells RTL */
+        .agent-table th,
+        .agent-table td {
+            text-align: right;
+        }
+
+        /* Language menu position for RTL */
+        .agent-language-menu {
+            right: auto;
+            left: 0;
+        }
+    </style>
+    @endif
 </head>
 
-<body dir="{{ app()->getLocale() === 'ar' ? 'rtl' : 'ltr' }}">
+<body>
     @php
         $agentUser = auth('agent')->user();
         $agentOfficeNames = $agentUser
-            ? $agentUser->agentOffices()->get()->pluck('title')->filter()->implode('، ')
+            ? $agentUser->agentOffices()->get()->pluck('title')->filter()->implode(', ')
             : '';
+        $headerLogo =
+            isset($settings) && !empty($settings->admin_logo)
+                ? showFile($settings->admin_logo)
+                : (isset($settings) && !empty($settings->logo_header)
+                    ? showFile($settings->logo_header)
+                    : asset('admin/assets/img/company_logo.jpeg'));
+        $englishUrl = \Mcamara\LaravelLocalization\Facades\LaravelLocalization::getLocalizedURL('en', null, [], true);
+        $arabicUrl = \Mcamara\LaravelLocalization\Facades\LaravelLocalization::getLocalizedURL('ar', null, [], true);
     @endphp
 
     <div class="agent-shell">
@@ -344,51 +598,147 @@
             <div class="agent-brand">
                 <span class="agent-brand-mark"><i class="fa fa-building"></i></span>
                 <div>
-                    <h1>لوحة الوكيل</h1>
-                    <small>{{ $agentOfficeNames ?: 'المكتب الخارجي' }}</small>
+                    <h1>{{ app()->getLocale() === 'ar' ? 'بوابة الوكيل' : 'Agent Portal' }}</h1>
+                    <small>{{ $agentOfficeNames ?: (app()->getLocale() === 'ar' ? 'مكتب خارجي' : 'External Office') }}</small>
                 </div>
             </div>
 
             <nav class="agent-nav">
                 <a href="{{ route('agent.dashboard') }}" class="{{ request()->routeIs('agent.dashboard') ? 'active' : '' }}">
                     <i class="fa fa-chart-line"></i>
-                    <span>الرئيسية</span>
+                    <span>{{ app()->getLocale() === 'ar' ? 'لوحة التحكم' : 'Dashboard' }}</span>
                 </a>
                 <a href="{{ route('agent.maids.index') }}" class="{{ request()->routeIs('agent.maids.*') ? 'active' : '' }}">
                     <i class="fa fa-id-card"></i>
-                    <span>السير الذاتية</span>
+                    <span>{{ app()->getLocale() === 'ar' ? 'السير الذاتية' : 'CVs' }}</span>
                 </a>
                 <a href="{{ route('agent.contracts.index') }}" class="{{ request()->routeIs('agent.contracts.*') ? 'active' : '' }}">
                     <i class="fa fa-file-signature"></i>
-                    <span>العقود</span>
+                    <span>{{ app()->getLocale() === 'ar' ? 'العقود' : 'Contracts' }}</span>
                 </a>
 
                 <form action="{{ route('agent.logout') }}" method="POST">
                     @csrf
                     <button type="submit" class="agent-logout">
                         <i class="fa fa-arrow-right-from-bracket"></i>
-                        <span>تسجيل الخروج</span>
+                        <span>{{ app()->getLocale() === 'ar' ? 'تسجيل الخروج' : 'Logout' }}</span>
                     </button>
                 </form>
             </nav>
         </aside>
 
         <main class="agent-main">
-            <header class="agent-topbar">
-                <div>
-                    <h2>@yield('page-title', 'لوحة الوكيل الخارجي')</h2>
-                    <div class="agent-user">{{ $agentUser?->name }} {{ $agentUser?->email ? ' - ' . $agentUser->email : '' }}</div>
+            <header class="agent-admin-header">
+                <a href="{{ route('agent.dashboard') }}" class="agent-header-brand">
+                    <img class="agent-header-logo" src="{{ $headerLogo }}" alt="logo"
+                        onerror="this.onerror=null;this.src='{{ asset('admin/assets/img/company_logo.jpeg') }}';">
+                    <span>
+                        <strong>{{ app()->getLocale() === 'ar' ? 'لوحة تحكم الوكيل' : 'Agent Dashboard' }}</strong>
+                        <span>{{ app()->getLocale() === 'ar' ? 'مساحة المكتب الخارجي' : 'External office workspace' }}</span>
+                    </span>
+                </a>
+
+                <div class="agent-header-meta" aria-label="Date and time">
+                    <div class="agent-meta-card">
+                        <i class="fa fa-clock-o"></i>
+                        <strong id="agent-live-time">--:--</strong>
+                    </div>
+                    <div class="agent-meta-card">
+                        <i class="fa fa-calendar"></i>
+                        <strong id="agent-live-date">----</strong>
+                    </div>
                 </div>
-                @yield('page-action')
+
+                <div class="agent-header-actions">
+                    <a class="agent-header-action agent-open-site" href="{{ publicSiteUrl() }}" target="_blank" rel="noopener noreferrer">
+                        <i class="fa fa-globe"></i>
+                        <span>{{ app()->getLocale() === 'ar' ? 'الموقع' : 'Website' }}</span>
+                    </a>
+
+                    <div class="agent-language">
+                        <button type="button" class="agent-lang-button" aria-haspopup="true">
+                            <i class="fa fa-language"></i>
+                            <span>{{ app()->getLocale() === 'ar' ? 'العربية' : 'English' }}</span>
+                            <i class="fa fa-angle-down"></i>
+                        </button>
+                        <div class="agent-language-menu">
+                            <a href="{{ $englishUrl }}" class="{{ app()->getLocale() === 'en' ? 'active' : '' }}">
+                                <span class="flag-icon flag-icon-us"></span>
+                                <span>US English</span>
+                            </a>
+                            <a href="{{ $arabicUrl }}" class="{{ app()->getLocale() === 'ar' ? 'active' : '' }}">
+                                <span class="flag-icon flag-icon-sa"></span>
+                                <span>العربية</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </header>
 
-            @if ($errors->any())
-                <div class="alert alert-danger">{{ $errors->first() }}</div>
-            @endif
+            <div class="agent-page">
+                <header class="agent-topbar">
+                    <div>
+                        <h2>@yield('page-title', 'Agent Dashboard')</h2>
+                        <div class="agent-user">{{ $agentUser?->name }} {{ $agentUser?->email ? ' - ' . $agentUser->email : '' }}</div>
+                    </div>
+                    @yield('page-action')
+                </header>
 
-            @yield('content')
+                @if ($errors->any())
+                    <div class="alert alert-danger">{{ $errors->first() }}</div>
+                @endif
+
+                @yield('content')
+            </div>
         </main>
     </div>
+
+    <script>
+        (function () {
+            // Language dropdown toggle
+            const langBtn = document.querySelector('.agent-lang-button');
+            const langMenu = document.querySelector('.agent-language-menu');
+            if (langBtn && langMenu) {
+                langBtn.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    const isOpen = langMenu.style.display === 'block';
+                    langMenu.style.display = isOpen ? 'none' : 'block';
+                });
+                document.addEventListener('click', function () {
+                    langMenu.style.display = 'none';
+                });
+            }
+        })();
+
+        (function () {
+            const timeElement = document.getElementById('agent-live-time');
+            const dateElement = document.getElementById('agent-live-date');
+            const dateFormatter = new Intl.DateTimeFormat('en-GB', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+            const timeFormatter = new Intl.DateTimeFormat('en-GB', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+
+            function updateClock() {
+                const now = new Date();
+                if (timeElement) {
+                    timeElement.textContent = timeFormatter.format(now);
+                }
+                if (dateElement) {
+                    dateElement.textContent = dateFormatter.format(now);
+                }
+            }
+
+            updateClock();
+            setInterval(updateClock, 1000);
+        })();
+    </script>
 </body>
 
 </html>

@@ -7,15 +7,20 @@ use App\Models\auth\Admin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 
 class AuthController extends Controller
 {
     public function showLoginForm()
     {
+        if (app()->getLocale() !== 'en') {
+            return redirect($this->localizedRoute('agent.login.form'));
+        }
+
         $agent = Auth::guard('agent')->user();
 
         if ($agent && $agent->isExternalOfficeAgent()) {
-            return redirect()->route('agent.dashboard');
+            return redirect($this->localizedRoute('agent.dashboard'));
         }
 
         return view('agent.auth.login');
@@ -27,8 +32,8 @@ class AuthController extends Controller
             'login' => ['required', 'string'],
             'password' => ['required', 'string'],
         ], [
-            'login.required' => 'البريد الإلكتروني أو رقم الهاتف مطلوب.',
-            'password.required' => 'كلمة المرور مطلوبة.',
+            'login.required' => 'Email or phone number is required.',
+            'password.required' => 'Password is required.',
         ]);
 
         $login = trim((string) $request->input('login'));
@@ -42,26 +47,26 @@ class AuthController extends Controller
 
         if (! $agent || ! Hash::check((string) $request->input('password'), (string) $agent->password)) {
             return back()
-                ->withErrors(['login' => 'بيانات الدخول غير صحيحة.'])
+                ->withErrors(['login' => 'The login credentials are invalid.'])
                 ->withInput($request->only('login'));
         }
 
         if (($agent->status ?? 'active') === 'suspended') {
             return back()
-                ->withErrors(['login' => 'هذا الحساب موقوف حالياً.'])
+                ->withErrors(['login' => 'This account is currently suspended.'])
                 ->withInput($request->only('login'));
         }
 
         if (! $agent->isExternalOfficeAgent()) {
             return back()
-                ->withErrors(['login' => 'هذا الحساب غير مرتبط بمكتب خارجي.'])
+                ->withErrors(['login' => 'This account is not linked to an external office.'])
                 ->withInput($request->only('login'));
         }
 
         Auth::guard('agent')->login($agent, $request->boolean('remember'));
         $request->session()->regenerate();
 
-        return redirect()->intended(route('agent.dashboard'));
+        return redirect($this->localizedRoute('agent.dashboard'));
     }
 
     public function logout(Request $request)
@@ -77,6 +82,11 @@ class AuthController extends Controller
 
         $request->session()->regenerateToken();
 
-        return redirect()->route('agent.login.form');
+        return redirect($this->localizedRoute('agent.login.form'));
+    }
+
+    private function localizedRoute(string $routeName, array $parameters = []): string
+    {
+        return LaravelLocalization::getLocalizedURL('en', route($routeName, $parameters), [], true);
     }
 }
