@@ -437,7 +437,7 @@ class MaidController extends Controller
 
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_SHOW)) {
                         $menuItems .= '<li><a class="dropdown-item" href="' . route('showMaidDetails', $row->id) . '"><i class="fas fa-eye text-primary me-2"></i>' . helperTrans('ingaz.view_details') . '</a></li>';
-                        $menuItems .= '<li><a class="dropdown-item" href="' . route('showMaidDetails', $row->id) . '#maid-attachments"><i class="fas fa-paperclip text-info me-2"></i>المرفقات</a></li>';
+                        $menuItems .= '<li><a class="dropdown-item" href="' . route('showMaidDetails', $row->id) . '#maid-attachments"><i class="fas fa-paperclip text-info me-2"></i>' . helperTrans('ingaz.attachments') . '</a></li>';
                     }
 
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT)) {
@@ -453,17 +453,17 @@ class MaidController extends Controller
 
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT)) {
                         if ($row->status == "suspended") {
-                            $menuItems .= '  <a  href="javascript:void(0)" onclick="suspendCv(' . $row->id . ',' . 0 . ')"  title="' . 'إلغاء تعليق السيرة' . '" class="dropdown-item"><i class="fas fa-play-circle text-success me-2"></i>' . 'إلغاء تعليق السيرة' . '</a>';
+                            $menuItems .= '  <a  href="javascript:void(0)" onclick="suspendCv(' . $row->id . ',' . 0 . ')"  title="' . helperTrans('ingaz.unsuspend_cv') . '" class="dropdown-item"><i class="fas fa-play-circle text-success me-2"></i>' . helperTrans('ingaz.unsuspend_cv') . '</a>';
                         } elseif ($row->status == "available") {
-                            $menuItems .= ' <a href="javascript:void(0)" onclick="suspendCv(' . $row->id . ',' . 1 . ')"  title="' . 'تعليق السيرة' . '" class="dropdown-item"><i class="fas fa-pause-circle text-warning me-2"></i>' . 'تعليق السيرة' . '</a>';
+                            $menuItems .= ' <a href="javascript:void(0)" onclick="suspendCv(' . $row->id . ',' . 1 . ')"  title="' . helperTrans('ingaz.suspend_cv') . '" class="dropdown-item"><i class="fas fa-pause-circle text-warning me-2"></i>' . helperTrans('ingaz.suspend_cv') . '</a>';
                         }
                     }
 
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT)) {
                         if ($row->status == "available" || $row->status == "suspended") {
-                            $menuItems .= '<a href="javascript:void(0)" onclick="back_out(' . $row->id . ')" title="' . 'باك اوت' . '" class="dropdown-item  "><i class="fas fa-toggle-off text-danger me-2"></i>' . 'باك اوت' . '</a>';
+                            $menuItems .= '<a href="javascript:void(0)" onclick="back_out(' . $row->id . ')" title="' . helperTrans('ingaz.backout') . '" class="dropdown-item  "><i class="fas fa-toggle-off text-danger me-2"></i>' . helperTrans('ingaz.backout') . '</a>';
                         } elseif ($row->status == "backout") {
-                            $menuItems .= '<a href="javascript:void(0)" onclick="back_out_on(' . $row->id . ')" title="' . 'ارجاع متاح' . '" class="dropdown-item  "><i class="fas fa-toggle-on text-success me-2"></i>' . 'ارجاع متاح' . '</a>';
+                            $menuItems .= '<a href="javascript:void(0)" onclick="back_out_on(' . $row->id . ')" title="' . helperTrans('ingaz.return_available') . '" class="dropdown-item  "><i class="fas fa-toggle-on text-success me-2"></i>' . helperTrans('ingaz.return_available') . '</a>';
                         }
                     }
 
@@ -526,7 +526,7 @@ class MaidController extends Controller
         if (!$rentalJobTypeId) {
             return redirect()
                 ->route('maids.index')
-                ->with('error', 'تعذر تحديد نوع السير الخاص بالإيجار، يرجى ضبط نوع الوظيفة أولاً.');
+                ->with('error', __('ingaz.rental_cv_type_missing'));
         }
 
         $request->merge(['job_type' => $rentalJobTypeId]);
@@ -585,21 +585,21 @@ class MaidController extends Controller
                     $rawPath = $row->image ?: ($row->cv_preview ?: $row->cv_file);
                     $imageUrl = $rawPath ? showFile($rawPath) : asset('admin/assets/img/avatar.png');
 
-                    return '<a href="' . route('showMaidDetails', $row->id) . '" title="عرض التفاصيل">'
+                    return '<a href="' . route('showMaidDetails', $row->id) . '" title="' . helperTrans('ingaz.view_details') . '">'
                         . '<img src="' . $imageUrl . '" alt="maid-preview" class="border rounded-circle" style="width:120px;height:120px;object-fit:cover;">'
                         . '</a>';
                 })
                 ->addColumn('name', function (Maid $row) {
-                    $name = e($row->name ?: 'عاملة #' . $row->id);
+                    $name = e($row->name ?: helperTrans('ingaz.maid') . ' #' . $row->id);
                     $passport = e($row->passport_num ?: '-');
-                    $cvCode = $row->cv_code ? '<span class="small text-muted">كود السيرة: ' . e($row->cv_code) . '</span>' : '';
+                    $cvCode = $row->cv_code ? '<span class="small text-muted">' . helperTrans('ingaz.cv_code') . ': ' . e($row->cv_code) . '</span>' : '';
                     $requestType = e($row->request_type_label);
 
                     return '<div class="d-flex flex-column gap-1">'
                         . '<a href="' . route('showMaidDetails', $row->id) . '" class="fw-semibold text-decoration-none">' . $name . '</a>'
-                        . '<span class="small text-muted">جواز: ' . $passport . '</span>'
+                        . '<span class="small text-muted">' . helperTrans('ingaz.passport') . ': ' . $passport . '</span>'
                         . $cvCode
-                        . '<span class="small text-muted">نوع الطلب: ' . $requestType . '</span>'
+                        . '<span class="small text-muted">' . helperTrans('ingaz.request_type') . ': ' . $requestType . '</span>'
                         . '</div>';
                 })
                 ->editColumn('nationality_id', fn(Maid $row) => e($row->nationality?->sub_title ?? '-'))
@@ -618,19 +618,19 @@ class MaidController extends Controller
                     })->values();
 
                     if ($items->isEmpty()) {
-                        return '<span class="text-muted">لا توجد بنود</span>';
+                        return '<span class="text-muted">' . helperTrans('ingaz.no_financial_items_recorded') . '</span>';
                     }
 
                     $expenseTotal = $items->where('type', 'expense')->sum('amount');
                     $incomeTotal = $items->where('type', 'income')->sum('amount');
 
                     return '<button type="button" class="btn btn-sm btn-outline-info rental-finance-view"'
-                        . ' data-maid-name="' . e($row->name ?: ('عاملة #' . $row->id)) . '"'
+                        . ' data-maid-name="' . e($row->name ?: (helperTrans('ingaz.maid') . ' #' . $row->id)) . '"'
                         . ' data-items="' . e($items->toJson(JSON_UNESCAPED_UNICODE)) . '">'
-                        . '<i class="fa fa-wallet"></i> ' . $items->count() . ' بنود'
+                        . '<i class="fa fa-wallet"></i> ' . $items->count() . ' ' . helperTrans('ingaz.items')
                         . '</button>'
-                        . '<div class="small text-muted mt-1">مصروف: ' . number_format((float) $expenseTotal, 2) . '</div>'
-                        . '<div class="small text-muted">إيراد: ' . number_format((float) $incomeTotal, 2) . '</div>';
+                        . '<div class="small text-muted mt-1">' . helperTrans('ingaz.expense') . ': ' . number_format((float) $expenseTotal, 2) . '</div>'
+                        . '<div class="small text-muted">' . helperTrans('ingaz.income') . ': ' . number_format((float) $incomeTotal, 2) . '</div>';
                 })
                 ->editColumn('religion_id', fn(Maid $row) => e($row->religion?->title ?? '-'))
                 ->editColumn('age', fn(Maid $row) => $row->age ?: '-')
@@ -640,17 +640,17 @@ class MaidController extends Controller
                 })
                 ->addColumn('is_show', function (Maid $row) {
                     return $row->is_show
-                        ? '<span class="badge bg-success"><i class="fa fa-eye"></i> ظاهر</span>'
-                        : '<span class="badge bg-dark"><i class="fa fa-eye-slash"></i> مخفي</span>';
+                        ? '<span class="badge bg-success"><i class="fa fa-eye"></i> ' . helperTrans('ingaz.maid_visibility_visible') . '</span>'
+                        : '<span class="badge bg-dark"><i class="fa fa-eye-slash"></i> ' . helperTrans('ingaz.maid_visibility_hidden') . '</span>';
                 })
                 ->addColumn('is_pinned', function (Maid $row) {
                     return $row->is_pinned
-                        ? '<span class="badge bg-warning text-dark"><i class="fa fa-thumb-tack"></i> مثبتة</span>'
-                        : '<span class="badge bg-secondary"><i class="fa fa-thumb-tack"></i> غير مثبتة</span>';
+                        ? '<span class="badge bg-warning text-dark"><i class="fa fa-thumb-tack"></i> ' . helperTrans('ingaz.pinned') . '</span>'
+                        : '<span class="badge bg-secondary"><i class="fa fa-thumb-tack"></i> ' . helperTrans('ingaz.unpinned') . '</span>';
                 })
                 ->addColumn('cv_status', function (Maid $row) {
                     if ($row->status === 'backout') {
-                        return '<span class="badge bg-danger">باك اوت</span>';
+                        return '<span class="badge bg-danger">' . helperTrans('ingaz.backout') . '</span>';
                     }
 
                     $hasActiveRecruitmentContracts = $row->contracts->whereIn('status', $this->recruitmentContractStatuses())->isNotEmpty();
@@ -659,17 +659,17 @@ class MaidController extends Controller
                     $canCreateRentalContract = $this->canCreateRentalContractForMaid($row);
 
                     if ($canCreateRentalContract) {
-                        $badges = ['<span class="badge bg-success">جاهزة للعقد</span>'];
+                        $badges = ['<span class="badge bg-success">' . helperTrans('ingaz.ready_for_contract') . '</span>'];
 
                         if ((int) $row->maid_accommodation_type === 2) {
-                            $badges[] = '<span class="badge bg-info text-dark">داخل الإيواء</span>';
+                            $badges[] = '<span class="badge bg-info text-dark">' . helperTrans('ingaz.inside_shelter') . '</span>';
                         }
 
                         return implode(' ', $badges);
                     }
 
                     if ($hasActiveRentalContracts) {
-                        return '<span class="badge bg-primary">عليها عقد إيجار</span>';
+                        return '<span class="badge bg-primary">' . helperTrans('ingaz.has_rental_contract') . '</span>';
                     }
 
                     if (
@@ -679,14 +679,14 @@ class MaidController extends Controller
                         || $hasActiveOrders
                         || $hasActiveRentalContracts
                     ) {
-                        return '<span class="badge bg-warning text-dark">محجوزة</span>';
+                        return '<span class="badge bg-warning text-dark">' . helperTrans('ingaz.maid_status_reserved') . '</span>';
                     }
 
                     if ((int) $row->maid_accommodation_type === 2) {
-                        return '<span class="badge bg-info text-dark">داخل الإيواء</span>';
+                        return '<span class="badge bg-info text-dark">' . helperTrans('ingaz.inside_shelter') . '</span>';
                     }
 
-                    return '<span class="badge bg-success">متاحة</span>';
+                    return '<span class="badge bg-success">' . helperTrans('ingaz.maid_status_available') . '</span>';
                 })
                 ->editColumn('created_at', fn(Maid $row) => $row->created_at?->format('Y-m-d h:i A') ?? '-')
                 ->addColumn('actions', function (Maid $row) {
@@ -696,22 +696,22 @@ class MaidController extends Controller
 
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_SHOW) || @AdminGuardHasPerm(\App\PermKeys::MAIDS_RENTAL_VIEW)) {
                         $menuItems[] = '<li><a class="dropdown-item" href="' . route('showMaidDetails', $row->id) . '">
-                            <i class="fas fa-eye text-primary me-2"></i>عرض التفاصيل
+                            <i class="fas fa-eye text-primary me-2"></i>' . helperTrans('ingaz.view_details') . '
                         </a></li>';
                         $menuItems[] = '<li><a class="dropdown-item" href="' . route('showMaidDetails', $row->id) . '#maid-attachments">
-                            <i class="fas fa-paperclip text-info me-2"></i>المرفقات
+                            <i class="fas fa-paperclip text-info me-2"></i>' . helperTrans('ingaz.attachments') . '
                         </a></li>';
                     }
 
                     if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CREATE) && $canCreateRentalContract) {
                         $menuItems[] = '<li><a class="dropdown-item" href="' . route('RentContract.create', ['maid_id' => $row->id]) . '">
-                            <i class="fas fa-file-signature text-success me-2"></i>إنشاء عقد إيجار
+                            <i class="fas fa-file-signature text-success me-2"></i>' . helperTrans('ingaz.create_rental_contract') . '
                         </a></li>';
                     }
 
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT)) {
                         $menuItems[] = '<li><a class="dropdown-item" href="' . route($this->mainRoute . '.edit', $row->id) . '">
-                            <i class="fas fa-pen text-secondary me-2"></i>تعديل السيرة
+                            <i class="fas fa-pen text-secondary me-2"></i>' . helperTrans('ingaz.edit_maid') . '
                         </a></li>';
                     }
 
@@ -724,21 +724,21 @@ class MaidController extends Controller
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT)) {
                         if ($row->status === 'suspended') {
                             $menuItems[] = '<li><button type="button" class="dropdown-item" onclick="suspendCv(' . $row->id . ',0)">
-                                <i class="fas fa-play-circle text-success me-2"></i>إلغاء تعليق السيرة
+                                <i class="fas fa-play-circle text-success me-2"></i>' . helperTrans('ingaz.unsuspend_cv') . '
                             </button></li>';
                         } elseif ($canUseAvailableActions) {
                             $menuItems[] = '<li><button type="button" class="dropdown-item" onclick="suspendCv(' . $row->id . ',1)">
-                                <i class="fas fa-pause-circle text-warning me-2"></i>تعليق السيرة
+                                <i class="fas fa-pause-circle text-warning me-2"></i>' . helperTrans('ingaz.suspend_cv') . '
                             </button></li>';
                         }
 
                         if ($row->status === 'backout') {
                             $menuItems[] = '<li><button type="button" class="dropdown-item" onclick="back_out_on(' . $row->id . ')">
-                                <i class="fas fa-toggle-on text-success me-2"></i>ارجاع متاح
+                                <i class="fas fa-toggle-on text-success me-2"></i>' . helperTrans('ingaz.return_available') . '
                             </button></li>';
                         } elseif (in_array($row->status, ['available', 'completed', 'suspended'], true)) {
                             $menuItems[] = '<li><button type="button" class="dropdown-item" onclick="back_out(' . $row->id . ')">
-                                <i class="fas fa-toggle-off text-danger me-2"></i>باك اوت
+                                <i class="fas fa-toggle-off text-danger me-2"></i>' . helperTrans('ingaz.backout') . '
                             </button></li>';
                         }
                     }
@@ -760,7 +760,7 @@ class MaidController extends Controller
 
                     return '<div class="dropdown actions-dropdown">
                                 <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" aria-expanded="false">
-                                    <i class="fas fa-cogs me-1"></i>الإجراءات
+                                    <i class="fas fa-cogs me-1"></i>' . helperTrans('ingaz.actions_menu') . '
                                 </button>
                                 <ul class="dropdown-menu dropdown-menu-end shadow-lg">
                                     ' . implode('', $menuItems) . '
@@ -802,8 +802,8 @@ class MaidController extends Controller
             'dataTableRoute' => route('maids.rental.index'),
             'resetRoute' => route('maids.rental.index'),
             'pageBaseUrl' => route('maids.rental.index'),
-            'bladeTitle' => 'سير عاملات الإيجار',
-            'addButtonText' => 'إضافة سيرة إيجار',
+            'bladeTitle' => helperTrans('ingaz.rental_maids_title'),
+            'addButtonText' => helperTrans('ingaz.add_rental_cv'),
             'defaultFilters' => $defaultFilters,
             'enforcedFilters' => ['job_type' => $rentalJobTypeId],
             'rentalStats' => $this->calculateRentalStats($rentalJobTypeId),
@@ -830,10 +830,10 @@ class MaidController extends Controller
                 ->editColumn('is_show', function ($row) {
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_TOGGLE_STATUS)) {
                         return $row->is_show == 1 ?
-                            '<button class="btn btn-sm btn-success update-status" data-id="' . $row->id . '">ظاهر</button>' :
-                            '<button class="btn btn-sm btn-dark update-status" data-id="' . $row->id . '">مخفي</button>';
+                            '<button class="btn btn-sm btn-success update-status" data-id="' . $row->id . '">' . helperTrans('ingaz.maid_visibility_visible') . '</button>' :
+                            '<button class="btn btn-sm btn-dark update-status" data-id="' . $row->id . '">' . helperTrans('ingaz.maid_visibility_hidden') . '</button>';
                     } else {
-                        return $row->is_show == 1 ? '<span class="badge bg-success">ظاهر</span>' : '<span class="badge bg-dark">مخفي</span>';
+                        return $row->is_show == 1 ? '<span class="badge bg-success">' . helperTrans('ingaz.maid_visibility_visible') . '</span>' : '<span class="badge bg-dark">' . helperTrans('ingaz.maid_visibility_hidden') . '</span>';
                     }
                 })
                 ->editColumn('available', function ($row) {
@@ -876,18 +876,18 @@ class MaidController extends Controller
                 ->addColumn('cv_status', function ($row) {
                     // تحديد حالة السيرة الذاتية بناءً على الحقول المتاحة
                     if ($row->status === 'backout') {
-                        return '<span class="badge bg-danger">باك اوت</span>';
+                        return '<span class="badge bg-danger">' . helperTrans('ingaz.backout') . '</span>';
                     } elseif ($row->available == 0) {
-                        return '<span class="badge bg-warning">محجوزة</span>';
+                        return '<span class="badge bg-warning">' . helperTrans('ingaz.maid_status_reserved') . '</span>';
                     } else {
                         // التحقق من وجود عقود أو طلبات نشطة
                         $hasActiveContracts = $row->contracts()->whereIn('status', $this->recruitmentContractStatuses())->exists();
                         $hasActiveOrders = $row->orders()->whereIn('status', ['new', 'under_process', 'contracted', 'contracted_without_contract'])->exists();
 
                         if ($hasActiveContracts || $hasActiveOrders) {
-                            return '<span class="badge bg-warning">محجوزة</span>';
+                            return '<span class="badge bg-warning">' . helperTrans('ingaz.maid_status_reserved') . '</span>';
                         } else {
-                            return '<span class="badge bg-success">متاحة</span>';
+                            return '<span class="badge bg-success">' . helperTrans('ingaz.maid_status_available') . '</span>';
                         }
                     }
                 })
@@ -899,7 +899,7 @@ class MaidController extends Controller
                             htmlspecialchars(substr($unavailableRecord->reason, 0, 50)) .
                             (strlen($unavailableRecord->reason) > 50 ? '...' : '') . '</span>';
                     }
-                    return '<span class="text-muted">لا يوجد سبب محدد</span>';
+                    return '<span class="text-muted">' . helperTrans('ingaz.no_specific_reason') . '</span>';
                 })
                 ->addColumn('actions', function ($row) {
                     $showButton = '';
@@ -924,7 +924,7 @@ class MaidController extends Controller
             return $dataTable;
         }
 
-        $bladeTitle = "العاملات باك اوت";
+        $bladeTitle = helperTrans('ingaz.backout_maids');
 
         // Fetch filter options for dropdowns
         $filter['nationalities'] = \App\Models\ingaz\Nationality::orderByTranslation('sub_title', 'asc')->get();
@@ -1181,32 +1181,32 @@ class MaidController extends Controller
             ? $this->buildActivityTimeline(
                 $maid->activities()->with('causer')->latest()->limit(12)->get(),
                 [
-                    'name' => 'الاسم',
-                    'nationality_id' => 'الجنسية',
-                    'religion_id' => 'الديانة',
-                    'passport_num' => 'رقم الجواز',
-                    'price' => 'السعر',
-                    'salary' => 'الراتب',
-                    'age' => 'العمر',
-                    'office_id' => 'مكتب الاستقدام',
-                    'status' => 'الحالة',
-                    'available' => 'التوفر',
-                    'available_at' => 'متاحة من',
-                    'is_show' => 'الظهور بالموقع',
-                    'is_pinned' => 'التثبيت',
-                    'request_type' => 'نوع الطلب',
-                    'additional_notes' => 'ملاحظات إضافية',
-                    'cv_file' => 'ملف السيرة',
-                    'cv_preview' => 'معاينة السيرة',
-                    'image' => 'الصورة',
-                    'video' => 'الفيديو',
-                    'video_link' => 'رابط الفيديو',
-                    'arrival_date' => 'تاريخ الوصول',
-                    'offer_price' => 'سعر العرض',
-                    'offer_starts_at' => 'بداية العرض',
-                    'offer_expires_at' => 'نهاية العرض',
+                    'name' => helperTrans('ingaz.name'),
+                    'nationality_id' => helperTrans('ingaz.nationality'),
+                    'religion_id' => helperTrans('ingaz.religion'),
+                    'passport_num' => helperTrans('ingaz.passport_num'),
+                    'price' => helperTrans('ingaz.price'),
+                    'salary' => helperTrans('ingaz.salary'),
+                    'age' => helperTrans('ingaz.age'),
+                    'office_id' => helperTrans('ingaz.recruitment office'),
+                    'status' => helperTrans('ingaz.status'),
+                    'available' => helperTrans('ingaz.availability_status'),
+                    'available_at' => helperTrans('ingaz.available_from'),
+                    'is_show' => helperTrans('ingaz.visibility'),
+                    'is_pinned' => helperTrans('ingaz.pinned'),
+                    'request_type' => helperTrans('ingaz.request_type'),
+                    'additional_notes' => helperTrans('ingaz.additional_notes'),
+                    'cv_file' => helperTrans('ingaz.cv_file'),
+                    'cv_preview' => helperTrans('ingaz.cv_preview'),
+                    'image' => helperTrans('ingaz.image'),
+                    'video' => helperTrans('ingaz.video'),
+                    'video_link' => helperTrans('ingaz.video_link'),
+                    'arrival_date' => helperTrans('ingaz.arrival_date'),
+                    'offer_price' => helperTrans('ingaz.offer_price_new'),
+                    'offer_starts_at' => helperTrans('ingaz.offer_starts_at'),
+                    'offer_expires_at' => helperTrans('ingaz.offer_expires_at'),
                 ],
-                'السيرة الذاتية'
+                helperTrans('ingaz.cv_label')
             )
             : collect();
 
@@ -1241,8 +1241,8 @@ class MaidController extends Controller
             'attachments' => ['required', 'array', 'min:1'],
             'attachments.*' => ['required', 'file', 'max:20480'],
         ], [
-            'attachments.required' => 'يرجى اختيار ملف واحد على الأقل.',
-            'attachments.*.max' => 'حجم كل مرفق يجب ألا يتجاوز 20 ميجابايت.',
+            'attachments.required' => __('ingaz.attachments_required'),
+            'attachments.*.max' => __('ingaz.attachment_max_size'),
         ]);
 
         foreach ($request->file('attachments', []) as $file) {
@@ -1264,7 +1264,7 @@ class MaidController extends Controller
 
         return redirect()
             ->route('showMaidDetails', $maid->id)
-            ->with('success', 'تم رفع المرفقات بنجاح.');
+            ->with('success', __('ingaz.maid_attachments_uploaded_successfully'));
     }
 
     public function downloadAttachments(Request $request, $id)
@@ -1287,14 +1287,14 @@ class MaidController extends Controller
         $attachments = $attachments->filter(fn(MaidAttachment $attachment) => $attachment->existsOnDisk())->values();
 
         if ($attachments->isEmpty()) {
-            return redirect()->back()->with('error', 'لا توجد مرفقات صالحة للتنزيل.');
+            return redirect()->back()->with('error', __('ingaz.no_valid_attachments_to_download'));
         }
 
         $zip = new \ZipArchive();
         $zipFile = tempnam(sys_get_temp_dir(), 'maid-attachments-');
 
         if ($zip->open($zipFile, \ZipArchive::OVERWRITE) !== true) {
-            return redirect()->back()->with('error', 'تعذر تجهيز ملف المرفقات.');
+            return redirect()->back()->with('error', __('ingaz.attachments_zip_failed'));
         }
 
         foreach ($attachments as $attachment) {
@@ -1308,7 +1308,7 @@ class MaidController extends Controller
 
         if (filesize($zipFile) <= 0) {
             @unlink($zipFile);
-            return redirect()->back()->with('error', 'لا توجد مرفقات صالحة للتنزيل.');
+            return redirect()->back()->with('error', __('ingaz.no_valid_attachments_to_download'));
         }
 
         return response()
@@ -1371,7 +1371,7 @@ class MaidController extends Controller
 
         return redirect()
             ->route('showMaidDetails', $id)
-            ->with('success', 'تم حذف المرفق بنجاح.');
+            ->with('success', __('ingaz.maid_attachment_deleted_successfully'));
     }
 
     private function buildAttachmentDownloadName(MaidAttachment $attachment): string
@@ -1532,7 +1532,7 @@ class MaidController extends Controller
             return jsonSuccess($data);
         }
 
-        return response()->json(['code' => 200, 'message' => 'تم إضافة العاملة بنجاح']);
+        return response()->json(['code' => 200, 'message' => __('ingaz.maid_added_successfully')]);
     }
 
     public function extractCvData(Request $request, MaidCvExtractionService $extractor)
@@ -1540,9 +1540,9 @@ class MaidController extends Controller
         $request->validate([
             'cv_import_file' => ['required', 'file', 'mimes:pdf,jpg,jpeg,png,webp,bmp,tif,tiff', 'max:10240'],
         ], [
-            'cv_import_file.required' => 'يرجى اختيار ملف السيرة أولاً.',
-            'cv_import_file.mimes' => 'صيغة ملف السيرة يجب أن تكون PDF أو صورة.',
-            'cv_import_file.max' => 'حجم ملف السيرة يجب ألا يتجاوز 10MB.',
+            'cv_import_file.required' => __('ingaz.cv_file_required_validation'),
+            'cv_import_file.mimes' => __('ingaz.cv_file_mimes_validation'),
+            'cv_import_file.max' => __('ingaz.cv_file_max_validation'),
         ]);
 
         try {
@@ -1556,7 +1556,7 @@ class MaidController extends Controller
 
         return response()->json([
             'code' => 200,
-            'message' => 'تم استخراج بيانات السيرة. راجع الحقول قبل الحفظ.',
+            'message' => __('ingaz.cv_data_extracted_review'),
             'data' => $result,
         ]);
     }
@@ -1580,7 +1580,7 @@ class MaidController extends Controller
 
         $data = $action->storeRapidCvMaid($data, $request);
 
-        return response()->json(['code' => 200, 'message' => 'تم إضافة السيرة الذاتية بنجاح']);
+        return response()->json(['code' => 200, 'message' => __('ingaz.cv_added_successfully')]);
     }
 
     // Helper method to get status in current language
@@ -1627,7 +1627,7 @@ class MaidController extends Controller
         if (!in_array($newStatus, $validStatuses)) {
             return response()->json([
                 'code' => 400,
-                'message' => 'حالة غير صالحة'
+                'message' => __('ingaz.invalid_status')
             ], 400);
         }
 
@@ -1636,7 +1636,7 @@ class MaidController extends Controller
 
         return response()->json([
             'code' => 200,
-            'message' => 'تم تحديث الحالة بنجاح',
+            'message' => __('ingaz.status_updated_successfully'),
             'status' => $this->getStatusInCurrentLanguage($newStatus)
         ]);
     }
@@ -1655,7 +1655,7 @@ class MaidController extends Controller
         if (!$hasPermission) {
             return response()->json([
                 'success' => false,
-                'message' => 'ليس لديك صلاحية لتغيير حالة الظهور'
+                'message' => __('ingaz.permission_denied_change_visibility')
             ], 403);
         }
 
@@ -1665,8 +1665,8 @@ class MaidController extends Controller
             $model->is_show = !$model->is_show;
             $model->save(); // Save the changes
 
-            $status = $model->is_show ? 'ظاهر' : 'مخفي';
-            $oldStatusText = $oldStatus ? 'ظاهر' : 'مخفي';
+            $status = $model->is_show ? helperTrans('ingaz.maid_visibility_visible') : helperTrans('ingaz.maid_visibility_hidden');
+            $oldStatusText = $oldStatus ? helperTrans('ingaz.maid_visibility_visible') : helperTrans('ingaz.maid_visibility_hidden');
 
             // Log the action
             \Log::info("Maid visibility toggled", [
@@ -1678,14 +1678,14 @@ class MaidController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "تم تغيير الحالة من {$oldStatusText} إلى {$status} بنجاح",
+                'message' => __('ingaz.visibility_changed_successfully', ['old' => $oldStatusText, 'new' => $status]),
                 'new_status' => $model->is_show,
                 'old_status' => $oldStatus
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'السيرة الذاتية غير موجودة'
+                'message' => __('ingaz.cv_not_found')
             ], 404);
         } catch (\Exception $e) {
             \Log::error('Error toggling maid visibility', [
@@ -1696,7 +1696,7 @@ class MaidController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'حدث خطأ أثناء تحديث الحالة: ' . $e->getMessage()
+                'message' => __('ingaz.status_update_error', ['message' => $e->getMessage()])
             ], 500);
         }
     }

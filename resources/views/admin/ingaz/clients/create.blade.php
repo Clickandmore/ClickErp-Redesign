@@ -184,7 +184,7 @@
         <div class="client-create-header">
             <div>
                 <h4>{{ helperTrans('ingaz.add_client') }}</h4>
-                <p>الحقول المطلوبة: اسم العميل ورقم الجوال ورقم الهوية. رقم الهوية يستخدم كرقم ربط غير مكرر للطلبات والعقود.</p>
+                <p>{{ helperTrans('ingaz.client_required_fields_hint') }}</p>
             </div>
 
             <a href="{{ route('clients.index') }}" class="btn btn-outline-secondary">
@@ -201,8 +201,8 @@
                 <div class="card-body">
                     <div class="section-heading">
                         <i class="fas fa-user-plus"></i>
-                        <span>البيانات الأساسية</span>
-                        <span class="required-label">مطلوب</span>
+                        <span>{{ helperTrans('ingaz.basic_information') }}</span>
+                        <span class="required-label">{{ helperTrans('ingaz.required') }}</span>
                     </div>
 
                     <div class="row g-3">
@@ -228,9 +228,9 @@
                 <div class="card-header">
                     <div class="section-heading mb-0">
                         <i class="fas fa-id-card"></i>
-                        <span>بيانات إضافية</span>
+                        <span>{{ helperTrans('ingaz.additional_information') }}</span>
                     </div>
-                    <span class="required-label">رقم الهوية مطلوب</span>
+                    <span class="required-label">{{ helperTrans('ingaz.national_id_required') }}</span>
                 </div>
 
                 <div class="card-body">
@@ -460,18 +460,18 @@
 
                 Swal.fire({
                     icon: 'error',
-                    title: 'خطأ في البيانات',
+                    title: @json(helperTrans('ingaz.validation_error_title')),
                     html: messages.join('<br>'),
-                    confirmButtonText: 'حسناً'
+                    confirmButtonText: @json(helperTrans('ingaz.ok'))
                 });
                 return;
             }
 
             Swal.fire({
                 icon: 'error',
-                title: 'خطأ',
-                text: payload && payload.message ? payload.message : 'حدث خطأ غير متوقع. حاول مرة أخرى.',
-                confirmButtonText: 'حسناً'
+                title: @json(helperTrans('ingaz.error')),
+                text: payload && payload.message ? payload.message : @json(helperTrans('ingaz.unexpected_error_try_again')),
+                confirmButtonText: @json(helperTrans('ingaz.ok'))
             });
         }
     </script>

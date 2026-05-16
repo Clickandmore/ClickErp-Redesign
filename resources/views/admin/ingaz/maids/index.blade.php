@@ -133,7 +133,7 @@
                                 <i class="fas fa-user-plus me-1"></i>{{ helperTrans('ingaz.add_maid') }}
                             </a>
                             <a href="{{ route('maids.bulk-import.create') }}" class="btn btn-outline-primary btn-sm">
-                                <i class="fas fa-file-upload me-1"></i>استيراد جماعي
+                                <i class="fas fa-file-upload me-1"></i>{{ helperTrans('ingaz.bulk_import') }}
                             </a>
                         @endif
                         @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EXPORT_PDF))
@@ -458,7 +458,7 @@
                 <div class="modal-dialog modal-dialog-centered" role="document">
                     <div class="modal-content">
                         <div class="modal-header  align-items-center">
-                            <h5 class="modal-title">{{ 'اضافة سبب' }}</h5>
+                            <h5 class="modal-title">{{ helperTrans('ingaz.add_reason') }}</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal"
                                 aria-label="Close"></button>
                         </div>
@@ -471,7 +471,7 @@
                                         <div class="row">
                                             <div class="col-md-12">
                                                 <div class="mb-3 contact-cost">
-                                                    <textarea rows="8" class="form-control" name="backout_reason" placeholder="{{ 'سبب الباك اوت' }}" required></textarea>
+                                                    <textarea rows="8" class="form-control" name="backout_reason" placeholder="{{ helperTrans('ingaz.backout_reason') }}" required></textarea>
 
                                                     <span class="validation-text text-danger">
                                                         @error('backout_reason')
@@ -483,9 +483,9 @@
                                         </div>
                                         <div class="modal-footer">
                                             <button class="btn btn-success px-4" type="button"
-                                                onclick="back_out_modal_func()"> {{ 'ارسال' }}</button>
+                                                onclick="back_out_modal_func()"> {{ helperTrans('ingaz.send') }}</button>
                                             <button class="btn btn-danger  px-4" data-bs-dismiss="modal">
-                                                {{ 'اغلاق' }}</button>
+                                                {{ helperTrans('ingaz.close') }}</button>
                                         </div>
                                     </form>
 
@@ -502,7 +502,7 @@
                 <div class="modal-dialog modal-dialog-centered" role="document">
                     <div class="modal-content">
                         <div class="modal-header  align-items-center">
-                            <h5 class="modal-title">{{ 'ارجاع السيرة متاحة' }}</h5>
+                            <h5 class="modal-title">{{ helperTrans('ingaz.return_cv_available') }}</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal"
                                 aria-label="Close"></button>
                         </div>
@@ -513,14 +513,14 @@
                                         @csrf
                                         <input type="hidden" name="maid_id" id="maid_id_on">
 
-                                        <h3>{{ 'هل تريد ارجاع السيرة متاحة الان ؟' }}</h3>
+                                        <h3>{{ helperTrans('ingaz.confirm_return_cv_available') }}</h3>
 
                                         <div class="modal-footer">
                                             <button class="btn btn-success  px-4" type="button"
-                                                onclick="back_out_modal_on_func()"> {{ 'نعم' }}</button>
+                                                onclick="back_out_modal_on_func()"> {{ helperTrans('ingaz.yes') }}</button>
 
                                             <button class="btn btn-danger  px-4" data-bs-dismiss="modal">
-                                                {{ 'ﻻ' }}</button>
+                                                {{ helperTrans('ingaz.no') }}</button>
                                         </div>
                                     </form>
 

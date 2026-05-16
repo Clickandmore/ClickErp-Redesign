@@ -42,6 +42,7 @@ class SettingController extends Controller
         'header_link_2_url',
         'live_chat_title',
         'live_chat_url',
+        'admin_quick_links',
         'there_are_offer',
         'location:ar',
         'location:en',

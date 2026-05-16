@@ -85,6 +85,7 @@ class MaidCvExtractionService
             'education_text' => $this->extractTextNear($normalized, ['education', 'المستوى التعليمي', 'مستوى التعليم']),
             'skills_text' => $normalized,
             'languages' => $this->extractLanguages($normalized),
+            'language_percentages' => $this->extractLanguagePercentages($normalized),
             'experience_status' => $this->extractExperienceStatus($normalized),
             'additional_notes' => $this->extractRemarks($normalized),
         ];
@@ -112,7 +113,8 @@ class MaidCvExtractionService
             $fields['marital_status:en'] = in_array($data['marital_status'], ['متزوجة', 'متزوج'], true) ? 'married' : 'single';
         }
 
-        $nationality = $this->matchTranslatedModel(Nationality::query()->get(), $data['nationality_text']);
+        $nationalities = Nationality::query()->get();
+        $nationality = $this->matchNationality($nationalities, $data['nationality_text'], $data['skills_text']);
         if ($nationality) {
             $fields['nationality_id'] = (string) $nationality->id;
         }
@@ -136,6 +138,10 @@ class MaidCvExtractionService
 
         if (!empty($data['languages'])) {
             $fields['languages'] = $data['languages'];
+        }
+
+        if (!empty($data['language_percentages'])) {
+            $fields['percentage'] = $data['language_percentages'];
         }
 
         return array_filter($fields, fn ($value) => $value !== null && $value !== '' && $value !== []);
@@ -279,16 +285,58 @@ class MaidCvExtractionService
     {
         $languages = [];
         $lower = mb_strtolower($text);
+        $percentages = $this->extractLanguagePercentages($text);
 
-        if (Str::contains($lower, ['arabic', 'العربية', 'العربي'])) {
+        if (Str::contains($lower, ['arabic', 'العربية', 'العربي']) && (($percentages['arabic'] ?? 50) > 0)) {
             $languages['arabic'] = 'arabic';
         }
 
-        if (Str::contains($lower, ['english', 'الانجليزية', 'الإنجليزية'])) {
+        if (Str::contains($lower, ['english', 'الانجليزية', 'الإنجليزية']) && (($percentages['english'] ?? 50) > 0)) {
             $languages['english'] = 'english';
         }
 
         return $languages;
+    }
+
+    private function extractLanguagePercentages(string $text): array
+    {
+        $percentages = [];
+        $languageLabels = [
+            'arabic' => ['arabic', 'عربي', 'العربية', 'العربي'],
+            'english' => ['english', 'انجليزي', 'الانجليزية', 'الإنجليزية'],
+            'amharic' => ['amharic', 'amhari', 'امهرية', 'الأمهرية'],
+            'mother' => ['mother', 'native', 'mother tongue', 'اللغة الأم'],
+        ];
+
+        foreach ($languageLabels as $language => $labels) {
+            foreach ($labels as $label) {
+                $quoted = preg_quote($label, '/');
+                if (preg_match('/' . $quoted . '[^\r\n]{0,35}\b(NO|N\/A|NONE|FAIR|GOOD|VERY\s+GOOD|EXCELLENT|FLUENT|WILLING|مقبول|جيد\s*جدا|جيد|ممتاز|لا|نعم)\b/iu', $text, $matches)) {
+                    $percentage = $this->languageRatingToPercentage($matches[1]);
+                    if ($percentage !== null) {
+                        $percentages[$language] = $percentage;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return $percentages;
+    }
+
+    private function languageRatingToPercentage(string $rating): ?int
+    {
+        $rating = $this->normalizeForMatch($rating);
+
+        return match (true) {
+            Str::contains($rating, ['no', 'none', 'n a', 'لا']) => 0,
+            Str::contains($rating, ['excellent', 'fluent', 'ممتاز']) => 95,
+            Str::contains($rating, ['very good', 'جيد جدا']) => 85,
+            Str::contains($rating, ['good', 'جيد', 'نعم']) => 75,
+            Str::contains($rating, ['fair', 'مقبول']) => 50,
+            Str::contains($rating, ['willing']) => 35,
+            default => null,
+        };
     }
 
     private function extractExperienceStatus(string $text): string
@@ -350,6 +398,85 @@ class MaidCvExtractionService
         }
 
         return null;
+    }
+
+    private function matchNationality($models, ?string $needle, string $fullText)
+    {
+        $match = $this->matchTranslatedModel($models, $needle);
+
+        if ($match) {
+            return $match;
+        }
+
+        $haystack = $this->normalizeForMatch(trim((string) $needle) . ' ' . $fullText);
+        $aliases = [
+            ['filipino', 'philippines', 'philippine', 'فلبين', 'فلبيني', 'فلبينية'],
+            ['burundi', 'burundian', 'بورندي', 'بوروند', 'بروندي'],
+            ['uganda', 'ugandan', 'اوغندا', 'أوغندا', 'اوغندي'],
+            ['kenya', 'kenyan', 'كينيا', 'كيني'],
+            ['ethiopia', 'ethiopian', 'اثيوبيا', 'إثيوبيا', 'حبشي'],
+            ['ghana', 'ghanaian', 'غانا'],
+            ['indonesia', 'indonesian', 'اندونيسيا', 'إندونيسيا'],
+            ['india', 'indian', 'الهند', 'هندي'],
+            ['sri lanka', 'srilanka', 'sri lankan', 'سريلانكا'],
+            ['bangladesh', 'bangladeshi', 'بنجلاديش', 'بنغلاديش'],
+            ['nepal', 'nepali', 'نيبال'],
+        ];
+
+        foreach ($aliases as $group) {
+            $groupMatched = false;
+
+            foreach ($group as $alias) {
+                if (Str::contains($haystack, $this->normalizeForMatch($alias))) {
+                    $groupMatched = true;
+                    break;
+                }
+            }
+
+            if (!$groupMatched) {
+                continue;
+            }
+
+            foreach ($group as $alias) {
+                $match = $this->matchTranslatedModel($models, $alias);
+                if ($match) {
+                    return $match;
+                }
+            }
+        }
+
+        return $this->matchClosestTranslatedModel($models, (string) $needle);
+    }
+
+    private function matchClosestTranslatedModel($models, string $needle)
+    {
+        $needle = $this->normalizeForMatch($needle);
+
+        if (mb_strlen($needle) < 4) {
+            return null;
+        }
+
+        $bestModel = null;
+        $bestScore = 0;
+
+        foreach ($models as $model) {
+            foreach ($this->modelNames($model) as $name) {
+                $normalizedName = $this->normalizeForMatch($name);
+
+                if (mb_strlen($normalizedName) < 4) {
+                    continue;
+                }
+
+                similar_text($needle, $normalizedName, $score);
+
+                if ($score > $bestScore) {
+                    $bestScore = $score;
+                    $bestModel = $model;
+                }
+            }
+        }
+
+        return $bestScore >= 72 ? $bestModel : null;
     }
 
     private function matchManyTranslatedModels($models, string $text): array

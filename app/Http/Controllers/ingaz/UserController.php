@@ -34,10 +34,6 @@ class UserController extends Controller
 
     function __construct()
     {
-        // $this->middleware('permission:العملاء-قراءة,admin', ['only' => ['index']]);
-        // $this->middleware('permission:العملاء-انشاء,admin', ['only' => ['create', 'store']]);
-        // $this->middleware('permission:العملاء-تعديل,admin', ['only' => ['edit', 'update']]);
-        // $this->middleware('permission:العملاء-حذف,admin', ['only' => ['destroy']]);
     }
 
     /**
@@ -262,13 +258,13 @@ class UserController extends Controller
                         </a></li>';
 
                         $menuItems .= '<li><a class="dropdown-item" href="' . route($this->mainRoute . '.show', $row->id) . '#client-attachments">
-                            <i class="fas fa-paperclip me-2 text-info"></i>مرفقات العميل
+                            <i class="fas fa-paperclip me-2 text-info"></i>' . helperTrans('ingaz.client_attachments') . '
                             <span class="badge bg-light text-dark ms-1">' . number_format((int) $row->client_attachments_count) . '</span>
                         </a></li>';
 
                         if ((int) $row->client_attachments_count > 0) {
                             $menuItems .= '<li><a class="dropdown-item" href="' . route('clients.attachments.download', $row->id) . '">
-                                <i class="fas fa-download me-2 text-success"></i>تحميل مرفقات العميل
+                                <i class="fas fa-download me-2 text-success"></i>' . helperTrans('ingaz.download_client_attachments') . '
                             </a></li>';
                         }
                     }
@@ -308,7 +304,7 @@ class UserController extends Controller
                         }
 
                         $targetStatus = (int) $row->is_blocked === 1 ? 'active' : 'blocked';
-                        $actionLabel = $targetStatus === 'blocked' ? 'حظر العميل' : 'إلغاء حظر العميل';
+                        $actionLabel = $targetStatus === 'blocked' ? helperTrans('ingaz.block_client') : helperTrans('ingaz.unblock_client');
                         $iconClass = $targetStatus === 'blocked' ? 'fa-user-slash text-danger' : 'fa-user-check text-success';
 
                         $menuItems .= '<li><button type="button" class="dropdown-item client-status-action"
@@ -360,7 +356,7 @@ class UserController extends Controller
     {
         if (!@AdminGuardHasPerm(\App\PermKeys::CLIENTS_TOGGLE_STATUS)) {
             return response()->json([
-                'message' => 'ليس لديك صلاحية لتغيير حالة العملاء'
+                'message' => __('ingaz.permission_denied_change_clients_status')
             ], 403);
         }
 
@@ -374,7 +370,7 @@ class UserController extends Controller
         $updated = objModel::whereIn('id', $validated['ids'])->update(['is_blocked' => $isBlocked]);
 
         return response()->json([
-            'message' => 'تم تحديث حالة ' . $updated . ' عميل بنجاح.',
+            'message' => __('ingaz.clients_status_updated_successfully', ['count' => $updated]),
             'updated' => $updated,
         ]);
     }
@@ -387,7 +383,7 @@ class UserController extends Controller
     public function create(Request $request)
     {
         if (!@AdminGuardHasPerm(\App\PermKeys::CLIENTS_CREATE)) {
-            abort(403, 'ليس لديك صلاحية لإضافة عميل جديد');
+            abort(403, __('ingaz.permission_denied_add_client'));
         }
 
         $countries = \App\Models\Country::active()->ordered()->get();
@@ -407,7 +403,7 @@ class UserController extends Controller
         if (!@AdminGuardHasPerm(\App\PermKeys::CLIENTS_CREATE)) {
             return response()->json([
                 'code' => 403,
-                'message' => 'ليس لديك صلاحية لإضافة عميل جديد'
+                'message' => __('ingaz.permission_denied_add_client')
             ], 403);
         }
 
@@ -427,15 +423,15 @@ class UserController extends Controller
             'children' => 'nullable|integer|min:0',
             'job' => 'nullable|string|max:100'
         ], [
-            'national_num.required' => 'رقم الهوية مطلوب لربط العميل بالطلبات والعقود.',
-            'national_num.unique' => 'رقم الهوية مستخدم مسبقاً لعميل آخر.',
+            'national_num.required' => __('ingaz.client_national_num_required'),
+            'national_num.unique' => __('ingaz.client_national_num_already_exists'),
         ]);
 
         $normalizedPhone = $this->normalizeSaudiPhone($data['phone']);
 
         if (!$normalizedPhone) {
             throw ValidationException::withMessages([
-                'phone' => 'رقم الجوال غير صحيح. الصيغة المتاحة: 05XXXXXXXX أو 5XXXXXXXX أو +9665XXXXXXXX.',
+                'phone' => __('ingaz.client_phone_invalid_format'),
             ]);
         }
 
@@ -449,7 +445,7 @@ class UserController extends Controller
 
         if (objModel::whereIn('phone', $phoneCandidates)->exists()) {
             throw ValidationException::withMessages([
-                'phone' => 'رقم الجوال مستخدم مسبقاً.',
+                'phone' => __('ingaz.client_phone_already_exists'),
             ]);
         }
 
@@ -468,7 +464,7 @@ class UserController extends Controller
             if (!$parentAccount) {
                 return response()->json([
                     'code' => 422,
-                    'message' => 'لا يوجد حساب رئيسي للعملاء في جدول الحسابات. يرجى إنشاء حساب من نوع Clients أولاً.'
+                    'message' => __('ingaz.clients_parent_account_missing')
                 ], 422);
             }
 
@@ -548,7 +544,7 @@ class UserController extends Controller
             return (int) $existingCategoryId;
         }
 
-        $categoryData = ['name' => 'عام'];
+        $categoryData = ['name' => __('ingaz.general')];
 
         if (\Illuminate\Support\Facades\Schema::hasColumn('fn_client_categories', 'created_by_id') && Auth::id()) {
             $categoryData['created_by_id'] = Auth::id();
@@ -567,7 +563,7 @@ class UserController extends Controller
     public function show($id)
     {
         if (!@AdminGuardHasPerm(\App\PermKeys::CLIENTS_SHOW)) {
-            abort(403, 'ليس لديك صلاحية لعرض تفاصيل العميل');
+            abort(403, __('ingaz.permission_denied_view_client'));
         }
 
         $client = objModel::with([
@@ -604,7 +600,6 @@ class UserController extends Controller
             return $activity;
         });
 
-        // جلب طلبات نقل الكفالة للعميل
         $sponsorshipTransfers = \App\Models\SponsorshipTransfer::with([
             'contract',
             'oldSponsor',
@@ -665,8 +660,8 @@ class UserController extends Controller
             'attachments' => ['required', 'array', 'min:1'],
             'attachments.*' => ['required', 'file', 'max:20480'],
         ], [
-            'attachments.required' => 'يرجى اختيار ملف واحد على الأقل.',
-            'attachments.*.max' => 'حجم كل مرفق يجب ألا يتجاوز 20 ميجابايت.',
+            'attachments.required' => __('ingaz.attachments_required'),
+            'attachments.*.max' => __('ingaz.attachment_max_size'),
         ]);
 
         foreach ($request->file('attachments', []) as $file) {
@@ -688,7 +683,7 @@ class UserController extends Controller
 
         return redirect()
             ->route('clients.show', $client->id)
-            ->with('success', 'تم رفع مرفقات العميل بنجاح.');
+            ->with('success', __('ingaz.client_attachments_uploaded_successfully'));
     }
 
     public function downloadAttachments(Request $request, $id)
@@ -711,14 +706,14 @@ class UserController extends Controller
         $attachments = $attachments->filter(fn(ClientAttachment $attachment) => $attachment->existsOnDisk())->values();
 
         if ($attachments->isEmpty()) {
-            return redirect()->back()->with('error', 'لا توجد مرفقات صالحة للتنزيل.');
+            return redirect()->back()->with('error', __('ingaz.no_valid_attachments_to_download'));
         }
 
         $zip = new \ZipArchive();
         $zipFile = tempnam(sys_get_temp_dir(), 'client-attachments-');
 
         if ($zip->open($zipFile, \ZipArchive::OVERWRITE) !== true) {
-            return redirect()->back()->with('error', 'تعذر تجهيز ملف المرفقات.');
+            return redirect()->back()->with('error', __('ingaz.attachments_zip_failed'));
         }
 
         foreach ($attachments as $attachment) {
@@ -732,7 +727,7 @@ class UserController extends Controller
 
         if (filesize($zipFile) <= 0) {
             @unlink($zipFile);
-            return redirect()->back()->with('error', 'لا توجد مرفقات صالحة للتنزيل.');
+            return redirect()->back()->with('error', __('ingaz.no_valid_attachments_to_download'));
         }
 
         return response()
@@ -795,7 +790,7 @@ class UserController extends Controller
 
         return redirect()
             ->route('clients.show', $id)
-            ->with('success', 'تم حذف مرفق العميل بنجاح.');
+            ->with('success', __('ingaz.client_attachment_deleted_successfully'));
     }
 
     private function buildAttachmentDownloadName(ClientAttachment $attachment): string
@@ -820,7 +815,7 @@ class UserController extends Controller
     public function edit($id)
     {
         if (!@AdminGuardHasPerm(\App\PermKeys::CLIENTS_EDIT)) {
-            abort(403, 'ليس لديك صلاحية لتعديل العميل');
+            abort(403, __('ingaz.permission_denied_edit_client'));
         }
 
         $client = objModel::findOrFail($id);
@@ -843,7 +838,7 @@ class UserController extends Controller
         if (!@AdminGuardHasPerm(\App\PermKeys::CLIENTS_EDIT)) {
             return response()->json([
                 'success' => false,
-                'message' => 'ليس لديك صلاحية لتعديل العميل'
+                'message' => __('ingaz.permission_denied_edit_client')
             ], 403);
         }
 
@@ -879,8 +874,8 @@ class UserController extends Controller
             'nationality_id.exists' => __('ingaz.client_nationality_not_found'),
             'national_num.string' => __('ingaz.client_national_num_max'),
             'national_num.max' => __('ingaz.client_national_num_max'),
-            'national_num.required' => 'رقم الهوية مطلوب لربط العميل بالطلبات والعقود.',
-            'national_num.unique' => 'رقم الهوية مستخدم مسبقاً لعميل آخر.',
+            'national_num.required' => __('ingaz.client_national_num_required'),
+            'national_num.unique' => __('ingaz.client_national_num_already_exists'),
             'birthdate.date' => __('ingaz.client_birthdate_invalid'),
             'phone2.string' => __('ingaz.client_phone2_max'),
             'phone2.max' => __('ingaz.client_phone2_max'),
@@ -904,7 +899,7 @@ class UserController extends Controller
 
         if (!$normalizedPhone) {
             throw ValidationException::withMessages([
-                'phone' => 'رقم الجوال غير صحيح. الصيغة المتاحة: 05XXXXXXXX أو 5XXXXXXXX أو +9665XXXXXXXX.',
+                'phone' => __('ingaz.client_phone_invalid_format'),
             ]);
         }
 
@@ -918,7 +913,7 @@ class UserController extends Controller
 
         if (objModel::where('id', '!=', $client->id)->whereIn('phone', $phoneCandidates)->exists()) {
             throw ValidationException::withMessages([
-                'phone' => 'رقم الجوال مستخدم مسبقاً.',
+                'phone' => __('ingaz.client_phone_already_exists'),
             ]);
         }
 
@@ -956,7 +951,7 @@ class UserController extends Controller
         if (!@AdminGuardHasPerm(\App\PermKeys::CLIENTS_DELETE)) {
             return response()->json([
                 'success' => false,
-                'message' => 'ليس لديك صلاحية لحذف العميل'
+                'message' => __('ingaz.permission_denied_delete_client')
             ], 403);
         }
 
@@ -967,7 +962,7 @@ class UserController extends Controller
     public function exportPdf()
     {
         if (!@AdminGuardHasPerm(\App\PermKeys::CLIENTS_EXPORT_PDF)) {
-            abort(403, 'ليس لديك صلاحية لتصدير بيانات العملاء بصيغة PDF');
+            abort(403, __('ingaz.permission_denied_export_clients_pdf'));
         }
 
         $clients = objModel::all();
@@ -977,7 +972,7 @@ class UserController extends Controller
         <html dir="rtl">
         <head>
             <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-            <title>قائمة العملاء</title>
+            <title>' . __('ingaz.clients_list') . '</title>
             <style>
                 body {
                     font-family: Arial, sans-serif;
@@ -1063,30 +1058,30 @@ class UserController extends Controller
         </head>
         <body>
             <div class="header">
-                <h1>قائمة العملاء</h1>
-                <p>تم التصدير في: ' . date('Y-m-d H:i:s') . '</p>
-                <button class="print-button" onclick="printDocument()">طباعة</button>
+                <h1>' . __('ingaz.clients_list') . '</h1>
+                <p>' . __('ingaz.exported_at') . ': ' . date('Y-m-d H:i:s') . '</p>
+                <button class="print-button" onclick="printDocument()">' . __('ingaz.print') . '</button>
             </div>
             <table>
                 <thead>
                     <tr>
-                        <th>رقم العميل</th>
-                        <th>الاسم</th>
-                        <th>رقم الهاتف</th>
-                        <th>البريد الإلكتروني</th>
-                        <th>الجنسية</th>
-                        <th>رقم الهوية</th>
-                        <th>تاريخ الميلاد</th>
-                        <th>العنوان</th>
-                        <th>المدينة</th>
-                        <th>الحالة</th>
+                        <th>' . __('ingaz.client_number') . '</th>
+                        <th>' . __('ingaz.name') . '</th>
+                        <th>' . __('ingaz.phone') . '</th>
+                        <th>' . __('ingaz.email') . '</th>
+                        <th>' . __('ingaz.nationality') . '</th>
+                        <th>' . __('ingaz.national_num') . '</th>
+                        <th>' . __('ingaz.birthdate') . '</th>
+                        <th>' . __('ingaz.address') . '</th>
+                        <th>' . __('ingaz.city') . '</th>
+                        <th>' . __('ingaz.status') . '</th>
                     </tr>
                 </thead>
                 <tbody>';
 
         foreach ($clients as $client) {
             $statusClass = $client->is_blocked ? 'status-blocked' : 'status-active';
-            $statusText = $client->is_blocked ? 'محظور' : 'مفعل';
+            $statusText = $client->is_blocked ? __('ingaz.blocked') : __('ingaz.active');
 
             $html .= '<tr>
                 <td>' . $client->id . '</td>
@@ -1122,7 +1117,7 @@ class UserController extends Controller
         <html dir="rtl">
         <head>
             <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-            <title>قائمة العملاء</title>
+            <title>' . __('ingaz.clients_list') . '</title>
             <style>
                 body {
                     font-family: Arial, sans-serif;
@@ -1208,30 +1203,30 @@ class UserController extends Controller
         </head>
         <body>
             <div class="header">
-                <h1>قائمة العملاء</h1>
-                <p>تم التصدير في: ' . date('Y-m-d H:i:s') . '</p>
-                <button class="print-button" onclick="printDocument()">طباعة</button>
+                <h1>' . __('ingaz.clients_list') . '</h1>
+                <p>' . __('ingaz.exported_at') . ': ' . date('Y-m-d H:i:s') . '</p>
+                <button class="print-button" onclick="printDocument()">' . __('ingaz.print') . '</button>
             </div>
             <table>
                 <thead>
                     <tr>
-                        <th>رقم العميل</th>
-                        <th>الاسم</th>
-                        <th>رقم الهاتف</th>
-                        <th>البريد الإلكتروني</th>
-                        <th>الجنسية</th>
-                        <th>رقم الهوية</th>
-                        <th>تاريخ الميلاد</th>
-                        <th>العنوان</th>
-                        <th>المدينة</th>
-                        <th>الحالة</th>
+                        <th>' . __('ingaz.client_number') . '</th>
+                        <th>' . __('ingaz.name') . '</th>
+                        <th>' . __('ingaz.phone') . '</th>
+                        <th>' . __('ingaz.email') . '</th>
+                        <th>' . __('ingaz.nationality') . '</th>
+                        <th>' . __('ingaz.national_num') . '</th>
+                        <th>' . __('ingaz.birthdate') . '</th>
+                        <th>' . __('ingaz.address') . '</th>
+                        <th>' . __('ingaz.city') . '</th>
+                        <th>' . __('ingaz.status') . '</th>
                     </tr>
                 </thead>
                 <tbody>';
 
         foreach ($clients as $client) {
             $statusClass = $client->is_blocked ? 'status-blocked' : 'status-active';
-            $statusText = $client->is_blocked ? 'محظور' : 'مفعل';
+            $statusText = $client->is_blocked ? __('ingaz.blocked') : __('ingaz.active');
 
             $html .= '<tr>
                 <td>' . $client->id . '</td>
@@ -1261,7 +1256,7 @@ class UserController extends Controller
     public function exportExcel()
     {
         if (!@AdminGuardHasPerm(\App\PermKeys::CLIENTS_EXPORT_EXCEL)) {
-            abort(403, 'ليس لديك صلاحية لتصدير بيانات العملاء بصيغة Excel');
+            abort(403, __('ingaz.permission_denied_export_clients_excel'));
         }
 
         $clients = objModel::all();
@@ -1275,16 +1270,16 @@ class UserController extends Controller
 
         // Set headers
         $headers = [
-            'رقم العميل',
-            'الاسم',
-            'رقم الهاتف',
-            'البريد الإلكتروني',
-            'الجنسية',
-            'رقم الهوية',
-            'تاريخ الميلاد',
-            'العنوان',
-            'المدينة',
-            'الحالة'
+            __('ingaz.client_number'),
+            __('ingaz.name'),
+            __('ingaz.phone'),
+            __('ingaz.email'),
+            __('ingaz.nationality'),
+            __('ingaz.national_num'),
+            __('ingaz.birthdate'),
+            __('ingaz.address'),
+            __('ingaz.city'),
+            __('ingaz.status')
         ];
 
         // Set headers in first row
@@ -1320,7 +1315,7 @@ class UserController extends Controller
             $sheet->setCellValue('G' . $row, $client->birthdate);
             $sheet->setCellValue('H' . $row, $client->address);
             $sheet->setCellValue('I' . $row, $client->city);
-            $sheet->setCellValue('J' . $row, $client->is_blocked ? 'محظور' : 'مفعل');
+            $sheet->setCellValue('J' . $row, $client->is_blocked ? __('ingaz.blocked') : __('ingaz.active'));
             $row++;
         }
 

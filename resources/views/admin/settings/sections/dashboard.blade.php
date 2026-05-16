@@ -22,11 +22,11 @@
                     @method('PUT')
 
                     <div class="col-12">
-                        <h6 class="text-muted mb-2">بيانات لوحة التحكم</h6>
+                        <h6 class="text-muted mb-2">{{ __('admin.settings_dashboard_data') }}</h6>
                         <div class="row g-3">
                             @foreach (config('translatable.locales') as $locale)
                                 <div class="col-md-6">
-                                    <label class="form-label">اسم لوحة التحكم {{ getFieldLanguage($locale) }}</label>
+                                    <label class="form-label">{{ __('admin.settings_dashboard_name') }} {{ getFieldLanguage($locale) }}</label>
                                     <fieldset class="form-icon-group right-icon position-relative">
                                         <div class="form-icon position-absolute">
                                             <i class="fa fa-gauge"></i>
@@ -46,13 +46,13 @@
                     </div>
 
                     <div class="col-12">
-                        <h6 class="text-muted mb-2">هوية لوحة التحكم</h6>
+                        <h6 class="text-muted mb-2">{{ __('admin.settings_dashboard_identity') }}</h6>
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <div class="card h-100">
                                     <div class="card-body">
-                                        <h6 class="mb-2">شعار لوحة التحكم</h6>
-                                        <p class="text-muted small mb-2">يستخدم في الهيدر وشاشة تسجيل الدخول للوحة التحكم فقط.</p>
+                                        <h6 class="mb-2">{{ __('admin.settings_dashboard_logo') }}</h6>
+                                        <p class="text-muted small mb-2">{{ __('admin.settings_dashboard_logo_hint') }}</p>
                                         <input type="file" data-default-file="{{ showFile($settings->admin_logo) ?? '' }}"
                                                name="admin_logo" class="dropify">
                                     </div>
@@ -62,8 +62,8 @@
                             <div class="col-md-6">
                                 <div class="card h-100">
                                     <div class="card-body">
-                                        <h6 class="mb-2">خلفية تسجيل دخول لوحة التحكم</h6>
-                                        <p class="text-muted small mb-2">تظهر في صفحة <code>/dashboard/login</code> فقط.</p>
+                                        <h6 class="mb-2">{{ __('admin.settings_dashboard_login_background') }}</h6>
+                                        <p class="text-muted small mb-2">{{ __('admin.settings_dashboard_login_background_hint') }}</p>
                                         <input type="file" data-default-file="{{ showFile($settings->admin_login_background) ?? '' }}"
                                                name="admin_login_background" class="dropify">
                                     </div>

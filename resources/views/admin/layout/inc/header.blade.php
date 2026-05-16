@@ -5,28 +5,35 @@ $user = getAuthUser();
 $settings = $settings ?? null;
 $appTimezone = config('app.timezone', 'Asia/Riyadh');
 $headerNow = now()->timezone($appTimezone);
-$quickLinks = collect([
-    [
-        'title' => optional($settings)->header_link_1_title ?? 'مساند برو',
-        'url' => optional($settings)->header_link_1_url ?? 'https://pros.musaned.com.sa/login',
-        'icon' => 'fa-external-link',
-        'variant' => 'default',
-    ],
-    [
-        'title' => optional($settings)->header_link_2_title ?? 'مساند توثيق',
-        'url' => optional($settings)->header_link_2_url ?? 'https://tawtheeq.musaned.com.sa/',
-        'icon' => 'fa-file-text-o',
-        'variant' => 'default',
-    ],
-    [
-        'title' => optional($settings)->live_chat_title ?? 'اللايف شات',
-        'url' => optional($settings)->live_chat_url ?? 'https://salesiq.zoho.sa/platinumeastern/liveview',
-        'icon' => 'fa-comments',
-        'variant' => 'primary',
-    ],
-])->filter(function ($link) {
-    return filled($link['title']) && filled($link['url']);
-});
+$storedQuickLinks = optional($settings)->admin_quick_links ?: [];
+$quickLinks = collect($storedQuickLinks);
+
+if ($quickLinks->isEmpty()) {
+    $quickLinks = collect([
+        [
+            'title' => optional($settings)->header_link_1_title ?? 'مساند برو',
+            'url' => optional($settings)->header_link_1_url ?? 'https://pros.musaned.com.sa/login',
+            'icon' => 'fa-external-link',
+            'is_visible' => true,
+        ],
+        [
+            'title' => optional($settings)->header_link_2_title ?? 'مساند توثيق',
+            'url' => optional($settings)->header_link_2_url ?? 'https://tawtheeq.musaned.com.sa/',
+            'icon' => 'fa-file-text-o',
+            'is_visible' => true,
+        ],
+        [
+            'title' => optional($settings)->live_chat_title ?? 'اللايف شات',
+            'url' => optional($settings)->live_chat_url ?? 'https://salesiq.zoho.sa/platinumeastern/liveview',
+            'icon' => 'fa-comments',
+            'is_visible' => true,
+        ],
+    ]);
+}
+
+$quickLinks = $quickLinks->filter(function ($link) {
+    return filled($link['title'] ?? null) && filled($link['url'] ?? null) && ($link['is_visible'] ?? true);
+})->values();
 @endphp
 @once
     <style>
@@ -340,7 +347,7 @@ $quickLinks = collect([
                                     <i class="fa fa-calendar"></i>
                                 </span>
                                 <div class="cm-header-meta-body">
-                                    <span class="cm-header-meta-label">الوقت</span>
+                                    <span class="cm-header-meta-label">{{ helperTrans('ingaz.time') }}</span>
                                     <strong class="cm-header-meta-value" id="cm-live-time">{{ $headerNow->format('H:i:s') }}</strong>
                                     <small class="cm-header-meta-subvalue" id="cm-live-date">{{ $headerNow->format('Y-m-d') }}</small>
                                 </div>
@@ -351,21 +358,21 @@ $quickLinks = collect([
                                     <i class="fa fa-clock-o"></i>
                                 </span>
                                 <div class="cm-header-meta-body">
-                                    <span class="cm-header-meta-label">المدة</span>
+                                    <span class="cm-header-meta-label">{{ helperTrans('ingaz.duration') }}</span>
                                     <strong class="cm-header-meta-value" id="cm-session-duration">00:00</strong>
-                                    <small class="cm-header-meta-subvalue">منذ فتح النظام</small>
+                                    <small class="cm-header-meta-subvalue">{{ helperTrans('ingaz.since_system_opened') }}</small>
                                 </div>
                             </div>
                         </div>
 
                         @if ($quickLinks->isNotEmpty())
                             <div class="cm-header-shortcuts">
-                                <p class="cm-header-shortcuts-label mb-0">روابط سريعة</p>
+                                <p class="cm-header-shortcuts-label mb-0">{{ helperTrans('ingaz.quick_links') }}</p>
                                 <div class="cm-header-shortcuts-list">
                                     @foreach ($quickLinks as $link)
-                                        <a class="cm-header-shortcut {{ $link['variant'] === 'primary' ? 'is-primary' : '' }}"
+                                        <a class="cm-header-shortcut"
                                            href="{{ $link['url'] }}" target="_blank" rel="noopener noreferrer">
-                                            <i class="fa {{ $link['icon'] }}"></i>
+                                            <i class="fa {{ $link['icon'] ?? 'fa-external-link' }}"></i>
                                             <span>{{ $link['title'] }}</span>
                                         </a>
                                     @endforeach
@@ -379,7 +386,7 @@ $quickLinks = collect([
             <ul class="header-right justify-content-end d-flex align-items-center mb-0">
                 <li>
                     <div class="dropdown morphing {{$scaleDirection}} notifications">
-                        <a class="nav-link dropdown-toggle after-none cm-header-action" href="#" role="button" data-bs-toggle="dropdown" title="الإشعارات">
+                        <a class="nav-link dropdown-toggle after-none cm-header-action" href="#" role="button" data-bs-toggle="dropdown" title="{{ helperTrans('ingaz.notifications') }}">
 
                             <i class="fa fa-bell"></i>
                             <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger notification-badge" style="display: none;">
@@ -389,8 +396,8 @@ $quickLinks = collect([
                         <div class="dropdown-menu shadow rounded-4 border-0 p-0 m-0" style="width: 300px; max-height: 400px; overflow-y: auto;">
                             <div class="card">
                                 <div class="card-header p-3 d-flex justify-content-between align-items-center">
-                                    <h6 class="card-title mb-0">الإشعارات</h6>
-                                    <button class="btn btn-sm btn-link mark-all-read">تعيين الكل كمقروء</button>
+                                    <h6 class="card-title mb-0">{{ helperTrans('ingaz.notifications') }}</h6>
+                                    <button class="btn btn-sm btn-link mark-all-read">{{ helperTrans('ingaz.mark_all_read') }}</button>
                                 </div>
                                 <div class="card-body">
                                     <div class="notification-list">
@@ -404,7 +411,7 @@ $quickLinks = collect([
 
                 <li class="d-none d-xl-inline-block">
                     <a class="nav-link fullscreen cm-header-action" href="#{{--javascript:void(0);--}}"
-                        onclick="toggleFullScreen(documentElement)" title="ملء الشاشة">
+                        onclick="toggleFullScreen(documentElement)" title="{{ helperTrans('ingaz.fullscreen') }}">
                         <svg viewBox="0 0 16 16" width="18px" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                             <path fill-rule="evenodd" clip-rule="evenodd"
                                 d="M5.8279 10.172C5.73414 10.0783 5.60698 10.0256 5.4744 10.0256C5.34182 10.0256 5.21467 10.0783 5.1209 10.172L1.0249 14.268V11.5C1.0249 11.3674 0.972224 11.2402 0.878456 11.1464C0.784688 11.0527 0.657511 11 0.524902 11C0.392294 11 0.265117 11.0527 0.171349 11.1464C0.0775808 11.2402 0.0249023 11.3674 0.0249023 11.5V15.475C0.0249023 15.6076 0.0775808 15.7348 0.171349 15.8285C0.265117 15.9223 0.392294 15.975 0.524902 15.975H4.4999C4.63251 15.975 4.75969 15.9223 4.85346 15.8285C4.94722 15.7348 4.9999 15.6076 4.9999 15.475C4.9999 15.3424 4.94722 15.2152 4.85346 15.1214C4.75969 15.0277 4.63251 14.975 4.4999 14.975H1.7319L5.8279 10.879C5.92164 10.7852 5.9743 10.6581 5.9743 10.5255C5.9743 10.3929 5.92164 10.2658 5.8279 10.172ZM10.1719 10.172C10.2657 10.0783 10.3928 10.0256 10.5254 10.0256C10.658 10.0256 10.7851 10.0783 10.8789 10.172L14.9749 14.268V11.5C14.9749 11.3674 15.0276 11.2402 15.1213 11.1464C15.2151 11.0527 15.3423 11 15.4749 11C15.6075 11 15.7347 11.0527 15.8285 11.1464C15.9222 11.2402 15.9749 11.3674 15.9749 11.5V15.475C15.9749 15.6076 15.9222 15.7348 15.8285 15.8285C15.7347 15.9223 15.6075 15.975 15.4749 15.975H11.4999C11.3673 15.975 11.2401 15.9223 11.1463 15.8285C11.0526 15.7348 10.9999 15.6076 10.9999 15.475C10.9999 15.3424 11.0526 15.2152 11.1463 15.1214C11.2401 15.0277 11.3673 14.975 11.4999 14.975H14.2679L10.1719 10.879C10.0782 10.7852 10.0255 10.6581 10.0255 10.5255C10.0255 10.3929 10.0782 10.2658 10.1719 10.172ZM5.8279 5.82799C5.73414 5.92173 5.60698 5.97439 5.4744 5.97439C5.34182 5.97439 5.21467 5.92173 5.1209 5.82799L1.0249 1.73199V4.49999C1.0249 4.6326 0.972224 4.75978 0.878456 4.85355C0.784688 4.94732 0.657511 4.99999 0.524902 4.99999C0.392294 4.99999 0.265117 4.94732 0.171349 4.85355C0.0775808 4.75978 0.0249023 4.6326 0.0249023 4.49999V0.524994C0.0249023 0.392386 0.0775808 0.265209 0.171349 0.17144C0.265117 0.0776723 0.392294 0.0249939 0.524902 0.0249939H4.4999C4.63251 0.0249939 4.75969 0.0776723 4.85346 0.17144C4.94722 0.265209 4.9999 0.392386 4.9999 0.524994C4.9999 0.657602 4.94722 0.784779 4.85346 0.878547C4.75969 0.972315 4.63251 1.02499 4.4999 1.02499H1.7319L5.8279 5.12099C5.92164 5.21476 5.9743 5.34191 5.9743 5.47449C5.9743 5.60708 5.92164 5.73423 5.8279 5.82799Z" />
@@ -416,7 +423,7 @@ $quickLinks = collect([
 
                 <li class="d-none d-xl-inline-block">
                     <div class="dropdown morphing {{$scaleDirection}} Language mx-sm-2">
-                        <a class="nav-link dropdown-toggle after-none cm-header-action" href="#" role="button" data-bs-toggle="dropdown" title="اللغة">
+                        <a class="nav-link dropdown-toggle after-none cm-header-action" href="#" role="button" data-bs-toggle="dropdown" title="{{ helperTrans('ingaz.language') }}">
                             <svg viewBox="0 0 16 16" width="18px" fill="currentColor"
                                 xmlns="http://www.w3.org/2000/svg">
                                 <path class="fill-secondary"
@@ -450,7 +457,7 @@ $quickLinks = collect([
                 </li>
 
                 <li class="d-none d-sm-inline-block d-xl-none">
-                    <a class="nav-link cm-header-action" href="#" data-bs-toggle="modal" data-bs-target="#MynotesModal" title="الملاحظات">
+                    <a class="nav-link cm-header-action" href="#" data-bs-toggle="modal" data-bs-target="#MynotesModal" title="{{ helperTrans('ingaz.notes') }}">
                         <svg viewBox="0 0 16 16" width="18px" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                             <path class="fill-secondary"
                                 d="M1.5 0A1.5 1.5 0 0 0 0 1.5V13a1 1 0 0 0 1 1V1.5a.5.5 0 0 1 .5-.5H14a1 1 0 0 0-1-1H1.5z" />
@@ -461,20 +468,20 @@ $quickLinks = collect([
                 </li>
 
                 <li class="d-none d-xl-inline-block">
-                    <a class="cm-header-open-site" href="{{ publicSiteUrl() }}" target="_blank" rel="noopener noreferrer" title="عرض الموقع الخارجي">
+                    <a class="cm-header-open-site" href="{{ publicSiteUrl() }}" target="_blank" rel="noopener noreferrer" title="{{ helperTrans('ingaz.view_public_site') }}">
                         <i class="fa fa-globe"></i>
-                        <span>الموقع</span>
+                        <span>{{ helperTrans('ingaz.website') }}</span>
                     </a>
                 </li>
 
                 <li class="d-none d-sm-inline-block d-xl-none">
-                    <a class="nav-link cm-header-action" href="{{ publicSiteUrl() }}" target="_blank" rel="noopener noreferrer" title="الموقع الخارجي">
+                    <a class="nav-link cm-header-action" href="{{ publicSiteUrl() }}" target="_blank" rel="noopener noreferrer" title="{{ helperTrans('ingaz.public_site') }}">
                         <i class="fa fa-globe"></i>
                     </a>
                 </li>
 
                 <li class="d-none d-sm-inline-block d-xl-none">
-                    <a class="nav-link cm-header-action" href="#" data-bs-toggle="modal" data-bs-target="#RecentChat" title="المحادثات">
+                    <a class="nav-link cm-header-action" href="#" data-bs-toggle="modal" data-bs-target="#RecentChat" title="{{ helperTrans('ingaz.chats') }}">
                         <svg viewBox="0 0 16 16" width="18px" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                             <path
                                 d="M14 1a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H4.414A2 2 0 0 0 3 11.586l-2 2V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12.793a.5.5 0 0 0 .854.353l2.853-2.853A1 1 0 0 1 4.414 12H14a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z" />
@@ -510,7 +517,7 @@ $quickLinks = collect([
                                 <div class="list-group m-2 mb-3">
                                     @if($user)
                                         <a class="list-group-item list-group-item-action border-0"
-                                            href="{{route('profile.index')}}"><i class="w30 fa fa-user"></i>ملفي الشخصي</a>
+                                            href="{{route('profile.index')}}"><i class="w30 fa fa-user"></i>{{ helperTrans('ingaz.my_profile') }}</a>
                                         {{-- @if (Auth::guard('admin')->user()->hasPermission('settings-read')) --}}
                                         <a class="list-group-item list-group-item-action border-0" href="{{route('settings.index')}}"><i
                                                 class="w30 fa fa-gear"></i>{{ __('ingaz.settings') }}</a>
@@ -523,12 +530,12 @@ $quickLinks = collect([
                                                 class="w30 fa fa-tag"></i>Support Ticket</a>--}}
                                     @else
                                         <a class="list-group-item list-group-item-action border-0"
-                                            href="{{route('admin.login')}}"><i class="w30 fa fa-sign-in"></i>تسجيل الدخول</a>
+                                            href="{{route('admin.login')}}"><i class="w30 fa fa-sign-in"></i>{{ __('admin.sign_in') }}</a>
                                     @endif
                                 </div>
                                 @if($user)
                                     <a href="{{route('admin.logout')}}"
-                                        class="btn bg-secondary text-light text-uppercase rounded-0">تسجيل الخروج</a>
+                                        class="btn bg-secondary text-light text-uppercase rounded-0">{{ __('admin.sign_out') }}</a>
                                 @endif
                             </div>
                         </div>

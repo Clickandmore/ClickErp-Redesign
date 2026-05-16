@@ -12,7 +12,7 @@
                 <a class="dropdown-toggle more-icon" href="#" role="button" data-bs-toggle="dropdown"><i
                         class="fa fa-ellipsis-h"></i></a>
                 <ul class="dropdown-menu shadow border-0 p-2 mt-2" data-bs-popper="none">
-                    <li class="fw-bold px-2">روابط سريعة</li>
+                    <li class="fw-bold px-2">{{ helperTrans('ingaz.quick_links') }}</li>
                     <li>
                         <hr class="dropdown-divider">
                     </li>
@@ -315,7 +315,7 @@
                                                 <a class="m-link {{ Route::currentRouteName() == 'recruitment_requests.index' ? 'active' : '' }}"
                                                     href="{{ route('recruitment_requests.index') }}">
                                                     <i class="fa fa-envelope"></i>
-                                                    <span class="ms-2">طلبات خاصة</span>
+                                                    <span class="ms-2">{{ helperTrans('ingaz.special_requests') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -334,7 +334,7 @@
                                         <a class="m-link {{ Route::currentRouteName() == 'known-service-requests.index' ? 'active' : '' }}"
                                             href="{{ route('known-service-requests.index') }}">
                                             <i class="fa fa-envelope"></i>
-                                            <span class="ms-2">طلبات الخدمة المعروفة</span>
+                                            <span class="ms-2">{{ helperTrans('ingaz.known_service_requests') }}</span>
                                         </a>
                                     </li>
                                 @endif
@@ -343,7 +343,7 @@
                                                 <a class="m-link {{ Route::currentRouteName() == 'contact.index' ? 'active' : '' }}"
                                                     href="{{ route('contact.index') }}">
                                                     <i class="fa fa-comments"></i>
-                                                    <span class="ms-2">طلبات التواصل</span>
+                                                    <span class="ms-2">{{ helperTrans('ingaz.contact_requests') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -390,7 +390,7 @@
                                                 <a class="m-link {{ Route::currentRouteName() == 'RecruitmentContract.index' && request()->input('status') == 'completed_stage' ? 'active' : '' }}"
                                                     href="{{ route('RecruitmentContract.index', ['status' => 'completed_stage']) }}">
                                                     <i class="fa fa-check-circle"></i>
-                                                    <span class="ms-2">عقود مكتملة</span>
+                                                    <span class="ms-2">{{ helperTrans('ingaz.completed_contracts') }}</span>
                                                     <span
                                                         class="badge bg-success ms-2">{{ $contractsCount['under_warranty'] ?? 0 }}</span>
                                                 </a>
@@ -400,7 +400,7 @@
                                                 <a class="m-link {{ Route::currentRouteName() == 'RecruitmentContract.index' && request()->input('status') == $backStatus->value ? 'active' : '' }}"
                                                     href="{{ route('RecruitmentContract.index', ['status' => $backStatus->value]) }}">
                                                     <i class="fa fa-undo"></i>
-                                                    <span class="ms-2">عقود مرتجعة </span>
+                                                    <span class="ms-2">{{ helperTrans('ingaz.returned_contracts') }}</span>
                                                     <span
                                                         class="badge bg-danger ms-2">{{ $contractsCount['back'] }}</span>
                                                 </a>
@@ -409,10 +409,10 @@
                                                 <a class="m-link {{ request()->routeIs('RecruitmentContract.externalOfficeDispatch.*') ? 'active' : '' }}"
                                                     href="{{ route('RecruitmentContract.externalOfficeDispatch.index') }}">
                                                     <i class="fa fa-paper-plane"></i>
-                                                    <span class="ms-2"> الارساليات </span>
+                                                    <span class="ms-2">{{ helperTrans('ingaz.dispatches') }}</span>
                                                     <span
                                                         class="badge {{ ($contractsCount['external_office_dispatch_pending'] ?? 0) > 0 ? 'bg-warning text-dark' : 'bg-secondary' }} ms-2"
-                                                        title="العقود التي لم تُرسل بعد">
+                                                        title="{{ helperTrans('ingaz.contracts_not_sent_yet') }}">
                                                         {{ $contractsCount['external_office_dispatch_pending'] ?? 0 }}
                                                     </span>
                                                 </a>
@@ -555,7 +555,7 @@
                                                 <a class="m-link {{ Route::currentRouteName() == 'rental-orders.index' ? 'active' : '' }}"
                                                     href="{{ route('rental-orders.index') }}">
                                                     <i class="fas fa-shopping-cart"></i>
-                                                    <span class="ms-2">طلبات الإيجار</span>
+                                                    <span class="ms-2">{{ helperTrans('ingaz.rental_orders') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -572,35 +572,35 @@
                                                 <a class="m-link {{ Route::currentRouteName() == 'RentContract.index' && request('status') == 'new' ? 'active' : '' }}"
                                                     href="{{ route('RentContract.index', ['status' => 'new']) }}">
                                                     <i class="fas fa-file-plus text-primary"></i>
-                                                    <span class="ms-2">العقود الجديدة</span>
+                                                    <span class="ms-2">{{ helperTrans('ingaz.new_contracts') }}</span>
                                                 </a>
                                             </li>
                                             <li>
                                                 <a class="m-link {{ Route::currentRouteName() == 'RentContract.index' && request('status') == 'active' ? 'active' : '' }}"
                                                     href="{{ route('RentContract.index', ['status' => 'active']) }}">
                                                     <i class="fas fa-check-circle text-success"></i>
-                                                    <span class="ms-2">العقود النشطة</span>
+                                                    <span class="ms-2">{{ helperTrans('ingaz.active_contracts') }}</span>
                                                 </a>
                                             </li>
                                             <li>
                                                 <a class="m-link {{ Route::currentRouteName() == 'RentContract.index' && request('status') == 'transferred' ? 'active' : '' }}"
                                                     href="{{ route('RentContract.index', ['status' => 'transferred']) }}">
                                                     <i class="fas fa-exchange-alt text-warning"></i>
-                                                    <span class="ms-2">تم النقل</span>
+                                                    <span class="ms-2">{{ helperTrans('ingaz.transferred') }}</span>
                                                 </a>
                                             </li>
                                             <li>
                                                 <a class="m-link {{ Route::currentRouteName() == 'RentContract.index' && request('status') == 'completed' ? 'active' : '' }}"
                                                     href="{{ route('RentContract.index', ['status' => 'completed']) }}">
                                                     <i class="fas fa-flag-checkered text-info"></i>
-                                                    <span class="ms-2">العقود المكتملة</span>
+                                                    <span class="ms-2">{{ helperTrans('ingaz.completed_contracts') }}</span>
                                                 </a>
                                             </li>
                                             <li>
                                                 <a class="m-link {{ Route::currentRouteName() == 'RentContract.index' && request('status') == 'cancelled' ? 'active' : '' }}"
                                                     href="{{ route('RentContract.index', ['status' => 'cancelled']) }}">
                                                     <i class="fas fa-times-circle text-danger"></i>
-                                                    <span class="ms-2">العقود الملغية</span>
+                                                    <span class="ms-2">{{ helperTrans('ingaz.cancelled_contracts') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -620,7 +620,7 @@
                                                 <a class="m-link {{ Route::currentRouteName() == 'packages.index' ? 'active' : '' }}"
                                                     href="{{ route('packages.index') }}">
                                                     <i class="fas fa-box-open text-info"></i>
-                                                    <span class="ms-2"> باقات التأجير </span>
+                                                    <span class="ms-2">{{ helperTrans('ingaz.rental_packages') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -630,7 +630,7 @@
                                                 <a class="m-link {{ in_array(Route::currentRouteName(), ['rent-contract-terms.index', 'rent-contract-terms.create', 'rent-contract-terms.edit']) ? 'active' : '' }}"
                                                     href="{{ route('rent-contract-terms.index') }}">
                                                     <i class="fa fa-file-contract"></i>
-                                                    <span class="ms-2">بنود عقد الإيجار</span>
+                                                    <span class="ms-2">{{ helperTrans('ingaz.rent_contract_terms') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -643,7 +643,7 @@
                                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#ingazDelegations"
                                         href="#">
                                         <i class="fa fa-passport"></i>
-                                        <span class="ms-2"> تفاويض الإنجاز </span>
+                                        <span class="ms-2">{{ helperTrans('ingaz.ingaz_delegations') }}</span>
                                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                                     </a>
                                     <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['ingaz-delegations.index', 'ingaz-delegations.create', 'ingaz-delegations.show', 'ingaz-delegations.edit']) ? 'show' : '' }}"
@@ -653,7 +653,7 @@
                                                 <a class="m-link {{ request()->routeIs('ingaz-delegations.create') ? 'active' : '' }}"
                                                     href="{{ route('ingaz-delegations.create') }}">
                                                     <i class="fa fa-plus"></i>
-                                                    <span class="ms-2">اضافة تفويض جديد</span>
+                                                    <span class="ms-2">{{ helperTrans('ingaz.add_ingaz_delegation') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -662,7 +662,7 @@
                                             <a class="m-link {{ request()->routeIs('ingaz-delegations.index') ? 'active' : '' }}"
                                                 href="{{ route('ingaz-delegations.index') }}">
                                                 <i class="fa fa-passport"></i>
-                                                <span class="ms-2">تفاويض الإنجاز</span>
+                                                <span class="ms-2">{{ helperTrans('ingaz.ingaz_delegations') }}</span>
                                             </a>
                                         </li>
                                     </ul>
@@ -705,7 +705,7 @@
                                                 <a class="m-link {{ Route::currentRouteName() == 'ShelterContract.index' ? 'active' : '' }}"
                                                     href="{{ route('ShelterContract.index') }}">
                                                     <i class="icon-loop"></i>
-                                                    <span class="ms-2"> داخل الإيواء</span>
+                                                    <span class="ms-2">{{ helperTrans('ingaz.inside_shelter') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -719,7 +719,7 @@
                                                 <a class="m-link {{ Route::currentRouteName() == 'ShelterContract.outside' ? 'active' : '' }}"
                                                     href="{{ route('ShelterContract.outside') }}">
                                                     <i class="fas fa-sign-out-alt"></i>
-                                                    <span class="ms-2"> خارج الإيواء</span>
+                                                    <span class="ms-2">{{ helperTrans('ingaz.outside_shelter') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -733,7 +733,7 @@
                                                 <a class="m-link {{ Route::currentRouteName() == 'ShelterContract.availableForTransfer' ? 'active' : '' }}"
                                                     href="{{ route('ShelterContract.availableForTransfer') }}">
                                                     <i class="fa fa-user"></i>
-                                                    <span class="ms-2">متاح للنقل</span>
+                                                    <span class="ms-2">{{ helperTrans('ingaz.available_for_transfer') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -747,7 +747,7 @@
                                                 <a class="m-link {{ Route::currentRouteName() == 'ShelterContract.deportationStage' ? 'active' : '' }}"
                                                     href="{{ route('ShelterContract.deportationStage') }}">
                                                     <i class="fa fa-plane"></i>
-                                                    <span class="ms-2">مرحلة الترحيل</span>
+                                                    <span class="ms-2">{{ helperTrans('ingaz.deportation_stage') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -761,7 +761,7 @@
                                                 <a class="m-link {{ Route::currentRouteName() == 'ShelterContract.deported' ? 'active' : '' }}"
                                                     href="{{ route('ShelterContract.deported') }}">
                                                     <i class="fa fa-check-circle"></i>
-                                                    <span class="ms-2">تم الترحيل</span>
+                                                    <span class="ms-2">{{ helperTrans('ingaz.deported') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -806,7 +806,7 @@
                                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#logisticsMenu"
                                         href="#">
                                         <i class="fa fa-truck"></i>
-                                        <span class="ms-2">الخدمات اللوجستية</span>
+                                        <span class="ms-2">{{ helperTrans('ingaz.logistics_services') }}</span>
                                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                                     </a>
                                     <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['DeportationTravel.index', 'DeportationTravel.create', 'DeportationTravel.edit', 'travel', 'travel.control', 'travel.edit']) ? 'show' : '' }}"
@@ -816,14 +816,14 @@
                                                 <a class="m-link {{ in_array(Route::currentRouteName(), ['DeportationTravel.index', 'DeportationTravel.create', 'DeportationTravel.edit']) ? 'active' : '' }}"
                                                     href="{{ route('DeportationTravel.index') }}">
                                                     <i class="fa fa-plane-departure"></i>
-                                                    <span class="ms-2">رحلات الترحيل</span>
+                                                    <span class="ms-2">{{ helperTrans('ingaz.deportation_trips') }}</span>
                                                 </a>
                                             </li>
                                             <li>
                                                 <a class="m-link {{ in_array(Route::currentRouteName(), ['travel', 'travel.control', 'travel.edit']) ? 'active' : '' }}"
                                                     href="{{ route('travel') }}">
                                                     <i class="fa fa-plane-arrival"></i>
-                                                    <span class="ms-2">رحلات الاستقدام</span>
+                                                    <span class="ms-2">{{ helperTrans('ingaz.recruitment_trips') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -858,7 +858,7 @@
                                                 <a class="m-link {{ Route::currentRouteName() == 'complaints.create' ? 'active' : '' }}"
                                                     href="{{ route('complaints.create') }}">
                                                     <i class="fa fa-plus-circle"></i>
-                                                    <span class="ms-2">إضافة شكوى جديدة</span>
+                                                    <span class="ms-2">{{ helperTrans('ingaz.add_complaint') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -913,7 +913,7 @@
                                                 <a class="m-link {{ Route::currentRouteName() == 'SponsorshipTransfer.webRequests' ? 'active' : '' }}"
                                                     href="{{ route('SponsorshipTransfer.webRequests') }}">
                                                     <i class="fa fa-globe"></i>
-                                                    <span class="ms-2">طلبات الموقع الخارجي</span>
+                                                    <span class="ms-2">{{ helperTrans('ingaz.website_requests') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -964,7 +964,7 @@
                                                 <a class="m-link {{ in_array(Route::currentRouteName(), ['transfer-contract-terms.index', 'transfer-contract-terms.create', 'transfer-contract-terms.edit']) ? 'active' : '' }}"
                                                     href="{{ route('transfer-contract-terms.index') }}">
                                                     <i class="fa fa-file-text"></i>
-                                                    <span class="ms-2">بنود عقد نقل الكفالة</span>
+                                                    <span class="ms-2">{{ helperTrans('ingaz.transfer_contract_terms') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -977,7 +977,7 @@
                                     <a class="m-link {{ request()->routeIs('reports.*') ? 'active' : '' }}"
                                         href="{{ route('reports.index') }}">
                                         <i class="fa fa-chart-pie me-2"></i>
-                                        <span class="ms-2">إدارة التقارير</span>
+                                        <span class="ms-2">{{ helperTrans('ingaz.reports_management') }}</span>
                                     </a>
                                 </li>
                             @endif
@@ -1040,7 +1040,7 @@
                     <li class="sidebar-module sidebar-module--messages collapsed">
                         <a class="m-link" data-bs-toggle="collapse" data-bs-target="#smsManagement" href="#">
                             <i class="fa fa-sms"></i>
-                            <span class="ms-2">إدارة الرسائل</span>
+                            <span class="ms-2">{{ helperTrans('ingaz.messages_management') }}</span>
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
                         <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['notifications.index', 'whatsapp.notifications.index', 'messages.index', 'notifications.settings']) || Request::is('admin/sms-templates*') ? 'show' : '' }}"
@@ -1050,7 +1050,7 @@
                                     <a class="m-link {{ Route::currentRouteName() == 'notifications.index' ? 'active' : '' }}"
                                         href="{{ route('notifications.index') }}">
                                         <i class="fa fa-paper-plane"></i>
-                                        <span class="ms-2">إرسال الرسائل النصية (SMS)</span>
+                                        <span class="ms-2">{{ helperTrans('ingaz.send_sms_messages') }}</span>
                                     </a>
                                 </li>
                             @endif
@@ -1059,7 +1059,7 @@
                                     <a class="m-link {{ Route::currentRouteName() == 'whatsapp.notifications.index' ? 'active' : '' }}"
                                         href="{{ route('whatsapp.notifications.index') }}">
                                         <i class="fa fa-whatsapp text-success"></i>
-                                        <span class="ms-2">إرسال رسائل واتساب</span>
+                                        <span class="ms-2">{{ helperTrans('ingaz.send_whatsapp_messages') }}</span>
                                     </a>
                                 </li>
                             @endif
@@ -1068,7 +1068,7 @@
                                     <a class="m-link {{ Route::currentRouteName() == 'notifications.settings' ? 'active' : '' }}"
                                         href="{{ route('notifications.settings') }}">
                                         <i class="fa fa-plug"></i>
-                                        <span class="ms-2">إعدادات الربط</span>
+                                        <span class="ms-2">{{ helperTrans('ingaz.integration_settings') }}</span>
                                     </a>
                                 </li>
                             @endif
@@ -1077,7 +1077,7 @@
                                     <a class="m-link {{ Route::currentRouteName() == 'messages.index' ? 'active' : '' }}"
                                         href="{{ route('messages.index') }}">
                                         <i class="fa fa-inbox"></i>
-                                        <span class="ms-2">جميع الرسائل المرسلة</span>
+                                        <span class="ms-2">{{ helperTrans('ingaz.sent_messages') }}</span>
                                     </a>
                                 </li>
                             @endif
@@ -1085,7 +1085,7 @@
                                 <a class="m-link {{ Request::is('admin/sms-templates*') ? 'active' : '' }}"
                                     href="/admin/sms-templates">
                                     <i class="fa fa-sms"></i>
-                                    <span class="ms-2">قوالب الرسائل النصية</span>
+                                    <span class="ms-2">{{ helperTrans('ingaz.sms_templates') }}</span>
                                 </a>
                             </li>
                         </ul>
@@ -1112,7 +1112,7 @@
                         <a class="m-link" data-bs-toggle="collapse" data-bs-target="#settingsOperation"
                             href="#">
                             <i class="fa fa-cog fa-lg"></i>
-                            <span class="ms-2">اعدادات النظام</span>
+                            <span class="ms-2">{{ helperTrans('ingaz.system_settings') }}</span>
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
                         <ul class="sub-menu collapse {{ $settingsOperationOpen ? 'show' : '' }}" id="settingsOperation">
@@ -1162,7 +1162,7 @@
                                             <li>
                                                 <a class="m-link" href="{{ route('istiqdam.index') }}">
                                                     <i class="fa fa-building"></i>
-                                                    <span class="ms-2">منصة الاستقدام</span>
+                                                    <span class="ms-2">{{ helperTrans('ingaz.recruitment_platform') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -1171,8 +1171,8 @@
                                                 <a class="m-link {{ Request::is('migration/*') || Request::is('migration.php') ? 'active' : '' }}"
                                                     href="/migration/new_migration_system.php">
                                                     <i class="fa fa-exchange"></i>
-                                                    <span class="ms-2">نظام نقل البيانات</span>
-                                                    <span class="badge bg-success ms-2">محدث</span>
+                                                    <span class="ms-2">{{ helperTrans('ingaz.data_migration_system') }}</span>
+                                                    <span class="badge bg-success ms-2">{{ helperTrans('ingaz.updated') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -1378,7 +1378,7 @@
                                                 <a class="m-link {{ Route::currentRouteName() == 'cities.index' ? 'active' : '' }}"
                                                     href="{{ route('cities.index') }}">
                                                     <i class="fa fa-city"></i>
-                                                    <span class="ms-2">المدن</span>
+                                                    <span class="ms-2">{{ helperTrans('ingaz.cities') }}</span>
                                                 </a>
                                             </li>
                                             {{--                            <li> --}}
@@ -1393,7 +1393,7 @@
                                             <li>
                                                 <a class="m-link" href="{{ route('social-statuses.index') }}">
                                                     <i class="fa fa-heart"></i>
-                                                    <span class="ms-2">الحالات الاجتماعية</span>
+                                                    <span class="ms-2">{{ helperTrans('ingaz.social_statuses') }}</span>
 
                                                 </a>
                                             </li>

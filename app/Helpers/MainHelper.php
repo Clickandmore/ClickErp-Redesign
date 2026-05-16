@@ -731,7 +731,19 @@ function remove_invalid_characters($str): string
 
 function get_api_lang(): string
 {
-    return request()->header('lang') ?? 'ar';
+    $locale = request()->header('lang')
+        ?? request()->route('locale')
+        ?? app()->getLocale()
+        ?? 'ar';
+
+    $locale = strtolower((string) $locale);
+    $supportedLocales = array_keys(config('laravellocalization.supportedLocales', []));
+
+    if (!empty($supportedLocales) && in_array($locale, $supportedLocales, true)) {
+        return $locale;
+    }
+
+    return in_array($locale, ['ar', 'en'], true) ? $locale : 'ar';
 }
 
 if (!function_exists('generalReturn')) {
