@@ -38,23 +38,16 @@
     </div>
 
     <div class="col-md-4 col-12">
-        @php
-            $currentCountry = collect($countries)->firstWhere('id', $obj->country_id);
-            $currentCountryLabel = $currentCountry
-                ? (trim((string) ($currentCountry->name ?? '')) ?: __("hr::hr.Countries") . ' #' . $currentCountry->id)
-                : '';
-        @endphp
-        <label for="country_name" class="form-label"> {{ __("hr::hr.nationality") }} </label>
-        <input type="search" id="country_name" class="form-control employee-country-input" list="countries_list" data-target="#country_id" value="{{ $currentCountryLabel }}" placeholder="{{ __("hr::hr.Search by nationality or country") }}" data-validation="required" autocomplete="off">
-        <input type="hidden" id="country_id" name="country_id" value="{{ $obj->country_id }}">
-        <datalist id="countries_list">
-            @foreach ($countries as $country)
+        <label for="country_id" class="form-label"> {{ __("hr::hr.nationality") }} </label>
+        <select id="country_id" name="country_id" class="form-control employee-country-select" data-validation="required" data-placeholder="{{ __("hr::hr.Search by nationality or country") }}" style="width: 100%;">
+            <option value="">{{ __("hr::hr.Search by nationality or country") }}</option>
+            @foreach ($hrCountries as $country)
                 @php
                     $countryLabel = trim((string) ($country->name ?? '')) ?: __("hr::hr.Countries") . ' #' . $country->id;
                 @endphp
-                <option value="{{ $countryLabel }}" data-id="{{ $country->id }}"></option>
+                <option value="{{ $country->id }}" @selected((string) old('country_id', $obj->country_id) === (string) $country->id)>{{ $countryLabel }}</option>
             @endforeach
-        </datalist>
+        </select>
         @if($obj->maid_id && optional($obj->maid)->nationality)
             <small class="text-muted d-block mt-2">{{ __("hr::hr.CV nationality") }}: {{ $obj->maid->nationality->sub_title ?? $obj->maid->nationality->title }}</small>
         @else

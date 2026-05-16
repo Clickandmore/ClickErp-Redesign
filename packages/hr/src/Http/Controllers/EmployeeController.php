@@ -209,12 +209,12 @@ class EmployeeController extends Controller
         if ($request->filled('admin_id')) {
             $sourceAdmin = Admin::query()
                 ->whereNull('deleted_at')
-                ->find($request->integer('admin_id'));
+                ->find((int) $request->input('admin_id'));
         }
 
         return view($this->folderPath . ".create")->with([
             'employees' => $action->getEmployeesName(),
-            'countries' => $action->getCountries(),
+            'hrCountries' => $action->getCountries(),
             'departments' => $action->getdepartment(),
             'jobs' => $action->getJob(),
             'shifts' => $action->getShift(),
@@ -231,7 +231,7 @@ class EmployeeController extends Controller
     {
         $dataInsert = $request->only($this->postData);
         if (Schema::hasColumn('hr_employee', 'admin_id') && $request->filled('admin_id')) {
-            $dataInsert['admin_id'] = $request->integer('admin_id');
+            $dataInsert['admin_id'] = (int) $request->input('admin_id');
         }
         $data = $action->storeEmployee($dataInsert, $request);
         return jsonSuccess($data, null, 201);
@@ -266,7 +266,7 @@ class EmployeeController extends Controller
         return view($this->folderPath . ".edit")->with([
             "obj" => $employee,
             'employees' => $action->getEmployeesName(),
-            'countries' => $action->getCountries(),
+            'hrCountries' => $action->getCountries(),
             'departments' => $action->getdepartment(),
             'jobs' => $action->getJob(),
             'shifts' => $action->getShift(),
