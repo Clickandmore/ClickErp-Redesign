@@ -5,6 +5,7 @@ namespace App\Http\Requests\ingaz;
 use App\Http\Requests\MainRequest;
 use Illuminate\Foundation\Http\FormRequest;
 use App\Models\ingaz\Order;
+use App\Models\ingaz\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Illuminate\Contracts\Validation\Validator;
@@ -68,6 +69,21 @@ class StoreContractRequest extends MainRequest
             $newField = 'new_' . $field;
             if ($this->filled($newField) && !$this->filled($field)) {
                 $normalizedData[$field] = $this->input($newField);
+            }
+        }
+
+        if (
+            !$this->filled('client_id')
+            && !$this->filled('new_existing_client_id')
+            && $this->input('client_type') === 'new_client'
+            && ($normalizedData['client_phone'] ?? $this->filled('client_phone'))
+        ) {
+            $clientPhone = $normalizedData['client_phone'] ?? $this->input('client_phone');
+            $existingClient = User::where('phone', $clientPhone)->first();
+
+            if ($existingClient) {
+                $normalizedData['client_id'] = $existingClient->id;
+                $normalizedData['new_existing_client_id'] = $existingClient->id;
             }
         }
 
