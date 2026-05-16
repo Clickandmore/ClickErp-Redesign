@@ -389,6 +389,15 @@
             : (optional($currentContract?->maid?->nationality ?? $currentContract?->requiredMaidNationality)->sub_title ?:
                 (optional($currentContract?->maid?->nationality ?? $currentContract?->requiredMaidNationality)->title ?:
                     'غير محدد'));
+        $currentNationalityModel = $isDelegationInvoice
+            ? $selectedIngazDelegation?->nationality
+            : ($currentContract?->maid?->nationality ?? $currentContract?->requiredMaidNationality);
+        $currentNationalityCosts = [
+            'direct_recruitment_cost' => (float) ($currentNationalityModel?->direct_recruitment_cost ?? 0),
+            'external_recruitment_cost' => (float) ($currentNationalityModel?->external_recruitment_cost ?? 0),
+            'government_cost' => (float) ($currentNationalityModel?->government_cost ?? 0),
+        ];
+        $currentNationalityHasCosts = collect($currentNationalityCosts)->contains(fn ($value) => (float) $value > 0);
         $currentContractStatus = $currentContract
             ? getEnumValue('contract_statuses', $currentContract->status) ?? ($currentContract->status ?? 'غير محدد')
             : ($isDelegationInvoice ? ($selectedIngazDelegation?->status_label ?? 'غير محدد') : 'غير محدد');
@@ -469,16 +478,23 @@
                                             </option>
                                             @foreach ($contracts as $contract)
                                                 @php
+                                                    $contractNationalityModel =
+                                                        $contract->maid?->nationality ??
+                                                        $contract->requiredMaidNationality;
                                                     $contractNationality =
                                                         optional(
-                                                            $contract->maid?->nationality ??
-                                                                $contract->requiredMaidNationality,
+                                                            $contractNationalityModel,
                                                         )->sub_title ?:
                                                         (optional(
-                                                            $contract->maid?->nationality ??
-                                                                $contract->requiredMaidNationality,
+                                                            $contractNationalityModel,
                                                         )->title ?:
                                                         'غير محدد');
+                                                    $contractNationalityCosts = [
+                                                        'direct_recruitment_cost' => (float) ($contractNationalityModel?->direct_recruitment_cost ?? 0),
+                                                        'external_recruitment_cost' => (float) ($contractNationalityModel?->external_recruitment_cost ?? 0),
+                                                        'government_cost' => (float) ($contractNationalityModel?->government_cost ?? 0),
+                                                    ];
+                                                    $contractNationalityHasCosts = collect($contractNationalityCosts)->contains(fn ($value) => (float) $value > 0);
                                                     $contractStatus =
                                                         getEnumValue('contract_statuses', $contract->status) ??
                                                         ($contract->status ?? 'غير محدد');
@@ -495,6 +511,10 @@
                                                     data-client-identity="{{ e($contract->user?->national_num ?? 'غير محدد') }}"
                                                     data-nationality="{{ e($contractNationality) }}"
                                                     data-status="{{ e($contractStatus) }}"
+                                                    data-direct-cost="{{ $contractNationalityCosts['direct_recruitment_cost'] }}"
+                                                    data-external-cost="{{ $contractNationalityCosts['external_recruitment_cost'] }}"
+                                                    data-government-cost="{{ $contractNationalityCosts['government_cost'] }}"
+                                                    data-has-nationality-costs="{{ $contractNationalityHasCosts ? 1 : 0 }}"
                                                     {{ (string) $selectedContractId === (string) $contract->id ? 'selected' : '' }}>
                                                     {{ $contract->desc ?? 'العقد #' . $contract->id }}
                                                 </option>
@@ -529,6 +549,11 @@
                                 <i class="fas fa-sack-dollar"></i>
                                 بنود التكلفة
                             </div>
+                            <div class="alert {{ $currentNationalityHasCosts ? 'alert-info' : 'alert-warning' }} py-2 mb-3" id="nationalityCostHint">
+                                {{ $currentNationalityHasCosts
+                                    ? 'تم تحميل تكاليف الاستقدام المحفوظة على الجنسية المحددة.'
+                                    : 'لا توجد تكاليف استقدام محفوظة لهذه الجنسية. أدخل القيم هنا وسيتم حفظها على الجنسية عند إصدار الفاتورة.' }}
+                            </div>
 
                             <div class="row g-3">
                                 <div class="col-md-6 col-lg-4">
@@ -540,19 +565,19 @@
                                     <label class="form-label" for="direct_recruitment_cost">الاستقدام المباشر</label>
                                     <input type="number" step="0.01" min="0" name="direct_recruitment_cost"
                                         id="direct_recruitment_cost" class="form-control calc-input"
-                                        value="{{ old('direct_recruitment_cost', 0) }}">
+                                        value="{{ old('direct_recruitment_cost', $currentNationalityCosts['direct_recruitment_cost']) }}">
                                 </div>
                                 <div class="col-md-6 col-lg-4">
                                     <label class="form-label" for="external_recruitment_cost">الاستقدام الخارجي</label>
                                     <input type="number" step="0.01" min="0" name="external_recruitment_cost"
                                         id="external_recruitment_cost" class="form-control calc-input"
-                                        value="{{ old('external_recruitment_cost', 0) }}">
+                                        value="{{ old('external_recruitment_cost', $currentNationalityCosts['external_recruitment_cost']) }}">
                                 </div>
                                 <div class="col-md-6 col-lg-4">
                                     <label class="form-label" for="government_cost">تكاليف حكومية</label>
                                     <input type="number" step="0.01" min="0" name="government_cost"
                                         id="government_cost" class="form-control calc-input"
-                                        value="{{ old('government_cost', 0) }}">
+                                        value="{{ old('government_cost', $currentNationalityCosts['government_cost']) }}">
                                 </div>
                                 <div class="col-md-6 col-lg-4">
                                     <label class="form-label" for="internal_ticket_cost">التذكرة الداخلية</label>
@@ -851,6 +876,35 @@
                 $(selector).text(value && String(value).trim() !== '' ? value : fallback);
             }
 
+            function setCostValue(selector, value) {
+                const parsed = parseFloat(value);
+                $(selector).val(Number.isFinite(parsed) ? parsed.toFixed(2) : '0.00');
+            }
+
+            function updateNationalityCostHint(hasCosts) {
+                const $hint = $('#nationalityCostHint');
+                if (!$hint.length) {
+                    return;
+                }
+
+                $hint
+                    .toggleClass('alert-info', hasCosts)
+                    .toggleClass('alert-warning', !hasCosts)
+                    .text(hasCosts
+                        ? 'تم تحميل تكاليف الاستقدام المحفوظة على الجنسية المحددة.'
+                        : 'لا توجد تكاليف استقدام محفوظة لهذه الجنسية. أدخل القيم هنا وسيتم حفظها على الجنسية عند إصدار الفاتورة.');
+            }
+
+            function applyNationalityCosts($option) {
+                const hasOption = $option && $option.length && $option.val();
+                const hasCosts = hasOption && Number($option.attr('data-has-nationality-costs')) === 1;
+
+                setCostValue('#direct_recruitment_cost', hasOption ? $option.attr('data-direct-cost') : 0);
+                setCostValue('#external_recruitment_cost', hasOption ? $option.attr('data-external-cost') : 0);
+                setCostValue('#government_cost', hasOption ? $option.attr('data-government-cost') : 0);
+                updateNationalityCostHint(Boolean(hasCosts));
+            }
+
             function updateContractPreview() {
                 const $select = $('#contract_id');
 
@@ -869,6 +923,8 @@
                     setPreviewValue('#previewContractStatus', '');
                     setPreviewValue('#previewClientIdentity', '');
                     setPreviewValue('#previewClientPhone', '');
+                    applyNationalityCosts(null);
+                    updateCalculation();
                     return;
                 }
 
@@ -879,6 +935,8 @@
                 setPreviewValue('#previewContractStatus', $selectedOption.data('status'));
                 setPreviewValue('#previewClientIdentity', $selectedOption.data('client-identity'));
                 setPreviewValue('#previewClientPhone', $selectedOption.data('client-phone'));
+                applyNationalityCosts($selectedOption);
+                updateCalculation();
             }
 
             function updateCalculation() {

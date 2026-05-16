@@ -28,9 +28,10 @@ class PhoneVerificationAction extends MainAction
         $phone_isset = $this->model->where('phone', $request->phone)
             ->where('phone_code', $request->phone_code)->first();
 
-        $code = CommunicationSettings::smsIsConfigured()
-            ? sprintf('%05d', rand(0, 99999))
-            : '12345';
+        $verificationDisabled = CommunicationSettings::phoneVerificationIsDisabled();
+        $code = $verificationDisabled || !CommunicationSettings::smsIsConfigured()
+            ? CommunicationSettings::phoneVerificationBypassCode()
+            : sprintf('%05d', rand(0, 99999));
 
         if ($phone_isset) {
             $phone_isset->update(["code" => $code]);
@@ -38,6 +39,10 @@ class PhoneVerificationAction extends MainAction
             $data['code'] = $code;
             $storedData = $this->store(data: $data);
             $code = $storedData->code;
+        }
+
+        if ($verificationDisabled) {
+            return ["code" => $code, 'verification_disabled' => true];
         }
 
         $app_domain_name = (string) (CommunicationSettings::sms()['app_domain_for_msegat'] ?? 'aqro.sa');
@@ -99,6 +104,11 @@ class PhoneVerificationAction extends MainAction
 
     public function confirmCode($request)
     {
+        if (CommunicationSettings::phoneVerificationIsDisabled()
+            && hash_equals(CommunicationSettings::phoneVerificationBypassCode(), (string) $request->code)) {
+            return $this->confirmedResponse($request);
+        }
+
         $code_isset = $this->model->where('phone', $request->phone)
             ->where('phone_code', $request->phone_code)
             ->where('code', $request->code)
@@ -108,6 +118,11 @@ class PhoneVerificationAction extends MainAction
             return false;
         }
 
+        return $this->confirmedResponse($request);
+    }
+
+    private function confirmedResponse($request)
+    {
         $user = User::where('phone', $request->phone)
             ->where('phone_code', $request->phone_code)
             ->first();
