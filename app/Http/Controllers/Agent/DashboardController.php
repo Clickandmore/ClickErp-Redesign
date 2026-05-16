@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Contract;
 use App\Models\ingaz\Maid;
 use App\Models\office\Office;
+use App\Enums\ingaz\ContractStatusEnum;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -121,6 +122,144 @@ class DashboardController extends Controller
         return view('agent.contracts.index', compact('contracts', 'statuses'));
     }
 
+    public function dispatches(Request $request)
+    {
+        $officeIds = $this->agentOfficeIds();
+        $currentStatuses = $this->currentRecruitmentStatuses();
+
+        $baseQuery = Contract::query()
+            ->where(function (Builder $query) use ($officeIds) {
+                $query->whereHas('maid', function (Builder $maidQuery) use ($officeIds) {
+                    $maidQuery->whereIn('office_id', $officeIds->all());
+                });
+
+                if (Schema::hasTable('contract_infos') && Schema::hasColumn('contract_infos', 'manual_maid_office_id')) {
+                    $query->orWhereHas('info', function (Builder $infoQuery) use ($officeIds) {
+                        $infoQuery->whereIn('manual_maid_office_id', $officeIds->all());
+                    });
+                }
+            })
+            ->whereIn('type', ['recruitment', 'maid'])
+            ->where(function ($inner) use ($currentStatuses) {
+                $inner->whereIn('status', $currentStatuses)
+                    ->orWhereHas('externalOfficeDispatch');
+            });
+
+        $query = (clone $baseQuery)
+            ->with([
+                'user',
+                'maid.religion',
+                'maid.office',
+                'maid.recruitmentOffice',
+                'info',
+                'info.manualMaidOffice',
+                'externalOfficeDispatch',
+            ])
+            ->latest('id');
+
+        $dispatchFilter = $request->get('dispatch_filter', 'sent');
+
+        if ($dispatchFilter === 'not_sent') {
+            $query->whereIn('status', $currentStatuses)
+                ->whereDoesntHave('externalOfficeDispatch');
+        } elseif ($dispatchFilter === 'sent') {
+            $query->whereHas('externalOfficeDispatch');
+        }
+
+        if ($request->filled('search')) {
+            $search = trim((string) $request->input('search'));
+            $query->where(function (Builder $innerQuery) use ($search) {
+                $innerQuery->where('id', 'like', '%' . $search . '%')
+                    ->orWhereHas('info', function ($infoQuery) use ($search) {
+                        $infoQuery->where('visa_number', 'like', '%' . $search . '%');
+                    })
+                    ->orWhereHas('user', function ($userQuery) use ($search) {
+                        $userQuery->where('name', 'like', '%' . $search . '%')
+                            ->orWhere('national_num', 'like', '%' . $search . '%');
+                    })
+                    ->orWhereHas('maid', function ($maidQuery) use ($search) {
+                        $maidQuery->where('name', 'like', '%' . $search . '%')
+                            ->orWhere('passport_num', 'like', '%' . $search . '%');
+                    });
+            });
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->input('status'));
+        }
+
+        $contracts = $query->paginate(15)->appends($request->query());
+
+        $stats = [
+            'all' => (clone $baseQuery)->count(),
+            'sent' => (clone $baseQuery)->whereHas('externalOfficeDispatch')->count(),
+            'not_sent' => (clone $baseQuery)
+                ->whereIn('status', $currentStatuses)
+                ->whereDoesntHave('externalOfficeDispatch')
+                ->count(),
+        ];
+
+        return view('agent.dispatches.index', compact('contracts', 'stats', 'dispatchFilter'));
+    }
+
+    private function currentRecruitmentStatuses(): array
+    {
+        return [
+            ContractStatusEnum::PendingMaidSelection->value,
+            ContractStatusEnum::New->value,
+            ContractStatusEnum::Msaned->value,
+            ContractStatusEnum::Tafwed->value,
+            ContractStatusEnum::Taffez->value,
+            ContractStatusEnum::Tazker->value,
+        ];
+    }
+
+    public function invoices(Request $request)
+    {
+        $officeIds = $this->agentOfficeIds();
+
+        $query = Contract::query()
+            ->where(function (Builder $query) use ($officeIds) {
+                $query->whereHas('maid', function (Builder $maidQuery) use ($officeIds) {
+                    $maidQuery->whereIn('office_id', $officeIds->all());
+                });
+
+                if (Schema::hasTable('contract_infos') && Schema::hasColumn('contract_infos', 'manual_maid_office_id')) {
+                    $query->orWhereHas('info', function (Builder $infoQuery) use ($officeIds) {
+                        $infoQuery->whereIn('manual_maid_office_id', $officeIds->all());
+                    });
+                }
+            })
+            ->whereHas('invoice')
+            ->with(['user', 'maid.nationality', 'invoice'])
+            ->latest('id');
+
+        if ($request->filled('search')) {
+            $search = trim((string) $request->input('search'));
+            $query->where(function (Builder $innerQuery) use ($search) {
+                $innerQuery->where('id', $search)
+                    ->orWhereHas('user', function (Builder $userQuery) use ($search) {
+                        $userQuery->where('name', 'like', '%' . $search . '%')
+                            ->orWhere('phone', 'like', '%' . $search . '%');
+                    })
+                    ->orWhereHas('invoice', function (Builder $invQuery) use ($search) {
+                        $invQuery->where('id', $search);
+                    });
+            });
+        }
+
+        if ($request->filled('is_paid')) {
+            $isPaid = $request->input('is_paid') === '1';
+            $query->whereHas('invoice', function (Builder $invQuery) use ($isPaid) {
+                $invQuery->where('is_paid', $isPaid);
+            });
+        }
+
+        $contracts = $query->paginate(15)->appends($request->query());
+
+        return view('agent.invoices.index', compact('contracts'));
+    }
+
     public function showContract(Contract $contract)
     {
         $contract = $this->contractsQuery()
@@ -132,6 +271,7 @@ class DashboardController extends Controller
                 'maid.office',
                 'info.manualMaidOffice',
                 'externalOfficeDispatch',
+                'invoice',
             ])
             ->whereKey($contract->id)
             ->firstOrFail();

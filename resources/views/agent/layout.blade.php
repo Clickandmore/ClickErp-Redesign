@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('page-title', 'Agent Dashboard')</title>
     <link rel="stylesheet" href="{{ asset('admin') }}/assets/css/luno-style.css">
+    <link rel="stylesheet" href="{{ asset('admin') }}/assets/css/custom.css">
     <link rel="stylesheet" href="{{ asset('admin/login') }}/css/fontawesome.min.css">
     <style>
         :root {
@@ -28,7 +29,7 @@
             margin: 0;
             color: var(--agent-ink);
             background: var(--agent-bg);
-            font-family: Tahoma, Arial, sans-serif;
+            font-family: "Baloo Bhaijaan 2", Tahoma, Arial, sans-serif;
             letter-spacing: 0;
         }
 
@@ -615,6 +616,14 @@
                 <a href="{{ route('agent.contracts.index') }}" class="{{ request()->routeIs('agent.contracts.*') ? 'active' : '' }}">
                     <i class="fa fa-file-signature"></i>
                     <span>{{ app()->getLocale() === 'ar' ? 'العقود' : 'Contracts' }}</span>
+                </a>
+                <a href="{{ route('agent.dispatches.index') }}" class="{{ request()->routeIs('agent.dispatches.*') ? 'active' : '' }}">
+                    <i class="fa fa-truck-fast"></i>
+                    <span>{{ app()->getLocale() === 'ar' ? 'الإرساليات' : 'Dispatches' }}</span>
+                </a>
+                <a href="{{ route('agent.invoices.index') }}" class="{{ request()->routeIs('agent.invoices.*') ? 'active' : '' }}">
+                    <i class="fa fa-file-invoice-dollar"></i>
+                    <span>{{ app()->getLocale() === 'ar' ? 'الفواتير' : 'Invoices' }}</span>
                 </a>
 
                 <form action="{{ route('agent.logout') }}" method="POST">

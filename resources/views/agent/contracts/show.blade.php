@@ -88,30 +88,74 @@
 
     <section class="agent-section">
         <div class="agent-section-header">
-            <h3>External Office Dispatch</h3>
+            <h3>{{ app()->getLocale() === 'ar' ? 'إرسالية المكتب الخارجي' : 'External Office Dispatch' }}</h3>
         </div>
 
         @if ($contract->externalOfficeDispatch)
             <div class="agent-detail-grid">
                 <div class="agent-detail-item">
-                    <span>Dispatch Date</span>
+                    <span>{{ app()->getLocale() === 'ar' ? 'تاريخ الإرسالية' : 'Dispatch Date' }}</span>
                     <strong>{{ optional($contract->externalOfficeDispatch->dispatch_date)->format('Y-m-d') ?: '-' }}</strong>
                 </div>
                 <div class="agent-detail-item">
-                    <span>Arrival Station</span>
+                    <span>{{ app()->getLocale() === 'ar' ? 'محطة الوصول' : 'Arrival Station' }}</span>
                     <strong>{{ $contract->externalOfficeDispatch->arrival_station ?: '-' }}</strong>
                 </div>
                 <div class="agent-detail-item">
-                    <span>Office Contract Cost USD</span>
+                    <span>{{ app()->getLocale() === 'ar' ? 'تكلفة العقد بالدولار' : 'Office Contract Cost USD' }}</span>
                     <strong>{{ $contract->externalOfficeDispatch->office_contract_cost_usd ? formatMoney($contract->externalOfficeDispatch->office_contract_cost_usd) : '-' }}</strong>
                 </div>
                 <div class="agent-detail-item">
-                    <span>Last Update</span>
+                    <span>{{ app()->getLocale() === 'ar' ? 'آخر تحديث' : 'Last Update' }}</span>
                     <strong>{{ optional($contract->externalOfficeDispatch->updated_at)->format('Y-m-d') ?: '-' }}</strong>
                 </div>
             </div>
         @else
-            <p class="agent-empty">No dispatch record has been added for this contract.</p>
+            <p class="agent-empty">{{ app()->getLocale() === 'ar' ? 'لم يتم إضافة سجل إرسالية لهذا العقد.' : 'No dispatch record has been added for this contract.' }}</p>
+        @endif
+    </section>
+
+    <section class="agent-section">
+        <div class="agent-section-header">
+            <h3>{{ app()->getLocale() === 'ar' ? 'معلومات الفاتورة' : 'Invoice Information' }}</h3>
+            @if ($contract->invoice)
+                <span class="agent-badge {{ $contract->invoice->is_paid ? 'success' : 'warning' }}">
+                    {{ $contract->invoice->is_paid ? (app()->getLocale() === 'ar' ? 'مدفوعة' : 'Paid') : (app()->getLocale() === 'ar' ? 'غير مدفوعة' : 'Unpaid') }}
+                </span>
+            @endif
+        </div>
+
+        @if ($contract->invoice)
+            <div class="agent-detail-grid">
+                <div class="agent-detail-item">
+                    <span>{{ app()->getLocale() === 'ar' ? 'رقم الفاتورة' : 'Invoice Number' }}</span>
+                    <strong>#{{ $contract->invoice->id }}</strong>
+                </div>
+                <div class="agent-detail-item">
+                    <span>{{ app()->getLocale() === 'ar' ? 'تاريخ الدفع' : 'Paid At' }}</span>
+                    <strong>{{ $contract->invoice->paid_at ? $contract->invoice->paid_at->format('Y-m-d') : '-' }}</strong>
+                </div>
+                <div class="agent-detail-item">
+                    <span>{{ app()->getLocale() === 'ar' ? 'المجموع الفرعي' : 'Subtotal' }}</span>
+                    <strong>{{ formatMoney($contract->invoice->subtotal) }}</strong>
+                </div>
+                <div class="agent-detail-item">
+                    <span>{{ app()->getLocale() === 'ar' ? 'الضريبة' : 'VAT' }}</span>
+                    <strong>{{ formatMoney($contract->invoice->vat_amount) }}</strong>
+                </div>
+                <div class="agent-detail-item">
+                    <span>{{ app()->getLocale() === 'ar' ? 'الإجمالي' : 'Total Due' }}</span>
+                    <strong>{{ formatMoney($contract->invoice->total_due) }}</strong>
+                </div>
+                @if ($contract->invoice->external_recruitment_cost > 0)
+                    <div class="agent-detail-item">
+                        <span>{{ app()->getLocale() === 'ar' ? 'تكلفة الاستقدام الخارجي' : 'External Recruitment Cost' }}</span>
+                        <strong>{{ formatMoney($contract->invoice->external_recruitment_cost) }}</strong>
+                    </div>
+                @endif
+            </div>
+        @else
+            <p class="agent-empty">{{ app()->getLocale() === 'ar' ? 'لا توجد فاتورة مرتبطة بهذا العقد.' : 'No invoice record has been found for this contract.' }}</p>
         @endif
     </section>
 @endsection

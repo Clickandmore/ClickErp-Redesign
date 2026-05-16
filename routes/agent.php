@@ -20,6 +20,8 @@ Route::group(
                 Route::get('maids', [DashboardController::class, 'maids'])->name('maids.index');
                 Route::get('contracts', [DashboardController::class, 'contracts'])->name('contracts.index');
                 Route::get('contracts/{contract}', [DashboardController::class, 'showContract'])->name('contracts.show');
+                Route::get('external-office-dispatches', [DashboardController::class, 'dispatches'])->name('dispatches.index');
+                Route::get('invoices', [DashboardController::class, 'invoices'])->name('invoices.index');
                 Route::post('logout', [AuthController::class, 'logout'])->name('logout');
             });
         });
