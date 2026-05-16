@@ -77,6 +77,20 @@
     </a>
 </li>
 {{--@endif--}}
+<li>
+    <a class="m-link {{ in_array(Route::currentRouteName(), ['employee-custodies.index', 'employee-custodies.create', 'employee-custodies.edit']) ? 'active' : '' }}"
+       href="{{ route('employee-custodies.index') }}">
+        <i class="fas fa-briefcase"></i>
+        <span class="ms-2"> {{ __('hr::hr.employee_custodies') }}</span>
+    </a>
+</li>
+<li>
+    <a class="m-link {{ request()->routeIs('employee-custody-locations.*') ? 'active' : '' }}"
+       href="{{ route('employee-custody-locations.index') }}">
+        <i class="fas fa-map-marker-alt"></i>
+        <span class="ms-2"> {{ __('hr::hr.custody_locations') }}</span>
+    </a>
+</li>
 {{--@if (in_array('employeeSanctions-read', $user_permission_list))--}}
 <li>
     <a class="m-link {{ Route::currentRouteName() == 'employeeSanctions.index' ? 'active' : '' }}"

@@ -55,6 +55,20 @@
     </a>
 </li>
 <li>
+    <a class="m-link {{ request()->routeIs('employee-custodies.*') ? 'active' : '' }}"
+       href="{{ route('employee-custodies.index') }}">
+        <i class="fas fa-briefcase"></i>
+        <span class="ms-2">{{ __('hr::hr.employee_custodies') }}</span>
+    </a>
+</li>
+<li>
+    <a class="m-link {{ request()->routeIs('employee-custody-locations.*') ? 'active' : '' }}"
+       href="{{ route('employee-custody-locations.index') }}">
+        <i class="fas fa-map-marker-alt"></i>
+        <span class="ms-2">{{ __('hr::hr.custody_locations') }}</span>
+    </a>
+</li>
+<li>
     <a class="m-link {{ request()->routeIs('employeeSanctions.*') ? 'active' : '' }}"
        href="{{ route('employeeSanctions.index') }}">
         <i class="fas fa-exclamation-triangle"></i>

@@ -105,13 +105,13 @@ class EmployeeController extends Controller
                         $actions = [];
 
                         if ($row->maid_id && \Illuminate\Support\Facades\Route::has('showMaidDetails')) {
-                            $actions[] = '<a type="button" class="btn btn-info" href="' . route('showMaidDetails', $row->maid_id) . '">
+                            $actions[] = '<a type="button" class="btn btn-info" title="' . __('hr::hr.view_maid_details') . '" href="' . route('showMaidDetails', $row->maid_id) . '">
                                 <i class="fa fa-eye"></i>
                             </a>';
                         }
 
                         if ($row->maid_id && \Illuminate\Support\Facades\Route::has('maids.edit')) {
-                            $actions[] = '<a type="button" class="btn btn-primary" href="' . route('maids.edit', $row->maid_id) . '">
+                            $actions[] = '<a type="button" class="btn btn-primary" title="' . __('hr::hr.edit_maid') . '" href="' . route('maids.edit', $row->maid_id) . '">
                                 <i class="fa fa-pencil"></i>
                             </a>';
                         }
@@ -119,7 +119,7 @@ class EmployeeController extends Controller
                         if ($row->maid_id && \Illuminate\Support\Facades\Route::has('hr.maids.employ')) {
                             $actions[] = '<form method="POST" action="' . route('hr.maids.employ', $row->maid_id) . '" class="d-inline-block">'
                                 . csrf_field()
-                                . '<button type="submit" class="btn btn-success" title="توظيف العاملة">'
+                                . '<button type="submit" class="btn btn-success" title="' . __('hr::hr.employ_maid') . '">'
                                 . '<i class="fa fa-user-plus"></i>'
                                 . '</button>'
                                 . '</form>';
@@ -171,12 +171,12 @@ class EmployeeController extends Controller
     public function employMaid(int $maidId, \App\Http\Actions\ingaz\MaidAction $maidAction)
     {
         if (!class_exists(\App\Models\ingaz\Maid::class)) {
-            return back()->with('error', 'تعذر الوصول إلى سجل العاملة.');
+            return back()->with('error', __('hr::hr.maid_record_unavailable'));
         }
 
         if (!\Illuminate\Support\Facades\Schema::hasTable('hr_employee')
             || !objModel::hasEmployeeCategoryColumn()) {
-            return back()->with('error', 'يلزم تشغيل ترحيلات الموارد البشرية أولاً.');
+            return back()->with('error', __('hr::hr.hr_migrations_required'));
         }
 
         $maid = \App\Models\ingaz\Maid::with(['jobTypes', 'nationality', 'office'])->findOrFail($maidId);
@@ -189,7 +189,7 @@ class EmployeeController extends Controller
             ->first();
 
         if (!$employee) {
-            return back()->with('error', 'تعذر إنشاء سجل الموارد البشرية لهذه العاملة.');
+            return back()->with('error', __('hr::hr.maid_hr_record_create_failed'));
         }
 
         $employee->update([
@@ -198,7 +198,7 @@ class EmployeeController extends Controller
 
         return redirect()
             ->route('employees.edit', $employee->id)
-            ->with('success', 'تم تحويل العاملة إلى موظفة داخل الشركة.');
+            ->with('success', __('hr::hr.maid_promoted_to_employee'));
     }
 
 
