@@ -18,8 +18,12 @@ class AdminLocalizationMiddleware
      */
     public function handle(Request $request, Closure $next)
     {
-        $locale = LaravelLocalization::getCurrentLocale();
         $supportedLocales = array_keys(LaravelLocalization::getSupportedLocales());
+        $firstSegment = strtolower((string) $request->segment(1));
+
+        $locale = in_array($firstSegment, $supportedLocales, true)
+            ? $firstSegment
+            : config('app.locale', 'ar');
 
         if (!in_array($locale, $supportedLocales, true)) {
             $locale = config('app.locale', 'ar');

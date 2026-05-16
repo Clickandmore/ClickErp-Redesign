@@ -9,6 +9,7 @@
     <li class="breadcrumb-item active" aria-current="page"> {{$bladeTitle}}</li>
 @endsection
 @section('content')
+    @include('hr::hr._nav_tabs')
 
     {!! addButton($createRoute , $addButtonText, 'btn-success',false) !!}
 

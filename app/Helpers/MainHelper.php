@@ -731,13 +731,22 @@ function remove_invalid_characters($str): string
 
 function get_api_lang(): string
 {
-    $locale = request()->header('lang')
-        ?? request()->route('locale')
-        ?? app()->getLocale()
-        ?? 'ar';
-
-    $locale = strtolower((string) $locale);
     $supportedLocales = array_keys(config('laravellocalization.supportedLocales', []));
+
+    $headerLocale = request()->header('lang');
+    if ($headerLocale) {
+        $headerLocale = strtolower((string) $headerLocale);
+        if (empty($supportedLocales) || in_array($headerLocale, $supportedLocales, true)) {
+            return in_array($headerLocale, ['ar', 'en'], true) ? $headerLocale : 'ar';
+        }
+    }
+
+    $segmentLocale = strtolower((string) request()->segment(1));
+    if (!empty($supportedLocales) && in_array($segmentLocale, $supportedLocales, true)) {
+        return $segmentLocale;
+    }
+
+    $locale = 'ar';
 
     if (!empty($supportedLocales) && in_array($locale, $supportedLocales, true)) {
         return $locale;

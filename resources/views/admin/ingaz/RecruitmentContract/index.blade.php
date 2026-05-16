@@ -2162,10 +2162,82 @@
             });
 
             // معالج زر الإرجاع من عمود المرحلة التالية
+            var pendingBackContractId = null;
+            var pendingBackTargetLabel = null;
+
+            function backContract(rowId, targetLabel) {
+                pendingBackContractId = rowId;
+                pendingBackTargetLabel = targetLabel || '';
+
+                var message = pendingBackTargetLabel
+                    ? 'هل أنت متأكد من إرجاع هذا العقد إلى مرحلة ' + escapeHtml(pendingBackTargetLabel) + '؟'
+                    : 'هل أنت متأكد من إرجاع هذا العقد؟';
+
+                $('#confirmBackModal .modal-body .alert').html(
+                    '<i class="fas fa-exclamation-triangle me-2"></i>' + message
+                );
+                $('#confirmBackModal').modal('show');
+            }
+
             $(document).on('click', '.backContract', function() {
                 var rowId = $(this).data('row-id');
                 var targetLabel = $(this).data('target-label');
                 backContract(rowId, targetLabel);
+            });
+
+            $('#confirmBackBtn').click(function() {
+                if (!pendingBackContractId) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'خطأ',
+                        text: 'لم يتم العثور على معرف العقد'
+                    });
+                    return;
+                }
+
+                var button = $(this);
+                var originalHtml = button.html();
+
+                button.prop('disabled', true).html('<i class="fa fa-spinner fa-spin me-1"></i> جاري الإرجاع...');
+
+                $.ajax({
+                    url: '{{ route('RecruitmentContract.back', ':rowId') }}'.replace(':rowId', pendingBackContractId),
+                    method: 'GET',
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'تم الإرجاع',
+                                text: response.message
+                            }).then(function() {
+                                $('#confirmBackModal').modal('hide');
+                                pendingBackContractId = null;
+                                pendingBackTargetLabel = null;
+                                dataTable.ajax.reload(null, false);
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'خطأ',
+                                text: response.message || 'تعذر إرجاع العقد'
+                            });
+                        }
+                    },
+                    error: function(xhr) {
+                        var message = xhr.responseJSON && xhr.responseJSON.message
+                            ? xhr.responseJSON.message
+                            : 'حدث خطأ أثناء إرجاع العقد';
+
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'خطأ',
+                            text: message
+                        });
+                    },
+                    complete: function() {
+                        button.prop('disabled', false).html(originalHtml);
+                    }
+                });
             });
 
             // معالج زر تحديث الحالة
