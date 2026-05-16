@@ -81,6 +81,7 @@ $quickLinks = $quickLinks->filter(function ($link) {
             flex-wrap: nowrap;
             align-items: center;
             gap: 0.45rem;
+            flex: 0 0 auto;
             min-width: 0;
         }
 
@@ -267,12 +268,6 @@ $quickLinks = $quickLinks->filter(function ($link) {
 
         @media (max-width: 1550px) {
             .cm-header-meta-subvalue {
-                display: none;
-            }
-        }
-
-        @media (max-width: 1380px) {
-            .cm-header-meta {
                 display: none;
             }
         }

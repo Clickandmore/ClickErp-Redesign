@@ -1,0 +1,293 @@
+response = Map();
+msg = message.get("text");
+session_state = visitor.get("session_state");
+if(session_state == null || session_state == "")
+{
+	session_state = "main";
+}
+if(session_state == "main")
+{
+	visitor.put("session_state","awaiting_main");
+	response.put("action","reply");
+	response.put("replies",{"مرحباً بك في شركة بلاتينيوم الشرقية للاستقدام 🌟\nكيف يمكنني مساعدتك اليوم؟"});
+	response.put("suggestions",{"👨 طلب استقدام جديد","🏠 خدمة مقيمة","🔄 نقل فوري","📋 متابعة طلب سابق","🎁 العروض الحالية","❓ الاسئلة الشائعة","📝 تقديم شكوى","📞 طلب اتصال","💬 خدمة العملاء"});
+}
+else if(session_state == "awaiting_main")
+{
+	if(msg.containsIgnoreCase("استقدام"))
+	{
+		visitor.put("session_state","awaiting_recruitment");
+		response.put("action","reply");
+		response.put("replies",{"ممتاز! خدمة طلب الاستقدام الجديد متاحة بعدة جنسيات.\nماذا تفضل؟"});
+		response.put("suggestions",{"🌍 اختيار جنسية محددة","🌐 عرض جميع الجنسيات","📄 عرض السير الذاتية"});
+	}
+	else if(msg.containsIgnoreCase("مقيمة"))
+	{
+		visitor.put("session_state","awaiting_resident");
+		response.put("action","reply");
+		response.put("replies",{"خدمة المقيمة (التأجير الشهري) تتيح لك استئجار عاملة بشكل مرن.\nكيف تريد المتابعة؟"});
+		response.put("suggestions",{"👩 عرض عاملات مقيمة","🖥️ الاختيار عبر الموقع","🏢 زيارة مقر الشركة"});
+	}
+	else if(msg.containsIgnoreCase("نقل"))
+	{
+		visitor.put("session_state","awaiting_transfer");
+		response.put("action","reply");
+		response.put("replies",{"خدمة النقل الفوري متاحة للعاملات المنزلية فقط.\nما الذي تريد معرفته؟"});
+		response.put("suggestions",{"📄 عرض السير الذاتية المتاحة","📜 شروط نقل الخدمات"});
+	}
+	else if(msg.containsIgnoreCase("متابعة"))
+	{
+		visitor.put("session_state","follow_up_input");
+		response.put("action","reply");
+		response.put("replies",{"لمتابعة طلبك يرجى ادخال احد التالي:\n• رقم الجواز\n• رقم الهوية\n• رقم عقد مساند\n• رقم التاشيرة"});
+	}
+	else if(msg.containsIgnoreCase("عروض"))
+	{
+		visitor.put("session_state","awaiting_after");
+		response.put("action","reply");
+		response.put("replies",{"🎁 عروضنا الحالية:\n\n⭐ عروض الاستقدام - خصومات خاصة على بعض الجنسيات\n⭐ عروض خدمة المقيمة - اسعار مخفضة للعقود الطويلة\n\n🔗 https://www.platinumeastern.com/"});
+		response.put("suggestions",{"📄 عرض السير الذاتية","💬 خدمة العملاء","🏠 القائمة الرئيسية"});
+	}
+	else if(msg.containsIgnoreCase("شائع") || msg.containsIgnoreCase("سؤال"))
+	{
+		visitor.put("session_state","awaiting_faq");
+		response.put("action","reply");
+		response.put("replies",{"اختر السؤال الذي يهمك:"});
+		response.put("suggestions",{"مدة الاستقدام","الاسعار","طريقة الدفع","سياسة الاستبدال","نقل الخدمات","الجنسيات المتاحة","الدول المتاحة","طريقة استلام العاملة"});
+	}
+	else if(msg.containsIgnoreCase("شكوى"))
+	{
+		visitor.put("session_state","complaint_name");
+		response.put("action","reply");
+		response.put("replies",{"نأسف لما واجهتك. سنعمل على حل مشكلتك باسرع وقت.\n\nيرجى ادخال اسمك الثلاثي:"});
+	}
+	else if(msg.containsIgnoreCase("اتصال"))
+	{
+		visitor.put("session_state","call_name");
+		response.put("action","reply");
+		response.put("replies",{"يسعدنا التواصل معك.\n\nيرجى ادخال اسمك:"});
+	}
+	else if(msg.containsIgnoreCase("خدمة العملاء"))
+	{
+		response.put("action","forward");
+		response.put("replies",{"جاري تحويلك الى احد موظفينا..."});
+	}
+	else
+	{
+		response.put("action","reply");
+		response.put("replies",{"عذراً لم افهم طلبك. يرجى اختيار احد الخيارات:"});
+		response.put("suggestions",{"👨 طلب استقدام جديد","🏠 خدمة مقيمة","🔄 نقل فوري","📋 متابعة طلب سابق","🎁 العروض الحالية","❓ الاسئلة الشائعة","📝 تقديم شكوى","📞 طلب اتصال","💬 خدمة العملاء"});
+	}
+}
+else if(session_state == "follow_up_input")
+{
+	visitor.put("session_state","awaiting_after");
+	response.put("action","reply");
+	response.put("replies",{"✅ تم استقبال طلبك. سيتواصل معك احد المختصين قريباً.\n\n📌 رقم المرجع: " + msg});
+	response.put("suggestions",{"🏠 القائمة الرئيسية","📋 متابعة طلب آخر","💬 خدمة العملاء","👋 انهاء المحادثة"});
+}
+else if(session_state == "awaiting_recruitment")
+{
+	if(msg.containsIgnoreCase("جنسية"))
+	{
+		visitor.put("session_state","awaiting_nationality");
+		response.put("action","reply");
+		response.put("replies",{"اختر الجنسية المطلوبة:"});
+		response.put("suggestions",{"فلبينية","اندونيسية","اثيوبية","كينية","سريلانكية","نيبالية","اوغندية"});
+	}
+	else
+	{
+		visitor.put("session_state","awaiting_after");
+		response.put("action","reply");
+		response.put("replies",{"يمكنك الاطلاع على جميع الجنسيات والسير الذاتية عبر:\n🔗 https://www.platinumeastern.com/"});
+		response.put("suggestions",{"🏠 القائمة الرئيسية","📋 متابعة طلب سابق","💬 خدمة العملاء","👋 انهاء المحادثة"});
+	}
+}
+else if(session_state == "awaiting_nationality")
+{
+	visitor.put("session_state","awaiting_after");
+	response.put("action","reply");
+	response.put("replies",{"يمكنك الاطلاع على السير الذاتية المتاحة لهذه الجنسية عبر:\n🔗 https://www.platinumeastern.com/"});
+	response.put("suggestions",{"🏠 القائمة الرئيسية","📋 متابعة طلب سابق","💬 خدمة العملاء","👋 انهاء المحادثة"});
+}
+else if(session_state == "awaiting_resident")
+{
+	replyText = "يمكنك الاطلاع على العاملات المتاحة واختيار المناسبة عبر:\n🔗 https://www.platinumeastern.com/";
+	if(msg.containsIgnoreCase("زيارة"))
+	{
+		replyText = "يسعدنا استقبالك في مقر الشركة خلال ساعات العمل للاستلام الفوري.\n📍 🔗 https://www.platinumeastern.com/";
+	}
+	visitor.put("session_state","awaiting_after");
+	response.put("action","reply");
+	response.put("replies",{replyText});
+	response.put("suggestions",{"🏠 القائمة الرئيسية","💬 خدمة العملاء","👋 انهاء المحادثة"});
+}
+else if(session_state == "awaiting_transfer")
+{
+	replyText = "يمكنك الاطلاع على السير الذاتية المتاحة للنقل الفوري:\n🔗 https://www.platinumeastern.com/";
+	if(msg.containsIgnoreCase("شروط"))
+	{
+		replyText = "شروط نقل الخدمات (فرد الى فرد):\n\n✅ العاملة في نطاق العمل الحالي\n✅ موافقة صاحب العمل الحالي\n✅ لا يوجد قضايا قانونية\n✅ اتمام الاجراءات عبر منصة مساند";
+	}
+	visitor.put("session_state","awaiting_after");
+	response.put("action","reply");
+	response.put("replies",{replyText});
+	response.put("suggestions",{"🏠 القائمة الرئيسية","💬 خدمة العملاء","👋 انهاء المحادثة"});
+}
+else if(session_state == "awaiting_faq")
+{
+	faqReply = "يرجى اختيار احد الاسئلة المتاحة.";
+	if(msg.containsIgnoreCase("مدة"))
+	{
+		faqReply = "⏱️ مدة الاستقدام:\n\nتتراوح من 30 الى 90 يوم تقريباً حسب الجنسية واجراءات التاشيرة.";
+	}
+	else if(msg.containsIgnoreCase("سعر") || msg.containsIgnoreCase("اسعار"))
+	{
+		faqReply = "💰 الاسعار:\n\nتختلف حسب الجنسية والخدمة المطلوبة.\n🔗 https://www.platinumeastern.com/";
+	}
+	else if(msg.containsIgnoreCase("دفع"))
+	{
+		faqReply = "💳 طريقة الدفع:\n\n• تحويل بنكي\n• دفع نقدي في المكتب\n• بطاقات الائتمان والخصم\n• التقسيط (حسب العرض المتاح)";
+	}
+	else if(msg.containsIgnoreCase("استبدال"))
+	{
+		faqReply = "🔄 سياسة الاستبدال:\n\nنوفر ضمان استبدال في حال:\n• عدم الملاءمة للعمل\n• وجود مشكلة صحية\n• عدم الرضا خلال فترة التجربة";
+	}
+	else if(msg.containsIgnoreCase("نقل الخدمات"))
+	{
+		faqReply = "📤 نقل الخدمات:\n\nيمكن النقل من صاحب عمل الى آخر عبر منصة مساند وفق الاجراءات الرسمية.";
+	}
+	else if(msg.containsIgnoreCase("جنسيات"))
+	{
+		faqReply = "🌍 الجنسيات المتاحة:\n\nفلبينية - اندونيسية - اثيوبية\nكينية - سريلانكية - نيبالية - اوغندية وغيرها";
+	}
+	else if(msg.containsIgnoreCase("دول"))
+	{
+		faqReply = "✈️ الدول المتاحة للاستقدام:\n\nنستقدم من عدد من الدول المعتمدة رسمياً.\n🔗 https://www.platinumeastern.com/";
+	}
+	else if(msg.containsIgnoreCase("استلام"))
+	{
+		faqReply = "📦 طريقة استلام العاملة:\n\n• استلام من المطار\n• استلام من مقر الشركة\n• التوصيل للمنزل (متاح في بعض الحالات)";
+	}
+	response.put("action","reply");
+	response.put("replies",{faqReply});
+	response.put("suggestions",{"سؤال آخر","🏠 القائمة الرئيسية","💬 خدمة العملاء"});
+}
+else if(session_state == "complaint_name")
+{
+	visitor.put("complaint_name",msg);
+	visitor.put("session_state","complaint_phone");
+	response.put("action","reply");
+	response.put("replies",{"شكراً " + msg + ". يرجى ادخال رقم جوالك:"});
+}
+else if(session_state == "complaint_phone")
+{
+	visitor.put("complaint_phone",msg);
+	visitor.put("session_state","complaint_type");
+	response.put("action","reply");
+	response.put("replies",{"اختر نوع الشكوى:"});
+	response.put("suggestions",{"شكوى متعلقة بالعاملة","شكوى مالية","شكوى اجراءات","شكوى عن الخدمة","اخرى"});
+}
+else if(session_state == "complaint_type")
+{
+	visitor.put("complaint_type",msg);
+	visitor.put("session_state","complaint_priority");
+	response.put("action","reply");
+	response.put("replies",{"ما اولوية الشكوى؟"});
+	response.put("suggestions",{"عاجلة","متوسطة","منخفضة"});
+}
+else if(session_state == "complaint_priority")
+{
+	visitor.put("complaint_priority",msg);
+	visitor.put("session_state","complaint_details");
+	response.put("action","reply");
+	response.put("replies",{"يرجى كتابة تفاصيل شكواك بشكل مفصل:"});
+}
+else if(session_state == "complaint_details")
+{
+	cName = visitor.get("complaint_name");
+	cPhone = visitor.get("complaint_phone");
+	cType = visitor.get("complaint_type");
+	cPrio = visitor.get("complaint_priority");
+	caseMap = Map();
+	caseMap.put("Subject","شكوى عبر الشات - " + cType);
+	caseMap.put("Description",msg);
+	caseMap.put("Status","Open");
+	caseMap.put("Origin","Chat");
+	zoho.crm.createRecord("Cases",caseMap);
+	visitor.put("session_state","awaiting_after");
+	response.put("action","reply");
+	response.put("replies",{"✅ تم تسجيل شكواك بنجاح\n\n👤 الاسم: " + cName + "\n📱 الجوال: " + cPhone + "\n⚡ الاولوية: " + cPrio + "\n\nسيتواصل معك فريقنا قريباً."});
+	response.put("suggestions",{"🏠 القائمة الرئيسية","💬 خدمة العملاء","👋 انهاء المحادثة"});
+}
+else if(session_state == "call_name")
+{
+	visitor.put("call_name",msg);
+	visitor.put("session_state","call_phone");
+	response.put("action","reply");
+	response.put("replies",{"شكراً " + msg + ". يرجى ادخال رقم جوالك:"});
+}
+else if(session_state == "call_phone")
+{
+	visitor.put("call_phone",msg);
+	visitor.put("session_state","call_time");
+	response.put("action","reply");
+	response.put("replies",{"ما هو افضل وقت للتواصل معك؟"});
+	response.put("suggestions",{"صباحاً (8-12)","ظهراً (12-4)","مساءً (4-8)","ليلاً (8-10)"});
+}
+else if(session_state == "call_time")
+{
+	cName = visitor.get("call_name");
+	cPhone = visitor.get("call_phone");
+	leadMap = Map();
+	leadMap.put("Last_Name",cName);
+	leadMap.put("Phone",cPhone);
+	leadMap.put("Lead_Source","Chat");
+	leadMap.put("Description","طلب اتصال - افضل وقت: " + msg);
+	zoho.crm.createRecord("Leads",leadMap);
+	visitor.put("session_state","awaiting_after");
+	response.put("action","reply");
+	response.put("replies",{"✅ تم ارسال طلب الاتصال\n\n👤 الاسم: " + cName + "\n📱 الجوال: " + cPhone + "\n⏰ افضل وقت: " + msg + "\n\nسيتصل بك احد موظفينا قريباً."});
+	response.put("suggestions",{"🏠 القائمة الرئيسية","👋 انهاء المحادثة"});
+}
+else if(session_state == "awaiting_after")
+{
+	if(msg.containsIgnoreCase("انهاء") || msg.containsIgnoreCase("إنهاء"))
+	{
+		response.put("action","end");
+		response.put("replies",{"شكراً لتواصلك مع بلاتينيوم ايسترن 🌟\nيسعدنا خدمتك دائماً! 💛"});
+	}
+	else if(msg.containsIgnoreCase("خدمة العملاء"))
+	{
+		response.put("action","forward");
+		response.put("replies",{"جاري تحويلك الى احد موظفينا..."});
+	}
+	else if(msg.containsIgnoreCase("متابعة"))
+	{
+		visitor.put("session_state","follow_up_input");
+		response.put("action","reply");
+		response.put("replies",{"لمتابعة طلبك يرجى ادخال احد التالي:\n• رقم الجواز\n• رقم الهوية\n• رقم عقد مساند\n• رقم التاشيرة"});
+	}
+	else if(msg.containsIgnoreCase("سؤال"))
+	{
+		visitor.put("session_state","awaiting_faq");
+		response.put("action","reply");
+		response.put("replies",{"اختر السؤال الذي يهمك:"});
+		response.put("suggestions",{"مدة الاستقدام","الاسعار","طريقة الدفع","سياسة الاستبدال","نقل الخدمات","الجنسيات المتاحة","الدول المتاحة","طريقة استلام العاملة"});
+	}
+	else
+	{
+		visitor.put("session_state","awaiting_main");
+		response.put("action","reply");
+		response.put("replies",{"كيف يمكنني مساعدتك؟"});
+		response.put("suggestions",{"👨 طلب استقدام جديد","🏠 خدمة مقيمة","🔄 نقل فوري","📋 متابعة طلب سابق","🎁 العروض الحالية","❓ الاسئلة الشائعة","📝 تقديم شكوى","📞 طلب اتصال","💬 خدمة العملاء"});
+	}
+}
+else
+{
+	visitor.put("session_state","awaiting_main");
+	response.put("action","reply");
+	response.put("replies",{"كيف يمكنني مساعدتك؟"});
+	response.put("suggestions",{"👨 طلب استقدام جديد","🏠 خدمة مقيمة","🔄 نقل فوري","📋 متابعة طلب سابق","🎁 العروض الحالية","❓ الاسئلة الشائعة","📝 تقديم شكوى","📞 طلب اتصال","💬 خدمة العملاء"});
+}
+return response;
