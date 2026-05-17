@@ -148,6 +148,12 @@
 
 @section('content')
     @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_VIEW))
+        @php
+            $isCompletedOrder = in_array($data->status, [
+                \App\Enums\ingaz\OrderEnum::Completed->value,
+                \App\Enums\ingaz\OrderEnum::Done->value,
+            ], true);
+        @endphp
 
         <!-- Back Button -->
         <div class="mb-3">
@@ -470,14 +476,14 @@
                             @endif
 
                             <!-- Change Responsible Employee Button -->
-                            @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_CHANGE_RESPONSIBLE))
+                            @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_CHANGE_RESPONSIBLE) && !$isCompletedOrder)
                                 <button class="btn btn-warning" onclick="changeResponsible({{ $data->id }})">
                                     <i class="fa fa-user-cog"></i> {{ helperTrans('ingaz.change_responsible') }}
                                 </button>
                             @endif
 
                             <!-- Refuse/Return Order Button -->
-                            @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT))
+                            @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT) && !$isCompletedOrder)
                                 @if ($data->status != 'refused' && $data->status != 'done')
                                     <button class="btn btn-danger" onclick="refuseReturnOrder({{ $data->id }})">
                                         <i class="fa fa-times"></i> {{ helperTrans('ingaz.refuse_return_order') }}
@@ -495,7 +501,7 @@
                             @endif
 
                             <!-- Delete Order Button -->
-                            @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_DELETE))
+                            @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_DELETE) && !$isCompletedOrder)
                                 <button class="btn btn-danger" onclick="deleteOrder({{ $data->id }})">
                                     <i class="fa fa-trash"></i> {{ helperTrans('ingaz.delete_order') }}
                                 </button>

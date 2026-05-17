@@ -473,7 +473,7 @@ class MaidController extends Controller
                         $menuItems .= '<li><button class="dropdown-item toggle-pin" data-id="' . $row->id . '" data-pinned="' . ($row->is_pinned ? 'true' : 'false') . '"><i class="fas fa-thumbtack text-warning me-2"></i>' . $pinLabel . '</button></li>';
                     }
 
-                    if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_DELETE)) {
+                    if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_DELETE) && $this->canDeleteMaidCv($row)) {
                         $menuItems .= '<li><div class="dropdown-item" style="padding: 4px 16px !important;">' . deleteButton(route($this->mainRoute . ".destroy", $row->id)) . '</div></li>';
                     }
 
@@ -750,7 +750,7 @@ class MaidController extends Controller
                         </button></li>';
                     }
 
-                    if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_DELETE)) {
+                    if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_DELETE) && $this->canDeleteMaidCv($row)) {
                         $menuItems[] = '<li><div class="px-2 py-1">' . deleteButton(route($this->mainRoute . '.destroy', $row->id)) . '</div></li>';
                     }
 
@@ -912,7 +912,7 @@ class MaidController extends Controller
                         $editButton = editButton(route($this->mainRoute . ".edit", $row->id), $row->name);
                     }
 
-                    if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_DELETE)) {
+                    if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_DELETE) && $this->canDeleteMaidCv($row)) {
                         $deleteButton = deleteButton(route($this->mainRoute . ".destroy", $row->id));
                     }
 
@@ -1905,7 +1905,12 @@ class MaidController extends Controller
     public function destroy($id, objAction $action)
     {
         // $action->delete($id);
-        $maid = objModel::findOrFail($id);
+        $maid = objModel::with(['contracts', 'orders'])->findOrFail($id);
+
+        if (!$this->canDeleteMaidCv($maid)) {
+            return jsonError('لا يمكن حذف السيرة لأنها محجوزة أو تم التعاقد عليها. يمكن استبدال العاملة من الطلب أو العقد وتحديد سبب الباك أوت.', 422);
+        }
+
         $maid->deleted_by = auth()->id();
         $maid->save();
         $maid->delete();
@@ -2287,6 +2292,27 @@ class MaidController extends Controller
     private function rentalActiveContractStatuses(): array
     {
         return ['new', 'waiting_contract_send', 'contract_sent', 'contract_signed', 'maid_delivered', 'active', 'transferred', 'suspended'];
+    }
+
+    private function canDeleteMaidCv(Maid $maid): bool
+    {
+        if (in_array($maid->status, ['reserved', 'contracted'], true)) {
+            return false;
+        }
+
+        $hasActiveRecruitmentContracts = $maid->relationLoaded('contracts')
+            ? $maid->contracts->whereIn('status', $this->recruitmentContractStatuses())->isNotEmpty()
+            : $maid->contracts()->whereIn('status', $this->recruitmentContractStatuses())->exists();
+
+        if ($hasActiveRecruitmentContracts) {
+            return false;
+        }
+
+        $hasActiveOrders = $maid->relationLoaded('orders')
+            ? $maid->orders->whereIn('status', $this->activeOrderStatuses())->isNotEmpty()
+            : $maid->orders()->whereIn('status', $this->activeOrderStatuses())->exists();
+
+        return !$hasActiveOrders;
     }
 
     private function applyRecruitmentMaidsScope($query): void
@@ -3052,7 +3078,7 @@ class MaidController extends Controller
 
         try {
             $maid = Maid::findOrFail($request->maid_id);
-            $maid->update(['status' => 'backout', 'available' => 0, 'backout_reason' => $request->backout_reason]);
+            $maid->update(['status' => 'backout', 'available' => 0, 'back_out_reason' => $request->backout_reason]);
 
             // Save at maid unavailable record
             $record_maid_unavailable = MaidUnavailableRecord::create([
@@ -3072,7 +3098,7 @@ class MaidController extends Controller
     {
         try {
             $maid = Maid::findOrFail($request->maid_id);
-            $maid->update(['status' => 'available', 'available' => 1, 'backout_reason' => null]);
+            $maid->update(['status' => 'available', 'available' => 1, 'back_out_reason' => null]);
 
             $record_maid_unavailable = MaidUnavailableRecord::where('maid_id', $request->maid_id)
                 ->whereNotNull('reason')

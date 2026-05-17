@@ -1215,6 +1215,24 @@ class RecruitmentContractController extends Controller
                                     <i class="fas fa-eye"></i> عرض تفاصيل العقد
                                 </a></li>';
 
+                    if (
+                        in_array($row->status, [
+                            ContractStatusEnum::Arrival->value,
+                            ContractStatusEnum::Completed->value,
+                            ContractStatusEnum::UnderWarranty->value,
+                            ContractStatusEnum::Closed->value,
+                        ], true)
+                        && @AdminGuardHasAnyPerm([
+                            \App\PermKeys::SHELTER_CONTRACT_ADDITION_CREATE,
+                            \App\PermKeys::SHELTER_CONTRACT_CREATE,
+                            \App\PermKeys::SHELTER_CONTRACT_CONTROL,
+                        ])
+                    ) {
+                        $actions .= '<li><a class="dropdown-item" href="' . e(route('ShelterContract.create', ['contract_id' => $row->id])) . '">
+                                        <i class="fas fa-house-user"></i> إضافة العاملة للإيواء
+                                    </a></li>';
+                    }
+
                     if ($row->isCurrentRecruitmentContract() || $row->externalOfficeDispatch) {
                         $dispatchState = $row->getExternalOfficeDispatchState();
                         $dispatchManageLabel = $row->isCurrentRecruitmentContract()
@@ -4699,7 +4717,7 @@ class RecruitmentContractController extends Controller
             $request->validate([
                 'new_maid_id' => 'required|exists:maids,id',
                 'old_maid_status' => 'required|in:available,backout',
-                'reason' => 'nullable|string|max:500'
+                'reason' => 'required_if:old_maid_status,backout|nullable|string|max:1000'
             ]);
 
             $newMaidId = $request->new_maid_id;
@@ -4709,9 +4727,17 @@ class RecruitmentContractController extends Controller
             // التحقق من أن العاملة الجديدة متاحة
             $newMaid = Maid::findOrFail($newMaidId);
 
+            if (!$newMaid->available || $newMaid->status !== 'available') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'العاملة المختارة غير متاحة حالياً'
+                ], 400);
+            }
+
             // التحقق من أن العاملة الجديدة ليس لها عقود نشطة
             $hasActiveContracts = Contract::where('maid_id', $newMaidId)
                 ->whereIn('status', [
+                    ContractStatusEnum::PendingMaidSelection->value,
                     ContractStatusEnum::New->value,
                     ContractStatusEnum::Msaned->value,
                     ContractStatusEnum::Tafwed->value,
@@ -4745,11 +4771,18 @@ class RecruitmentContractController extends Controller
                 ], 400);
             }
 
+            $oldMaid = $contract->maid;
+            if (!$oldMaid) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا توجد عاملة حالية مرتبطة بهذا العقد'
+                ], 400);
+            }
+
             DB::beginTransaction();
 
             try {
                 // حفظ العاملة القديمة
-                $oldMaid = $contract->maid;
                 $oldMaidId = $oldMaid->id;
 
                 logger()->info('Changing maid in contract', [
@@ -4792,7 +4825,8 @@ class RecruitmentContractController extends Controller
                 if ($oldMaidStatus === 'backout') {
                     $oldMaid->update([
                         'status' => 'backout',
-                        'available' => false
+                        'available' => false,
+                        'back_out_reason' => $reason ?? 'تم تغيير العاملة من عقد',
                     ]);
 
                     \Artisan::call('maids:add-to-unavailable', [

@@ -67,6 +67,7 @@ class Maid extends Model
         'cv_preview',
         'office_id',
         'status',
+        'back_out_reason',
         'maid_accommodation_type',
         'added_by',
         'request_type',
