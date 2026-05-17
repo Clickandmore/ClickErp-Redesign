@@ -69,33 +69,38 @@ class AuditBudgetService extends MainService
     /* ----------NEW------------ */
     public function filterAccount($dataSearch)
     {
-        $accountStatment = DB::table('fn_constraint_details')
+        $accountStatment = DB::table('fn_suppliers')
             ->select([
-                'fn_constraint_details.date',
-                DB::raw('SUM(fn_constraint_details.debtor_value) as sum_debtor_value'),
-                DB::raw('SUM(fn_constraint_details.creditor_value) as sum_creditor_value'),
-                'fn_constraint_details.statement',
+                DB::raw('MAX(fn_constraint_details.date) as date'),
+                DB::raw('COALESCE(SUM(CASE WHEN fn_constraints.id IS NOT NULL THEN fn_constraint_details.debtor_value ELSE 0 END), 0) as sum_debtor_value'),
+                DB::raw('COALESCE(SUM(CASE WHEN fn_constraints.id IS NOT NULL THEN fn_constraint_details.creditor_value ELSE 0 END), 0) as sum_creditor_value'),
+                DB::raw('MAX(fn_constraint_details.statement) as statement'),
                 'fn_accounts.code as account_code',
                 'fn_accounts.name as account_name',
                 'fn_accounts.status as account_status',
-                'fn_constraints.type as constraints_type',
-                'fn_constraint_details.constraint_id',
-                'admins.name',
-                'fn_constraint_details.account_id'
+                DB::raw('MAX(fn_constraints.type) as constraints_type'),
+                DB::raw('MAX(fn_constraint_details.constraint_id) as constraint_id'),
+                DB::raw('NULL as name'),
+                'fn_accounts.id as account_id'
             ])
-            ->join('fn_accounts', 'fn_accounts.id', '=', 'fn_constraint_details.account_id')
-            ->join('fn_constraints', 'fn_constraints.id', '=', 'fn_constraint_details.constraint_id')
-            ->join('admins', 'admins.id', '=', 'fn_constraints.created_by_id')
-            ->whereNull('fn_constraint_details.deleted_at')
-            ->whereNull('fn_constraints.deleted_at')
-            ->where('fn_accounts.type', '=', $dataSearch['type'])
-            ->when($dataSearch['from_date'] != '', function ($q) use ($dataSearch) {
-                return $q->whereDate('fn_constraint_details.date', '>=', $dataSearch['from_date']);
+            ->join('fn_accounts', 'fn_accounts.id', '=', 'fn_suppliers.account_id')
+            ->leftJoin('fn_constraint_details', function ($join) use ($dataSearch) {
+                $join->on('fn_constraint_details.account_id', '=', 'fn_accounts.id')
+                    ->whereNull('fn_constraint_details.deleted_at');
+
+                if (($dataSearch['from_date'] ?? '') != '') {
+                    $join->whereDate('fn_constraint_details.date', '>=', $dataSearch['from_date']);
+                }
+
+                if (($dataSearch['to_date'] ?? '') != '') {
+                    $join->whereDate('fn_constraint_details.date', '<=', $dataSearch['to_date']);
+                }
             })
-            ->when($dataSearch['to_date'] != '', function ($q) use ($dataSearch) {
-                return $q->whereDate('fn_constraint_details.date', '<=', $dataSearch['to_date']);
+            ->leftJoin('fn_constraints', function ($join) {
+                $join->on('fn_constraints.id', '=', 'fn_constraint_details.constraint_id')
+                    ->whereNull('fn_constraints.deleted_at');
             })
-            ->groupBy('fn_constraint_details.account_id')
+            ->groupBy('fn_accounts.id', 'fn_accounts.code', 'fn_accounts.name', 'fn_accounts.status')
             ->get()
             ->keyBy('account_id');
 
@@ -103,33 +108,38 @@ class AuditBudgetService extends MainService
     }
     public function filterFirstAccount($dataSearch)
     {
-        $accountStatment = DB::table('fn_constraint_details')
+        $accountStatment = DB::table('fn_suppliers')
             ->select([
-                'fn_constraint_details.date',
-                DB::raw('SUM(fn_constraint_details.debtor_value) as sum_debtor_value'),
-                DB::raw('SUM(fn_constraint_details.creditor_value) as sum_creditor_value'),
-                'fn_constraint_details.statement',
+                DB::raw('MAX(fn_constraint_details.date) as date'),
+                DB::raw('COALESCE(SUM(CASE WHEN fn_constraints.id IS NOT NULL THEN fn_constraint_details.debtor_value ELSE 0 END), 0) as sum_debtor_value'),
+                DB::raw('COALESCE(SUM(CASE WHEN fn_constraints.id IS NOT NULL THEN fn_constraint_details.creditor_value ELSE 0 END), 0) as sum_creditor_value'),
+                DB::raw('MAX(fn_constraint_details.statement) as statement'),
                 'fn_accounts.code as account_code',
                 'fn_accounts.name as account_name',
                 'fn_accounts.status as account_status',
-                'fn_constraints.type as constraints_type',
-                'fn_constraint_details.constraint_id',
-                'admins.name',
-                'fn_constraint_details.account_id'
+                DB::raw('MAX(fn_constraints.type) as constraints_type'),
+                DB::raw('MAX(fn_constraint_details.constraint_id) as constraint_id'),
+                DB::raw('NULL as name'),
+                'fn_accounts.id as account_id'
             ])
-            ->join('fn_accounts', 'fn_accounts.id', '=', 'fn_constraint_details.account_id')
-            ->join('fn_constraints', 'fn_constraints.id', '=', 'fn_constraint_details.constraint_id')
-            ->join('admins', 'admins.id', '=', 'fn_constraints.created_by_id')
-            ->whereNull('fn_constraint_details.deleted_at')
-            ->whereNull('fn_constraints.deleted_at')
-            ->where('fn_accounts.type', '=', $dataSearch['type'])
-            ->when($dataSearch['start_date'] != '', function ($q) use ($dataSearch) {
-                return $q->whereDate('fn_constraint_details.date', '>=', $dataSearch['start_date']);
+            ->join('fn_accounts', 'fn_accounts.id', '=', 'fn_suppliers.account_id')
+            ->leftJoin('fn_constraint_details', function ($join) use ($dataSearch) {
+                $join->on('fn_constraint_details.account_id', '=', 'fn_accounts.id')
+                    ->whereNull('fn_constraint_details.deleted_at');
+
+                if (($dataSearch['start_date'] ?? '') != '') {
+                    $join->whereDate('fn_constraint_details.date', '>=', $dataSearch['start_date']);
+                }
+
+                if (($dataSearch['from_date'] ?? '') != '') {
+                    $join->whereDate('fn_constraint_details.date', '<=', $dataSearch['from_date']);
+                }
             })
-            ->when($dataSearch['from_date'] != '', function ($q) use ($dataSearch) {
-                return $q->whereDate('fn_constraint_details.date', '<=', $dataSearch['from_date']);
+            ->leftJoin('fn_constraints', function ($join) {
+                $join->on('fn_constraints.id', '=', 'fn_constraint_details.constraint_id')
+                    ->whereNull('fn_constraints.deleted_at');
             })
-            ->groupBy('fn_constraint_details.account_id')
+            ->groupBy('fn_accounts.id', 'fn_accounts.code', 'fn_accounts.name', 'fn_accounts.status')
             ->get()
             ->keyBy('account_id');
 

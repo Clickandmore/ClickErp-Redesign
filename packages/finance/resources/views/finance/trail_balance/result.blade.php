@@ -4,7 +4,7 @@
         <tr class="header">
             <th rowspan="2">{{ __("finance::finance.Account code") }}</th>
             <th  rowspan="2">{{ __("finance::finance.Account Name") }}</th>
-            @if(isset($includeFirstBalance))
+            @if($includeFirstBalance)
                 <th colspan="2">{{ __("finance::finance.first-stocks") }} +</th>
             @endif
             <th colspan="2">{{ __('finance::finance.operations_period') }}</th>
@@ -12,12 +12,12 @@
         </tr>
         <tr class="header">
 
-            <th>{{ __('finance::finance.creditor') }}</th>
-            <th>{{ __('finance::finance.debtor') }}</th>
-            @if(isset($includeFirstBalance))
+            @if($includeFirstBalance)
                 <th>{{ __('finance::finance.creditor') }}</th>
                 <th>{{ __('finance::finance.debtor') }}</th>
             @endif
+            <th>{{ __('finance::finance.creditor') }}</th>
+            <th>{{ __('finance::finance.debtor') }}</th>
             <th>{{ __('finance::finance.creditor') }}</th>
             <th>{{ __('finance::finance.debtor') }}</th>
         </tr>
@@ -33,8 +33,10 @@
                 <?php
                 $sumPeriodDebtorValue = $sumPeriodCreditorValue = $firstDebtorValue = $firstCreditorValue = $finalSumDebtorValue = $finalSumCreditorValue = 0;
 
-                $sumPeriodDebtorValue += $account->total_debtor;
-                $sumPeriodCreditorValue += $account->total_creditor;
+                $sumPeriodDebtorValue += (float) $account->total_debtor;
+                $sumPeriodCreditorValue += (float) $account->total_creditor;
+                $firstDebtorValue += (float) $account->first_debtor;
+                $firstCreditorValue += (float) $account->first_creditor;
 
                 $finalSumDebtorValue = $sumPeriodDebtorValue + $firstDebtorValue;
                 $finalSumCreditorValue = $sumPeriodCreditorValue + $firstCreditorValue;
@@ -78,10 +80,10 @@
                 }
                 ?>
             <tr>
-                <td>{{--{{ $account->code }}--}} {{ $account->id }}</td>
-                <td>(  {{ $account->name }} ) -  {{$account->status  }}</td>
+                <td>{{ $account->code }}</td>
+                <td>{{ $account->name }}</td>
 
-                @if(isset($includeFirstBalance))
+                @if($includeFirstBalance)
                     <td>{{ $firstCreditorValue }}</td>
                     <td>{{ $firstDebtorValue }}</td>
                 @endif
@@ -97,7 +99,7 @@
         <tr class="header">
             <td class="text-center" colspan="2"><strong>{{ __('finance::finance.Total') }}</strong></td>
 
-            @if(isset($includeFirstBalance))
+            @if($includeFirstBalance)
                 <td><strong>{{ $totalFirstCreditorValue }}</strong></td>
                 <td><strong>{{ $totalFirstDebtorValue }}</strong></td>
             @endif

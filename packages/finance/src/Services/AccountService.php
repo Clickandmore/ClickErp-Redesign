@@ -518,12 +518,9 @@ class AccountService extends MainService
 
             if ($account->children->count() > 0) {
                 foreach ($account->children as $children) {
-                    $total_price = $this->getTotalPriceOfChildrens($children, $constraints_data);
-                    $account_total_price += $total_price;
-                    $list[] = [
-                        'account' => $children,
-                        'total_price' => $total_price
-                    ];
+                    $row = $this->buildIncomeAccountRow($children, $constraints_data);
+                    $account_total_price += $row['total_price'];
+                    $list[] = $row;
                 }
             }
 
@@ -535,6 +532,29 @@ class AccountService extends MainService
         }
 
         return $main_list;
+    }
+
+    private function buildIncomeAccountRow($account, $constraints_data)
+    {
+        $children = [];
+        $children_total = 0;
+
+        if ($account->children->count() > 0) {
+            foreach ($account->children as $child) {
+                $child_row = $this->buildIncomeAccountRow($child, $constraints_data);
+                $children_total += $child_row['total_price'];
+                $children[] = $child_row;
+            }
+        }
+
+        $own_total = $constraints_data[$account->id] ?? 0;
+
+        return [
+            'account' => $account,
+            'total_price' => $own_total + $children_total,
+            'own_total_price' => $own_total,
+            'children' => $children,
+        ];
     }
 
     private function getTotalPriceOfChildrens($account, $constraints_data)

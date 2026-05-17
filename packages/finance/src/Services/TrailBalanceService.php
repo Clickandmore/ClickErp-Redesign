@@ -85,6 +85,80 @@ class TrailBalanceService extends MainService
         return $results;
     }
 
+    public function getAccountSummaryForTrailBalance(int $level, int $yearId, ?string $fromDate, ?string $toDate, bool $includeFirstBalance = false)
+    {
+        $firstBalanceSelect = $includeFirstBalance
+            ? 'COALESCE(first_balance.total_debtor, 0) as first_debtor,
+               COALESCE(first_balance.total_creditor, 0) as first_creditor'
+            : '0 as first_debtor,
+               0 as first_creditor';
+
+        $firstBalanceJoin = $includeFirstBalance
+            ? "
+        LEFT JOIN (
+            SELECT account_tree.root_id,
+                   COALESCE(SUM(cd.debtor_value), 0) as total_debtor,
+                   COALESCE(SUM(cd.creditor_value), 0) as total_creditor
+            FROM account_tree
+            INNER JOIN fn_constraint_details cd ON cd.account_id = account_tree.account_id
+            INNER JOIN fn_constraints c ON c.id = cd.constraint_id
+            WHERE c.year_id = ?
+              AND cd.date < ?
+              AND cd.deleted_at IS NULL
+              AND c.deleted_at IS NULL
+            GROUP BY account_tree.root_id
+        ) first_balance ON first_balance.root_id = root_acc.id"
+            : '';
+
+        $bindings = [$level, $yearId, $fromDate, $toDate];
+
+        if ($includeFirstBalance) {
+            $bindings[] = $yearId;
+            $bindings[] = $fromDate;
+        }
+
+        $bindings[] = $level;
+
+        return collect(DB::select("
+        WITH RECURSIVE account_tree AS (
+            SELECT id as root_id, id as account_id
+            FROM fn_accounts
+            WHERE level = ?
+
+            UNION ALL
+
+            SELECT account_tree.root_id, child_acc.id
+            FROM fn_accounts child_acc
+            INNER JOIN account_tree ON child_acc.parent_id = account_tree.account_id
+        ),
+        period_balance AS (
+            SELECT account_tree.root_id,
+                   COALESCE(SUM(cd.debtor_value), 0) as total_debtor,
+                   COALESCE(SUM(cd.creditor_value), 0) as total_creditor
+            FROM account_tree
+            INNER JOIN fn_constraint_details cd ON cd.account_id = account_tree.account_id
+            INNER JOIN fn_constraints c ON c.id = cd.constraint_id
+            WHERE c.year_id = ?
+              AND cd.date BETWEEN ? AND ?
+              AND cd.deleted_at IS NULL
+              AND c.deleted_at IS NULL
+            GROUP BY account_tree.root_id
+        )
+        SELECT root_acc.id,
+               root_acc.name,
+               root_acc.code,
+               root_acc.status,
+               COALESCE(period_balance.total_debtor, 0) as total_debtor,
+               COALESCE(period_balance.total_creditor, 0) as total_creditor,
+               {$firstBalanceSelect}
+        FROM fn_accounts root_acc
+        LEFT JOIN period_balance ON period_balance.root_id = root_acc.id
+        {$firstBalanceJoin}
+        WHERE root_acc.level = ?
+        ORDER BY root_acc.code
+    ", $bindings));
+    }
+
     protected function getQueryResults($yearId, $level, $startDate = null, $endDate = null)
     {
         $query = $this->constraintDetailsService->model->query()->with('account');
