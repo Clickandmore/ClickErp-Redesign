@@ -224,10 +224,10 @@ class ConstraintDetailsService extends MainService
     public function filterIncomeList($request)
     {
         $constraints_ids = $this->model
-            ->when(isset($request->from_date), function ($q) use ($request) {
+            ->when($request->filled('from_date'), function ($q) use ($request) {
                 return $q->whereDate("date", ">=", $request->from_date);
             })
-            ->when(isset($request->to_date), function ($q) use ($request) {
+            ->when($request->filled('to_date'), function ($q) use ($request) {
                 return $q->whereDate("date", "<=", $request->to_date);
             })
             ->pluck('id')->toArray();

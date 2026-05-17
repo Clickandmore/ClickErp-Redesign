@@ -483,8 +483,11 @@ class AccountService extends MainService
 
     public function getIncomeAccounts()
     {
-        return $this->model->where('type', AccountTypesEnum::GeneralOutcome)
-            ->orWhere('type', AccountTypesEnum::GeneralIncome)
+        return $this->model->whereIn('type', [
+            AccountTypesEnum::GeneralOutcome,
+            AccountTypesEnum::GeneralIncome,
+        ])
+            ->whereNull('parent_id')
             ->orderBy('type', 'asc')
             ->with(['children', 'childrenRecursive' => function ($query) {
                 $query->select('id', 'parent_id', 'type', 'status');
@@ -500,6 +503,7 @@ class AccountService extends MainService
             AccountTypesEnum::GeneralOutcome,
             AccountTypesEnum::GeneralIncome
         ])
+            ->whereNull('parent_id')
             ->with('children.children.children.children.children') // Adjust depth as needed
             ->get();
 
@@ -577,11 +581,17 @@ class AccountService extends MainService
     private function getConstraintsData($account_ids, $constraints_ids)
     {
         // Single query to get all constraint details for all accounts
-        $constraints = DB::table('fn_constraint_details') // Adjust table name as needed
-        ->whereIn('account_id', $account_ids) // Adjust column name as needed
-        ->whereIn('id', $constraints_ids)
-            ->whereNull('deleted_at')
-            ->select('account_id', 'debtor_value', 'creditor_value')
+        $constraints = DB::table('fn_constraint_details')
+            ->join('fn_accounts', 'fn_accounts.id', '=', 'fn_constraint_details.account_id')
+            ->whereIn('fn_constraint_details.account_id', $account_ids)
+            ->whereIn('fn_constraint_details.id', $constraints_ids)
+            ->whereNull('fn_constraint_details.deleted_at')
+            ->select(
+                'fn_constraint_details.account_id',
+                'fn_constraint_details.debtor_value',
+                'fn_constraint_details.creditor_value',
+                'fn_accounts.status'
+            )
             ->get();
 
         // Group by account_id and calculate totals
@@ -591,7 +601,9 @@ class AccountService extends MainService
             if (!isset($constraints_data[$account_id])) {
                 $constraints_data[$account_id] = 0;
             }
-            $constraints_data[$account_id] += ($constraint->debtor_value - $constraint->creditor_value);
+            $constraints_data[$account_id] += $constraint->status === 'creditor'
+                ? ($constraint->creditor_value - $constraint->debtor_value)
+                : ($constraint->debtor_value - $constraint->creditor_value);
         }
 
         return $constraints_data;
