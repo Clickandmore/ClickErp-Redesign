@@ -134,12 +134,14 @@
                     $buttons = '<span class="account-tree-actions">' . $buttons . '</span>';
                 }
 
-                $statementRoute = route('finance.account-statement.index', [
+                $statementRoute = url('/finance/account-statement') .
+                    '?' .
+                    http_build_query([
                     'account_id' => $account->id,
                     'to_date' => date('Y-m-d'),
                     'type' => 'both',
                     'other_account' => 'yes',
-                ]);
+                    ]);
 
                 $printStatementRoute = route('finance.account-statement-print.index', [
                     'account_id' => $account->id,
@@ -149,26 +151,12 @@
                     'other_account' => 'yes',
                 ]);
 
-                if ($canOpenPrintedStatement) {
-                    $codeLabel =
-                        '<a href="' .
-                        $printStatementRoute .
-                        '" class="account-tree-code" target="_blank" rel="noopener" title="فتح كشف الحساب">' .
-                        e((string) $account->code) .
-                        '</a>';
-                } elseif ($canOpenStatementPage) {
-                    $codeLabel =
-                        '<a href="' .
-                        $statementRoute .
-                        '" class="account-tree-code" target="_blank" rel="noopener" title="كشف الحساب">' .
-                        e((string) $account->code) .
-                        '</a>';
-                } else {
-                    $codeLabel =
-                        '<span class="account-tree-code account-tree-code--plain">' .
-                        e((string) $account->code) .
-                        '</span>';
-                }
+                $codeLabel =
+                    '<a href="' .
+                    $statementRoute .
+                    '" class="account-tree-code" target="_blank" rel="noopener" title="فتح كشف الحساب">' .
+                    e((string) $account->code) .
+                    '</a>';
 
                 $status =
                     $account->status->value === 'debtor'
@@ -294,6 +282,18 @@
 @section('js')
     <script>
         window.accountingGuideReloadOnCreate = false;
+
+        document.addEventListener('click', function(event) {
+            const accountCodeLink = event.target.closest('.account-tree-code[href]');
+
+            if (!accountCodeLink) {
+                return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+            window.open(accountCodeLink.href, '_blank', 'noopener');
+        }, true);
 
         function applyAccountTreeFilters() {
             const filter = ($('#filterUl').val() || '').trim().toLowerCase();

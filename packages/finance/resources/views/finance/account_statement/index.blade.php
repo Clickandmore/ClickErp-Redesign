@@ -831,6 +831,10 @@
 
         @if (!empty($filters['account_id'] ?? request('account_id')))
             searchAccountStatement();
+
+            if (window.history && window.history.replaceState) {
+                window.history.replaceState({}, document.title, statementBaseUrl);
+            }
         @endif
     </script>
 
