@@ -234,4 +234,23 @@ class ConstraintDetailsService extends MainService
 
         return $this->accountService->getIncomeAccountsChildrens($constraints_ids);
     }
+
+    public function filterProfitLoss($request)
+    {
+        $constraints_ids = $this->model
+            ->when($request->filled('from_date'), function ($q) use ($request) {
+                return $q->whereDate("date", ">=", $request->from_date);
+            })
+            ->when($request->filled('to_date'), function ($q) use ($request) {
+                return $q->whereDate("date", "<=", $request->to_date);
+            })
+            ->pluck('id')->toArray();
+
+        return $this->accountService->getIncomeAccountsChildrens($constraints_ids, (int) $request->input('level', 1));
+    }
+
+    public function getIncomeReportLevels(): array
+    {
+        return $this->accountService->getIncomeReportLevels();
+    }
 }

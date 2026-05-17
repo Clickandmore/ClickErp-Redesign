@@ -10,11 +10,12 @@
         $totalSumCreditorValue = 0;
     @endphp
     <div class="table-responsive">
-        <table id="myTable" class="table table-bordered table-striped dataTable no-footer">
+        <table id="simpleTable4" class="table table-hover table-bordered table-striped dataTable no-footer align-middle audit-budget-table">
             <thead>
-            <tr>
-                <th>#</th>
-                <th>{{__('finance.account')}}</th>
+            <tr class="header text-center">
+                <th style="width: 4%">#</th>
+                <th style="width: 8%">{{ __("finance::finance.code") }}</th>
+                <th style="min-width: 240px">{{__('finance::finance.account')}}</th>
                 @if($firstBalance)
                     <th colspan="2">{{__('finance::finance.First Balance')}}</th>
                 @endif
@@ -24,7 +25,8 @@
                 <th colspan="2">{{__('finance::finance.totals')}}</th>
                 <th colspan="2">{{__('finance::finance.balances')}}</th>
             </tr>
-            <tr>
+            <tr class="header text-center">
+                <th></th>
                 <th></th>
                 <th></th>
                 @if($firstBalance)
@@ -60,10 +62,11 @@
                 @endphp
                 <tr>
                     <td>{{ ++$loop->index }}</td>
+                    <td class="text-nowrap">{{ $row['account_code'] }}</td>
                     <td>{{ $row['account_name'] }}</td>
                     @if($firstBalance)
-                        <td class="col-y">{{ $firstBalance[$account_key]->sum_debtor_value ?? 0 }}</td>
-                        <td>{{ $firstBalance[$account_key]->sum_creditor_value ?? 0 }}</td>
+                        <td class="col-y text-end">{{ number_format($firstBalance[$account_key]->sum_debtor_value ?? 0, 2) }}</td>
+                        <td class="text-end">{{ number_format($firstBalance[$account_key]->sum_creditor_value ?? 0, 2) }}</td>
                     @endif
                     @foreach($months_keys as $month)
                         @php
@@ -79,36 +82,36 @@
                             $rowDebtorTotal += $debtorValue;
                             $rowCreditorTotal += $creditorValue;
                         @endphp
-                        <td class="col-y">{{ $debtorValue }}</td>
-                        <td>{{ $creditorValue }}</td>
+                        <td class="col-y text-end">{{ number_format($debtorValue, 2) }}</td>
+                        <td class="text-end">{{ number_format($creditorValue, 2) }}</td>
                     @endforeach
 
-                    <td class="col-y">{{ $rowDebtorTotal }}</td>
-                    <td>{{ $rowCreditorTotal }}</td>
+                    <td class="col-y text-end">{{ number_format($rowDebtorTotal, 2) }}</td>
+                    <td class="text-end">{{ number_format($rowCreditorTotal, 2) }}</td>
 
                     @php
                         $totals['debtor'] += ($row['type'] == 'debtor') ? $rowDebtorTotal - $rowCreditorTotal : 0;
                         $totals['creditor'] += ($row['type'] == 'creditor') ? $rowCreditorTotal - $rowDebtorTotal : 0;
                     @endphp
-                    <td>{{ ($row['type'] == 'debtor') ? $rowDebtorTotal - $rowCreditorTotal : 0 }}</td>
-                    <td>{{ ($row['type'] == 'creditor') ? $rowCreditorTotal - $rowDebtorTotal : 0 }}</td>
+                    <td class="text-end">{{ number_format(($row['type'] == 'debtor') ? $rowDebtorTotal - $rowCreditorTotal : 0, 2) }}</td>
+                    <td class="text-end">{{ number_format(($row['type'] == 'creditor') ? $rowCreditorTotal - $rowDebtorTotal : 0, 2) }}</td>
                 </tr>
             @endforeach
 
-            <tr style="background-color: #48b849">
-                <td colspan="2">{{ __('finance::finance.total') }}</td>
+            <tr class="fw-bold" style="background-color: #48b849">
+                <td colspan="3" class="text-center">{{ __('finance::finance.total') }}</td>
                 @if($firstBalance)
-                    <td>{{ $totalSumDebtorValue }}</td>
-                    <td>{{ $totalSumCreditorValue }}</td>
+                    <td class="text-end">{{ number_format($totalSumDebtorValue, 2) }}</td>
+                    <td class="text-end">{{ number_format($totalSumCreditorValue, 2) }}</td>
                 @endif
                 @foreach($months_keys as $key)
-                    <th>{{ $months[$key]['sum_debtor_value'] }}</th>
-                    <th>{{ $months[$key]['sum_creditor_value'] }}</th>
+                    <th class="text-end">{{ number_format($months[$key]['sum_debtor_value'], 2) }}</th>
+                    <th class="text-end">{{ number_format($months[$key]['sum_creditor_value'], 2) }}</th>
                 @endforeach
-                <td>{{ $totalDebtorValue }}</td>
-                <td>{{ $totalCreditorValue }}</td>
-                <td>{{ $totals['debtor'] }}</td>
-                <td>{{ $totals['creditor'] }}</td>
+                <td class="text-end">{{ number_format($totalDebtorValue, 2) }}</td>
+                <td class="text-end">{{ number_format($totalCreditorValue, 2) }}</td>
+                <td class="text-end">{{ number_format($totals['debtor'], 2) }}</td>
+                <td class="text-end">{{ number_format($totals['creditor'], 2) }}</td>
             </tr>
             </tbody>
         </table>

@@ -496,7 +496,26 @@ class AccountService extends MainService
     }
 
 
-    public function getIncomeAccountsChildrens($constraints_ids)
+    public function getIncomeReportLevels(): array
+    {
+        $roots = $this->model->whereIn('type', [
+            AccountTypesEnum::GeneralOutcome,
+            AccountTypesEnum::GeneralIncome,
+        ])
+            ->whereNull('parent_id')
+            ->with('children.children.children.children.children')
+            ->get();
+
+        $maxDepth = 1;
+
+        foreach ($roots as $root) {
+            $maxDepth = max($maxDepth, $this->getMaxChildrenDepth($root));
+        }
+
+        return range(1, $maxDepth);
+    }
+
+    public function getIncomeAccountsChildrens($constraints_ids, ?int $level = null)
     {
         // Load all accounts with their nested children in one query
         $accounts = $this->model->whereIn('type', [
@@ -531,7 +550,54 @@ class AccountService extends MainService
             ];
         }
 
+        if ($level) {
+            $main_list = $this->filterIncomeAccountsByReportLevel($main_list, $level);
+        }
+
         return $main_list;
+    }
+
+    private function getMaxChildrenDepth($account, int $depth = 0): int
+    {
+        if (!$account->children || $account->children->isEmpty()) {
+            return $depth;
+        }
+
+        $maxDepth = $depth;
+
+        foreach ($account->children as $child) {
+            $maxDepth = max($maxDepth, $this->getMaxChildrenDepth($child, $depth + 1));
+        }
+
+        return $maxDepth;
+    }
+
+    private function filterIncomeAccountsByReportLevel(array $main_list, int $level): array
+    {
+        return array_map(function ($root) use ($level) {
+            $root['list'] = $this->keepRowsUntilReportLevel($root['list'], $level);
+
+            return $root;
+        }, $main_list);
+    }
+
+    private function keepRowsUntilReportLevel(array $rows, int $targetLevel, int $currentLevel = 1): array
+    {
+        return array_map(function ($row) use ($targetLevel, $currentLevel) {
+            if ($currentLevel >= $targetLevel) {
+                $row['children'] = [];
+
+                return $row;
+            }
+
+            $row['children'] = $this->keepRowsUntilReportLevel(
+                $row['children'] ?? [],
+                $targetLevel,
+                $currentLevel + 1
+            );
+
+            return $row;
+        }, $rows);
     }
 
     private function buildIncomeAccountRow($account, $constraints_data)
