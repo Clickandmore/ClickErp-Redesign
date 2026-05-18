@@ -27,6 +27,8 @@ Route::group(
                 Route::post('maids/bulk-import', [AgentBulkImportController::class, 'store'])->name('maids.bulk-import.store');
                 Route::get('maids/bulk-import/{agentMaidBulkImport}', [AgentBulkImportController::class, 'show'])->name('maids.bulk-import.show');
                 Route::get('maids/bulk-import/{agentMaidBulkImport}/download', [AgentBulkImportController::class, 'download'])->name('maids.bulk-import.download');
+                Route::post('maids/{maid}/notes', [DashboardController::class, 'updateNotes'])->name('maids.update-notes');
+                Route::get('maids/{maid}', [DashboardController::class, 'showMaid'])->name('maids.show');
                 Route::get('contracts', [DashboardController::class, 'contracts'])->name('contracts.index');
                 Route::get('contracts/{contract}', [DashboardController::class, 'showContract'])->name('contracts.show');
                 Route::get('external-office-dispatches', [DashboardController::class, 'dispatches'])->name('dispatches.index');

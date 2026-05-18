@@ -205,6 +205,36 @@ class DashboardController extends Controller
         return redirect()->route('agent.maids.index')->with('success', 'CV added successfully and pending review.');
     }
 
+    public function updateNotes(Request $request, Maid $maid)
+    {
+        $officeIds = $this->agentOfficeIds();
+        if (!$officeIds->contains($maid->office_id)) {
+            abort(403, 'Unauthorized office');
+        }
+
+        $request->validate([
+            'additional_notes' => 'nullable|string|max:1000',
+        ]);
+
+        $maid->update([
+            'additional_notes' => $request->input('additional_notes'),
+        ]);
+
+        return redirect()->back()->with('success', app()->getLocale() === 'ar' ? 'تم تحديث الملاحظات بنجاح' : 'Notes updated successfully');
+    }
+
+    public function showMaid(Maid $maid)
+    {
+        $officeIds = $this->agentOfficeIds();
+        if (!$officeIds->contains($maid->office_id)) {
+            abort(403, 'Unauthorized office');
+        }
+
+        $maid->load(['nationality', 'religion', 'jobTypes', 'contracts.user', 'attachments', 'expertises']);
+
+        return view('agent.maids.show', compact('maid'));
+    }
+
     public function contracts(Request $request)
     {
         $baseQuery = $this->contractsQuery();

@@ -33,6 +33,11 @@
                     </span>
                     <input type="password" id="password" name="password" class="password-text-input"
                         placeholder="********" autocomplete="current-password" required>
+                    <button type="button" class="password-toggle" id="passwordToggle"
+                        aria-label="{{ app()->getLocale() === 'ar' ? 'إظهار كلمة المرور' : 'Show password' }}"
+                        aria-pressed="false">
+                        <i class="fa fa-eye" aria-hidden="true"></i>
+                    </button>
                 </div>
             </div>
         </div>
@@ -54,3 +59,30 @@
         {{ $authLocale === 'ar' ? 'تسجيل دخول الإدارة' : 'Admin Login' }}
     </a>
 @endsection
+
+@push('auth-scripts')
+    <script type="text/javascript">
+        $(function() {
+            const passwordInput = document.getElementById('password');
+            const passwordToggle = document.getElementById('passwordToggle');
+
+            if (passwordInput && passwordToggle) {
+                const eyeIcon = passwordToggle.querySelector('i');
+                const showLabel = @json($authLocale === 'ar' ? 'إظهار كلمة المرور' : 'Show password');
+                const hideLabel = @json($authLocale === 'ar' ? 'إخفاء كلمة المرور' : 'Hide password');
+
+                passwordToggle.addEventListener('click', function() {
+                    const isHidden = passwordInput.type === 'password';
+
+                    passwordInput.type = isHidden ? 'text' : 'password';
+                    passwordToggle.setAttribute('aria-pressed', isHidden ? 'true' : 'false');
+                    passwordToggle.setAttribute('aria-label', isHidden ? hideLabel : showLabel);
+
+                    if (eyeIcon) {
+                        eyeIcon.className = isHidden ? 'fa fa-eye-slash' : 'fa fa-eye';
+                    }
+                });
+            }
+        });
+    </script>
+@endpush

@@ -78,6 +78,7 @@
                         <th>{{ $isAr ? 'السعر' : 'Price' }}</th>
                         <th>{{ $isAr ? 'الحالة' : 'Status' }}</th>
                         <th>{{ $isAr ? 'العقود النشطة' : 'Active Contracts' }}</th>
+                        <th>{{ $isAr ? 'الإجراءات' : 'Actions' }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -106,10 +107,18 @@
                                 </span>
                             </td>
                             <td>{{ $activeContractsCount }}</td>
+                            <td>
+                                <a href="{{ route('agent.maids.show', $maid->id) }}" class="agent-button" style="padding: 4px 8px; min-height: 28px; font-size: 12px; background: var(--agent-primary); text-decoration: none;">
+                                    <i class="fa fa-eye"></i> {{ $isAr ? 'عرض' : 'View' }}
+                                </a>
+                                <button type="button" class="agent-button edit-notes-btn" data-id="{{ $maid->id }}" data-notes="{{ $maid->additional_notes ?? '' }}" style="padding: 4px 8px; min-height: 28px; font-size: 12px; background: var(--agent-muted);">
+                                    <i class="fa fa-edit"></i> {{ $isAr ? 'ملاحظات' : 'Notes' }}
+                                </button>
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8">
+                            <td colspan="9">
                                 {{ $isAr ? 'لا توجد سجلات مطابقة.' : 'No matching records were found.' }}
                             </td>
                         </tr>
@@ -122,4 +131,59 @@
             {{ $maids->links() }}
         </div>
     </section>
+
+    <!-- Notes Modal -->
+    <div id="notesModal" class="agent-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center;">
+        <div class="agent-modal-content" style="background: var(--agent-panel); padding: 20px; border-radius: 8px; width: 90%; max-width: 500px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--agent-line); padding-bottom: 10px;">
+                <h4 style="margin: 0; font-size: 18px;">{{ $isAr ? 'ملاحظات العمالة' : 'Worker Notes' }}</h4>
+                <button type="button" id="closeNotesModal" style="background: none; border: none; font-size: 20px; cursor: pointer; color: var(--agent-muted);">&times;</button>
+            </div>
+            <form id="notesForm" action="" method="POST">
+                @csrf
+                <textarea name="additional_notes" id="maidNotes" rows="5" style="width: 100%; padding: 10px; border: 1px solid var(--agent-line); border-radius: 8px; resize: vertical; font-family: inherit;" placeholder="{{ $isAr ? 'أدخل ملاحظاتك هنا...' : 'Enter your notes here...' }}"></textarea>
+                <div style="margin-top: 15px; text-align: end;">
+                    <button type="submit" class="agent-button">{{ $isAr ? 'حفظ' : 'Save' }}</button>
+                </div>
+            </form>
+        </div>
+    </div>
 @endsection
+
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('notesModal');
+        const closeBtn = document.getElementById('closeNotesModal');
+        const form = document.getElementById('notesForm');
+        const textarea = document.getElementById('maidNotes');
+        const editBtns = document.querySelectorAll('.edit-notes-btn');
+
+        editBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const maidId = this.getAttribute('data-id');
+                const notes = this.getAttribute('data-notes');
+                
+                // Set form action dynamically
+                form.action = `{{ url('agent/maids') }}/${maidId}/notes`;
+                
+                // Set textarea value
+                textarea.value = notes;
+                
+                // Show modal
+                modal.style.display = 'flex';
+            });
+        });
+
+        closeBtn.addEventListener('click', function() {
+            modal.style.display = 'none';
+        });
+
+        window.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    });
+</script>
+@endpush
