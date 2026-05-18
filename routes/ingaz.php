@@ -389,6 +389,7 @@ Route::group(
 
             Route::resource('steps', StepController::class);
             Route::resource('return_requests', ReturnRequestController::class);
+            Route::post('return_requests/{id}/restore', [ReturnRequestController::class, 'restore'])->name('return_requests.restore');
             Route::get('return_requests/export/pdf', [ReturnRequestController::class, 'exportPdf'])->name('return_requests.export.pdf');
             Route::get('return_requests/export/excel', [ReturnRequestController::class, 'exportExcel'])->name('return_requests.export.excel');
             Route::resource('recruitment-offices', OfficeController::class)

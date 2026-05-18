@@ -66,6 +66,10 @@
             -webkit-overflow-scrolling: touch;
         }
 
+        .orders-page .actions-dropdown .dropdown-menu {
+            z-index: 2147483647;
+        }
+
         .orders-page #dataTableObject_wrapper,
         .orders-page .dataTables_scroll,
         .orders-page .dataTables_scrollHead,
@@ -107,7 +111,7 @@
 
             .orders-page .table-responsive {
                 overflow-x: auto !important;
-                overflow-y: hidden !important;
+                overflow-y: visible !important;
             }
 
             .orders-page .dataTables_scrollBody {
@@ -320,6 +324,13 @@
     <script>
         $(document).ready(function() {
             const isMobileTableView = window.matchMedia('(max-width: 991.98px)').matches;
+            const returnRequestEditRouteTemplate = "{{ route('return_requests.edit', ['return_request' => 'ORDER_ID']) }}";
+            const returnRequestDestroyRouteTemplate = "{{ route('return_requests.destroy', ['return_request' => 'ORDER_ID']) }}";
+            const returnRequestRestoreRouteTemplate = "{{ route('return_requests.restore', ['id' => 'ORDER_ID']) }}";
+
+            function routeFor(template, orderId) {
+                return template.replace('ORDER_ID', orderId);
+            }
 
             let columns = [{
                     data: 'id',
@@ -523,13 +534,13 @@
                 window.open('{{ route('return_requests.export.pdf') }}?' + getFilterQueryParams(), '_blank');
             });
 
-            function handleOrderMutation(url, method, successMessage) {
+            function handleOrderMutation(url, method, successMessage, extraData = {}) {
                 $.ajax({
                     url: url,
                     type: method,
-                    data: {
+                    data: Object.assign({
                         _token: '{{ csrf_token() }}'
-                    },
+                    }, extraData),
                     success: function(response) {
                         dataTable.ajax.reload(null, false);
 
@@ -540,8 +551,9 @@
 
                         Swal.fire('خطأ!', '{{ helperTrans('ingaz.update_error') }}', 'error');
                     },
-                    error: function() {
-                        Swal.fire('خطأ!', '{{ helperTrans('ingaz.update_error') }}', 'error');
+                    error: function(xhr) {
+                        const message = xhr.responseJSON?.message || '{{ helperTrans('ingaz.update_error') }}';
+                        Swal.fire('خطأ!', message, 'error');
                     }
                 });
             }
@@ -561,7 +573,7 @@
                     cancelButtonText: '{{ helperTrans('buttons.cancel') }}',
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        handleOrderMutation('/admin/orders/' + orderId + '/restore', 'POST',
+                        handleOrderMutation(routeFor(returnRequestRestoreRouteTemplate, orderId), 'POST',
                             '{{ helperTrans('ingaz.order_restored') }}');
                     }
                 });
@@ -582,8 +594,10 @@
                     cancelButtonText: '{{ helperTrans('buttons.cancel') }}',
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        handleOrderMutation('/admin/orders/' + orderId, 'DELETE',
-                            '{{ helperTrans('ingaz.order_deleted') }}');
+                        handleOrderMutation(routeFor(returnRequestDestroyRouteTemplate, orderId), 'DELETE',
+                            '{{ helperTrans('ingaz.order_deleted') }}', {
+                                force_delete: 1
+                            });
                     }
                 });
             });
@@ -603,7 +617,7 @@
                     cancelButtonText: '{{ helperTrans('buttons.cancel') }}',
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        handleOrderMutation('/admin/orders/' + orderId, 'DELETE',
+                        handleOrderMutation(routeFor(returnRequestDestroyRouteTemplate, orderId), 'DELETE',
                             '{{ helperTrans('ingaz.order_deleted') }}');
                     }
                 });
@@ -653,7 +667,7 @@
                 $('#loadingModal').modal('show');
 
                 $.ajax({
-                    url: '/admin/orders/' + orderId + '/edit',
+                    url: routeFor(returnRequestEditRouteTemplate, orderId),
                     type: 'GET',
                     success: function(response) {
                         $('#loadingModal').modal('hide');
@@ -696,7 +710,7 @@
                                 processData: false,
                                 contentType: false,
                                 success: function(updateResponse) {
-                                    if (updateResponse.success) {
+                                    if (updateResponse && (updateResponse.success || (updateResponse.data && updateResponse.data.success))) {
                                         $('#editStatusModal').modal('hide');
                                         setTimeout(function() {
                                             $('#editStatusModal').remove();
@@ -740,7 +754,7 @@
 
             dataTable.on('draw', function() {
                 $('.dropdown').removeClass('show');
-                $('.dropdown-menu').hide();
+                $('.dropdown-menu').removeClass('show').removeAttr('style');
             });
         });
     </script>

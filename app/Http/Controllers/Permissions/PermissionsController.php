@@ -1636,6 +1636,13 @@ class PermissionsController extends Controller
 
     private function normalizeSubmittedPermissionNames($permissionNames): Collection
     {
+        if (is_string($permissionNames)) {
+            $decodedPermissionNames = json_decode($permissionNames, true);
+            $permissionNames = is_array($decodedPermissionNames)
+                ? $decodedPermissionNames
+                : [$permissionNames];
+        }
+
         return collect($permissionNames)
             ->filter(fn ($permissionName) => is_string($permissionName) && trim($permissionName) !== '')
             ->map(fn ($permissionName) => trim($permissionName))
@@ -1701,8 +1708,12 @@ class PermissionsController extends Controller
                 return redirect(route('dash.roles.index'))->with('error', 'لا يمكن تحديث صلاحيات دور غير إداري.');
             }
 
-            $requestedPermissions = $this->normalizeSubmittedPermissionNames($request->input('perms', []));
-            $scopePermissions = $this->normalizeSubmittedPermissionNames($request->input('scope_permissions', []));
+            $requestedPermissions = $this->normalizeSubmittedPermissionNames(
+                $request->input('perms_json', $request->input('perms', []))
+            );
+            $scopePermissions = $this->normalizeSubmittedPermissionNames(
+                $request->input('scope_permissions_json', $request->input('scope_permissions', []))
+            );
             $scopeLabel = trim((string) $request->input('scope_label', ''));
 
             if ($scopePermissions->isNotEmpty()) {

@@ -260,8 +260,8 @@ class AdminRoutePermissionMatrix
                 'index' => [PermKeys::RETURN_REQUEST_VIEW],
                 'show' => [PermKeys::RETURN_REQUEST_VIEW],
                 'create' => [PermKeys::RETURN_REQUEST_CREATE],
-                'edit' => [PermKeys::RETURN_REQUEST_EDIT],
-                'destroy' => [PermKeys::RETURN_REQUEST_DELETE],
+                'edit' => [PermKeys::RETURN_REQUEST_EDIT, PermKeys::RETURN_REQUEST_CONTROL],
+                'destroy' => [PermKeys::RETURN_REQUEST_DELETE, PermKeys::RETURN_REQUEST_CONTROL],
             ]),
             [
                 'orders.current' => [PermKeys::ORDERS_VIEW],
@@ -283,6 +283,7 @@ class AdminRoutePermissionMatrix
                 'showDataOfMaid' => [PermKeys::MAIDS_VIEW],
                 'showUserFromContract' => [PermKeys::CLIENTS_VIEW],
                 'order_files.download' => [PermKeys::ORDERS_VIEW],
+                'return_requests.restore' => [PermKeys::RETURN_REQUEST_DELETE, PermKeys::RETURN_REQUEST_CONTROL],
                 'return_requests.export.pdf' => [PermKeys::RETURN_REQUEST_EXPORT],
                 'return_requests.export.excel' => [PermKeys::RETURN_REQUEST_EXPORT],
                 'professional_application.index' => [PermKeys::PROFESSIONAL_APPLICATION_VIEW],

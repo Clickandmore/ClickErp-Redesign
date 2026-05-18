@@ -722,7 +722,7 @@ class OrderController extends Controller
 
     public function showSingleOrder($orderId)
     {
-        $data = Order::with([
+        $data = Order::withTrashed()->with([
             'user.nationality',
             'maid.nationality',
             'maid.religion',
@@ -747,7 +747,7 @@ class OrderController extends Controller
 
     public function show($orderId)
     {
-        $data = Order::with([
+        $data = Order::withTrashed()->with([
             'user.nationality',
             'maid.nationality',
             'maid.religion',
