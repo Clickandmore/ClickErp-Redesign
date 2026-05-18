@@ -434,6 +434,25 @@ class DashboardController extends Controller
         return view('agent.contracts.show', compact('contract'));
     }
 
+    public function notifications()
+    {
+        $notifications = \App\Models\AdminNotification::where('admin_id', auth('agent')->id())->orderBy('created_at', 'desc')->paginate(15);
+        return view('agent.notifications.index', compact('notifications'));
+    }
+
+    public function markAsRead($id)
+    {
+        $notification = \App\Models\AdminNotification::where('admin_id', auth('agent')->id())->findOrFail($id);
+        $notification->update(['read_at' => now()]);
+        return redirect()->back();
+    }
+
+    public function markAllAsRead()
+    {
+        \App\Models\AdminNotification::where('admin_id', auth('agent')->id())->whereNull('read_at')->update(['read_at' => now()]);
+        return redirect()->back()->with('success', app()->getLocale() === 'ar' ? 'تم تعيين الكل كمقروء' : 'All marked as read');
+    }
+
     private function agentOffices(): Collection
     {
         $officeIds = $this->agentOfficeIds();

@@ -33,6 +33,9 @@ Route::group(
                 Route::get('contracts/{contract}', [DashboardController::class, 'showContract'])->name('contracts.show');
                 Route::get('external-office-dispatches', [DashboardController::class, 'dispatches'])->name('dispatches.index');
                 Route::get('invoices', [DashboardController::class, 'invoices'])->name('invoices.index');
+                Route::get('notifications', [DashboardController::class, 'notifications'])->name('notifications.index');
+                Route::post('notifications/mark-all-read', [DashboardController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+                Route::post('notifications/{id}/read', [DashboardController::class, 'markAsRead'])->name('notifications.read');
                 Route::post('logout', [AuthController::class, 'logout'])->name('logout');
             });
         });

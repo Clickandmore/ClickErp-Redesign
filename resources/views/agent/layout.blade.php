@@ -718,6 +718,18 @@
                 </div>
 
                 <div class="agent-header-actions">
+                    @php
+                        $unreadNotificationsCount = auth('agent')->check() ? \App\Models\AdminNotification::where('admin_id', auth('agent')->id())->whereNull('read_at')->count() : 0;
+                    @endphp
+                    <a href="{{ route('agent.notifications.index') }}" class="agent-header-action" style="position: relative;">
+                        <i class="fa fa-bell"></i>
+                        @if($unreadNotificationsCount > 0)
+                            <span style="position: absolute; top: -5px; right: -5px; background: #ef4444; color: white; border-radius: 50%; padding: 2px 5px; font-size: 10px; font-weight: bold; line-height: 1;">
+                                {{ $unreadNotificationsCount }}
+                            </span>
+                        @endif
+                    </a>
+
                     <a class="agent-header-action agent-open-site" href="{{ publicSiteUrl() }}" target="_blank" rel="noopener noreferrer">
                         <i class="fa fa-globe"></i>
                         <span>{{ app()->getLocale() === 'ar' ? 'الموقع' : 'Website' }}</span>
