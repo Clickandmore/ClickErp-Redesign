@@ -147,6 +147,14 @@
                     <span>{{ app()->getLocale() === 'ar' ? 'الإجمالي' : 'Total Due' }}</span>
                     <strong>{{ formatMoney($contract->invoice->total_due) }}</strong>
                 </div>
+                <div class="agent-detail-item">
+                    <span>{{ app()->getLocale() === 'ar' ? 'المسدد' : 'Paid Amount' }}</span>
+                    <strong style="color: #10b981;">{{ formatMoney($contract->invoice->is_paid ? $contract->invoice->total_due : 0) }}</strong>
+                </div>
+                <div class="agent-detail-item">
+                    <span>{{ app()->getLocale() === 'ar' ? 'المستحق' : 'Due Amount' }}</span>
+                    <strong style="color: #ef4444;">{{ formatMoney($contract->invoice->is_paid ? 0 : $contract->invoice->total_due) }}</strong>
+                </div>
                 @if ($contract->invoice->external_recruitment_cost > 0)
                     <div class="agent-detail-item">
                         <span>{{ app()->getLocale() === 'ar' ? 'تكلفة الاستقدام الخارجي' : 'External Recruitment Cost' }}</span>

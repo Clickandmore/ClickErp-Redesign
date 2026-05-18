@@ -27,6 +27,8 @@
                         <th>{{ $isAr ? 'رقم العقد' : 'Contract #' }}</th>
                         <th>{{ $isAr ? 'العميل' : 'Client' }}</th>
                         <th>{{ $isAr ? 'الإجمالي' : 'Total' }}</th>
+                        <th>{{ $isAr ? 'المسدد' : 'Paid' }}</th>
+                        <th>{{ $isAr ? 'المستحق' : 'Due' }}</th>
                         <th>{{ $isAr ? 'الحالة' : 'Status' }}</th>
                         <th>{{ $isAr ? 'تاريخ الدفع' : 'Paid At' }}</th>
                         <th></th>
@@ -40,6 +42,8 @@
                             <td>#{{ $contract->id }}</td>
                             <td>{{ $contract->user?->name ?: '-' }}</td>
                             <td><strong>{{ formatMoney($invoice->total_due) }}</strong></td>
+                            <td><strong style="color: #10b981;">{{ formatMoney($invoice->is_paid ? $invoice->total_due : 0) }}</strong></td>
+                            <td><strong style="color: #ef4444;">{{ formatMoney($invoice->is_paid ? 0 : $invoice->total_due) }}</strong></td>
                             <td>
                                 <span class="agent-badge {{ $invoice->is_paid ? 'success' : 'warning' }}">
                                     {{ $invoice->is_paid ? ($isAr ? 'مدفوعة' : 'Paid') : ($isAr ? 'غير مدفوعة' : 'Unpaid') }}
