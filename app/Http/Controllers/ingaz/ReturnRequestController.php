@@ -274,15 +274,12 @@ class ReturnRequestController extends Controller
             $actions[] = '<li><hr class="dropdown-divider"></li>';
 
             if ($order->deleted_at) {
-                $actions[] = '<li><button class="dropdown-item force-delete-order text-danger" data-id="' . $order->id . '">
-                                <i class="fa fa-trash"></i> ' . e(helperTrans('ingaz.force_delete')) . '
-                            </button></li>';
+                $actions[] = '<li><span class="dropdown-item text-muted">
+                                <i class="fa fa-info-circle"></i> الطلب محذوف ويمكن استعادته
+                            </span></li>';
             } else {
                 $actions[] = '<li><button class="dropdown-item delete-order text-danger" data-id="' . $order->id . '">
                                 <i class="fa fa-trash"></i> ' . e(helperTrans('ingaz.delete_order')) . '
-                            </button></li>';
-                $actions[] = '<li><button class="dropdown-item force-delete-order text-danger" data-id="' . $order->id . '">
-                                <i class="fa fa-trash-alt"></i> ' . e(helperTrans('ingaz.force_delete')) . '
                             </button></li>';
             }
         }
@@ -415,11 +412,11 @@ class ReturnRequestController extends Controller
     {
         $order = Order::withTrashed()->findOrFail($id);
 
-        if ($order->trashed() || $request->boolean('force_delete')) {
-            $order->forceDelete();
-        } else {
-            $order->delete();
+        if ($order->trashed()) {
+            return jsonError('الطلب محذوف بالفعل. استخدم الاستعادة لإرجاعه إلى حالته السابقة.', 422);
         }
+
+        $order->delete();
 
         return jsonSuccess(['success' => true], __("ingaz.order_deleted_successfully"), 200);
     }

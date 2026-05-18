@@ -595,29 +595,6 @@
                 }).then((result) => {
                     if (result.isConfirmed) {
                         handleOrderMutation(routeFor(returnRequestDestroyRouteTemplate, orderId), 'DELETE',
-                            '{{ helperTrans('ingaz.order_deleted') }}', {
-                                force_delete: 1
-                            });
-                    }
-                });
-            });
-
-            $(document).on('click', '.force-delete-order', function(e) {
-                e.preventDefault();
-                const orderId = $(this).data('id');
-
-                Swal.fire({
-                    title: '{{ helperTrans('buttons.Are You Sure') }}',
-                    text: '{{ helperTrans('buttons.You Can not to rollback') ?? 'This action cannot be undone!' }}',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: '{{ helperTrans('buttons.accept') }}',
-                    cancelButtonText: '{{ helperTrans('buttons.cancel') }}',
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        handleOrderMutation(routeFor(returnRequestDestroyRouteTemplate, orderId), 'DELETE',
                             '{{ helperTrans('ingaz.order_deleted') }}');
                     }
                 });
