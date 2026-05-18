@@ -308,7 +308,7 @@ class OfficeController extends Controller
         Auth::guard('agent')->login($adminUser);
         request()->session()->regenerate();
 
-        return redirect(LaravelLocalization::getLocalizedURL('en', route('agent.dashboard'), [], true));
+        return redirect(LaravelLocalization::getLocalizedURL(app()->getLocale(), route('agent.dashboard'), [], true));
     }
 
     /**

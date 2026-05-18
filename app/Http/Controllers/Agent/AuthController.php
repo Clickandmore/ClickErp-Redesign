@@ -13,10 +13,6 @@ class AuthController extends Controller
 {
     public function showLoginForm()
     {
-        if (app()->getLocale() !== 'en') {
-            return redirect($this->localizedRoute('agent.login.form'));
-        }
-
         $agent = Auth::guard('agent')->user();
 
         if ($agent && $agent->isExternalOfficeAgent()) {
@@ -32,8 +28,8 @@ class AuthController extends Controller
             'login' => ['required', 'string'],
             'password' => ['required', 'string'],
         ], [
-            'login.required' => 'Email or phone number is required.',
-            'password.required' => 'Password is required.',
+            'login.required' => app()->getLocale() === 'ar' ? 'البريد الإلكتروني أو رقم الجوال مطلوب.' : 'Email or phone number is required.',
+            'password.required' => app()->getLocale() === 'ar' ? 'كلمة المرور مطلوبة.' : 'Password is required.',
         ]);
 
         $login = trim((string) $request->input('login'));
@@ -47,19 +43,19 @@ class AuthController extends Controller
 
         if (! $agent || ! Hash::check((string) $request->input('password'), (string) $agent->password)) {
             return back()
-                ->withErrors(['login' => 'The login credentials are invalid.'])
+                ->withErrors(['login' => app()->getLocale() === 'ar' ? 'بيانات تسجيل الدخول غير صحيحة.' : 'The login credentials are invalid.'])
                 ->withInput($request->only('login'));
         }
 
         if (($agent->status ?? 'active') === 'suspended') {
             return back()
-                ->withErrors(['login' => 'This account is currently suspended.'])
+                ->withErrors(['login' => app()->getLocale() === 'ar' ? 'هذا الحساب موقوف حالياً.' : 'This account is currently suspended.'])
                 ->withInput($request->only('login'));
         }
 
         if (! $agent->isExternalOfficeAgent()) {
             return back()
-                ->withErrors(['login' => 'This account is not linked to an external office.'])
+                ->withErrors(['login' => app()->getLocale() === 'ar' ? 'هذا الحساب غير مرتبط بوكيل خارجي.' : 'This account is not linked to an external office.'])
                 ->withInput($request->only('login'));
         }
 
@@ -87,6 +83,6 @@ class AuthController extends Controller
 
     private function localizedRoute(string $routeName, array $parameters = []): string
     {
-        return LaravelLocalization::getLocalizedURL('en', route($routeName, $parameters), [], true);
+        return LaravelLocalization::getLocalizedURL(app()->getLocale(), route($routeName, $parameters), [], true);
     }
 }

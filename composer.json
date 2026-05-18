@@ -22,6 +22,7 @@
         "misterspelik/laravel-pdf": "^2.2",
         "php-flasher/flasher-toastr-laravel": "^1.15",
         "phpoffice/phpspreadsheet": "^4.2",
+        "phpoffice/phpword": "^1.4",
         "salla/zatca": "^3.0",
         "spatie/laravel-activitylog": "^4.8",
         "spatie/laravel-permission": "^6.9",

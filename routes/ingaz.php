@@ -26,6 +26,7 @@ use App\Http\Controllers\ingaz\FastNewController;
 use App\Http\Controllers\ingaz\FeatureController;
 use App\Http\Controllers\ingaz\InvoiceController;
 use App\Http\Controllers\ingaz\JobTitleController;
+use App\Http\Controllers\ingaz\AgentMaidImportAdminController;
 use App\Http\Controllers\ingaz\MaidBulkImportController;
 use App\Http\Controllers\ingaz\MaidController;
 use App\Http\Controllers\ingaz\MaidTestController;
@@ -219,6 +220,15 @@ Route::group(
             Route::post('maids/bulk-import', [MaidBulkImportController::class, 'store'])->name('maids.bulk-import.store');
             Route::get('maids/bulk-import/{maidBulkImport}', [MaidBulkImportController::class, 'show'])->name('maids.bulk-import.show');
             Route::post('maids/bulk-import/{maidBulkImport}/approve', [MaidBulkImportController::class, 'approve'])->name('maids.bulk-import.approve');
+
+            // Agent imports management
+            Route::prefix('agent-imports')->name('admin.agent-imports.')->group(function () {
+                Route::get('/', [AgentMaidImportAdminController::class, 'index'])->name('index');
+                Route::get('/{agentMaidBulkImport}', [AgentMaidImportAdminController::class, 'show'])->name('show');
+                Route::post('/{agentMaidBulkImport}/approve', [AgentMaidImportAdminController::class, 'approve'])->name('approve');
+                Route::post('/{agentMaidBulkImport}/reject', [AgentMaidImportAdminController::class, 'reject'])->name('reject');
+                Route::get('/{agentMaidBulkImport}/download', [AgentMaidImportAdminController::class, 'download'])->name('download');
+            });
             // Limit maid parameter to numeric IDs to avoid catching custom pages like create_rapid_cv
             Route::resource('maids', MaidController::class)->whereNumber('maid');
             Route::get('maids/create_rapid_cv', [MaidController::class, 'create_rapid_cv'])->name('maids.create_rapid_cv');

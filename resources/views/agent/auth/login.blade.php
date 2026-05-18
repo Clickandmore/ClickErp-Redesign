@@ -1,15 +1,21 @@
 @extends('admin.auth.layout')
 
-@section('auth-page-title', 'Agent Login')
-@section('auth-heading', 'External Agent Dashboard')
-@section('auth-subtitle', 'Sign in to the external office workspace')
+@php
+    $authLocale = \Mcamara\LaravelLocalization\Facades\LaravelLocalization::getCurrentLocale() ?: app()->getLocale();
+@endphp
+
+@section('auth-page-title', $authLocale === 'ar' ? 'تسجيل دخول الوكلاء' : 'Agent Login')
+@section('auth-heading', $authLocale === 'ar' ? 'لوحة الوكلاء الخارجيين' : 'External Agent Dashboard')
+@section('auth-subtitle', $authLocale === 'ar' ? 'سجل دخولك إلى مساحة عمل المكتب الخارجي' : 'Sign in to the external office workspace')
 
 @section('auth-body')
-    <form action="{{ route('agent.login') }}" method="POST" novalidate>
+    <form
+        action="{{ \Mcamara\LaravelLocalization\Facades\LaravelLocalization::getLocalizedURL(app()->getLocale(), route('agent.login'), [], true) }}"
+        method="POST" novalidate>
         @csrf
         <div class="form-group">
             <div class="input-field">
-                <label for="login">Email or phone number*</label>
+                <label for="login">{{ $authLocale === 'ar' ? 'البريد الإلكتروني أو رقم الجوال' : 'Email or phone number' }}*</label>
                 <div class="input-shell">
                     <span class="input-icon">
                         <img src="{{ asset('admin/login') }}/imgs/email.svg" alt="login">
@@ -20,7 +26,7 @@
             </div>
 
             <div class="input-field">
-                <label for="password">Password*</label>
+                <label for="password">{{ $authLocale === 'ar' ? 'كلمة المرور' : 'Password' }}*</label>
                 <div class="input-shell">
                     <span class="input-icon">
                         <img src="{{ asset('admin/login') }}/imgs/password.svg" alt="password">
@@ -38,10 +44,13 @@
             </label>
         </div>
 
-        <button type="submit" class="primary-btn">Sign In</button>
+        <button type="submit" class="primary-btn">{{ $authLocale === 'ar' ? 'تسجيل الدخول' : 'Sign In' }}</button>
     </form>
 @endsection
 
 @section('auth-footer')
-    <a class="secondary-link" href="{{ route('admin.form.login') }}">Admin Login</a>
+    <a class="secondary-link"
+        href="{{ \Mcamara\LaravelLocalization\Facades\LaravelLocalization::getLocalizedURL(app()->getLocale(), route('admin.form.login'), [], true) }}">
+        {{ $authLocale === 'ar' ? 'تسجيل دخول الإدارة' : 'Admin Login' }}
+    </a>
 @endsection

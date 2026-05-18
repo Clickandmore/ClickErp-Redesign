@@ -656,8 +656,8 @@ class AdminController extends Controller
                 $request->session()->regenerate();
 
                 return jsonSuccess([
-                    'url' => \Mcamara\LaravelLocalization\Facades\LaravelLocalization::getLocalizedURL('en', route('agent.dashboard'), [], true),
-                ], 'Agent login successful');
+                    'url' => \Mcamara\LaravelLocalization\Facades\LaravelLocalization::getLocalizedURL(app()->getLocale(), route('agent.dashboard'), [], true),
+                ], app()->getLocale() === 'ar' ? 'تم تسجيل الدخول للوحة الوكيل الخارجي' : 'Agent login successful');
             }
 
             return jsonSuccess(null, __("auth.password"), 402);
@@ -674,7 +674,9 @@ class AdminController extends Controller
                 if (auth()->guard("agent")->attempt(["email" => $user->email, "password" => $request->password], $request->boolean('rememberme'))) {
                     $request->session()->regenerate();
 
-                    return jsonSuccess(['url' => route('agent.dashboard')], 'تم تسجيل الدخول للوحة الوكيل الخارجي');
+                    return jsonSuccess([
+                        'url' => \Mcamara\LaravelLocalization\Facades\LaravelLocalization::getLocalizedURL(app()->getLocale(), route('agent.dashboard'), [], true),
+                    ], app()->getLocale() === 'ar' ? 'تم تسجيل الدخول للوحة الوكيل الخارجي' : 'Agent login successful');
                 }
 
                 return jsonSuccess(null, __("auth.password"), 402);

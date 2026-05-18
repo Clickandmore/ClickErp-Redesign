@@ -35,8 +35,7 @@ class DashboardController extends Controller
             'maids_count' => (clone $maidsQuery)->count(),
             'available_maids_count' => (clone $maidsQuery)
                 ->where(function (Builder $query) {
-                    $query->where('available', true)
-                        ->orWhere('status', 'available');
+                    $this->applyAvailableMaidConstraint($query);
                 })
                 ->count(),
             'contracts_count' => (clone $contractsQuery)->count(),
@@ -62,9 +61,45 @@ class DashboardController extends Controller
 
     public function maids(Request $request)
     {
-        $query = $this->maidsQuery()
+        $workerFilter = $request->input('worker_filter', 'all');
+        if (! in_array($workerFilter, ['all', 'available', 'contracted'], true)) {
+            $workerFilter = 'all';
+        }
+
+        $baseQuery = $this->maidsQuery();
+
+        $filterCounts = [
+            'all' => (clone $baseQuery)->count(),
+            'available' => (clone $baseQuery)
+                ->where(function (Builder $query) {
+                    $this->applyAvailableMaidConstraint($query);
+                })
+                ->count(),
+            'contracted' => (clone $baseQuery)
+                ->where(function (Builder $query) {
+                    $this->applyContractedMaidConstraint($query);
+                })
+                ->count(),
+        ];
+
+        $query = (clone $baseQuery)
             ->with(['nationality', 'jobTypes'])
+            ->withCount([
+                'contracts as active_contracts_count' => function (Builder $contractQuery) {
+                    $this->applyActiveContractConstraint($contractQuery);
+                },
+            ])
             ->latest('id');
+
+        if ($workerFilter === 'available') {
+            $query->where(function (Builder $innerQuery) {
+                $this->applyAvailableMaidConstraint($innerQuery);
+            });
+        } elseif ($workerFilter === 'contracted') {
+            $query->where(function (Builder $innerQuery) {
+                $this->applyContractedMaidConstraint($innerQuery);
+            });
+        }
 
         if ($request->filled('search')) {
             $search = trim((string) $request->input('search'));
@@ -81,7 +116,7 @@ class DashboardController extends Controller
 
         $maids = $query->paginate(15)->appends($request->query());
 
-        return view('agent.maids.index', compact('maids'));
+        return view('agent.maids.index', compact('maids', 'workerFilter', 'filterCounts'));
     }
 
     public function createMaid()
@@ -415,5 +450,43 @@ class DashboardController extends Controller
                     });
                 }
             });
+    }
+
+    private function applyAvailableMaidConstraint(Builder $query): void
+    {
+        $query
+            ->where(function (Builder $availabilityQuery) {
+                $availabilityQuery->where('available', true)
+                    ->orWhere('status', 'available');
+            })
+            ->where(function (Builder $statusQuery) {
+                $statusQuery->whereNull('status')
+                    ->orWhereNotIn('status', ['contracted', 'reserved']);
+            })
+            ->whereDoesntHave('contracts', function (Builder $contractQuery) {
+                $this->applyActiveContractConstraint($contractQuery);
+            });
+    }
+
+    private function applyContractedMaidConstraint(Builder $query): void
+    {
+        $query->where(function (Builder $contractedQuery) {
+            $contractedQuery->where('status', 'contracted')
+                ->orWhereHas('contracts', function (Builder $contractQuery) {
+                    $this->applyActiveContractConstraint($contractQuery);
+                });
+        });
+    }
+
+    private function applyActiveContractConstraint(Builder $query): void
+    {
+        $query->where(function (Builder $statusQuery) {
+            $statusQuery->whereNull('status')
+                ->orWhereNotIn('status', [
+                    ContractStatusEnum::Completed->value,
+                    ContractStatusEnum::Closed->value,
+                    ContractStatusEnum::Back->value,
+                ]);
+        });
     }
 }

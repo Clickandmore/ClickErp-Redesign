@@ -391,6 +391,61 @@
             background: #fff;
         }
 
+        .agent-maids-filter {
+            grid-template-columns: minmax(180px, 1fr) auto;
+        }
+
+        .agent-worker-tabs {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .agent-worker-tab {
+            min-height: 74px;
+            border: 1px solid var(--agent-line);
+            border-radius: 8px;
+            background: #f8fafc;
+            color: var(--agent-ink);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 12px;
+            text-decoration: none;
+            transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+        }
+
+        .agent-worker-tab:hover,
+        .agent-worker-tab.active {
+            color: var(--agent-primary-dark);
+            border-color: rgba(15, 118, 110, .42);
+            box-shadow: 0 10px 24px rgba(15, 23, 42, .08);
+            transform: translateY(-1px);
+            text-decoration: none;
+        }
+
+        .agent-worker-tab span {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: inherit;
+            font-weight: 700;
+        }
+
+        .agent-worker-tab strong {
+            min-width: 42px;
+            height: 34px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+            color: var(--agent-primary-dark);
+            font-size: 16px;
+        }
+
         .agent-table-wrap {
             width: 100%;
             overflow-x: auto;
@@ -524,6 +579,10 @@
             .agent-grid,
             .agent-detail-grid,
             .agent-filter {
+                grid-template-columns: 1fr;
+            }
+
+            .agent-worker-tabs {
                 grid-template-columns: 1fr;
             }
         }
@@ -748,6 +807,7 @@
             setInterval(updateClock, 1000);
         })();
     </script>
+    @stack('scripts')
 </body>
 
 </html>

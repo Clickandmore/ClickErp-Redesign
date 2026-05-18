@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Agent\AgentBulkImportController;
 use App\Http\Controllers\Agent\AuthController;
 use App\Http\Controllers\Agent\DashboardController;
 use Illuminate\Support\Facades\Route;
@@ -21,6 +22,11 @@ Route::group(
                 Route::get('maids/create', [DashboardController::class, 'createMaid'])->name('maids.create');
                 Route::post('maids/store', [DashboardController::class, 'storeMaid'])->name('maids.store');
                 Route::post('maids/extract-cv', [DashboardController::class, 'extractCv'])->name('maids.extract-cv');
+                Route::get('maids/bulk-import/template', [AgentBulkImportController::class, 'template'])->name('maids.bulk-import.template');
+                Route::get('maids/bulk-import/create', [AgentBulkImportController::class, 'create'])->name('maids.bulk-import.create');
+                Route::post('maids/bulk-import', [AgentBulkImportController::class, 'store'])->name('maids.bulk-import.store');
+                Route::get('maids/bulk-import/{agentMaidBulkImport}', [AgentBulkImportController::class, 'show'])->name('maids.bulk-import.show');
+                Route::get('maids/bulk-import/{agentMaidBulkImport}/download', [AgentBulkImportController::class, 'download'])->name('maids.bulk-import.download');
                 Route::get('contracts', [DashboardController::class, 'contracts'])->name('contracts.index');
                 Route::get('contracts/{contract}', [DashboardController::class, 'showContract'])->name('contracts.show');
                 Route::get('external-office-dispatches', [DashboardController::class, 'dispatches'])->name('dispatches.index');
