@@ -20,6 +20,7 @@
             <th>#</th>
             <th>{{helperTrans("ingaz.title")}}</th>
             <th>{{helperTrans("ingaz.nationality")}}</th>
+            <th>الترتيب</th>
             <th>نوع الإيجار</th>
             <th>المدة</th>
             <th>{{helperTrans("ingaz.original_price")}}</th>
@@ -48,6 +49,7 @@
                 {"data": 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
                 {"data": "title", orderable: true, searchable: true},
                 {"data": "nationality", orderable: false, searchable: true},
+                {"data": "sort_order", orderable: true, searchable: true},
                 {"data": "rental_type", orderable: true, searchable: true},
                 {"data": "duration", orderable: true, searchable: true},
                 {"data": "original_price", orderable: true, searchable: true},

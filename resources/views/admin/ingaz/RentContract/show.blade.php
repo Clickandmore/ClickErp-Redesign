@@ -654,8 +654,8 @@
                 </div>
                 <div class="metric-card">
                     <div class="label">مدة العقد</div>
-                    <div class="value">{{ (int) ($contract->info->contract_duration_months ?? 0) }}</div>
-                    <div class="sub-value">شهر / {{ (int) ($contract->info->contract_duration_days ?? 0) }} يوم</div>
+                    <div class="value">{{ $contract->info?->package?->duration_label ?? ((int) ($contract->info->contract_duration_days ?? 0) . ' يوم') }}</div>
+                    <div class="sub-value">{{ (int) ($contract->info->contract_duration_months ?? 0) }} شهر للحساب / {{ (int) ($contract->info->contract_duration_days ?? 0) }} يوم</div>
                 </div>
                 <div class="metric-card">
                     <div class="label">قيمة العقد</div>

@@ -49,6 +49,9 @@
         $contractDurationDays = data_get($contractInfo, 'contract_duration_days')
             ?? data_get($contractInfo, 'contract_duration')
             ?? '______';
+        $packageDurationLabel = data_get($contractInfo, 'package.duration_label');
+        $contractDurationLabel = $packageDurationLabel
+            ?: (is_numeric($contractDurationDays) ? $contractDurationDays . ' يوم' : $contractDurationDays);
         $contractStartDate = data_get($contractInfo, 'ingaz_from')
             ?? data_get($contractInfo, 'contract_date')
             ?? data_get($contract, 'contract_date');
@@ -116,7 +119,7 @@
             'عنوان_العميل' => $clientAddress ?: '______',
             'رقم_العقد' => data_get($contract, 'contract_number', '______'),
             'تاريخ_العقد' => $formatRentalDate(data_get($contract, 'contract_date')),
-            'مدة_العقد' => $contractDurationDays ?: '______',
+            'مدة_العقد' => $contractDurationLabel ?: '______',
             'تاريخ_البداية' => $formatRentalDate($contractStartDate),
             'تاريخ_النهاية' => $formatRentalDate($contractEndDate),
             'التكلفة_الشهرية' => $formatRentalMoney($monthlyCost),
@@ -870,7 +873,7 @@
                     <td>{{ $maidName }}</td>
                     <td dir="ltr">{{ $maidPassportNumber }}</td>
                     <td>{{ $workingHours }} ساعات</td>
-                    <td>{{ $contractDurationDays }} يوم</td>
+                    <td>{{ $contractDurationLabel }}</td>
                 </tr>
             </table>
 

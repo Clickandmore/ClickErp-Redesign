@@ -401,8 +401,7 @@ class RentContractController extends Controller
 
         $packages = Package::with(['translations', 'nationality.translations'])
             ->visible()
-            ->orderBy('days_count')
-            ->orderBy('price_with_tax')
+            ->ordered()
             ->get();
 
         // الحصول على المسوقين النشطين
@@ -532,9 +531,7 @@ class RentContractController extends Controller
             $selectedPackage = Package::find($request->package_id);
             $contractDurationDays = (int) ($request->contract_duration_days ?: ($selectedPackage?->days_count ?: ($request->contract_duration_months * 30)));
             $contractDurationMonths = (int) ($request->contract_duration_months ?: max(1, (int) ceil($contractDurationDays / 30)));
-            $monthlyCost = (float) ($request->monthly_cost ?: ($selectedPackage && $contractDurationMonths > 0
-                ? round((float) $selectedPackage->price_with_tax / $contractDurationMonths, 2)
-                : 0));
+            $monthlyCost = (float) ($request->monthly_cost ?: $this->resolvePackagePeriodCost($selectedPackage, $contractDurationMonths));
             $ingazTo = $request->ingaz_to ?: \Carbon\Carbon::parse($request->ingaz_from)->addDays($contractDurationDays);
 
             $contractValue = (float) ($request->total_contract_value ?: ($selectedPackage?->price_with_tax ?: ($monthlyCost * $contractDurationMonths)));
@@ -652,7 +649,7 @@ class RentContractController extends Controller
             'user.nationality',
             'maid.nationality.translations',
             'maid.religion.translations',
-            'info',
+            'info.package',
             'marketer',
             'order',
             'financeInvoice.receiptAccount',
@@ -841,8 +838,7 @@ class RentContractController extends Controller
 
         $packages = Package::with(['translations', 'nationality.translations'])
             ->visible()
-            ->orderBy('days_count')
-            ->orderBy('price_with_tax')
+            ->ordered()
             ->get();
 
         $marketers = Admin::whereNull('deleted_at')->orderBy('name')->get();
@@ -893,9 +889,10 @@ class RentContractController extends Controller
             $selectedPackage = Package::find($request->package_id);
             $contractDurationDays = (int) ($request->contract_duration_days ?: ($selectedPackage?->days_count ?: ($request->contract_duration_months * 30)));
             $contractDurationMonths = (int) ($request->contract_duration_months ?: max(1, (int) ceil($contractDurationDays / 30)));
+            $monthlyCost = (float) ($request->monthly_cost ?: $this->resolvePackagePeriodCost($selectedPackage, $contractDurationMonths));
 
             // حساب قيمة العقد
-            $contractValue = (float) ($request->total_contract_value ?: ($request->monthly_cost * $contractDurationMonths));
+            $contractValue = (float) ($request->total_contract_value ?: ($selectedPackage?->price_with_tax ?: ($monthlyCost * $contractDurationMonths)));
             $paidAmount = 0.0;
 
             if ($request->payment_status === 'paid') {
@@ -930,7 +927,7 @@ class RentContractController extends Controller
                 'sponsorship_transfer_amount' => $request->sponsorship_transfer_amount,
                 'salary_after_sponsorship' => $request->salary_after_sponsorship,
                 'rental_type' => $request->rental_type,
-                'monthly_cost' => $request->monthly_cost,
+                'monthly_cost' => $monthlyCost,
                 'contract_duration_months' => $contractDurationMonths,
                 'contract_duration_days' => $contractDurationDays,
                 'contract_value' => $contractValue,
@@ -2295,7 +2292,7 @@ class RentContractController extends Controller
                 'user.nationality',
                 'maid.nationality.translations',
                 'maid.religion.translations',
-                'info',
+                'info.package',
                 'marketer'
             ])->findOrFail($id);
 
@@ -2477,6 +2474,21 @@ class RentContractController extends Controller
             'date' => now(),
             'notes' => 'تمت إعادة العاملة إلى داخل الإيواء بعد إنهاء عقد إيجار رقم ' . $rentalContract->id,
         ]);
+    }
+
+    private function resolvePackagePeriodCost(?Package $package, int $contractDurationMonths): float
+    {
+        if (!$package) {
+            return 0.0;
+        }
+
+        $total = (float) $package->price_with_tax;
+
+        if (($package->rental_type === 'monthly' || $package->duration_unit === 'month') && $contractDurationMonths > 0) {
+            return round($total / $contractDurationMonths, 2);
+        }
+
+        return $total;
     }
 
 

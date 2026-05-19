@@ -102,8 +102,7 @@ class ApiMaidController extends Controller
         $packages = Package::with('translations')
             ->visible()
             ->forNationality($maid->nationality_id)
-            ->orderBy('days_count')
-            ->orderBy('price_with_tax')
+            ->ordered()
             ->get();
 
         $data = [

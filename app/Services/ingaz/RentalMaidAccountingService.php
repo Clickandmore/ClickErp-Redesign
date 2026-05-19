@@ -5,7 +5,6 @@ namespace App\Services\ingaz;
 use App\Models\RentalFinancialAdjustment;
 use App\Models\ingaz\Maid;
 use App\Models\office\Office;
-use App\Services\office\OfficeFinanceAccountService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Nami\Finance\Enums\CostCenterTypeEnum;
@@ -19,7 +18,7 @@ class RentalMaidAccountingService
     public function __construct(
         protected ConstraintService $constraintService,
         protected YearService $yearService,
-        protected OfficeFinanceAccountService $officeFinanceAccountService
+        protected RentalMaidFinanceService $rentalMaidFinanceService
     ) {
     }
 
@@ -65,22 +64,10 @@ class RentalMaidAccountingService
                 throw new \RuntimeException('لا يمكن إنشاء قيد عاملة التأجير لوجود بنود غير مرتبطة بحسابات محاسبية.');
             }
 
-            if (!$maid->office_id) {
-                throw new \RuntimeException('لا يمكن إنشاء قيد عاملة التأجير بدون تحديد المكتب الخارجي.');
-            }
-
-            $office = Office::query()
-                ->with(['translations', 'account'])
-                ->find($maid->office_id);
-
-            if (!$office) {
-                throw new \RuntimeException('المكتب الخارجي المرتبط بالعاملة غير موجود.');
-            }
-
-            $officeAccount = $this->officeFinanceAccountService->ensureForOffice($office);
             [$entryDate, $activeYear] = $this->resolveEntryDateAndYear($maid);
 
-            $constraintStatement = $this->buildConstraintStatement($maid, trim((string) $office->title));
+            $officeTitle = $this->resolveOfficeTitle($maid);
+            $constraintStatement = $this->buildConstraintStatement($maid, $officeTitle);
             $totalValue = $this->roundMoney((float) $positiveItems->sum('amount'));
 
             $existingConstraint = $this->findExistingConstraint($constraintStatement, $entryDate, $totalValue);
@@ -95,10 +82,16 @@ class RentalMaidAccountingService
             $lines = [];
 
             foreach ($positiveItems as $item) {
+                $prepaidAccountId = $this->rentalMaidFinanceService->prepaidAccountIdForExpenseAccount((int) $item->account_id);
+
+                if (!$prepaidAccountId) {
+                    throw new \RuntimeException('لا يمكن إنشاء قيد عاملة التأجير بدون تحديد حساب المصروفات المدفوعة مقدماً للبند: ' . trim((string) $item->label));
+                }
+
                 $this->appendTransferPair(
                     $lines,
                     (int) $item->account_id,
-                    (int) $officeAccount->id,
+                    (int) $prepaidAccountId,
                     (float) $item->amount,
                     $this->buildItemStatement($maid, $item),
                     $costCenter->id,
@@ -154,6 +147,19 @@ class RentalMaidAccountingService
         ]);
     }
 
+    private function resolveOfficeTitle(Maid $maid): string
+    {
+        if (!$maid->office_id) {
+            return '';
+        }
+
+        $office = Office::query()
+            ->with(['translations'])
+            ->find($maid->office_id);
+
+        return $office ? trim((string) $office->title) : '';
+    }
+
     private function ensureMaidRootCostCenter(): CostCenter
     {
         $costCenter = CostCenter::query()
@@ -206,7 +212,7 @@ class RentalMaidAccountingService
     private function appendTransferPair(
         array &$lines,
         int $itemAccountId,
-        int $officeAccountId,
+        int $prepaidAccountId,
         float $amount,
         string $statement,
         int $costCenterId,
@@ -220,7 +226,7 @@ class RentalMaidAccountingService
 
         if ($type === 'income') {
             $lines[] = [
-                'account_id' => $officeAccountId,
+                'account_id' => $prepaidAccountId,
                 'account_type' => 'debtor',
                 'debtor_value' => $amount,
                 'creditor_value' => 0,
@@ -250,7 +256,7 @@ class RentalMaidAccountingService
         ];
 
         $lines[] = [
-            'account_id' => $officeAccountId,
+            'account_id' => $prepaidAccountId,
             'account_type' => 'creditor',
             'debtor_value' => 0,
             'creditor_value' => $amount,

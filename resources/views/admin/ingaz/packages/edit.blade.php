@@ -13,7 +13,7 @@
         <select name="nationality_id" class="form-control">
             <option value="" {{ empty($obj->nationality_id) ? 'selected' : '' }}>جميع الجنسيات</option>
             @foreach ($nationalities as $nationality)
-                <option value="{{ $nationality->id }}" {{ $obj->nationality_id == $nationality->id ? 'selected' : '' }}>{{ $nationality->title }}</option>
+                <option value="{{ $nationality->id }}" {{ $obj->nationality_id == $nationality->id ? 'selected' : '' }}>{{ $nationality->display_name }}</option>
             @endforeach
         </select>
         <small class="text-muted">اتركها "جميع الجنسيات" إذا كانت الباقة مناسبة لأي عاملة.</small>
@@ -43,6 +43,12 @@
     <div class="col-6">
         <label class="form-label">ساعات العمل اليومية</label>
         <input type="number" min="1" max="24" name="working_hours_per_day" class="form-control" value="{{ $obj->working_hours_per_day ?: 8 }}">
+    </div>
+
+    <div class="col-6">
+        <label class="form-label">ترتيب الباقة</label>
+        <input type="number" min="0" name="sort_order" class="form-control" value="{{ $obj->sort_order ?? 0 }}">
+        <small class="text-muted">الأقل يظهر أولاً في الموقع وعقود الإيجار.</small>
     </div>
 
     <div class="col-6">

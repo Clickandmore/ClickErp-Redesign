@@ -238,7 +238,7 @@
                     </div>
                     <div class="info-item">
                         <div class="info-label">مدة العقد</div>
-                        <div class="info-value">{{ $contract->info->contract_duration_months ?? 'غير محدد' }} شهر</div>
+                        <div class="info-value">{{ $contract->info?->package?->duration_label ?? (($contract->info->contract_duration_days ?? null) ? $contract->info->contract_duration_days . ' يوم' : (($contract->info->contract_duration_months ?? 'غير محدد') . ' شهر')) }}</div>
                     </div>
                     <div class="info-item">
                         <div class="info-label">التكلفة الشهرية</div>

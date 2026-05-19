@@ -70,6 +70,11 @@ class RentalContractInfo extends Model
         return $this->belongsTo(RentalContract::class, 'rental_contract_id');
     }
 
+    public function package()
+    {
+        return $this->belongsTo(\App\Models\ingaz\Package::class, 'package_id');
+    }
+
     public function paymentConfirmedBy()
     {
         return $this->belongsTo(\App\Models\auth\Admin::class, 'payment_confirmed_by');

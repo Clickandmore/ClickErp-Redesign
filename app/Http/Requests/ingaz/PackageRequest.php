@@ -33,6 +33,7 @@ class PackageRequest extends MainRequest
             'rental_type' => 'required|string|in:hourly,daily,weekly,monthly,yearly',
             'duration_unit' => 'required|string|in:hour,day,week,month,year',
             'duration_count' => 'required|integer|min:1',
+            'sort_order' => 'nullable|integer|min:0',
             'working_hours_per_day' => 'nullable|integer|min:1|max:24',
             'is_show' => 'nullable|boolean',
             'description' => 'nullable|string|max:1000',

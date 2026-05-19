@@ -22,6 +22,7 @@ class PackageController extends Controller
         "rental_type",
         "duration_unit",
         "duration_count",
+        "sort_order",
         "working_hours_per_day",
         "is_show",
         "description",
@@ -44,7 +45,7 @@ class PackageController extends Controller
         if ($request->ajax()) {
             $rows = objModel::query()
                 ->with('nationality')
-                ->latest()
+                ->ordered()
                 ->get();
 
             $data = $rows->values()->map(function ($row, $index) {
@@ -65,6 +66,7 @@ class PackageController extends Controller
                     'nationality' => $this->resolveNationalityLabel($row),
                     'rental_type' => $row->rental_type_label,
                     'duration' => ($row->duration_count ?: 1) . ' ' . $row->duration_unit_label,
+                    'sort_order' => $row->sort_order ?? 0,
                     'original_price' => $row->original_price,
                     'price_after_discount' => $row->price_after_discount,
                     'price_with_tax' => $row->price_with_tax,
@@ -111,7 +113,7 @@ class PackageController extends Controller
     public function create(Request $request,NationalityAction $act)
     {
         if ($request->ajax()) {
-            $data['nationalities'] = $act->get();
+            $data['nationalities'] = $act->getNationalities();
             $returnHTML = view($this->folderPath . ".create",$data)->render();
             return jsonSuccess(["html" => $returnHTML]);
         }
@@ -156,7 +158,7 @@ class PackageController extends Controller
     {
         if ($request->ajax()) {
             $data['obj'] = objModel::findorfail($id);
-            $data['nationalities'] = $act->get();
+            $data['nationalities'] = $act->getNationalities();
             $returnHTML = view($this->folderPath . '.edit')
                 ->with($data)->render();
             return jsonSuccess(["html" => $returnHTML]);

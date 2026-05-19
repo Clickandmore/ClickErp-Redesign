@@ -19,8 +19,7 @@ class ApiPackageController extends Controller
        $religions = objModel::with('translations')
            ->visible()
            ->forNationality($request->nationality_id)
-           ->orderBy('days_count')
-           ->orderBy('price_with_tax')
+           ->ordered()
            ->get();
        $data = objResource::collection($religions);
        return jsonSuccess($data,__('api.All items'));

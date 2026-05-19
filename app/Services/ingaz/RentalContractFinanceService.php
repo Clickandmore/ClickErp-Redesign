@@ -454,6 +454,8 @@ class RentalContractFinanceService
         $durationDays = (int) ($contract->info?->contract_duration_days ?? 0);
         $durationMonths = (int) ($contract->info?->contract_duration_months ?? 0);
         $packageTitle = $package?->title ?: 'باقة إيجار';
+        $durationLabel = $package?->duration_label
+            ?: ($durationMonths > 0 ? $durationMonths . ' شهر' : 'غير محدد');
 
         return 'عقد تأجير - رقم العقد: '
             . ($contract->contract_number ?: $contract->id)
@@ -461,7 +463,7 @@ class RentalContractFinanceService
             . ' - العاملة: ' . $maidName
             . ' - الجنسية: ' . $nationality
             . ' - الباقة: ' . $packageTitle
-            . ' - المدة: ' . ($durationMonths > 0 ? $durationMonths . ' شهر' : 'غير محدد')
+            . ' - المدة: ' . $durationLabel
             . ($durationDays > 0 ? ' / ' . $durationDays . ' يوم' : '');
     }
 

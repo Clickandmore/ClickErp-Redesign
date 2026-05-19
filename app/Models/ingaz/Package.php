@@ -20,6 +20,7 @@ class Package extends Model
         'price_with_tax' => 'decimal:2',
         'days_count' => 'integer',
         'duration_count' => 'integer',
+        'sort_order' => 'integer',
         'working_hours_per_day' => 'integer',
         'is_show' => 'boolean',
     ];
@@ -50,6 +51,20 @@ class Package extends Model
                 $query->orWhere('nationality_id', $nationalityId);
             }
         });
+    }
+
+    public function scopeOrdered($query)
+    {
+        return $query
+            ->orderByRaw('COALESCE(sort_order, 0) asc')
+            ->orderBy('days_count')
+            ->orderBy('price_with_tax')
+            ->orderBy('id');
+    }
+
+    public function getDurationLabelAttribute(): string
+    {
+        return ($this->duration_count ?: 1) . ' ' . $this->duration_unit_label;
     }
 
     public function getRentalTypeLabelAttribute(): string

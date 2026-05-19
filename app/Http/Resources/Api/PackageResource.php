@@ -27,6 +27,8 @@ class PackageResource extends JsonResource
 			'duration_unit' => (string)($this->duration_unit ?? 'month'),
 			'duration_unit_label' => (string)$this->duration_unit_label,
 			'duration_count' => (int)($this->duration_count ?: 1),
+			'duration_label' => (string)$this->duration_label,
+			'sort_order' => (int)($this->sort_order ?? 0),
 			'working_hours_per_day' => $this->working_hours_per_day ? (int)$this->working_hours_per_day : null,
 			'description' => (string)($this->description ?? ''),
 			// 'created_at' => (string)$this->created_at,
