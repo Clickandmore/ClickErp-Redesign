@@ -1,0 +1,83 @@
+response = Map();
+msg = message.get("text");
+companyName = "شركة هجر للاستقدام";
+webUrl = "https://hajar.sa";
+mainOptions = {"طلب استقدام","تأجير","نقل كفالة","متابعة طلب","شكوى","اتصال","خدمة العملاء","إنهاء"};
+branchOptions = {"فرع الرياض","فرع الأحساء","القائمة الرئيسية","إنهاء"};
+if(!msg.isNull())
+{
+	response.put("action","context");
+	if(msg.containsIgnoreCase("انهاء") || msg.containsIgnoreCase("إنهاء") || msg.containsIgnoreCase("اغلاق") || msg.containsIgnoreCase("إغلاق"))
+	{
+		response.put("action","end");
+		response.put("replies",{"شكراً لتواصلك مع " + companyName + ".\nيسعدنا خدمتك دائماً."});
+		return response;
+	}
+	if(msg.containsIgnoreCase("الرئيسية") || msg.containsIgnoreCase("القائمة الرئيسية"))
+	{
+		response.put("action","reply");
+		response.put("replies",{"اختر الخدمة المطلوبة:"});
+		response.put("input",{"type":"select","options":mainOptions});
+		return response;
+	}
+	if(msg.containsIgnoreCase("استقدام"))
+	{
+		response.put("context_id","service_estqdam");
+		question = {"name":"branch","replies":{"اختر الفرع:"},"input":{"type":"select","options":branchOptions}};
+		response.put("questions",{question});
+		return response;
+	}
+	if(msg.containsIgnoreCase("تأجير") || msg.containsIgnoreCase("تاجير") || msg.containsIgnoreCase("ايجار") || msg.containsIgnoreCase("إيجار"))
+	{
+		response.put("context_id","service_rent");
+		question = {"name":"branch","replies":{"اختر الفرع:"},"input":{"type":"select","options":branchOptions}};
+		response.put("questions",{question});
+		return response;
+	}
+	if(msg.containsIgnoreCase("نقل"))
+	{
+		response.put("context_id","service_transfer");
+		question = {"name":"branch","replies":{"اختر الفرع:"},"input":{"type":"select","options":branchOptions}};
+		response.put("questions",{question});
+		return response;
+	}
+	if(msg.containsIgnoreCase("متابعة"))
+	{
+		response.put("context_id","help");
+		question = {"name":"contract_reference","replies":{"أدخل رقم الجواز أو الهوية أو عقد مساند أو التأشيرة:"},"input":{"type":"name","placeholder":"رقم المتابعة"}};
+		response.put("questions",{question});
+		return response;
+	}
+	if(msg.containsIgnoreCase("شكوى") || msg.containsIgnoreCase("شكوي"))
+	{
+		response.put("context_id","complaints");
+		questions = Collection();
+		questions.insert({"name":"branch","replies":{"اختر الفرع:"},"input":{"type":"select","options":{"فرع الرياض","فرع الأحساء"}}});
+		questions.insert({"name":"complaintUserName","replies":{"اكتب اسمك:"},"input":{"type":"name","placeholder":"الاسم"}});
+		questions.insert({"name":"complaintUserPhone","replies":{"اكتب رقم جوالك:"},"input":{"type":"tel","country_code":"+966","placeholder":"5****","max_length":10,"error":{"صيغة رقم الجوال غير صحيحة"}}});
+		questions.insert({"name":"complaintUserDetails","replies":{"اكتب تفاصيل الشكوى:"},"input":{"type":"name","placeholder":"التفاصيل"}});
+		response.put("questions",questions);
+		return response;
+	}
+	if(msg.containsIgnoreCase("اتصال"))
+	{
+		response.put("context_id","call_request");
+		questions = Collection();
+		questions.insert({"name":"branch","replies":{"اختر الفرع:"},"input":{"type":"select","options":{"فرع الرياض","فرع الأحساء"}}});
+		questions.insert({"name":"callUserName","replies":{"اكتب اسمك:"},"input":{"type":"name","placeholder":"الاسم"}});
+		questions.insert({"name":"callUserPhone","replies":{"اكتب رقم جوالك:"},"input":{"type":"tel","country_code":"+966","placeholder":"5****","max_length":10,"error":{"صيغة رقم الجوال غير صحيحة"}}});
+		response.put("questions",questions);
+		return response;
+	}
+	if(msg.containsIgnoreCase("خدمة العملاء"))
+	{
+		response.put("action","forward");
+		response.put("replies",{"جاري تحويلك إلى أحد موظفي خدمة العملاء."});
+		return response;
+	}
+	response.put("action","reply");
+	response.put("replies",{"اختر الخدمة المطلوبة:"});
+	response.put("input",{"type":"select","options":mainOptions});
+	return response;
+}
+return response;

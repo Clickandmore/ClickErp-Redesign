@@ -1,0 +1,336 @@
+response = Map();
+info answers;
+companyName = "شركة هجر للاستقدام";
+webUrl = "https://hajar.sa";
+apiUrl = "https://hajar.sa/api";
+mainOptions = {"طلب استقدام","تأجير","نقل كفالة","متابعة طلب","شكوى","اتصال","خدمة العملاء","إنهاء"};
+afterOptions = {"القائمة الرئيسية","متابعة طلب","خدمة العملاء","إنهاء"};
+branchOptions = {"فرع الرياض","فرع الأحساء","القائمة الرئيسية","إنهاء"};
+nationalities = Map();
+nationalities_keys = Collection();
+nationalities_values = Collection();
+try
+{
+	data_info = invokeurl
+	[
+		url :apiUrl + "/nationalites"
+		type :GET
+		headers:{"Content-Type":"application/json"}
+	];
+	nationalities = data_info.get('data');
+	if(nationalities != null)
+	{
+		nationalities_keys = nationalities.keys();
+		nationalities_values = nationalities.values();
+	}
+}
+catch (e)
+{
+	nationalities = Map();
+}
+response.put("action","context");
+response.put("context_id",context_id);
+if(context_id.equals("service_estqdam"))
+{
+	branchName = answers.get("branch").get("text");
+	if(branchName.containsIgnoreCase("انهاء") || branchName.containsIgnoreCase("إنهاء"))
+	{
+		response.put("action","end");
+		response.put("replies",{"شكراً لتواصلك مع " + companyName + ".\nيسعدنا خدمتك دائماً."});
+		return response;
+	}
+	if(branchName.containsIgnoreCase("الرئيسية") || branchName.containsIgnoreCase("القائمة الرئيسية"))
+	{
+		response.put("action","reply");
+		response.put("replies",{"اختر الخدمة المطلوبة:"});
+		response.put("input",{"type":"select","options":mainOptions});
+		return response;
+	}
+	if(!answers.containsKey("new_request"))
+	{
+		optionList = Collection();
+		optionValues = Collection();
+		if(nationalities != null)
+		{
+			try
+			{
+				for each  nat_key in nationalities.keys()
+				{
+					optionList.insert(nat_key);
+					optionValues.insert(nationalities.get(nat_key));
+				}
+			}
+			catch (e)
+			{
+			}
+		}
+		optionList.insert("عرض جميع الجنسيات");
+		optionValues.insert("all");
+		optionList.insert("القائمة الرئيسية");
+		optionValues.insert("القائمة الرئيسية");
+		optionList.insert("إنهاء");
+		optionValues.insert("إنهاء");
+		question = {"name":"new_request","replies":{"اختر الجنسية:"},"input":{"type":"select","options":optionList,"values":optionValues}};
+		response.put("questions",{question});
+		return response;
+	}
+	branchCode = "riyadh";
+	if(branchName.containsIgnoreCase("الأحساء") || branchName.containsIgnoreCase("الاحساء") || branchName.containsIgnoreCase("أحساء") || branchName.containsIgnoreCase("احساء"))
+	{
+		branchCode = "ahsa";
+	}
+	new_request = answers.get("new_request").get("text");
+	new_request_value = new_request;
+	try
+	{
+		if(answers.get("new_request").get("value") != null)
+		{
+			new_request_value = answers.get("new_request").get("value");
+		}
+	}
+	catch (e)
+	{
+		new_request_value = new_request;
+	}
+	if(new_request.containsIgnoreCase("انهاء") || new_request.containsIgnoreCase("إنهاء"))
+	{
+		response.put("action","end");
+		response.put("replies",{"شكراً لتواصلك مع " + companyName + ".\nيسعدنا خدمتك دائماً."});
+		return response;
+	}
+	if(new_request.containsIgnoreCase("الرئيسية") || new_request.containsIgnoreCase("القائمة الرئيسية"))
+	{
+		response.put("action","reply");
+		response.put("replies",{"اختر الخدمة المطلوبة:"});
+		response.put("input",{"type":"select","options":mainOptions});
+		return response;
+	}
+	if(new_request.containsIgnoreCase("جميع") || new_request_value == "all")
+	{
+		url = webUrl + "/all-workers?type=estqdam&branch=" + branchCode;
+	}
+	else
+	{
+		id_nationality = new_request_value;
+		if(nationalities != null && nationalities.size() > 0 && nationalities_keys.indexOf(new_request) >= 0)
+		{
+			nationality_index = nationalities_keys.indexOf(new_request);
+			id_nationality = nationalities_values.get(nationality_index);
+		}
+		if(id_nationality == null || id_nationality == "")
+		{
+			response.put("action","reply");
+			response.put("replies",{"تعذر تحميل الجنسيات حالياً. حاول مرة أخرى أو تواصل مع خدمة العملاء."});
+			response.put("input",{"type":"select","options":afterOptions});
+			return response;
+		}
+		url = webUrl + "/all-workers?type=estqdam&branch=" + branchCode + "&nationality_id=" + id_nationality;
+	}
+	response.put("action","reply");
+	question = {"type":"links","text":"السير الذاتية المتاحة - " + branchName + ":","links":{{"url":url,"text":"عرض السير الذاتية"}}};
+	response.put("replies",{question});
+	response.put("input",{"type":"select","options":afterOptions});
+	return response;
+}
+else if(context_id.equals("service_rent") || context_id.equals("service_transfer"))
+{
+	branchName = answers.get("branch").get("text");
+	if(branchName.containsIgnoreCase("انهاء") || branchName.containsIgnoreCase("إنهاء"))
+	{
+		response.put("action","end");
+		response.put("replies",{"شكراً لتواصلك مع " + companyName + ".\nيسعدنا خدمتك دائماً."});
+		return response;
+	}
+	if(branchName.containsIgnoreCase("الرئيسية") || branchName.containsIgnoreCase("القائمة الرئيسية"))
+	{
+		response.put("action","reply");
+		response.put("replies",{"اختر الخدمة المطلوبة:"});
+		response.put("input",{"type":"select","options":mainOptions});
+		return response;
+	}
+	branchCode = "riyadh";
+	if(branchName.containsIgnoreCase("الأحساء") || branchName.containsIgnoreCase("الاحساء") || branchName.containsIgnoreCase("أحساء") || branchName.containsIgnoreCase("احساء"))
+	{
+		branchCode = "ahsa";
+	}
+	serviceType = "egar";
+	serviceText = "التأجير";
+	if(context_id.equals("service_transfer"))
+	{
+		serviceType = "transfer";
+		serviceText = "نقل كفالة";
+	}
+	url = webUrl + "/all-workers?type=" + serviceType + "&branch=" + branchCode;
+	response.put("action","reply");
+	question = {"type":"links","text":"المتاح لخدمة " + serviceText + " - " + branchName + ":","links":{{"url":url,"text":"عرض المتاح"}}};
+	response.put("replies",{question});
+	response.put("input",{"type":"select","options":afterOptions});
+	return response;
+}
+else if(context_id.equals("help"))
+{
+	if(!answers.containsKey("contract_reference"))
+	{
+		question = {"name":"contract_reference","replies":{"أدخل رقم الجواز أو الهوية أو عقد مساند أو التأشيرة:"},"input":{"type":"name","placeholder":"رقم المتابعة"}};
+		response.put("questions",{question});
+		return response;
+	}
+	contract_reference = answers.get("contract_reference").get("text");
+	if(contract_reference != null && (contract_reference.containsIgnoreCase("انهاء") || contract_reference.containsIgnoreCase("إنهاء")))
+	{
+		response.put("action","end");
+		response.put("replies",{"شكراً لتواصلك مع " + companyName + ".\nيسعدنا خدمتك دائماً."});
+		return response;
+	}
+	if(contract_reference != null && (contract_reference.containsIgnoreCase("الرئيسية") || contract_reference.containsIgnoreCase("القائمة الرئيسية")))
+	{
+		response.put("action","reply");
+		response.put("replies",{"اختر الخدمة المطلوبة:"});
+		response.put("input",{"type":"select","options":mainOptions});
+		return response;
+	}
+	if(contract_reference == null || contract_reference == "")
+	{
+		question = {"name":"contract_reference","replies":{"أدخل رقم متابعة صحيح:"},"input":{"type":"name","placeholder":"رقم المتابعة"}};
+		response.put("questions",{question});
+		return response;
+	}
+	contract_data = null;
+	try
+	{
+		contract_data = invokeurl
+		[
+			url :apiUrl + "/contract_status"
+			type :POST
+			parameters:{'search_value':contract_reference}
+			headers:{"Content-Type":"application/json"}
+		];
+	}
+	catch (e)
+	{
+		contract_data = null;
+	}
+	if(contract_data != null && contract_data.get('status') == 1)
+	{
+		response.put("action","reply");
+		response.put("replies",{contract_data.get('data')});
+		response.put("input",{"type":"select","options":afterOptions});
+		return response;
+	}
+	if(contract_data == null)
+	{
+		question = {"name":"contract_reference","replies":{"تعذر الاستعلام حالياً. أعد المحاولة أو ارجع للقائمة الرئيسية."},"input":{"type":"name","placeholder":"رقم المتابعة"}};
+		response.put("questions",{question});
+		return response;
+	}
+	question = {"name":"contract_reference","replies":{"لم يتم العثور على طلب. أدخل رقم آخر أو ارجع للقائمة الرئيسية."},"input":{"type":"name","placeholder":"رقم المتابعة"}};
+	response.put("questions",{question});
+	return response;
+}
+else if(context_id.equals("call_request"))
+{
+	if(answers.containsKey("callUserPhone"))
+	{
+		branchName = answers.get("branch").get("text");
+		callUserName = answers.get("callUserName").get("text");
+		callUserPhone = answers.get("callUserPhone").get("text");
+		payload = Map();
+		payload.put("subject","طلب اتصال عبر الشات - " + branchName);
+		payload.put("message","طلب اتصال عبر الشات\nالفرع: " + branchName);
+		payload.put("phone",callUserPhone);
+		payload.put("name",callUserName);
+		payload.put("complaint_type_name","طلب اتصال");
+		payload.put("priority","متوسطة");
+		payload.put("assigned_to_name","بدون تحديد موظف");
+		header_data = Map();
+		header_data.put("Content-Type","application/json");
+		header_data.put("Accept","application/json");
+		submit_info = null;
+		try
+		{
+			submit_info = invokeurl
+			[
+				url :apiUrl + "/store_ticket"
+				type :POST
+				parameters:payload
+				headers:header_data
+			];
+		}
+		catch (e)
+		{
+			submit_info = null;
+		}
+		if(submit_info != null && submit_info.get('status') == 1)
+		{
+			response.put("action","reply");
+			response.put("replies",{"تم إرسال طلب الاتصال.\n\nالفرع: " + branchName + "\nالاسم: " + callUserName + "\nالجوال: " + callUserPhone + "\n\nسيتواصل معك أحد موظفينا قريباً."});
+			response.put("input",{"type":"select","options":afterOptions});
+			return response;
+		}
+		response.put("action","reply");
+		response.put("replies",{"تعذر تسجيل طلب الاتصال حالياً. يمكنك اختيار خدمة العملاء للتواصل المباشر."});
+		response.put("input",{"type":"select","options":afterOptions});
+		return response;
+	}
+}
+else if(context_id.equals("complaints"))
+{
+	if(answers.containsKey("complaintUserDetails"))
+	{
+		branchName = answers.get("branch").get("text");
+		complaintUserDetails = answers.get("complaintUserDetails").get("text");
+		complaintUserPhone = answers.get("complaintUserPhone").get("text");
+		complaintUserName = answers.get("complaintUserName").get("text");
+		payload = Map();
+		payload.put("subject","شكوى عبر الشات - " + branchName);
+		payload.put("message","الفرع: " + branchName + "\n\n" + complaintUserDetails);
+		payload.put("phone",complaintUserPhone);
+		payload.put("name",complaintUserName);
+		payload.put("complaint_type_name","شكوى عبر الشات");
+		payload.put("priority","متوسطة");
+		payload.put("assigned_to_name","بدون تحديد موظف");
+		header_data = Map();
+		header_data.put("Content-Type","application/json");
+		header_data.put("Accept","application/json");
+		submit_info = null;
+		try
+		{
+			submit_info = invokeurl
+			[
+				url :apiUrl + "/store_ticket"
+				type :POST
+				parameters:payload
+				headers:header_data
+			];
+		}
+		catch (e)
+		{
+			submit_info = null;
+		}
+		if(submit_info != null && submit_info.get('status') == 1)
+		{
+			success_message = "تم تسجيل الشكوى بنجاح.\n\nالفرع: " + branchName + "\nالاسم: " + complaintUserName + "\nالجوال: " + complaintUserPhone + "\n\nسيتواصل معك فريقنا قريباً.";
+			ticket_code = submit_info.get("ticket_code");
+			if(ticket_code != null)
+			{
+				success_message = success_message + "\nرقم الشكوى: " + ticket_code;
+			}
+			response.put("action","reply");
+			response.put("replies",{success_message});
+			response.put("input",{"type":"select","options":afterOptions});
+			return response;
+		}
+		response.put("action","reply");
+		response.put("replies",{"تعذر تسجيل الشكوى حالياً. حاول مرة أخرى لاحقاً أو اختر خدمة العملاء للتواصل المباشر."});
+		response.put("input",{"type":"select","options":afterOptions});
+		return response;
+	}
+}
+else
+{
+	response.put("action","reply");
+	response.put("replies",{"اختر الخدمة المطلوبة:"});
+	response.put("input",{"type":"select","options":mainOptions});
+	return response;
+}
+return response;

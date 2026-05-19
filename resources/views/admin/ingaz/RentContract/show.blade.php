@@ -1179,7 +1179,7 @@
                 </a>
             @endif
 
-            @if ($contract->status !== 'completed' && @AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CONTROL))
+            @if ($contract->canCloseOrExtend() && @AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CONTROL))
                 <button type="button" class="btn-icon btn-complete" title="إنهاء العقد">
                     <i class="fas fa-check"></i>
                 </button>

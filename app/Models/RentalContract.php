@@ -222,6 +222,11 @@ class RentalContract extends Model
         return $this->status === 'maid_delivered';
     }
 
+    public function canCloseOrExtend()
+    {
+        return $this->status === 'active';
+    }
+
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()

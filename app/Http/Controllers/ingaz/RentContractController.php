@@ -300,8 +300,7 @@ class RentContractController extends Controller
                     // إنهاء العقد
                     if (
                         @AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CONTROL)
-                        && $row->status !== 'completed'
-                        && $row->status !== 'cancelled'
+                        && $row->canCloseOrExtend()
                     ) {
                         $contractLabel = $row->contract_number ?: $row->id;
                         $currentEndDate = optional($row->info?->ingaz_to)->format('Y-m-d') ?: '';
@@ -318,8 +317,7 @@ class RentContractController extends Controller
 
                     if (
                         @AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CONTROL)
-                        && $row->status !== 'completed'
-                        && $row->status !== 'cancelled'
+                        && $row->canCloseOrExtend()
                     ) {
                         $actions .= '<li><button class="dropdown-item complete-contract" data-id="' . $row->id . '">
                                         <i class="fas fa-check"></i> إنهاء العقد
@@ -1036,6 +1034,15 @@ class RentContractController extends Controller
 
             $contract = RentalContract::lockForUpdate()->findOrFail($id);
 
+            if (!$contract->canCloseOrExtend()) {
+                DB::rollBack();
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن إنهاء العقد قبل تفعيله'
+                ], 400);
+            }
+
             $contract->update([
                 'status' => 'completed',
                 'warranty_status' => 'active',
@@ -1556,6 +1563,13 @@ class RentContractController extends Controller
             $contract = RentalContract::with(['user', 'maid', 'info', 'financialAdjustments', 'financeInvoice'])->findOrFail($id);
             $summary = $this->buildRentalClosureSummary($contract);
             $remainingDays = (int) ($summary['remaining_days_value'] ?? 0);
+            $attachments = collect($this->collectRentalContractAttachments($contract))
+                ->map(fn ($attachment) => [
+                    'label' => $attachment['label'],
+                    'url' => $attachment['url'],
+                ])
+                ->values()
+                ->all();
 
             $contractData = [
                 'id' => $contract->id,
@@ -1580,7 +1594,8 @@ class RentContractController extends Controller
                 'refund_value' => $summary['refund_value'],
                 'payment_status' => $summary['payment_status'],
                 'closure_client_iban' => $summary['closure_client_iban'],
-                'closure_client_iban_attachment_url' => $summary['closure_client_iban_attachment_url']
+                'closure_client_iban_attachment_url' => $summary['closure_client_iban_attachment_url'],
+                'attachments' => $attachments,
             ];
 
             return response()->json([
@@ -1618,6 +1633,10 @@ class RentContractController extends Controller
 
             if (!$contract->info) {
                 throw new \RuntimeException('بيانات عقد الإيجار غير مكتملة');
+            }
+
+            if (!$contract->canCloseOrExtend()) {
+                throw new \RuntimeException('لا يمكن إنهاء العقد قبل تفعيله');
             }
 
             $summary = $this->buildRentalClosureSummary($contract);
@@ -1840,6 +1859,10 @@ class RentContractController extends Controller
             DB::beginTransaction();
 
             $oldContract = RentalContract::with('info')->findOrFail($id);
+
+            if (!$oldContract->canCloseOrExtend()) {
+                throw new \RuntimeException('لا يمكن إنهاء العقد أو نقل الكفالة قبل تفعيله');
+            }
 
             // Close the old contract and set closure type to transferred
             $oldContract->status = 'completed';
@@ -2177,6 +2200,10 @@ class RentContractController extends Controller
 
             if (!$contract->info) {
                 throw new \RuntimeException('بيانات العقد غير مكتملة');
+            }
+
+            if (!$contract->canCloseOrExtend()) {
+                throw new \RuntimeException('لا يمكن تمديد العقد قبل تفعيله');
             }
 
             $extensionMonths = (int) $validated['extension_months'];

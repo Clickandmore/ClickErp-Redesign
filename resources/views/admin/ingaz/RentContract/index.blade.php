@@ -400,6 +400,21 @@
                         <div class="col-12">
                             <div class="card bg-light">
                                 <div class="card-header">
+                                    <h6 class="mb-0"><i class="fas fa-paperclip me-2"></i>مرفقات العقد</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="contractAttachmentsList" class="d-flex flex-wrap gap-2">
+                                        <span class="text-muted">لا توجد مرفقات مسجلة على هذا العقد.</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card bg-light">
+                                <div class="card-header">
                                     <h6 class="mb-0"><i class="fas fa-file-invoice-dollar me-2"></i>البيان المالي</h6>
                                 </div>
                                 <div class="card-body">
@@ -1341,6 +1356,7 @@
                             $('#closeAdjustmentAmount').val(parseFloat(contract.refund_value || 0).toFixed(2));
                             $('#closePaymentStatus').val(contract.payment_status || '');
                             $('#closeClientIban').val(contract.closure_client_iban || '');
+                            renderContractAttachments(contract.attachments || []);
 
                             if (contract.closure_client_iban_attachment_url) {
                                 $('#closeClientIbanAttachmentCurrent').attr('href', contract.closure_client_iban_attachment_url);
@@ -1458,6 +1474,24 @@
                     }
                 });
             });
+
+            function renderContractAttachments(attachments) {
+                const container = $('#contractAttachmentsList');
+                container.empty();
+
+                if (!attachments.length) {
+                    container.append($('<span class="text-muted">لا توجد مرفقات مسجلة على هذا العقد.</span>'));
+                    return;
+                }
+
+                attachments.forEach(function(attachment) {
+                    const link = $('<a class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener"></a>');
+                    link.attr('href', attachment.url);
+                    link.append($('<i class="fas fa-paperclip me-1"></i>'));
+                    link.append(document.createTextNode(attachment.label || 'مرفق'));
+                    container.append(link);
+                });
+            }
 
             // إظهار نموذج نقل الكفالة
             $('#transferSponsorshipBtn').click(function() {
