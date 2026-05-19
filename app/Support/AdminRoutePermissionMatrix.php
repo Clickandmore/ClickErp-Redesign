@@ -284,6 +284,7 @@ class AdminRoutePermissionMatrix
                 'showUserFromContract' => [PermKeys::CLIENTS_VIEW],
                 'order_files.download' => [PermKeys::ORDERS_VIEW],
                 'return_requests.restore' => [PermKeys::RETURN_REQUEST_DELETE, PermKeys::RETURN_REQUEST_CONTROL],
+                'return_requests.restore_previous_status' => [PermKeys::RETURN_REQUEST_EDIT, PermKeys::RETURN_REQUEST_CONTROL],
                 'return_requests.export.pdf' => [PermKeys::RETURN_REQUEST_EXPORT],
                 'return_requests.export.excel' => [PermKeys::RETURN_REQUEST_EXPORT],
                 'professional_application.index' => [PermKeys::PROFESSIONAL_APPLICATION_VIEW],

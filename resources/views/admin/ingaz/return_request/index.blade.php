@@ -324,9 +324,9 @@
     <script>
         $(document).ready(function() {
             const isMobileTableView = window.matchMedia('(max-width: 991.98px)').matches;
-            const returnRequestEditRouteTemplate = "{{ route('return_requests.edit', ['return_request' => 'ORDER_ID']) }}";
             const returnRequestDestroyRouteTemplate = "{{ route('return_requests.destroy', ['return_request' => 'ORDER_ID']) }}";
             const returnRequestRestoreRouteTemplate = "{{ route('return_requests.restore', ['id' => 'ORDER_ID']) }}";
+            const returnRequestRestorePreviousRouteTemplate = "{{ route('return_requests.restore_previous_status', ['id' => 'ORDER_ID']) }}";
 
             function routeFor(template, orderId) {
                 return template.replace('ORDER_ID', orderId);
@@ -544,7 +544,7 @@
                     success: function(response) {
                         dataTable.ajax.reload(null, false);
 
-                        if (response && (response.success || (response.data && response.data.success))) {
+                        if (isSuccessResponse(response)) {
                             Swal.fire('نجح!', response.message || successMessage, 'success');
                             return;
                         }
@@ -556,6 +556,18 @@
                         Swal.fire('خطأ!', message, 'error');
                     }
                 });
+            }
+
+            function isSuccessResponse(response) {
+                return !!(
+                    response &&
+                    (
+                        response.success ||
+                        response.code === 200 ||
+                        response.code === '200' ||
+                        (response.data && response.data.success)
+                    )
+                );
             }
 
             $(document).on('click', '.restore-order', function(e) {
@@ -579,6 +591,27 @@
                 });
             });
 
+            $(document).on('click', '.restore-previous-status', function(e) {
+                e.preventDefault();
+                const orderId = $(this).data('id');
+
+                Swal.fire({
+                    title: '{{ helperTrans('buttons.Are You Sure') }}',
+                    text: 'سيتم إرجاع الطلب إلى حالته السابقة المسجلة فقط.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: '{{ helperTrans('buttons.accept') }}',
+                    cancelButtonText: '{{ helperTrans('buttons.cancel') }}',
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        handleOrderMutation(routeFor(returnRequestRestorePreviousRouteTemplate, orderId), 'POST',
+                            'تم إرجاع الطلب إلى حالته السابقة');
+                    }
+                });
+            });
+
             $(document).on('click', '.delete-order', function(e) {
                 e.preventDefault();
                 const orderId = $(this).data('id');
@@ -596,135 +629,6 @@
                     if (result.isConfirmed) {
                         handleOrderMutation(routeFor(returnRequestDestroyRouteTemplate, orderId), 'DELETE',
                             '{{ helperTrans('ingaz.order_deleted') }}');
-                    }
-                });
-            });
-
-            function toggleRefuseReasonField(selectedStatus) {
-                const wrapper = $('#editStatusModal').find('[data-refuse-reason]');
-                if (!wrapper.length) {
-                    return;
-                }
-
-                const needsReason = ['refused', 'return'].includes(selectedStatus);
-                wrapper.toggleClass('d-none', !needsReason);
-            }
-
-            $(document).on('shown.bs.modal', '#editStatusModal', function() {
-                const checked = $(this).find('input[name="status"]:checked');
-                toggleRefuseReasonField(checked.length ? checked.val() : '');
-            });
-
-            $(document).on('change', '#editStatusModal input[name="status"]', function() {
-                toggleRefuseReasonField($(this).val());
-            });
-
-            $(document).on('click', '.edit-status', function(e) {
-                e.preventDefault();
-                const orderId = $(this).data('id');
-
-                const loadingModal = `
-                    <div class="modal fade" id="loadingModal" tabindex="-1">
-                        <div class="modal-dialog">
-                            <div class="modal-content">
-                                <div class="modal-body text-center">
-                                    <div class="spinner-border text-primary" role="status">
-                                        <span class="visually-hidden">جاري التحميل...</span>
-                                    </div>
-                                    <p class="mt-2">جاري تحميل نموذج التعديل...</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-
-                $('#loadingModal').remove();
-                $('#editStatusModal').remove();
-                $('body').append(loadingModal);
-                $('#loadingModal').modal('show');
-
-                $.ajax({
-                    url: routeFor(returnRequestEditRouteTemplate, orderId),
-                    type: 'GET',
-                    success: function(response) {
-                        $('#loadingModal').modal('hide');
-                        $('#loadingModal').remove();
-
-                        if (!response.success) {
-                            Swal.fire('خطأ!', response.message ||
-                                '{{ helperTrans('ingaz.load_form_error') }}', 'error');
-                            return;
-                        }
-
-                        const modal = `
-                            <div class="modal fade" id="editStatusModal" tabindex="-1">
-                                <div class="modal-dialog modal-lg">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title">{{ helperTrans('ingaz.edit_order_status') }}</h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                        </div>
-                                        <div class="modal-body">
-                                            ${response.html}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-
-                        $('#editStatusModal').remove();
-                        $('body').append(modal);
-                        $('#editStatusModal').modal('show');
-
-                        $('#editStatusModal form').on('submit', function(submitEvent) {
-                            submitEvent.preventDefault();
-                            const formData = new FormData(this);
-
-                            $.ajax({
-                                url: $(this).attr('action'),
-                                type: 'POST',
-                                data: formData,
-                                processData: false,
-                                contentType: false,
-                                success: function(updateResponse) {
-                                    if (updateResponse && (updateResponse.success || (updateResponse.data && updateResponse.data.success))) {
-                                        $('#editStatusModal').modal('hide');
-                                        setTimeout(function() {
-                                            $('#editStatusModal').remove();
-                                            $('.modal-backdrop').remove();
-                                            $('body').removeClass('modal-open');
-                                        }, 200);
-
-                                        dataTable.ajax.reload(null, false);
-                                        Swal.fire('نجح!',
-                                            '{{ helperTrans('ingaz.status_updated') }}',
-                                            'success');
-                                    } else {
-                                        Swal.fire('خطأ!', updateResponse.message ||
-                                            '{{ helperTrans('ingaz.status_update_error') }}',
-                                            'error');
-                                    }
-                                },
-                                error: function(xhr) {
-                                    let errorMessage =
-                                        '{{ helperTrans('ingaz.status_update_error') }}';
-                                    if (xhr.responseJSON && xhr.responseJSON.message) {
-                                        errorMessage = xhr.responseJSON.message;
-                                    }
-                                    Swal.fire('خطأ!', errorMessage, 'error');
-                                }
-                            });
-                        });
-                    },
-                    error: function(xhr) {
-                        $('#loadingModal').modal('hide');
-                        $('#loadingModal').remove();
-
-                        let errorMessage = '{{ helperTrans('ingaz.load_form_error') }}';
-                        if (xhr.responseJSON && xhr.responseJSON.message) {
-                            errorMessage = xhr.responseJSON.message;
-                        }
-                        Swal.fire('خطأ!', errorMessage, 'error');
                     }
                 });
             });

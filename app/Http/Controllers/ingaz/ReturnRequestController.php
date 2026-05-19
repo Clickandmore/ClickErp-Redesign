@@ -13,6 +13,7 @@ use App\Models\ingaz\Order;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Spatie\Activitylog\Models\Activity;
 use Yajra\DataTables\Facades\DataTables;
 
 class ReturnRequestController extends Controller
@@ -258,9 +259,9 @@ class ReturnRequestController extends Controller
                         </a></li>';
         }
 
-        if ((@AdminGuardHasPerm(\App\PermKeys::RETURN_REQUEST_EDIT) || @AdminGuardHasPerm(\App\PermKeys::RETURN_REQUEST_CONTROL)) && !$order->deleted_at) {
-            $actions[] = '<li><button class="dropdown-item edit-status" data-id="' . $order->id . '">
-                            <i class="fa fa-edit"></i> ' . e(helperTrans('ingaz.edit_order_status')) . '
+        if ((@AdminGuardHasPerm(\App\PermKeys::RETURN_REQUEST_EDIT) || @AdminGuardHasPerm(\App\PermKeys::RETURN_REQUEST_CONTROL)) && !$order->deleted_at && $this->isRefusalStatus((string) $order->status)) {
+            $actions[] = '<li><button class="dropdown-item restore-previous-status" data-id="' . $order->id . '">
+                            <i class="fa fa-undo"></i> إرجاع للحالة السابقة
                         </button></li>';
         }
 
@@ -441,6 +442,65 @@ class ReturnRequestController extends Controller
         }
     }
 
+    public function restorePreviousStatus($id)
+    {
+        try {
+            $order = Order::withTrashed()->findOrFail($id);
+
+            if ($order->trashed()) {
+                return jsonError('الطلب محذوف. استخدم استعادة الطلب أولاً.', 422);
+            }
+
+            if (!$this->isRefusalStatus((string) $order->status)) {
+                return jsonError('هذا الإجراء متاح فقط للطلبات المرفوضة أو المرجعة.', 422);
+            }
+
+            $previousStatus = $this->resolvePreviousOrderStatus($order);
+            if (!$previousStatus) {
+                return jsonError('لا توجد حالة سابقة مسجلة لهذا الطلب.', 422);
+            }
+
+            if ($this->isReactivationStatus($previousStatus)) {
+                $availabilityError = $this->validateMaidCanBeReactivated($order);
+                if ($availabilityError) {
+                    return jsonError($availabilityError, 422);
+                }
+            }
+
+            $order->status = $previousStatus;
+            $order->status_changed_at = now();
+            $order->deadline_at = $order->getDeadlineHours() > 0
+                ? now()->addHours($order->getDeadlineHours())
+                : null;
+            $order->refuse_reason = null;
+            $order->save();
+
+            if ($this->isReactivationStatus($previousStatus)) {
+                $this->reserveMaid($order);
+            }
+
+            Notification::create([
+                'title' => __('ingaz.update_order_status'),
+                'description' => 'تم إرجاع الطلب #' . $order->id . ' إلى حالته السابقة: ' . getEnumValue('orders_statuses', $previousStatus),
+                'order_id' => $order->id,
+                'user_id' => $order->user_id,
+                'type' => 'order_status',
+            ]);
+
+            return jsonSuccess([
+                'success' => true,
+                'status' => $previousStatus,
+            ], 'تم إرجاع الطلب إلى حالته السابقة بنجاح', 200);
+        } catch (\Exception $e) {
+            \Log::error('Error restoring return request previous status', [
+                'order_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return jsonError(__('ingaz.update_error'));
+        }
+    }
+
     private function isRefusalStatus(string $status): bool
     {
         return in_array($status, [OrderEnum::Refused->value, OrderEnum::Return->value], true);
@@ -449,6 +509,34 @@ class ReturnRequestController extends Controller
     private function isReactivationStatus(string $status): bool
     {
         return in_array($status, [OrderEnum::New->value, OrderEnum::UnderProcess->value], true);
+    }
+
+    private function resolvePreviousOrderStatus(Order $order): ?string
+    {
+        $currentStatus = (string) $order->status;
+
+        $activities = Activity::query()
+            ->where('subject_type', Order::class)
+            ->where('subject_id', $order->id)
+            ->whereIn('event', ['updated', 'deleted'])
+            ->latest()
+            ->take(50)
+            ->get();
+
+        foreach ($activities as $activity) {
+            $oldStatus = data_get($activity, 'properties.old.status');
+            $newStatus = data_get($activity, 'properties.attributes.status');
+
+            if (!$oldStatus || $this->isRefusalStatus((string) $oldStatus)) {
+                continue;
+            }
+
+            if (!$newStatus || $newStatus === $currentStatus || $this->isRefusalStatus((string) $newStatus)) {
+                return (string) $oldStatus;
+            }
+        }
+
+        return null;
     }
 
     private function resolveRefuseReason(?string $reason, string $status): string

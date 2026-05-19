@@ -573,7 +573,7 @@
         </div>
     </div>
 
-    <script src="{{ asset('admin/assets/js/invoice-print.js') }}"></script>
+    <script src="{{ asset('admin/assets/js/invoice-print.js') }}?v={{ filemtime(public_path('admin/assets/js/invoice-print.js')) }}"></script>
 </body>
 
 </html>
