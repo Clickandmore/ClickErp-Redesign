@@ -1133,11 +1133,6 @@ class AdminTravelHistoryController extends Controller
 
         $tripRecords = $this->resolveTripRecords($data);
         foreach ($tripRecords as $tripRecord) {
-            $order = Order::find($tripRecord->order_id);
-            if ($order) {
-                $order->status = ContractStatusEnum::Taffez;
-                $order->save();
-            }
             $tripRecord->delete();
         }
 

@@ -2479,6 +2479,60 @@
                 });
             });
 
+            $(document).on('click', '.cancel-travel-btn', function(e) {
+                e.preventDefault();
+
+                var tripId = $(this).data('trip-id');
+                if (!tripId) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'خطأ',
+                        text: 'لم يتم العثور على معرف الرحلة'
+                    });
+                    return;
+                }
+
+                Swal.fire({
+                    title: 'إلغاء الرحلة',
+                    text: 'سيتم إلغاء الرحلة فقط دون تغيير حالة العقد أو القيود المالية المرتبطة به.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'نعم، إلغاء الرحلة',
+                    cancelButtonText: 'تراجع'
+                }).then(function(result) {
+                    if (!result.isConfirmed) {
+                        return;
+                    }
+
+                    $.ajax({
+                        url: '{{ route('travel.delete', ':tripId') }}'.replace(':tripId', tripId),
+                        type: 'POST',
+                        data: {
+                            _token: '{{ csrf_token() }}',
+                            _method: 'DELETE'
+                        },
+                        success: function() {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'تم الإلغاء',
+                                text: 'تم إلغاء الرحلة بنجاح'
+                            }).then(function() {
+                                dataTable.ajax.reload(null, false);
+                            });
+                        },
+                        error: function(xhr) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'خطأ',
+                                text: xhr.responseJSON?.message || 'حدث خطأ أثناء إلغاء الرحلة'
+                            });
+                        }
+                    });
+                });
+            });
+
             // معالج زر إضافة عاملة من عمود المرحلة التالية
             $(document).on('click', '.btn-action[href*="selectMaid"]', function(e) {
                 // السماح بالانتقال الطبيعي للرابط

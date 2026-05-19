@@ -254,6 +254,54 @@ class RecruitmentContractController extends Controller
         ]);
     }
 
+    private function buildTravelManagementActions(TravelHistory $travelHistory, string $context = 'buttons'): string
+    {
+        $canEditTravel = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_EDIT_TRAVEL)
+            && @AdminGuardHasPerm(\App\PermKeys::TRAVEL_EDIT);
+        $canDeleteTravel = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_DELETE_TRAVEL)
+            && @AdminGuardHasPerm(\App\PermKeys::TRAVEL_DELETE);
+
+        if (!$canEditTravel && !$canDeleteTravel) {
+            return '';
+        }
+
+        if ($context === 'dropdown') {
+            $html = '';
+
+            if ($canEditTravel) {
+                $html .= '<li><a class="dropdown-item" href="' . e(route('travel.edit', $travelHistory->id)) . '">
+                            <i class="fas fa-edit"></i> تعديل الرحلة
+                        </a></li>';
+            }
+
+            if ($canDeleteTravel) {
+                $html .= '<li><button type="button" class="dropdown-item text-danger cancel-travel-btn" data-trip-id="' . $travelHistory->id . '">
+                            <i class="fas fa-ban"></i> إلغاء الرحلة
+                        </button></li>';
+            }
+
+            return $html;
+        }
+
+        $html = '<div class="btn-group btn-group-sm travel-management-actions" role="group" aria-label="إدارة الرحلة">';
+
+        if ($canEditTravel) {
+            $html .= '<a class="btn btn-outline-primary btn-action" href="' . e(route('travel.edit', $travelHistory->id)) . '" title="تعديل الرحلة">
+                        <i class="fas fa-edit me-1"></i>تعديل الرحلة
+                    </a>';
+        }
+
+        if ($canDeleteTravel) {
+            $html .= '<button type="button" class="btn btn-outline-danger btn-action cancel-travel-btn" data-trip-id="' . $travelHistory->id . '" title="إلغاء الرحلة دون تغيير حالة العقد أو القيود المالية">
+                        <i class="fas fa-ban me-1"></i>إلغاء الرحلة
+                    </button>';
+        }
+
+        $html .= '</div>';
+
+        return $html;
+    }
+
     private function updateContractStatusRecord(Contract $contract, string $nextStatus, ?string $date = null): array
     {
         $currentStatus = $contract->status;
@@ -1133,6 +1181,14 @@ class RecruitmentContractController extends Controller
                                         <i class="fas fa-check me-1"></i>إكمال الرحلة
                                     </button>';
                                 }
+
+                                if ($travelHistory) {
+                                    $travelActions = $this->buildTravelManagementActions($travelHistory);
+                                    if ($travelActions !== '') {
+                                        return $travelActions;
+                                    }
+                                }
+
                                 return '<span class="text-muted">يُستكمل تلقائياً بعد انتهاء الضمان</span>';
                             case ContractStatusEnum::Sari->value:
                                 // إضافة زر إكمال الرحلة إذا كان العقد لديه رحلة
@@ -1178,6 +1234,13 @@ class RecruitmentContractController extends Controller
                                     return '<button class="btn btn-success btn-sm complete-trip-btn btn-action" data-trip-id="' . $travelHistory->id . '" title="إكمال الرحلة">
                                         <i class="fas fa-check me-1"></i>إكمال الرحلة
                                     </button>';
+                                }
+
+                                if ($travelHistory) {
+                                    $travelActions = $this->buildTravelManagementActions($travelHistory);
+                                    if ($travelActions !== '') {
+                                        return $travelActions;
+                                    }
                                 }
 
                                 if (!empty($availableStatuses)) {
@@ -1307,6 +1370,14 @@ class RecruitmentContractController extends Controller
 
                     // زر إكمال الرحلة - يظهر للعقود في مرحلة التذاكر التي لديها رحلة فعلية
                     $travelHistory = TravelHistory::where('order_id', $row->id)->first();
+                    if ($travelHistory) {
+                        $travelManagementActions = $this->buildTravelManagementActions($travelHistory, 'dropdown');
+                        if ($travelManagementActions !== '') {
+                            $actions .= '<li><hr class="dropdown-divider"></li>';
+                            $actions .= $travelManagementActions;
+                        }
+                    }
+
                     if ($travelHistory && @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_COMPLETE_TRAVEL)) {
                         if (
                             $row->status === ContractStatusEnum::Tazker->value &&
