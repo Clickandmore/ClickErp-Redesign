@@ -40,8 +40,13 @@
             grid-template-areas: "sidebar main";
         }
 
-        .agent-sidebar { grid-area: sidebar; }
-        .agent-main    { grid-area: main; }
+        .agent-sidebar {
+            grid-area: sidebar;
+        }
+
+        .agent-main {
+            grid-area: main;
+        }
 
         .agent-sidebar {
             background: var(--agent-sidebar);
@@ -589,51 +594,51 @@
     </style>
     @stack('style')
     @if(app()->getLocale() === 'ar')
-    <style>
-        /* RTL grid: sidebar goes to the RIGHT */
-        .agent-shell {
-            grid-template-columns: minmax(0, 1fr) 260px;
-            grid-template-areas: "main sidebar";
-        }
+        <style>
+            /* RTL grid: sidebar goes to the RIGHT */
+            .agent-shell {
+                grid-template-columns: minmax(0, 1fr) 260px;
+                grid-template-areas: "main sidebar";
+            }
 
-        /* Force RTL direction on all content areas */
-        .agent-main,
-        .agent-page,
-        .agent-admin-header,
-        .agent-topbar,
-        .agent-card,
-        .agent-section,
-        .agent-detail-item,
-        .agent-section-header,
-        .agent-filter,
-        .agent-nav {
-            direction: rtl;
-        }
+            /* Force RTL direction on all content areas */
+            .agent-main,
+            .agent-page,
+            .agent-admin-header,
+            .agent-topbar,
+            .agent-card,
+            .agent-section,
+            .agent-detail-item,
+            .agent-section-header,
+            .agent-filter,
+            .agent-nav {
+                direction: rtl;
+            }
 
-        /* Text alignment for content */
-        .agent-card span,
-        .agent-card strong,
-        .agent-topbar h2,
-        .agent-topbar .agent-user,
-        .agent-section-header h3,
-        .agent-detail-item span,
-        .agent-detail-item strong,
-        .agent-empty {
-            text-align: right;
-        }
+            /* Text alignment for content */
+            .agent-card span,
+            .agent-card strong,
+            .agent-topbar h2,
+            .agent-topbar .agent-user,
+            .agent-section-header h3,
+            .agent-detail-item span,
+            .agent-detail-item strong,
+            .agent-empty {
+                text-align: right;
+            }
 
-        /* Table cells RTL */
-        .agent-table th,
-        .agent-table td {
-            text-align: right;
-        }
+            /* Table cells RTL */
+            .agent-table th,
+            .agent-table td {
+                text-align: right;
+            }
 
-        /* Language menu position for RTL */
-        .agent-language-menu {
-            right: auto;
-            left: 0;
-        }
-    </style>
+            /* Language menu position for RTL */
+            .agent-language-menu {
+                right: auto;
+                left: 0;
+            }
+        </style>
     @endif
 </head>
 
@@ -645,10 +650,10 @@
             : '';
         $headerLogo =
             isset($settings) && !empty($settings->admin_logo)
-                ? showFile($settings->admin_logo)
-                : (isset($settings) && !empty($settings->logo_header)
-                    ? showFile($settings->logo_header)
-                    : asset('admin/assets/img/company_logo.jpeg'));
+            ? showFile($settings->admin_logo)
+            : (isset($settings) && !empty($settings->logo_header)
+                ? showFile($settings->logo_header)
+                : asset('admin/assets/img/company_logo.jpeg'));
         $englishUrl = \Mcamara\LaravelLocalization\Facades\LaravelLocalization::getLocalizedURL('en', null, [], true);
         $arabicUrl = \Mcamara\LaravelLocalization\Facades\LaravelLocalization::getLocalizedURL('ar', null, [], true);
     @endphp
@@ -664,23 +669,33 @@
             </div>
 
             <nav class="agent-nav">
-                <a href="{{ route('agent.dashboard') }}" class="{{ request()->routeIs('agent.dashboard') ? 'active' : '' }}">
+                <a href="{{ route('agent.dashboard') }}"
+                    class="{{ request()->routeIs('agent.dashboard') ? 'active' : '' }}">
                     <i class="fa fa-chart-line"></i>
                     <span>{{ app()->getLocale() === 'ar' ? 'لوحة التحكم' : 'Dashboard' }}</span>
                 </a>
-                <a href="{{ route('agent.maids.index') }}" class="{{ request()->routeIs('agent.maids.*') ? 'active' : '' }}">
+                <a href="{{ route('agent.maids.index') }}"
+                    class="{{ request()->routeIs('agent.maids.*') ? 'active' : '' }}">
                     <i class="fa fa-id-card"></i>
                     <span>{{ app()->getLocale() === 'ar' ? 'السير الذاتية' : 'CVs' }}</span>
                 </a>
-                <a href="{{ route('agent.contracts.index') }}" class="{{ request()->routeIs('agent.contracts.*') ? 'active' : '' }}">
+                <a href="{{ route('agent.contracts.index') }}"
+                    class="{{ request()->routeIs('agent.contracts.*') ? 'active' : '' }}">
                     <i class="fa fa-file-signature"></i>
                     <span>{{ app()->getLocale() === 'ar' ? 'العقود' : 'Contracts' }}</span>
                 </a>
-                <a href="{{ route('agent.dispatches.index') }}" class="{{ request()->routeIs('agent.dispatches.*') ? 'active' : '' }}">
+                <a href="{{ route('agent.philippines-tracking.index') }}"
+                    class="{{ request()->routeIs('agent.philippines-tracking.*') ? 'active' : '' }}">
+                    <i class="fa fa-clipboard-list"></i>
+                    <span>{{ app()->getLocale() === 'ar' ? 'تتبع الإجراءات' : 'Procedures Tracking' }}</span>
+                </a>
+                <a href="{{ route('agent.dispatches.index') }}"
+                    class="{{ request()->routeIs('agent.dispatches.*') ? 'active' : '' }}">
                     <i class="fa fa-truck-fast"></i>
                     <span>{{ app()->getLocale() === 'ar' ? 'الإرساليات' : 'Dispatches' }}</span>
                 </a>
-                <a href="{{ route('agent.invoices.index') }}" class="{{ request()->routeIs('agent.invoices.*') ? 'active' : '' }}">
+                <a href="{{ route('agent.invoices.index') }}"
+                    class="{{ request()->routeIs('agent.invoices.*') ? 'active' : '' }}">
                     <i class="fa fa-file-invoice-dollar"></i>
                     <span>{{ app()->getLocale() === 'ar' ? 'الفواتير' : 'Invoices' }}</span>
                 </a>
@@ -721,16 +736,19 @@
                     @php
                         $unreadNotificationsCount = auth('agent')->check() ? \App\Models\AdminNotification::where('admin_id', auth('agent')->id())->whereNull('read_at')->count() : 0;
                     @endphp
-                    <a href="{{ route('agent.notifications.index') }}" class="agent-header-action" style="position: relative;">
+                    <a href="{{ route('agent.notifications.index') }}" class="agent-header-action"
+                        style="position: relative;">
                         <i class="fa fa-bell"></i>
                         @if($unreadNotificationsCount > 0)
-                            <span style="position: absolute; top: -5px; right: -5px; background: #ef4444; color: white; border-radius: 50%; padding: 2px 5px; font-size: 10px; font-weight: bold; line-height: 1;">
+                            <span
+                                style="position: absolute; top: -5px; right: -5px; background: #ef4444; color: white; border-radius: 50%; padding: 2px 5px; font-size: 10px; font-weight: bold; line-height: 1;">
                                 {{ $unreadNotificationsCount }}
                             </span>
                         @endif
                     </a>
 
-                    <a class="agent-header-action agent-open-site" href="{{ publicSiteUrl() }}" target="_blank" rel="noopener noreferrer">
+                    <a class="agent-header-action agent-open-site" href="{{ publicSiteUrl() }}" target="_blank"
+                        rel="noopener noreferrer">
                         <i class="fa fa-globe"></i>
                         <span>{{ app()->getLocale() === 'ar' ? 'الموقع' : 'Website' }}</span>
                     </a>
@@ -759,7 +777,8 @@
                 <header class="agent-topbar">
                     <div>
                         <h2>@yield('page-title', 'Agent Dashboard')</h2>
-                        <div class="agent-user">{{ $agentUser?->name }} {{ $agentUser?->email ? ' - ' . $agentUser->email : '' }}</div>
+                        <div class="agent-user">{{ $agentUser?->name }}
+                            {{ $agentUser?->email ? ' - ' . $agentUser->email : '' }}</div>
                     </div>
                     @yield('page-action')
                 </header>

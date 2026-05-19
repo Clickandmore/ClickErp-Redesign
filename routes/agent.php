@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Agent\AgentBulkImportController;
+use App\Http\Controllers\Agent\AgentRecruitmentProcedureController;
 use App\Http\Controllers\Agent\AuthController;
 use App\Http\Controllers\Agent\DashboardController;
 use Illuminate\Support\Facades\Route;
@@ -33,6 +34,9 @@ Route::group(
                 Route::get('contracts/{contract}', [DashboardController::class, 'showContract'])->name('contracts.show');
                 Route::get('external-office-dispatches', [DashboardController::class, 'dispatches'])->name('dispatches.index');
                 Route::get('invoices', [DashboardController::class, 'invoices'])->name('invoices.index');
+                Route::get('philippines-tracking', [AgentRecruitmentProcedureController::class, 'index'])->name('philippines-tracking.index');
+                Route::post('philippines-tracking/{maid}/update-step', [AgentRecruitmentProcedureController::class, 'updateStep'])->name('philippines-tracking.update-step');
+                Route::post('philippines-tracking/{maid}/bulk-update', [AgentRecruitmentProcedureController::class, 'bulkUpdate'])->name('philippines-tracking.bulk-update');
                 Route::get('notifications', [DashboardController::class, 'notifications'])->name('notifications.index');
                 Route::post('notifications/mark-all-read', [DashboardController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
                 Route::post('notifications/{id}/read', [DashboardController::class, 'markAsRead'])->name('notifications.read');

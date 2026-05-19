@@ -56,6 +56,11 @@ class Maid extends Model
         return $this->hasMany(\App\Models\Contract::class, 'maid_id');
     }
 
+    public function recruitmentProcedure()
+    {
+        return $this->hasOne(\App\Models\MaidRecruitmentProcedure::class, 'maid_id');
+    }
+
 
     public function jobTitles()
     {

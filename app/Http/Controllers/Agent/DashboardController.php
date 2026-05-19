@@ -62,7 +62,7 @@ class DashboardController extends Controller
     public function maids(Request $request)
     {
         $workerFilter = $request->input('worker_filter', 'all');
-        if (! in_array($workerFilter, ['all', 'available', 'contracted'], true)) {
+        if (!in_array($workerFilter, ['all', 'available', 'contracted'], true)) {
             $workerFilter = 'all';
         }
 
@@ -132,7 +132,7 @@ class DashboardController extends Controller
     public function extractCv(Request $request)
     {
         $text = (string) $request->input('text');
-        
+
         // Basic extraction logic using regex
         $data = [
             'name' => null,
@@ -361,7 +361,7 @@ class DashboardController extends Controller
     {
         return [
             ContractStatusEnum::PendingMaidSelection->value,
-            ContractStatusEnum::New->value,
+            ContractStatusEnum::New ->value,
             ContractStatusEnum::Msaned->value,
             ContractStatusEnum::Tafwed->value,
             ContractStatusEnum::Taffez->value,

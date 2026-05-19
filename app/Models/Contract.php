@@ -83,7 +83,8 @@ class Contract extends Model
         return $this->hasMany(ContractStatusLog::class, "contract_id");
     }
 
-    public function invoice(){
+    public function invoice()
+    {
         return $this->hasOne(Invoice::class, 'contract_id');
     }
 
@@ -97,7 +98,8 @@ class Contract extends Model
         return $this->hasOne(RecruitmentContractRefund::class, 'contract_id');
     }
 
-    public function notes(){
+    public function notes()
+    {
         return $this->hasMany(ContractNote::class, 'contract_id');
     }
 
@@ -105,7 +107,7 @@ class Contract extends Model
     {
         return $this->hasMany(RecruitmentContractAttachment::class, 'contract_id');
     }
-    
+
 
     public function latestShelterLog()
     {
@@ -138,7 +140,7 @@ class Contract extends Model
     {
         return in_array($this->status, [
             ContractStatusEnum::PendingMaidSelection->value,
-            ContractStatusEnum::New->value,
+            ContractStatusEnum::New ->value,
             ContractStatusEnum::Msaned->value,
             ContractStatusEnum::Tafwed->value,
             ContractStatusEnum::Taffez->value,
@@ -423,7 +425,7 @@ class Contract extends Model
                     ->orWhereHas('info', function ($infoQuery) {
                         $infoQuery->where(function ($condition) {
                             $condition->whereNull('is_outside_shelter')
-                                      ->orWhere('is_outside_shelter', false);
+                                ->orWhere('is_outside_shelter', false);
                         });
                     });
             });
@@ -447,14 +449,14 @@ class Contract extends Model
                 })
                 ->orWhere(function ($transferQuery) {
                     $transferQuery->whereIn('status', [
-                            ContractStatusEnum::Shelter->value,
-                            ContractStatusEnum::Trial->value,
-                        ])
+                        ContractStatusEnum::Shelter->value,
+                        ContractStatusEnum::Trial->value,
+                    ])
                         ->whereHas('sponsorshipTransfers', function ($sponsorshipQuery) {
                             $sponsorshipQuery->whereIn('status', ['maid_delivered', 'trial', 'trial_started']);
                         });
                 });
-            });
+        });
     }
 
     public function getActivitylogOptions(): LogOptions

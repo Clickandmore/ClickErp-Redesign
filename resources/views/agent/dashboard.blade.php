@@ -47,7 +47,8 @@
                     <strong>{{ $office->manager_name ?: '-' }}</strong>
                 </div>
             @empty
-                <p class="agent-empty">{{ $isAr ? 'لا توجد مكاتب مرتبطة بهذا الحساب.' : 'No offices are linked to this account.' }}</p>
+                <p class="agent-empty">
+                    {{ $isAr ? 'لا توجد مكاتب مرتبطة بهذا الحساب.' : 'No offices are linked to this account.' }}</p>
             @endforelse
         </div>
     </section>
