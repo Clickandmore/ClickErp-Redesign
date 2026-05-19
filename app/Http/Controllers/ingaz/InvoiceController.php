@@ -5,6 +5,7 @@ namespace App\Http\Controllers\ingaz;
 use App\Http\Controllers\admin\Controller;
 use App\Models\Contract;
 use App\Models\IngazDelegation;
+use App\Models\RentalContractInvoice;
 use App\Models\ingaz\Invoice;
 use App\Models\ingaz\Nationality;
 use App\Models\ingaz\Setting;
@@ -56,106 +57,129 @@ class InvoiceController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = Invoice::with(['contract.user', 'ingazDelegation.user', 'client', 'financeSale.zatca'])->select('invoices.*')->latest();
+            $recruitmentInvoices = Invoice::with(['contract.user', 'ingazDelegation.user', 'client', 'financeSale.zatca'])
+                ->latest()
+                ->get()
+                ->map(fn (Invoice $invoice) => $this->formatInvoiceIndexRow($invoice));
+
+            $rentalInvoices = RentalContractInvoice::with(['rentalContract.user', 'rentalContract.maid', 'invoiceConstraint'])
+                ->latest()
+                ->get()
+                ->map(fn (RentalContractInvoice $invoice) => $this->formatRentalInvoiceIndexRow($invoice));
+
+            $query = $recruitmentInvoices
+                ->concat($rentalInvoices)
+                ->sortByDesc('created_at_sort')
+                ->values();
 
             return DataTables::of($query)
                 ->addIndexColumn()
-                ->addColumn('invoice_number', function ($row) {
-                    return '<a href="' . route('invoice.download', ['id' => $row->id, 'autoprint' => 1]) . '" target="_blank" rel="noopener" class="fw-bold text-decoration-none">#' . $row->id . '</a>';
-                })
-                ->addColumn('contract_number', function ($row) {
-                    if ($row->contract_id) {
-                        return '#' . $row->contract_id;
-                    }
-
-                    if ($row->ingaz_delegation_id) {
-                        return 'تفويض #' . $row->ingaz_delegation_id;
-                    }
-
-                    return 'فاتورة عامة';
-                })
-                ->addColumn('invoice_source', function ($row) {
-                    if ($row->contract_id) {
-                        return '<span class="badge bg-info-subtle text-info border">عقد استقدام #' . $row->contract_id . '</span>';
-                    }
-
-                    if ($row->ingaz_delegation_id) {
-                        return '<span class="badge bg-primary-subtle text-primary border">تفويض إنجاز #' . $row->ingaz_delegation_id . '</span>';
-                    }
-
-                    return '<span class="badge bg-secondary-subtle text-secondary border">فاتورة عامة</span>';
-                })
-                ->addColumn('client_name', function ($row) {
-                    return $row->contract?->user?->name ?: ($row->ingazDelegation?->user?->name ?: ($row->client?->name ?: '-'));
-                })
-                ->editColumn('subtotal', function ($row) {
-                    return number_format($row->subtotal, 2);
-                })
-                ->editColumn('vat_amount', function ($row) {
-                    return number_format($row->vat_amount, 2);
-                })
-                ->editColumn('discount', function ($row) {
-                    return number_format($row->discount, 2);
-                })
-                ->editColumn('total_due', function ($row) {
-                    return number_format($row->total_due, 2);
-                })
-                ->addColumn('status', function ($row) {
-                    $paid = (bool) $row->is_paid || (float) $row->total_due <= 0;
-                    $class = $paid ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning';
-                    $text = $paid ? 'مدفوعة' : 'غير مدفوعة';
-                    return '<span class="badge ' . $class . '">' . $text . '</span>';
-                })
-                ->addColumn('zatca_status', function ($row) {
-                    if (!$row->send_to_zatca) {
-                        return '<span class="badge bg-secondary-subtle text-secondary border">غير مطلوب</span>';
-                    }
-
-                    if (!$row->finance_sale_id) {
-                        return '<span class="badge bg-warning-subtle text-warning border">لم يدرج</span>';
-                    }
-
-                    $status = $row->financeSale?->zatca?->zatca_status;
-                    return match ($status) {
-                        'REPORTED' => '<span class="badge bg-success">مرحل للهيئة</span>',
-                        'CLEARED' => '<span class="badge bg-primary">معتمد من الهيئة</span>',
-                        'NOT_REPORTED', 'NOT_CLEARED' => '<span class="badge bg-danger">مرفوض من الهيئة</span>',
-                        default => '<span class="badge bg-warning-subtle text-warning border">معلق في المبيعات</span>',
-                    };
-                })
-                ->editColumn('created_at', function ($row) {
-                    return $row->created_at ? $row->created_at->format('Y-m-d H:i') : '-';
-                })
-                ->addColumn('actions', function ($row) {
-                    $viewUrl = route('invoices.show', $row->id);
-                    $pdfUrl = route('invoice.download', ['id' => $row->id, 'autoprint' => 1]);
-                    $queueUrl = route('invoices.queue-zatca-sale', $row->id);
-                    $queueButton = (!$row->finance_sale_id)
-                        ? '<form method="post" action="' . $queueUrl . '" class="d-inline queue-zatca-form">
-                                ' . csrf_field() . '
-                                <button type="submit" class="btn btn-sm btn-outline-success" title="إدراج في فواتير الزكاة">
-                                    <i class="fas fa-receipt"></i>
-                                </button>
-                            </form>'
-                        : '<a href="' . route('finance.bill-sales.show', $row->finance_sale_id) . '" class="btn btn-sm btn-outline-success" title="فاتورة المبيعات">
-                                <i class="fas fa-link"></i>
-                            </a>';
-
-                    return '<div class="d-flex justify-content-end gap-2">
-                                ' . $queueButton . '
-                                <a href="' . $viewUrl . '" class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                <a href="' . $pdfUrl . '" class="btn btn-sm btn-outline-secondary" target="_blank">
-                                    <i class="fas fa-print"></i>
-                                </a>
-                            </div>';
-                })
                 ->rawColumns(['invoice_number', 'invoice_source', 'status', 'zatca_status', 'actions'])
                 ->make(true);
         }
 
         return view('admin.ingaz.invoices.index');
+    }
+
+    private function formatInvoiceIndexRow(Invoice $invoice): array
+    {
+        $paid = (bool) $invoice->is_paid || (float) $invoice->total_due <= 0;
+        $queueButton = (!$invoice->finance_sale_id)
+            ? '<form method="post" action="' . route('invoices.queue-zatca-sale', $invoice->id) . '" class="d-inline queue-zatca-form">
+                    ' . csrf_field() . '
+                    <button type="submit" class="btn btn-sm btn-outline-success" title="إدراج في فواتير الزكاة">
+                        <i class="fas fa-receipt"></i>
+                    </button>
+                </form>'
+            : '<a href="' . route('finance.bill-sales.show', $invoice->finance_sale_id) . '" class="btn btn-sm btn-outline-success" title="فاتورة المبيعات">
+                    <i class="fas fa-link"></i>
+                </a>';
+
+        return [
+            'id' => $invoice->id,
+            'invoice_number' => '<a href="' . route('invoice.download', ['id' => $invoice->id, 'autoprint' => 1]) . '" target="_blank" rel="noopener" class="fw-bold text-decoration-none">#' . $invoice->id . '</a>',
+            'invoice_source' => $this->invoiceSourceBadge($invoice),
+            'client_name' => $invoice->contract?->user?->name ?: ($invoice->ingazDelegation?->user?->name ?: ($invoice->client?->name ?: '-')),
+            'subtotal' => number_format((float) $invoice->subtotal, 2),
+            'vat_amount' => number_format((float) $invoice->vat_amount, 2),
+            'discount' => number_format((float) $invoice->discount, 2),
+            'total_due' => number_format((float) $invoice->total_due, 2),
+            'status' => '<span class="badge ' . ($paid ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning') . '">' . ($paid ? 'مدفوعة' : 'غير مدفوعة') . '</span>',
+            'zatca_status' => $this->invoiceZatcaBadge($invoice),
+            'created_at' => $invoice->created_at ? $invoice->created_at->format('Y-m-d H:i') : '-',
+            'created_at_sort' => optional($invoice->created_at)->timestamp ?? 0,
+            'actions' => '<div class="d-flex justify-content-end gap-2">
+                            ' . $queueButton . '
+                            <a href="' . route('invoices.show', $invoice->id) . '" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="' . route('invoice.download', ['id' => $invoice->id, 'autoprint' => 1]) . '" class="btn btn-sm btn-outline-secondary" target="_blank">
+                                <i class="fas fa-print"></i>
+                            </a>
+                        </div>',
+        ];
+    }
+
+    private function formatRentalInvoiceIndexRow(RentalContractInvoice $invoice): array
+    {
+        $contract = $invoice->rentalContract;
+        $paid = (bool) $invoice->is_paid || (float) $invoice->total_due <= 0;
+        $contractUrl = $contract ? route('RentContract.show', $contract->id) : '#';
+        $printUrl = route('rental.invoice.download', ['id' => $invoice->id, 'autoprint' => 1]);
+
+        return [
+            'id' => 'rental-' . $invoice->id,
+            'invoice_number' => '<a href="' . $printUrl . '" target="_blank" rel="noopener" class="fw-bold text-decoration-none">إيجار #' . $invoice->id . '</a>',
+            'invoice_source' => '<span class="badge bg-success-subtle text-success border">عقد تأجير #' . ($contract?->contract_number ?: $invoice->rental_contract_id) . '</span>',
+            'client_name' => $contract?->user?->name ?: '-',
+            'subtotal' => number_format((float) $invoice->subtotal, 2),
+            'vat_amount' => number_format((float) $invoice->vat_amount, 2),
+            'discount' => number_format((float) $invoice->discount, 2),
+            'total_due' => number_format((float) $invoice->total_due, 2),
+            'status' => '<span class="badge ' . ($paid ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning') . '">' . ($paid ? 'مدفوعة' : 'غير مدفوعة') . '</span>',
+            'zatca_status' => '<span class="badge bg-secondary-subtle text-secondary border">غير مطلوب</span>',
+            'created_at' => $invoice->created_at ? $invoice->created_at->format('Y-m-d H:i') : '-',
+            'created_at_sort' => optional($invoice->created_at)->timestamp ?? 0,
+            'actions' => '<div class="d-flex justify-content-end gap-2">
+                            <a href="' . $contractUrl . '" class="btn btn-sm btn-outline-primary" title="عرض عقد التأجير">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="' . $printUrl . '" class="btn btn-sm btn-outline-secondary" target="_blank" title="طباعة الفاتورة">
+                                <i class="fas fa-print"></i>
+                            </a>
+                        </div>',
+        ];
+    }
+
+    private function invoiceSourceBadge(Invoice $invoice): string
+    {
+        if ($invoice->contract_id) {
+            return '<span class="badge bg-info-subtle text-info border">عقد استقدام #' . $invoice->contract_id . '</span>';
+        }
+
+        if ($invoice->ingaz_delegation_id) {
+            return '<span class="badge bg-primary-subtle text-primary border">تفويض إنجاز #' . $invoice->ingaz_delegation_id . '</span>';
+        }
+
+        return '<span class="badge bg-secondary-subtle text-secondary border">فاتورة عامة</span>';
+    }
+
+    private function invoiceZatcaBadge(Invoice $invoice): string
+    {
+        if (!$invoice->send_to_zatca) {
+            return '<span class="badge bg-secondary-subtle text-secondary border">غير مطلوب</span>';
+        }
+
+        if (!$invoice->finance_sale_id) {
+            return '<span class="badge bg-warning-subtle text-warning border">لم يدرج</span>';
+        }
+
+        return match ($invoice->financeSale?->zatca?->zatca_status) {
+            'REPORTED' => '<span class="badge bg-success">مرحل للهيئة</span>',
+            'CLEARED' => '<span class="badge bg-primary">معتمد من الهيئة</span>',
+            'NOT_REPORTED', 'NOT_CLEARED' => '<span class="badge bg-danger">مرفوض من الهيئة</span>',
+            default => '<span class="badge bg-warning-subtle text-warning border">معلق في المبيعات</span>',
+        };
     }
 
     /**

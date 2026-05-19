@@ -8,7 +8,7 @@
         $documentCompanyName = documentSetting('document_company_name', $contractSettings['company_name'] ?? documentSetting('website_name', config('app.name')));
         $documentLogo = filled($contractSettings['logo'] ?? null)
             ? asset('storage/' . ltrim($contractSettings['logo'], '/'))
-            : documentLogoUrl(asset('admin/assets/img/company_logo.png'));
+            : documentLogoUrl(asset('site/assets/images/logo.svg'));
         $ministryLogo = asset('site/assets/images/Ministry-of-Labor-and-Social-Development.svg');
         $documentAddress = $contractSettings['address'] ?? documentSetting('location', 'الرياض');
         $documentPhone = $contractSettings['phone'] ?? documentSetting('phone', '');
@@ -139,6 +139,22 @@
     <title>{{ $documentTitle }}</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <style>
+        @font-face {
+            font-family: "RentalContractArabic";
+            src: url("{{ asset('cv/webfonts/BalooBhaijaan2-Regular.ttf') }}") format("truetype");
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        @font-face {
+            font-family: "RentalContractArabic";
+            src: url("{{ asset('cv/webfonts/BalooBhaijaan2-Bold.ttf') }}") format("truetype");
+            font-weight: 700 900;
+            font-style: normal;
+            font-display: swap;
+        }
+
         * {
             box-sizing: border-box;
         }
@@ -150,11 +166,11 @@
         }
 
         body {
-            font-family: Tahoma, Arial, "DejaVu Sans", sans-serif;
-            font-size: 11.25px;
-            line-height: 1.7;
-            color: #111827;
-            background: #eef2f5;
+            font-family: "RentalContractArabic", Tahoma, Arial, "DejaVu Sans", sans-serif;
+            font-size: 14.2px;
+            line-height: 1.45;
+            color: #07516a;
+            background: #f0f0f0;
             direction: rtl;
             text-align: right;
         }
@@ -163,11 +179,12 @@
             width: 210mm;
             max-width: 100%;
             margin: 0 auto;
-            padding: 10mm 0;
+            padding: 6mm 0;
             position: relative;
         }
 
         .watermark {
+            display: none;
             position: fixed;
             top: 50%;
             left: 50%;
@@ -184,31 +201,27 @@
             z-index: 1;
             width: 210mm;
             min-height: 297mm;
-            margin: 0 auto 10mm;
-            padding: 12mm 16mm;
+            margin: 0 auto 5mm;
+            padding: 12mm 27mm 13mm;
             background: #fff;
-            box-shadow: 0 12px 35px rgba(15, 23, 42, .10);
-            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, .08);
+            overflow: visible;
             direction: rtl;
             text-align: right;
         }
 
         .contract-page::before {
-            content: "";
-            position: absolute;
-            inset: 6mm;
-            border: 1px solid #d7dee6;
-            pointer-events: none;
+            display: none;
         }
 
         .page-number {
             position: absolute;
             left: 0;
             right: 0;
-            bottom: 7mm;
+            bottom: 6mm;
             text-align: center;
-            color: #64748b;
-            font-size: 10px;
+            color: #07516a;
+            font-size: 11px;
             direction: ltr;
         }
 
@@ -217,12 +230,9 @@
         }
 
         .header {
-            display: grid;
-            grid-template-columns: 36mm 1fr 36mm;
-            gap: 5mm;
-            align-items: start;
-            padding: 0 0 4mm;
-            margin-bottom: 5mm;
+            display: block;
+            padding: 0 0 2mm;
+            margin-bottom: 4mm;
             position: relative;
             direction: rtl;
         }
@@ -232,18 +242,31 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 2mm;
+            gap: 1.5mm;
         }
 
         .logo-container img {
-            max-width: 30mm;
-            max-height: 22mm;
+            max-width: 42mm;
+            max-height: 24mm;
             object-fit: contain;
         }
 
         .ministry-logo img {
-            max-width: 26mm;
-            max-height: 24mm;
+            max-width: 46mm;
+            max-height: 26mm;
+        }
+
+        .page-logo-header {
+            display: grid;
+            grid-template-columns: 48mm 1fr 48mm;
+            align-items: start;
+            min-height: 26mm;
+            margin-bottom: 4mm;
+            direction: ltr;
+        }
+
+        .page-logo-header .logo-container {
+            direction: rtl;
         }
 
         .document-title {
@@ -252,17 +275,27 @@
 
         h1 {
             margin: 0;
-            color: #0f172a;
-            font-size: 18px;
-            font-weight: 800;
-            line-height: 1.3;
+            color: #07516a;
+            font-size: 16px;
+            font-weight: 700;
+            line-height: 1.35;
         }
 
         .document-subtitle {
-            margin-top: 3mm;
-            color: #64748b;
-            font-size: 10px;
-            font-weight: 600;
+            margin-top: 1mm;
+            color: #07516a;
+            font-size: 15px;
+            font-weight: 700;
+        }
+
+        .sadad-inline {
+            position: absolute;
+            top: 40mm;
+            right: 27mm;
+            color: #07516a;
+            font-size: 12px;
+            font-weight: 700;
+            direction: rtl;
         }
 
         .contract-number-badge {
@@ -289,81 +322,72 @@
         }
 
         .party-one-text {
-            margin: 2mm 0 5mm;
-            text-align: justify;
-            font-size: 11.5px;
+            margin: 0 0 5mm;
+            padding: 2.2mm 4mm;
+            background: #f0f3f4;
+            text-align: center;
+            font-size: 13.2px;
             font-weight: 600;
         }
 
         h3 {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            margin: 7mm 0 3mm;
-            color: #111827;
+            display: block;
+            margin: 4mm 0 2.2mm;
+            color: #07516a;
             font-size: 13px;
-            font-weight: 800;
+            font-weight: 700;
             break-after: avoid;
             direction: rtl;
             text-align: right;
-            justify-content: flex-start;
         }
 
         h3::before {
-            content: "";
-            width: 4px;
-            height: 18px;
-            border-radius: 3px;
-            background: #1f6f78;
-            flex: 0 0 auto;
+            display: none;
         }
 
         .official-intro {
-            margin: 4mm 0;
+            margin: 8mm 0 5mm;
             text-align: center;
             font-weight: 700;
         }
 
         .section-heading {
-            margin: 5mm 0 2mm;
+            margin: 4mm 0 0;
+            padding: 2mm 4mm;
             text-align: right;
-            color: #111827;
-            font-size: 13px;
-            font-weight: 800;
-            direction: rtl;
-        }
-
-        .service-heading-end {
-            position: absolute;
-            left: 12mm;
-            right: 12mm;
-            bottom: 18mm;
-            text-align: right;
-            font-size: 13px;
-            font-weight: 800;
+            color: #fff;
+            background: #07566b;
+            font-size: 14px;
+            font-weight: 700;
             direction: rtl;
         }
 
         .service-page-title {
-            margin-top: 0;
+            margin: 0 0 6mm;
+            padding: 0;
+            background: transparent;
+            color: #07516a;
+            text-align: right;
+            font-size: 13px;
         }
 
         .data-table,
         .payment-table {
             width: 100%;
             border-collapse: collapse;
-            margin: 2mm 0 4mm;
+            margin: 0 0 4.5mm;
             table-layout: fixed;
             break-inside: avoid;
             direction: rtl;
+            font-size: 13.1px;
         }
 
         .data-table th,
         .data-table td,
         .payment-table th,
         .payment-table td {
-            border: 1px solid #b7c4d1;
-            padding: 2.2mm 1.8mm;
+            border: 0;
+            padding: 2.2mm 1.5mm;
             text-align: center;
             vertical-align: middle;
             overflow-wrap: anywhere;
@@ -372,18 +396,23 @@
 
         .data-table th,
         .payment-table th {
-            background: #eef3f7;
-            color: #1f2937;
-            font-weight: 800;
+            background: #bed3da;
+            color: #07516a;
+            font-weight: 700;
         }
 
         .data-table td {
-            min-height: 9mm;
+            min-height: 8mm;
+            background: #f0f3f4;
+        }
+
+        .payment-table td {
+            background: #f0f3f4;
         }
 
         .contract-info {
-            margin-bottom: 5mm;
-            padding: 4mm 5mm;
+            margin-bottom: 3mm;
+            padding: 2.5mm 4mm;
             border: 1px solid #dbe4ea;
             background: #f8fafc;
             border-radius: 4px;
@@ -394,16 +423,16 @@
         .parties-section {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 4mm;
-            margin: 5mm 0;
+            gap: 3mm;
+            margin: 3mm 0;
         }
 
         .party {
             border: 1px solid #dbe4ea;
             border-radius: 4px;
-            padding: 4mm;
+            padding: 3mm;
             background: #fff;
-            line-height: 1.75;
+            line-height: 1.5;
             break-inside: avoid;
         }
 
@@ -422,11 +451,11 @@
         }
 
         .contract-body {
-            margin: 5mm 0;
-            padding: 4mm 5mm;
-            border-right: 4px solid #1f6f78;
-            background: #fbfdfe;
-            text-align: justify;
+            margin: 17mm 0 4mm;
+            padding: 0;
+            border-right: 0;
+            background: transparent;
+            text-align: center;
             break-inside: avoid;
             direction: rtl;
         }
@@ -436,18 +465,18 @@
         }
 
         .terms-section {
-            margin: 5mm 0 0;
+            margin: 0;
         }
 
         .term-item {
             position: relative;
-            margin-bottom: 1.8mm;
+            margin-bottom: 3.1mm;
             padding: 0;
             border: 0;
             border-radius: 0;
             background: transparent;
-            line-height: 1.65;
-            text-align: justify;
+            line-height: 1.42;
+            text-align: right;
             break-inside: avoid;
             direction: rtl;
         }
@@ -456,11 +485,11 @@
             display: inline-block;
             min-width: 6mm;
             height: auto;
-            margin-left: 1mm;
+            margin-left: .8mm;
             border-radius: 0;
             background: transparent;
-            color: #111827;
-            font-weight: 800;
+            color: #07516a;
+            font-weight: 700;
         }
 
         .worker-table {
@@ -499,32 +528,41 @@
         .signature-section {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 8mm;
-            margin-top: 10mm;
+            gap: 16mm;
+            margin-top: 12mm;
             break-inside: avoid;
         }
 
-        .signature-box {
-            min-height: 42mm;
-            padding: 5mm;
-            border: 1px solid #cfdbe3;
-            border-radius: 4px;
-            background: #fff;
+        .signature-closing {
+            margin-top: 22mm;
             text-align: center;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0;
+        }
+
+        .signature-box {
+            min-height: 32mm;
+            padding: 0;
+            border: 0;
+            border-radius: 0;
+            background: #fff;
+            text-align: right;
         }
 
         .signature-box h4 {
             margin: 0 0 4mm;
-            color: #0f172a;
-            font-size: 15px;
-            font-weight: 800;
+            color: #000;
+            font-size: 12px;
+            font-weight: 700;
+            text-align: center;
         }
 
         .signature-line {
-            min-height: 10mm;
-            margin: 2mm 0;
-            padding: 2mm 0;
-            border-bottom: 1px dashed #94a3b8;
+            min-height: 7mm;
+            margin: 1mm 0;
+            padding: 0;
+            border-bottom: 0;
         }
 
         @media print {
@@ -537,6 +575,7 @@
                 background: white;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
+                font-size: 14.2px;
             }
 
             .container {
@@ -548,28 +587,44 @@
                 width: 210mm;
                 min-height: 297mm;
                 margin: 0;
-                padding: 12mm 16mm;
+                padding: 12mm 27mm 13mm;
                 box-shadow: none;
                 page-break-after: always;
             }
 
             .contract-page::before {
-                inset: 5mm;
+                display: none;
             }
 
             .no-print {
                 display: none !important;
             }
 
+            .phpdebugbar,
+            .phpdebugbar-openhandler,
+            script[src*="_debugbar"],
+            link[href*="_debugbar"] {
+                display: none !important;
+            }
+
             h3 {
-                margin-top: 5mm;
-                margin-bottom: 2mm;
+                margin-top: 3.5mm;
+                margin-bottom: 1mm;
             }
 
             .term-item {
-                margin-bottom: 1.8mm;
-                padding-top: 1.8mm;
-                padding-bottom: 1.8mm;
+                margin-bottom: 3.1mm;
+                padding-top: 0;
+                padding-bottom: 0;
+            }
+
+            .sadad-inline {
+                top: 40mm;
+                right: 27mm;
+            }
+
+            .page-number {
+                bottom: 6mm;
             }
         }
 
@@ -747,20 +802,20 @@
         <!-- الصفحة الأولى -->
         <div class="contract-page page-1">
             <div class="header">
-                <div class="logo-container ministry-logo">
-                    <img src="{{ $ministryLogo }}" alt="وزارة الموارد البشرية والتنمية الاجتماعية">
+                <div class="page-logo-header">
+                    <div class="logo-container ministry-logo">
+                        <img src="{{ $ministryLogo }}" alt="وزارة الموارد البشرية والتنمية الاجتماعية">
+                    </div>
+                    <div></div>
+                    <div class="logo-container">
+                        <img src="{{ $documentLogo }}" alt="{{ $documentCompanyName }}">
+                    </div>
                 </div>
                 <div class="document-title">
                     <h1>{{ $documentTitle }}</h1>
                     <div class="document-subtitle">عقد رقم ({{ data_get($contract, 'contract_number', data_get($contract, 'id', '______')) }})</div>
                 </div>
-                <div class="logo-container">
-                    <img src="{{ $documentLogo }}" alt="{{ $documentCompanyName }}">
-                    <div class="contract-number-badge">
-                        <span>{{ $sadadLabel }}</span>
-                        <strong>{{ $sadadCode }}</strong>
-                    </div>
-                </div>
+                <div class="sadad-inline">{{ $sadadLabel }} {{ $sadadCode }}</div>
             </div>
 
             <div class="official-intro">
@@ -843,12 +898,19 @@
                 </tr>
             </table>
 
-            <div class="service-heading-end">{{ $serviceTitle }}</div>
-
             <div class="page-number">1/{{ $totalPages }}</div>
         </div>
 
         <div class="contract-page page-break">
+            <div class="page-logo-header">
+                <div class="logo-container ministry-logo">
+                    <img src="{{ $ministryLogo }}" alt="وزارة الموارد البشرية والتنمية الاجتماعية">
+                </div>
+                <div></div>
+                <div class="logo-container">
+                    <img src="{{ $documentLogo }}" alt="{{ $documentCompanyName }}">
+                </div>
+            </div>
             <div class="section-heading service-page-title">{{ $serviceTitle }}</div>
             <table class="data-table service-table">
                 <tr>
@@ -899,9 +961,19 @@
 
         @forelse($extraTermPages as $pageNumber => $pageTerms)
             <div class="contract-page page-break">
+                <div class="page-logo-header">
+                    <div class="logo-container ministry-logo">
+                        <img src="{{ $ministryLogo }}" alt="وزارة الموارد البشرية والتنمية الاجتماعية">
+                    </div>
+                    <div></div>
+                    <div class="logo-container">
+                        <img src="{{ $documentLogo }}" alt="{{ $documentCompanyName }}">
+                    </div>
+                </div>
                 @include('admin.print.partials.rental-contract-terms', [
                     'terms' => $pageTerms,
                     'formatRentalContractTerm' => $formatRentalContractTerm,
+                    'suppressFirstHeading' => in_array((int) $pageNumber, [3, 4, 5, 6], true),
                 ])
 
                 @if((int) $pageNumber === 5)
@@ -953,6 +1025,15 @@
         @endforelse
 
         <div class="contract-page page-break">
+            <div class="page-logo-header">
+                <div class="logo-container ministry-logo">
+                    <img src="{{ $ministryLogo }}" alt="وزارة الموارد البشرية والتنمية الاجتماعية">
+                </div>
+                <div></div>
+                <div class="logo-container">
+                    <img src="{{ $documentLogo }}" alt="{{ $documentCompanyName }}">
+                </div>
+            </div>
             @include('admin.print.partials.rental-contract-signatures')
             <div class="page-number">{{ $totalPages }}/{{ $totalPages }}</div>
         </div>

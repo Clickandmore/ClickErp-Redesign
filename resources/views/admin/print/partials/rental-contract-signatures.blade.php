@@ -38,6 +38,8 @@
     @endif
 </div>
 
+<div class="signature-closing">وعلى ذلك جرى التوقيع والله ولي التوفيق،،،</div>
+
 <div class="signature-section">
     <div class="signature-box">
         <h4>الطرف الأول</h4>
