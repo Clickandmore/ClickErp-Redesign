@@ -259,8 +259,8 @@ class OrderController extends Controller
                         </button></li>';
                     }
 
-                    // Add Contract button only for "under process" orders
-                    if ($row->status == OrderEnum::UnderProcess->value) {
+                    // Add Contract button for open orders and legacy ended orders that still have no contract.
+                    if ($this->canAddRecruitmentContract($row)) {
                         $actions .= '<li><button class="dropdown-item addNewContract" data-id="' . $row->id . '">
                             <i class="fa fa-plus"></i> إضافة عقد
                         </button></li>';
@@ -461,6 +461,42 @@ class OrderController extends Controller
         return jsonError('لا يمكن تعديل المسؤول أو حذف أو إلغاء الطلب المكتمل.', 403);
     }
 
+    private function hasRecruitmentContract(Order $order): bool
+    {
+        if ($order->relationLoaded('contracts')) {
+            return $order->contracts->isNotEmpty();
+        }
+
+        return $order->contracts()->exists();
+    }
+
+    private function requiresRecruitmentContract(string $status): bool
+    {
+        return in_array($status, [
+            OrderEnum::Contracted->value,
+            OrderEnum::ContractedWithoutContract->value,
+            OrderEnum::Completed->value,
+            OrderEnum::Done->value,
+        ], true);
+    }
+
+    private function canAddRecruitmentContract(Order $order): bool
+    {
+        return !$this->hasRecruitmentContract($order)
+            && in_array($order->status, [
+                OrderEnum::UnderProcess->value,
+                OrderEnum::Contracted->value,
+                OrderEnum::ContractedWithoutContract->value,
+                OrderEnum::Completed->value,
+                OrderEnum::Done->value,
+            ], true);
+    }
+
+    private function contractRequiredResponse()
+    {
+        return jsonError('لا يمكن تحويل الطلب إلى حالة منتهية بدون إنشاء عقد. الرجاء إضافة عقد أو رفض الطلب.', 422);
+    }
+
     public function edit(Request $request, $id)
     {
         if ($request->ajax()) {
@@ -507,6 +543,10 @@ class OrderController extends Controller
 
             if ($this->isCompletedOrder($order) && $newStatus !== $order->status) {
                 return $this->completedOrderLockedResponse();
+            }
+
+            if ($this->requiresRecruitmentContract($newStatus) && !$this->hasRecruitmentContract($order)) {
+                return $this->contractRequiredResponse();
             }
 
             \Log::info('Update order request', [
@@ -1546,6 +1586,13 @@ class OrderController extends Controller
                     'success' => false,
                     'message' => 'لا يمكن تعديل المسؤول أو حذف أو إلغاء الطلب المكتمل.'
                 ], 403);
+            }
+
+            if ($this->requiresRecruitmentContract((string) $request->status) && !$this->hasRecruitmentContract($order)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن تحويل الطلب إلى حالة منتهية بدون إنشاء عقد. الرجاء إضافة عقد أو رفض الطلب.'
+                ], 422);
             }
 
             // التحقق من أن الحالة الجديدة صحيحة

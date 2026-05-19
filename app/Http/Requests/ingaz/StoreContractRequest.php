@@ -79,7 +79,7 @@ class StoreContractRequest extends MainRequest
             && ($normalizedData['client_phone'] ?? $this->filled('client_phone'))
         ) {
             $clientPhone = $normalizedData['client_phone'] ?? $this->input('client_phone');
-            $existingClient = User::where('phone', $clientPhone)->first();
+            $existingClient = $this->findClientByPhone($clientPhone);
 
             if ($existingClient) {
                 $normalizedData['client_id'] = $existingClient->id;
@@ -241,5 +241,51 @@ class StoreContractRequest extends MainRequest
         }
 
         return $value;
+    }
+
+    private function findClientByPhone(?string $phone): ?User
+    {
+        $phoneCandidates = $this->phoneCandidates($phone);
+
+        if (empty($phoneCandidates)) {
+            return null;
+        }
+
+        return User::whereIn('phone', $phoneCandidates)->first();
+    }
+
+    private function phoneCandidates(?string $phone): array
+    {
+        $phone = trim((string) $phone);
+        $normalizedPhone = $this->normalizeSaudiPhone($phone);
+
+        return array_values(array_unique(array_filter([
+            $phone,
+            $normalizedPhone,
+            $normalizedPhone ? '0' . $normalizedPhone : null,
+            $normalizedPhone ? '966' . $normalizedPhone : null,
+            $normalizedPhone ? '+966' . $normalizedPhone : null,
+        ])));
+    }
+
+    private function normalizeSaudiPhone(string $phone): ?string
+    {
+        $digits = preg_replace('/\D+/', '', $phone);
+
+        if (!$digits) {
+            return null;
+        }
+
+        if (str_starts_with($digits, '00966')) {
+            $digits = substr($digits, 5);
+        } elseif (str_starts_with($digits, '966')) {
+            $digits = substr($digits, 3);
+        }
+
+        if (str_starts_with($digits, '05')) {
+            $digits = substr($digits, 1);
+        }
+
+        return preg_match('/^5\d{8}$/', $digits) ? $digits : null;
     }
 }

@@ -588,7 +588,13 @@
 
                             <!-- Add Contract Button -->
                             @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_ADD_CONTRACT))
-                                @if ($data->status == 'under_process' || ($data->status == 'contracted' && !$data->contracts()->exists()))
+                                @if (!$data->contracts()->exists() && in_array($data->status, [
+                                    \App\Enums\ingaz\OrderEnum::UnderProcess->value,
+                                    \App\Enums\ingaz\OrderEnum::Contracted->value,
+                                    \App\Enums\ingaz\OrderEnum::ContractedWithoutContract->value,
+                                    \App\Enums\ingaz\OrderEnum::Completed->value,
+                                    \App\Enums\ingaz\OrderEnum::Done->value,
+                                ], true))
                                     <button class="btn btn-success addNewContract" data-id="{{ $data->id }}">
                                         <i class="fa fa-plus"></i> {{ helperTrans('ingaz.add_contract') }}
                                     </button>

@@ -105,6 +105,24 @@ class RecruitmentContractController extends Controller
         ]);
     }
 
+    private function contractableRecruitmentOrderStatuses(): array
+    {
+        return [
+            OrderEnum::UnderProcess->value,
+            OrderEnum::Contracted->value,
+            OrderEnum::ContractedWithoutContract->value,
+            OrderEnum::Completed->value,
+            OrderEnum::Done->value,
+        ];
+    }
+
+    private function canCreateContractForOrder(Order $order): bool
+    {
+        return $order->job_type_id == 1
+            && in_array($order->status, $this->contractableRecruitmentOrderStatuses(), true)
+            && !$order->contracts()->exists();
+    }
+
     private function getManualStatusTransition(?string $status): ?array
     {
         return match ($status) {
@@ -252,6 +270,52 @@ class RecruitmentContractController extends Controller
             'action_type' => 'status_update',
             'action_text' => $transitionContext['next_status_text'],
         ]);
+    }
+
+    private function findClientByPhone(?string $phone): ?User
+    {
+        $phoneCandidates = $this->phoneCandidates($phone);
+
+        if (empty($phoneCandidates)) {
+            return null;
+        }
+
+        return User::whereIn('phone', $phoneCandidates)->first();
+    }
+
+    private function phoneCandidates(?string $phone): array
+    {
+        $phone = trim((string) $phone);
+        $normalizedPhone = $this->normalizeSaudiPhone($phone);
+
+        return array_values(array_unique(array_filter([
+            $phone,
+            $normalizedPhone,
+            $normalizedPhone ? '0' . $normalizedPhone : null,
+            $normalizedPhone ? '966' . $normalizedPhone : null,
+            $normalizedPhone ? '+966' . $normalizedPhone : null,
+        ])));
+    }
+
+    private function normalizeSaudiPhone(string $phone): ?string
+    {
+        $digits = preg_replace('/\D+/', '', $phone);
+
+        if (!$digits) {
+            return null;
+        }
+
+        if (str_starts_with($digits, '00966')) {
+            $digits = substr($digits, 5);
+        } elseif (str_starts_with($digits, '966')) {
+            $digits = substr($digits, 3);
+        }
+
+        if (str_starts_with($digits, '05')) {
+            $digits = substr($digits, 1);
+        }
+
+        return preg_match('/^5\d{8}$/', $digits) ? $digits : null;
     }
 
     private function buildTravelManagementActions(TravelHistory $travelHistory, string $context = 'buttons'): string
@@ -2301,7 +2365,8 @@ class RecruitmentContractController extends Controller
                 'jobType.translations',
             ])
             ->where('job_type_id', 1)
-            ->where('status', OrderEnum::UnderProcess->value)
+            ->whereIn('status', $this->contractableRecruitmentOrderStatuses())
+            ->whereDoesntHave('contracts')
             ->orderByDesc('created_at');
 
         // Load the selected order with all necessary relationships
@@ -2486,6 +2551,13 @@ class RecruitmentContractController extends Controller
                 $order = Order::findOrFail($request->order_id);
                 logger()->info('Found order:', ['order' => $order->toArray()]);
 
+                if (!$this->canCreateContractForOrder($order)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'لا يمكن إضافة عقد لهذا الطلب. يجب أن يكون طلب استقدام بدون عقد وفي حالة تحت الإجراء أو منتهية بدون عقد.'
+                    ], 422);
+                }
+
                 // تحديث بيانات المستخدم من الطلب المسبق
                 $user = $order->user;
                 if ($user) {
@@ -2544,6 +2616,10 @@ class RecruitmentContractController extends Controller
 
                 if ($request->filled('client_id')) {
                     $user = User::find($request->client_id);
+                }
+
+                if (!$user && $request->filled('client_phone')) {
+                    $user = $this->findClientByPhone($request->client_phone);
                 }
 
                 if (!$user) {

@@ -34,6 +34,19 @@
             </div>
         @endif
 
+        @php
+            $hasContract = $obj->relationLoaded('contracts')
+                ? $obj->contracts->isNotEmpty()
+                : $obj->contracts()->exists();
+            $canAddContract = !$hasContract && in_array($obj->status, [
+                \App\Enums\ingaz\OrderEnum::UnderProcess->value,
+                \App\Enums\ingaz\OrderEnum::Contracted->value,
+                \App\Enums\ingaz\OrderEnum::ContractedWithoutContract->value,
+                \App\Enums\ingaz\OrderEnum::Completed->value,
+                \App\Enums\ingaz\OrderEnum::Done->value,
+            ], true);
+        @endphp
+
         @if(in_array($obj->status, ['refused', 'done', 'completed']))
             <!-- Disabled for refused, done, or completed orders -->
             <div class="alert alert-warning">
@@ -47,6 +60,14 @@
                     <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">
                         <i class="fa fa-times"></i> {{__("buttons.close")}}
                     </button>
+
+                    @if($canAddContract)
+                        @if (@AdminGuardHasPerm(\App\PermKeys::FULL_CONTRACT))
+                            <button type="button" class="btn btn-success addNewContract" data-id="{{ $obj->id }}">
+                                <i class="fa fa-plus"></i> {{__("admin.add_new_contract")}}
+                            </button>
+                        @endif
+                    @endif
                 </div>
             </div>
         @else
@@ -67,13 +88,13 @@
                                     $availableStatuses = ['under_process', 'refused'];
                                     break;
                                 case 'under_process':
-                                    $availableStatuses = ['contracted', 'contracted_without_contract', 'refused'];
+                                    $availableStatuses = ['refused'];
                                     break;
                                 case 'contracted':
-                                    $availableStatuses = ['completed', 'done'];
+                                    $availableStatuses = $hasContract ? ['completed', 'done'] : ['refused'];
                                     break;
                                 case 'contracted_without_contract':
-                                    $availableStatuses = ['completed', 'done'];
+                                    $availableStatuses = $hasContract ? ['completed', 'done'] : ['refused'];
                                     break;
                                 case 'completed':
                                     $availableStatuses = ['done'];
@@ -115,7 +136,7 @@
                         <i class="fa fa-save"></i> {{__("buttons.save")}}
                     </button>
 
-                    @if($obj->status == 'under_process')
+                    @if($canAddContract)
                         @if (@AdminGuardHasPerm(\App\PermKeys::FULL_CONTRACT))
                             <button type="button" class="btn btn-success addNewContract" data-id="{{ $obj->id }}">
                                 <i class="fa fa-plus"></i> {{__("admin.add_new_contract")}}

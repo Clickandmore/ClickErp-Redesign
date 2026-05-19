@@ -898,7 +898,7 @@
                                 <div id="order-selection" class="col-12 mb-4">
                                     <label class="form-label">{{ helperTrans('ingaz.select_order') }}</label>
                                     <select name="order_id" id="order_id" class="form-select form-control select2"
-                                        data-placeholder="اختر طلب استقدام تحت الإجراء"
+                                        data-placeholder="اختر طلب استقدام بدون عقد"
                                         data-validation="required">
                                         <option disabled selected>{{ helperTrans('ingaz.choose') }}</option>
                                         @foreach ($orders as $order)
@@ -934,8 +934,8 @@
                                             </option>
                                         @endforeach
                                     </select>
-                                    <div class="contract-field-hint">تظهر هنا فقط طلبات الاستقدام في حالة
-                                        <strong>تحت الإجراء</strong>.
+                                    <div class="contract-field-hint">تظهر هنا فقط طلبات الاستقدام بدون عقد في حالة
+                                        <strong>تحت الإجراء</strong> أو الحالات المنتهية التي تحتاج إضافة عقد.
                                     </div>
                                 </div>
 
