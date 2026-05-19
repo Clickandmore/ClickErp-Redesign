@@ -97,6 +97,24 @@
             'بريد_الشركة' => $documentEmail ?: '______',
             'رقم_الترخيص' => $contractSettings['license_number'] ?? '______',
         ]);
+        $partyOneRows = [
+            [
+                ['label' => 'اسم المنشأة', 'value' => $documentCompanyName],
+                ['label' => 'السجل التجاري', 'value' => $contractSettings['commercial_register'] ?? '______'],
+            ],
+            [
+                ['label' => 'تاريخ إصدار السجل', 'value' => filled($contractSettings['commercial_date'] ?? null) ? $formatRentalDate($contractSettings['commercial_date']) : '______'],
+                ['label' => 'ترخيص الاستقدام', 'value' => $contractSettings['license_number'] ?? '______'],
+            ],
+            [
+                ['label' => 'العنوان', 'value' => $documentAddress ?: '______'],
+                ['label' => 'الهاتف', 'value' => $documentPhone ?: '______', 'dir' => 'ltr'],
+            ],
+            [
+                ['label' => 'البريد الإلكتروني', 'value' => $documentEmail ?: '______', 'dir' => 'ltr'],
+                ['label' => 'مركز الاتصال', 'value' => $documentMobile ?: '....................', 'dir' => 'ltr'],
+            ],
+        ];
         $termsByPage = isset($termsByPage)
             ? collect($termsByPage)
             : collect([
@@ -242,24 +260,29 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            height: 26mm;
             gap: 1.5mm;
         }
 
         .logo-container img {
-            max-width: 42mm;
-            max-height: 24mm;
+            display: block;
+            width: auto;
+            height: 22mm;
+            max-width: 44mm;
+            max-height: 22mm;
             object-fit: contain;
         }
 
         .ministry-logo img {
-            max-width: 46mm;
-            max-height: 26mm;
+            height: 22mm;
+            max-width: 48mm;
+            max-height: 22mm;
         }
 
         .page-logo-header {
             display: grid;
             grid-template-columns: 48mm 1fr 48mm;
-            align-items: start;
+            align-items: center;
             min-height: 26mm;
             margin-bottom: 4mm;
             direction: ltr;
@@ -327,6 +350,21 @@
             background: #f0f3f4;
             text-align: center;
             font-size: 13.2px;
+            font-weight: 600;
+        }
+
+        .party-one-table {
+            margin-bottom: 5mm;
+        }
+
+        .party-one-table th {
+            width: 19%;
+            white-space: nowrap;
+        }
+
+        .party-one-table td {
+            width: 31%;
+            text-align: right;
             font-weight: 600;
         }
 
@@ -824,9 +862,16 @@
             </div>
 
             <div class="section-heading">{{ $partyOneTitle }}</div>
-            <div class="party-one-text">
-                {{ $partyOneText }}
-            </div>
+            <table class="data-table party-one-table">
+                @foreach($partyOneRows as $row)
+                    <tr>
+                        @foreach($row as $field)
+                            <th>{{ $field['label'] }}</th>
+                            <td @if(($field['dir'] ?? 'rtl') === 'ltr') dir="ltr" @endif>{{ $field['value'] }}</td>
+                        @endforeach
+                    </tr>
+                @endforeach
+            </table>
 
             <div class="section-heading">{{ $partyTwoTitle }}</div>
             <table class="data-table">
