@@ -231,7 +231,7 @@ class RentalMaidAccountingService
                 'debtor_value' => $amount,
                 'creditor_value' => 0,
                 'statement' => $statement,
-                'cost_center_id' => $costCenterId,
+                'cost_center_id' => null,
             ];
 
             $lines[] = [
@@ -240,7 +240,7 @@ class RentalMaidAccountingService
                 'debtor_value' => 0,
                 'creditor_value' => $amount,
                 'statement' => $statement,
-                'cost_center_id' => $costCenterId,
+                'cost_center_id' => null,
             ];
 
             return;
@@ -252,7 +252,7 @@ class RentalMaidAccountingService
             'debtor_value' => $amount,
             'creditor_value' => 0,
             'statement' => $statement,
-            'cost_center_id' => $costCenterId,
+            'cost_center_id' => null,
         ];
 
         $lines[] = [
