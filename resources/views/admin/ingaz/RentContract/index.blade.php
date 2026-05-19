@@ -39,6 +39,10 @@
                         <i class="fas fa-sliders-h me-2"></i>
                         إعدادات العقد
                     </a>
+                    <a href="{{ route('form-settings.index') }}#editor-rental-contract" class="btn btn-secondary me-2">
+                        <i class="fas fa-file-signature me-2"></i>
+                        إعدادات نصوص العقد
+                    </a>
                 @endif
                 @if ($canManageRentContractTerms)
                     <a href="{{ route('rent-contract-terms.index') }}" class="btn btn-warning me-2">

@@ -15,7 +15,7 @@
 
     <div class="term-item">
         @if(filled($termNumber))
-            <span class="term-number">{{ $termNumber }}-</span>
+            <span class="term-number">{{ $termNumber }}.</span>
         @endif
         {!! $formatRentalContractTerm($term) !!}
     </div>

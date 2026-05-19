@@ -350,6 +350,20 @@
                     <div class="card editor-card">
                         <div class="card-body">
                             <h5 class="mb-3">تحرير عقد الإيجار</h5>
+                            <div class="alert alert-light border small">
+                                بنود العقد التفصيلية يتم التحكم بها من
+                                <a href="{{ route('rent-contract-terms.index') }}" target="_blank">إدارة بنود عقد الإيجار</a>.
+                                هذه الحقول تتحكم في رأس العقد، بيانات الأطراف، وعنوان معلومات الخدمة.
+                                المتغيرات المتاحة:
+                                <code>[اسم_الشركة]</code>
+                                <code>[رقم_السجل]</code>
+                                <code>[تاريخ_السجل]</code>
+                                <code>[عنوان_الشركة]</code>
+                                <code>[هاتف_الشركة]</code>
+                                <code>[جوال_الشركة]</code>
+                                <code>[بريد_الشركة]</code>
+                                <code>[رقم_الترخيص]</code>
+                            </div>
                             <div class="row g-3">
                                 @foreach (config('translatable.locales') as $locale)
                                     <div class="col-md-6">
@@ -364,6 +378,60 @@
                                         <label class="form-label">مقدمة العقد {{ getFieldLanguage($locale) }}</label>
                                         <textarea rows="5" name="rental_contract_intro_text:{{ $locale }}"
                                                   class="form-control">{{ $settings->translate($locale)->rental_contract_intro_text ?? '' }}</textarea>
+                                    </div>
+                                @endforeach
+
+                                @foreach (config('translatable.locales') as $locale)
+                                    <div class="col-md-6">
+                                        <label class="form-label">عنوان بيانات الطرف الأول {{ getFieldLanguage($locale) }}</label>
+                                        <input type="text" name="rental_contract_party_one_title:{{ $locale }}" class="form-control"
+                                               value="{{ $settings->translate($locale)->rental_contract_party_one_title ?? '' }}"
+                                               placeholder="بيانات الطرف الأول">
+                                    </div>
+                                @endforeach
+
+                                @foreach (config('translatable.locales') as $locale)
+                                    <div class="col-md-6">
+                                        <label class="form-label">عنوان بيانات الطرف الثاني {{ getFieldLanguage($locale) }}</label>
+                                        <input type="text" name="rental_contract_party_two_title:{{ $locale }}" class="form-control"
+                                               value="{{ $settings->translate($locale)->rental_contract_party_two_title ?? '' }}"
+                                               placeholder="بيانات الطرف الثاني">
+                                    </div>
+                                @endforeach
+
+                                @foreach (config('translatable.locales') as $locale)
+                                    <div class="col-md-6">
+                                        <label class="form-label">عنوان معلومات الخدمة {{ getFieldLanguage($locale) }}</label>
+                                        <input type="text" name="rental_contract_service_title:{{ $locale }}" class="form-control"
+                                               value="{{ $settings->translate($locale)->rental_contract_service_title ?? '' }}"
+                                               placeholder="1. معلومات الخدمة المطلوبة:">
+                                    </div>
+                                @endforeach
+
+                                @foreach (config('translatable.locales') as $locale)
+                                    <div class="col-md-6">
+                                        <label class="form-label">تسمية رقم سداد {{ getFieldLanguage($locale) }}</label>
+                                        <input type="text" name="rental_contract_sadad_label:{{ $locale }}" class="form-control"
+                                               value="{{ $settings->translate($locale)->rental_contract_sadad_label ?? '' }}"
+                                               placeholder="رقم سداد">
+                                    </div>
+                                @endforeach
+
+                                @foreach (config('translatable.locales') as $locale)
+                                    <div class="col-md-6">
+                                        <label class="form-label">كود رقم سداد {{ getFieldLanguage($locale) }}</label>
+                                        <input type="text" name="rental_contract_sadad_code:{{ $locale }}" class="form-control"
+                                               value="{{ $settings->translate($locale)->rental_contract_sadad_code ?? '' }}"
+                                               placeholder="AQR">
+                                    </div>
+                                @endforeach
+
+                                @foreach (config('translatable.locales') as $locale)
+                                    <div class="col-12">
+                                        <label class="form-label">نص بيانات الطرف الأول {{ getFieldLanguage($locale) }}</label>
+                                        <textarea rows="4" name="rental_contract_party_one_text:{{ $locale }}"
+                                                  class="form-control"
+                                                  placeholder="[اسم_الشركة]، سجل تجاري رقم: [رقم_السجل]، صادر بتاريخ: [تاريخ_السجل]، العنوان: [عنوان_الشركة]، هاتف رقم: [هاتف_الشركة]، بريد إلكتروني: [بريد_الشركة]، ترخيص استقدام رقم [رقم_الترخيص]، مركز الاتصال [جوال_الشركة].">{{ $settings->translate($locale)->rental_contract_party_one_text ?? '' }}</textarea>
                                     </div>
                                 @endforeach
                             </div>

@@ -160,7 +160,7 @@ class AdminContractController extends Controller
             $contractSettings['address'] = $contractSettings['address'] ?: documentSetting('location', 'الرياض');
             $contractSettings['phone'] = $contractSettings['phone'] ?: documentSetting('phone', '');
             $contractSettings['email'] = $contractSettings['email'] ?: documentSetting('email', '');
-            $contractSettings['logo'] = documentSetting('document_logo', $contractSettings['logo'] ?? null);
+            $contractSettings['logo'] = $contractSettings['logo'] ?: null;
 
             // Get all active terms from the same source used by the admin editor.
             $termsByPage = RentalContractTerm::active()

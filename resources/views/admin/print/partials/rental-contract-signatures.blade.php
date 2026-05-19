@@ -42,13 +42,14 @@
     <div class="signature-box">
         <h4>الطرف الأول</h4>
         <div class="signature-line">الاسم: {{ $documentCompanyName }}</div>
+        <div class="signature-line">الصفة: المنشأة</div>
         <div class="signature-line">التوقيع: ........................</div>
-        <div class="signature-line">التاريخ: {{ \Carbon\Carbon::now()->format('Y/m/d') }}</div>
     </div>
 
     <div class="signature-box">
         <h4>الطرف الثاني</h4>
         <div class="signature-line">الاسم: {{ data_get($contract, 'user.name', '') }}</div>
+        <div class="signature-line">الصفة: المستفيد</div>
         <div class="signature-line">
             التوقيع:
             @if($contractSignature)
@@ -57,6 +58,5 @@
                 ........................
             @endif
         </div>
-        <div class="signature-line">التاريخ: {{ \Carbon\Carbon::now()->format('Y/m/d') }}</div>
     </div>
 </div>

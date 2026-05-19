@@ -109,6 +109,11 @@ class Order extends Model
         return $this->hasMany(\App\Models\Contract::class, 'order_id');
     }
 
+    public function rentalContracts()
+    {
+        return $this->hasMany(\App\Models\RentalContract::class, 'order_id');
+    }
+
     public function resolveResponsibleAdmin(): ?Admin
     {
         if ($this->details?->admin) {

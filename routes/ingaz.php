@@ -325,6 +325,7 @@ Route::group(
 
             // Ø§Ù„ÙÙˆØ§ØªÙŠØ±
             Route::post('invoices/{id}/queue-zatca-sale', [InvoiceController::class, 'queueZatcaSale'])->name('invoices.queue-zatca-sale');
+            Route::get('invoices/search-clients', [InvoiceController::class, 'searchClients'])->name('invoices.searchClients');
             Route::get('invoices/export/excel', [InvoiceController::class, 'exportExcel'])->name('invoices.export.excel');
             Route::get('invoices/export/pdf', [InvoiceController::class, 'exportPdf'])->name('invoices.export.pdf');
             Route::resource('invoices', InvoiceController::class);

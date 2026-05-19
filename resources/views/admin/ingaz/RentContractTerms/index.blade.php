@@ -26,6 +26,13 @@
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h3 class="card-title">بنود عقد الإيجار</h3>
                         <div class="d-flex gap-2">
+                            <a href="{{ route('form-settings.index') }}#editor-rental-contract" class="btn btn-outline-info">
+                                <i class="fas fa-cogs"></i> إعدادات نصوص العقد
+                            </a>
+                            <a href="{{ route('form-settings.preview', ['template' => 'rental-contract', 'locale' => app()->getLocale()]) }}"
+                               target="_blank" class="btn btn-outline-secondary">
+                                <i class="fas fa-eye"></i> معاينة قالب العقد
+                            </a>
                             @if ($canEditTerm)
                                 <button type="button" class="btn btn-outline-warning" id="importDefaultTerms">
                                     <i class="fas fa-file-import"></i> استيراد البنود الافتراضية
@@ -60,7 +67,9 @@
                                         <td>{{ $term->section_title }}</td>
                                         <td>{{ $term->section_order }}</td>
                                         <td>{{ $term->term_number }}</td>
-                                        <td>{{ \Illuminate\Support\Str::limit($term->term_content, 20, '...') }}</td>
+                                        <td title="{{ $term->term_content }}">
+                                            {{ \Illuminate\Support\Str::limit($term->term_content, 120, '...') }}
+                                        </td>
                                         <td>{{ $term->term_order }}</td>
                                         <td>{{ $term->page_number }}</td>
                                         <td>{{ $term->is_active == 1 ? 'نشط' : 'غير نشط' }}</td>

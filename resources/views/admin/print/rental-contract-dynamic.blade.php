@@ -4,15 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     @php
-        $documentTitle = documentSetting('rental_contract_title', 'عقد تأجير عاملة منزلية');
+        $documentTitle = documentSetting('rental_contract_title', 'نموذج العقد الموحد الإلكتروني لتقديم خدمات إعارة العمالة المنزلية');
         $documentCompanyName = documentSetting('document_company_name', $contractSettings['company_name'] ?? documentSetting('website_name', config('app.name')));
-        $documentLogo = documentLogoUrl(asset('admin/assets/img/company_logo.png'));
+        $documentLogo = filled($contractSettings['logo'] ?? null)
+            ? asset('storage/' . ltrim($contractSettings['logo'], '/'))
+            : documentLogoUrl(asset('admin/assets/img/company_logo.png'));
+        $ministryLogo = asset('site/assets/images/Ministry-of-Labor-and-Social-Development.svg');
         $documentAddress = $contractSettings['address'] ?? documentSetting('location', 'الرياض');
         $documentPhone = $contractSettings['phone'] ?? documentSetting('phone', '');
+        $documentMobile = $contractSettings['mobile'] ?? documentSetting('other_phone', '');
         $documentEmail = $contractSettings['email'] ?? documentSetting('email', '');
+        $partyOneTitle = (string) documentSetting('rental_contract_party_one_title', 'بيانات الطرف الأول');
+        $partyTwoTitle = (string) documentSetting('rental_contract_party_two_title', 'بيانات الطرف الثاني');
+        $serviceTitle = (string) documentSetting('rental_contract_service_title', '1. معلومات الخدمة المطلوبة:');
+        $sadadLabel = (string) documentSetting('rental_contract_sadad_label', 'رقم سداد');
+        $sadadCode = (string) documentSetting('rental_contract_sadad_code', 'AQR');
+        $partyOneTextTemplate = (string) documentSetting(
+            'rental_contract_party_one_text',
+            '[اسم_الشركة]، سجل تجاري رقم: [رقم_السجل]، صادر بتاريخ: [تاريخ_السجل]، العنوان: [عنوان_الشركة]، هاتف رقم: [هاتف_الشركة]، بريد إلكتروني: [بريد_الشركة]، ترخيص استقدام رقم [رقم_الترخيص]، مركز الاتصال [جوال_الشركة].'
+        );
         $rentalIntroText = replaceDocumentPlaceholders((string) documentSetting(
             'rental_contract_intro_text',
-            'حيث أن الطرف الأول مرخص ويسمح له بتقديم خدمات العمالة المنزلية ولديه الخبرات والإمكانيات اللازمة لتوفير خدمات العمالة المنزلية، وذلك وفق الأنظمة والقرارات والتعليمات المعمول بها في المملكة العربية السعودية وبما لا يتعارض مع أحكام الشريعة الإسلامية، وأحاجة الطرف الثاني لخدمات بعض العمالة المنزلية، فقد اتفق الطرفان وهما بكامل أهليتهما المعتبرة شرعا ونظاما على ما يلي:'
+            'لما كان الطرف الأول مرخص له في مجال استقدام عامل/عاملة الخدمة المنزلية وتقديم الخدمة المنزلية لدى صاحب العمل داخل المملكة العربية السعودية وفقاً لما هو مقرر نظاماً، وحيث إن الرغبة قد توافرت لدى الطرف الثاني في الانتفاع من خدمات العمالة التي يقدمها الطرف الأول وفقاً لما يتم الاتفاق عليه بينهما بموجب هذا العقد وطبقاً للأنظمة واللوائح الصادرة في المملكة والجهات المنظمة لعمل شركات ومكاتب الاستقدام، لذا فقد اتفق الطرفان وهما بكامل أهليتهما اللازمة لإبرام العقود والتصرفات شرعاً ونظاماً على ما يلي:'
         ));
         $formatRentalDate = function ($value, $fallback = '______') {
             if (blank($value)) {
@@ -51,7 +64,12 @@
             ?? data_get($contract, 'user.iqama_number')
             ?? '';
         $clientPhone = data_get($contract, 'user.phone', '');
+        $clientSecondPhone = data_get($contract, 'user.phone2', '');
+        $clientEmail = data_get($contract, 'user.email', '');
         $clientAddress = data_get($contract, 'user.address', '');
+        $clientCity = data_get($contract, 'user.city', $contractSettings['city'] ?? 'الرياض');
+        $clientBirthdate = data_get($contract, 'user.birthdate');
+        $clientGender = data_get($contract, 'user.gender', '______');
         $clientNationality = data_get($contract, 'user.nationality.name')
             ?? data_get($contract, 'user.nationality.title')
             ?? 'السعودية';
@@ -60,7 +78,22 @@
             ?? data_get($contract, 'maid.nationality.name')
             ?? '______';
         $maidPassportNumber = data_get($contract, 'maid.passport_num', '______');
+        $maidProfession = data_get($contract, 'maid.job_title', data_get($contract, 'maid.profession', 'عاملة منزلية'));
+        $maidGender = data_get($contract, 'maid.gender', 'أنثى');
         $maidExperience = data_get($contract, 'maid.experience', '-');
+        $paymentDueDate = $formatRentalDate($contractStartDate);
+        $salaryAmount = data_get($contractInfo, 'monthly_salary');
+        $taxAmount = is_numeric($contractValue) ? ((float) $contractValue * 0.15) : null;
+        $partyOneText = replaceDocumentPlaceholders($partyOneTextTemplate, [
+            'اسم_الشركة' => $documentCompanyName,
+            'رقم_السجل' => $contractSettings['commercial_register'] ?? '______',
+            'تاريخ_السجل' => filled($contractSettings['commercial_date'] ?? null) ? $formatRentalDate($contractSettings['commercial_date']) : '______',
+            'عنوان_الشركة' => $documentAddress ?: '______',
+            'هاتف_الشركة' => $documentPhone ?: '______',
+            'جوال_الشركة' => $documentMobile ?: '....................',
+            'بريد_الشركة' => $documentEmail ?: '______',
+            'رقم_الترخيص' => $contractSettings['license_number'] ?? '______',
+        ]);
         $termsByPage = isset($termsByPage)
             ? collect($termsByPage)
             : collect([
@@ -72,6 +105,7 @@
             ->map(fn ($terms) => collect($terms))
             ->filter(fn ($terms) => $terms->isNotEmpty())
             ->sortKeys();
+        $totalPages = max(3, $termsByPage->count() + 2);
         $pageOneTerms = $termsByPage->get(1, collect());
         $extraTermPages = $termsByPage->reject(fn ($terms, $pageNumber) => (int) $pageNumber === 1);
         $termReplacements = [
@@ -102,8 +136,6 @@
     <title>{{ $documentTitle }}</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap');
-
         * {
             box-sizing: border-box;
         }
@@ -115,12 +147,13 @@
         }
 
         body {
-            font-family: 'Cairo', Tahoma, Arial, sans-serif;
-            font-size: 12.5px;
-            line-height: 1.75;
+            font-family: Tahoma, Arial, "DejaVu Sans", sans-serif;
+            font-size: 11.25px;
+            line-height: 1.7;
             color: #111827;
             background: #eef2f5;
             direction: rtl;
+            text-align: right;
         }
 
         .container {
@@ -149,10 +182,12 @@
             width: 210mm;
             min-height: 297mm;
             margin: 0 auto 10mm;
-            padding: 12mm;
+            padding: 12mm 16mm;
             background: #fff;
             box-shadow: 0 12px 35px rgba(15, 23, 42, .10);
             overflow: hidden;
+            direction: rtl;
+            text-align: right;
         }
 
         .contract-page::before {
@@ -163,31 +198,49 @@
             pointer-events: none;
         }
 
+        .page-number {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 7mm;
+            text-align: center;
+            color: #64748b;
+            font-size: 10px;
+            direction: ltr;
+        }
+
         .page-break {
             page-break-before: always;
         }
 
         .header {
             display: grid;
-            grid-template-columns: 40mm 1fr 42mm;
-            gap: 8mm;
-            align-items: center;
-            padding: 0 0 7mm;
-            margin-bottom: 7mm;
-            border-bottom: 2px solid #1f6f78;
+            grid-template-columns: 36mm 1fr 36mm;
+            gap: 5mm;
+            align-items: start;
+            padding: 0 0 4mm;
+            margin-bottom: 5mm;
             position: relative;
+            direction: rtl;
         }
 
         .logo-container {
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
+            gap: 2mm;
         }
 
         .logo-container img {
-            max-width: 34mm;
-            max-height: 25mm;
+            max-width: 30mm;
+            max-height: 22mm;
             object-fit: contain;
+        }
+
+        .ministry-logo img {
+            max-width: 26mm;
+            max-height: 24mm;
         }
 
         .document-title {
@@ -197,7 +250,7 @@
         h1 {
             margin: 0;
             color: #0f172a;
-            font-size: 24px;
+            font-size: 18px;
             font-weight: 800;
             line-height: 1.3;
         }
@@ -205,15 +258,14 @@
         .document-subtitle {
             margin-top: 3mm;
             color: #64748b;
-            font-size: 12px;
+            font-size: 10px;
             font-weight: 600;
         }
 
         .contract-number-badge {
-            border: 1px solid #bfd4d8;
-            background: #f4fbfc;
-            border-radius: 4px;
-            padding: 4mm 3mm;
+            border: 0;
+            background: transparent;
+            padding: 0;
             text-align: center;
         }
 
@@ -226,10 +278,18 @@
 
         .contract-number-badge strong {
             display: block;
-            color: #1f6f78;
-            font-size: 17px;
+            color: #111827;
+            font-size: 14px;
             font-weight: 800;
             direction: ltr;
+            text-align: center;
+        }
+
+        .party-one-text {
+            margin: 2mm 0 5mm;
+            text-align: justify;
+            font-size: 11.5px;
+            font-weight: 600;
         }
 
         h3 {
@@ -237,10 +297,13 @@
             align-items: center;
             gap: 6px;
             margin: 7mm 0 3mm;
-            color: #0f172a;
-            font-size: 15px;
+            color: #111827;
+            font-size: 13px;
             font-weight: 800;
             break-after: avoid;
+            direction: rtl;
+            text-align: right;
+            justify-content: flex-start;
         }
 
         h3::before {
@@ -250,6 +313,69 @@
             border-radius: 3px;
             background: #1f6f78;
             flex: 0 0 auto;
+        }
+
+        .official-intro {
+            margin: 4mm 0;
+            text-align: center;
+            font-weight: 700;
+        }
+
+        .section-heading {
+            margin: 5mm 0 2mm;
+            text-align: right;
+            color: #111827;
+            font-size: 13px;
+            font-weight: 800;
+            direction: rtl;
+        }
+
+        .service-heading-end {
+            position: absolute;
+            left: 12mm;
+            right: 12mm;
+            bottom: 18mm;
+            text-align: right;
+            font-size: 13px;
+            font-weight: 800;
+            direction: rtl;
+        }
+
+        .service-page-title {
+            margin-top: 0;
+        }
+
+        .data-table,
+        .payment-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 2mm 0 4mm;
+            table-layout: fixed;
+            break-inside: avoid;
+            direction: rtl;
+        }
+
+        .data-table th,
+        .data-table td,
+        .payment-table th,
+        .payment-table td {
+            border: 1px solid #b7c4d1;
+            padding: 2.2mm 1.8mm;
+            text-align: center;
+            vertical-align: middle;
+            overflow-wrap: anywhere;
+            direction: rtl;
+        }
+
+        .data-table th,
+        .payment-table th {
+            background: #eef3f7;
+            color: #1f2937;
+            font-weight: 800;
+        }
+
+        .data-table td {
+            min-height: 9mm;
         }
 
         .contract-info {
@@ -299,6 +425,7 @@
             background: #fbfdfe;
             text-align: justify;
             break-inside: avoid;
+            direction: rtl;
         }
 
         .contract-body p {
@@ -311,26 +438,25 @@
 
         .term-item {
             position: relative;
-            margin-bottom: 2.4mm;
-            padding: 2.2mm 4mm;
-            border: 1px solid #e6edf2;
-            border-radius: 4px;
-            background: rgba(255, 255, 255, .86);
-            line-height: 1.72;
+            margin-bottom: 1.8mm;
+            padding: 0;
+            border: 0;
+            border-radius: 0;
+            background: transparent;
+            line-height: 1.65;
             text-align: justify;
             break-inside: avoid;
+            direction: rtl;
         }
 
         .term-number {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 7mm;
-            height: 7mm;
-            margin-left: 2mm;
-            border-radius: 50%;
-            background: #e8f5f7;
-            color: #1f6f78;
+            display: inline-block;
+            min-width: 6mm;
+            height: auto;
+            margin-left: 1mm;
+            border-radius: 0;
+            background: transparent;
+            color: #111827;
             font-weight: 800;
         }
 
@@ -419,7 +545,7 @@
                 width: 210mm;
                 min-height: 297mm;
                 margin: 0;
-                padding: 10mm;
+                padding: 12mm 16mm;
                 box-shadow: none;
                 page-break-after: always;
             }
@@ -618,46 +744,140 @@
         <!-- الصفحة الأولى -->
         <div class="contract-page page-1">
             <div class="header">
-                <div class="logo-container">
-                    {{-- <img src="{{ $logoUrl }}" alt="{{ $documentCompanyName }}"> --}}
-                    <img src="{{ $documentLogo }}" alt="{{ $documentCompanyName }}">
+                <div class="logo-container ministry-logo">
+                    <img src="{{ $ministryLogo }}" alt="وزارة الموارد البشرية والتنمية الاجتماعية">
                 </div>
                 <div class="document-title">
                     <h1>{{ $documentTitle }}</h1>
-                    <div class="document-subtitle">{{ $documentCompanyName }}</div>
+                    <div class="document-subtitle">عقد رقم ({{ data_get($contract, 'contract_number', data_get($contract, 'id', '______')) }})</div>
                 </div>
-                <div class="contract-number-badge">
-                    <span>رقم العقد</span>
-                    <strong>{{ data_get($contract, 'contract_number', data_get($contract, 'id', '______')) }}</strong>
-                    <span>Contract No.</span>
+                <div class="logo-container">
+                    <img src="{{ $documentLogo }}" alt="{{ $documentCompanyName }}">
+                    <div class="contract-number-badge">
+                        <span>{{ $sadadLabel }}</span>
+                        <strong>{{ $sadadCode }}</strong>
+                    </div>
                 </div>
             </div>
 
-            <div class="contract-info">
-                الحمد لله وحده وبعد، ففي يوم الموافق {{ $formatRentalDate(data_get($contract, 'contract_date', now())) }} تم الاتفاق بمدينة الرياض بين كل من:
+            <div class="official-intro">
+                بعون الله وتوفيقه، تم إبرام هذا العقد بتاريخ {{ $formatRentalDate(data_get($contract, 'contract_date', now())) }}م
+                بمدينة {{ $contractSettings['city'] ?? 'الرياض' }} بين كل من الطرفين:
             </div>
 
-            <div class="parties-section">
-                <div class="party">
-                    <div class="party-title">1- {{ $documentCompanyName }}</div>
-                    <div>لاستقدام العمالة المنزلية ترخيص وزارة العمل رقم / {{ $contractSettings['license_number'] ?? '4001772' }} وتاريخ : {{ $contractSettings['license_date'] ?? '2022/10/13' }} م سجل تجاري رقم / {{ $contractSettings['commercial_register'] ?? '1010601958' }}</div>
-                    <div>وتاريخ: {{ \Carbon\Carbon::parse($contractSettings['commercial_date'] ?? '1441/03/03')->format('Y/m/d') }} هـ صادر من الرياض</div>
-                    <div>وعنوانه {{ $documentAddress ?: '-' }} | هاتف: {{ $documentPhone ?: '-' }} | البريد الالكتروني: {{ $documentEmail ?: '-' }}</div>
-                    <div>ويمثله في التوقيع من هذا العقد المدير بصفته المالك ويشار إليه فيما بعد بـ (الطرف الأول).</div>
-                </div>
-
-                <div class="party">
-                    <div class="party-title">2- {{ $clientName }}</div>
-                    <div>الجنسية {{ $clientNationality }} - بموجب هوية وطنية رقم {{ $clientIdentityNumber }} وعنوانه {{ $clientAddress }} الرمز البريدي مكتب جوال {{ $clientPhone }}</div>
-                    <div>ويشار إليه فيما بعد بـ (الطرف الثاني) -------------- فاكس {{ $contractSettings['fax'] ?? '' }}</div>
-                </div>
+            <div class="section-heading">{{ $partyOneTitle }}</div>
+            <div class="party-one-text">
+                {{ $partyOneText }}
             </div>
+
+            <div class="section-heading">{{ $partyTwoTitle }}</div>
+            <table class="data-table">
+                <tr>
+                    <th>رقم الهوية الوطنية / الإقامة</th>
+                    <th colspan="3">الاسم باللغة العربية، مطابقاً للهوية الوطنية / الإقامة</th>
+                </tr>
+                <tr>
+                    <td dir="ltr">{{ $clientIdentityNumber ?: '______' }}</td>
+                    <td colspan="3">{{ $clientName }}</td>
+                </tr>
+                <tr>
+                    <th>الدخل الشهري</th>
+                    <th>الجنس</th>
+                    <th>الجنسية</th>
+                    <th>تاريخ الميلاد</th>
+                </tr>
+                <tr>
+                    <td>______</td>
+                    <td>{{ $clientGender ?: '______' }}</td>
+                    <td>{{ $clientNationality ?: '______' }}</td>
+                    <td>{{ $formatRentalDate($clientBirthdate) }}</td>
+                </tr>
+                <tr>
+                    <th colspan="2">بيانات الاتصال</th>
+                    <th colspan="2">بيانات العنوان الوطني</th>
+                </tr>
+                <tr>
+                    <th>رقم الجوال الثاني</th>
+                    <th>الجوال</th>
+                    <th>الحي</th>
+                    <th>المدينة</th>
+                </tr>
+                <tr>
+                    <td dir="ltr">{{ $clientSecondPhone ?: '...................' }}</td>
+                    <td dir="ltr">{{ $clientPhone ?: '______' }}</td>
+                    <td>{{ $clientAddress ?: '...................' }}</td>
+                    <td>{{ $clientCity ?: '______' }}</td>
+                </tr>
+                <tr>
+                    <th>البريد الإلكتروني</th>
+                    <th>هاتف المنزل</th>
+                    <th>الرمز البريدي</th>
+                    <th>العنوان المختصر</th>
+                </tr>
+                <tr>
+                    <td dir="ltr">{{ $clientEmail ?: '...................' }}</td>
+                    <td>...................</td>
+                    <td>...................</td>
+                    <td>...................</td>
+                </tr>
+                <tr>
+                    <th>تحويلة</th>
+                    <th>هاتف العمل</th>
+                    <th colspan="2">نوع الوظيفة</th>
+                </tr>
+                <tr>
+                    <td>...................</td>
+                    <td>...................</td>
+                    <td colspan="2">...................</td>
+                </tr>
+                <tr>
+                    <th>رقم التواصل</th>
+                    <th colspan="3">اسم أحد الأقارب يسكن معك يمكن الاتصال به</th>
+                </tr>
+                <tr>
+                    <td>...................</td>
+                    <td colspan="3">...................</td>
+                </tr>
+            </table>
+
+            <div class="service-heading-end">{{ $serviceTitle }}</div>
+
+            <div class="page-number">1/{{ $totalPages }}</div>
+        </div>
+
+        <div class="contract-page page-break">
+            <div class="section-heading service-page-title">{{ $serviceTitle }}</div>
+            <table class="data-table service-table">
+                <tr>
+                    <th>مواصفات خاصة</th>
+                    <th>الجنسية</th>
+                    <th>الجنس</th>
+                    <th>المهنة</th>
+                </tr>
+                <tr>
+                    <td>{{ $maidExperience ?: '______' }}</td>
+                    <td>{{ $maidNationality }}</td>
+                    <td>{{ $maidGender ?: 'أنثى' }}</td>
+                    <td>{{ $maidProfession ?: 'عاملة منزلية' }}</td>
+                </tr>
+                <tr>
+                    <th>اسم العاملة</th>
+                    <th>رقم الجواز</th>
+                    <th>ساعات العمل اليومية</th>
+                    <th>مدة الخدمة المطلوبة</th>
+                </tr>
+                <tr>
+                    <td>{{ $maidName }}</td>
+                    <td dir="ltr">{{ $maidPassportNumber }}</td>
+                    <td>{{ $workingHours }} ساعات</td>
+                    <td>{{ $contractDurationDays }} يوم</td>
+                </tr>
+            </table>
 
             <div class="contract-body">
                 <p><strong>تمهيد:</strong></p>
                 <p>{{ $rentalIntroText }}</p>
             </div>
-
             <div class="terms-section">
                 @if($pageOneTerms->isNotEmpty())
                     @include('admin.print.partials.rental-contract-terms', [
@@ -665,32 +885,13 @@
                         'formatRentalContractTerm' => $formatRentalContractTerm,
                     ])
                 @else
-                    <h3>أولاً: موضوع العقد</h3>
+                    <h3>البند الأول: أجزاء العقد</h3>
                     <div class="term-item">
-                        يقر الطرف الأول بأنه يزاول نشاط تقديم خدمات العمالة المنزلية بموجب ترخيص رقم -------------- ويقدم الطرف الأول خدمات العمالة المنزلية للطرف الثاني بناء على طلبه وفقا للشروط والأحكام الواردة في هذا العقد.
+                        يعتبر التمهيد والبيانات والمعلومات المذكورة أعلاه جزءاً لا يتجزأ من هذا العقد يقرأ ويفسر على هذا الأساس.
                     </div>
                 @endif
-
-                <!-- جدول بيانات العاملة -->
-                <table class="worker-table">
-                    <tr>
-                        <td><strong>الجنسية</strong></td>
-                        <td><strong>رقم جواز السفر</strong></td>
-                        <td><strong>المؤهلات والخبرات</strong></td>
-                        <td><strong>ساعات العمل اليومية</strong></td>
-                        <td><strong>مدة الخدمة المطلوبة</strong></td>
-                        <td><strong>التكلفة الشهرية</strong></td>
-                    </tr>
-                    <tr>
-                        <td>{{ $maidNationality }}</td>
-                        <td>{{ $maidPassportNumber }}</td>
-                        <td>{{ $maidExperience }}</td>
-                        <td>{{ $workingHours }} ساعات</td>
-                        <td>{{ $contractDurationDays }} يوم</td>
-                        <td>{{ $formatRentalMoney($monthlyCost, '-') }} ريال</td>
-                    </tr>
-                </table>
             </div>
+            <div class="page-number">2/{{ $totalPages }}</div>
         </div>
 
         @forelse($extraTermPages as $pageNumber => $pageTerms)
@@ -700,15 +901,58 @@
                     'formatRentalContractTerm' => $formatRentalContractTerm,
                 ])
 
-                @if($loop->last)
-                    @include('admin.print.partials.rental-contract-signatures')
+                @if((int) $pageNumber === 5)
+                    <table class="payment-table">
+                        <tr>
+                            <th colspan="3">جدول سداد الدفعات</th>
+                        </tr>
+                        <tr>
+                            <th>رقم الدفعة</th>
+                            <th>قيمة الدفعة المستحقة</th>
+                            <th>تاريخ الاستحقاق</th>
+                        </tr>
+                        <tr>
+                            <td>دفعة #1</td>
+                            <td>{{ $formatRentalMoney($contractValue, '______') }} ريال</td>
+                            <td>{{ $paymentDueDate }}</td>
+                        </tr>
+                    </table>
+                    <table class="payment-table">
+                        <tr>
+                            <th>البند</th>
+                            <th>القيمة</th>
+                            <th>ضريبة القيمة المضافة</th>
+                            <th>القيمة الإجمالية</th>
+                        </tr>
+                        <tr>
+                            <td>أجر العامل/العاملة</td>
+                            <td>{{ $formatRentalMoney($salaryAmount, '0') }} ريال</td>
+                            <td>0 ريال</td>
+                            <td>{{ $formatRentalMoney($salaryAmount, '0') }} ريال</td>
+                        </tr>
+                        <tr>
+                            <td>قيمة الخدمة</td>
+                            <td>{{ $formatRentalMoney($contractValue, '______') }} ريال</td>
+                            <td>{{ $formatRentalMoney($taxAmount, '______') }} ريال</td>
+                            <td>{{ $formatRentalMoney(is_numeric($contractValue) ? ((float) $contractValue + (float) $taxAmount) : null, '______') }} ريال</td>
+                        </tr>
+                        <tr>
+                            <th>قيمة العقد الإجمالي</th>
+                            <th>{{ $formatRentalMoney($contractValue, '______') }} ريال</th>
+                            <th>{{ $formatRentalMoney($taxAmount, '______') }} ريال</th>
+                            <th>{{ $formatRentalMoney(is_numeric($contractValue) ? ((float) $contractValue + (float) $taxAmount) : null, '______') }} ريال</th>
+                        </tr>
+                    </table>
                 @endif
+                <div class="page-number">{{ $loop->iteration + 2 }}/{{ $totalPages }}</div>
             </div>
         @empty
-            <div class="contract-page page-break">
-                @include('admin.print.partials.rental-contract-signatures')
-            </div>
         @endforelse
+
+        <div class="contract-page page-break">
+            @include('admin.print.partials.rental-contract-signatures')
+            <div class="page-number">{{ $totalPages }}/{{ $totalPages }}</div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

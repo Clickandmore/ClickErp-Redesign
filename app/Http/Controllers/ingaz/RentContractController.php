@@ -355,9 +355,13 @@ class RentContractController extends Controller
             'order_id' => $request->get('order_id')
         ]);
 
-        // الحصول على الطلبات المنتهية من نوع تأجير (job_type_id = 2)
+        // الطلبات الجاهزة لإنشاء عقد تأجير، سواء كانت مقبولة أو تم إنهاؤها من شاشة الطلبات.
         $endedOrders = Order::where('job_type_id', $rentalJobTypeId)
-                           ->whereIn('status', [OrderEnum::Done->value])
+                           ->whereIn('status', [
+                               OrderEnum::UnderProcess->value,
+                               OrderEnum::Done->value,
+                           ])
+                           ->whereDoesntHave('rentalContracts')
                            ->with(['user', 'maid'])
                            ->latest()
                            ->get();
@@ -367,6 +371,11 @@ class RentContractController extends Controller
         if ($request->has('order_id')) {
             $selectedOrder = Order::with(['user', 'maid.nationality.translations', 'maid.religion.translations', 'details.package'])
                                 ->where('job_type_id', $rentalJobTypeId)
+                                ->whereIn('status', [
+                                    OrderEnum::UnderProcess->value,
+                                    OrderEnum::Done->value,
+                                ])
+                                ->whereDoesntHave('rentalContracts')
                                 ->find($request->order_id);
 
             \Log::info('Selected order for rent contract', [
@@ -2311,7 +2320,7 @@ class RentContractController extends Controller
             $contractSettings['address'] = $contractSettings['address'] ?: documentSetting('location', 'الرياض');
             $contractSettings['phone'] = $contractSettings['phone'] ?: documentSetting('phone', '');
             $contractSettings['email'] = $contractSettings['email'] ?: documentSetting('email', '');
-            $contractSettings['logo'] = documentSetting('document_logo', $contractSettings['logo'] ?? null);
+            $contractSettings['logo'] = $contractSettings['logo'] ?: null;
 
             // Use the same structured terms managed from the admin terms screen.
             $termsByPage = RentalContractTerm::active()

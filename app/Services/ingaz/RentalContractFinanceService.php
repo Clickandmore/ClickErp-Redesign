@@ -262,12 +262,14 @@ class RentalContractFinanceService
         }
 
         if ($salaryExemptAmount > 0) {
+            $salaryStatement = $this->buildWorkerSalaryStatement($statement, $contract, $salaryExemptAmount);
+
             $this->appendConstraintPair(
                 $lines,
                 $deferredRevenueAccountId,
                 $clientAccountId,
                 $salaryExemptAmount,
-                $statement . ' / راتب العاملة المعفى من الضريبة',
+                $salaryStatement,
                 $costCenterId
             );
         }
@@ -395,6 +397,16 @@ class RentalContractFinanceService
             . $invoice->id
             . ' / العميل '
             . ($contract->user?->name ?: 'غير محدد');
+    }
+
+    private function buildWorkerSalaryStatement(string $baseStatement, RentalContract $contract, float $salaryAmount): string
+    {
+        $maidName = $contract->maid?->name ?: 'غير محدد';
+
+        return $baseStatement
+            . ' / مرتب العامل (معفى ضريبياً)'
+            . ' / العاملة: ' . $maidName
+            . ' / المبلغ: ' . number_format($salaryAmount, 2, '.', '') . ' ريال';
     }
 
     private function resolveSalaryExemptAmount(RentalContract $contract, float $grossTotal): float
