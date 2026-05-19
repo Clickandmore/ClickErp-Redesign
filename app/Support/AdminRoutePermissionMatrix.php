@@ -5,10 +5,18 @@ namespace App\Support;
 use App\NewPermKeys;
 use App\PermKeys;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 
 class AdminRoutePermissionMatrix
 {
+    public static function dashboardRoutePermissions(): array
+    {
+        return [
+            PermKeys::DASHBOARD_VIEW,
+        ];
+    }
+
     public static function dashboardAccessPermissions(): array
     {
         return [
@@ -113,6 +121,53 @@ class AdminRoutePermissionMatrix
         ];
     }
 
+    public static function firstAccessibleRouteNameForAdmin($admin, array $excludedRouteNames = []): ?string
+    {
+        if (!$admin) {
+            return null;
+        }
+
+        foreach (self::primaryRouteNames() as $routeName) {
+            if (in_array($routeName, $excludedRouteNames, true) || !Route::has($routeName)) {
+                continue;
+            }
+
+            $permissions = self::resolve($routeName, request());
+
+            if ($permissions !== [] && self::adminHasAnyPermission($admin, $permissions)) {
+                return $routeName;
+            }
+        }
+
+        return null;
+    }
+
+    public static function firstAccessibleUrlForAdmin($admin, array $excludedRouteNames = []): ?string
+    {
+        $routeName = self::firstAccessibleRouteNameForAdmin($admin, $excludedRouteNames);
+
+        return $routeName ? route($routeName) : null;
+    }
+
+    public static function adminHasAnyPermission($admin, array $permissions): bool
+    {
+        if (!$admin) {
+            return false;
+        }
+
+        if (method_exists($admin, 'hasAnyPermission') && $admin->hasAnyPermission($permissions)) {
+            return true;
+        }
+
+        foreach ($permissions as $permission) {
+            if ($admin->can($permission)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static function resolve(?string $routeName, ?Request $request = null): array
     {
         if (!$routeName) {
@@ -175,9 +230,9 @@ class AdminRoutePermissionMatrix
     private static function dashboardDefinitions(): array
     {
         return [
-            'dashboard.index' => self::dashboardAccessPermissions(),
-            'dashboard.professional' => self::dashboardAccessPermissions(),
-            'dashboard.old' => self::dashboardAccessPermissions(),
+            'dashboard.index' => self::dashboardRoutePermissions(),
+            'dashboard.professional' => self::dashboardRoutePermissions(),
+            'dashboard.old' => self::dashboardRoutePermissions(),
             'dashboard.employees.show' => [
                 PermKeys::DASHBOARD_VIEW,
                 PermKeys::DASHBOARD_EMPLOYEE_PERFORMANCE,

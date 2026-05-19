@@ -11,6 +11,7 @@ use App\Models\auth\Admin as objModel;
 use App\Models\Contract;
 use App\Models\ingaz\Order;
 use App\Models\RentalContract;
+use App\Support\AdminRoutePermissionMatrix;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\App;
@@ -627,7 +628,7 @@ class AdminController extends Controller
     public function formLogin()
     {
         if (Auth::guard('admin')->check()) {
-            return redirect()->route("dashboard.index");
+            return redirect($this->defaultAdminRedirectUrl(Auth::guard('admin')->user()));
         }
         return view('admin.auth.login');
     }
@@ -659,11 +660,17 @@ class AdminController extends Controller
             if (auth()->guard("admin")->attempt(["email" => $user->email, "password" => $request->password, "admin_type" => "employee"])) {
                 return jsonSuccess(['url' => route('employeeProfile.index')], __("auth.login successful"));
             } elseif (auth()->guard("admin")->attempt(["email" => $user->email, "password" => $request->password])) {
-                return jsonSuccess(['url' => route('dashboard.index')], __("auth.login successful"));
+                return jsonSuccess(['url' => $this->defaultAdminRedirectUrl(Auth::guard('admin')->user())], __("auth.login successful"));
             }
             return jsonSuccess(null, __("auth.password"), 402);
         }
         return jsonSuccess(null, __("auth.failed email"), 401);
+    }
+
+    private function defaultAdminRedirectUrl($admin): string
+    {
+        return AdminRoutePermissionMatrix::firstAccessibleUrlForAdmin($admin)
+            ?? route('admin.no-permissions');
     }
 
     public function logout()

@@ -597,7 +597,7 @@
 
                 Swal.fire({
                     title: '{{ helperTrans('buttons.Are You Sure') }}',
-                    text: 'سيتم إرجاع الطلب إلى حالته السابقة المسجلة فقط.',
+                    text: 'سيتم إرجاع الطلب إلى حالته السابقة إن وجدت، أو تنشيطه كطلب جديد بعد التأكد من توفر العاملة.',
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#3085d6',

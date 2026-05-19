@@ -456,18 +456,16 @@ class ReturnRequestController extends Controller
             }
 
             $previousStatus = $this->resolvePreviousOrderStatus($order);
-            if (!$previousStatus) {
-                return jsonError('لا توجد حالة سابقة مسجلة لهذا الطلب.', 422);
-            }
+            $targetStatus = $previousStatus ?: OrderEnum::New->value;
 
-            if ($this->isReactivationStatus($previousStatus)) {
+            if ($this->isReactivationStatus($targetStatus)) {
                 $availabilityError = $this->validateMaidCanBeReactivated($order);
                 if ($availabilityError) {
                     return jsonError($availabilityError, 422);
                 }
             }
 
-            $order->status = $previousStatus;
+            $order->status = $targetStatus;
             $order->status_changed_at = now();
             $order->deadline_at = $order->getDeadlineHours() > 0
                 ? now()->addHours($order->getDeadlineHours())
@@ -475,13 +473,15 @@ class ReturnRequestController extends Controller
             $order->refuse_reason = null;
             $order->save();
 
-            if ($this->isReactivationStatus($previousStatus)) {
+            if ($this->isReactivationStatus($targetStatus)) {
                 $this->reserveMaid($order);
             }
 
             Notification::create([
                 'title' => __('ingaz.update_order_status'),
-                'description' => 'تم إرجاع الطلب #' . $order->id . ' إلى حالته السابقة: ' . getEnumValue('orders_statuses', $previousStatus),
+                'description' => $previousStatus
+                    ? 'تم إرجاع الطلب #' . $order->id . ' إلى حالته السابقة: ' . getEnumValue('orders_statuses', $targetStatus)
+                    : 'تم تنشيط الطلب #' . $order->id . ' كطلب جديد لعدم وجود حالة سابقة مسجلة.',
                 'order_id' => $order->id,
                 'user_id' => $order->user_id,
                 'type' => 'order_status',
@@ -489,8 +489,8 @@ class ReturnRequestController extends Controller
 
             return jsonSuccess([
                 'success' => true,
-                'status' => $previousStatus,
-            ], 'تم إرجاع الطلب إلى حالته السابقة بنجاح', 200);
+                'status' => $targetStatus,
+            ], $previousStatus ? 'تم إرجاع الطلب إلى حالته السابقة بنجاح' : 'تم تنشيط الطلب كطلب جديد بنجاح', 200);
         } catch (\Exception $e) {
             \Log::error('Error restoring return request previous status', [
                 'order_id' => $id,

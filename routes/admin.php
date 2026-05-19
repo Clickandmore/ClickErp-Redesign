@@ -31,6 +31,9 @@ Route::group(
         Route::get('dashboard-pro', 'admin\\DashboardController@professional')->name('dashboard.professional')->middleware(['admin', 'admin.route.permission']);
         Route::get('dashboard-old', 'admin\\DashboardController@indexOld')->name('dashboard.old')->middleware(['admin', 'admin.route.permission']);
         Route::get('dashboard/employees/{employee}', 'admin\\DashboardController@employeeShow')->name('dashboard.employees.show')->middleware(['admin', 'admin.route.permission']);
+        Route::get('admin/no-permissions', function () {
+            return view('admin.no-permissions');
+        })->name('admin.no-permissions')->middleware('admin');
 //        Route::get('/', 'admin\\auth\AdminController@formLogin')->name("admin.form.login");
         Route::group(["namespace" => "admin\\auth",'prefix' =>"dashboard"], function () {
             Route::get('login', 'AdminController@formLogin')->name("admin.form.login");

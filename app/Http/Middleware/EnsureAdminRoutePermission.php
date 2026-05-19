@@ -19,16 +19,8 @@ class EnsureAdminRoutePermission
 
         $admin = auth('admin')->user();
 
-        if ($admin && method_exists($admin, 'hasAnyPermission') && $admin->hasAnyPermission($requiredPermissions)) {
+        if (AdminRoutePermissionMatrix::adminHasAnyPermission($admin, $requiredPermissions)) {
             return $next($request);
-        }
-
-        if ($admin) {
-            foreach ($requiredPermissions as $permission) {
-                if ($admin->can($permission)) {
-                    return $next($request);
-                }
-            }
         }
 
         if ($request->expectsJson() || $request->ajax()) {
@@ -36,6 +28,16 @@ class EnsureAdminRoutePermission
                 'message' => __('ingaz.permission_denied'),
                 'required_permissions' => $requiredPermissions,
             ], 403);
+        }
+
+        if ($routeName && str_starts_with($routeName, 'dashboard.')) {
+            $fallbackUrl = AdminRoutePermissionMatrix::firstAccessibleUrlForAdmin($admin, [$routeName]);
+
+            if ($fallbackUrl) {
+                return redirect($fallbackUrl)->with('warning', __('ingaz.permission_denied'));
+            }
+
+            return redirect()->route('admin.no-permissions')->with('warning', __('ingaz.permission_denied'));
         }
 
         abort(403, __('ingaz.permission_denied'));

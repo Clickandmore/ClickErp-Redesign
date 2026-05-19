@@ -347,7 +347,7 @@ function AdminGuardHasAllPerms($permissions)
 
 function AdminGuardCanAccessDashboard(): bool
 {
-    return AdminGuardHasAnyPerm(\App\Support\AdminRoutePermissionMatrix::dashboardAccessPermissions());
+    return AdminGuardHasAnyPerm(\App\Support\AdminRoutePermissionMatrix::dashboardRoutePermissions());
 }
 
 function AdminGuardPermissionNames(): array
