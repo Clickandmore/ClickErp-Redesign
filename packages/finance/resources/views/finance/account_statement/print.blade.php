@@ -314,6 +314,15 @@
             font-size: 0.86rem;
         }
 
+        .statement-th-note {
+            display: block;
+            margin-top: 0.2rem;
+            color: rgba(255, 255, 255, 0.75);
+            font-size: 0.72rem;
+            font-weight: 600;
+            line-height: 1.2;
+        }
+
         .statement-table tbody td,
         .statement-table tfoot td {
             padding: 0.8rem 0.7rem;
@@ -353,13 +362,20 @@
 
         .statement-balance-cell {
             white-space: nowrap;
+            text-align: center;
+        }
+
+        .statement-money-cell {
+            min-width: 112px;
+            text-align: right;
+            white-space: normal;
         }
 
         .statement-balance-pill {
             display: inline-flex;
             flex-direction: column;
             gap: 0.15rem;
-            min-width: 92px;
+            min-width: 112px;
             padding: 0.42rem 0.58rem;
             border-radius: 14px;
             border: 1px solid rgba(76, 129, 139, 0.14);
@@ -389,6 +405,51 @@
         .statement-balance-pill.is-neutral {
             background: rgba(107, 114, 128, 0.08);
             border-color: rgba(107, 114, 128, 0.18);
+        }
+
+        .statement-currency-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 0.24rem;
+            min-width: 96px;
+            line-height: 1.2;
+            white-space: normal;
+            text-align: right;
+            direction: rtl;
+        }
+
+        .statement-currency-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 0.45rem;
+            margin: 0;
+        }
+
+        .statement-currency-row b {
+            font-weight: 800;
+            color: var(--statement-primary-dark);
+            text-align: left;
+            direction: ltr;
+            unicode-bidi: plaintext;
+        }
+
+        .statement-currency-row em {
+            color: var(--statement-muted);
+            min-width: 18px;
+            font-size: 0.78rem;
+            font-style: normal;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .statement-currency-row--usd b {
+            color: #0f766e;
+        }
+
+        .statement-currency-row--sar {
+            padding-top: 0.14rem;
+            border-top: 1px dashed rgba(76, 129, 139, 0.18);
         }
 
         .statement-other-accounts {
@@ -596,6 +657,7 @@
                     'filters' => $filters ?? [],
                     'reportTitle' => $reportTitle ?? null,
                     'isPrint' => true,
+                    'showDollarEquivalent' => $showDollarEquivalent ?? false,
                 ])
 
                 <section class="print-signatures">

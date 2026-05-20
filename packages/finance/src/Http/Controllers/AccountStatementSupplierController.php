@@ -60,6 +60,7 @@ class AccountStatementSupplierController extends Controller
                 "accountName" => $selectedAccount->name ?? null,
                 "filters" => $dataSearch,
                 "reportTitle" => __("finance::finance.account-statement-suppliers"),
+                "showDollarEquivalent" => true,
             ])->render();
 
             return jsonSuccess([

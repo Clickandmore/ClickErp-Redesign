@@ -4,6 +4,8 @@
     $rows = collect($data ?? []);
     $showOtherAccount = ($show_other_account ?? data_get($filters, 'other_account', 'no')) === 'yes';
     $colspan = $showOtherAccount ? 6 : 5;
+    $showDollarEquivalent = $showDollarEquivalent ?? false;
+    $usdExchangeRate = 3.75;
     $generatedAt = now(config('app.timezone', 'Asia/Riyadh'));
     $generatedAtDate = $generatedAt->format('d/m/Y');
     $generatedAtTime = $generatedAt->format('h:i A');
@@ -37,6 +39,22 @@
         }
 
         return 'متوازن';
+    };
+    $formatMoney = fn ($value) => number_format((float) $value, 2);
+    $formatDollarValue = fn ($value) => $usdExchangeRate > 0 ? number_format(abs((float) $value) / $usdExchangeRate, 2) : '0.00';
+    $formatStatementMoney = function ($value) use ($showDollarEquivalent, $formatMoney, $formatDollarValue) {
+        if (! $showDollarEquivalent) {
+            return $formatMoney($value);
+        }
+
+        return '<span class="statement-currency-stack">'
+            . '<span class="statement-currency-row statement-currency-row--usd">'
+            . '<em>$</em><b>' . $formatDollarValue($value) . '</b>'
+            . '</span>'
+            . '<span class="statement-currency-row statement-currency-row--sar">'
+            . '<em>﷼</em><b>' . $formatMoney($value) . '</b>'
+            . '</span>'
+            . '</span>';
     };
 
     $openingDebtor = round((float) ($firstBalance->sum_debtor_value ?? 0), 2);
@@ -166,25 +184,25 @@
 
         <article class="statement-summary-card is-accent">
             <span>{{ __('finance::finance.Opening Balance') }}</span>
-            <strong>{{ number_format(abs($openingBalance), 2) }}</strong>
+            <strong>{!! $formatStatementMoney(abs($openingBalance)) !!}</strong>
             <small>{{ $hasOpeningBalance ? $openingDirection : 'لا يوجد' }}</small>
         </article>
 
         <article class="statement-summary-card is-debtor">
             <span>{{ __('finance::finance.debtor') }}</span>
-            <strong>{{ number_format($totalDebtor, 2) }}</strong>
+            <strong>{!! $formatStatementMoney($totalDebtor) !!}</strong>
             <small>إجمالي الحركات المدينة</small>
         </article>
 
         <article class="statement-summary-card is-creditor">
             <span>{{ __('finance::finance.creditor') }}</span>
-            <strong>{{ number_format($totalCreditor, 2) }}</strong>
+            <strong>{!! $formatStatementMoney($totalCreditor) !!}</strong>
             <small>إجمالي الحركات الدائنة</small>
         </article>
 
         <article class="statement-summary-card {{ $closingBalanceClass }}">
             <span>{{ __('finance::finance.Balance') }}</span>
-            <strong>{{ number_format(abs($runningBalance), 2) }}</strong>
+            <strong>{!! $formatStatementMoney(abs($runningBalance)) !!}</strong>
             <small>{{ $closingBalanceDirection }}</small>
         </article>
 
@@ -219,9 +237,24 @@
                                 <th scope="col">{{ __('finance::finance.Counter Account') }}</th>
                             @endif
                             <th scope="col">{{ __('finance::finance.statement') }}</th>
-                            <th scope="col">{{ __('finance::finance.debtor') }}</th>
-                            <th scope="col">{{ __('finance::finance.creditor') }}</th>
-                            <th scope="col">{{ __('finance::finance.Balance') }}</th>
+                            <th scope="col">
+                                {{ __('finance::finance.debtor') }}
+                                @if ($showDollarEquivalent)
+                                    <small class="statement-th-note">دولار / ريال</small>
+                                @endif
+                            </th>
+                            <th scope="col">
+                                {{ __('finance::finance.creditor') }}
+                                @if ($showDollarEquivalent)
+                                    <small class="statement-th-note">دولار / ريال</small>
+                                @endif
+                            </th>
+                            <th scope="col">
+                                {{ __('finance::finance.Balance') }}
+                                @if ($showDollarEquivalent)
+                                    <small class="statement-th-note">دولار / ريال</small>
+                                @endif
+                            </th>
                             <th scope="col">{{ __('finance::finance.user') }}</th>
                         </tr>
                     </thead>
@@ -229,11 +262,11 @@
                         @if ($hasOpeningBalance)
                             <tr class="statement-row statement-row--opening">
                                 <td colspan="{{ $colspan }}" class="text-center">{{ __('finance::finance.Opening Balance') }}</td>
-                                <td class="text-nowrap">{{ number_format($openingDebtor, 2) }}</td>
-                                <td class="text-nowrap">{{ number_format($openingCreditor, 2) }}</td>
+                                <td class="statement-money-cell">{!! $formatStatementMoney($openingDebtor) !!}</td>
+                                <td class="statement-money-cell">{!! $formatStatementMoney($openingCreditor) !!}</td>
                                 <td class="statement-balance-cell">
                                     <span class="statement-balance-pill {{ $openingBalance > 0 ? 'is-debtor' : ($openingBalance < 0 ? 'is-creditor' : 'is-neutral') }}">
-                                        <strong>{{ number_format(abs($openingBalance), 2) }}</strong>
+                                        <strong>{!! $formatStatementMoney(abs($openingBalance)) !!}</strong>
                                         <small>{{ $hasOpeningBalance ? $openingDirection : 'متوازن' }}</small>
                                     </span>
                                 </td>
@@ -273,11 +306,11 @@
                                     </td>
                                 @endif
                                 <td class="statement-cell--wide">{{ $item['statement'] }}</td>
-                                <td class="text-nowrap">{{ number_format($item['debtor_value'], 2) }}</td>
-                                <td class="text-nowrap">{{ number_format($item['creditor_value'], 2) }}</td>
+                                <td class="statement-money-cell">{!! $formatStatementMoney($item['debtor_value']) !!}</td>
+                                <td class="statement-money-cell">{!! $formatStatementMoney($item['creditor_value']) !!}</td>
                                 <td class="statement-balance-cell">
                                     <span class="statement-balance-pill {{ $item['running_balance'] > 0 ? 'is-debtor' : ($item['running_balance'] < 0 ? 'is-creditor' : 'is-neutral') }}">
-                                        <strong>{{ number_format($item['running_balance_abs'], 2) }}</strong>
+                                        <strong>{!! $formatStatementMoney($item['running_balance_abs']) !!}</strong>
                                         <small>{{ $item['running_balance_label'] }}</small>
                                     </span>
                                 </td>
@@ -288,11 +321,11 @@
                     <tfoot>
                         <tr class="statement-row statement-row--total">
                             <td colspan="{{ $colspan }}" class="text-center">{{ __('finance::finance.Balance') }}</td>
-                            <td class="text-nowrap">{{ number_format($totalDebtor, 2) }}</td>
-                            <td class="text-nowrap">{{ number_format($totalCreditor, 2) }}</td>
+                            <td class="statement-money-cell">{!! $formatStatementMoney($totalDebtor) !!}</td>
+                            <td class="statement-money-cell">{!! $formatStatementMoney($totalCreditor) !!}</td>
                             <td class="statement-balance-cell">
                                 <span class="statement-balance-pill {{ $runningBalance > 0 ? 'is-debtor' : ($runningBalance < 0 ? 'is-creditor' : 'is-neutral') }}">
-                                    <strong>{{ number_format(abs($runningBalance), 2) }}</strong>
+                                    <strong>{!! $formatStatementMoney(abs($runningBalance)) !!}</strong>
                                     <small>{{ $closingBalanceDirection }}</small>
                                 </span>
                             </td>
