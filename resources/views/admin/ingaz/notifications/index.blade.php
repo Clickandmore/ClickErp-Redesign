@@ -46,6 +46,7 @@
                     <div class="col-md-6">
                         <label for="sms_template_id" class="form-label">قالب الرسالة النصية</label>
                         <select name="sms_template_id" id="sms_template_id" class="form-control" required>
+                            <option value="none" selected>بدون قالب</option>
                             <option value="">اختر القالب</option>
                             @foreach ($smsTemplates as $template)
                                 <option value="{{ $template->id }}">{{ $template->title }} ({{ $template->name }})</option>
@@ -87,7 +88,7 @@
                     <div class="col-12">
                         <label for="message_override" class="form-label">نص الرسالة النهائي</label>
                         <textarea name="message_override" id="message_override" class="form-control" rows="5" required
-                            placeholder="سيتم توليد النص تلقائيًا من القالب ويمكنك تعديله قبل الإرسال."></textarea>
+                            placeholder="اكتب نص الرسالة، أو اختر قالبًا ليتم توليد النص تلقائيًا ثم تعديله قبل الإرسال."></textarea>
                     </div>
 
                     <div class="col-12">
@@ -104,9 +105,15 @@
                         <label for="usersSelect" class="form-label">اختر العملاء</label>
                         <select id="usersSelect" name="user_id[]" class="form-control js-select-users" multiple>
                             @foreach ($appUsers as $user)
-                                <option value="{{ $user->id }}">{{ $user->name }} - {{ $user->phone }}</option>
+                                <option value="{{ $user->id }}" data-phone="{{ $user->phone }}">{{ $user->name }} - {{ $user->phone }}</option>
                             @endforeach
                         </select>
+                        <div class="mt-3">
+                            <label for="external_recipient_phones" class="form-label">أرقام عملاء خارج النظام</label>
+                            <textarea id="external_recipient_phones" name="external_recipient_phones" class="form-control" rows="4"
+                                placeholder="اكتب رقمًا في كل سطر، أو افصل الأرقام بفاصلة"></textarea>
+                            <small class="text-muted">يمكن الجمع بين عملاء من النظام وأرقام خارجية في نفس الإرسال.</small>
+                        </div>
                     </div>
 
                     <div class="col-12 d-none" id="allRecipientsBox">
@@ -173,12 +180,21 @@
 
     function renderTemplateVariables() {
         const template = getSelectedTemplate();
+        const templateId = $('#sms_template_id').val();
         const row = $('#templateVariablesRow');
         row.empty();
 
         if (!template) {
-            row.append('<div class="col-12 text-muted">اختر قالبًا أولًا لعرض المتغيرات المطلوبة.</div>');
-            $('#message_override').val('');
+            row.append(
+                templateId === 'none'
+                    ? '<div class="col-12 text-muted">الإرسال بدون قالب؛ اكتب نص الرسالة مباشرة.</div>'
+                    : '<div class="col-12 text-muted">اختر قالبًا أولًا لعرض المتغيرات المطلوبة.</div>'
+            );
+
+            if (templateId !== 'none') {
+                $('#message_override').val('');
+            }
+
             return;
         }
 
@@ -218,6 +234,43 @@
         $('#message_override').val(message.trim());
     }
 
+    function normalizeSmsPhone(phone) {
+        let digits = String(phone || '').replace(/\D+/g, '');
+
+        if (digits.startsWith('00')) {
+            digits = digits.substring(2);
+        }
+
+        if (digits.length === 10 && digits.startsWith('05')) {
+            return '966' + digits.substring(1);
+        }
+
+        if (digits.length === 9 && digits.startsWith('5')) {
+            return '966' + digits;
+        }
+
+        return digits;
+    }
+
+    function validSmsPhone(phone) {
+        return /^\d{8,15}$/.test(phone);
+    }
+
+    function externalRecipientPhones() {
+        const phones = ($('#external_recipient_phones').val() || '')
+            .split(/[\r\n,;]+/)
+            .map((phone) => normalizeSmsPhone(phone.trim()))
+            .filter(validSmsPhone);
+
+        return [...new Set(phones)];
+    }
+
+    function selectedUserPhones() {
+        return ($('#usersSelect option:selected').map(function () {
+            return normalizeSmsPhone($(this).data('phone') || '');
+        }).get() || []).filter(validSmsPhone);
+    }
+
     function updateRecipientCount() {
         const mode = $('#all_or_some').val();
         let count = 0;
@@ -225,7 +278,11 @@
         if (mode === 'all') {
             count = totalEligibleUsers;
         } else {
-            count = ($('#usersSelect').val() || []).length;
+            const internalPhones = selectedUserPhones();
+            const externalPhones = externalRecipientPhones()
+                .filter((phone) => !internalPhones.includes(phone));
+
+            count = ($('#usersSelect').val() || []).length + externalPhones.length;
         }
 
         $('#recipientCount').text(count);
@@ -236,7 +293,7 @@
         $('#someRecipientsBox').toggleClass('d-none', isAll);
         $('#allRecipientsBox').toggleClass('d-none', !isAll);
 
-        $('#usersSelect').prop('required', !isAll);
+        $('#usersSelect').prop('required', false);
         $('#confirm_bulk_send').prop('required', isAll);
         $('#bulk_confirmation_text').prop('required', isAll);
 
@@ -260,6 +317,7 @@
             toggleRecipientMode();
             updateRecipientCount();
         });
+        $('#external_recipient_phones').on('input', updateRecipientCount);
 
         $('#smsDispatchForm').on('submit', function (event) {
             if ($('#all_or_some').val() !== 'all') {
@@ -277,6 +335,7 @@
             return true;
         });
 
+        renderTemplateVariables();
         toggleRecipientMode();
         updateRecipientCount();
     });

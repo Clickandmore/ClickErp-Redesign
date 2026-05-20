@@ -95,6 +95,9 @@ Route::group(
         Route::group(["prefix" => "admin"], function () {
             Route::get('print/rental-contract/{id}', [AdminContractController::class, 'printRentalContract'])->name('print.rental.contract');
             Route::post('RentContract/{id}/save-signature', [AdminContractController::class, 'saveSignature'])->name('RentContract.saveSignature');
+            Route::get('form-settings/preview/rental-contract', [FormSettingsController::class, 'publicRentalContractPreview'])
+                ->middleware('throttle:60,1')
+                ->name('public.form-settings.preview.rental-contract');
         });
 
         Route::group(["prefix" => "admin", "middleware" => ["auth:admin", "admin.route.permission"]], function () {
