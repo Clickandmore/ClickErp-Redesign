@@ -2,18 +2,18 @@
 
 @php
     $airports = [
-        'RUH' => 'مطار الملك خالد الدولي - الرياض (RUH)',
-        'JED' => 'مطار الملك عبدالعزيز الدولي - جدة (JED)',
-        'DMM' => 'مطار الملك فهد الدولي - الدمام (DMM)',
-        'MED' => 'مطار الأمير محمد بن عبدالعزيز الدولي - المدينة المنورة (MED)',
-        'TUU' => 'مطار تبوك الدولي - تبوك (TUU)',
-        'AHB' => 'مطار أبها الإقليمي - أبها (AHB)',
-        'TIF' => 'مطار الطائف الإقليمي - الطائف (TIF)',
-        'ELQ' => 'مطار القصيم الإقليمي - بريدة (ELQ)',
-        'URY' => 'مطار الجوف الإقليمي - سكاكا (URY)',
-        'HAS' => 'مطار حائل الإقليمي - حائل (HAS)',
-        'BHH' => 'مطار الباحة الإقليمي - الباحة (BHH)',
-        'GIZ' => 'مطار جازان الإقليمي - جازان (GIZ)',
+        'RUH' => __('ingaz.airport_ruh'),
+        'JED' => __('ingaz.airport_jed'),
+        'DMM' => __('ingaz.airport_dmm'),
+        'MED' => __('ingaz.airport_med'),
+        'TUU' => __('ingaz.airport_tuu'),
+        'AHB' => __('ingaz.airport_ahb'),
+        'TIF' => __('ingaz.airport_tif'),
+        'ELQ' => __('ingaz.airport_elq'),
+        'URY' => __('ingaz.airport_ury'),
+        'HAS' => __('ingaz.airport_has'),
+        'BHH' => __('ingaz.airport_bhh'),
+        'GIZ' => __('ingaz.airport_giz'),
     ];
 @endphp
 
@@ -183,6 +183,10 @@
             font-size: 12px;
             border: 1px solid #d8e6ff;
         }
+
+        #travelHistoryTable_wrapper{
+            overflow-x: auto !important;
+        }
     </style>
 @endsection
 
@@ -213,7 +217,7 @@
                                 <div class="row no-gutters align-items-center">
                                     <div class="col mr-2">
                                         <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                            إجمالي رحلات الاستقدام</div>
+                                            {{ helperTrans('ingaz.total_recruitment_trips') }}</div>
                                         <div class="h5 mb-0 font-weight-bold text-gray-800" id="totalTrips">0</div>
                                     </div>
                                     <div class="col-auto">
@@ -230,7 +234,7 @@
                                 <div class="row no-gutters align-items-center">
                                     <div class="col mr-2">
                                         <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                            الرحلات القادمة</div>
+                                            {{ helperTrans('ingaz.upcoming_trips') }}</div>
                                         <div class="h5 mb-0 font-weight-bold text-gray-800" id="activeTrips">0</div>
                                     </div>
                                     <div class="col-auto">
@@ -246,7 +250,7 @@
                             <div class="card-body">
                                 <div class="row no-gutters align-items-center">
                                     <div class="col mr-2">
-                                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">الرحلات المكتملة
+                                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">{{ helperTrans('ingaz.completed_trips') }}
                                         </div>
                                         <div class="h5 mb-0 font-weight-bold text-gray-800" id="completedTrips">0</div>
                                     </div>
@@ -286,9 +290,9 @@
                                     <div class="col-md-3">
                                         <label class="form-label">{{ __('admin.status') }}</label>
                                         <select id="status" class="form-control">
-                                            <option value="">الرحلات النشطة (افتراضي)</option>
-                                            <option value="completed">الرحلات المكتملة</option>
-                                            <option value="all">جميع الرحلات</option>
+                                            <option value="">{{ helperTrans('ingaz.active_trips_default') }}</option>
+                                            <option value="completed">{{ helperTrans('ingaz.completed_trips') }}</option>
+                                            <option value="all">{{ helperTrans('ingaz.all_trips') }}</option>
                                         </select>
                                     </div>
                                     <div class="col-md-3 d-flex align-items-end">
@@ -305,7 +309,7 @@
                 <div class="card shadow mb-4">
                     <div class="card-header bg-dark text-white">
                         <h5 class="mb-0">
-                            <i class="fa fa-calendar-alt"></i> تقويم رحلات الوصول
+                            <i class="fa fa-calendar-alt"></i> {{ helperTrans('ingaz.arrival_trips_calendar') }}
                         </h5>
                     </div>
                     <div class="card-body">
@@ -315,34 +319,34 @@
                             </div>
                             <div class="col-lg-4">
                                 <div class="calendar-side-card">
-                                    <h6 class="mb-3">إسناد الرحلة</h6>
+                                    <h6 class="mb-3">{{ helperTrans('ingaz.trip_assignment') }}</h6>
                                     <div id="calendarTripInfo" class="small text-muted mb-3">
-                                        اختر رحلة من التقويم لعرض التفاصيل وإسنادها.
+                                        {{ helperTrans('ingaz.select_trip_from_calendar') }}
                                     </div>
                                     @if (@AdminGuardHasPerm(\App\PermKeys::TRAVEL_CONTROL))
                                         <div class="mb-2">
-                                            <label class="form-label">الموظف / السائق</label>
+                                            <label class="form-label">{{ helperTrans('ingaz.employee_or_driver') }}</label>
                                             <select id="assignStaffSelect" class="form-select">
-                                                <option value="">-- اختر --</option>
+                                                <option value="">{{ helperTrans('ingaz.select_placeholder_dashes') }}</option>
                                             </select>
                                         </div>
                                         <div class="mb-3">
-                                            <label class="form-label">ملاحظة الإسناد</label>
+                                            <label class="form-label">{{ helperTrans('ingaz.assignment_note') }}</label>
                                             <textarea id="assignmentNote" class="form-control" rows="3"
-                                                placeholder="ملاحظة اختيارية"></textarea>
+                                                placeholder="{{ helperTrans('ingaz.optional_note') }}"></textarea>
                                         </div>
                                         <button id="assignTripBtn" type="button" class="btn btn-primary w-100" disabled>
-                                            <i class="fa fa-paper-plane"></i> إسناد وإرسال تنبيه
+                                            <i class="fa fa-paper-plane"></i> {{ helperTrans('ingaz.assign_and_notify') }}
                                         </button>
                                     @else
                                         <div class="alert alert-light border small mb-3">
-                                            لديك صلاحية عرض الرحلات فقط. إسناد الرحلة متاح لمن يملك صلاحية الإدارة.
+                                            {{ helperTrans('ingaz.travel_view_only_assignment_notice') }}
                                         </div>
                                     @endif
                                     <hr>
-                                    <h6 class="mb-2">جميع رحلات الوصول</h6>
+                                    <h6 class="mb-2">{{ helperTrans('ingaz.all_arrival_trips') }}</h6>
                                     <div id="calendarTripList" class="calendar-trip-list small text-muted">
-                                        جاري تحميل الرحلات...
+                                        {{ helperTrans('ingaz.loading_trips') }}
                                     </div>
                                 </div>
                             </div>
@@ -366,10 +370,10 @@
                                     <th>#</th>
                                     <th>{{ __('admin.client_id') }}</th>
                                     <th>{{ __('admin.maid_id') }}</th>
-                                    <th>العقود</th>
+                                    <th>{{ helperTrans('ingaz.contracts') }}</th>
                                     <th>{{ __('admin.travel_type') }}</th>
                                     <th>{{ __('admin.travel_with') }}</th>
-                                    <th>تفاصيل الرحلة</th>
+                                    <th>{{ helperTrans('ingaz.trip_details') }}</th>
                                     <th>{{ __('admin.flight_company') }}</th>
                                     <th>{{ __('admin.flight_number') }}</th>
                                     <th>{{ __('admin.status') }}</th>
@@ -404,6 +408,47 @@
         let selectedCalendarTripId = null;
         const calendarScope = 'arrival';
         const travelAssignRouteTemplate = @json(route('travel.assign', ['id' => '__ID__']));
+        const travelTranslations = {
+            contracts: @json(helperTrans('ingaz.contracts')),
+            statusPrefix: @json(helperTrans('ingaz.status_prefix')),
+            contractsPrefix: @json(helperTrans('ingaz.contracts_prefix')),
+            travelTypePrefix: @json(helperTrans('ingaz.travel_type_prefix')),
+            contractsCountPrefix: @json(helperTrans('ingaz.contracts_count_prefix')),
+            clientPrefix: @json(helperTrans('ingaz.client_feminine_prefix')),
+            maidPrefix: @json(helperTrans('ingaz.maid_prefix')),
+            arrivalDateTimePrefix: @json(helperTrans('ingaz.arrival_datetime_prefix')),
+            remainingPrefix: @json(helperTrans('ingaz.remaining_prefix')),
+            currentAssigneePrefix: @json(helperTrans('ingaz.current_assignee_prefix')),
+            notSpecified: @json(helperTrans('ingaz.not_specified')),
+            unassigned: @json(helperTrans('ingaz.unassigned')),
+            noTripsInRange: @json(helperTrans('ingaz.no_trips_in_range')),
+            selectPlaceholder: @json(helperTrans('ingaz.select_placeholder_dashes')),
+            warningTitle: @json(helperTrans('ingaz.warning_title')),
+            selectTripFirst: @json(helperTrans('ingaz.select_trip_first')),
+            selectEmployeeDriver: @json(helperTrans('ingaz.select_employee_driver')),
+            doneTitle: @json(helperTrans('ingaz.done_title')),
+            tripAssignedSuccessfully: @json(helperTrans('ingaz.trip_assigned_successfully')),
+            tripAssignmentError: @json(helperTrans('ingaz.trip_assignment_error')),
+            loading: @json(helperTrans('ingaz.loading_text')),
+            grouped: @json(helperTrans('ingaz.grouped')),
+            single: @json(helperTrans('ingaz.single')),
+            travelWithAirport: @json(helperTrans('ingaz.travel_with_airport')),
+            travelWithGroupTransport: @json(helperTrans('ingaz.travel_with_group_transport')),
+            travelWithTrain: @json(helperTrans('ingaz.travel_with_train')),
+            areYouSure: @json(helperTrans('ingaz.are_you_sure')),
+            deleteTripUnrecoverable: @json(helperTrans('ingaz.delete_trip_unrecoverable')),
+            yesDelete: @json(helperTrans('ingaz.yes_delete')),
+            cancel: @json(helperTrans('ingaz.cancel')),
+            deletedTitle: @json(helperTrans('ingaz.deleted_successfully_title')),
+            travelDeletedSuccessfully: @json(helperTrans('ingaz.travel_deleted_successfully')),
+            errorTitle: @json(helperTrans('ingaz.error_title')),
+            travelDeleteError: @json(helperTrans('ingaz.travel_delete_error')),
+            completeTripTitle: @json(helperTrans('ingaz.complete_trip_title')),
+            completeTripConfirm: @json(helperTrans('ingaz.complete_trip_confirm')),
+            yesCompleteTrip: @json(helperTrans('ingaz.yes_complete_trip')),
+            successTitle: @json(helperTrans('ingaz.success_title')),
+            completeTripError: @json(helperTrans('ingaz.complete_trip_error')),
+        };
 
         $(document).ready(function() {
             loadTable();
@@ -489,7 +534,7 @@
                     if ((p.contracts_count || 0) > 1) {
                         const groupedCount = document.createElement('span');
                         groupedCount.className = 'calendar-event-count';
-                        groupedCount.textContent = `${p.contracts_count} عقود`;
+                        groupedCount.textContent = travelTranslations.contractsPrefix.replace(':value', p.contracts_count);
                         meta.appendChild(groupedCount);
                     }
 
@@ -511,7 +556,7 @@
         function renderCalendarTripList(events) {
             const container = $('#calendarTripList');
             if (!events || !events.length) {
-                container.html('<div class="text-muted">لا توجد رحلات في هذا النطاق.</div>');
+                container.html(`<div class="text-muted">${travelTranslations.noTripsInRange}</div>`);
                 return;
             }
 
@@ -527,8 +572,8 @@
                     <button type="button" class="calendar-trip-item" data-event-id="${event.id}">
                         <div class="fw-bold mb-1">${event.title}</div>
                         <div class="text-muted">${dateLabel} ${timeLabel}</div>
-                        <div class="text-muted">العقود: ${contractsCount}${ordersText ? ` - ${ordersText}` : ''}</div>
-                        <div class="text-muted">الحالة: ${statusLabel}</div>
+                        <div class="text-muted">${travelTranslations.contractsPrefix.replace(':value', contractsCount)}${ordersText ? ` - ${ordersText}` : ''}</div>
+                        <div class="text-muted">${travelTranslations.statusPrefix.replace(':value', statusLabel)}</div>
                     </button>
                 `;
             }).join('');
@@ -544,15 +589,15 @@
                 ? normalizedOrderIds.map((id) => `<span class="contract-pill">#${id}</span>`).join('')
                 : '<span class="text-muted">-</span>';
             const html = `
-                <div class="mb-1"><strong>نوع الرحلة:</strong> ${p.travel_type_label || '-'}</div>
-                <div class="mb-1"><strong>الحالة:</strong> ${p.status_label || '-'}</div>
-                <div class="mb-1"><strong>عدد العقود:</strong> ${p.contracts_count || (normalizedOrderIds.length || 1)}</div>
-                <div class="mb-1"><strong>العقود:</strong><div class="contract-pill-wrap">${orderPills}</div></div>
-                <div class="mb-1"><strong>العميلة:</strong> ${p.client_name || 'غير محدد'}</div>
-                <div class="mb-1"><strong>العاملة:</strong> ${p.maid_name || 'غير محدد'}</div>
-                <div class="mb-1"><strong>موعد الوصول:</strong> ${p.arrival_date || '-'} ${p.arrival_time || ''}</div>
-                <div class="mb-1"><strong>المتبقي:</strong> ${p.remaining_label || '-'}</div>
-                <div class="mb-1"><strong>المكلّف الحالي:</strong> ${p.assigned_to || 'غير مسند'}</div>
+                <div class="mb-1"><strong>${travelTranslations.travelTypePrefix.replace(':value', '')}</strong> ${p.travel_type_label || '-'}</div>
+                <div class="mb-1"><strong>${travelTranslations.statusPrefix.replace(':value', '')}</strong> ${p.status_label || '-'}</div>
+                <div class="mb-1"><strong>${travelTranslations.contractsCountPrefix.replace(':value', '')}</strong> ${p.contracts_count || (normalizedOrderIds.length || 1)}</div>
+                <div class="mb-1"><strong>${travelTranslations.contractsPrefix.replace(':value', '')}</strong><div class="contract-pill-wrap">${orderPills}</div></div>
+                <div class="mb-1"><strong>${travelTranslations.clientPrefix.replace(':value', '')}</strong> ${p.client_name || travelTranslations.notSpecified}</div>
+                <div class="mb-1"><strong>${travelTranslations.maidPrefix.replace(':value', '')}</strong> ${p.maid_name || travelTranslations.notSpecified}</div>
+                <div class="mb-1"><strong>${travelTranslations.arrivalDateTimePrefix.replace(':value', '')}</strong> ${p.arrival_date || '-'} ${p.arrival_time || ''}</div>
+                <div class="mb-1"><strong>${travelTranslations.remainingPrefix.replace(':value', '')}</strong> ${p.remaining_label || '-'}</div>
+                <div class="mb-1"><strong>${travelTranslations.currentAssigneePrefix.replace(':value', '')}</strong> ${p.assigned_to || travelTranslations.unassigned}</div>
             `;
 
             $('#calendarTripInfo').html(html);
@@ -570,7 +615,7 @@
                 method: 'GET',
                 success: function(response) {
                     const select = $('#assignStaffSelect');
-                    select.empty().append('<option value="">-- اختر --</option>');
+                    select.empty().append(`<option value="">${travelTranslations.selectPlaceholder}</option>`);
 
                     (response.data || []).forEach(function(staff) {
                         select.append(
@@ -591,13 +636,13 @@
 
         function assignSelectedTrip() {
             if (!selectedCalendarTripId) {
-                Swal.fire('تنبيه', 'يرجى اختيار رحلة من التقويم أولاً', 'warning');
+                Swal.fire(travelTranslations.warningTitle, travelTranslations.selectTripFirst, 'warning');
                 return;
             }
 
             const assignedTo = $('#assignStaffSelect').val();
             if (!assignedTo) {
-                Swal.fire('تنبيه', 'يرجى اختيار الموظف/السائق', 'warning');
+                Swal.fire(travelTranslations.warningTitle, travelTranslations.selectEmployeeDriver, 'warning');
                 return;
             }
 
@@ -611,7 +656,7 @@
                     assignment_note: $('#assignmentNote').val()
                 },
                 success: function(response) {
-                    Swal.fire('تم', response.message || 'تم إسناد الرحلة بنجاح', 'success');
+                    Swal.fire(travelTranslations.doneTitle, response.message || travelTranslations.tripAssignedSuccessfully, 'success');
                     if (logisticsCalendar) {
                         logisticsCalendar.refetchEvents();
                     }
@@ -621,8 +666,8 @@
                     loadStatistics();
                 },
                 error: function(xhr) {
-                    const message = xhr.responseJSON?.message || 'حدث خطأ أثناء إسناد الرحلة';
-                    Swal.fire('خطأ', message, 'error');
+                    const message = xhr.responseJSON?.message || travelTranslations.tripAssignmentError;
+                    Swal.fire(travelTranslations.errorTitle, message, 'error');
                 }
             });
         }
@@ -654,7 +699,7 @@
                 searching: false,
                 language: {
                     url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/ar.json',
-                    processing: '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">جاري التحميل...</span></div>'
+                    processing: `<div class="spinner-border text-primary" role="status"><span class="visually-hidden">${travelTranslations.loading}</span></div>`
                 },
                 ajax: {
                     url: "{{ route('travel') }}",
@@ -673,7 +718,7 @@
                         render: function(data, type, row) {
                             const isGrouped = (row.contracts_count || 0) > 1;
                             const badgeClass = isGrouped ? 'grouped' : 'single';
-                            const badgeText = isGrouped ? 'مجمعة' : 'منفردة';
+                            const badgeText = isGrouped ? travelTranslations.grouped : travelTranslations.single;
                             return `
                                 <div class="trip-index-cell">
                                     <strong>${data}</strong>
@@ -714,9 +759,9 @@
                         name: 'travel_with',
                         render: function(data) {
                             const travelWithMap = {
-                                airport: 'مطار',
-                                group_transport: 'نقل جماعي',
-                                train: 'قطار'
+                                airport: travelTranslations.travelWithAirport,
+                                group_transport: travelTranslations.travelWithGroupTransport,
+                                train: travelTranslations.travelWithTrain
                             };
                             return travelWithMap[data] || data || '-';
                         }
@@ -781,14 +826,14 @@
         @if (@AdminGuardHasPerm(\App\PermKeys::TRAVEL_DELETE))
             function deleteTravel(id) {
                 Swal.fire({
-                    title: 'هل أنت متأكد؟',
-                    text: "لن تتمكن من استرجاع هذه الرحلة بعد الحذف!",
+                    title: travelTranslations.areYouSure,
+                    text: travelTranslations.deleteTripUnrecoverable,
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#d33',
                     cancelButtonColor: '#3085d6',
-                    confirmButtonText: 'نعم، احذف!',
-                    cancelButtonText: 'إلغاء'
+                    confirmButtonText: travelTranslations.yesDelete,
+                    cancelButtonText: travelTranslations.cancel
                 }).then((result) => {
                     if (result.isConfirmed) {
                         $.ajax({
@@ -799,11 +844,11 @@
                                 _method: 'DELETE'
                             },
                             success: function(response) {
-                                Swal.fire('تم الحذف!', 'تم حذف الرحلة بنجاح.', 'success');
+                                Swal.fire(travelTranslations.deletedTitle, travelTranslations.travelDeletedSuccessfully, 'success');
                                 $('#travelHistoryTable').DataTable().ajax.reload();
                             },
                             error: function(xhr) {
-                                Swal.fire('خطأ!', xhr.responseJSON?.message || 'حدث خطأ أثناء الحذف',
+                                Swal.fire(travelTranslations.errorTitle, xhr.responseJSON?.message || travelTranslations.travelDeleteError,
                                     'error');
                             }
                         });
@@ -816,14 +861,14 @@
             // إكتمال الرحلة
             function completeTrip(id) {
                 Swal.fire({
-                    title: 'إكتمال الرحلة',
-                    text: 'هل أنت متأكد من إكتمال هذه الرحلة؟',
+                    title: travelTranslations.completeTripTitle,
+                    text: travelTranslations.completeTripConfirm,
                     icon: 'question',
                     showCancelButton: true,
                     confirmButtonColor: '#28a745',
                     cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'نعم، إكتملت الرحلة',
-                    cancelButtonText: 'إلغاء'
+                    confirmButtonText: travelTranslations.yesCompleteTrip,
+                    cancelButtonText: travelTranslations.cancel
                 }).then((result) => {
                     if (result.isConfirmed) {
                         $.ajax({
@@ -836,19 +881,19 @@
                                 if (response.success) {
                                     Swal.fire({
                                         icon: 'success',
-                                        title: 'تم بنجاح',
+                                        title: travelTranslations.successTitle,
                                         text: response.message
                                     }).then(() => {
                                         loadTable(); // إعادة تحميل الجدول
                                         loadStatistics(); // إعادة تحميل الإحصائيات
                                     });
                                 } else {
-                                    Swal.fire('خطأ!', response.message, 'error');
+                                    Swal.fire(travelTranslations.errorTitle, response.message, 'error');
                                 }
                             },
                             error: function(xhr) {
-                                Swal.fire('خطأ!', xhr.responseJSON?.message ||
-                                    'حدث خطأ أثناء إكتمال الرحلة', 'error');
+                                Swal.fire(travelTranslations.errorTitle, xhr.responseJSON?.message ||
+                                    travelTranslations.completeTripError, 'error');
                             }
                         });
                     }

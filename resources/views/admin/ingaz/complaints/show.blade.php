@@ -1,7 +1,7 @@
 @extends('admin.layout.indexs.index')
 
 @section('page-title')
-    تفاصيل التذكرة #{{ str_pad($complaint->id, 6, '0', STR_PAD_LEFT) }}
+    {{ __('ingaz.ticket_details') }} #{{ str_pad($complaint->id, 6, '0', STR_PAD_LEFT) }}
 @endsection
 
 @section('style')
@@ -330,17 +330,17 @@
             <div class="row align-items-center">
                 <div class="col-md-8">
                     <div class="ticket-number-large">
-                        تذكرة #{{ str_pad($complaint->id, 6, '0', STR_PAD_LEFT) }}
+                        {{ __('ingaz.ticket_label') }} #{{ str_pad($complaint->id, 6, '0', STR_PAD_LEFT) }}
                     </div>
-                    <h3 class="mb-3">{{ $complaint->subject ?? 'بدون موضوع' }}</h3>
+                    <h3 class="mb-3">{{ $complaint->subject ?? __('ingaz.no_subject') }}</h3>
                     <div class="ticket-meta-header">
                         <div class="meta-item">
                             <i class="fas fa-user"></i>
-                            <span>{{ $complaint->complainant_name ?? 'غير محدد' }}</span>
+                            <span>{{ $complaint->complainant_name ?? __('ingaz.not_specified') }}</span>
                         </div>
                         <div class="meta-item">
                             <i class="fas fa-phone"></i>
-                            <span>{{ $complaint->complainant_phone ?? 'غير محدد' }}</span>
+                            <span>{{ $complaint->complainant_phone ?? __('ingaz.not_specified') }}</span>
                         </div>
                         <div class="meta-item">
                             <i class="fas fa-calendar"></i>
@@ -380,17 +380,17 @@
                                     '<span class="' .
                                     e($complaint->priorityBadge ?? 'badge text-bg-light text-dark') .
                                     ' priority-badge-large">' .
-                                    e($complaint->priorityText ?? ($complaint->priority ?? 'غير محدد')) .
+                                    e($complaint->priorityText ?? ($complaint->priority ?? __('ingaz.not_specified'))) .
                                     '</span>';
                             }
 
                             if (!$statusHasTag) {
                                 $statusTextMap = [
-                                    'pending' => 'قيد الانتظار',
-                                    'in_progress' => 'قيد المعالجة',
-                                    'resolved' => 'تم الحل',
-                                    'closed' => 'مغلقة',
-                                    'rejected' => 'مرفوضة',
+                                    'pending' => __('ingaz.complaint_status_pending'),
+                                    'in_progress' => __('ingaz.complaint_status_in_progress'),
+                                    'resolved' => __('ingaz.complaint_status_resolved'),
+                                    'closed' => __('ingaz.complaint_status_closed'),
+                                    'rejected' => __('ingaz.complaint_status_rejected'),
                                 ];
                                 $statusClassMap = [
                                     'pending' => 'text-bg-warning',
@@ -417,18 +417,18 @@
                     <div class="action-buttons-top">
                         @if (@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_EDIT))
                             <a class="btn btn-light" href="{{ route('complaints.edit', $complaint->id) }}">
-                                <i class="fas fa-edit me-2"></i>تعديل
+                                <i class="fas fa-edit me-2"></i>{{ __('buttons.edit') }}
                             </a>
                         @endif
 
                         @if (@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_DELETE))
                             <button class="btn btn-light text-danger" id="deleteTicket">
-                                <i class="fas fa-trash me-2"></i>حذف
+                                <i class="fas fa-trash me-2"></i>{{ __('ingaz.delete') }}
                             </button>
                         @endif
 
                         <button class="btn btn-light" onclick="window.print()">
-                            <i class="fas fa-print me-2"></i>طباعة
+                            <i class="fas fa-print me-2"></i>{{ __('ingaz.print') }}
                         </button>
                     </div>
                 </div>
@@ -440,31 +440,31 @@
             <div class="col-md-8">
                 <!-- تفاصيل الشكوى -->
                 <div class="info-card">
-                    <h5><i class="fas fa-info-circle me-2"></i>تفاصيل الشكوى</h5>
+                    <h5><i class="fas fa-info-circle me-2"></i>{{ __('ingaz.complaint_details') }}</h5>
 
                     <div class="info-row">
-                        <div class="info-label">نوع الشكوى:</div>
+                        <div class="info-label">{{ __('ingaz.complaint_type') }}:</div>
                         <div class="info-value">
-                            {{ $complaint->complaintType->name ?? 'غير محدد' }}
+                            {{ $complaint->complaintType->name ?? __('ingaz.not_specified') }}
                         </div>
                     </div>
 
                     <div class="info-row">
-                        <div class="info-label">الوصف:</div>
+                        <div class="info-label">{{ __('ingaz.description') }}:</div>
                         <div class="info-value">
-                            {{ $complaint->details ?? 'لا يوجد وصف' }}
+                            {{ $complaint->details ?? __('ingaz.no_description') }}
                         </div>
                     </div>
 
                     @if ($complaint->maid_passport || $complaint->maid_nationality_id)
                         <div class="info-row">
-                            <div class="info-label">معلومات العاملة:</div>
+                            <div class="info-label">{{ __('ingaz.worker_info') }}:</div>
                             <div class="info-value">
                                 @if ($complaint->maid_passport)
-                                    جواز: {{ $complaint->maid_passport }}
+                                    {{ __('ingaz.passport') }}: {{ $complaint->maid_passport }}
                                 @endif
                                 @if ($complaint->maidNationality)
-                                    - الجنسية: {{ $complaint->maidNationality->title }}
+                                    - {{ __('ingaz.nationality') }}: {{ $complaint->maidNationality->title }}
                                 @endif
                             </div>
                         </div>
@@ -472,12 +472,12 @@
 
                     @if ($complaint->attachments && count($complaint->attachments) > 0)
                         <div class="info-row">
-                            <div class="info-label">المرفقات:</div>
+                            <div class="info-label">{{ __('ingaz.attachments') }}:</div>
                             <div class="info-value">
                                 @foreach ($complaint->attachments as $attachment)
                                     <a href="{{ Storage::url($attachment) }}" target="_blank" class="attachment-item">
                                         <i class="fas fa-paperclip"></i>
-                                        مرفق {{ $loop->iteration }}
+                                        {{ __('ingaz.attachment_number', ['number' => $loop->iteration]) }}
                                     </a>
                                 @endforeach
                             </div>
@@ -487,7 +487,7 @@
 
                 <!-- Timeline التحديثات -->
                 <div class="info-card">
-                    <h5><i class="fas fa-history me-2"></i>سجل التحديثات</h5>
+                    <h5><i class="fas fa-history me-2"></i>{{ __('ingaz.updates_log') }}</h5>
 
                     <div class="timeline">
                         <!-- إنشاء التذكرة -->
@@ -495,11 +495,11 @@
                             <div class="timeline-icon"></div>
                             <div class="timeline-content">
                                 <div class="timeline-header">
-                                    <div class="timeline-title">تم إنشاء التذكرة</div>
+                                    <div class="timeline-title">{{ __('ingaz.ticket_created') }}</div>
                                     <div class="timeline-time">{{ $complaint->created_at->diffForHumans() }}</div>
                                 </div>
                                 <div>
-                                    تم إنشاء التذكرة بواسطة {{ $complaint->user->name ?? 'النظام' }}
+                                    {{ __('ingaz.ticket_created_by', ['name' => $complaint->user->name ?? __('ingaz.system')]) }}
                                 </div>
                             </div>
                         </div>
@@ -516,7 +516,7 @@
                                         <div>
                                             {{ $update->description }}
                                             @if ($update->admin)
-                                                <br><small class="text-muted">بواسطة: {{ $update->admin->name }}</small>
+                                                <br><small class="text-muted">{{ __('ingaz.by') }}: {{ $update->admin->name }}</small>
                                             @endif
                                         </div>
                                     </div>
@@ -529,11 +529,11 @@
                                 <div class="timeline-icon success"></div>
                                 <div class="timeline-content">
                                     <div class="timeline-header">
-                                        <div class="timeline-title">تم حل الشكوى</div>
+                                        <div class="timeline-title">{{ __('ingaz.complaint_resolved') }}</div>
                                         <div class="timeline-time">{{ $complaint->resolved_at->diffForHumans() }}</div>
                                     </div>
                                     <div>
-                                        تم حل الشكوى بواسطة {{ $complaint->resolvedBy->name ?? 'غير محدد' }}
+                                        {{ __('ingaz.complaint_resolved_by', ['name' => $complaint->resolvedBy->name ?? __('ingaz.not_specified')]) }}
                                     </div>
                                 </div>
                             </div>
@@ -543,7 +543,7 @@
 
                 <!-- التعليقات والردود -->
                 <div class="info-card">
-                    <h5><i class="fas fa-comments me-2"></i>التعليقات والردود</h5>
+                    <h5><i class="fas fa-comments me-2"></i>{{ __('ingaz.comments_and_replies') }}</h5>
 
                     <div id="commentsSection" class="comment-section">
                         @if (isset($complaint->comments) && count($complaint->comments) > 0)
@@ -555,7 +555,7 @@
                                                 <i class="fas fa-user"></i>
                                             </div>
                                             <div>
-                                                <div class="author-name">{{ $comment->admin->name ?? 'غير محدد' }}</div>
+                                                <div class="author-name">{{ $comment->admin->name ?? __('ingaz.not_specified') }}</div>
                                                 <div class="comment-time">{{ $comment->created_at->diffForHumans() }}</div>
                                             </div>
                                         </div>
@@ -563,7 +563,7 @@
                                             <div class="">
                                                 <button class="btn btn-danger deleteComment"
                                                     data-comment-id="{{ $comment->id }}">
-                                                    حذف التعليق
+                                                    {{ __('ingaz.delete_comment') }}
                                                 </button>
                                             </div>
                                         @endif
@@ -577,7 +577,7 @@
                         @else
                             <div class="no-comments">
                                 <i class="far fa-comment-dots"></i>
-                                <p>لا توجد تعليقات حتى الآن...</p>
+                                <p>{{ __('ingaz.no_comments_yet') }}</p>
                             </div>
                         @endif
                     </div>
@@ -585,31 +585,31 @@
                     <!-- نموذج إضافة تعليق -->
                     @if (@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_RESPONSE))
                         <div class="update-form">
-                            <h6 class="mb-3">إضافة تعليق أو تحديث</h6>
+                            <h6 class="mb-3">{{ __('ingaz.add_comment_or_update') }}</h6>
                             <form id="addCommentForm">
                                 @csrf
                                 <input type="hidden" name="complaint_id" value="{{ $complaint->id }}">
 
                                 <div class="mb-3">
-                                    <textarea name="comment" class="form-control" rows="3" placeholder="اكتب تعليقك هنا..." required></textarea>
+                                    <textarea name="comment" class="form-control" rows="3" placeholder="{{ __('ingaz.write_comment_here') }}" required></textarea>
                                 </div>
 
                                 <div class="row">
                                     <div class="col-md-6">
-                                        <label class="form-label">تغيير الحالة (اختياري)</label>
+                                        <label class="form-label">{{ __('ingaz.status_change_optional') }}</label>
                                         <select name="status" class="form-select">
-                                            <option value="">-- بدون تغيير --</option>
-                                            <option value="pending">قيد المعالجة</option>
-                                            <option value="resolved">تم الحل</option>
+                                            <option value="">{{ __('ingaz.no_change') }}</option>
+                                            <option value="pending">{{ __('ingaz.complaint_status_in_progress') }}</option>
+                                            <option value="resolved">{{ __('ingaz.complaint_status_resolved') }}</option>
                                             {{-- <option value="closed">إغلاق التذكرة</option> --}}
-                                            <option value="rejected">رفض الشكوى</option>
+                                            <option value="rejected">{{ __('ingaz.complaint_status_rejected') }}</option>
                                         </select>
                                     </div>
 
                                     <div class="col-md-6">
-                                        <label class="form-label">تحويل إلى موظف آخر</label>
+                                        <label class="form-label">{{ __('ingaz.assign_to_another_employee') }}</label>
                                         <select name="assigned_to" class="form-select">
-                                            <option value="">-- بدون تغيير --</option>
+                                            <option value="">{{ __('ingaz.no_change') }}</option>
                                             @foreach ($admins as $admin)
                                                 <option value="{{ $admin->id }}"
                                                     {{ $complaint->assigned_to == $admin->id ? 'selected' : '' }}>
@@ -622,7 +622,7 @@
 
                                 <div class="mt-3">
                                     <button type="submit" class="btn btn-primary">
-                                        <i class="fas fa-paper-plane me-2"></i>إرسال التحديث
+                                        <i class="fas fa-paper-plane me-2"></i>{{ __('ingaz.send_update') }}
                                     </button>
                                 </div>
                             </form>
@@ -635,27 +635,27 @@
             <div class="col-md-4">
                 <!-- معلومات العميل -->
                 <div class="info-card">
-                    <h5><i class="fas fa-user me-2"></i>معلومات مقدم الشكوى</h5>
+                    <h5><i class="fas fa-user me-2"></i>{{ __('ingaz.complainant_info') }}</h5>
 
                     <div class="info-row">
-                        <div class="info-label">الاسم:</div>
-                        <div class="info-value">{{ $complaint->complainant_name ?? 'غير محدد' }}</div>
+                        <div class="info-label">{{ __('ingaz.name') }}:</div>
+                        <div class="info-value">{{ $complaint->complainant_name ?? __('ingaz.not_specified') }}</div>
                     </div>
 
                     <div class="info-row">
-                        <div class="info-label">الجوال:</div>
+                        <div class="info-label">{{ __('ingaz.phone') }}:</div>
                         <div class="info-value">
                             @if ($complaint->complainant_phone)
                                 <a href="tel:{{ $complaint->complainant_phone }}">{{ $complaint->complainant_phone }}</a>
                             @else
-                                غير محدد
+                                {{ __('ingaz.not_specified') }}
                             @endif
                         </div>
                     </div>
 
                     @if ($complaint->user)
                         <div class="info-row">
-                            <div class="info-label">العميل المسجل:</div>
+                            <div class="info-label">{{ __('ingaz.registered_client') }}:</div>
                             <div class="info-value">
                                 <a href="{{ route('clients.show', $complaint->user_id) }}">
                                     {{ $complaint->user->name }}
@@ -667,64 +667,64 @@
 
                 <!-- معلومات التذكرة -->
                 <div class="info-card">
-                    <h5><i class="fas fa-ticket-alt me-2"></i>معلومات التذكرة</h5>
+                    <h5><i class="fas fa-ticket-alt me-2"></i>{{ __('ingaz.ticket_info') }}</h5>
 
                     <div class="info-row">
-                        <div class="info-label">رقم التذكرة:</div>
+                        <div class="info-label">{{ __('ingaz.ticket_number') }}:</div>
                         <div class="info-value">#{{ str_pad($complaint->id, 6, '0', STR_PAD_LEFT) }}</div>
                     </div>
 
                     <div class="info-row">
-                        <div class="info-label">تاريخ الإنشاء:</div>
+                        <div class="info-label">{{ __('ingaz.created_date') }}:</div>
                         <div class="info-value">{{ $complaint->created_at->format('Y-m-d H:i') }}</div>
                     </div>
 
                     <div class="info-row">
-                        <div class="info-label">آخر تحديث:</div>
+                        <div class="info-label">{{ __('ingaz.last_updated_at') }}:</div>
                         <div class="info-value">{{ $complaint->updated_at->format('Y-m-d H:i') }}</div>
                     </div>
 
                     <div class="info-row">
-                        <div class="info-label">الحالة:</div>
+                        <div class="info-label">{{ __('ingaz.status') }}:</div>
                         <div class="info-value">{!! $statusBadgeHtml ?? '' !!}</div>
                     </div>
 
                     <div class="info-row">
-                        <div class="info-label">الأولوية:</div>
+                        <div class="info-label">{{ __('ingaz.priority') }}:</div>
                         <div class="info-value">{!! $priorityBadgeHtml ?? '' !!}</div>
                     </div>
 
                     <div class="info-row">
-                        <div class="info-label">الموظف المختص:</div>
+                        <div class="info-label">{{ __('ingaz.assigned_employee') }}:</div>
                         <div class="info-value">
-                            {{ $complaint->assignedTo->name ?? 'غير محدد' }}
+                            {{ $complaint->assignedTo->name ?? __('ingaz.not_specified') }}
                         </div>
                     </div>
                 </div>
 
                 <!-- الإجراءات السريعة -->
                 <div class="info-card">
-                    <h5><i class="fas fa-bolt me-2"></i>إجراءات سريعة</h5>
+                    <h5><i class="fas fa-bolt me-2"></i>{{ __('ingaz.quick_actions') }}</h5>
 
                     <div class="d-grid gap-2">
                         @if ($complaint->status != 'resolved')
                             <button class="btn btn-success" id="markResolved">
-                                <i class="fas fa-check me-2"></i>وضع علامة "تم الحل"
+                                <i class="fas fa-check me-2"></i>{{ __('ingaz.mark_resolved') }}
                             </button>
                         @endif
 
                         @if ($complaint->status != 'closed')
                             <button class="btn btn-secondary" id="closeTicket">
-                                <i class="fas fa-times me-2"></i>إغلاق التذكرة
+                                <i class="fas fa-times me-2"></i>{{ __('ingaz.close_ticket') }}
                             </button>
                         @endif
 
                         <button class="btn btn-info" id="assignTicket">
-                            <i class="fas fa-user-tag me-2"></i>تحويل لموظف آخر
+                            <i class="fas fa-user-tag me-2"></i>{{ __('ingaz.assign_to_another_employee') }}
                         </button>
 
                         <button class="btn btn-warning" id="changePriority">
-                            <i class="fas fa-exclamation-triangle me-2"></i>تغيير الأولوية
+                            <i class="fas fa-exclamation-triangle me-2"></i>{{ __('ingaz.change_priority') }}
                         </button>
                     </div>
                 </div>
@@ -737,7 +737,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">تحويل التذكرة</h5>
+                    <h5 class="modal-title">{{ __('ingaz.transfer_ticket') }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -746,9 +746,9 @@
                         <input type="hidden" name="complaint_id" value="{{ $complaint->id }}">
 
                         <div class="mb-3">
-                            <label class="form-label">اختر الموظف</label>
+                            <label class="form-label">{{ __('ingaz.select_employee') }}</label>
                             <select name="assigned_to" class="form-select" required>
-                                <option value="">-- اختر موظف --</option>
+                                <option value="">{{ __('ingaz.select_employee') }}</option>
                                 @foreach ($admins as $admin)
                                     <option value="{{ $admin->id }}">{{ $admin->name }}</option>
                                 @endforeach
@@ -756,14 +756,14 @@
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">ملاحظات (اختياري)</label>
+                            <label class="form-label">{{ __('ingaz.notes_optional') }}</label>
                             <textarea name="notes" class="form-control" rows="3"></textarea>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                    <button type="button" class="btn btn-primary" id="saveAssign">تحويل</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ __('buttons.cancel') }}</button>
+                    <button type="button" class="btn btn-primary" id="saveAssign">{{ __('ingaz.transfer_ticket') }}</button>
                 </div>
             </div>
         </div>
@@ -774,7 +774,7 @@
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">تغيير الأولوية</h5>
+                    <h5 class="modal-title">{{ __('ingaz.change_priority') }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -783,28 +783,28 @@
                         <input type="hidden" name="complaint_id" value="{{ $complaint->id }}">
 
                         <div class="mb-3">
-                            <label class="form-label">الأولوية الجديدة</label>
+                            <label class="form-label">{{ __('ingaz.new_priority') }}</label>
                             <select name="priority" class="form-select" required>
-                                <option value="low" {{ $complaint->priority == 'low' ? 'selected' : '' }}>منخفضة
+                                <option value="low" {{ $complaint->priority == 'low' ? 'selected' : '' }}>{{ __('ingaz.priority_low') }}
                                 </option>
-                                <option value="medium" {{ $complaint->priority == 'medium' ? 'selected' : '' }}>متوسطة
+                                <option value="medium" {{ $complaint->priority == 'medium' ? 'selected' : '' }}>{{ __('ingaz.priority_medium') }}
                                 </option>
-                                <option value="high" {{ $complaint->priority == 'high' ? 'selected' : '' }}>عالية
+                                <option value="high" {{ $complaint->priority == 'high' ? 'selected' : '' }}>{{ __('ingaz.priority_high') }}
                                 </option>
-                                <option value="urgent" {{ $complaint->priority == 'urgent' ? 'selected' : '' }}>عاجلة
+                                <option value="urgent" {{ $complaint->priority == 'urgent' ? 'selected' : '' }}>{{ __('ingaz.priority_urgent') }}
                                 </option>
                             </select>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">سبب التغيير</label>
+                            <label class="form-label">{{ __('ingaz.change_reason') }}</label>
                             <textarea name="reason" class="form-control" rows="3" required></textarea>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                    <button type="button" class="btn btn-primary" id="savePriority">حفظ</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ __('buttons.cancel') }}</button>
+                    <button type="button" class="btn btn-primary" id="savePriority">{{ __('buttons.save') }}</button>
                 </div>
             </div>
         </div>
@@ -815,6 +815,34 @@
 @section('js')
     <script>
         $(document).ready(function() {
+            const complaintShowTranslations = {
+                successTitle: @json(__('ingaz.success_title')),
+                errorTitle: @json(__('ingaz.error_title')),
+                genericError: @json(__('ingaz.unexpected_error')),
+                successUpdateAdded: @json(__('ingaz.success_update_added')),
+                updateAddError: @json(__('ingaz.update_add_error')),
+                areYouSure: @json(__('ingaz.are_you_sure')),
+                confirmMarkResolvedText: @json(__('ingaz.confirm_mark_resolved_text')),
+                confirmMarkResolvedButton: @json(__('ingaz.confirm_mark_resolved_button')),
+                confirmCloseTicketText: @json(__('ingaz.confirm_close_ticket_text')),
+                confirmCloseTicketButton: @json(__('ingaz.confirm_close_ticket_button')),
+                cancel: @json(__('buttons.cancel')),
+                ticketAssignedSuccessfully: @json(__('ingaz.ticket_assigned_successfully')),
+                ticketAssignError: @json(__('ingaz.ticket_assign_error')),
+                priorityChangedSuccessfully: @json(__('ingaz.priority_changed_successfully')),
+                priorityChangeError: @json(__('ingaz.priority_change_error')),
+                cannotUndoAction: @json(__('ingaz.cannot_undo_action')),
+                yesDelete: @json(__('ingaz.yes_delete')),
+                ticketDeletedSuccessfully: @json(__('ingaz.ticket_deleted_successfully')),
+                deleteError: @json(__('ingaz.delete_error')),
+                statusUpdatedSuccessfully: @json(__('ingaz.status_updated_successfully_short')),
+                deleteComment: @json(__('ingaz.delete_comment')),
+                confirmDeleteComment: @json(__('ingaz.confirm_delete_this_attachment')),
+                confirm: @json(__('ingaz.confirm')),
+                ok: @json(__('ingaz.ok')),
+                commentDeletedSuccessfully: @json(__('ingaz.comment_deleted_successfully')),
+            };
+
             // إضافة تعليق
             $('#addCommentForm').submit(function(e) {
                 e.preventDefault();
@@ -826,30 +854,30 @@
                     success: function(response) {
                         if (response.success) {
                             if (typeof successToster !== 'undefined') {
-                                successToster('تم بنجاح', 'تم إضافة التحديث بنجاح');
+                                successToster(complaintShowTranslations.successTitle, complaintShowTranslations.successUpdateAdded);
                             } else if (typeof toastr !== 'undefined') {
-                                toastr.success('تم إضافة التحديث بنجاح');
+                                toastr.success(complaintShowTranslations.successUpdateAdded);
                             } else {
-                                alert('تم إضافة التحديث بنجاح');
+                                alert(complaintShowTranslations.successUpdateAdded);
                             }
                             setTimeout(() => location.reload(), 1500);
                         } else {
                             if (typeof errorToster !== 'undefined') {
-                                errorToster('خطأ', response.message || 'حدث خطأ');
+                                errorToster(complaintShowTranslations.errorTitle, response.message || complaintShowTranslations.genericError);
                             } else if (typeof toastr !== 'undefined') {
-                                toastr.error(response.message || 'حدث خطأ');
+                                toastr.error(response.message || complaintShowTranslations.genericError);
                             } else {
-                                alert(response.message || 'حدث خطأ');
+                                alert(response.message || complaintShowTranslations.genericError);
                             }
                         }
                     },
                     error: function() {
                         if (typeof errorToster !== 'undefined') {
-                            errorToster('خطأ', 'حدث خطأ أثناء إضافة التحديث');
+                            errorToster(complaintShowTranslations.errorTitle, complaintShowTranslations.updateAddError);
                         } else if (typeof toastr !== 'undefined') {
-                            toastr.error('حدث خطأ أثناء إضافة التحديث');
+                            toastr.error(complaintShowTranslations.updateAddError);
                         } else {
-                            alert('حدث خطأ أثناء إضافة التحديث');
+                            alert(complaintShowTranslations.updateAddError);
                         }
                     }
                 });
@@ -858,12 +886,12 @@
             // وضع علامة تم الحل
             $('#markResolved').click(function() {
                 Swal.fire({
-                    title: 'هل أنت متأكد؟',
-                    text: "سيتم وضع علامة 'تم الحل' على هذه التذكرة",
+                    title: complaintShowTranslations.areYouSure,
+                    text: complaintShowTranslations.confirmMarkResolvedText,
                     icon: 'question',
                     showCancelButton: true,
-                    confirmButtonText: 'نعم، تم الحل',
-                    cancelButtonText: 'إلغاء'
+                    confirmButtonText: complaintShowTranslations.confirmMarkResolvedButton,
+                    cancelButtonText: complaintShowTranslations.cancel
                 }).then((result) => {
                     if (result.isConfirmed) {
                         updateStatus('resolved');
@@ -874,12 +902,12 @@
             // إغلاق التذكرة
             $('#closeTicket').click(function() {
                 Swal.fire({
-                    title: 'هل أنت متأكد؟',
-                    text: "سيتم إغلاق هذه التذكرة",
+                    title: complaintShowTranslations.areYouSure,
+                    text: complaintShowTranslations.confirmCloseTicketText,
                     icon: 'warning',
                     showCancelButton: true,
-                    confirmButtonText: 'نعم، أغلق التذكرة',
-                    cancelButtonText: 'إلغاء'
+                    confirmButtonText: complaintShowTranslations.confirmCloseTicketButton,
+                    cancelButtonText: complaintShowTranslations.cancel
                 }).then((result) => {
                     if (result.isConfirmed) {
                         updateStatus('closed');
@@ -901,30 +929,30 @@
                         if (response.success) {
                             $('#assignModal').modal('hide');
                             if (typeof successToster !== 'undefined') {
-                                successToster('تم بنجاح', 'تم تحويل التذكرة بنجاح');
+                                successToster(complaintShowTranslations.successTitle, complaintShowTranslations.ticketAssignedSuccessfully);
                             } else if (typeof toastr !== 'undefined') {
-                                toastr.success('تم تحويل التذكرة بنجاح');
+                                toastr.success(complaintShowTranslations.ticketAssignedSuccessfully);
                             } else {
-                                alert('تم تحويل التذكرة بنجاح');
+                                alert(complaintShowTranslations.ticketAssignedSuccessfully);
                             }
                             setTimeout(() => location.reload(), 1500);
                         } else {
                             if (typeof errorToster !== 'undefined') {
-                                errorToster('خطأ', response.message || 'حدث خطأ');
+                                errorToster(complaintShowTranslations.errorTitle, response.message || complaintShowTranslations.genericError);
                             } else if (typeof toastr !== 'undefined') {
-                                toastr.error(response.message || 'حدث خطأ');
+                                toastr.error(response.message || complaintShowTranslations.genericError);
                             } else {
-                                alert(response.message || 'حدث خطأ');
+                                alert(response.message || complaintShowTranslations.genericError);
                             }
                         }
                     },
                     error: function() {
                         if (typeof errorToster !== 'undefined') {
-                            errorToster('خطأ', 'حدث خطأ أثناء تحويل التذكرة');
+                            errorToster(complaintShowTranslations.errorTitle, complaintShowTranslations.ticketAssignError);
                         } else if (typeof toastr !== 'undefined') {
-                            toastr.error('حدث خطأ أثناء تحويل التذكرة');
+                            toastr.error(complaintShowTranslations.ticketAssignError);
                         } else {
-                            alert('حدث خطأ أثناء تحويل التذكرة');
+                            alert(complaintShowTranslations.ticketAssignError);
                         }
                     }
                 });
@@ -944,30 +972,30 @@
                         if (response.success) {
                             $('#priorityModal').modal('hide');
                             if (typeof successToster !== 'undefined') {
-                                successToster('تم بنجاح', 'تم تغيير الأولوية بنجاح');
+                                successToster(complaintShowTranslations.successTitle, complaintShowTranslations.priorityChangedSuccessfully);
                             } else if (typeof toastr !== 'undefined') {
-                                toastr.success('تم تغيير الأولوية بنجاح');
+                                toastr.success(complaintShowTranslations.priorityChangedSuccessfully);
                             } else {
-                                alert('تم تغيير الأولوية بنجاح');
+                                alert(complaintShowTranslations.priorityChangedSuccessfully);
                             }
                             setTimeout(() => location.reload(), 1500);
                         } else {
                             if (typeof errorToster !== 'undefined') {
-                                errorToster('خطأ', response.message || 'حدث خطأ');
+                                errorToster(complaintShowTranslations.errorTitle, response.message || complaintShowTranslations.genericError);
                             } else if (typeof toastr !== 'undefined') {
-                                toastr.error(response.message || 'حدث خطأ');
+                                toastr.error(response.message || complaintShowTranslations.genericError);
                             } else {
-                                alert(response.message || 'حدث خطأ');
+                                alert(response.message || complaintShowTranslations.genericError);
                             }
                         }
                     },
                     error: function() {
                         if (typeof errorToster !== 'undefined') {
-                            errorToster('خطأ', 'حدث خطأ أثناء تغيير الأولوية');
+                            errorToster(complaintShowTranslations.errorTitle, complaintShowTranslations.priorityChangeError);
                         } else if (typeof toastr !== 'undefined') {
-                            toastr.error('حدث خطأ أثناء تغيير الأولوية');
+                            toastr.error(complaintShowTranslations.priorityChangeError);
                         } else {
-                            alert('حدث خطأ أثناء تغيير الأولوية');
+                            alert(complaintShowTranslations.priorityChangeError);
                         }
                     }
                 });
@@ -976,14 +1004,14 @@
             // حذف التذكرة
             $('#deleteTicket').click(function() {
                 Swal.fire({
-                    title: 'هل أنت متأكد؟',
-                    text: "لن تتمكن من التراجع عن هذا الإجراء!",
+                    title: complaintShowTranslations.areYouSure,
+                    text: complaintShowTranslations.cannotUndoAction,
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#d33',
                     cancelButtonColor: '#3085d6',
-                    confirmButtonText: 'نعم، احذف!',
-                    cancelButtonText: 'إلغاء'
+                    confirmButtonText: complaintShowTranslations.yesDelete,
+                    cancelButtonText: complaintShowTranslations.cancel
                 }).then((result) => {
                     if (result.isConfirmed) {
                         $.ajax({
@@ -995,12 +1023,12 @@
                             success: function(response) {
                                 if (response.success) {
                                     if (typeof successToster !== 'undefined') {
-                                        successToster('تم بنجاح',
-                                            'تم حذف التذكرة بنجاح');
+                                        successToster(complaintShowTranslations.successTitle,
+                                            complaintShowTranslations.ticketDeletedSuccessfully);
                                     } else if (typeof toastr !== 'undefined') {
-                                        toastr.success('تم حذف التذكرة بنجاح');
+                                        toastr.success(complaintShowTranslations.ticketDeletedSuccessfully);
                                     } else {
-                                        alert('تم حذف التذكرة بنجاح');
+                                        alert(complaintShowTranslations.ticketDeletedSuccessfully);
                                     }
                                     setTimeout(() => {
                                         window.location.href =
@@ -1008,22 +1036,22 @@
                                     }, 1500);
                                 } else {
                                     if (typeof errorToster !== 'undefined') {
-                                        errorToster('خطأ', response.message ||
-                                            'حدث خطأ');
+                                        errorToster(complaintShowTranslations.errorTitle, response.message ||
+                                            complaintShowTranslations.genericError);
                                     } else if (typeof toastr !== 'undefined') {
-                                        toastr.error(response.message || 'حدث خطأ');
+                                        toastr.error(response.message || complaintShowTranslations.genericError);
                                     } else {
-                                        alert(response.message || 'حدث خطأ');
+                                        alert(response.message || complaintShowTranslations.genericError);
                                     }
                                 }
                             },
                             error: function() {
                                 if (typeof errorToster !== 'undefined') {
-                                    errorToster('خطأ', 'حدث خطأ أثناء الحذف');
+                                    errorToster(complaintShowTranslations.errorTitle, complaintShowTranslations.deleteError);
                                 } else if (typeof toastr !== 'undefined') {
-                                    toastr.error('حدث خطأ أثناء الحذف');
+                                    toastr.error(complaintShowTranslations.deleteError);
                                 } else {
-                                    alert('حدث خطأ أثناء الحذف');
+                                    alert(complaintShowTranslations.deleteError);
                                 }
                             }
                         });
@@ -1044,30 +1072,30 @@
                     success: function(response) {
                         if (response.success) {
                             if (typeof successToster !== 'undefined') {
-                                successToster('تم بنجاح', 'تم تحديث الحالة بنجاح');
+                                successToster(complaintShowTranslations.successTitle, complaintShowTranslations.statusUpdatedSuccessfully);
                             } else if (typeof toastr !== 'undefined') {
-                                toastr.success('تم تحديث الحالة بنجاح');
+                                toastr.success(complaintShowTranslations.statusUpdatedSuccessfully);
                             } else {
-                                alert('تم تحديث الحالة بنجاح');
+                                alert(complaintShowTranslations.statusUpdatedSuccessfully);
                             }
                             setTimeout(() => location.reload(), 1500);
                         } else {
                             if (typeof errorToster !== 'undefined') {
-                                errorToster('خطأ', response.message || 'حدث خطأ');
+                                errorToster(complaintShowTranslations.errorTitle, response.message || complaintShowTranslations.genericError);
                             } else if (typeof toastr !== 'undefined') {
-                                toastr.error(response.message || 'حدث خطأ');
+                                toastr.error(response.message || complaintShowTranslations.genericError);
                             } else {
-                                alert(response.message || 'حدث خطأ');
+                                alert(response.message || complaintShowTranslations.genericError);
                             }
                         }
                     },
                     error: function() {
                         if (typeof errorToster !== 'undefined') {
-                            errorToster('خطأ', 'حدث خطأ أثناء تحديث الحالة');
+                            errorToster(complaintShowTranslations.errorTitle, complaintShowTranslations.genericError);
                         } else if (typeof toastr !== 'undefined') {
-                            toastr.error('حدث خطأ أثناء تحديث الحالة');
+                            toastr.error(complaintShowTranslations.genericError);
                         } else {
-                            alert('حدث خطأ أثناء تحديث الحالة');
+                            alert(complaintShowTranslations.genericError);
                         }
                     }
                 });
@@ -1078,14 +1106,14 @@
                 var commentId = $(this).data('comment-id');
 
                 Swal.fire({
-                    title: 'حذف التعليق',
-                    text: "هل انت متأكد من حذف هذا التعليق؟",
+                    title: complaintShowTranslations.deleteComment,
+                    text: complaintShowTranslations.areYouSure,
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#d33',
                     cancelButtonColor: '#6c757d',
-                    confirmButtonText: "تأكيد",
-                    cancelButtonText: "الغاء"
+                    confirmButtonText: complaintShowTranslations.confirm,
+                    cancelButtonText: complaintShowTranslations.cancel
                 }).then((result) => {
                     if (result.isConfirmed) {
                         const commentId = $(this).data('comment-id');
@@ -1099,8 +1127,8 @@
                                 if (response.code == 200) {
                                     Swal.fire({
                                         icon: 'success',
-                                        title: 'تم حذف التعليق',
-                                        confirmButtonText: 'حسناً'
+                                        title: complaintShowTranslations.commentDeletedSuccessfully,
+                                        confirmButtonText: complaintShowTranslations.ok
                                     });
                                     setTimeout(() => {
                                         window.location.reload();
@@ -1108,8 +1136,8 @@
                                 } else {
                                     Swal.fire({
                                         icon: 'error',
-                                        title: 'حدث خطأ أثناء الحذف',
-                                        confirmButtonText: 'حسناً'
+                                        title: complaintShowTranslations.deleteError,
+                                        confirmButtonText: complaintShowTranslations.ok
                                     });
 
                                 }
@@ -1117,8 +1145,8 @@
                             error: function() {
                                 Swal.fire({
                                     icon: 'error',
-                                    title: 'حدث خطأ أثناء الحذف',
-                                    confirmButtonText: 'حسناً'
+                                    title: complaintShowTranslations.deleteError,
+                                    confirmButtonText: complaintShowTranslations.ok
                                 });
                             }
                         });
