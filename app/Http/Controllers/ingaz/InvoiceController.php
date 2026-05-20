@@ -11,6 +11,7 @@ use App\Models\ingaz\Nationality;
 use App\Models\ingaz\Setting;
 use App\Models\ingaz\User as ClientUser;
 use App\Services\ingaz\InvoiceCalculationService;
+use App\Support\InvoiceQrCode;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -1483,7 +1484,7 @@ class InvoiceController extends Controller
             $grandTotal,
             $vatAmount
         );
-        $qrImage = (new \chillerlan\QRCode\QRCode())->render($invoiceBarcodeValue);
+        $qrImage = InvoiceQrCode::render($invoiceBarcodeValue);
 
         return [
             'invoice' => $invoice,

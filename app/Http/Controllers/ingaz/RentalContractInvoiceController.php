@@ -6,6 +6,7 @@ use App\Http\Controllers\admin\Controller;
 use App\Models\ingaz\Setting;
 use App\Models\RentalContractInvoice;
 use App\Services\ingaz\InvoiceCalculationService;
+use App\Support\InvoiceQrCode;
 use Illuminate\Support\Facades\Auth;
 use PDF;
 
@@ -101,7 +102,7 @@ class RentalContractInvoiceController extends Controller
             $grandTotal,
             $vatAmount
         );
-        $qrImage = (new \chillerlan\QRCode\QRCode())->render($invoiceBarcodeValue);
+        $qrImage = InvoiceQrCode::render($invoiceBarcodeValue, $qrImage);
 
         return [
             'invoice' => $invoice,
