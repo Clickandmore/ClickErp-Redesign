@@ -182,7 +182,7 @@
 @endsection
 
 @section('page-title')
-    طلبات التواصل
+    {{ helperTrans('ingaz.contact_requests') }}
 @endsection
 
 @section('content')
@@ -194,14 +194,14 @@
                         <div class="card-body p-4 p-lg-5">
                             <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
                                 <div>
-                                    <div class="contact-hero-title mb-2">طلبات التواصل</div>
+                                    <div class="contact-hero-title mb-2">{{ helperTrans('ingaz.contact_requests') }}</div>
                                     <p class="contact-hero-note mb-0">
-                                        متابعة رسائل نموذج التواصل مع عرض افتراضي من الأحدث إلى الأقدم، وإمكانية تصفية النتائج حسب الحالة، التاريخ، أو كلمات البحث.
+                                        {{ helperTrans('ingaz.contact_requests_followup_hint') }}
                                     </p>
                                 </div>
                                 <div class="text-lg-end">
                                     <div class="badge rounded-pill contact-soft-primary px-3 py-2 fs-6">
-                                        {{ number_format($stats['filtered'] ?? 0) }} طلب ظاهر
+                                        {{ __('ingaz.visible_requests_count', ['count' => number_format($stats['filtered'] ?? 0)]) }}
                                     </div>
                                 </div>
                             </div>
@@ -216,7 +216,7 @@
                                 </div>
                                 <div>
                                     <div class="contact-stat-value">{{ number_format($stats['total'] ?? 0) }}</div>
-                                    <div class="contact-stat-label">إجمالي الطلبات</div>
+                                    <div class="contact-stat-label">{{ helperTrans('ingaz.total_requests') }}</div>
                                 </div>
                             </div>
                         </div>
@@ -227,7 +227,7 @@
                                 </div>
                                 <div>
                                     <div class="contact-stat-value">{{ number_format($stats['new'] ?? 0) }}</div>
-                                    <div class="contact-stat-label">بانتظار التواصل</div>
+                                    <div class="contact-stat-label">{{ helperTrans('ingaz.pending_contact') }}</div>
                                 </div>
                             </div>
                         </div>
@@ -238,7 +238,7 @@
                                 </div>
                                 <div>
                                     <div class="contact-stat-value">{{ number_format($stats['contacted'] ?? 0) }}</div>
-                                    <div class="contact-stat-label">تم التواصل معها</div>
+                                    <div class="contact-stat-label">{{ helperTrans('ingaz.contacted_requests') }}</div>
                                 </div>
                             </div>
                         </div>
@@ -249,7 +249,7 @@
                                 </div>
                                 <div>
                                     <div class="contact-stat-value">{{ number_format($stats['today'] ?? 0) }}</div>
-                                    <div class="contact-stat-label">طلبات اليوم</div>
+                                    <div class="contact-stat-label">{{ helperTrans('ingaz.today_requests') }}</div>
                                 </div>
                             </div>
                         </div>
@@ -259,34 +259,34 @@
                         <div class="card-body p-4">
                             <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-2 mb-3">
                                 <div>
-                                    <h5 class="mb-1">الفلاتر</h5>
-                                    <p class="text-muted mb-0">ابحث باسم المرسل أو الجوال أو البريد أو الموضوع، ثم صفِّ النتائج حسب الحالة والتاريخ.</p>
+                                    <h5 class="mb-1">{{ helperTrans('ingaz.filters') }}</h5>
+                                    <p class="text-muted mb-0">{{ helperTrans('ingaz.contact_filters_hint') }}</p>
                                 </div>
-                                <div class="text-muted small">الفرز الافتراضي: الأحدث أولًا</div>
+                                <div class="text-muted small">{{ helperTrans('ingaz.default_sort_latest_first') }}</div>
                             </div>
 
                             <form id="contactFilterForm" class="row g-3" method="GET" action="{{ route('contact.index') }}">
                                 <div class="col-lg-4">
-                                    <label class="form-label">بحث سريع</label>
+                                    <label class="form-label">{{ helperTrans('ingaz.quick_search') }}</label>
                                     <input type="text" class="form-control" name="keyword" id="keyword"
                                         value="{{ $filters['keyword'] ?? '' }}"
-                                        placeholder="الاسم، الجوال، البريد، الموضوع، الرسالة">
+                                        placeholder="{{ helperTrans('ingaz.contact_search_placeholder') }}">
                                 </div>
                                 <div class="col-lg-3 col-md-4">
-                                    <label class="form-label">حالة الطلب</label>
+                                    <label class="form-label">{{ helperTrans('ingaz.request_status') }}</label>
                                     <select class="form-select" name="is_contacted" id="is_contacted">
-                                        <option value="">كل الحالات</option>
-                                        <option value="0" {{ (string) ($filters['is_contacted'] ?? '') === '0' ? 'selected' : '' }}>بانتظار التواصل</option>
-                                        <option value="1" {{ (string) ($filters['is_contacted'] ?? '') === '1' ? 'selected' : '' }}>تم التواصل</option>
+                                        <option value="">{{ helperTrans('ingaz.all_contact_statuses') }}</option>
+                                        <option value="0" {{ (string) ($filters['is_contacted'] ?? '') === '0' ? 'selected' : '' }}>{{ helperTrans('ingaz.pending_contact') }}</option>
+                                        <option value="1" {{ (string) ($filters['is_contacted'] ?? '') === '1' ? 'selected' : '' }}>{{ helperTrans('ingaz.contacted') }}</option>
                                     </select>
                                 </div>
                                 <div class="col-lg-2 col-md-4">
-                                    <label class="form-label">من تاريخ</label>
+                                    <label class="form-label">{{ helperTrans('ingaz.from_date') }}</label>
                                     <input type="date" class="form-control" name="date_from" id="date_from"
                                         value="{{ $filters['date_from'] ?? '' }}">
                                 </div>
                                 <div class="col-lg-2 col-md-4">
-                                    <label class="form-label">إلى تاريخ</label>
+                                    <label class="form-label">{{ helperTrans('ingaz.to_date') }}</label>
                                     <input type="date" class="form-control" name="date_to" id="date_to"
                                         value="{{ $filters['date_to'] ?? '' }}">
                                 </div>
@@ -295,14 +295,14 @@
                                     <div class="contact-filter-actions">
                                         <button type="submit" class="btn btn-primary w-100">
                                             <i class="fa fa-filter ms-1"></i>
-                                            تصفية
+                                            {{ helperTrans('ingaz.filter') }}
                                         </button>
                                     </div>
                                 </div>
                                 <div class="col-12 d-flex flex-wrap gap-2">
                                     <a href="{{ route('contact.index') }}" class="btn btn-outline-secondary">
                                         <i class="fa fa-rotate-right ms-1"></i>
-                                        إعادة تعيين
+                                        {{ helperTrans('ingaz.reset_filters') }}
                                     </a>
                                 </div>
                             </form>
@@ -310,18 +310,18 @@
                             @if ($hasFilters)
                                 <div class="contact-chip-list mt-3">
                                     @if (!empty($filters['keyword']))
-                                        <span class="contact-chip">بحث: {{ $filters['keyword'] }}</span>
+                                        <span class="contact-chip">{{ __('ingaz.search_prefix', ['value' => $filters['keyword']]) }}</span>
                                     @endif
                                     @if (($filters['is_contacted'] ?? '') !== '')
                                         <span class="contact-chip">
-                                            الحالة: {{ (string) $filters['is_contacted'] === '1' ? 'تم التواصل' : 'بانتظار التواصل' }}
+                                            {{ __('ingaz.status_prefix', ['value' => (string) $filters['is_contacted'] === '1' ? helperTrans('ingaz.contacted') : helperTrans('ingaz.pending_contact')]) }}
                                         </span>
                                     @endif
                                     @if (!empty($filters['date_from']))
-                                        <span class="contact-chip">من: {{ $filters['date_from'] }}</span>
+                                        <span class="contact-chip">{{ __('ingaz.from_prefix', ['value' => $filters['date_from']]) }}</span>
                                     @endif
                                     @if (!empty($filters['date_to']))
-                                        <span class="contact-chip">إلى: {{ $filters['date_to'] }}</span>
+                                        <span class="contact-chip">{{ __('ingaz.to_prefix', ['value' => $filters['date_to']]) }}</span>
                                     @endif
                                 </div>
                             @endif
@@ -335,15 +335,15 @@
                                     <thead>
                                         <tr>
                                             <th>#</th>
-                                            <th>المرسل</th>
-                                            <th>الجوال</th>
-                                            <th>البريد</th>
-                                            <th>نوع الطلب</th>
-                                            <th>الموضوع</th>
-                                            <th>الرسالة</th>
-                                            <th>الحالة</th>
-                                            <th>تاريخ الإرسال</th>
-                                            <th>الإجراءات</th>
+                                            <th>{{ helperTrans('ingaz.sender') }}</th>
+                                            <th>{{ helperTrans('ingaz.phone') }}</th>
+                                            <th>{{ helperTrans('ingaz.email') }}</th>
+                                            <th>{{ helperTrans('ingaz.request_type') }}</th>
+                                            <th>{{ helperTrans('ingaz.subject') }}</th>
+                                            <th>{{ helperTrans('ingaz.message') }}</th>
+                                            <th>{{ helperTrans('ingaz.status') }}</th>
+                                            <th>{{ helperTrans('ingaz.sent_at') }}</th>
+                                            <th>{{ helperTrans('ingaz.actions') }}</th>
                                         </tr>
                                     </thead>
                                     <tbody></tbody>
@@ -394,7 +394,7 @@
                 language: {
                     "sProcessing": "{{ trans('dataTable.sProcessing') }}",
                     "sLengthMenu": "{{ trans('dataTable.sLengthMenu') }}",
-                    "sZeroRecords": "لا توجد طلبات تواصل مطابقة",
+                    "sZeroRecords": @json(helperTrans('ingaz.no_matching_contact_requests')),
                     "sInfo": "{{ trans('dataTable.sInfo') }}",
                     "sInfoEmpty": "{{ trans('dataTable.sInfoEmpty') }}",
                     "sInfoFiltered": "{{ trans('dataTable.sInfoFiltered') }}",
@@ -422,7 +422,7 @@
                 },
                 success: function (response) {
                     if (typeof successToster === 'function') {
-                        successToster('تم بنجاح', response.message || 'تم تحديث حالة الطلب');
+                        successToster(@json(helperTrans('ingaz.success_title')), response.message || @json(helperTrans('ingaz.contact_request_status_updated')));
                     }
 
                     window.location.reload();

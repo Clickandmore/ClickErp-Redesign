@@ -5,7 +5,7 @@
     $isRentalForm = $isRentalForm ?? false;
     $formRedirectRoute = $formRedirectRoute ?? route('maids.index');
     $shelterCompanyName = documentSetting('document_company_name', documentSetting('website_name', config('app.name')));
-    $shelterCompanyHint = 'سيتم إنشاء عقد إيواء تلقائياً باسم ' . $shelterCompanyName;
+    $shelterCompanyHint = __('ingaz.auto_shelter_contract_hint', ['company' => $shelterCompanyName]);
     $selectedTypeId = (int) old('type_id', $obj->jobTypes->pluck('id')->first());
     $selectedTypeTitle = collect($types ?? [])->firstWhere('id', $selectedTypeId)->title ?? '';
     $normalizedSelectedTypeTitle = mb_strtolower(trim((string) $selectedTypeTitle));
@@ -68,11 +68,11 @@
                     <!-- الملفات -->
 
                     <div class="col-6">
-                        <label for="TextInput" class="form-label">صورة شخصية </label>
+                        <label for="TextInput" class="form-label">{{ helperTrans('ingaz.personal_photo') }}</label>
                         <input type="file" data-default-file="{{showFile($obj->image)}}" name="image" class="dropify" >
                     </div>
                     <div class="col-6">
-                        <label for="TextInput" class="form-label">صورة كاملة </label>
+                        <label for="TextInput" class="form-label">{{ helperTrans('ingaz.full_photo') }}</label>
                         <input type="file" data-default-file="{{showFile($obj->cv_file)}}" name="cv_file" class="dropify">
                     </div>
 
@@ -88,14 +88,14 @@
                     <div class="col-4">
                         <label for="TextInput" class="form-label">{{helperTrans("ingaz.job_types_2")}} </label>
                         <select name="type_id" id="type_id" class="form-control" required>
-                            <option value="">اختر نوع السيرة</option>
+                            <option value="">{{ helperTrans('ingaz.select_cv_type') }}</option>
                             @foreach($types as $type)
                                 <option
                                         value="{{$type->id}}" {{ in_array($type->id, $obj->jobTypes->pluck('id')->toArray()) ? 'selected' : '' }}>{{$type->title}}</option>
                             @endforeach
                         </select>
                         <div class="text-muted mt-2 d-none">
-                            سيتم تسكينها تلقائياً للإيواء لهذا النوع.
+                            {{ helperTrans('ingaz.auto_shelter_notice') }}
                         </div>
                     </div>
 
@@ -103,7 +103,7 @@
                     <div class="col-4">
                         <label for="TextInput" class="form-label">{{helperTrans("ingaz.nationality")}} </label>
                         <select name="nationality_id" id="Pnationality_id" class="form-control" required>
-                            <option value="">اختر</option>
+                            <option value="">{{ helperTrans('ingaz.choose') }}</option>
                             @foreach($nationalities as $nationality)
                                 <option value="{{$nationality->id}}"
                                         data-price="{{$nationality->price}}"
@@ -121,19 +121,19 @@
                     <div class="col-4 office-field">
                         <label for="TextInput" class="form-label">{{helperTrans("ingaz.recruitment office")}} </label>
                         <select name="office_id" class="form-control">
-                            <option value="">اختر مكتب الاستقدام</option>
+                            <option value="">{{ helperTrans('ingaz.choose_recruitment_office') }}</option>
                             {!! showSelectElement($offices , 'title', $obj->office_id) !!}
                         </select>
                     </div>
 
                     <!-- خيار تسكين للإيواء -->
                     <div class="col-4" id="shelter_option">
-                        <label for="create_shelter_contract" class="form-label">تسكين للإيواء</label>
+                        <label for="create_shelter_contract" class="form-label">{{ helperTrans('ingaz.shelter_assignment') }}</label>
                         <select name="create_shelter_contract" id="create_shelter_contract" class="form-control shelter-question-select">
-                            <option value="0">لا - لا تسكين</option>
-                            <option value="1">نعم - تسكين للإيواء</option>
+                            <option value="0">{{ helperTrans('ingaz.no_regular_worker') }}</option>
+                            <option value="1">{{ helperTrans('ingaz.yes_assign_to_shelter') }}</option>
                         </select>
-                        <small class="text-muted">سيتم إنشاء عقد إيواء تلقائياً باسم {{ documentSetting('document_company_name', documentSetting('website_name', config('app.name'))) }}</small>
+                        <small class="text-muted">{{ $shelterCompanyHint }}</small>
                     </div>
 
                     <!-- الوظائف -->
@@ -205,7 +205,7 @@
                     <!-- البيانات الشخصية -->
                     <div class="col-4">
                         <label for="TextInput" class="form-label">
-                            تاريخ الميلاد
+                            {{ helperTrans('ingaz.birth_date') }}
                         </label>
                         <input type="date" name="birth_date" id="birth_date" class="form-control"
                                value="{{$obj->birth_date}}">
@@ -224,7 +224,7 @@
                             {{helperTrans("ingaz.height")}}
                         </label>
                         <input type="text" name="height" class="form-control" value="{{$obj->height ?? '160'}}"
-                               placeholder="الطول بالسنتيمتر">
+                               placeholder="{{ helperTrans('ingaz.height_placeholder') }}">
                     </div>
 
                     <div class="col-4">
@@ -232,7 +232,7 @@
                             {{helperTrans("ingaz.weight")}}
                         </label>
                         <input type="text" name="weight" class="form-control" value="{{$obj->weight ?? '60'}}"
-                               placeholder="الوزن بالكيلوجرام">
+                               placeholder="{{ helperTrans('ingaz.weight_placeholder') }}">
                     </div>
 
                     <div class="col-4">
@@ -250,19 +250,19 @@
                         <select name="marital_status:ar" class="form-control" required>
                             <option
                                     value="عازبة" {{(optional($obj->translate('ar'))->marital_status == 'عازبة') ? 'selected' : ''}}>
-                                عازبة
+                                {{ helperTrans('ingaz.female_single') }}
                             </option>
                             <option
                                     value="أعزب" {{(optional($obj->translate('ar'))->marital_status == 'أعزب') ? 'selected' : ''}}>
-                                أعزب
+                                {{ helperTrans('ingaz.male_single') }}
                             </option>
                             <option
                                     value="متزوجة" {{(optional($obj->translate('ar'))->marital_status == 'متزوجة') ? 'selected' : ''}}>
-                                متزوجة
+                                {{ helperTrans('ingaz.female_married') }}
                             </option>
                             <option
                                     value="متزوج" {{(optional($obj->translate('ar'))->marital_status == 'متزوج') ? 'selected' : ''}}>
-                                متزوج
+                                {{ helperTrans('ingaz.male_married') }}
                             </option>
                         </select>
                         <input type="hidden" name="marital_status:en" id="marital_status_en"
@@ -281,11 +281,11 @@
                             {{helperTrans("ingaz.duration")}}
                         </label>
                         <input type="text" name="duration" class="form-control"
-                               value="{{ old('duration', $obj->duration ?: '24 شهر') }}">
+                               value="{{ old('duration', $obj->duration ?: helperTrans('ingaz.twenty_four_months')) }}">
                     </div>
                     <div class="col-4" id="arrival_date_field" style="{{ $showArrivalDateField ? '' : 'display: none;' }}">
-                        <label for="arrival_date" class="form-label">تاريخ وصول العاملة <small
-                                class="text-muted">(اختياري)</small></label>
+                        <label for="arrival_date" class="form-label">{{ helperTrans('ingaz.arrival_date') }} <small
+                                class="text-muted">({{ helperTrans('ingaz.optional') }})</small></label>
                         <input type="date" name="arrival_date" id="arrival_date" class="form-control"
                                value="{{ old('arrival_date', optional($obj->arrival_date)->format('Y-m-d')) }}">
                     </div>
@@ -309,17 +309,17 @@
                     <div class="col-4">
                         <label for="TextInput" class="form-label">
                             {{helperTrans("ingaz.id_number")}}
-                            <small class="text-muted">(اختياري لعاملة التأجير)</small>
+                            <small class="text-muted">({{ helperTrans('ingaz.optional_for_rental_worker') }})</small>
                         </label>
                         <input type="text" name="id_number" id="id_number" class="form-control" maxlength="30"
                                value="{{$obj->id_number}}">
-                        <small class="text-muted">يمكن إدخال أرقام أو حروف أو شرطة (-) بحد أقصى 30 خانة</small>
+                        <small class="text-muted">{{ helperTrans('ingaz.id_number_hint') }}</small>
                     </div>
 
                     <div class="col-4">
                         <label for="TextInput" class="form-label">
                             {{helperTrans("ingaz.id_expiry_date")}}
-                            <small class="text-muted">(اختياري لعاملة التأجير)</small>
+                            <small class="text-muted">({{ helperTrans('ingaz.optional_for_rental_worker') }})</small>
                         </label>
                         <input type="date" name="id_expiry_date" class="form-control"
                                value="{{$obj->id_expiry_date}}">
@@ -328,7 +328,7 @@
                     <!-- المهارات -->
                     <div class="col-4">
                         <label for="skills" class="form-label">{{helperTrans("ingaz.skills")}} <small
-                                    class="text-muted">(اختياري)</small></label>
+                                    class="text-muted">({{ helperTrans('ingaz.optional') }})</small></label>
                         <select name="skills[]" class="form-control js-example-basic-multiple" multiple>
                             @foreach($skills as $skill)
                                 @php
@@ -350,17 +350,17 @@
                     <!-- حالة الخبرة -->
                     <div class="col-4">
                         <label for="experience_status" class="form-label">
-                            حالة الخبرة <small class="text-muted">(مطلوب)</small>
+                            {{ helperTrans('ingaz.experience_status') }} <small class="text-muted">({{ helperTrans('ingaz.required') }})</small>
                         </label>
                         <select name="experience_status" id="experience_status" class="form-control" required>
-                            <option value="">اختر حالة الخبرة</option>
+                            <option value="">{{ helperTrans('ingaz.select_experience_status') }}</option>
                             <option
                                     value="has_experience" {{$obj->experience_status == 'has_experience' ? 'selected' : ''}}>
-                                سبق لها العمل
+                                {{ helperTrans('ingaz.has_experience') }}
                             </option>
                             <option
                                     value="no_experience" {{$obj->experience_status == 'no_experience' ? 'selected' : ''}}>
-                                لم يسبق لها العمل
+                                {{ helperTrans('ingaz.no_experience') }}
                             </option>
                         </select>
                     </div>
@@ -383,7 +383,7 @@
                     <!-- اللغات والحالة الاجتماعية -->
                     <div class="col-12">
                         <label for="TextInput" class="form-label">{{helperTrans("ingaz.languages")}} <small
-                                    class="text-muted">(اختياري)</small></label>
+                                    class="text-muted">({{ helperTrans('ingaz.optional') }})</small></label>
                         @php
                             $langs = is_array($obj->languages)
                                 ? $obj->languages
@@ -394,10 +394,12 @@
                         @endphp
 
                         <div class="row">
-                            @foreach (['arabic'=>'اللغة العربية',
-                                       'english'=>'اللغة الإنجليزية',
-                                       'amharic'=>'اللغة الأمهرية',
-                                       'mother'=>'اللغة الأم'] as $key => $label)
+                            @foreach ([
+                                'arabic' => helperTrans('ingaz.arabic_language'),
+                                'english' => helperTrans('ingaz.english_language'),
+                                'amharic' => helperTrans('ingaz.amharic_language'),
+                                'mother' => helperTrans('ingaz.mother_language'),
+                            ] as $key => $label)
 
                                 <div class="col-md-3">
                                     <div class="form-check">
@@ -412,7 +414,7 @@
 
                                     <div class="lang-extra mt-2 {{ in_array($key, $langs) ? '' : 'd-none' }}">
                                         @if (in_array($key, $langs))
-                                            <input type="number" min="0" max="100" class="form-control" placeholder="النسبة %"
+                                            <input type="number" min="0" max="100" class="form-control" placeholder="{{ helperTrans('ingaz.Percentage') }}"
                                                 name="percentage[{{ $key }}]" value="{{ $percentages[$key] ?? '' }}">
                                         @endif
                                     </div>
@@ -422,7 +424,7 @@
                         </div>
                 </div>
                     <div class="col-12">
-                        <label for="TextInput" class="form-label">رابط الفيديو <small class="text-muted">(اختياري)</small></label>
+                        <label for="TextInput" class="form-label">{{ helperTrans('ingaz.video_link') }} <small class="text-muted">({{ helperTrans('ingaz.optional') }})</small></label>
                         <input type="url" name="video_link" class="form-control" value="{{$obj->video_link}}" placeholder="https://...">
                     </div>
                 <div class="col-12" id="experience_section" style="display: {{$obj->experience_status == 'has_experience' ? 'block' : 'none'}};">
@@ -471,10 +473,10 @@
                                     </select>
                                 </td>
                                 <td class="text-center">
-                                    <button type="button" class="btn btn-link p-0 me-2 btnAdd" title="إضافة">
+                                    <button type="button" class="btn btn-link p-0 me-2 btnAdd" title="{{ helperTrans('ingaz.add') }}">
                                         <i class="fa fa-plus-circle text-success fs-5"></i>
                                     </button>
-                                    <button type="button" class="btn btn-link p-0 btnRemove" title="حذف">
+                                    <button type="button" class="btn btn-link p-0 btnRemove" title="{{ helperTrans('ingaz.delete') }}">
                                         <i class="fa fa-trash text-danger fs-5"></i>
                                     </button>
                                 </td>
@@ -512,10 +514,10 @@
                                     </select>
                                 </td>
                                 <td class="text-center">
-                                    <button type="button" class="btn btn-link p-0 me-2 btnAdd" title="إضافة">
+                                    <button type="button" class="btn btn-link p-0 me-2 btnAdd" title="{{ helperTrans('ingaz.add') }}">
                                         <i class="fa fa-plus-circle text-success fs-5"></i>
                                     </button>
-                                    <button type="button" class="btn btn-link p-0 btnRemove" title="حذف">
+                                    <button type="button" class="btn btn-link p-0 btnRemove" title="{{ helperTrans('ingaz.delete') }}">
                                         <i class="fa fa-trash text-danger fs-5"></i>
                                     </button>
                                 </td>
@@ -571,14 +573,14 @@
                     <div class="col-12" id="rental_finance_preview" style="display: none;">
                         <div class="card border-0 shadow-sm">
                             <div class="card-body">
-                                <h6 class="mb-3">بنود مالية التأجير (السيرة)</h6>
+                                <h6 class="mb-3">{{ helperTrans('ingaz.rental_finance_items') }}</h6>
                                 <div class="table-responsive">
                                     <table class="table table-bordered align-middle mb-0">
                                         <thead class="table-light">
                                             <tr>
-                                                <th style="width: 15%;">الحساب</th>
-                                                <th>البند</th>
-                                                <th style="width: 22%;">المبلغ</th>
+                                                <th style="width: 15%;">{{ helperTrans('ingaz.account') }}</th>
+                                                <th>{{ helperTrans('ingaz.item') }}</th>
+                                                <th style="width: 22%;">{{ helperTrans('ingaz.amount') }}</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -608,7 +610,7 @@
                                         </tbody>
                                     </table>
                                 </div>
-                                <small class="text-muted d-block mt-2">سيتم إنشاء هذه البنود تلقائياً ضمن مالية التأجير بعد حفظ السيرة.</small>
+                                <small class="text-muted d-block mt-2">{{ helperTrans('ingaz.rental_finance_hint') }}</small>
                             </div>
                         </div>
                     </div>
@@ -771,6 +773,33 @@
     </script>
     <script>
         $(document).ready(function () {
+            const maidEditTranslations = {
+                chooseRecruitmentOffice: @json(helperTrans('ingaz.choose_recruitment_office')),
+                serviceTransferCost: @json(helperTrans('ingaz.service_transfer_cost')),
+                monthlyRentalCost: @json(helperTrans('ingaz.monthly_rental_cost')),
+                passportRegistered: @json(helperTrans('ingaz.passport_registered')),
+                passportAvailable: @json(helperTrans('ingaz.passport_available')),
+                errorTitle: @json(helperTrans('ingaz.error_title')),
+                successTitle: @json(helperTrans('ingaz.success')),
+                ok: @json(helperTrans('ingaz.ok')),
+                officeFetchError: @json(helperTrans('ingaz.office_fetch_error')),
+                shelterAssignment: @json(helperTrans('ingaz.shelter_assignment')),
+                noRegularWorker: @json(helperTrans('ingaz.no_regular_worker')),
+                yesAssignToShelter: @json(helperTrans('ingaz.yes_assign_to_shelter')),
+                autoShelterNotice: @json(helperTrans('ingaz.auto_shelter_notice')),
+                workerImageRequired: @json(helperTrans('ingaz.worker_image_required')),
+                validIdNumberRequired: @json(helperTrans('ingaz.valid_id_number_required')),
+                idExpiryRequired: @json(helperTrans('ingaz.id_expiry_required')),
+                nationalityRequired: @json(helperTrans('ingaz.nationality_required')),
+                passportRequired: @json(helperTrans('ingaz.passport_required')),
+                externalOfficeRequired: @json(helperTrans('ingaz.external_office_required')),
+                jobIdRequired: @json(helperTrans('ingaz.job_id_required')),
+                maritalStatusRequired: @json(helperTrans('ingaz.marital_status_required')),
+                correctErrorsPrefix: @json(helperTrans('ingaz.correct_errors_prefix')),
+                maidUpdated: @json(helperTrans('ingaz.maid_updated')),
+                unexpectedError: @json(helperTrans('ingaz.unexpected_error')),
+            };
+
             $('.dropify').dropify();
             $('.js-example-basic-multiple').select2();
 
@@ -856,7 +885,7 @@
                 var officeField = $('.office-field');
                 var salaryField = $('input[name="salary"]').closest('.col-4');
                 var jobField = $('select[name="job_id[]"]').closest('.col-4');
-                var languagesField = $('.col-12:has(label:contains("اللغات"))');
+                var languagesField = $('.lang-check').closest('.col-12');
                 var priceLabel = $('.price-label');
                 var shelterOption = $('#shelter_option');
                 var shouldUpdateMaritalTranslation = true;
@@ -891,7 +920,7 @@
                     heightWeightFields.hide();
                     maritalStatusField.hide();
                     officeField.hide();
-                    priceLabel.text('تكلفة نقل الخدمات');
+                    priceLabel.text(maidEditTranslations.serviceTransferCost);
                     maritalStatusEnField.val('');
                     shouldUpdateMaritalTranslation = false;
 
@@ -916,7 +945,7 @@
                     maritalStatusField.hide();
                     salaryField.hide();
                     languagesField.hide();
-                    priceLabel.text('تكلفه الايجار الشهري');
+                    priceLabel.text(maidEditTranslations.monthlyRentalCost);
 
                     // Show shelter option for rental maids
                     shelterOption.show();
@@ -994,10 +1023,10 @@
                         success: function (response) {
                             if (response.exists) {
                                 $('#passport_num').addClass('is-invalid');
-                                feedback.addClass('invalid-feedback').text('رقم الجواز مسجل مسبقاً في النظام، يرجى التحقق من الرقم أو اختيار رقم آخر');
+                                feedback.addClass('invalid-feedback').text(maidEditTranslations.passportRegistered);
                             } else {
                                 $('#passport_num').addClass('is-valid');
-                                feedback.addClass('valid-feedback').text('رقم الجواز متاح');
+                                feedback.addClass('valid-feedback').text(maidEditTranslations.passportAvailable);
                             }
                         },
                         error: function () {
@@ -1036,7 +1065,7 @@
                         success: function (response) {
                             var officeSelect = $('select[name="office_id"]');
                             officeSelect.empty();
-                            officeSelect.append('<option value="">اختر مكتب الاستقدام</option>');
+                            officeSelect.append('<option value="">' + maidEditTranslations.chooseRecruitmentOffice + '</option>');
 
                             response.forEach(function (office) {
                                 var selected = office.id == '{{$obj->office_id}}' ? 'selected' : '';
@@ -1068,9 +1097,9 @@
                         error: function (xhr) {
                             Swal.fire({
                                 icon: 'error',
-                                title: 'خطأ',
-                                text: 'حدث خطأ أثناء جلب مكاتب الاستقدام',
-                                confirmButtonText: 'حسناً'
+                                title: maidEditTranslations.errorTitle,
+                                text: maidEditTranslations.officeFetchError,
+                                confirmButtonText: maidEditTranslations.ok
                             });
                         }
                     });
@@ -1087,16 +1116,16 @@
                 var shelterLabel = shelterOption.find('label[for="create_shelter_contract"]');
                 var shelterHint = shelterOption.find('small.text-muted').last();
 
-                shelterLabel.addClass('shelter-question-label').text('تسكين للإيواء');
+                shelterLabel.addClass('shelter-question-label').text(maidEditTranslations.shelterAssignment);
                 shelterSelect.addClass('shelter-question-select');
-                shelterSelect.find('option[value="0"]').text('لا - عاملة عادية');
-                shelterSelect.find('option[value="1"]').text('نعم - تسكين للإيواء');
+                shelterSelect.find('option[value="0"]').text(maidEditTranslations.noRegularWorker);
+                shelterSelect.find('option[value="1"]').text(maidEditTranslations.yesAssignToShelter);
 
                 if (!$('#shelter_auto_notice').length) {
                     $('<div>', {
                         id: 'shelter_auto_notice',
                         class: 'text-muted mt-2',
-                        text: 'سيتم تسكينها تلقائياً للإيواء لهذا النوع.'
+                        text: maidEditTranslations.autoShelterNotice
                     }).hide().insertAfter(shelterSelect);
                 }
 
@@ -1229,7 +1258,7 @@
                     heightWeightFields.hide();
                     maritalStatusField.hide();
                     officeField.hide();
-                    priceLabel.text('تكلفة نقل الخدمات');
+                    priceLabel.text(maidEditTranslations.serviceTransferCost);
                     maritalStatusEnField.val('');
                     shouldUpdateMaritalTranslation = false;
                     idInputs.removeAttr('required');
@@ -1244,7 +1273,7 @@
                     salaryField.hide();
                     languagesField.hide();
                     arrivalDateField.show();
-                    priceLabel.text('تكلفه الايجار الشهري');
+                    priceLabel.text(maidEditTranslations.monthlyRentalCost);
                     maritalStatusEnField.val('');
                     shouldUpdateMaritalTranslation = false;
                     idInputs.removeAttr('required');
@@ -1286,9 +1315,7 @@
                         success: function (response) {
                             var officeSelect = $('select[name="office_id"]');
                             officeSelect.empty();
-                            officeSelect.append('<option value="">Ø§Ø®ØªØ± Ù…ÙƒØªØ¨ Ø§Ù„Ø§Ø³ØªÙ‚Ø¯Ø§Ù…</option>');
-
-                            officeSelect.find('option').first().text('اختر مكتب الاستقدام');
+                            officeSelect.append('<option value="">' + maidEditTranslations.chooseRecruitmentOffice + '</option>');
 
                             response.forEach(function (office) {
                                 var selected = office.id == '{{$obj->office_id}}' ? 'selected' : '';
@@ -1298,9 +1325,9 @@
                         error: function () {
                             Swal.fire({
                                 icon: 'error',
-                                title: 'Ø®Ø·Ø£',
-                                text: 'Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ Ø¬Ù„Ø¨ Ù…ÙƒØ§ØªØ¨ Ø§Ù„Ø§Ø³ØªÙ‚Ø¯Ø§Ù…',
-                                confirmButtonText: 'Ø­Ø³Ù†Ø§Ù‹'
+                                title: maidEditTranslations.errorTitle,
+                                text: maidEditTranslations.officeFetchError,
+                                confirmButtonText: maidEditTranslations.ok
                             });
                         }
                     });
@@ -1322,7 +1349,7 @@
                 var hasExistingImage = '{{$obj->image}}' ? true : false;
 
                 if (!image && !hasExistingImage) {
-                    errors.push('الرجاء اختيار صورة العاملة');
+                    errors.push(maidEditTranslations.workerImageRequired);
                     isValid = false;
                 }
 
@@ -1333,42 +1360,42 @@
                 // في التأجير تصبح الحقول اختيارية، لكن إذا أُدخل رقم هوية فيلزم أن يكون بصيغة صحيحة.
                 if (typeContext.isRental) {
                     if (idNumber && !idPattern.test(idNumber)) {
-                        errors.push('يجب إدخال رقم هوية صالح (5-30 خانة من الأرقام أو الحروف أو الشرطة)');
+                        errors.push(maidEditTranslations.validIdNumberRequired);
                         isValid = false;
                     }
                 } else if (!typeContext.isRecruitment && !typeContext.isInstantTransfer) {
                     if (!idNumber || !idPattern.test(idNumber)) {
-                        errors.push('يجب إدخال رقم هوية صالح (5-30 خانة من الأرقام أو الحروف أو الشرطة)');
+                        errors.push(maidEditTranslations.validIdNumberRequired);
                         isValid = false;
                     }
 
                     if (!idExpiryDate) {
-                        errors.push('تاريخ انتهاء الهوية مطلوب');
+                        errors.push(maidEditTranslations.idExpiryRequired);
                         isValid = false;
                     }
                 }
 
                 // التحقق من الحقول المطلوبة
                 var requiredFields = {
-                    'nationality_id': 'الجنسية'
+                    'nationality_id': @json(helperTrans('ingaz.nationality'))
                 };
 
                 // التحقق من الجنسية دائماً
                 var nationalityValue = $('[name="nationality_id"]').val();
                 if (!nationalityValue || nationalityValue.trim() === '') {
-                    errors.push('الجنسية مطلوبة');
+                    errors.push(maidEditTranslations.nationalityRequired);
                     isValid = false;
                 }
 
                 // التحقق من رقم الجواز
                 var passportNum = $('input[name="passport_num"]').val().trim();
                 if (!passportNum) {
-                    errors.push('رقم الجواز مطلوب');
+                    errors.push(maidEditTranslations.passportRequired);
                     isValid = false;
                 } else {
                     // Check if passport number is already invalid (from real-time validation)
                     if ($('input[name="passport_num"]').hasClass('is-invalid')) {
-                        errors.push('رقم الجواز مسجل مسبقاً في النظام، يرجى التحقق من الرقم أو اختيار رقم آخر');
+                        errors.push(maidEditTranslations.passportRegistered);
                         isValid = false;
                     }
                 }
@@ -1377,7 +1404,7 @@
                 if (!typeContext.isInstantTransfer) {
                     var officeValue = $('[name="office_id"]').val();
                     if (!officeValue || officeValue.trim() === '') {
-                        errors.push('المكتب الخارجي مطلوب');
+                        errors.push(maidEditTranslations.externalOfficeRequired);
                         isValid = false;
                     }
                 }
@@ -1386,7 +1413,7 @@
                     // التحقق من الوظائف
                     var jobs = $('select[name="job_id[]"]').val();
                     if (!jobs || jobs.length === 0) {
-                        errors.push('معرف الوظيفة مطلوب');
+                        errors.push(maidEditTranslations.jobIdRequired);
                         isValid = false;
                     }
                 }
@@ -1394,7 +1421,7 @@
                 if (!typeContext.isInstantTransfer && !typeContext.isRental) {
                     var maritalStatus = $('select[name="marital_status:ar"]').val();
                     if (!maritalStatus || maritalStatus.trim() === '') {
-                        errors.push('الحالة الاجتماعية مطلوبة');
+                        errors.push(maidEditTranslations.maritalStatusRequired);
                         isValid = false;
                     }
                 }
@@ -1402,9 +1429,9 @@
                 if (!isValid) {
                     Swal.fire({
                         icon: 'error',
-                        title: 'خطأ',
-                        text: 'الرجاء تصحيح الأخطاء التالية:\n' + errors.join('\n'),
-                        confirmButtonText: 'حسناً'
+                        title: maidEditTranslations.errorTitle,
+                        text: maidEditTranslations.correctErrorsPrefix + '\n' + errors.join('\n'),
+                        confirmButtonText: maidEditTranslations.ok
                     });
                     return false;
                 }
@@ -1486,9 +1513,9 @@
                         if (response.code === 200) {
                             Swal.fire({
                                 icon: 'success',
-                                title: 'نجاح',
-                                text: 'تم تحديث العاملة بنجاح',
-                                confirmButtonText: 'حسناً'
+                                title: maidEditTranslations.successTitle,
+                                text: maidEditTranslations.maidUpdated,
+                                confirmButtonText: maidEditTranslations.ok
                             }).then((result) => {
                                 if (result.isConfirmed) {
                                     window.location.href = '{{ $formRedirectRoute }}';
@@ -1497,14 +1524,14 @@
                         } else {
                             Swal.fire({
                                 icon: 'error',
-                                title: 'خطأ',
-                                text: response.message || 'حدث خطأ أثناء تحديث العاملة',
-                                confirmButtonText: 'حسناً'
+                                title: maidEditTranslations.errorTitle,
+                                text: response.message || maidEditTranslations.unexpectedError,
+                                confirmButtonText: maidEditTranslations.ok
                             });
                         }
                     },
                     error: function (xhr) {
-                        var errorMessage = 'حدث خطأ أثناء تحديث العاملة';
+                        var errorMessage = maidEditTranslations.unexpectedError;
 
                         if (xhr.responseJSON && xhr.responseJSON.errors) {
                             var errors = xhr.responseJSON.errors;
@@ -1517,9 +1544,9 @@
 
                         Swal.fire({
                             icon: 'error',
-                            title: 'خطأ',
+                            title: maidEditTranslations.errorTitle,
                             text: errorMessage,
-                            confirmButtonText: 'حسناً'
+                            confirmButtonText: maidEditTranslations.ok
                         });
                     },
                     complete: function() {

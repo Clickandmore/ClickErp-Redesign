@@ -1,7 +1,7 @@
 @extends('admin.layout.indexs.index')
 
 @php
-    $pageTitle = $bladeTitle ?? 'سير عاملات الإيجار';
+    $pageTitle = $bladeTitle ?? helperTrans('ingaz.rental_maids_title');
     $createUrl = $createRoute ?? route('maids.rental.create');
     $dataTableUrl = $dataTableRoute ?? route('maids.rental.index');
     $resetUrl = $resetRoute ?? route('maids.rental.index');
@@ -132,11 +132,11 @@
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
                 <div>
                     <h4 class="mb-1">{{ $pageTitle }}</h4>
-                    <div class="text-muted small">ترتيب تشغيلي يوضح حالة التوفر والظهور بالموقع الخارجي ووضع الإيواء الحالي</div>
+                    <div class="text-muted small">{{ helperTrans('ingaz.rental_maids_operational_hint') }}</div>
                 </div>
                 @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_CREATE))
                     <a href="{{ $createUrl }}" class="btn btn-primary">
-                        <i class="fa fa-plus me-1"></i> إضافة سيرة إيجار
+                        <i class="fa fa-plus me-1"></i> {{ helperTrans('ingaz.add_rental_cv') }}
                     </a>
                 @endif
             </div>
@@ -147,7 +147,7 @@
                         <div class="card-body">
                             <div class="row align-items-center">
                                 <div class="col me-2">
-                                    <div class="text-xs mb-1"><i class="fas fa-list me-1"></i>إجمالي سير الإيجار</div>
+                                    <div class="text-xs mb-1"><i class="fas fa-list me-1"></i>{{ helperTrans('ingaz.total_rental_cvs') }}</div>
                                     <div class="h5 mb-0">{{ number_format($rentalStats['total'] ?? 0) }}</div>
                                 </div>
                                 <div class="col-auto">
@@ -162,7 +162,7 @@
                         <div class="card-body">
                             <div class="row align-items-center">
                                 <div class="col me-2">
-                                    <div class="text-xs mb-1"><i class="fas fa-check-circle me-1"></i>المتاح</div>
+                                    <div class="text-xs mb-1"><i class="fas fa-check-circle me-1"></i>{{ helperTrans('ingaz.available') }}</div>
                                     <div class="h5 mb-0">{{ number_format($rentalStats['available'] ?? 0) }}</div>
                                 </div>
                                 <div class="col-auto">
@@ -177,7 +177,7 @@
                         <div class="card-body">
                             <div class="row align-items-center">
                                 <div class="col me-2">
-                                    <div class="text-xs mb-1"><i class="fas fa-calendar-check me-1"></i>المحجوز</div>
+                                    <div class="text-xs mb-1"><i class="fas fa-calendar-check me-1"></i>{{ helperTrans('ingaz.maid_status_reserved') }}</div>
                                     <div class="h5 mb-0">{{ number_format($rentalStats['reserved'] ?? 0) }}</div>
                                 </div>
                                 <div class="col-auto">
@@ -192,7 +192,7 @@
                         <div class="card-body">
                             <div class="row align-items-center">
                                 <div class="col me-2">
-                                    <div class="text-xs mb-1"><i class="fas fa-eye me-1"></i>تظهر بالموقع الخارجي</div>
+                                    <div class="text-xs mb-1"><i class="fas fa-eye me-1"></i>{{ helperTrans('ingaz.visible_on_public_site') }}</div>
                                     <div class="h5 mb-0">{{ number_format($rentalStats['visible'] ?? 0) }}</div>
                                 </div>
                                 <div class="col-auto">
@@ -207,7 +207,7 @@
                         <div class="card-body">
                             <div class="row align-items-center">
                                 <div class="col me-2">
-                                    <div class="text-xs mb-1"><i class="fas fa-eye-slash me-1"></i>لا تظهر بالموقع الخارجي</div>
+                                    <div class="text-xs mb-1"><i class="fas fa-eye-slash me-1"></i>{{ helperTrans('ingaz.hidden_on_public_site') }}</div>
                                     <div class="h5 mb-0">{{ number_format($rentalStats['hidden'] ?? 0) }}</div>
                                 </div>
                                 <div class="col-auto">
@@ -222,7 +222,7 @@
                         <div class="card-body">
                             <div class="row align-items-center">
                                 <div class="col me-2">
-                                    <div class="text-xs mb-1"><i class="fas fa-home me-1"></i>داخل الإيواء حالياً</div>
+                                    <div class="text-xs mb-1"><i class="fas fa-home me-1"></i>{{ helperTrans('ingaz.inside_shelter_now') }}</div>
                                     <div class="h5 mb-0">{{ number_format($rentalStats['in_accommodation'] ?? 0) }}</div>
                                 </div>
                                 <div class="col-auto">
@@ -238,17 +238,17 @@
                 <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <div>
                         <h6 class="m-0 fw-bold"><i class="fas fa-filter me-2"></i>{{ helperTrans('admin.filters') }}</h6>
-                        <small class="text-muted">تخصيص النتائج طبقاً للمعايير المطلوبة</small>
+                        <small class="text-muted">{{ helperTrans('ingaz.customize_results_by_filters') }}</small>
                     </div>
                     <div class="d-flex align-items-center gap-2">
                         @if ($hasActiveFilters)
-                            <span class="badge bg-primary-subtle text-primary">الفلاتر النشطة: {{ $visibleDefaultFilters->count() }}</span>
+                            <span class="badge bg-primary-subtle text-primary">{{ __('ingaz.active_filters_count', ['count' => $visibleDefaultFilters->count()]) }}</span>
                         @endif
                         <button class="btn btn-outline-primary btn-sm filter-toggle" type="button" data-bs-toggle="collapse"
                             data-bs-target="#rentalFilterCollapse" aria-expanded="{{ $hasActiveFilters ? 'true' : 'false' }}"
                             aria-controls="rentalFilterCollapse">
                             <i class="fas {{ $hasActiveFilters ? 'fa-chevron-up' : 'fa-chevron-down' }} me-1 filter-toggle-icon"></i>
-                            <span class="filter-toggle-text">{{ $hasActiveFilters ? 'إخفاء الفلتر' : 'إظهار الفلتر' }}</span>
+                            <span class="filter-toggle-text">{{ $hasActiveFilters ? helperTrans('ingaz.hide_filter') : helperTrans('ingaz.show_filter') }}</span>
                         </button>
                     </div>
                 </div>
@@ -258,15 +258,15 @@
                         <div class="row align-items-end">
                             <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
                                 <input type="text" class="form-control" id="keyword" name="keyword"
-                                    value="{{ $request->keyword }}" placeholder="بحث بالاسم أو الجواز أو الهوية">
+                                    value="{{ $request->keyword }}" placeholder="{{ helperTrans('ingaz.search_by_name_passport_id') }}">
                             </div>
                             <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
                                 <input type="text" class="form-control" id="passport_num" name="passport_num"
-                                    value="{{ $request->passport_num }}" placeholder="رقم الجواز">
+                                    value="{{ $request->passport_num }}" placeholder="{{ helperTrans('ingaz.passport_num') }}">
                             </div>
                             <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
                                 <select class="form-control" name="nationality_id" id="nationality_id">
-                                    <option value="">الجنسية</option>
+                                    <option value="">{{ helperTrans('ingaz.nationality') }}</option>
                                     @foreach ($filter['nationalities'] as $nationality)
                                         <option value="{{ $nationality->id }}" {{ (string) $request->nationality_id === (string) $nationality->id ? 'selected' : '' }}>
                                             {{ $nationality->sub_title }}
@@ -276,7 +276,7 @@
                             </div>
                             <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
                                 <select class="form-control" name="office_id" id="office_id">
-                                    <option value="">مكتب الاستقدام</option>
+                                    <option value="">{{ helperTrans('ingaz.recruitment office') }}</option>
                                     @foreach ($filter['offices'] as $office)
                                         <option value="{{ $office->id }}" {{ (string) $request->office_id === (string) $office->id ? 'selected' : '' }}>
                                             {{ $office->title }}
@@ -286,7 +286,7 @@
                             </div>
                             <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
                                 <select class="form-control" name="job_type" id="type" disabled>
-                                    <option value="">نوع السيرة الذاتية</option>
+                                    <option value="">{{ helperTrans('ingaz.select_cv_type') }}</option>
                                     @foreach ($filter['job_types'] as $jobType)
                                         <option value="{{ $jobType->id }}" {{ (string) $rentalTypeId === (string) $jobType->id ? 'selected' : '' }}>
                                             {{ $jobType->title ?? ($jobType->translations->first()->title ?? '-') }}
@@ -296,33 +296,33 @@
                             </div>
                             <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
                                 <input type="text" name="experience_years" id="experience_years"
-                                    value="{{ $request->experience_years }}" class="form-control" placeholder="سنوات الخبرة">
+                                    value="{{ $request->experience_years }}" class="form-control" placeholder="{{ helperTrans('ingaz.experience_years') }}">
                             </div>
                             <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
                                 <select class="form-control" name="cv_status" id="cv_status">
                                     <option value="">{{ helperTrans('ingaz.cv_status') }}</option>
-                                    <option value="available" {{ $request->cv_status === 'available' ? 'selected' : '' }}>متاحة</option>
-                                    <option value="reserved" {{ $request->cv_status === 'reserved' ? 'selected' : '' }}>محجوزة</option>
-                                    <option value="backout" {{ $request->cv_status === 'backout' ? 'selected' : '' }}>باك اوت</option>
+                                    <option value="available" {{ $request->cv_status === 'available' ? 'selected' : '' }}>{{ helperTrans('ingaz.available') }}</option>
+                                    <option value="reserved" {{ $request->cv_status === 'reserved' ? 'selected' : '' }}>{{ helperTrans('ingaz.maid_status_reserved') }}</option>
+                                    <option value="backout" {{ $request->cv_status === 'backout' ? 'selected' : '' }}>{{ helperTrans('ingaz.backout') }}</option>
                                 </select>
                             </div>
                             <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
                                 <select name="visibility" id="visibility" class="form-control">
-                                    <option value="">حالة الظهور بالموقع</option>
-                                    <option value="visible" {{ $request->visibility === 'visible' ? 'selected' : '' }}>تظهر بالموقع</option>
-                                    <option value="hidden" {{ $request->visibility === 'hidden' ? 'selected' : '' }}>لا تظهر بالموقع</option>
+                                    <option value="">{{ helperTrans('ingaz.public_site_visibility_status') }}</option>
+                                    <option value="visible" {{ $request->visibility === 'visible' ? 'selected' : '' }}>{{ helperTrans('ingaz.visible_on_public_site') }}</option>
+                                    <option value="hidden" {{ $request->visibility === 'hidden' ? 'selected' : '' }}>{{ helperTrans('ingaz.hidden_on_public_site') }}</option>
                                 </select>
                             </div>
                             <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
                                 <select name="experience_status" id="experience_status" class="form-control">
-                                    <option value="">جميع حالات الخبرة</option>
-                                    <option value="has_experience" {{ $request->experience_status === 'has_experience' ? 'selected' : '' }}>سبق لها العمل</option>
-                                    <option value="no_experience" {{ $request->experience_status === 'no_experience' ? 'selected' : '' }}>لم يسبق لها العمل</option>
+                                    <option value="">{{ helperTrans('ingaz.all_experience_statuses') }}</option>
+                                    <option value="has_experience" {{ $request->experience_status === 'has_experience' ? 'selected' : '' }}>{{ helperTrans('ingaz.has_experience') }}</option>
+                                    <option value="no_experience" {{ $request->experience_status === 'no_experience' ? 'selected' : '' }}>{{ helperTrans('ingaz.no_experience') }}</option>
                                 </select>
                             </div>
                             <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
                                 <select name="request_type" id="request_type" class="form-control">
-                                    <option value="">جميع أنواع الطلب</option>
+                                    <option value="">{{ helperTrans('ingaz.all_request_types') }}</option>
                                     @foreach (($filter['request_types'] ?? []) as $requestTypeKey => $requestTypeLabel)
                                         <option value="{{ $requestTypeKey }}" {{ $request->request_type === $requestTypeKey ? 'selected' : '' }}>
                                             {{ $requestTypeLabel }}
@@ -332,27 +332,27 @@
                             </div>
                             <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
                                 <select name="pinned" id="pinned" class="form-control">
-                                    <option value="">كل حالات التثبيت</option>
-                                    <option value="only" {{ $request->pinned === 'only' ? 'selected' : '' }}>المثبتة فقط</option>
-                                    <option value="unpinned" {{ $request->pinned === 'unpinned' ? 'selected' : '' }}>غير المثبتة فقط</option>
+                                    <option value="">{{ helperTrans('ingaz.all_pinning_statuses') }}</option>
+                                    <option value="only" {{ $request->pinned === 'only' ? 'selected' : '' }}>{{ helperTrans('ingaz.only_pinned') }}</option>
+                                    <option value="unpinned" {{ $request->pinned === 'unpinned' ? 'selected' : '' }}>{{ helperTrans('ingaz.only_unpinned') }}</option>
                                 </select>
                             </div>
                             <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
-                                <label class="form-label small text-muted mb-1">من تاريخ</label>
+                                <label class="form-label small text-muted mb-1">{{ helperTrans('ingaz.from_date') }}</label>
                                 <input type="date" class="form-control" name="date_from" id="date_from"
                                     value="{{ $request->date_from }}">
                             </div>
                             <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
-                                <label class="form-label small text-muted mb-1">إلى تاريخ</label>
+                                <label class="form-label small text-muted mb-1">{{ helperTrans('ingaz.to_date') }}</label>
                                 <input type="date" class="form-control" name="date_to" id="date_to"
                                     value="{{ $request->date_to }}">
                             </div>
                             <div class="col-lg-3 col-md-3 col-sm-12 mb-3 text-end">
                                 <button id="btnSubmit" type="submit" class="btn btn-primary me-2">
-                                    <i class="fa fa-search me-1"></i> بحث
+                                    <i class="fa fa-search me-1"></i> {{ helperTrans('ingaz.search') }}
                                 </button>
                                 <a href="{{ $resetUrl }}" class="btn btn-outline-secondary">
-                                    <i class="fa fa-times me-1"></i> إلغاء البحث
+                                    <i class="fa fa-times me-1"></i> {{ helperTrans('ingaz.clear_filters') }}
                                 </a>
                             </div>
                         </div>
@@ -373,12 +373,12 @@
                             <th>{{ helperTrans('ingaz.passport_num') }}</th>
                             <th class="d-none d-md-table-cell">{{ helperTrans('ingaz.price') }}</th>
                             <th class="d-none d-md-table-cell">{{ helperTrans('ingaz.salary') }}</th>
-                            <th>البنود المالية</th>
+                            <th>{{ helperTrans('ingaz.financial_items') }}</th>
                             <th class="d-none d-lg-table-cell">{{ helperTrans('ingaz.religion_id') }}</th>
                             <th class="d-none d-md-table-cell">{{ helperTrans('ingaz.age') }}</th>
                             <th class="d-none d-lg-table-cell">{{ helperTrans('ingaz.maidContractRemaining') }}</th>
                             <th class="d-none d-lg-table-cell">{{ helperTrans('ingaz.is_show') }}</th>
-                            <th class="d-none d-lg-table-cell">مثبتة</th>
+                            <th class="d-none d-lg-table-cell">{{ helperTrans('ingaz.pinned') }}</th>
                             <th>{{ helperTrans('ingaz.cv_status') }}</th>
                             <th class="d-none d-md-table-cell">{{ helperTrans('ingaz.created_at') }}</th>
                             <th>{{ helperTrans('ingaz.actions') }}</th>
@@ -392,7 +392,7 @@
                 <div class="modal-dialog modal-lg modal-dialog-centered">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title">البنود المالية لعاملة الإيجار</h5>
+                            <h5 class="modal-title">{{ helperTrans('ingaz.financial_items_for_rental_worker') }}</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
@@ -404,15 +404,15 @@
                                 <table class="table table-bordered align-middle mb-0">
                                     <thead class="table-light">
                                         <tr>
-                                            <th style="width: 16%;">النوع</th>
-                                            <th>البند</th>
-                                            <th style="width: 20%;">المبلغ</th>
-                                            <th style="width: 22%;">الحالة</th>
+                                            <th style="width: 16%;">{{ helperTrans('ingaz.type') }}</th>
+                                            <th>{{ helperTrans('ingaz.item') }}</th>
+                                            <th style="width: 20%;">{{ helperTrans('ingaz.amount') }}</th>
+                                            <th style="width: 22%;">{{ helperTrans('ingaz.status') }}</th>
                                         </tr>
                                     </thead>
                                     <tbody id="rentalFinanceItemsTableBody">
                                         <tr>
-                                            <td colspan="4" class="text-center text-muted">لا توجد بنود مالية</td>
+                                            <td colspan="4" class="text-center text-muted">{{ helperTrans('ingaz.no_financial_items') }}</td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -427,7 +427,7 @@
                 <div class="modal-dialog modal-dialog-centered" role="document">
                     <div class="modal-content">
                         <div class="modal-header align-items-center">
-                            <h5 class="modal-title" id="backOutModalTitle">اضافة سبب</h5>
+                            <h5 class="modal-title" id="backOutModalTitle">{{ helperTrans('ingaz.add_reason') }}</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal"
                                 aria-label="Close"></button>
                         </div>
@@ -436,13 +436,13 @@
                                 @csrf
                                 <input type="hidden" name="maid_id" id="maid_id">
                                 <div class="mb-3">
-                                    <textarea rows="8" class="form-control" name="backout_reason" placeholder="سبب الباك اوت" required></textarea>
+                                    <textarea rows="8" class="form-control" name="backout_reason" placeholder="{{ helperTrans('ingaz.backout_reason') }}" required></textarea>
                                 </div>
                                 <div class="modal-footer">
                                     <button class="btn btn-success px-4" type="button"
-                                        onclick="back_out_modal_func()">ارسال</button>
+                                        onclick="back_out_modal_func()">{{ helperTrans('ingaz.send') }}</button>
                                     <button class="btn btn-danger px-4" type="button" data-bs-dismiss="modal">
-                                        اغلاق
+                                        {{ helperTrans('ingaz.close') }}
                                     </button>
                                 </div>
                             </form>
@@ -456,7 +456,7 @@
                 <div class="modal-dialog modal-dialog-centered" role="document">
                     <div class="modal-content">
                         <div class="modal-header align-items-center">
-                            <h5 class="modal-title" id="backOutOnModalTitle">ارجاع السيرة متاحة</h5>
+                            <h5 class="modal-title" id="backOutOnModalTitle">{{ helperTrans('ingaz.return_cv_available') }}</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal"
                                 aria-label="Close"></button>
                         </div>
@@ -464,12 +464,12 @@
                             <form id="back_out_modal_on_form" method="POST">
                                 @csrf
                                 <input type="hidden" name="maid_id" id="maid_id_on">
-                                <h5 class="mb-3">هل تريد ارجاع السيرة متاحة الان؟</h5>
+                                <h5 class="mb-3">{{ helperTrans('ingaz.confirm_return_cv_available') }}</h5>
                                 <div class="modal-footer">
                                     <button class="btn btn-success px-4" type="button"
-                                        onclick="back_out_modal_on_func()">نعم</button>
+                                        onclick="back_out_modal_on_func()">{{ helperTrans('ingaz.yes') }}</button>
                                     <button class="btn btn-danger px-4" type="button" data-bs-dismiss="modal">
-                                        لا
+                                        {{ helperTrans('ingaz.no') }}
                                     </button>
                                 </div>
                             </form>
@@ -493,6 +493,17 @@
             const defaultFiltersConfig = @json($defaultFilters);
             const enforcedFiltersConfig = @json($enforcedFilters);
             const csrfToken = $('meta[name="csrf-token"]').attr('content');
+            const rentalTranslations = {
+                hideFilter: @json(helperTrans('ingaz.hide_filter')),
+                showFilter: @json(helperTrans('ingaz.show_filter')),
+                rentalWorker: @json(helperTrans('ingaz.rental_worker_in_hr')),
+                financeSummary: @json(helperTrans('ingaz.finance_items_count_summary')),
+                noFinancialItems: @json(helperTrans('ingaz.no_financial_items')),
+                income: @json(helperTrans('ingaz.income')),
+                expense: @json(helperTrans('ingaz.expense')),
+                settledWithDate: @json(helperTrans('ingaz.settled_with_date')),
+                unsettled: @json(helperTrans('ingaz.unsettled')),
+            };
 
             let currentRentalStat = defaultFiltersConfig.rental_stat || '';
             const rentalFinanceItemsModalElement = document.getElementById('rentalFinanceItemsModal');
@@ -687,7 +698,7 @@
                 $('.filter-toggle-icon')
                     .toggleClass('fa-chevron-up', isExpanded)
                     .toggleClass('fa-chevron-down', !isExpanded);
-                $('.filter-toggle-text').text(isExpanded ? 'إخفاء الفلتر' : 'إظهار الفلتر');
+                $('.filter-toggle-text').text(isExpanded ? rentalTranslations.hideFilter : rentalTranslations.showFilter);
             }
 
             $('#filterForm').on('submit', function(e) {
@@ -737,7 +748,7 @@
             });
 
             $(document).on('click', '.rental-finance-view', function() {
-                const maidName = $(this).data('maid-name') || 'عاملة إيجار';
+                const maidName = $(this).data('maid-name') || rentalTranslations.rentalWorker;
                 const rawItems = $(this).attr('data-items') || '[]';
                 let items = [];
 
@@ -756,20 +767,21 @@
                     .reduce((sum, item) => sum + Number(item.amount || 0), 0);
 
                 $('#rentalFinanceItemsTitle').text(maidName);
-                $('#rentalFinanceItemsStats').text(
-                    `عدد البنود: ${items.length} | إجمالي المصروف: ${expenseTotal.toFixed(2)} | إجمالي الإيراد: ${incomeTotal.toFixed(2)}`
-                );
+                $('#rentalFinanceItemsStats').text(rentalTranslations.financeSummary
+                    .replace(':count', items.length)
+                    .replace(':expenses', expenseTotal.toFixed(2))
+                    .replace(':income', incomeTotal.toFixed(2)));
 
                 if (!items.length) {
-                    tbody.html('<tr><td colspan="4" class="text-center text-muted">لا توجد بنود مالية</td></tr>');
+                    tbody.html('<tr><td colspan="4" class="text-center text-muted">' + rentalTranslations.noFinancialItems + '</td></tr>');
                 } else {
                     const rows = items.map(item => {
                         const typeLabel = item.type === 'income'
-                            ? '<span class="badge bg-success">إيراد</span>'
-                            : '<span class="badge bg-danger">مصروف</span>';
+                            ? '<span class="badge bg-success">' + rentalTranslations.income + '</span>'
+                            : '<span class="badge bg-danger">' + rentalTranslations.expense + '</span>';
                         const settledLabel = item.settled_at
-                            ? `<span class="badge bg-info text-dark">مسكن ${item.settled_at}</span>`
-                            : '<span class="badge bg-secondary">غير مسكن</span>';
+                            ? '<span class="badge bg-info text-dark">' + rentalTranslations.settledWithDate.replace(':date', item.settled_at) + '</span>'
+                            : '<span class="badge bg-secondary">' + rentalTranslations.unsettled + '</span>';
 
                         return `
                             <tr>

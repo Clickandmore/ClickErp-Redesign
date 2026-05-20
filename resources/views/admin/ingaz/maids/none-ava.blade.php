@@ -304,7 +304,7 @@
     </style>
 @endsection
 @section('page-title')
-    العاملات باك اوت
+    {{ helperTrans('ingaz.backout_maids') }}
 @endsection
 {{-- @section('page-links') --}}
 {{--    <li class="breadcrumb-item active" aria-current="page"> {{__("finance.clients")}}</li> --}}
@@ -314,7 +314,7 @@
     @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_BACKOUT_VIEW))
         <!-- رأس الصفحة المخصص -->
         <div class="page-header">
-            <h2 style="color: #007bff;"><i class="fas fa-user-times text-primary me-2"></i>عاملات باك اوت</h2>
+            <h2 style="color: #007bff;"><i class="fas fa-user-times text-primary me-2"></i>{{ helperTrans('ingaz.backout_maids') }}</h2>
         </div>
 
         <div class="card">
@@ -323,11 +323,11 @@
                     <div class="row align-items-end">
                         <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
                             <input type="text" class="form-control" id="passport_num" name="passport_num"
-                                value="{{ $request->passport_num }}" placeholder="رقم الجواز">
+                                value="{{ $request->passport_num }}" placeholder="{{ helperTrans('ingaz.passport_num') }}">
                         </div>
                         <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
                             <select class="form-control" name="nationality_id" id="nationality_id">
-                                <option value="" selected>الجنسية</option>
+                                <option value="" selected>{{ helperTrans('ingaz.nationality') }}</option>
                                 @foreach ($filter['nationalities'] as $nationality)
                                     <option value="{{ $nationality->id }}"
                                         {{ $request->nationality_id == $nationality->id ? 'selected' : '' }}>
@@ -338,7 +338,7 @@
                         </div>
                         <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
                             <select class="form-control" name="job_type" id="type">
-                                <option value="" selected>نوع السيرة الذاتية</option>
+                                <option value="" selected>{{ helperTrans('ingaz.job_type') }}</option>
                                 @foreach ($filter['job_types'] as $jobtype)
                                     <option value="{{ $jobtype->id }}"
                                         {{ $request->job_type == $jobtype->id ? 'selected' : '' }}>{{ $jobtype->title }}
@@ -348,18 +348,18 @@
                         </div>
                         <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
                             <input type="text" name="experience_years" value="{{ $request->experience_years }}"
-                                class="form-control" placeholder="سنوات الخبرة">
+                                class="form-control" placeholder="{{ helperTrans('ingaz.experience_years') }}">
                         </div>
                         <div class="col-lg-3 col-md-3 col-sm-6 mb-2">
-                            <input type="text" class="form-control" name="daterange" placeholder="مدى التاريخ"
+                            <input type="text" class="form-control" name="daterange" placeholder="{{ helperTrans('ingaz.date_range') }}"
                                 data-separator=" - " autocomplete="off" data-advanced-range="true">
                         </div>
                         <div class="col-lg-3 col-md-3 col-sm-12 mb-3 text-end">
                             <button id="btnSubmit" type="button" class="btn btn-primary btn-search me-2">
-                                <i class="fa fa-search me-1"></i> بحث
+                                <i class="fa fa-search me-1"></i> {{ helperTrans('ingaz.search') }}
                             </button>
                             <a href="{{ route('noneAvailableMaids') }}" class="btn btn-outline-secondary btn-clear">
-                                <i class="fa fa-times me-1"></i> إلغاء البحث
+                                <i class="fa fa-times me-1"></i> {{ helperTrans('ingaz.clear_filters') }}
                             </a>
                         </div>
                     </div>
@@ -368,17 +368,17 @@
                             @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EXPORT_PDF))
                                 <a href="{{ route('maids.export.pdf') }}?cv_status=backout"
                                     class="btn btn-danger btn-export" target="_blank">
-                                    <i class="fa fa-file-pdf-o me-1"></i> تصدير PDF
+                                    <i class="fa fa-file-pdf-o me-1"></i> {{ helperTrans('ingaz.export_pdf') }}
                                 </a>
                             @endif
                             @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EXPORT_EXCEL))
                                 <a href="{{ route('maids.export.excel') }}?cv_status=backout"
                                     class="btn btn-success btn-export">
-                                    <i class="fa fa-file-excel-o me-1"></i> تصدير Excel
+                                    <i class="fa fa-file-excel-o me-1"></i> {{ helperTrans('ingaz.export_excel') }}
                                 </a>
                             @endif
                             <a href="{{ route('maids.index') }}" class="btn btn-info">
-                                <i class="fa fa-list me-1"></i> جميع العاملات
+                                <i class="fa fa-list me-1"></i> {{ helperTrans('ingaz.all_maids') }}
                             </a>
                         </div>
                     </div>
@@ -400,9 +400,9 @@
                     <th class="d-none d-md-table-cell">{{ helperTrans('ingaz.age') }}</th>
                     <th class="d-none d-lg-table-cell">{{ helperTrans('ingaz.maidContractRemaining') }}</th>
                     <th class="d-none d-lg-table-cell">{{ helperTrans('ingaz.is_show') }}</th>
-                    <th class="d-none d-lg-table-cell">مثبتة</th>
+                    <th class="d-none d-lg-table-cell">{{ helperTrans('ingaz.pinned') }}</th>
                     <th>{{ helperTrans('ingaz.cv_status') }}</th>
-                    <th>سبب عدم التوفر</th>
+                    <th>{{ helperTrans('ingaz.unavailable_reason') }}</th>
                     <th class="d-none d-md-table-cell">{{ helperTrans('ingaz.created_at') }}</th>
                     <th>{{ helperTrans('ingaz.actions') }}</th>
                 </tr>
@@ -424,6 +424,31 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         $(document).ready(function() {
+            const noneAvailableTranslations = {
+                pinned: @json(helperTrans('ingaz.pinned')),
+                unpinned: @json(helperTrans('ingaz.unpinned')),
+                errorTitle: @json(helperTrans('ingaz.error_title')),
+                dataLoadError: @json(helperTrans('ingaz.data_load_error')),
+                loading: @json(helperTrans('ingaz.loading_text')),
+                confirm: @json(helperTrans('ingaz.confirm')),
+                confirmStatusChange: @json(helperTrans('ingaz.confirm_status_change')),
+                yes: @json(helperTrans('ingaz.yes')),
+                cancel: @json(helperTrans('ingaz.cancel')),
+                confirmUnpinQuestion: @json(helperTrans('ingaz.confirm_unpin_question')),
+                confirmPinQuestion: @json(helperTrans('ingaz.confirm_pin_question')),
+                successTitle: @json(helperTrans('ingaz.success_title')),
+                workerPinned: @json(helperTrans('ingaz.worker_pinned_successfully')),
+                workerUnpinned: @json(helperTrans('ingaz.worker_unpinned_successfully')),
+                pinUpdateError: @json(helperTrans('ingaz.pin_update_error')),
+                pin: @json(helperTrans('ingaz.pin')),
+                unpin: @json(helperTrans('ingaz.unpin')),
+                visible: @json(helperTrans('ingaz.visible')),
+                hidden: @json(helperTrans('ingaz.hidden')),
+                visibilityChangeConfirm: @json(helperTrans('ingaz.visibility_change_confirm')),
+                visibilityChangedTo: @json(helperTrans('ingaz.visibility_changed_to')),
+                visibilityUpdateError: @json(helperTrans('ingaz.visibility_update_error')),
+            };
+
             // Setup CSRF token for all AJAX requests
             $.ajaxSetup({
                 headers: {
@@ -512,9 +537,9 @@
                     "data": "is_pinned",
                     "render": function(data, type, row) {
                         if (row.is_pinned) {
-                            return '<span title="مثبتة"><i class="fa fa-thumb-tack text-warning"></i> مثبتة</span>';
+                            return `<span title="${noneAvailableTranslations.pinned}"><i class="fa fa-thumb-tack text-warning"></i> ${noneAvailableTranslations.pinned}</span>`;
                         } else {
-                            return '<span title="غير مثبتة"><i class="fa fa-thumb-tack text-secondary"></i> غير مثبتة</span>';
+                            return `<span title="${noneAvailableTranslations.unpinned}"><i class="fa fa-thumb-tack text-secondary"></i> ${noneAvailableTranslations.unpinned}</span>`;
                         }
                     },
                     orderable: false,
@@ -602,8 +627,8 @@
                         error: function(xhr, error, thrown) {
                             console.error('DataTables error:', error);
                             $.toast({
-                                heading: 'خطأ',
-                                text: 'حدث خطأ أثناء تحميل البيانات',
+                                heading: noneAvailableTranslations.errorTitle,
+                                text: noneAvailableTranslations.dataLoadError,
                                 showHideTransition: 'slide',
                                 icon: 'error',
                                 hideAfter: 3000,
@@ -618,7 +643,7 @@
                         [14, 'desc']
                     ], // Order by created_at column by default in descending order
                     language: {
-                        processing: '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">جاري التحميل...</span></div>'
+                        processing: `<div class="spinner-border text-primary" role="status"><span class="visually-hidden">${noneAvailableTranslations.loading}</span></div>`
                     },
                     drawCallback: function() {
                         // Reinitialize any event handlers after table redraw
@@ -648,8 +673,8 @@
                     let button = $(this);
                     let id = button.data('id');
                     let isPinned = button.hasClass('btn-warning');
-                    let confirmMsg = isPinned ? 'هل أنت متأكد من إلغاء التثبيت؟' :
-                        'هل أنت متأكد من تثبيت هذه العاملة؟';
+                    let confirmMsg = isPinned ? noneAvailableTranslations.confirmUnpinQuestion :
+                        noneAvailableTranslations.confirmPinQuestion;
 
                     console.log('Maid ID:', id, 'Is Pinned:', isPinned);
                     console.log('Button element:', button);
@@ -658,12 +683,12 @@
                     console.log('Button data-pinned:', button.data('pinned'));
 
                     Swal.fire({
-                        title: 'تأكيد',
+                        title: noneAvailableTranslations.confirm,
                         text: confirmMsg,
                         icon: 'question',
                         showCancelButton: true,
-                        confirmButtonText: 'نعم',
-                        cancelButtonText: 'إلغاء'
+                        confirmButtonText: noneAvailableTranslations.yes,
+                        cancelButtonText: noneAvailableTranslations.cancel
                     }).then((result) => {
                         if (result.isConfirmed) {
                             console.log('Making AJAX request to:', `/admin/maids/${id}/toggle-pin`);
@@ -692,12 +717,12 @@
                                         if (isPinned) {
                                             button.removeClass('btn-warning').addClass(
                                                 'btn-secondary');
-                                            button.attr('title', 'تثبيت');
+                                            button.attr('title', noneAvailableTranslations.pin);
                                             button.attr('data-pinned', 'false');
                                         } else {
                                             button.removeClass('btn-secondary')
                                                 .addClass('btn-warning');
-                                            button.attr('title', 'إلغاء التثبيت');
+                                            button.attr('title', noneAvailableTranslations.unpin);
                                             button.attr('data-pinned', 'true');
                                         }
 
@@ -706,19 +731,19 @@
 
                                         Swal.fire({
                                             icon: 'success',
-                                            title: 'تم بنجاح',
+                                            title: noneAvailableTranslations.successTitle,
                                             text: isPinned ?
-                                                'تم إلغاء التثبيت بنجاح' :
-                                                'تم تثبيت العاملة بنجاح',
+                                                noneAvailableTranslations.workerUnpinned :
+                                                noneAvailableTranslations.workerPinned,
                                             timer: 2000,
                                             showConfirmButton: false
                                         });
                                     } else {
                                         Swal.fire({
                                             icon: 'error',
-                                            title: 'خطأ',
+                                            title: noneAvailableTranslations.errorTitle,
                                             text: response.message ||
-                                                'حدث خطأ أثناء تحديث حالة التثبيت'
+                                                noneAvailableTranslations.pinUpdateError
                                         });
                                     }
                                 },
@@ -735,7 +760,7 @@
                                     console.error('Status:', status);
                                     console.error('Error:', error);
                                     let errorMessage =
-                                        'حدث خطأ أثناء تحديث حالة التثبيت';
+                                        noneAvailableTranslations.pinUpdateError;
 
                                     if (xhr.responseJSON && xhr.responseJSON.message) {
                                         errorMessage = xhr.responseJSON.message;
@@ -743,7 +768,7 @@
 
                                     Swal.fire({
                                         icon: 'error',
-                                        title: 'خطأ',
+                                        title: noneAvailableTranslations.errorTitle,
                                         text: errorMessage
                                     });
                                 }
@@ -760,20 +785,21 @@
                     console.log('Update status button clicked');
                     let button = $(this);
                     let id = button.data('id');
-                    let currentStatus = button.hasClass('btn-success') ? 'ظاهر' : 'مخفي';
-                    let newStatus = button.hasClass('btn-success') ? 'مخفي' : 'ظاهر';
-                    let confirmMsg =
-                        `هل أنت متأكد من تغيير حالة الظهور من "${currentStatus}" إلى "${newStatus}"؟`;
+                    let currentStatus = button.hasClass('btn-success') ? noneAvailableTranslations.visible : noneAvailableTranslations.hidden;
+                    let newStatus = button.hasClass('btn-success') ? noneAvailableTranslations.hidden : noneAvailableTranslations.visible;
+                    let confirmMsg = noneAvailableTranslations.visibilityChangeConfirm
+                        .replace(':current', currentStatus)
+                        .replace(':new', newStatus);
 
                     console.log('Maid ID:', id, 'Current Status:', currentStatus);
 
                     Swal.fire({
-                        title: 'تأكيد تغيير الحالة',
+                        title: noneAvailableTranslations.confirmStatusChange,
                         text: confirmMsg,
                         icon: 'question',
                         showCancelButton: true,
-                        confirmButtonText: 'نعم',
-                        cancelButtonText: 'إلغاء'
+                        confirmButtonText: noneAvailableTranslations.yes,
+                        cancelButtonText: noneAvailableTranslations.cancel
                     }).then((result) => {
                         if (result.isConfirmed) {
                             console.log('Making AJAX request to:', `/admin/maids/${id}`);
@@ -796,18 +822,18 @@
 
                                         Swal.fire({
                                             icon: 'success',
-                                            title: 'تم بنجاح',
+                                            title: noneAvailableTranslations.successTitle,
                                             text: response.message ||
-                                                `تم تغيير حالة الظهور إلى "${newStatus}" بنجاح`,
+                                                noneAvailableTranslations.visibilityChangedTo.replace(':status', newStatus),
                                             timer: 2000,
                                             showConfirmButton: false
                                         });
                                     } else {
                                         Swal.fire({
                                             icon: 'error',
-                                            title: 'خطأ',
+                                            title: noneAvailableTranslations.errorTitle,
                                             text: response.message ||
-                                                'حدث خطأ أثناء تحديث حالة الظهور'
+                                                noneAvailableTranslations.visibilityUpdateError
                                         });
                                     }
                                 },
@@ -819,9 +845,9 @@
                                     button.prop('disabled', false);
                                     // Restore original button text
                                     if (button.hasClass('btn-success')) {
-                                        button.html('ظاهر');
+                                        button.html(noneAvailableTranslations.visible);
                                     } else {
-                                        button.html('مخفي');
+                                        button.html(noneAvailableTranslations.hidden);
                                     }
                                 },
                                 error: function(xhr, status, error) {
@@ -830,7 +856,7 @@
                                     console.error('Status:', status);
                                     console.error('Error:', error);
                                     let errorMessage =
-                                    'حدث خطأ أثناء تحديث حالة الظهور';
+                                    noneAvailableTranslations.visibilityUpdateError;
 
                                     if (xhr.responseJSON && xhr.responseJSON.message) {
                                         errorMessage = xhr.responseJSON.message;
@@ -838,7 +864,7 @@
 
                                     Swal.fire({
                                         icon: 'error',
-                                        title: 'خطأ',
+                                        title: noneAvailableTranslations.errorTitle,
                                         text: errorMessage
                                     });
                                 }

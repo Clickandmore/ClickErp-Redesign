@@ -191,7 +191,7 @@
 @endsection
 
 @section('page-title')
-    إدارة الشكاوى
+    {{ __('ingaz.complaints') }}
 @endsection
 
 @section('content')
@@ -202,12 +202,12 @@
             <div class="d-sm-flex align-items-center justify-content-between mb-4">
                 <h3 class="h3 mb-0 text-gray-800">
                     <i class="fas fa-exclamation-triangle text-primary me-2"></i>
-                    إدارة الشكاوى والتذاكر
+                    {{ __('ingaz.complaints_and_tickets_management') }}
                 </h3>
                 @if (@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_CREATE))
                     <a href="{{ route('complaints.create') }}" class="btn btn-primary">
                         <i class="fas fa-plus me-2"></i>
-                        إضافة شكوى جديدة
+                        {{ __('ingaz.complaint_add_new') }}
                     </a>
                 @endif
             </div>
@@ -217,7 +217,7 @@
                 <div class="col-xl-3 col-md-6 mb-3">
                     <div class="stats-card total position-relative">
                         <div class="stats-number" id="totalTickets">0</div>
-                        <div class="stats-label">إجمالي الشكاوى</div>
+                        <div class="stats-label">{{ __('ingaz.total_complaints') }}</div>
                         <i class="fas fa-ticket-alt stats-icon"></i>
                     </div>
                 </div>
@@ -225,7 +225,7 @@
                 <div class="col-xl-3 col-md-6 mb-3">
                     <div class="stats-card pending position-relative">
                         <div class="stats-number" id="pendingTickets">0</div>
-                        <div class="stats-label">قيد الانتظار</div>
+                        <div class="stats-label">{{ __('ingaz.complaint_status_pending') }}</div>
                         <i class="fas fa-clock stats-icon"></i>
                     </div>
                 </div>
@@ -233,7 +233,7 @@
                 <div class="col-xl-3 col-md-6 mb-3">
                     <div class="stats-card progress2 position-relative">
                         <div class="stats-number" id="inProgressTickets">0</div>
-                        <div class="stats-label">قيد المعالجة</div>
+                        <div class="stats-label">{{ __('ingaz.complaint_status_in_progress') }}</div>
                         <i class="fas fa-spinner stats-icon"></i>
                     </div>
                 </div>
@@ -241,7 +241,7 @@
                 <div class="col-xl-3 col-md-6 mb-3">
                     <div class="stats-card resolved position-relative">
                         <div class="stats-number" id="resolvedTickets">0</div>
-                        <div class="stats-label">تم الحل</div>
+                        <div class="stats-label">{{ __('ingaz.complaint_status_resolved') }}</div>
                         <i class="fas fa-check-circle stats-icon"></i>
                     </div>
                 </div>
@@ -251,42 +251,42 @@
             <div class="filter-section">
                 <h5 class="mb-4">
                     <i class="fas fa-filter me-2"></i>
-                    فلاتر البحث المتقدمة
+                    {{ __('ingaz.advanced_search_filters') }}
                 </h5>
 
                 <div class="row">
                     <div class="col-md-2 mb-3">
-                        <label class="filter-label">رقم التذكرة</label>
+                        <label class="filter-label">{{ __('ingaz.ticket_number') }}</label>
                         <input type="text" id="filterTicketNumber" class="form-control" placeholder="#000000">
                     </div>
 
                     <div class="col-md-2 mb-3">
-                        <label class="filter-label">الحالة</label>
+                        <label class="filter-label">{{ __('ingaz.status') }}</label>
                         <select id="filterStatus" class="form-select">
-                            <option value="">جميع الحالات</option>
-                            <option value="pending">قيد الانتظار</option>
-                            <option value="in_progress">قيد المعالجة</option>
-                            <option value="resolved">تم الحل</option>
-                            <option value="closed">مغلقة</option>
-                            <option value="rejected">مرفوضة</option>
+                            <option value="">{{ __('ingaz.all_statuses') }}</option>
+                            <option value="pending">{{ __('ingaz.complaint_status_pending') }}</option>
+                            <option value="in_progress">{{ __('ingaz.complaint_status_in_progress') }}</option>
+                            <option value="resolved">{{ __('ingaz.complaint_status_resolved') }}</option>
+                            <option value="closed">{{ __('ingaz.complaint_status_closed') }}</option>
+                            <option value="rejected">{{ __('ingaz.complaint_status_rejected') }}</option>
                         </select>
                     </div>
 
                     <div class="col-md-2 mb-3">
-                        <label class="filter-label">الأولوية</label>
+                        <label class="filter-label">{{ __('ingaz.priority') }}</label>
                         <select id="filterPriority" class="form-select">
-                            <option value="">جميع الأولويات</option>
-                            <option value="urgent">عاجلة</option>
-                            <option value="high">عالية</option>
-                            <option value="medium">متوسطة</option>
-                            <option value="low">منخفضة</option>
+                            <option value="">{{ __('ingaz.all_priorities') }}</option>
+                            <option value="urgent">{{ __('ingaz.priority_urgent') }}</option>
+                            <option value="high">{{ __('ingaz.priority_high') }}</option>
+                            <option value="medium">{{ __('ingaz.priority_medium') }}</option>
+                            <option value="low">{{ __('ingaz.priority_low') }}</option>
                         </select>
                     </div>
 
                     <div class="col-md-2 mb-3">
-                        <label class="filter-label">نوع الشكوى</label>
+                        <label class="filter-label">{{ __('ingaz.complaint_type') }}</label>
                         <select id="filterType" class="form-select select2">
-                            <option value="">جميع الأنواع</option>
+                            <option value="">{{ __('ingaz.all_types') }}</option>
                             @if(isset($complaintTypes))
                                 @foreach($complaintTypes as $type)
                                     <option value="{{ $type->id }}">{{ $type->name }}</option>
@@ -296,9 +296,9 @@
                     </div>
 
                     <div class="col-md-2 mb-3">
-                        <label class="filter-label">الموظف المختص</label>
+                        <label class="filter-label">{{ __('ingaz.assigned_employee') }}</label>
                         <select id="filterAssigned" class="form-select select2">
-                            <option value="">جميع الموظفين</option>
+                            <option value="">{{ __('ingaz.all_employees') }}</option>
                             @if(isset($admins))
                                 @foreach($admins as $admin)
                                     <option value="{{ $admin->id }}">{{ $admin->name }}</option>
@@ -308,14 +308,14 @@
                     </div>
 
                     <div class="col-md-2 mb-3">
-                        <label class="filter-label">الفترة الزمنية</label>
+                        <label class="filter-label">{{ __('ingaz.time_period') }}</label>
                         <select id="filterPeriod" class="form-select">
-                            <option value="">كل الأوقات</option>
-                            <option value="today">اليوم</option>
-                            <option value="yesterday">أمس</option>
-                            <option value="week">هذا الأسبوع</option>
-                            <option value="month">هذا الشهر</option>
-                            <option value="custom">تاريخ مخصص</option>
+                            <option value="">{{ __('ingaz.all_times') }}</option>
+                            <option value="today">{{ __('ingaz.today') }}</option>
+                            <option value="yesterday">{{ __('ingaz.yesterday') }}</option>
+                            <option value="week">{{ __('ingaz.this_week') }}</option>
+                            <option value="month">{{ __('ingaz.this_month') }}</option>
+                            <option value="custom">{{ __('ingaz.custom_date') }}</option>
                         </select>
                     </div>
                 </div>
@@ -323,11 +323,11 @@
                 <!-- Custom Date Range -->
                 <div class="row mt-3" id="customDateRange" style="display: none;">
                     <div class="col-md-3">
-                        <label class="filter-label">من تاريخ</label>
+                        <label class="filter-label">{{ __('ingaz.from_date') }}</label>
                         <input type="date" id="filterDateFrom" class="form-control">
                     </div>
                     <div class="col-md-3">
-                        <label class="filter-label">إلى تاريخ</label>
+                        <label class="filter-label">{{ __('ingaz.to_date') }}</label>
                         <input type="date" id="filterDateTo" class="form-control">
                     </div>
                 </div>
@@ -335,13 +335,13 @@
                 <div class="row mt-3">
                     <div class="col-12">
                         <button id="applyFilters" class="btn btn-primary">
-                            <i class="fas fa-search me-2"></i>تطبيق الفلاتر
+                            <i class="fas fa-search me-2"></i>{{ __('ingaz.apply_filters') }}
                         </button>
                         <button id="resetFilters" class="btn btn-secondary">
-                            <i class="fas fa-redo me-2"></i>إعادة تعيين
+                            <i class="fas fa-redo me-2"></i>{{ __('ingaz.reset_filters') }}
                         </button>
                         <button id="exportData" class="btn btn-success">
-                            <i class="fas fa-file-excel me-2"></i>تصدير Excel
+                            <i class="fas fa-file-excel me-2"></i>{{ __('ingaz.export_excel') }}
                         </button>
                     </div>
                 </div>
@@ -350,10 +350,10 @@
             <!-- View Toggle -->
             <div class="view-toggle">
                 <button class="btn active" id="tableView">
-                    <i class="fas fa-table me-2"></i>عرض جدول
+                    <i class="fas fa-table me-2"></i>{{ __('ingaz.table_view') }}
                 </button>
                 <button class="btn" id="cardView">
-                    <i class="fas fa-th-large me-2"></i>عرض بطاقات
+                    <i class="fas fa-th-large me-2"></i>{{ __('ingaz.card_view') }}
                 </button>
             </div>
 
@@ -366,7 +366,7 @@
                             <div class="card-header bg-white">
                                 <h5 class="mb-0">
                                     <i class="fas fa-list me-2"></i>
-                                    قائمة الشكاوى
+                                    {{ __('ingaz.complaints_list') }}
                                 </h5>
                             </div>
                             <div class="card-body">
@@ -375,15 +375,15 @@
                                            style="width:100%">
                                         <thead>
                                         <tr>
-                                            <th width="80">رقم التذكرة</th>
-                                            <th>مقدم الشكوى</th>
-                                            <th>الموضوع</th>
-                                            <th>النوع</th>
-                                            <th width="80">الأولوية</th>
-                                            <th width="100">الحالة</th>
-                                            <th>الموظف المختص</th>
-                                            <th>التاريخ</th>
-                                            <th width="150">الإجراءات</th>
+                                            <th width="80">{{ __('ingaz.ticket_number') }}</th>
+                                            <th>{{ __('ingaz.complainant_name') }}</th>
+                                            <th>{{ __('ingaz.subject') }}</th>
+                                            <th>{{ __('ingaz.type') }}</th>
+                                            <th width="80">{{ __('ingaz.priority') }}</th>
+                                            <th width="100">{{ __('ingaz.status') }}</th>
+                                            <th>{{ __('ingaz.assigned_employee') }}</th>
+                                            <th>{{ __('ingaz.date') }}</th>
+                                            <th width="150">{{ __('ingaz.actions') }}</th>
                                         </tr>
                                         </thead>
                                         <tbody></tbody>
@@ -409,7 +409,7 @@
                     <div class="modal-header bg-primary text-white">
                         <h5 class="modal-title">
                             <i class="fas fa-reply me-2"></i>
-                            رد سريع على الشكوى
+                            {{ __('ingaz.quick_response_to_complaint') }}
                         </h5>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
@@ -419,27 +419,27 @@
                             <input type="hidden" name="complaint_id" id="quick_complaint_id">
 
                             <div class="mb-3">
-                                <label class="form-label fw-bold">الرد على الشكوى</label>
+                                <label class="form-label fw-bold">{{ __('ingaz.response_to_complaint') }}</label>
                                 <textarea name="response" class="form-control" rows="5" required
-                                          placeholder="اكتب ردك هنا..."></textarea>
+                                          placeholder="{{ __('ingaz.write_response_here') }}"></textarea>
                             </div>
 
                             <div class="row">
                                 <div class="col-md-6">
-                                    <label class="form-label fw-bold">تغيير الحالة</label>
+                                    <label class="form-label fw-bold">{{ __('ingaz.change_status') }}</label>
                                     <select name="status" class="form-select">
-                                        <option value="">-- بدون تغيير --</option>
-                                        <option value="in_progress">قيد المعالجة</option>
-                                        <option value="resolved">تم الحل</option>
-                                        <option value="closed">إغلاق التذكرة</option>
-                                        <option value="rejected">رفض الشكوى</option>
+                                        <option value="">{{ __('ingaz.no_change') }}</option>
+                                        <option value="in_progress">{{ __('ingaz.complaint_status_in_progress') }}</option>
+                                        <option value="resolved">{{ __('ingaz.complaint_status_resolved') }}</option>
+                                        <option value="closed">{{ __('ingaz.close_ticket') }}</option>
+                                        <option value="rejected">{{ __('ingaz.complaint_status_rejected') }}</option>
                                     </select>
                                 </div>
 
                                 <div class="col-md-6">
-                                    <label class="form-label fw-bold">تحويل إلى موظف</label>
+                                    <label class="form-label fw-bold">{{ __('ingaz.transfer_to_employee') }}</label>
                                     <select name="assigned_to" class="form-select">
-                                        <option value="">-- بدون تغيير --</option>
+                                        <option value="">{{ __('ingaz.no_change') }}</option>
                                         @if(isset($admins))
                                             @foreach($admins as $admin)
                                                 <option value="{{ $admin->id }}">{{ $admin->name }}</option>
@@ -452,10 +452,10 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                            <i class="fas fa-times me-2"></i>إلغاء
+                            <i class="fas fa-times me-2"></i>{{ __('buttons.cancel') }}
                         </button>
                         <button type="button" class="btn btn-primary" id="saveQuickResponse">
-                            <i class="fas fa-paper-plane me-2"></i>إرسال الرد
+                            <i class="fas fa-paper-plane me-2"></i>{{ __('ingaz.send_response') }}
                         </button>
                     </div>
                 </div>
@@ -471,18 +471,65 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         $(document).ready(function () {
+            const complaintsTranslations = {
+                selectPlaceholder: @json(__('ingaz.select_placeholder')),
+                noResults: @json(__('ingaz.no_results')),
+                searching: @json(__('ingaz.searching')),
+                notSpecified: @json(__('ingaz.not_specified')),
+                noSubject: @json(__('ingaz.no_subject')),
+                priorityUrgent: @json(__('ingaz.priority_urgent')),
+                priorityHigh: @json(__('ingaz.priority_high')),
+                priorityMedium: @json(__('ingaz.priority_medium')),
+                priorityLow: @json(__('ingaz.priority_low')),
+                statusPending: @json(__('ingaz.complaint_status_pending')),
+                statusInProgress: @json(__('ingaz.complaint_status_in_progress')),
+                statusResolved: @json(__('ingaz.complaint_status_resolved')),
+                statusClosed: @json(__('ingaz.complaint_status_closed')),
+                statusRejected: @json(__('ingaz.complaint_status_rejected')),
+                viewDetails: @json(__('ingaz.view_details')),
+                quickResponse: @json(__('ingaz.quick_response')),
+                edit: @json(__('buttons.edit')),
+                delete: @json(__('ingaz.delete')),
+                processing: @json(__('dataTable.sProcessing')),
+                lengthMenu: @json(__('dataTable.sLengthMenu')),
+                zeroRecords: @json(__('dataTable.sZeroRecords')),
+                info: @json(__('dataTable.sInfo')),
+                infoEmpty: @json(__('dataTable.sInfoEmpty')),
+                infoFiltered: @json(__('dataTable.sInfoFiltered')),
+                search: @json(__('dataTable.sSearch')),
+                first: @json(__('dataTable.sFirst')),
+                previous: @json(__('dataTable.sPrevious')),
+                next: @json(__('dataTable.sNext')),
+                last: @json(__('dataTable.sLast')),
+                successTitle: @json(__('ingaz.success_title')),
+                errorTitle: @json(__('ingaz.error_title')),
+                replySent: @json(__('ingaz.reply_sent_successfully')),
+                genericError: @json(__('ingaz.unexpected_error')),
+                replySendError: @json(__('ingaz.reply_send_error')),
+                areYouSure: @json(__('ingaz.are_you_sure')),
+                cannotUndoAction: @json(__('ingaz.cannot_undo_action')),
+                yesDelete: @json(__('ingaz.yes_delete')),
+                cancel: @json(__('buttons.cancel')),
+                deletedTitle: @json(__('admin.deletedSuccess')),
+                complaintDeleted: @json(__('ingaz.complaint_deleted_successfully')),
+                deleteError: @json(__('ingaz.delete_error')),
+                noComplaints: @json(__('ingaz.no_complaints')),
+                view: @json(__('ingaz.view')),
+                reply: @json(__('ingaz.reply')),
+            };
+
             // Initialize Select2
             $('.select2').select2({
-                placeholder: 'اختر...',
+                placeholder: complaintsTranslations.selectPlaceholder,
                 allowClear: true,
                 dir: 'rtl',
                 width: '100%',
                 language: {
                     noResults: function () {
-                        return "لا توجد نتائج";
+                        return complaintsTranslations.noResults;
                     },
                     searching: function () {
-                        return "جاري البحث...";
+                        return complaintsTranslations.searching;
                     }
                 }
             });
@@ -521,7 +568,7 @@
                         data: 'complainant_name',
                         render: function (data, type, row) {
                             let html = '<div>';
-                            html += '<strong>' + (data || row.user?.name || 'غير محدد') + '</strong>';
+                            html += '<strong>' + (data || row.user?.name || complaintsTranslations.notSpecified) + '</strong>';
                             if (row.complainant_phone) {
                                 html += '<br><small class="text-muted"><i class="fas fa-phone fa-sm me-1"></i>' + row.complainant_phone + '</small>';
                             }
@@ -532,7 +579,7 @@
                     {
                         data: 'subject',
                         render: function (data) {
-                            return data || '<span class="text-muted">بدون موضوع</span>';
+                            return data || '<span class="text-muted">' + complaintsTranslations.noSubject + '</span>';
                         },searchable: true
                     },
                     {
@@ -541,30 +588,30 @@
                             if (row.complaintType) {
                                 return '<span class="badge bg-info">' + row.complaintType.name + '</span>';
                             }
-                            return '<span class="text-muted">غير محدد</span>';
+                            return '<span class="text-muted">' + complaintsTranslations.notSpecified + '</span>';
                         },searchable: true
                     },
                     {
                         data: 'priority',
                         render: function (data) {
                             const priorities = {
-                                'urgent': '<span class="badge bg-danger"><i class="fas fa-exclamation-circle me-1"></i>عاجلة</span>',
-                                'high': '<span class="badge bg-warning"><i class="fas fa-arrow-up me-1"></i>عالية</span>',
-                                'medium': '<span class="badge bg-info"><i class="fas fa-minus me-1"></i>متوسطة</span>',
-                                'low': '<span class="badge bg-secondary"><i class="fas fa-arrow-down me-1"></i>منخفضة</span>'
+                                'urgent': '<span class="badge bg-danger"><i class="fas fa-exclamation-circle me-1"></i>' + complaintsTranslations.priorityUrgent + '</span>',
+                                'high': '<span class="badge bg-warning"><i class="fas fa-arrow-up me-1"></i>' + complaintsTranslations.priorityHigh + '</span>',
+                                'medium': '<span class="badge bg-info"><i class="fas fa-minus me-1"></i>' + complaintsTranslations.priorityMedium + '</span>',
+                                'low': '<span class="badge bg-secondary"><i class="fas fa-arrow-down me-1"></i>' + complaintsTranslations.priorityLow + '</span>'
                             };
-                            return priorities[data] || '<span class="badge bg-light text-dark">غير محدد</span>';
+                            return priorities[data] || '<span class="badge bg-light text-dark">' + complaintsTranslations.notSpecified + '</span>';
                         },searchable: true
                     },
                     {
                         data: 'status',
                         render: function (data) {
                             const statuses = {
-                                'pending': '<span class="status-badge status-pending"><i class="fas fa-clock me-1"></i>قيد الانتظار</span>',
-                                'in_progress': '<span class="status-badge status-in_progress"><i class="fas fa-spinner me-1"></i>قيد المعالجة</span>',
-                                'resolved': '<span class="status-badge status-resolved"><i class="fas fa-check me-1"></i>تم الحل</span>',
-                                'closed': '<span class="status-badge status-closed"><i class="fas fa-times me-1"></i>مغلقة</span>',
-                                'rejected': '<span class="status-badge status-rejected"><i class="fas fa-ban me-1"></i>مرفوضة</span>'
+                                'pending': '<span class="status-badge status-pending"><i class="fas fa-clock me-1"></i>' + complaintsTranslations.statusPending + '</span>',
+                                'in_progress': '<span class="status-badge status-in_progress"><i class="fas fa-spinner me-1"></i>' + complaintsTranslations.statusInProgress + '</span>',
+                                'resolved': '<span class="status-badge status-resolved"><i class="fas fa-check me-1"></i>' + complaintsTranslations.statusResolved + '</span>',
+                                'closed': '<span class="status-badge status-closed"><i class="fas fa-times me-1"></i>' + complaintsTranslations.statusClosed + '</span>',
+                                'rejected': '<span class="status-badge status-rejected"><i class="fas fa-ban me-1"></i>' + complaintsTranslations.statusRejected + '</span>'
                             };
                             return statuses[data] || data;
                         },searchable: true
@@ -575,7 +622,7 @@
                             if (data && data.name) {
                                 return '<span class="text-primary"><i class="fas fa-user-tie me-1"></i>' + data.name + '</span>';
                             }
-                            return '<span class="text-muted">غير محدد</span>';
+                            return '<span class="text-muted">' + complaintsTranslations.notSpecified + '</span>';
                         },searchable: true
                     },
                     {
@@ -601,13 +648,13 @@
                             let isClosed = (row.status === 'closed' || row.status === 'resolved' || row.status === 'rejected');
 
                             // View button - متاح دائماً
-                            actions += '<a href="/admin/complaints/' + row.id + '" class="btn btn-icon btn-sm btn-info" title="عرض التفاصيل">';
+                            actions += '<a href="/admin/complaints/' + row.id + '" class="btn btn-icon btn-sm btn-info" title="' + complaintsTranslations.viewDetails + '">';
                             actions += '<i class="fas fa-eye"></i></a>';
 
                             // Quick response button - غير متاح للتذاكر المغلقة
                             @if(@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_RESPONSE))
                             if (!isClosed) {
-                                actions += '<button class="btn btn-icon btn-sm btn-success quick-response" data-id="' + row.id + '" title="رد سريع">';
+                                actions += '<button class="btn btn-icon btn-sm btn-success quick-response" data-id="' + row.id + '" title="' + complaintsTranslations.quickResponse + '">';
                                 actions += '<i class="fas fa-reply"></i></button>';
                             }
                             @endif
@@ -615,7 +662,7 @@
                             // Edit button - غير متاح للتذاكر المغلقة
                             @if(@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_EDIT))
                             if (!isClosed) {
-                                actions += '<a href="/admin/complaints/' + row.id + '/edit" class="btn btn-icon btn-sm btn-warning" title="تعديل">';
+                                actions += '<a href="/admin/complaints/' + row.id + '/edit" class="btn btn-icon btn-sm btn-warning" title="' + complaintsTranslations.edit + '">';
                                 actions += '<i class="fas fa-edit"></i></a>';
                             }
                             @endif
@@ -623,7 +670,7 @@
                             // Delete button - غير متاح للتذاكر المغلقة
                             @if(@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_DELETE))
                             if (!isClosed) {
-                                actions += '<button class="btn btn-icon btn-sm btn-danger delete-complaint" data-id="' + row.id + '" title="حذف">';
+                                actions += '<button class="btn btn-icon btn-sm btn-danger delete-complaint" data-id="' + row.id + '" title="' + complaintsTranslations.delete + '">';
                                 actions += '<i class="fas fa-trash"></i></button>';
                             }
                             @endif
@@ -634,20 +681,20 @@
                     }
                 ],
                 language: {
-                    "sProcessing": "جارٍ التحميل...",
-                    "sLengthMenu": "أظهر _MENU_ مدخلات",
-                    "sZeroRecords": "لم يعثر على أية سجلات",
-                    "sInfo": "إظهار _START_ إلى _END_ من أصل _TOTAL_ مدخل",
-                    "sInfoEmpty": "يعرض 0 إلى 0 من أصل 0 سجل",
-                    "sInfoFiltered": "(منتقاة من مجموع _MAX_ مُدخل)",
+                    "sProcessing": complaintsTranslations.processing,
+                    "sLengthMenu": complaintsTranslations.lengthMenu,
+                    "sZeroRecords": complaintsTranslations.zeroRecords,
+                    "sInfo": complaintsTranslations.info,
+                    "sInfoEmpty": complaintsTranslations.infoEmpty,
+                    "sInfoFiltered": complaintsTranslations.infoFiltered,
                     "sInfoPostFix": "",
-                    "sSearch": "ابحث:",
+                    "sSearch": complaintsTranslations.search + ':',
                     "sUrl": "",
                     "oPaginate": {
-                        "sFirst": "الأول",
-                        "sPrevious": "السابق",
-                        "sNext": "التالي",
-                        "sLast": "الأخير"
+                        "sFirst": complaintsTranslations.first,
+                        "sPrevious": complaintsTranslations.previous,
+                        "sNext": complaintsTranslations.next,
+                        "sLast": complaintsTranslations.last
                     }
                 },
                 order: [[0, 'desc']],
@@ -723,8 +770,8 @@
                             $('#quickResponseForm')[0].reset();
                             Swal.fire({
                                 icon: 'success',
-                                title: 'تم بنجاح',
-                                text: 'تم إرسال الرد بنجاح',
+                                title: complaintsTranslations.successTitle,
+                                text: complaintsTranslations.replySent,
                                 timer: 2000,
                                 showConfirmButton: false
                             });
@@ -732,16 +779,16 @@
                         } else {
                             Swal.fire({
                                 icon: 'error',
-                                title: 'خطأ',
-                                text: response.message || 'حدث خطأ'
+                                title: complaintsTranslations.errorTitle,
+                                text: response.message || complaintsTranslations.genericError
                             });
                         }
                     },
                     error: function (xhr) {
                         Swal.fire({
                             icon: 'error',
-                            title: 'خطأ',
-                            text: 'حدث خطأ أثناء إرسال الرد'
+                            title: complaintsTranslations.errorTitle,
+                            text: complaintsTranslations.replySendError
                         });
                     }
                 });
@@ -752,14 +799,14 @@
                 let complaintId = $(this).data('id');
 
                 Swal.fire({
-                    title: 'هل أنت متأكد؟',
-                    text: "لن تتمكن من التراجع عن هذا الإجراء!",
+                    title: complaintsTranslations.areYouSure,
+                    text: complaintsTranslations.cannotUndoAction,
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#d33',
                     cancelButtonColor: '#3085d6',
-                    confirmButtonText: 'نعم، احذف!',
-                    cancelButtonText: 'إلغاء'
+                    confirmButtonText: complaintsTranslations.yesDelete,
+                    cancelButtonText: complaintsTranslations.cancel
                 }).then((result) => {
                     if (result.isConfirmed) {
                         $.ajax({
@@ -772,8 +819,8 @@
                                 if (response.success) {
                                     Swal.fire({
                                         icon: 'success',
-                                        title: 'تم الحذف',
-                                        text: 'تم حذف الشكوى بنجاح',
+                                        title: complaintsTranslations.deletedTitle,
+                                        text: complaintsTranslations.complaintDeleted,
                                         timer: 2000,
                                         showConfirmButton: false
                                     });
@@ -781,16 +828,16 @@
                                 } else {
                                     Swal.fire({
                                         icon: 'error',
-                                        title: 'خطأ',
-                                        text: response.message || 'حدث خطأ'
+                                        title: complaintsTranslations.errorTitle,
+                                        text: response.message || complaintsTranslations.genericError
                                     });
                                 }
                             },
                             error: function () {
                                 Swal.fire({
                                     icon: 'error',
-                                    title: 'خطأ',
-                                    text: 'حدث خطأ أثناء الحذف'
+                                    title: complaintsTranslations.errorTitle,
+                                    text: complaintsTranslations.deleteError
                                 });
                             }
                         });
@@ -825,7 +872,7 @@
                                 html += createTicketCard(ticket);
                             });
                         } else {
-                            html = '<div class="col-12 text-center"><p class="text-muted">لا توجد شكاوى</p></div>';
+                            html = '<div class="col-12 text-center"><p class="text-muted">' + complaintsTranslations.noComplaints + '</p></div>';
                         }
 
                         $('#ticketsCards').html(html);
@@ -847,10 +894,10 @@
                         ${statusBadge}
                     </div>
 
-                    <h5 class="card-title">${ticket.subject || 'بدون موضوع'}</h5>
+                    <h5 class="card-title">${ticket.subject || complaintsTranslations.noSubject}</h5>
 
                     <div class="ticket-meta">
-                        <span><i class="fas fa-user"></i>${ticket.complainant_name || 'غير محدد'}</span>
+                        <span><i class="fas fa-user"></i>${ticket.complainant_name || complaintsTranslations.notSpecified}</span>
                         <span><i class="fas fa-calendar"></i>${new Date(ticket.created_at).toLocaleDateString('ar-SA')}</span>
                     </div>
 
@@ -861,12 +908,12 @@
 
                     <div class="mt-3 d-flex gap-2">
                         <a href="/admin/complaints/${ticket.id}" class="btn btn-sm btn-primary">
-                            <i class="fas fa-eye me-1"></i>عرض
+                            <i class="fas fa-eye me-1"></i>${complaintsTranslations.view}
                         </a>
                         ${ticket.status === 'pending' || ticket.status === 'in_progress' ?
-                    '<a href="/admin/complaints/' + ticket.id + '/edit" class="btn btn-sm btn-warning"><i class="fas fa-edit me-1"></i>تعديل</a>' : ''}
+                    '<a href="/admin/complaints/' + ticket.id + '/edit" class="btn btn-sm btn-warning"><i class="fas fa-edit me-1"></i>' + complaintsTranslations.edit + '</a>' : ''}
                         ${ticket.status !== 'closed' && ticket.status !== 'resolved' ?
-                    '<button class="btn btn-sm btn-success quick-response" data-id="' + ticket.id + '"><i class="fas fa-reply me-1"></i>رد</button>' : ''}
+                    '<button class="btn btn-sm btn-success quick-response" data-id="' + ticket.id + '"><i class="fas fa-reply me-1"></i>' + complaintsTranslations.reply + '</button>' : ''}
                     </div>
                 </div>
             </div>
@@ -876,11 +923,11 @@
             // Get status badge
             function getStatusBadge(status) {
                 const statuses = {
-                    'pending': '<span class="status-badge status-pending">قيد الانتظار</span>',
-                    'in_progress': '<span class="status-badge status-in_progress">قيد المعالجة</span>',
-                    'resolved': '<span class="status-badge status-resolved">تم الحل</span>',
-                    'closed': '<span class="status-badge status-closed">مغلقة</span>',
-                    'rejected': '<span class="status-badge status-rejected">مرفوضة</span>'
+                    'pending': '<span class="status-badge status-pending">' + complaintsTranslations.statusPending + '</span>',
+                    'in_progress': '<span class="status-badge status-in_progress">' + complaintsTranslations.statusInProgress + '</span>',
+                    'resolved': '<span class="status-badge status-resolved">' + complaintsTranslations.statusResolved + '</span>',
+                    'closed': '<span class="status-badge status-closed">' + complaintsTranslations.statusClosed + '</span>',
+                    'rejected': '<span class="status-badge status-rejected">' + complaintsTranslations.statusRejected + '</span>'
                 };
                 return statuses[status] || '<span class="badge bg-secondary">' + status + '</span>';
             }
@@ -888,10 +935,10 @@
             // Get priority badge
             function getPriorityBadge(priority) {
                 const priorities = {
-                    'urgent': '<span class="badge bg-danger">عاجلة</span>',
-                    'high': '<span class="badge bg-warning">عالية</span>',
-                    'medium': '<span class="badge bg-info">متوسطة</span>',
-                    'low': '<span class="badge bg-secondary">منخفضة</span>'
+                    'urgent': '<span class="badge bg-danger">' + complaintsTranslations.priorityUrgent + '</span>',
+                    'high': '<span class="badge bg-warning">' + complaintsTranslations.priorityHigh + '</span>',
+                    'medium': '<span class="badge bg-info">' + complaintsTranslations.priorityMedium + '</span>',
+                    'low': '<span class="badge bg-secondary">' + complaintsTranslations.priorityLow + '</span>'
                 };
                 return priorities[priority] || '';
             }

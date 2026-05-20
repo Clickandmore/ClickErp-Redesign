@@ -793,20 +793,20 @@
                         $('#changeResponsibleModal').modal('hide');
                         // Show success message and reload after a short delay
                         Swal.fire({
-                            title: 'تم الحفظ!',
-                            text: response.message || 'تم تحديث الموظف بنجاح',
+                            title: '{{ helperTrans('ingaz.saved_successfully_title') }}',
+                            text: response.message || '{{ helperTrans('ingaz.employee_updated_successfully') }}',
                             icon: 'success',
-                            confirmButtonText: 'حسناً'
+                            confirmButtonText: '{{ helperTrans('ingaz.ok') }}'
                         })
                         setTimeout(function() {
                             window.location.reload();
                         }, 1000);
                     } else {
                         Swal.fire({
-                            title: 'تم الحفظ!',
-                            text: response.message || 'تم تحديث الموظف بنجاح',
+                            title: '{{ helperTrans('ingaz.saved_successfully_title') }}',
+                            text: response.message || '{{ helperTrans('ingaz.employee_updated_successfully') }}',
                             icon: 'success',
-                            confirmButtonText: 'حسناً'
+                            confirmButtonText: '{{ helperTrans('ingaz.ok') }}'
                         })
                     }
                 },
@@ -816,10 +816,10 @@
                         errorMessage = xhr.responseJSON.message;
                     }
                     Swal.fire({
-                        title: 'حدث خطأ!',
+                        title: '{{ helperTrans('ingaz.error_occurred_title') }}',
                         text: errorMessage,
                         icon: 'error',
-                        confirmButtonText: 'حسناً',
+                        confirmButtonText: '{{ helperTrans('ingaz.ok') }}',
                         confirmButtonColor: '#3085d6'
                     });
                 }
@@ -829,13 +829,13 @@
         function deleteOrder(orderId) {
             Swal.fire({
                 title: '{{ helperTrans('ingaz.confirm_delete_order') }}',
-                text: 'هل أنت متأكد من رغبتك في حذف هذا العنصر؟ لا يمكن التراجع عن هذه العملية.',
+                text: '{{ helperTrans('ingaz.delete_item_confirm_text') }}',
                 icon: 'info',
                 showCancelButton: true,
                 confirmButtonColor: '#28a745',
                 cancelButtonColor: '#6c757d',
-                confirmButtonText: 'حذف',
-                cancelButtonText: 'إلغاء'
+                confirmButtonText: '{{ helperTrans('ingaz.delete') }}',
+                cancelButtonText: '{{ helperTrans('ingaz.cancel') }}'
             }).then((result) => {
                 if (result.isConfirmed) {
                     $.ajax({
@@ -847,10 +847,10 @@
                         success: function(response) {
                             if (response.data.success) {
                                 Swal.fire({
-                                    title: 'تم الحذف!',
-                                    text: response.message || 'تم حذف الموظف بنجاح',
+                                    title: '{{ helperTrans('ingaz.deleted_successfully_title') }}',
+                                    text: response.message || '{{ helperTrans('ingaz.employee_deleted_successfully') }}',
                                     icon: 'success',
-                                    confirmButtonText: 'حسناً'
+                                    confirmButtonText: '{{ helperTrans('ingaz.ok') }}'
                                 })
                                 window.location.href = '{{ route('orders.index') }}';
                             } else {
@@ -1022,10 +1022,10 @@
                     if (response.data.success) {
                         $('#refuseReturnModal').modal('hide');
                         Swal.fire({
-                            title: 'تم الحفظ!',
+                            title: '{{ helperTrans('ingaz.saved_successfully_title') }}',
                             text: response.message || '{{ helperTrans('ingaz.order_updated') }}',
                             icon: 'success',
-                            confirmButtonText: 'حسناً'
+                            confirmButtonText: '{{ helperTrans('ingaz.ok') }}'
                         }).then(() => {
                             window.location.reload();
                         })
@@ -1034,10 +1034,10 @@
                         }, 1000);
                     } else {
                         Swal.fire({
-                            title: 'تم الحفظ!',
+                            title: '{{ helperTrans('ingaz.saved_successfully_title') }}',
                             text: response.message || '{{ helperTrans('ingaz.order_updated') }}',
                             icon: 'success',
-                            confirmButtonText: 'حسناً'
+                            confirmButtonText: '{{ helperTrans('ingaz.ok') }}'
                         }).then(() => {
                             window.location.reload();
                         })
@@ -1045,10 +1045,10 @@
                 },
                 error: function() {
                     Swal.fire({
-                        title: ' حدث خطأ!',
+                        title: '{{ helperTrans('ingaz.error_occurred_title') }}',
                         text: '{{ helperTrans('ingaz.update_error') }}',
                         icon: 'error',
-                        confirmButtonText: 'حسناً'
+                        confirmButtonText: '{{ helperTrans('ingaz.ok') }}'
                     })
                 }
             });

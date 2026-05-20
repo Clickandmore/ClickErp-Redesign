@@ -12,7 +12,7 @@
             </div>
             <div class="col-md-6">
                 <label class="form-label fw-bold">{{helperTrans('ingaz.client')}}</label>
-                <input type="text" disabled class="form-control" value="{{ $obj->user->name ?? 'غير محدد'}}">
+                <input type="text" disabled class="form-control" value="{{ $obj->user->name ?? helperTrans('ingaz.not_specified') }}">
             </div>
         </div>
 
@@ -30,7 +30,7 @@
         @if($obj->maid && isset($obj->maid->available_at) && now() < $obj->maid->available_at)
             <div class="alert alert-info">
                 <i class="fa fa-info-circle"></i>
-                يرجي العلم ان تلك العاملة متاحة من يوم {{$obj->maid->available_at}}
+                {{ __('ingaz.maid_available_from_date', ['date' => $obj->maid->available_at]) }}
             </div>
         @endif
 
@@ -51,7 +51,7 @@
             <!-- Disabled for refused, done, or completed orders -->
             <div class="alert alert-warning">
                 <i class="fa fa-exclamation-triangle"></i>
-                لا يمكن تعديل هذا الطلب لأنه {{getEnumValue('orders_statuses', $obj->status)}}
+                {{ __('ingaz.order_cannot_be_edited_status', ['status' => getEnumValue('orders_statuses', $obj->status)]) }}
             </div>
 
             <!-- Close button only for disabled orders -->
