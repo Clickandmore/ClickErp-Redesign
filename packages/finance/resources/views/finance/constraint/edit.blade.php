@@ -133,7 +133,9 @@
                             <input type="hidden" name="old_id[]" value="{{ $constraintDetails->id }}" class="constraint-old-id">
                             <input type="hidden" class="form-control" value="debtor"
                             name="account_type[]">
-                            <input class="debtor form-control" min="0.01" step="any" type="number" value="{{ $constraintDetails->debtor_value }}" name="debtor_value[]">
+                            <input class="debtor form-control js-constraint-amount" inputmode="decimal"
+                                autocomplete="off" type="text" value="{{ number_format((float) $constraintDetails->debtor_value, 2, '.', '') }}"
+                                name="debtor_value[]">
                             <span class="error-span" hidden style='color:red'>{{ __("finance::finance.Enter Valid Values") }}</span>
                         </td>
                         <td>
@@ -174,7 +176,9 @@
                         <td>
                             <input type="hidden" class="form-control" value="creditor"
                             name="account_type[]">
-                            <input type="number" min="0.01" step="any" class="creditor form-control" value="{{ $constraintDetails->creditor_value }}"
+                            <input type="text" inputmode="decimal" autocomplete="off"
+                                class="creditor form-control js-constraint-amount"
+                                value="{{ number_format((float) $constraintDetails->creditor_value, 2, '.', '') }}"
                                 name="creditor_value[]">
                             <span class="error-span" hidden style='color:red'> {{ __("finance::finance.Enter Valid Values") }}</span>
                         </td>

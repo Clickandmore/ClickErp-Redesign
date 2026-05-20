@@ -305,16 +305,18 @@
 
 @section('content')
     @php
-        $companyNameAr =
-            optional(optional($setting_web ?? null)->translate('ar'))->website_name ?:
-            optional($setting_web ?? null)->website_name ?:
-            config('app.name', 'Platinum');
-        $companyNameEn =
-            optional(optional($setting_web ?? null)->translate('en'))->website_name ?:
-            optional($setting_web ?? null)->website_name ?:
-            config('app.name', 'Platinum');
-        $logoUrl =
-            isset($setting_web) && !empty($setting_web->logo_header) ? showFile($setting_web->logo_header) : null;
+        $companyNameAr = documentSetting(
+            'document_company_name',
+            documentSetting('website_name', optional($setting_web ?? null)->website_name ?: config('app.name', 'Platinum'), 'ar'),
+            'ar',
+        );
+        $companyNameEn = documentSetting(
+            'document_company_name',
+            documentSetting('website_name', optional($setting_web ?? null)->website_name ?: config('app.name', 'Platinum'), 'en'),
+            'en',
+        );
+        $logoPath = documentSetting('document_logo') ?: optional($setting_web ?? null)->logo_header;
+        $logoUrl = $logoPath ? showFile($logoPath) : null;
         $taxNumber = isset($setting_web) && !empty($setting_web->tax_number) ? $setting_web->tax_number : '-';
         $entryCode = $obj->code ?: $obj->id;
         $printedAt = now(config('app.timezone', 'Asia/Riyadh'))->format('Y-m-d H:i:s');
@@ -362,7 +364,9 @@
 
                     <div>
                         <h4>{{ $companyNameAr }}</h4>
-                        <h5>{{ $companyNameEn }}</h5>
+                        @if ($companyNameEn && $companyNameEn !== $companyNameAr)
+                            <h5>{{ $companyNameEn }}</h5>
+                        @endif
                         <p>الرقم الضريبي / VAT: {{ $taxNumber }}</p>
                     </div>
                 </div>
