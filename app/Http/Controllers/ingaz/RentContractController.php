@@ -2297,6 +2297,13 @@ class RentContractController extends Controller
             ])->findOrFail($id);
 
             // Get settings for contract printing
+            $defaultContractSettings = [
+                'license_number' => '4001772',
+                'license_date' => '2022-10-13',
+                'commercial_register' => '1010601958',
+                'commercial_date' => '1441-03-03',
+                'city' => 'الرياض',
+            ];
             $contractSettings = [];
             $settingKeys = [
                 'company_name', 'license_number', 'license_date', 'commercial_register',
@@ -2307,7 +2314,8 @@ class RentContractController extends Controller
 
             foreach ($settingKeys as $key) {
                 $setting = \App\Models\Setting::where('key', 'rent_contract_' . $key)->first();
-                $contractSettings[$key] = $setting ? $setting->value : null;
+                $value = $setting ? trim((string) $setting->value) : '';
+                $contractSettings[$key] = $value !== '' ? $value : ($defaultContractSettings[$key] ?? null);
             }
 
             $contractSettings['company_name'] = documentSetting(
