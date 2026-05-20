@@ -2,6 +2,7 @@
 
 namespace Nami\Finance\Services;
 
+use Illuminate\Support\Facades\DB;
 use Nami\Finance\Enums\ConstraintTypiesEnum;
 use Nami\Finance\MainService;
 use Nami\Finance\Models\Account as Model;
@@ -32,7 +33,7 @@ class OpeningBalanceService extends MainService
         return $this->model
             ->query()
             ->select(['id', 'code', 'name', 'status', 'level', 'parent_id'])
-            ->with('parent:id,name,code')
+            ->with('parent:id,name,code,type')
             ->doesntHave('children')
             ->when(!empty($data['level']), function ($query) use ($data) {
                 $query->where('level', $data['level']);
@@ -90,8 +91,45 @@ class OpeningBalanceService extends MainService
 
     public function storeFirstBalanceConstraint($data)
     {
-       $constraint = $this->constraintService->storeFirstBalanceConstraint($data);
-       $this->constraintService->storeConstraintDetails($data['account_id'],$constraint->id,$data,$constraint->year_id,$constraint->statement,$constraint->date);
+        return DB::transaction(function () use ($data) {
+            $constraint = $this->checkHasFirstBalance($data['year_id']);
+
+            if ($constraint) {
+                $constraint->update([
+                    'value' => $data['value'],
+                    'date' => $data['date'],
+                    'statement' => $data['statement'],
+                ]);
+
+                $visibleAccountIds = $data['visible_account_id'] ?? [];
+
+                $this->constraintDetailsService->model
+                    ->where('constraint_id', $constraint->id)
+                    ->when(!empty($visibleAccountIds), function ($query) use ($visibleAccountIds) {
+                        $query->whereIn('account_id', $visibleAccountIds);
+                    })
+                    ->delete();
+            } else {
+                $constraint = $this->constraintService->storeFirstBalanceConstraint($data);
+            }
+
+            $this->constraintService->storeConstraintDetails(
+                $data['account_id'],
+                $constraint->id,
+                $data,
+                $constraint->year_id,
+                $constraint->statement,
+                $constraint->date
+            );
+
+            $constraint->update([
+                'value' => $this->constraintDetailsService->model
+                    ->where('constraint_id', $constraint->id)
+                    ->sum('debtor_value'),
+            ]);
+
+            return $constraint;
+        });
     }
 
 
