@@ -104,6 +104,23 @@ class FormSettingsController extends Controller
         );
     }
 
+    public function publicRentalContractPreview(Request $request)
+    {
+        $definition = $this->templates()['rental-contract'];
+
+        app()->setLocale($this->resolveLocale($request));
+
+        $data = $this->buildPreviewData('rental-contract');
+        $data['allowSignature'] = false;
+
+        return response()->view(
+            $definition['view'],
+            $data,
+            200,
+            ['Content-Type' => 'text/html; charset=UTF-8']
+        );
+    }
+
     public function print(Request $request, string $template)
     {
         $definition = $this->templates()[$template] ?? null;
