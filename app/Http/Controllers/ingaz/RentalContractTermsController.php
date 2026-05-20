@@ -152,7 +152,7 @@ class RentalContractTermsController extends Controller
         foreach ($data as $key => $value) {
             Setting::updateOrCreate(
                 ['key' => 'rent_contract_' . $key],
-                ['value' => $value]
+                ['value' => $value ?? '']
             );
         }
 
