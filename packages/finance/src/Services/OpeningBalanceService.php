@@ -109,6 +109,12 @@ class OpeningBalanceService extends MainService
                         $query->whereIn('account_id', $visibleAccountIds);
                     })
                     ->delete();
+
+                $this->constraintDetailsService->model
+                    ->where('constraint_id', $constraint->id)
+                    ->update([
+                        'date' => $constraint->date,
+                    ]);
             } else {
                 $constraint = $this->constraintService->storeFirstBalanceConstraint($data);
             }

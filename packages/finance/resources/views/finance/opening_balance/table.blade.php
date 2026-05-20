@@ -2,15 +2,14 @@
     <div class="row mb-3">
         <div class="col-6">
             <label class="">{{ __('finance::finance.statement') }}</label>
-            <textarea rows="3" name="statement" id="statement" class="form-control"
-                {{ $data['check_previous_constraint'] ? 'disabled' : '' }}>
+            <textarea rows="3" name="statement" id="statement" class="form-control">
                 {{ $data['constraint']->statement ?? '' }}
             </textarea>
         </div>
         <div class="col-6 mt-4">
             <label class="">{{ __('finance::finance.date') }}</label>
             <input name="date" id="date" type="date" value="{{ $data['constraint']->date ?? date('Y-m-d') }}"
-                class="form-control" {{ $data['check_previous_constraint'] ? 'disabled' : '' }}>
+                class="form-control">
         </div>
         @if (!$data['check_previous_constraint'] && $data['constraint'])
             <div class="col-12 mt-2 text-center">
