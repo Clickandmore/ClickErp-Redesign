@@ -32,10 +32,10 @@ return array (
   'rememberme' => 'تذكرني',
   'login successful' => 'تم التسجيل بنجاح',
   'All Rights Reserved.' => 'جميع الحقوق محفوظة',
-  'address_required' => 'Address required',
-  'choose' => 'Choose',
+  'address_required' => 'العنوان مطلوب',
+  'choose' => 'اختر',
   'SL' => '#',
-  'no_internet' => 'No Internet',
+  'no_internet' => 'لا يوجد اتصال بالإنترنت',
   'select' => 'اختر',
   'new' => 'جديد',
 );

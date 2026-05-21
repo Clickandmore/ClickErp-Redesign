@@ -395,6 +395,7 @@ Route::group(
             Route::get('whatsapp-dispatch', [NotificationController::class, 'indexWhatsApp'])->name('whatsapp.notifications.index');
             Route::post('whatsapp-dispatch', [NotificationController::class, 'storeWhatsApp'])->name('whatsapp.notifications.store');
             Route::get('notifications-settings', [NotificationSettingsController::class, 'edit'])->name('notifications.settings');
+            Route::get('notifications-settings/alerts', [NotificationSettingsController::class, 'editAlerts'])->name('notifications.settings.alerts');
             Route::post('notifications-settings', [NotificationSettingsController::class, 'update'])->name('notifications.settings.update');
             Route::resource('statistics', StatisticController::class);
 

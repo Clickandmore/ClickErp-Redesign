@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return array (
   'ex_excel' => 'تصدير ك Excel',
   'ex_csv' => 'تصدير ك CSV',
   'all_record' => 'كل السجلات',
@@ -24,5 +26,5 @@
   'Search' => 'ابحث هنا ....',
   'search in Column' => 'البحث فى هذا العمود',
   'add button' => 'أضف جديد',
-  'Export to Excel' => 'Export to Excel',
+  'Export to Excel' => 'تصدير إلى إكسل',
 );

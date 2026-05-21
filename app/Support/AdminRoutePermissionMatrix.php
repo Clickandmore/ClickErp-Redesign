@@ -571,6 +571,7 @@ class AdminRoutePermissionMatrix
                 'whatsapp.notifications.index' => [PermKeys::NOTIFICATIONS_CONTROL],
                 'whatsapp.notifications.store' => [PermKeys::NOTIFICATIONS_CONTROL],
                 'notifications.settings' => [PermKeys::NOTIFICATIONS_CONTROL],
+                'notifications.settings.alerts' => [PermKeys::NOTIFICATIONS_CONTROL],
                 'notifications.settings.update' => [PermKeys::NOTIFICATIONS_CONTROL],
                 'messages.index' => [PermKeys::NOTIFICATIONS_CONTROL],
             ]

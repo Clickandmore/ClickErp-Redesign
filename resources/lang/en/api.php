@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return array (
   'All items' => 'All items',
   'not found' => 'not found',
   'The code is wrong' => 'The code is wrong',
@@ -10,4 +12,21 @@
   'data_updated_successfully' => 'Data updated successfully.',
   'error_updating_profile' => 'An error occurred while updating the profile. Please try again.',
   'service' => 'Service',
+  'services' => 'Services',
+  'nationalities' => 'Nationalities',
+  'nationality' => 'Nationality',
+  'questions' => 'Questions',
+  'question' => 'Question',
+  'about_us' => 'About us',
+  'sliders' => 'Sliders',
+  'slider' => 'Slider',
+  'return_request' => 'Return request',
+  'parteners' => 'Parteners',
+  'Recruitment requirements' => 'Recruitment requirements',
+  'why_us' => 'Why us',
+  'testimonials' => 'Testimonials',
+  'arrival_workers' => 'Arrival workers',
+  'Fast news' => 'Fast news',
+  'Features' => 'Features',
+  'what_do' => 'What do',
 );

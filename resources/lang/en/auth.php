@@ -35,4 +35,7 @@ return array (
   'no_internet' => 'No Internet',
   'select' => 'Select',
   'new' => 'New',
+  'success login' => 'Success login',
+  'address_required' => 'Address required',
+  'choose' => 'Choose',
 );

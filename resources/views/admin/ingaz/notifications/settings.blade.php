@@ -68,6 +68,10 @@
                 </div>
             </div>
             <div class="d-flex gap-2">
+                <a href="{{ route('notifications.settings.alerts') }}" class="btn btn-outline-warning">
+                    <i class="fa fa-bell me-1"></i>
+                    إعدادات التنبيهات
+                </a>
                 <a href="{{ route('notifications.index') }}" class="btn btn-outline-primary">
                     <i class="fa fa-sms me-1"></i>
                     إرسال SMS

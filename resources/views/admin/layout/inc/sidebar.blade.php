@@ -1043,7 +1043,7 @@
                             <span class="ms-2">{{ helperTrans('ingaz.messages_management') }}</span>
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
-                        <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['notifications.index', 'whatsapp.notifications.index', 'messages.index', 'notifications.settings']) || Request::is('admin/sms-templates*') ? 'show' : '' }}"
+                        <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['notifications.index', 'whatsapp.notifications.index', 'messages.index', 'notifications.settings', 'notifications.settings.alerts']) || Request::is('admin/sms-templates*') ? 'show' : '' }}"
                             id="smsManagement">
                             @if (@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL))
                                 <li>
@@ -1074,6 +1074,15 @@
                             @endif
                             @if (@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL))
                                 <li>
+                                    <a class="m-link {{ Route::currentRouteName() == 'notifications.settings.alerts' ? 'active' : '' }}"
+                                        href="{{ route('notifications.settings.alerts') }}">
+                                        <i class="fa fa-bell"></i>
+                                        <span class="ms-2">إعدادات التنبيهات</span>
+                                    </a>
+                                </li>
+                            @endif
+                            @if (@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL))
+                                <li>
                                     <a class="m-link {{ Route::currentRouteName() == 'messages.index' ? 'active' : '' }}"
                                         href="{{ route('messages.index') }}">
                                         <i class="fa fa-inbox"></i>
@@ -1096,11 +1105,15 @@
                     @php
                         $activeSettingsSection = request()->route('section');
                         $isDashboardSettings = request()->routeIs('settings.section') && $activeSettingsSection === 'dashboard';
+                        $isTranslationSettingsRoute =
+                            request()->routeIs('translation-terms.*') ||
+                            (request()->routeIs('settings.section') && $activeSettingsSection === 'translations');
                         $isWebsiteSettingsRoute =
                             request()->routeIs('settings.index') ||
-                            (request()->routeIs('settings.section') && !$isDashboardSettings) ||
+                            (request()->routeIs('settings.section') && !$isDashboardSettings && !$isTranslationSettingsRoute) ||
                             (request()->routeIs('settings.*') && !request()->routeIs('settings.section'));
                         $websiteManagementOpen =
+                            $isTranslationSettingsRoute ||
                             $isWebsiteSettingsRoute ||
                             request()->routeIs('form-settings.*') ||
                             request()->routeIs('about-us.*') ||
@@ -1144,6 +1157,16 @@
                                                     <i class="fa fa-cogs"></i>
                                                     <span
                                                         class="ms-2">{{ helperTrans('ingaz.website_settings') }}</span>
+                                                </a>
+                                            </li>
+                                        @endif
+
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
+                                            <li>
+                                                <a class="m-link {{ $isTranslationSettingsRoute ? 'active' : '' }}"
+                                                    href="{{ route('translation-terms.index') }}">
+                                                    <i class="fa fa-language"></i>
+                                                    <span class="ms-2">{{ __('admin.settings_section_translations') }}</span>
                                                 </a>
                                             </li>
                                         @endif

@@ -165,6 +165,10 @@ class TranslationTermController extends Controller
             }
         }
 
+        foreach (array_keys($this->packageTranslationGroups()) as $group) {
+            $groups[] = $group;
+        }
+
         $groups = array_values(array_unique($groups));
         sort($groups, SORT_NATURAL | SORT_FLAG_CASE);
 
@@ -174,11 +178,31 @@ class TranslationTermController extends Controller
     private function termsForGroup(string $group, array $locales): array
     {
         $terms = [];
+        $loadedTerms = [];
 
         foreach ($locales as $locale) {
-            foreach (Arr::dot($this->loadGroup($locale, $group)) as $key => $value) {
-                $terms[(string) $key]['key'] = (string) $key;
-                $terms[(string) $key]['values'][$locale] = is_array($value) ? '' : (string) $value;
+            $loadedTerms[$locale] = Arr::dot($this->loadGroup($locale, $group));
+        }
+
+        if ($group === 'admin_hardcoded' && isset($loadedTerms['ar'], $loadedTerms['en'])) {
+            $terms = $this->hardcodedTerms($loadedTerms['ar'], $loadedTerms['en']);
+
+            foreach ($loadedTerms as $locale => $localeTerms) {
+                if (in_array($locale, ['ar', 'en'], true)) {
+                    continue;
+                }
+
+                foreach ($localeTerms as $key => $value) {
+                    $terms[(string) $key]['key'] = (string) $key;
+                    $terms[(string) $key]['values'][$locale] = is_array($value) ? '' : (string) $value;
+                }
+            }
+        } else {
+            foreach ($loadedTerms as $locale => $localeTerms) {
+                foreach ($localeTerms as $key => $value) {
+                    $terms[(string) $key]['key'] = (string) $key;
+                    $terms[(string) $key]['values'][$locale] = is_array($value) ? '' : (string) $value;
+                }
             }
         }
 
@@ -194,6 +218,44 @@ class TranslationTermController extends Controller
             foreach ($locales as $locale) {
                 $term['values'][$locale] = $term['values'][$locale] ?? '';
             }
+        }
+
+        return $terms;
+    }
+
+    private function hardcodedTerms(array $arabicTerms, array $englishTerms): array
+    {
+        $terms = [];
+        $matchedEnglishKeys = [];
+
+        foreach ($arabicTerms as $key => $value) {
+            $key = (string) $key;
+            $value = is_array($value) ? '' : (string) $value;
+
+            $terms[$key]['key'] = $key;
+            $terms[$key]['values']['ar'] = $value;
+
+            if (array_key_exists($key, $englishTerms)) {
+                $terms[$key]['values']['en'] = is_array($englishTerms[$key]) ? '' : (string) $englishTerms[$key];
+                $matchedEnglishKeys[$key] = true;
+                continue;
+            }
+
+            if ($value !== '' && array_key_exists($value, $englishTerms)) {
+                $terms[$key]['values']['en'] = is_array($englishTerms[$value]) ? '' : (string) $englishTerms[$value];
+                $matchedEnglishKeys[$value] = true;
+            }
+        }
+
+        foreach ($englishTerms as $key => $value) {
+            $key = (string) $key;
+
+            if (isset($matchedEnglishKeys[$key])) {
+                continue;
+            }
+
+            $terms[$key]['key'] = $key;
+            $terms[$key]['values']['en'] = is_array($value) ? '' : (string) $value;
         }
 
         return $terms;
@@ -241,7 +303,22 @@ class TranslationTermController extends Controller
 
     private function groupPath(string $locale, string $group): string
     {
+        $packageGroups = $this->packageTranslationGroups();
+
+        if (isset($packageGroups[$group])) {
+            return base_path(sprintf($packageGroups[$group], $locale));
+        }
+
         return resource_path('lang/' . $locale . '/' . $group . '.php');
+    }
+
+    private function packageTranslationGroups(): array
+    {
+        return [
+            'finance' => 'packages/finance/resources/lang/%s/finance.php',
+            'hr' => 'packages/hr/resources/lang/%s/hr.php',
+            'zatca' => 'packages/finance/resources/lang/%s/zatca.php',
+        ];
     }
 
     private function setTranslationValue(array &$items, string $key, ?string $value): void

@@ -617,4 +617,5 @@ return array (
   'custody_status_damaged' => 'Damaged',
   'custody_status_lost' => 'Lost',
   'custody_parent_account_missing' => 'There is no parent employee custody account in the chart of accounts. Please create a Custody account or account code 126 first.',
+  'employee-profile' => 'Employee Profile',
 );
