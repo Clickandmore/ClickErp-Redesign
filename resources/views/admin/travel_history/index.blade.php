@@ -200,11 +200,19 @@
                             <h4 class="page-title">
                                 <i class="fa fa-plane-arrival"></i> {{ __('admin.travel') }}
                             </h4>
-                            @if (@AdminGuardHasPerm(\App\PermKeys::TRAVEL_CREATE))
-                                <a href="{{ route('travel.control') }}" class="btn btn-success">
-                                    <i class="fa fa-plus"></i> @lang('admin.add')
-                                </a>
-                            @endif
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button type="button" class="btn btn-info text-white" onclick="exportTravelTable()">
+                                    <i class="fa fa-download"></i> تنزيل الجدول
+                                </button>
+                                <button type="button" class="btn btn-warning text-white" onclick="printTravelTable()">
+                                    <i class="fa fa-print"></i> طباعة
+                                </button>
+                                @if (@AdminGuardHasPerm(\App\PermKeys::TRAVEL_CREATE))
+                                    <a href="{{ route('travel.control') }}" class="btn btn-success">
+                                        <i class="fa fa-plus"></i> @lang('admin.add')
+                                    </a>
+                                @endif
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -408,6 +416,8 @@
         let selectedCalendarTripId = null;
         const calendarScope = 'arrival';
         const travelAssignRouteTemplate = @json(route('travel.assign', ['id' => '__ID__']));
+        const travelExportRoute = @json(route('travel.export'));
+        const travelPrintRoute = @json(route('travel.print'));
         const travelTranslations = {
             contracts: @json(helperTrans('ingaz.contracts')),
             statusPrefix: @json(helperTrans('ingaz.status_prefix')),
@@ -819,6 +829,22 @@
                     loadStatistics();
                 }
             });
+        }
+
+        function currentTravelQueryString() {
+            const params = new URLSearchParams();
+            params.set('search', $('#search_text').val() || '');
+            params.set('travel_type', $('#travel_type').val() || '');
+            params.set('status', $('#status').val() || '');
+            return params.toString();
+        }
+
+        function exportTravelTable() {
+            window.location.href = `${travelExportRoute}?${currentTravelQueryString()}`;
+        }
+
+        function printTravelTable() {
+            window.open(`${travelPrintRoute}?${currentTravelQueryString()}`, '_blank');
         }
 
 

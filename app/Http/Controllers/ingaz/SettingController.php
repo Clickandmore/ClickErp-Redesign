@@ -146,9 +146,13 @@ class SettingController extends Controller
 
     private function renderSection(string $section)
     {
-        $allowedSections = ['dashboard', 'general', 'social', 'branding', 'content', 'policies'];
+        $allowedSections = ['dashboard', 'general', 'social', 'branding', 'content', 'policies', 'translations'];
         if (!in_array($section, $allowedSections, true)) {
             $section = 'general';
+        }
+
+        if ($section === 'translations') {
+            return redirect()->route('translation-terms.index');
         }
 
         $settings = Setting::first();

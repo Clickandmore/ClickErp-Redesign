@@ -60,12 +60,12 @@
         </div>
 
         <div class="totals-group">
-            <div class="total-chip debtor">
+            <div class="total-chip debtor-total">
                 <span>{{ __('finance::finance.debtor_total') }}</span>
                 <strong id="debtor_total_badge">0.00</strong>
             </div>
 
-            <div class="total-chip creditor">
+            <div class="total-chip creditor-total">
                 <span>{{ __('finance::finance.creditor_total') }}</span>
                 <strong id="creditor_total_badge">0.00</strong>
             </div>
@@ -246,7 +246,7 @@
             </div>
         </div>
 
-        <div class="work_samples_grid">
+        <div class="work_samples_grid constraint-attachment-grid">
             <label class="img_upload">
                 <input type="file" accept="image/*" multiple name="file[]" id="img-upload"
                     onchange="handleFileSelect(event)">

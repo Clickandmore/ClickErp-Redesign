@@ -2246,4 +2246,5 @@
   'contract_preview_details' => 'Worker: :maid | Delivery city: :city | Musaned: :musaned | ID: :national_id | Visa: :visa',
   'at_least_one_contract_required' => 'At least one contract must be selected.',
   'respond' => 'Respond',
+  'contract number' => 'Contract number',
 );

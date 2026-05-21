@@ -83,4 +83,16 @@
             @endif
         </div>
     </div>
+
+    <div class="card border-0 shadow-sm mt-3">
+        <div class="card-body d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div>
+                <h5 class="mb-1">{{ __('admin.settings_section_translations') }}</h5>
+                <div class="text-muted small">{{ __('admin.settings_section_translations_hint') }}</div>
+            </div>
+            <a href="{{ route('translation-terms.index') }}" class="btn btn-outline-primary">
+                {{ __('admin.manage_translation_terms') }}
+            </a>
+        </div>
+    </div>
 @endsection

@@ -211,6 +211,67 @@
             border: 1px solid #e5e7eb;
         }
 
+        .constraint-show-page .constraint-attachment-grid {
+            grid-template-columns: repeat(auto-fill, minmax(112px, 112px));
+            align-items: start;
+            justify-content: flex-start;
+        }
+
+        .constraint-show-page .constraint-attachment-grid .img_upload,
+        .constraint-show-page .constraint-attachment-grid .uploadedImage {
+            width: 112px;
+            height: 112px;
+            border-radius: 12px;
+        }
+
+        .constraint-show-page .constraint-attachment-grid .img_upload {
+            border: 1px dashed #cbd5e1;
+            background: #f8fafc;
+            margin: 0;
+        }
+
+        .constraint-show-page .constraint-attachment-grid .img_upload .img {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .constraint-show-page .constraint-attachment-grid .img_upload img {
+            width: 28px !important;
+            height: 28px !important;
+        }
+
+        .constraint-show-page .constraint-attachment-grid .uploadedImage {
+            border: 1px solid #e5e7eb;
+            background: #fff;
+        }
+
+        .constraint-show-page .constraint-attachment-grid .uploadedImage > img,
+        .constraint-show-page .constraint-attachment-grid .uploadedImage > video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .constraint-show-page .constraint-attachment-grid .uploadedImage .delete {
+            top: 6px;
+            right: 6px;
+            width: 28px;
+            height: 28px;
+            padding: 0;
+            border: 0 !important;
+            border-radius: 50%;
+            background: #fff !important;
+            box-shadow: 0 6px 16px rgba(15, 23, 42, .16);
+        }
+
+        .constraint-show-page .constraint-attachment-grid .uploadedImage .delete img {
+            width: 14px;
+            height: 14px;
+        }
+
         .constraint-show-page .activity-list {
             display: flex;
             flex-direction: column;
@@ -432,19 +493,6 @@
             </div>
         </div>
 
-        @if ($inlineConstraintEditOpen)
-        <div class="no-print" id="constraintInlineEdit">
-            <div class="show-card section-card">
-                <div class="section-head">
-                    <h5>{{ __('buttons.edit') }} {{ __('finance::finance.constraint_details_page') }}</h5>
-                    <p class="mb-0">يتم التعديل من نفس صفحة العرض، والحسابات الحالية في القيد تظل ظاهرة حتى لو تغير شجر الحسابات لاحقاً.</p>
-                </div>
-
-                @include('finance::finance.constraint.edit')
-            </div>
-        </div>
-        @endif
-
         <div class="show-card section-card">
             <div class="section-head">
                 <h5>{{ __('finance::finance.constraint_lines') }}</h5>
@@ -562,54 +610,4 @@
 @endsection
 
 @section('js')
-    @if ($inlineConstraintEditOpen)
-        @include('finance::finance.constraint.partials.edit-scripts')
-        <script>
-            $(document).on('submit', '.constraint-inline-edit-form', function(e) {
-                e.preventDefault();
-                e.stopImmediatePropagation();
-
-                let form = this;
-                let formData = new FormData(form);
-                let submitButton = $(e.originalEvent.submitter);
-                let buttonText = submitButton.text();
-
-                $.ajax({
-                    url: $(form).attr('action'),
-                    type: 'POST',
-                    data: formData,
-                    cache: false,
-                    contentType: false,
-                    processData: false,
-                    beforeSend: function() {
-                        if (window.cmShowLoader) {
-                            window.cmShowLoader();
-                        } else {
-                            $('#loading-wrapper').show();
-                        }
-                        submitButton.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ' + buttonText);
-                    },
-                    complete: function() {
-                        if (window.cmHideLoader) {
-                            window.cmHideLoader();
-                        } else {
-                            $('#loading-wrapper').hide();
-                        }
-                        submitButton.html(buttonText);
-                    },
-                    success: function(result) {
-                        handleSuccessResponce(result);
-                        if (result.data && result.data.show_url) {
-                            window.location.href = result.data.show_url;
-                        } else {
-                            window.location.reload();
-                        }
-                    },
-                    error: function(errorObj) {
-                        handleErrorResponce(errorObj);
-                    }
-                });
-            });
-        </script>
-    @endif
 @endsection

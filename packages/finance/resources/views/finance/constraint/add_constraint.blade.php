@@ -107,12 +107,12 @@
             font-size: 1rem;
         }
 
-        .constraint-create-page .total-chip.debtor {
+        .constraint-create-page .total-chip.debtor-total {
             border-color: rgba(25, 135, 84, .18);
             background: rgba(25, 135, 84, .06);
         }
 
-        .constraint-create-page .total-chip.creditor {
+        .constraint-create-page .total-chip.creditor-total {
             border-color: rgba(220, 53, 69, .18);
             background: rgba(220, 53, 69, .06);
         }
@@ -173,6 +173,67 @@
         .constraint-create-page .balance-alert {
             display: none;
             margin-top: 1rem;
+        }
+
+        .constraint-create-page .constraint-attachment-grid {
+            grid-template-columns: repeat(auto-fill, minmax(112px, 112px));
+            align-items: start;
+            justify-content: flex-start;
+        }
+
+        .constraint-create-page .constraint-attachment-grid .img_upload,
+        .constraint-create-page .constraint-attachment-grid .uploadedImage {
+            width: 112px;
+            height: 112px;
+            border-radius: 12px;
+        }
+
+        .constraint-create-page .constraint-attachment-grid .img_upload {
+            border: 1px dashed #cbd5e1;
+            background: #f8fafc;
+            margin: 0;
+        }
+
+        .constraint-create-page .constraint-attachment-grid .img_upload .img {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .constraint-create-page .constraint-attachment-grid .img_upload img {
+            width: 28px !important;
+            height: 28px !important;
+        }
+
+        .constraint-create-page .constraint-attachment-grid .uploadedImage {
+            border: 1px solid #e5e7eb;
+            background: #fff;
+        }
+
+        .constraint-create-page .constraint-attachment-grid .uploadedImage > img,
+        .constraint-create-page .constraint-attachment-grid .uploadedImage > video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .constraint-create-page .constraint-attachment-grid .uploadedImage .delete {
+            top: 6px;
+            right: 6px;
+            width: 28px;
+            height: 28px;
+            padding: 0;
+            border: 0 !important;
+            border-radius: 50%;
+            background: #fff !important;
+            box-shadow: 0 6px 16px rgba(15, 23, 42, .16);
+        }
+
+        .constraint-create-page .constraint-attachment-grid .uploadedImage .delete img {
+            width: 14px;
+            height: 14px;
         }
 
         @media (max-width: 767.98px) {

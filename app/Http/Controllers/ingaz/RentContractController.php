@@ -219,7 +219,8 @@ class RentContractController extends Controller
                 })
                 ->addColumn('actions', function ($row) {
                     $actions = '<div class="dropdown actions-dropdown">
-                                    <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" >
+                                    <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button"
+                                            aria-expanded="false">
                                         <i class="fas fa-cogs"></i> الإجراءات
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end shadow-lg">';

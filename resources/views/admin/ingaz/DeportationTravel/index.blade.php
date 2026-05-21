@@ -65,11 +65,19 @@
                     <h4 class="page-title">
                         <i class="fa fa-plane-departure"></i> رحلات الترحيل
                     </h4>
-                    @if (@AdminGuardHasPerm(\App\PermKeys::TRAVEL_CREATE))
-                        <a href="{{ route('DeportationTravel.create') }}" class="btn btn-success">
-                            <i class="fa fa-plus"></i> جدولة رحلة جديدة
-                        </a>
-                    @endif
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button type="button" class="btn btn-info text-white" onclick="exportDeportationTravelTable()">
+                            <i class="fa fa-download"></i> تنزيل الجدول
+                        </button>
+                        <button type="button" class="btn btn-warning text-white" onclick="printDeportationTravelTable()">
+                            <i class="fa fa-print"></i> طباعة
+                        </button>
+                        @if (@AdminGuardHasPerm(\App\PermKeys::TRAVEL_CREATE))
+                            <a href="{{ route('DeportationTravel.create') }}" class="btn btn-success">
+                                <i class="fa fa-plus"></i> جدولة رحلة جديدة
+                            </a>
+                        @endif
+                    </div>
                 </div>
             </div>
         </div>
@@ -275,6 +283,8 @@ const calendarScope = 'deportation';
 const travelAssignRouteTemplate = @json(route('travel.assign', ['id' => '__ID__']));
 const deportationTravelDeleteRouteTemplate = @json(route('DeportationTravel.destroy', ['id' => '__ID__']));
 const deportationTravelCompleteRouteTemplate = @json(route('DeportationTravel.complete', ['id' => '__ID__']));
+const deportationTravelExportRoute = @json(route('DeportationTravel.export'));
+const deportationTravelPrintRoute = @json(route('DeportationTravel.print'));
 
 $(document).ready(function() {
     loadTable();
@@ -481,6 +491,23 @@ function resetFilters() {
     $('#travel_date').val('');
     $('#status_filter').val('');
     loadTable();
+}
+
+function currentDeportationTravelQueryString() {
+    const params = new URLSearchParams();
+    params.set('contract_number', $('#contract_number').val() || '');
+    params.set('maid_name', $('#maid_name').val() || '');
+    params.set('travel_date', $('#travel_date').val() || '');
+    params.set('status', $('#status_filter').val() || '');
+    return params.toString();
+}
+
+function exportDeportationTravelTable() {
+    window.location.href = `${deportationTravelExportRoute}?${currentDeportationTravelQueryString()}`;
+}
+
+function printDeportationTravelTable() {
+    window.open(`${deportationTravelPrintRoute}?${currentDeportationTravelQueryString()}`, '_blank');
 }
 
 function loadTable() {

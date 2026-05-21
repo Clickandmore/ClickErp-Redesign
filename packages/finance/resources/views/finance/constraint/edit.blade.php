@@ -1,255 +1,269 @@
 @php
     $constraintFormClass = $constraintFormClass ?? 'from-submit-update-global';
     $inlineConstraintEdit = $inlineConstraintEdit ?? false;
+    $debtorTotal = (float) $obj->constraintDetails->where('type', 'debtor')->sum('debtor_value');
+    $creditorTotal = (float) $obj->constraintDetails->where('type', 'creditor')->sum('creditor_value');
 @endphp
 
-@once
-    @push('style')
-        <style>
-            .constraint-edit-form .constraint-edit-table-wrap {
-                overflow-x: auto;
-                padding-bottom: .25rem;
-            }
-
-            .constraint-edit-form .constraint-edit-table {
-                min-width: 1120px;
-                table-layout: fixed;
-            }
-
-            .constraint-edit-form .constraint-edit-table th,
-            .constraint-edit-form .constraint-edit-table td {
-                vertical-align: top;
-            }
-
-            .constraint-edit-form .constraint-edit-table th {
-                white-space: nowrap;
-            }
-
-            .constraint-edit-form .constraint-amount-col {
-                width: 120px;
-            }
-
-            .constraint-edit-form .constraint-account-col {
-                width: 260px;
-            }
-
-            .constraint-edit-form .constraint-cost-center-col {
-                width: 240px;
-            }
-
-            .constraint-edit-form .constraint-statement-col {
-                width: 420px;
-            }
-
-            .constraint-edit-form .constraint-action-col {
-                width: 70px;
-            }
-
-            .constraint-edit-form .select2-container {
-                width: 100% !important;
-            }
-
-            .constraint-edit-form .select2-selection--single {
-                min-height: 42px;
-            }
-
-            .constraint-edit-form .select2-selection__rendered {
-                white-space: normal !important;
-                line-height: 1.5 !important;
-                padding-top: .35rem;
-                padding-bottom: .35rem;
-            }
-
-            .constraint-edit-form .statement-account-field {
-                min-height: 88px;
-                resize: vertical;
-                line-height: 1.7;
-            }
-
-            .constraint-edit-form .fa-trash,
-            .constraint-edit-form .delete-row {
-                cursor: pointer;
-                color: #dc3545;
-            }
-        </style>
-    @endpush
-@endonce
-
-<form class="row g-3 constraint-edit-form {{ $constraintFormClass }}" method="post" action="{{ $updateRoute }}" enctype="multipart/form-data">
+<form class="row g-3 constraint-edit-form {{ $constraintFormClass }}" method="post" action="{{ $updateRoute }}"
+    enctype="multipart/form-data">
     @csrf
-    @method("PUT")
+    @method('PUT')
 
-    <div class="col-md-4 col-12">
-        <label>{{ __("finance::finance.Journal Entry Number") }}</label>
-        <input type="text" class="form-control" name="code" value="{{ $obj->code }}" placeholder="{{ __("finance.Journal Entry Number") }}" disabled>
-    </div>
-    <div class="col-md-4 col-12">
-        <label>{{ __('finance::finance.date') }}</label>
-        <input type="date" name="date" class="form-control" value="{{ $obj->date }}" placeholder="{{ __('finance.date') }}">
-    </div>
-    <div class="col-md-4 col-12">
-        <label>{{ __('finance::finance.statement') }}</label>
-        <textarea type="text" name="statement" class="form-control form-control-lg mb-1"
-                  placeholder="{{ __('finance::finance.statement') }}">{{ $obj->statement }}</textarea>
-    </div>
-    <div class="debtor__value">
-        <input type="hidden" name="value" value="{{ $obj->value }}" class="constraint-total-value">
-    </div>
-    <div class="table-responsive constraint-edit-table-wrap">
-    <table id="myDataTable_no_filter" class="table align-middle card-table constraint-edit-table">
-        <colgroup>
-            <col class="constraint-amount-col">
-            <col class="constraint-amount-col">
-            <col class="constraint-account-col">
-            <col class="constraint-cost-center-col">
-            <col class="constraint-statement-col">
-            <col class="constraint-action-col">
-        </colgroup>
-        <thead>
-        <tr>
-        <th>
-            <div class="w-100 d-flex align-items-center justify-content-between add_debtor">
-                <span>{{ __('finance::finance.debtor') }}</span>
-                <i class="fa fa-plus-circle"></i>
-            </div>
-        </th>
-        <th>
-            <div class="w-100 d-flex align-items-center justify-content-between add_creditor">
-                <span>{{ __('finance::finance.creditor') }}</span>
-                <i class="fa fa-plus-circle"></i>
-            </div>
-        </th>
-        <th>{{ __('finance::finance.Account Name') }}</th>
-        <th>{{ __("finance::finance.fn-cost-centers") }}</th>
-        <th>{{ __('finance::finance.Account Statement') }}</th>
-        <th>{{ __('finance::finance.Delete') }}</th>
-        </tr>
-        </thead>
-        <tbody class="table-body">
-            @foreach ($obj->constraintDetails as $constraintDetails)
-                @if ($constraintDetails->type == 'debtor')
-                    <tr class="item-row debtor_append" id="debtor_append">
-                        <td>
-                            <input type="hidden" name="old_id[]" value="{{ $constraintDetails->id }}" class="constraint-old-id">
-                            <input type="hidden" class="form-control" value="debtor"
-                            name="account_type[]">
-                            <input class="debtor form-control js-constraint-amount" inputmode="decimal"
-                                autocomplete="off" type="text" value="{{ number_format((float) $constraintDetails->debtor_value, 2, '.', '') }}"
-                                name="debtor_value[]">
-                            <span class="error-span" hidden style='color:red'>{{ __("finance::finance.Enter Valid Values") }}</span>
-                        </td>
-                        <td>
-                            <input type="hidden" value="0" name="creditor_value[]">
-                        </td>
-                        <td>
-                            <select name="account_id[]" class="form-control select-account select-unique-option select2">
-                                <option value="">{{ __("finance::finance.Select the Account") }}</option>
-                                @foreach ($accounts as $account)
-                                    <option value="{{ $account->id }}" {{$account->id == $constraintDetails->account_id ? 'selected' : ''}}>{{ $account->name }}</option>
-                                @endforeach
-                                {{-- {!! showSelectElement($accounts ,'name') !!} --}}
-                            </select>
-                        </td>
-                        <td>
-                            <select class="form-control show-tick ms select2" name="cost_center_id[]"
-                            @if (isset($cost_center_required) && $cost_center_required->value == "on")
-                                data-validation="required"
-                            @endif>
-                                {!! showSelectElement($cost_centers,"title",$constraintDetails->cost_center_id) !!}
-                            </select>
-                            <input type="hidden" name="cost_center_required" value="{{ (isset($cost_center_required) && $cost_center_required->value == "on") ? "on" : "off" }}">
+    <input type="hidden" name="cost_center_required"
+        value="{{ isset($cost_center_required) && $cost_center_required->value == 'on' ? 'on' : 'off' }}">
+    <input type="hidden" name="value" value="{{ number_format((float) $obj->value, 2, '.', '') }}"
+        class="constraint-total-value">
 
-                        </td>
-                        <td><textarea name="statement_account[]" class="form-control statement-account-field" rows="3" placeholder="{{ __('finance::finance.statement') }}">{{ $constraintDetails->statement}}</textarea>
-                        </td>
-                        <td><i class="fa fa-trash delete-row"></i></td>
-                    </tr>
-                @endif
-            @endforeach
-            @foreach ($obj->constraintDetails as $constraintDetails)
-                @if ($constraintDetails->type == 'creditor')
-                    <tr class="item-row" id="creditor_append">
-                        <td>
-                            <input type="hidden" name="old_id[]" value="{{ $constraintDetails->id }}" class="constraint-old-id">
-                            <input type="hidden" value="0" name="debtor_value[]">
-                        </td>
-                        <td>
-                            <input type="hidden" class="form-control" value="creditor"
-                            name="account_type[]">
-                            <input type="text" inputmode="decimal" autocomplete="off"
-                                class="creditor form-control js-constraint-amount"
-                                value="{{ number_format((float) $constraintDetails->creditor_value, 2, '.', '') }}"
-                                name="creditor_value[]">
-                            <span class="error-span" hidden style='color:red'> {{ __("finance::finance.Enter Valid Values") }}</span>
-                        </td>
-                        <td>
-                            <select name="account_id[]" class="form-control select-account select-unique-option select2">
-                                @foreach ($accounts as $account)
-                                    <option value="{{ $account->id }}" {{$account->id == $constraintDetails->account_id ? 'selected' : ''}}>{{ $account->name }}</option>
-                                @endforeach
-                            </select>
-                        </td>
-                        <td>
-                            <select class="form-control show-tick ms select2" name="cost_center_id[]"
-                            @if (isset($cost_center_required) && $cost_center_required->value == "on")
-                                data-validation="required"
-                            @endif>
-                                {!! showSelectElement($cost_centers,"title",$constraintDetails->cost_center_id) !!}
-                            </select>
-                            <input type="hidden" name="cost_center_required" value="{{ (isset($cost_center_required) && $cost_center_required->value == "on") ? "on" : "off" }}">
-
-                        </td>
-                        <td><textarea name="statement_account[]" class="form-control statement-account-field" rows="3" placeholder="{{ __('finance::finance.statement') }}">{{ $constraintDetails->statement }}</textarea>
-                        </td>
-                        <td><i class="fa fa-trash delete-row"></i></td>
-                    </tr>
-                @endif
-            @endforeach
-        </tbody>
-        <tfoot>
-        <tr>
-            <td><input id="debtor_footer_value" class="form-control" value="{{$obj->value}}" disabled></td>
-            <td><input id="creditor_footer_value" class="form-control" value="{{$obj->value}}" disabled></td>
-            <td>{{ __("finance::finance.Total") }}</td>
-            <td></td>
-            <td></td>
-        </tr>
-        </tfoot>
-    </table>
-    </div>
-
-    <hr>
-    <h4>{{ __('finance::finance.attachments') }}</h4>
     <div class="col-12">
-        <div class="work_samples_grid">
-            <label class="img_upload">
-                <input type="file" accept="image/*" multiple name="file[]"
-                       id="img-upload" onchange="handleFileSelect(event)">
-                <div class="img justify-content-center">
-                    <img loading="lazy" src="{{asset("admin")}}/assets/img/plus.svg" alt="plus">
+        <div class="page-card section-card">
+            <div class="section-title">
+                <div>
+                    <h5>{{ __('finance::finance.constraint_basic_information') }}</h5>
+                    <p>{{ __('finance::finance.constraint_basic_information_hint') }}</p>
                 </div>
-            </label>
-            @if ($obj->files->count() > 0)
-                @foreach ($obj->files as $file)
-                    <div class="uploadedImage">
-                        <img src="{{ showFile($file->file) }}" alt="">
-                        <button type="button" style="border: none;background: none;color:red" class="delete deleteImagesButton"
-                                delete-route="{{ route('finance.constraint-files.destroy', $file->id) }}">
-                            <img loading="lazy" src="{{ asset('admin') }}/assets/img/trash.svg" alt="trash">
-                        </button>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-lg-3 col-md-4 col-12">
+                    <label class="form-label">{{ __('finance::finance.Journal Entry Number') }}</label>
+                    <div class="summary-box">
+                        <span class="summary-label">{{ __('finance::finance.Journal Entry Number') }}</span>
+                        <div class="summary-value">{{ $obj->code }}</div>
                     </div>
-                @endforeach
-            @endif
+                </div>
+
+                <div class="col-lg-3 col-md-4 col-12">
+                    <label class="form-label">{{ __('finance::finance.date') }} <span
+                            class="text-danger">*</span></label>
+                    <input type="date" name="date" data-validation="required" class="form-control"
+                        value="{{ $obj->date }}" placeholder="{{ __('finance::finance.date') }}">
+                </div>
+
+                <div class="col-lg-6 col-12">
+                    <label class="form-label">{{ __('finance::finance.statement') }}</label>
+                    <textarea name="statement" class="form-control" rows="3"
+                        placeholder="{{ __('finance::finance.constraint_statement_placeholder') }}">{{ $obj->statement }}</textarea>
+                </div>
+            </div>
         </div>
     </div>
-    <div class="col-12 modal-footer">
-         {!! submitButton(   $updateRoute  ) !!}
-        @if ($inlineConstraintEdit)
-            <a class="btn btn-outline-secondary" href="{{ $closeRoute ?? url()->current() }}">
-                {{ __('buttons.close') }}
-            </a>
-        @else
-            {!! closeButton() !!}
-        @endif
+
+    <div class="col-12">
+        <div class="page-card section-card">
+            <div class="constraint-toolbar">
+                <div class="section-title mb-0">
+                    <div>
+                        <h5>{{ __('finance::finance.constraint_lines') }}</h5>
+                        <p>{{ __('finance::finance.constraint_lines_hint') }}</p>
+                    </div>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2">
+                    <button type="button" class="btn btn-outline-success add_debtor">
+                        <i class="fa fa-plus-circle"></i>
+                        {{ __('finance::finance.add_debtor_line') }}
+                    </button>
+
+                    <button type="button" class="btn btn-outline-danger add_creditor">
+                        <i class="fa fa-plus-circle"></i>
+                        {{ __('finance::finance.add_creditor_line') }}
+                    </button>
+                </div>
+            </div>
+
+            <div class="totals-group">
+                <div class="total-chip debtor-total">
+                    <span>{{ __('finance::finance.debtor_total') }}</span>
+                    <strong id="debtor_total_badge">{{ number_format($debtorTotal, 2, '.', ',') }}</strong>
+                </div>
+
+                <div class="total-chip creditor-total">
+                    <span>{{ __('finance::finance.creditor_total') }}</span>
+                    <strong id="creditor_total_badge">{{ number_format($creditorTotal, 2, '.', ',') }}</strong>
+                </div>
+            </div>
+
+            <div id="balance_alert" class="alert alert-warning balance-alert">
+                {{ __('finance::finance.debit_credit_totals_must_match') }}
+            </div>
+
+            <div class="table-responsive mt-3 constraint-edit-table-wrap">
+                <table id="myDataTable_no_filter" class="table constraint-table align-middle constraint-edit-table">
+                    <thead>
+                        <tr>
+                            <th>{{ __('finance::finance.debtor') }}</th>
+                            <th>{{ __('finance::finance.creditor') }}</th>
+                            <th>{{ __('finance::finance.Account Name') }} <span class="text-danger">*</span></th>
+                            <th>{{ __('finance::finance.fn-cost-centers') }}</th>
+                            <th>{{ __('finance::finance.Account Statement') }}</th>
+                            <th class="text-center">{{ __('finance::finance.Delete') }}</th>
+                        </tr>
+                    </thead>
+
+                    <tbody class="table-body">
+                        @foreach ($obj->constraintDetails as $constraintDetails)
+                            @if ($constraintDetails->type == 'debtor')
+                                <tr class="item-row debtor_append" id="debtor_append">
+                                    <td>
+                                        <input type="hidden" name="old_id[]" value="{{ $constraintDetails->id }}"
+                                            class="constraint-old-id">
+                                        <input type="hidden" value="debtor" name="account_type[]">
+                                        <input class="debtor form-control amount-input js-constraint-amount"
+                                            inputmode="decimal" autocomplete="off" type="text"
+                                            value="{{ number_format((float) $constraintDetails->debtor_value, 2, '.', '') }}"
+                                            name="debtor_value[]" data-validation="required">
+                                        <span class="error-span" hidden
+                                            style="color:red">{{ __('finance::finance.Enter Valid Values') }}</span>
+                                    </td>
+                                    <td>
+                                        <input type="hidden" value="0" name="creditor_value[]">
+                                    </td>
+                                    <td>
+                                        <select name="account_id[]" data-validation="required"
+                                            class="form-control select-account select-unique-option select2">
+                                            <option value="">{{ __('finance::finance.Select the Account') }}</option>
+                                            @foreach ($accounts as $account)
+                                                <option value="{{ $account->id }}"
+                                                    {{ $account->id == $constraintDetails->account_id ? 'selected' : '' }}>
+                                                    {{ $account->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select class="form-control show-tick ms select2" name="cost_center_id[]"
+                                            @if (isset($cost_center_required) && $cost_center_required->value == 'on') data-validation="required" @endif>
+                                            {!! showSelectElement($cost_centers, 'title', $constraintDetails->cost_center_id) !!}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <textarea name="statement_account[]" class="form-control statement-account-field" rows="2"
+                                            placeholder="{{ __('finance::finance.statement') }}">{{ $constraintDetails->statement }}</textarea>
+                                    </td>
+                                    <td class="text-center">
+                                        <button type="button" class="delete-row-btn delete-row"
+                                            title="{{ __('finance::finance.Delete') }}">
+                                            <i class="fa fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            @endif
+                        @endforeach
+
+                        @foreach ($obj->constraintDetails as $constraintDetails)
+                            @if ($constraintDetails->type == 'creditor')
+                                <tr class="item-row" id="creditor_append">
+                                    <td>
+                                        <input type="hidden" name="old_id[]" value="{{ $constraintDetails->id }}"
+                                            class="constraint-old-id">
+                                        <input type="hidden" value="0" name="debtor_value[]">
+                                    </td>
+                                    <td>
+                                        <input type="hidden" value="creditor" name="account_type[]">
+                                        <input type="text" inputmode="decimal" autocomplete="off"
+                                            class="creditor form-control amount-input js-constraint-amount"
+                                            value="{{ number_format((float) $constraintDetails->creditor_value, 2, '.', '') }}"
+                                            name="creditor_value[]" data-validation="required">
+                                        <span class="error-span" hidden
+                                            style="color:red">{{ __('finance::finance.Enter Valid Values') }}</span>
+                                    </td>
+                                    <td>
+                                        <select name="account_id[]" data-validation="required"
+                                            class="form-control select-account select-unique-option select2">
+                                            <option value="">{{ __('finance::finance.Select the Account') }}</option>
+                                            @foreach ($accounts as $account)
+                                                <option value="{{ $account->id }}"
+                                                    {{ $account->id == $constraintDetails->account_id ? 'selected' : '' }}>
+                                                    {{ $account->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select class="form-control show-tick ms select2" name="cost_center_id[]"
+                                            @if (isset($cost_center_required) && $cost_center_required->value == 'on') data-validation="required" @endif>
+                                            {!! showSelectElement($cost_centers, 'title', $constraintDetails->cost_center_id) !!}
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <textarea name="statement_account[]" class="form-control statement-account-field" rows="2"
+                                            placeholder="{{ __('finance::finance.statement') }}">{{ $constraintDetails->statement }}</textarea>
+                                    </td>
+                                    <td class="text-center">
+                                        <button type="button" class="delete-row-btn delete-row"
+                                            title="{{ __('finance::finance.Delete') }}">
+                                            <i class="fa fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            @endif
+                        @endforeach
+                    </tbody>
+
+                    <tfoot>
+                        <tr>
+                            <td><input id="debtor_footer_value" class="form-control"
+                                    value="{{ number_format($debtorTotal, 2, '.', ',') }}" disabled></td>
+                            <td><input id="creditor_footer_value" class="form-control"
+                                    value="{{ number_format($creditorTotal, 2, '.', ',') }}" disabled></td>
+                            <td>{{ __('finance::finance.Total') }}</td>
+                            <td colspan="3">{{ __('finance::finance.cost_center_optional_hint') }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="page-card section-card">
+            <div class="section-title">
+                <div>
+                    <h5>{{ __('finance::finance.attachments') }}</h5>
+                    <p>{{ __('finance::finance.constraint_attachments_hint') }}</p>
+                </div>
+            </div>
+
+            <div class="work_samples_grid constraint-attachment-grid">
+                <label class="img_upload">
+                    <input type="file" accept="image/*" multiple name="file[]" id="img-upload"
+                        onchange="handleFileSelect(event)">
+                    <div class="img justify-content-center">
+                        <img loading="lazy" src="{{ asset('admin') }}/assets/img/plus.svg" alt="plus"
+                            style="width: 30px; height: 30px;">
+                    </div>
+                </label>
+
+                @if ($obj->files->count() > 0)
+                    @foreach ($obj->files as $file)
+                        <div class="uploadedImage">
+                            <img src="{{ showFile($file->file) }}" alt="">
+                            <button type="button" style="border: none;background: none;color:red"
+                                class="delete deleteImagesButton"
+                                delete-route="{{ route('finance.constraint-files.destroy', $file->id) }}">
+                                <img loading="lazy" src="{{ asset('admin') }}/assets/img/trash.svg" alt="trash">
+                            </button>
+                        </div>
+                    @endforeach
+                @endif
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="page-card submit-bar">
+            <p class="submit-note">{{ __('finance::finance.constraint_submit_note') }}</p>
+            <div class="submit-actions d-flex gap-2">
+                @if ($inlineConstraintEdit)
+                    <a class="btn btn-light border" href="{{ $closeRoute ?? url()->current() }}">
+                        {{ __('buttons.close') }}
+                    </a>
+                @else
+                    {!! closeButton() !!}
+                @endif
+                <button class="btn btn-primary mySubmitButton" type="submit">
+                    {{ __('buttons.save') }}
+                </button>
+            </div>
+        </div>
     </div>
 </form>

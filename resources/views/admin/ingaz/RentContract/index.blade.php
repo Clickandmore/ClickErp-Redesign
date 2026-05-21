@@ -5,6 +5,71 @@
 
     <!-- الملفات المحلية -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"> --}}
+    <style>
+        #dataTableObject {
+            border-collapse: separate !important;
+            border-spacing: 0;
+        }
+
+        #dataTableObject_wrapper {
+            overflow-x: auto;
+            overflow-y: visible;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 0.5rem;
+        }
+
+        #dataTableObject th:last-child,
+        #dataTableObject td:last-child {
+            position: -webkit-sticky !important;
+            position: sticky !important;
+            right: 0;
+            z-index: 6;
+            background: #fff;
+            min-width: 155px;
+            box-shadow: -8px 0 14px rgba(0, 0, 0, 0.06);
+        }
+
+        #dataTableObject thead th:last-child {
+            z-index: 8;
+            background: #f8f9fa;
+        }
+
+        html[dir="rtl"] #dataTableObject th:last-child,
+        html[dir="rtl"] #dataTableObject td:last-child {
+            right: auto;
+            left: 0;
+            box-shadow: 8px 0 14px rgba(0, 0, 0, 0.06);
+        }
+
+        #dataTableObject .actions-dropdown {
+            position: static !important;
+        }
+
+        #dataTableObject .actions-dropdown .dropdown-menu.dropdown-menu-end {
+            position: fixed !important;
+            right: auto !important;
+            bottom: auto !important;
+            transform: none !important;
+            z-index: 2147483647 !important;
+            max-height: calc(100vh - 24px);
+            overflow-y: auto;
+            will-change: top, left;
+        }
+
+        .rent-contract-actions-menu.dropdown-menu,
+        #dataTableObject .actions-dropdown .dropdown-menu.dropdown-menu-end.show {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            position: fixed !important;
+            right: auto !important;
+            bottom: auto !important;
+            transform: none !important;
+            z-index: 2147483647 !important;
+            max-height: calc(100vh - 24px);
+            overflow-y: auto;
+        }
+    </style>
 @endsection
 
 @section('page-title')
@@ -863,6 +928,8 @@
                 return;
             }
 
+            let openRentContractActionMenu = null;
+
             // Initialize DataTable with simplified settings
             let dataTable = $('#dataTableObject').DataTable({
                 processing: true,
@@ -942,9 +1009,135 @@
                         "sLast": "الأخير"
                     }
                 },
+                preDrawCallback: function() {
+                    closeRentContractActionMenu();
+                },
                 drawCallback: function() {
                     console.log('Table drawn successfully');
                     $('#loadingOverlay').hide();
+                    initializeRentContractActionDropdowns();
+                }
+            });
+
+            function setImportantStyle(element, property, value) {
+                element.style.setProperty(property, value, 'important');
+            }
+
+            function positionRentContractActionMenu(menu, toggle) {
+                if (!toggle) {
+                    toggle = menu.data('rentContractToggle');
+                }
+
+                if (!toggle) {
+                    return;
+                }
+
+                const buttonRect = toggle.getBoundingClientRect();
+                const menuElement = menu instanceof jQuery ? menu[0] : menu;
+                const menuRect = menuElement.getBoundingClientRect();
+                const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+                const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+                const spacing = 8;
+                const menuWidth = menuRect.width || 220;
+                const menuHeight = menuRect.height || 260;
+
+                let left = buttonRect.right - menuWidth;
+                let top = buttonRect.bottom + spacing;
+
+                if (top + menuHeight > viewportHeight - spacing) {
+                    top = buttonRect.top - menuHeight - spacing;
+                }
+
+                left = Math.max(spacing, Math.min(left, viewportWidth - menuWidth - spacing));
+                top = Math.max(spacing, Math.min(top, viewportHeight - menuHeight - spacing));
+
+                setImportantStyle(menuElement, 'position', 'fixed');
+                setImportantStyle(menuElement, 'left', `${Math.round(left)}px`);
+                setImportantStyle(menuElement, 'top', `${Math.round(top)}px`);
+                setImportantStyle(menuElement, 'right', 'auto');
+                setImportantStyle(menuElement, 'bottom', 'auto');
+                setImportantStyle(menuElement, 'transform', 'none');
+                setImportantStyle(menuElement, 'z-index', '2147483647');
+            }
+
+            function closeRentContractActionMenu() {
+                if (!openRentContractActionMenu) {
+                    return;
+                }
+
+                const $menu = openRentContractActionMenu;
+                const $parent = $menu.data('rentContractParent');
+                const $toggle = $($menu.data('rentContractToggle'));
+
+                $menu.removeClass('show rent-contract-actions-menu').hide().removeAttr('style');
+
+                if ($parent && $parent.length) {
+                    $menu.appendTo($parent);
+                }
+
+                $toggle.removeClass('show').attr('aria-expanded', 'false');
+                openRentContractActionMenu = null;
+            }
+
+            function initializeRentContractActionDropdowns() {
+                $('#dataTableObject .actions-dropdown .actions-btn').each(function() {
+                    $(this)
+                        .removeAttr('data-bs-toggle data-bs-display data-bs-popper')
+                        .attr('aria-expanded', 'false');
+                });
+            }
+
+            initializeRentContractActionDropdowns();
+
+            $(document).on('click', '#dataTableObject .actions-dropdown .actions-btn', function(event) {
+                event.preventDefault();
+                event.stopPropagation();
+                event.stopImmediatePropagation();
+
+                const toggle = this;
+                const $dropdown = $(toggle).closest('.actions-dropdown');
+                const $menu = $dropdown.find('.dropdown-menu').first();
+
+                if (!$menu.length) {
+                    return false;
+                }
+
+                if (openRentContractActionMenu && openRentContractActionMenu[0] === $menu[0]) {
+                    closeRentContractActionMenu();
+                    return false;
+                }
+
+                closeRentContractActionMenu();
+
+                $menu
+                    .data('rentContractParent', $dropdown)
+                    .data('rentContractToggle', toggle)
+                    .appendTo(document.body)
+                    .addClass('show rent-contract-actions-menu')
+                    .show();
+
+                $(toggle).addClass('show').attr('aria-expanded', 'true');
+                openRentContractActionMenu = $menu;
+                positionRentContractActionMenu($menu, toggle);
+
+                return false;
+            });
+
+            $(document).on('click', '.rent-contract-actions-menu', function(event) {
+                event.stopPropagation();
+            });
+
+            $(document).on('click', '.rent-contract-actions-menu .dropdown-item', function() {
+                setTimeout(closeRentContractActionMenu, 150);
+            });
+
+            $(document).on('click', function() {
+                closeRentContractActionMenu();
+            });
+
+            $(window).on('scroll resize', function() {
+                if (openRentContractActionMenu) {
+                    positionRentContractActionMenu(openRentContractActionMenu);
                 }
             });
 

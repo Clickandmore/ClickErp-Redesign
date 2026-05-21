@@ -66,6 +66,7 @@ use App\Http\Controllers\ingaz\StepController;
 use App\Http\Controllers\ingaz\TestimonialController;
 use App\Http\Controllers\ingaz\TransferContractTermsController;
 use App\Http\Controllers\ingaz\TransferServiceContractController;
+use App\Http\Controllers\ingaz\TranslationTermController;
 use App\Http\Controllers\ingaz\UserController;
 use App\Http\Controllers\ingaz\WhatDoController;
 use App\Http\Controllers\ingaz\WhatDoSettingController;
@@ -153,6 +154,8 @@ Route::group(
             Route::get('/travel', [AdminTravelHistoryController::class, 'index'])->name('travel');
             Route::get('/travel/statistics', [AdminTravelHistoryController::class, 'statistics'])->name('travel.statistics');
             Route::get('/travel/calendar/events', [AdminTravelHistoryController::class, 'calendarEvents'])->name('travel.calendar.events');
+            Route::get('/travel/export', [AdminTravelHistoryController::class, 'export'])->name('travel.export');
+            Route::get('/travel/print', [AdminTravelHistoryController::class, 'print'])->name('travel.print');
             Route::get('/travel/assignable-staff', [AdminTravelHistoryController::class, 'assignableStaff'])->name('travel.assignable-staff');
             Route::post('/travel/{id}/assign', [AdminTravelHistoryController::class, 'assignTrip'])->name('travel.assign');
             Route::post('/travel/{id}/complete', [AdminTravelHistoryController::class, 'completeTrip'])->name('travel.complete');
@@ -179,6 +182,10 @@ Route::group(
 
             Route::resource('settings', SettingController::class);
             Route::get('settings/section/{section}', [SettingController::class, 'section'])->name('settings.section');
+            Route::get('translation-terms', [TranslationTermController::class, 'index'])->name('translation-terms.index');
+            Route::post('translation-terms', [TranslationTermController::class, 'store'])->name('translation-terms.store');
+            Route::post('translation-terms/sync', [TranslationTermController::class, 'sync'])->name('translation-terms.sync');
+            Route::delete('translation-terms', [TranslationTermController::class, 'destroy'])->name('translation-terms.destroy');
             Route::resource('develop-settings', DevelopSettingController::class);
             Route::resource('job-titles', JobTitleController::class);
             Route::post('nationalities/{id}/generate-financial-accounts', [NationalityController::class, 'generateFinancialAccounts'])->name('nationalities.generate-financial-accounts');
@@ -559,6 +566,8 @@ Route::group(
                 Route::get('/', [DeportationTravelController::class, 'index'])->name('index');
                 Route::get('/create', [DeportationTravelController::class, 'create'])->name('create');
                 Route::get('/statistics', [DeportationTravelController::class, 'statistics'])->name('statistics');
+                Route::get('/export', [DeportationTravelController::class, 'export'])->name('export');
+                Route::get('/print', [DeportationTravelController::class, 'print'])->name('print');
                 Route::post('/store', [DeportationTravelController::class, 'store'])->name('store');
                 Route::get('/{id}/edit', [DeportationTravelController::class, 'edit'])->name('edit');
                 Route::post('/{id}', [DeportationTravelController::class, 'update'])->name('update');
