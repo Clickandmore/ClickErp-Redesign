@@ -584,11 +584,11 @@ class AdminController extends Controller
             return '<span class="text-muted small">لا توجد إجراءات</span>';
         }
 
-        return '<div class="dropdown actions-dropdown admin-actions-dropdown">'
-            . '<button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" aria-haspopup="true" aria-expanded="false" title="الإجراءات المتاحة">'
+        return '<div class="admin-actions-dropdown">'
+            . '<button class="btn btn-sm btn-primary admin-actions-trigger actions-btn" type="button" aria-haspopup="true" aria-expanded="false" title="الإجراءات المتاحة">'
             . '<i class="fas fa-cogs me-1"></i> ' . __("ingaz.actions")
             . '</button>'
-            . '<ul class="dropdown-menu dropdown-menu-end shadow-lg">'
+            . '<ul class="admin-actions-template">'
             . implode('', $menuItems)
             . '</ul>'
             . '</div>';

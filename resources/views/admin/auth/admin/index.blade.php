@@ -122,21 +122,6 @@
             min-width: var(--admin-actions-width);
             text-align: center;
             white-space: nowrap;
-            position: sticky;
-            left: 0;
-            z-index: 6;
-            box-shadow: 10px 0 18px -18px rgba(15, 23, 42, 0.5);
-        }
-
-        html[dir="ltr"] #dataTableObject th:last-child,
-        html[dir="ltr"] #dataTableObject td:last-child {
-            left: auto;
-            right: 0;
-            box-shadow: -10px 0 18px -18px rgba(15, 23, 42, 0.5);
-        }
-
-        #dataTableObject th:last-child {
-            z-index: 8;
         }
 
         #dataTableObject .admin-actions-dropdown {
@@ -155,31 +140,55 @@
             box-shadow: 0 6px 14px rgba(39, 148, 235, 0.2);
         }
 
-        .admin-actions-floating-menu,
-        #dataTableObject .admin-actions-dropdown .dropdown-menu {
-            min-width: 230px;
-            padding: 0.35rem;
-            border: 0;
-            border-radius: 8px;
-            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18) !important;
-            z-index: 1080;
+        #dataTableObject .admin-actions-template {
+            display: none !important;
         }
 
-        .admin-actions-floating-menu .dropdown-item,
-        #dataTableObject .admin-actions-dropdown .dropdown-item {
+        .admin-actions-menu {
+            position: fixed;
+            width: 260px;
+            max-width: calc(100vw - 24px);
+            max-height: min(430px, calc(100vh - 24px));
+            overflow-y: auto;
+            background: #fff;
+            border: 1px solid var(--admin-border);
+            border-radius: 8px;
+            box-shadow: 0 18px 42px rgba(15, 23, 42, 0.2);
+            padding: 0.45rem;
+            margin: 0;
+            list-style: none;
+            z-index: 2147483000;
+        }
+
+        .admin-actions-menu li {
+            list-style: none;
+        }
+
+        .admin-actions-menu .dropdown-item {
             display: flex;
             align-items: center;
             gap: 0.45rem;
+            width: 100%;
             border-radius: 6px;
-            padding: 0.62rem 0.7rem;
-            font-size: 0.86rem;
+            border: 0;
+            background: transparent;
+            color: #374151;
+            padding: 0.72rem 0.78rem;
+            font-size: 0.9rem;
             font-weight: 700;
             text-align: start;
+            text-decoration: none;
+            cursor: pointer;
         }
 
-        .admin-actions-floating-menu .dropdown-item i,
-        #dataTableObject .admin-actions-dropdown .dropdown-item i {
-            width: 16px;
+        .admin-actions-menu .dropdown-item:hover,
+        .admin-actions-menu .dropdown-item:focus {
+            background: #f3f6fb;
+            color: #111827;
+        }
+
+        .admin-actions-menu .dropdown-item i {
+            width: 18px;
             text-align: center;
         }
 
@@ -328,8 +337,8 @@
                 };
             }
 
-            function closeAdminFloatingMenu() {
-                $('#adminActionsFloatingMenu').remove();
+            function closeAdminActionsMenu() {
+                $('#adminActionsMenu').remove();
                 $('#dataTableObject .actions-btn').attr('aria-expanded', 'false');
             }
 
@@ -348,9 +357,10 @@
                     language: dataTableLanguage(),
                     order: [[0, "asc"]],
                     drawCallback: function () {
-                        closeAdminFloatingMenu();
+                        closeAdminActionsMenu();
                     }
                 });
+                $("#dataTableObject_wrapper").off('scroll.adminActions').on('scroll.adminActions', closeAdminActionsMenu);
             }
 
             function reloadWithFilters() {
@@ -386,54 +396,68 @@
 
                 const $button = $(this);
                 const $dropdown = $button.closest('.admin-actions-dropdown');
-                const $sourceMenu = $dropdown.find('.dropdown-menu').first();
-                const existingMenu = $('#adminActionsFloatingMenu');
+                const $sourceMenu = $dropdown.find('.admin-actions-template').first();
+                const existingMenu = $('#adminActionsMenu');
 
                 if (existingMenu.length && Number(existingMenu.data('source-id')) === Number($button.closest('tr').index())) {
-                    closeAdminFloatingMenu();
+                    closeAdminActionsMenu();
                     return;
                 }
 
-                closeAdminFloatingMenu();
+                closeAdminActionsMenu();
 
-                const buttonOffset = $button.offset();
-                const menu = $('<ul id="adminActionsFloatingMenu" class="dropdown-menu dropdown-menu-end show admin-actions-floating-menu"></ul>');
-                menu.html($sourceMenu.html());
+                const menu = $('<ul id="adminActionsMenu" class="admin-actions-menu"></ul>').html($sourceMenu.html());
                 menu.data('source-id', $button.closest('tr').index());
                 $('body').append(menu);
 
+                const rect = $button[0].getBoundingClientRect();
                 const menuWidth = menu.outerWidth();
                 const menuHeight = menu.outerHeight();
-                const viewportWidth = $(window).width();
-                const viewportHeight = $(window).height();
-                const scrollTop = $(window).scrollTop();
+                const margin = 12;
                 const isRtl = $('html').attr('dir') === 'rtl';
-                let top = buttonOffset.top + $button.outerHeight() + 6;
-                let left = isRtl
-                    ? buttonOffset.left
-                    : buttonOffset.left + $button.outerWidth() - menuWidth;
+                let top = rect.bottom + 8;
+                let left = isRtl ? rect.left : rect.right - menuWidth;
 
-                if (left + menuWidth > viewportWidth - 12) {
-                    left = viewportWidth - menuWidth - 12;
-                }
-                if (left < 12) {
-                    left = 12;
-                }
-                if (top + menuHeight > scrollTop + viewportHeight - 12) {
-                    top = Math.max(scrollTop + 12, buttonOffset.top - menuHeight - 6);
+                if (top + menuHeight > window.innerHeight - margin) {
+                    top = rect.top - menuHeight - 8;
                 }
 
-                menu.css({position: 'absolute', top: top, left: left});
+                if (top < margin) {
+                    top = margin;
+                }
+
+                if (left + menuWidth > window.innerWidth - margin) {
+                    left = window.innerWidth - menuWidth - margin;
+                }
+
+                if (left < margin) {
+                    left = margin;
+                }
+
+                menu.css({
+                    top: top + 'px',
+                    left: left + 'px'
+                });
                 $button.attr('aria-expanded', 'true');
             });
 
             $(document).on('click', function (e) {
-                if (!$(e.target).closest('#dataTableObject .admin-actions-dropdown, #adminActionsFloatingMenu').length) {
-                    closeAdminFloatingMenu();
+                if (!$(e.target).closest('#adminActionsMenu, #dataTableObject .admin-actions-dropdown').length) {
+                    closeAdminActionsMenu();
                 }
             });
 
-            $(window).on('resize scroll', closeAdminFloatingMenu);
+            $(document).on('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    closeAdminActionsMenu();
+                }
+            });
+
+            $(document).on('click', '#adminActionsMenu .dropdown-item', function () {
+                setTimeout(closeAdminActionsMenu, 120);
+            });
+
+            $(window).on('resize scroll', closeAdminActionsMenu);
 
             $(document).on('click', '.toggle-status', function (e) {
                 e.preventDefault();
