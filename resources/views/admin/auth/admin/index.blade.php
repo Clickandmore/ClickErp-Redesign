@@ -1,47 +1,202 @@
 @extends('admin.layout.indexs.index')
 @section("style")
     <style>
+        .admins-management-page {
+            --admin-actions-width: 172px;
+            --admin-border: #e5e7eb;
+            --admin-soft-bg: #f8fafc;
+            --admin-text: #111827;
+            --admin-muted: #6b7280;
+        }
+
+        .admins-management-page .admins-toolbar {
+            border: 1px solid var(--admin-border);
+            border-radius: 8px;
+            box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+        }
+
+        .admins-management-page .admins-toolbar .form-label {
+            color: var(--admin-text);
+            font-weight: 700;
+            margin-bottom: 0.35rem;
+        }
+
+        .admins-management-page .admins-toolbar .form-select,
+        .admins-management-page .admins-toolbar .btn {
+            min-height: 42px;
+            border-radius: 6px;
+        }
+
+        .admins-management-page .admins-table-shell {
+            background: #fff;
+            border: 1px solid var(--admin-border);
+            border-radius: 8px;
+            box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
+            overflow: hidden;
+        }
+
+        .admins-management-page #dataTableObject_wrapper {
+            padding: 1rem;
+            overflow-x: auto !important;
+            overflow-y: visible !important;
+        }
+
+        .admins-management-page .dataTables_wrapper .row:first-child,
+        .admins-management-page .dataTables_wrapper .row:last-child {
+            align-items: center;
+            row-gap: 0.75rem;
+        }
+
+        .admins-management-page .dataTables_filter input,
+        .admins-management-page .dataTables_length select {
+            border-radius: 6px;
+            border-color: var(--admin-border);
+            min-height: 38px;
+        }
+
+        #dataTableObject {
+            border-collapse: separate !important;
+            border-spacing: 0;
+            min-width: 1380px;
+        }
+
+        #dataTableObject thead th {
+            background: var(--admin-soft-bg) !important;
+            color: var(--admin-text) !important;
+            border-top: 1px solid var(--admin-border);
+            border-bottom: 1px solid var(--admin-border) !important;
+            font-weight: 800;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        #dataTableObject tbody td {
+            color: #374151;
+            vertical-align: middle;
+            background: #fff;
+        }
+
+        #dataTableObject tbody tr:hover td {
+            background: #f9fbff;
+        }
+
+        #dataTableObject th:first-child,
+        #dataTableObject td:first-child {
+            width: 58px;
+            min-width: 58px;
+            text-align: center;
+            color: var(--admin-muted);
+        }
+
+        #dataTableObject td:nth-child(2) {
+            min-width: 170px;
+            font-weight: 700;
+            color: var(--admin-text);
+        }
+
+        #dataTableObject td:nth-child(3),
+        #dataTableObject td:nth-child(6),
+        #dataTableObject td:nth-child(7),
+        #dataTableObject td:nth-child(8),
+        #dataTableObject td:nth-child(9),
+        #dataTableObject td:nth-child(12) {
+            white-space: nowrap;
+        }
+
+        #dataTableObject td:nth-child(12) {
+            max-width: 240px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #dataTableObject .badge {
+            min-width: 68px;
+            border-radius: 999px;
+            padding: 0.45rem 0.7rem;
+            font-size: 0.78rem;
+        }
+
         #dataTableObject th:last-child,
         #dataTableObject td:last-child {
-            width: 120px;
-            min-width: 120px;
+            width: var(--admin-actions-width);
+            min-width: var(--admin-actions-width);
             text-align: center;
             white-space: nowrap;
+            position: sticky;
+            left: 0;
+            z-index: 6;
+            box-shadow: 10px 0 18px -18px rgba(15, 23, 42, 0.5);
+        }
+
+        html[dir="ltr"] #dataTableObject th:last-child,
+        html[dir="ltr"] #dataTableObject td:last-child {
+            left: auto;
+            right: 0;
+            box-shadow: -10px 0 18px -18px rgba(15, 23, 42, 0.5);
+        }
+
+        #dataTableObject th:last-child {
+            z-index: 8;
         }
 
         #dataTableObject .admin-actions-dropdown {
             display: inline-flex;
             justify-content: center;
+            width: 100%;
         }
 
         #dataTableObject .admin-actions-dropdown .actions-btn {
-            min-width: 104px;
+            width: 132px;
             border-radius: 6px;
-            padding: 0.35rem 0.7rem;
-            font-size: 0.82rem;
-            line-height: 1.4;
+            padding: 0.48rem 0.75rem;
+            font-size: 0.86rem;
+            font-weight: 800;
+            line-height: 1.3;
+            box-shadow: 0 6px 14px rgba(39, 148, 235, 0.2);
         }
 
+        .admin-actions-floating-menu,
         #dataTableObject .admin-actions-dropdown .dropdown-menu {
-            min-width: 170px;
+            min-width: 230px;
             padding: 0.35rem;
             border: 0;
             border-radius: 8px;
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18) !important;
+            z-index: 1080;
         }
 
+        .admin-actions-floating-menu .dropdown-item,
         #dataTableObject .admin-actions-dropdown .dropdown-item {
             display: flex;
             align-items: center;
             gap: 0.45rem;
             border-radius: 6px;
-            padding: 0.55rem 0.65rem;
+            padding: 0.62rem 0.7rem;
             font-size: 0.86rem;
+            font-weight: 700;
             text-align: start;
         }
 
+        .admin-actions-floating-menu .dropdown-item i,
         #dataTableObject .admin-actions-dropdown .dropdown-item i {
             width: 16px;
             text-align: center;
+        }
+
+        @media (max-width: 767.98px) {
+            .admins-management-page #dataTableObject_wrapper {
+                padding: 0.75rem;
+            }
+
+            #dataTableObject {
+                min-width: 1180px;
+            }
+
+            #dataTableObject th:last-child,
+            #dataTableObject td:last-child {
+                width: 150px;
+                min-width: 150px;
+            }
         }
     </style>
 @endsection
@@ -49,17 +204,18 @@
     {{__("auth.users")}}
 @endsection
 @section('page-links')
-    <li class="breadcrumb-item active" aria-current="page"> {{__("finance.clients")}}</li>
+    <li class="breadcrumb-item active" aria-current="page"> {{__("auth.admins")}}</li>
 @endsection
 @section('content')
 
     @if(@AdminGuardHasPerm(\App\PermKeys::USERS_VIEW))
+        <div class="admins-management-page">
 
         @if(@AdminGuardHasPerm(\App\PermKeys::USERS_CONTROL))
             {!! addButton(route("admins.create") , __("auth.admin")) !!}
         @endif
 
-        <div class="card mb-3">
+        <div class="card admins-toolbar mb-3">
             <div class="card-body">
                 <div class="row g-2 align-items-end">
                     <div class="col-md-3">
@@ -96,27 +252,31 @@
             </div>
         </div>
 
-        <table id="dataTableObject" class="table display dataTable table-hover" style="width:100%">
-            <thead>
-            <tr>
-                <th>{{ __('auth.SL') }}</th>
-                <th>{{__("auth.name")}}</th>
-                <th>{{helperTrans("ingaz.admin_type")}}</th>
-                <th>{{helperTrans("ingaz.role")}}</th>
-                <th>رقم الاتصال</th>
-                <th>رقم الواتساب</th>
-                <th>رقم التحقق</th>
-                <th>{{__("auth.email")}}</th>
-                <th>{{helperTrans("ingaz.sex_type")}}</th>
-                <th>{{ __('admin.status') }}</th>
-                <th>{{ __('admin.note') }}</th>
-                <th>{{__("auth.actions")}}</th>
-            </tr>
-            </thead>
-            <tbody>
+        <div class="admins-table-shell">
+            <table id="dataTableObject" class="table display dataTable table-hover align-middle" style="width:100%">
+                <thead>
+                <tr>
+                    <th>{{ __('auth.SL') }}</th>
+                    <th>{{__("auth.name")}}</th>
+                    <th>اسم المستخدم</th>
+                    <th>{{helperTrans("ingaz.admin_type")}}</th>
+                    <th>{{helperTrans("ingaz.role")}}</th>
+                    <th>رقم الاتصال</th>
+                    <th>رقم الواتساب</th>
+                    <th>رقم التحقق</th>
+                    <th>{{__("auth.email")}}</th>
+                    <th>{{helperTrans("ingaz.sex_type")}}</th>
+                    <th>{{ __('admin.status') }}</th>
+                    <th>{{ __('admin.note') }}</th>
+                    <th>{{__("auth.actions")}}</th>
+                </tr>
+                </thead>
+                <tbody>
 
-            </tbody>
-        </table>
+                </tbody>
+            </table>
+        </div>
+        </div>
 
     @else
         @include('components.no_permissions')
@@ -135,6 +295,7 @@
             let columns = [
                 {"data": 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
                 {"data": "name", orderable: true, searchable: true},
+                {"data": "username", orderable: true, searchable: true},
                 {"data": "admin_type", orderable: true, searchable: true},
                 {"data": "role", orderable: true, searchable: true},
                 {"data": "phone", orderable: true, searchable: true},
@@ -147,6 +308,51 @@
                 {"data": "actions", orderable: false, searchable: false}
             ];
 
+            function dataTableLanguage() {
+                return {
+                    "sProcessing": "{{trans('dataTable.sProcessing')}}",
+                    "sLengthMenu": "{{trans('dataTable.sLengthMenu')}}",
+                    "sZeroRecords": "{{trans('dataTable.sZeroRecords')}}",
+                    "sInfo": "{{trans('dataTable.sInfo')}}",
+                    "sInfoEmpty": "{{trans('dataTable.sInfoEmpty')}}",
+                    "sInfoFiltered": "{{trans('dataTable.sInfoFiltered')}}",
+                    "sInfoPostFix": "",
+                    "sSearch": "{{trans('dataTable.sSearch')}}:",
+                    "sUrl": "",
+                    "oPaginate": {
+                        "sFirst": "{{trans('dataTable.sFirst')}}",
+                        "sPrevious": "{{trans('dataTable.sPrevious')}}",
+                        "sNext": "{{trans('dataTable.sNext')}}",
+                        "sLast": "{{trans('dataTable.sLast')}}"
+                    }
+                };
+            }
+
+            function closeAdminFloatingMenu() {
+                $('#adminActionsFloatingMenu').remove();
+                $('#dataTableObject .actions-btn').attr('aria-expanded', 'false');
+            }
+
+            function initAdminUsersTable(url) {
+                tableInstance = $("#dataTableObject").DataTable({
+                    responsive: false,
+                    autoWidth: false,
+                    ordering: true,
+                    searching: true,
+                    iDisplayLength: 10,
+                    lengthMenu: [[5, 10, 25, 50, -1], [5, 10, 25, 50, "الكل"]],
+                    processing: true,
+                    serverSide: false,
+                    ajax: url,
+                    columns: columns,
+                    language: dataTableLanguage(),
+                    order: [[0, "asc"]],
+                    drawCallback: function () {
+                        closeAdminFloatingMenu();
+                    }
+                });
+            }
+
             function reloadWithFilters() {
                 let params = new URLSearchParams();
                 let adminType = $('#filter_admin_type').val();
@@ -158,9 +364,7 @@
                 if (tableInstance) {
                     $("#dataTableObject").DataTable().clear().destroy();
                 }
-                showDataTable(baseUrl + (params.toString() ? '?' + params.toString() : ''), columns);
-                tableInstance = $("#dataTableObject").DataTable();
-                tableInstance.order([0, 'asc']).draw();
+                initAdminUsersTable(baseUrl + (params.toString() ? '?' + params.toString() : ''));
             }
 
             reloadWithFilters();
@@ -175,6 +379,61 @@
                 $('#filter_status').val('');
                 reloadWithFilters();
             });
+
+            $(document).on('click', '#dataTableObject .actions-btn', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const $button = $(this);
+                const $dropdown = $button.closest('.admin-actions-dropdown');
+                const $sourceMenu = $dropdown.find('.dropdown-menu').first();
+                const existingMenu = $('#adminActionsFloatingMenu');
+
+                if (existingMenu.length && Number(existingMenu.data('source-id')) === Number($button.closest('tr').index())) {
+                    closeAdminFloatingMenu();
+                    return;
+                }
+
+                closeAdminFloatingMenu();
+
+                const buttonOffset = $button.offset();
+                const menu = $('<ul id="adminActionsFloatingMenu" class="dropdown-menu dropdown-menu-end show admin-actions-floating-menu"></ul>');
+                menu.html($sourceMenu.html());
+                menu.data('source-id', $button.closest('tr').index());
+                $('body').append(menu);
+
+                const menuWidth = menu.outerWidth();
+                const menuHeight = menu.outerHeight();
+                const viewportWidth = $(window).width();
+                const viewportHeight = $(window).height();
+                const scrollTop = $(window).scrollTop();
+                const isRtl = $('html').attr('dir') === 'rtl';
+                let top = buttonOffset.top + $button.outerHeight() + 6;
+                let left = isRtl
+                    ? buttonOffset.left
+                    : buttonOffset.left + $button.outerWidth() - menuWidth;
+
+                if (left + menuWidth > viewportWidth - 12) {
+                    left = viewportWidth - menuWidth - 12;
+                }
+                if (left < 12) {
+                    left = 12;
+                }
+                if (top + menuHeight > scrollTop + viewportHeight - 12) {
+                    top = Math.max(scrollTop + 12, buttonOffset.top - menuHeight - 6);
+                }
+
+                menu.css({position: 'absolute', top: top, left: left});
+                $button.attr('aria-expanded', 'true');
+            });
+
+            $(document).on('click', function (e) {
+                if (!$(e.target).closest('#dataTableObject .admin-actions-dropdown, #adminActionsFloatingMenu').length) {
+                    closeAdminFloatingMenu();
+                }
+            });
+
+            $(window).on('resize scroll', closeAdminFloatingMenu);
 
             $(document).on('click', '.toggle-status', function (e) {
                 e.preventDefault();
@@ -317,6 +576,130 @@
             $(document).on('click', '.admin-force-delete-button', function (e) {
                 e.preventDefault();
                 deleteAdmin($(this), true);
+            });
+
+            function postAdminAction(url, data, successMessage) {
+                $.post({
+                    url: url,
+                    data: Object.assign({_token: "{{ csrf_token() }}"}, data || {}),
+                    success: function (response) {
+                        handleSuccessResponce(response);
+                        if (adminSwal && typeof adminSwal.fire === 'function') {
+                            adminSwal.fire({
+                                icon: 'success',
+                                title: response.message || successMessage,
+                                confirmButtonText: "{{ __('buttons.close') }}",
+                            });
+                        }
+                        reloadWithFilters();
+                    },
+                    error: handleErrorResponce
+                });
+            }
+
+            $(document).on('click', '.admin-terminate-session-button', function (e) {
+                e.preventDefault();
+                const url = $(this).data('terminate-route');
+                const name = $(this).data('name') || '';
+                const confirmation = adminSwal && typeof adminSwal.fire === 'function'
+                    ? adminSwal.fire({
+                        title: 'إنهاء جلسة الموظف',
+                        text: 'سيتم إخراج ' + name + ' من لوحة التحكم عند أول تحقق دوري.',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'إنهاء الجلسة',
+                        cancelButtonText: "{{ __('buttons.cancel') }}",
+                    })
+                    : Promise.resolve({isConfirmed: window.confirm('إنهاء جلسة الموظف؟')});
+
+                confirmation.then(function (result) {
+                    if (result.isConfirmed) {
+                        postAdminAction(url, {}, 'تم إنهاء الجلسة.');
+                    }
+                });
+            });
+
+            $(document).on('click', '.admin-send-reset-link-button', function (e) {
+                e.preventDefault();
+                postAdminAction($(this).data('reset-link-route'), {}, 'تم إرسال رابط كلمة المرور.');
+            });
+
+            $(document).on('click', '.admin-impersonate-button', function (e) {
+                e.preventDefault();
+                const url = $(this).data('impersonate-route');
+                const name = $(this).data('name') || '';
+                const confirmation = adminSwal && typeof adminSwal.fire === 'function'
+                    ? adminSwal.fire({
+                        title: 'الدخول كموظف',
+                        text: 'سيتم تبديل جلستك الحالية إلى حساب ' + name + '.',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'دخول',
+                        cancelButtonText: "{{ __('buttons.cancel') }}",
+                    })
+                    : Promise.resolve({isConfirmed: window.confirm('الدخول بهذا الموظف؟')});
+
+                confirmation.then(function (result) {
+                    if (!result.isConfirmed) {
+                        return;
+                    }
+
+                    $.post({
+                        url: url,
+                        data: {_token: "{{ csrf_token() }}"},
+                        success: function (response) {
+                            window.location.href = response.data.url;
+                        },
+                        error: handleErrorResponce
+                    });
+                });
+            });
+
+            $(document).on('click', '.admin-reset-password-button', function (e) {
+                e.preventDefault();
+                const url = $(this).data('reset-route');
+                const name = $(this).data('name') || '';
+
+                if (!adminSwal || typeof adminSwal.fire !== 'function') {
+                    const password = window.prompt('كلمة المرور الجديدة');
+                    if (password) {
+                        postAdminAction(url, {
+                            password: password,
+                            password_confirmation: password
+                        }, 'تم تغيير كلمة المرور.');
+                    }
+                    return;
+                }
+
+                adminSwal.fire({
+                    title: 'تغيير كلمة المرور',
+                    html: '<input id="adminPassword" type="password" class="swal2-input" placeholder="كلمة المرور الجديدة">'
+                        + '<input id="adminPasswordConfirmation" type="password" class="swal2-input" placeholder="تأكيد كلمة المرور">',
+                    text: name,
+                    showCancelButton: true,
+                    confirmButtonText: 'حفظ',
+                    cancelButtonText: "{{ __('buttons.cancel') }}",
+                    preConfirm: function () {
+                        const password = document.getElementById('adminPassword').value;
+                        const confirmation = document.getElementById('adminPasswordConfirmation').value;
+
+                        if (!password || password.length < 6) {
+                            adminSwal.showValidationMessage('كلمة المرور يجب ألا تقل عن 6 أحرف.');
+                            return false;
+                        }
+
+                        if (password !== confirmation) {
+                            adminSwal.showValidationMessage('تأكيد كلمة المرور غير مطابق.');
+                            return false;
+                        }
+
+                        return {password: password, password_confirmation: confirmation};
+                    }
+                }).then(function (result) {
+                    if (result.isConfirmed) {
+                        postAdminAction(url, result.value, 'تم تغيير كلمة المرور.');
+                    }
+                });
             });
         });
     </script>

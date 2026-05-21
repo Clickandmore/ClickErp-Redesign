@@ -17,11 +17,14 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use App\Mail\ResetPasswordMail;
 use Spatie\Permission\Models\Role;
 use Yajra\DataTables\DataTables;
 
@@ -29,7 +32,7 @@ use Yajra\DataTables\DataTables;
 class AdminController extends Controller
 {
     public $folderPath = "admin.auth.admin";
-    public $postData = ["name", "phone", "email", 'whatsapp', 'verification_phone', 'identity_number', 'identity_expiry_date', "password", "admin_type", 'sex_type', 'role_id', 'sort', 'status', 'note'];
+    public $postData = ["name", "username", "phone", "email", 'whatsapp', 'verification_phone', 'identity_number', 'identity_expiry_date', "password", "admin_type", 'sex_type', 'role_id', 'sort', 'status', 'note'];
     public $mainRoute = "admins";
     public $suspensionReasons = ['violation', 'manual_review', 'fraud_suspect', 'other'];
 
@@ -75,6 +78,9 @@ class AdminController extends Controller
                 ->addColumn('admin_type', function ($row) {
                     $key = $row->admin_type;
                     return Arr::get(Constant::globalArray['admin_typeis'], "{$key}." . App::getLocale(), __('admin.not_specified'));
+                })
+                ->addColumn('username', function ($row) {
+                    return $row->username ?: '-';
                 })
                 ->addColumn('role', function ($row) {
                     if (!$row->role) {
@@ -194,6 +200,36 @@ class AdminController extends Controller
                     }
 
                     if (Auth::guard('admin')->user()->can('users_edit')) {
+                        $menuItems[] = '<li><button type="button" class="dropdown-item text-info admin-reset-password-button"'
+                            . ' data-id="' . $row->id . '"'
+                            . ' data-name="' . e($row->name) . '"'
+                            . ' data-reset-route="' . route($this->mainRoute . ".reset-password", $row->id) . '">'
+                            . '<i class="fa fa-key"></i> تغيير كلمة السر'
+                            . '</button></li>';
+
+                        $menuItems[] = '<li><button type="button" class="dropdown-item text-primary admin-send-reset-link-button"'
+                            . ' data-id="' . $row->id . '"'
+                            . ' data-name="' . e($row->name) . '"'
+                            . ' data-reset-link-route="' . route($this->mainRoute . ".send-reset-link", $row->id) . '">'
+                            . '<i class="fa fa-envelope"></i> إرسال رابط كلمة السر'
+                            . '</button></li>';
+
+                        if ($row->id != Auth::guard('admin')->id()) {
+                            $menuItems[] = '<li><button type="button" class="dropdown-item text-warning admin-terminate-session-button"'
+                                . ' data-id="' . $row->id . '"'
+                                . ' data-name="' . e($row->name) . '"'
+                                . ' data-terminate-route="' . route($this->mainRoute . ".terminate-session", $row->id) . '">'
+                                . '<i class="fa fa-sign-out"></i> إنهاء الجلسة'
+                                . '</button></li>';
+
+                            $menuItems[] = '<li><button type="button" class="dropdown-item text-success admin-impersonate-button"'
+                                . ' data-id="' . $row->id . '"'
+                                . ' data-name="' . e($row->name) . '"'
+                                . ' data-impersonate-route="' . route($this->mainRoute . ".impersonate", $row->id) . '">'
+                                . '<i class="fa fa-user-secret"></i> دخول كموظف'
+                                . '</button></li>';
+                        }
+
                         $isSuspended = $row->status === 'suspended';
                         $menuItems[] = '<li><a href="' . route("admins.toggle-status", $row->id) . '" class="dropdown-item '
                             . ($isSuspended ? 'text-success' : 'text-warning')
@@ -460,6 +496,88 @@ class AdminController extends Controller
         return jsonSuccess(['id' => $admin->id], 'تم استرجاع الموظف بنجاح.');
     }
 
+    public function resetPassword($id, Request $request)
+    {
+        $admin = ObjModel::findOrFail($id);
+
+        $validated = $request->validate([
+            'password' => ['required', 'string', 'min:6', 'confirmed'],
+        ]);
+
+        $admin->forceFill([
+            'password' => Hash::make($validated['password']),
+            'remember_token' => null,
+            'reset_password_token' => null,
+            'current_session_id' => 'terminated:' . Str::random(40),
+            'current_session_ip' => null,
+            'current_session_user_agent' => null,
+        ])->save();
+
+        return jsonSuccess(null, 'تم تغيير كلمة المرور وإنهاء الجلسات الحالية للموظف.');
+    }
+
+    public function sendResetLink($id)
+    {
+        $admin = ObjModel::findOrFail($id);
+
+        if (empty($admin->email)) {
+            return response()->json(['message' => 'لا يوجد بريد إلكتروني لهذا الموظف.'], 422);
+        }
+
+        $token = Str::random(64);
+        $admin->forceFill([
+            'reset_password_token' => $token,
+        ])->save();
+
+        $resetUrl = route('admin.password.reset', [
+            'token' => $token,
+            'email' => $admin->email,
+        ]);
+
+        try {
+            Mail::to($admin->email)->send(new ResetPasswordMail($resetUrl));
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return response()->json(['message' => __('admin.reset_password_email_failed')], 422);
+        }
+
+        return jsonSuccess(null, 'تم إرسال رابط تغيير كلمة المرور للموظف.');
+    }
+
+    public function terminateSession($id)
+    {
+        $admin = ObjModel::findOrFail($id);
+
+        $admin->forceFill([
+            'remember_token' => null,
+            'current_session_id' => 'terminated:' . Str::random(40),
+            'current_session_ip' => null,
+            'current_session_user_agent' => null,
+        ])->save();
+
+        return jsonSuccess(null, 'تم إنهاء جلسة الموظف الحالية.');
+    }
+
+    public function impersonate($id, Request $request)
+    {
+        $admin = ObjModel::findOrFail($id);
+
+        if ((int) $admin->id === (int) Auth::guard('admin')->id()) {
+            return response()->json(['message' => 'أنت مسجل بهذا المستخدم بالفعل.'], 422);
+        }
+
+        if (($admin->status ?? 'active') === 'suspended') {
+            return response()->json(['message' => 'لا يمكن الدخول بحساب موظف موقوف.'], 422);
+        }
+
+        $request->session()->put('impersonator_admin_id', Auth::guard('admin')->id());
+        Auth::guard('admin')->login($admin);
+        $this->startAdminSession($request, $admin);
+
+        return jsonSuccess(['url' => $this->defaultAdminRedirectUrl($admin)], 'تم الدخول كموظف.');
+    }
+
     private function renderAdminActionsDropdown(array $menuItems): string
     {
         if ($menuItems === []) {
@@ -467,7 +585,7 @@ class AdminController extends Controller
         }
 
         return '<div class="dropdown actions-dropdown admin-actions-dropdown">'
-            . '<button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="الإجراءات المتاحة">'
+            . '<button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" aria-haspopup="true" aria-expanded="false" title="الإجراءات المتاحة">'
             . '<i class="fas fa-cogs me-1"></i> ' . __("ingaz.actions")
             . '</button>'
             . '<ul class="dropdown-menu dropdown-menu-end shadow-lg">'
@@ -640,9 +758,15 @@ class AdminController extends Controller
             'login' => 'required',
             'password' => 'required'
         ]);
-        $user = objModel::where('phone', $request->login)
-            ->orWhere('email', $request->login)->first();
-        if (isset($user->email)) {
+        $login = trim((string) $request->login);
+        $user = objModel::query()
+            ->where('email', $login)
+            ->orWhere('phone', $login)
+            ->when(Schema::hasColumn('admins', 'username'), function ($query) use ($login) {
+                $query->orWhere('username', $login);
+            })
+            ->first();
+        if ($user) {
             if ($user->isExternalOfficeOnlyAgent()) {
                 if (($user->status ?? 'active') === 'suspended') {
                     return jsonSuccess(null, 'هذا الحساب موقوف حالياً.', 403);
@@ -657,10 +781,19 @@ class AdminController extends Controller
                 return jsonSuccess(null, __("auth.password"), 402);
             }
 
-            if (auth()->guard("admin")->attempt(["email" => $user->email, "password" => $request->password, "admin_type" => "employee"])) {
-                return jsonSuccess(['url' => route('employeeProfile.index')], __("auth.login successful"));
-            } elseif (auth()->guard("admin")->attempt(["email" => $user->email, "password" => $request->password])) {
-                return jsonSuccess(['url' => $this->defaultAdminRedirectUrl(Auth::guard('admin')->user())], __("auth.login successful"));
+            if (Hash::check((string) $request->password, (string) $user->password)) {
+                if (($user->status ?? 'active') === 'suspended') {
+                    return jsonSuccess(null, 'هذا الحساب موقوف حالياً.', 403);
+                }
+
+                Auth::guard('admin')->login($user, $request->boolean('rememberme'));
+                $this->startAdminSession($request, $user);
+
+                $redirectUrl = $user->admin_type === 'employee' && Route::has('employeeProfile.index')
+                    ? route('employeeProfile.index')
+                    : $this->defaultAdminRedirectUrl($user);
+
+                return jsonSuccess(['url' => $redirectUrl], __("auth.login successful"));
             }
             return jsonSuccess(null, __("auth.password"), 402);
         }
@@ -673,11 +806,37 @@ class AdminController extends Controller
             ?? route('admin.no-permissions');
     }
 
+    private function startAdminSession(Request $request, $admin): void
+    {
+        $request->session()->regenerate();
+        $request->session()->put('admin_session_checked_at', time());
+
+        if (! $admin || ! Schema::hasColumn('admins', 'current_session_id')) {
+            return;
+        }
+
+        $admin->forceFill([
+            'current_session_id' => $request->session()->getId(),
+            'current_session_ip' => $request->ip(),
+            'current_session_user_agent' => Str::limit((string) $request->userAgent(), 1000, ''),
+            'last_login_at' => now(),
+        ])->save();
+    }
+
     public function logout()
     {
+        $admin = Auth::guard('admin')->user();
+        if ($admin && Schema::hasColumn('admins', 'current_session_id') && $admin->current_session_id === request()->session()->getId()) {
+            $admin->forceFill([
+                'current_session_id' => null,
+                'current_session_ip' => null,
+                'current_session_user_agent' => null,
+            ])->save();
+        }
+
         Session::flush();
 
-        Auth::logout();
+        Auth::guard('admin')->logout();
 
         return redirect(route('admin.form.login'));
     }

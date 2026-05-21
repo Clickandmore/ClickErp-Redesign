@@ -18,8 +18,10 @@ class UpdateAdminRequest extends MainRequest
     {
         return [
             'name' => ['required'],
+            'username' => ['nullable', 'string', 'max:255', 'alpha_dash', Rule::unique('admins', 'username')->ignore($this->admin)],
             'phone' => ['required', 'string', 'max:255'],
             'email' => ['required', Rule::unique('admins')->ignore($this->admin)],
+            'password' => ['nullable', 'string', 'min:6'],
             'role_id' => ['required', Rule::exists('roles', 'id')->where('guard_name', 'admin')],
             'whatsapp' => ['nullable', 'string', 'max:255'],
             'verification_phone' => ['nullable', 'string', 'max:255'],

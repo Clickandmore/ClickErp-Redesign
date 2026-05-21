@@ -19,8 +19,10 @@ class StoreAdminRequest extends MainRequest
     {
         return [
             'name' => ['required'],
+            'username' => ['nullable', 'string', 'max:255', 'alpha_dash', 'unique:admins,username'],
             'phone' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:admins'],
+            'password' => ['required', 'string', 'min:6'],
             'admin_type' => ['required', new Enum(AdminTypes::class)],
             'role_id' => ['required', Rule::exists('roles', 'id')->where('guard_name', 'admin')],
             'whatsapp' => ['nullable', 'string', 'max:255'],

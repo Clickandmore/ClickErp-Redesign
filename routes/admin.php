@@ -54,6 +54,10 @@ Route::group(
             Route::group(["namespace" => "auth"], function () {
                 Route::resource('profile', 'ProfileController');
                 Route::resource('change-password', 'ChangePasswordController');
+                Route::post('admins/{id}/reset-password', 'AdminController@resetPassword')->name('admins.reset-password');
+                Route::post('admins/{id}/send-reset-link', 'AdminController@sendResetLink')->name('admins.send-reset-link');
+                Route::post('admins/{id}/terminate-session', 'AdminController@terminateSession')->name('admins.terminate-session');
+                Route::post('admins/{id}/impersonate', 'AdminController@impersonate')->name('admins.impersonate');
                 Route::resource('admins', 'AdminController');
                 Route::post('admins/{id}/toggle-status', 'AdminController@toggleStatus')->name('admins.toggle-status');
                 Route::post('admins/{id}/restore', 'AdminController@restore')->name('admins.restore');

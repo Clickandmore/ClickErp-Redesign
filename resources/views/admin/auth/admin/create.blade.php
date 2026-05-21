@@ -12,6 +12,10 @@
             <input type="text" name="name" class="form-control" data-validation="required">
         </div>
         <div class="col-4">
+            <label for="username" class="form-label">اسم المستخدم </label>
+            <input type="text" id="username" name="username" class="form-control" placeholder="username">
+        </div>
+        <div class="col-4">
             <label for="TextInput" class="form-label">رقم الاتصال </label>
             <input type="text" name="phone" class="form-control" data-validation="required">
         </div>
@@ -42,7 +46,7 @@
         </div>
         <div class="col-4">
             <label for="TextInput" class="form-label"> كلمة المرور </label>
-            <input type="password" name="password" placeholder="" class="form-control">
+            <input type="password" name="password" placeholder="" class="form-control" data-validation="required">
         </div>
 
         <div class="col-4">

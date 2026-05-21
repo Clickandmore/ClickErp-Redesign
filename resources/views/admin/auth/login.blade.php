@@ -10,13 +10,13 @@
         <div class="form-alert" role="alert" aria-live="assertive"></div>
         <div class="form-group">
             <div class="input-field">
-                <label for="email">{{ __('auth.email') }}*</label>
+                <label for="email">البريد الإلكتروني أو اسم المستخدم*</label>
                 <div class="input-shell">
                     <span class="input-icon">
                         <img src="{{ asset('admin/login') }}/imgs/email.svg" alt="email">
                     </span>
-                    <input type="email" id="email" name="login" value="{{ old('login') }}"
-                        placeholder="{{ __('auth.placeholderEmail') }}" autocomplete="username" required>
+                    <input type="text" id="email" name="login" value="{{ old('login') }}"
+                        placeholder="email@example.com أو username" autocomplete="username" required>
                 </div>
             </div>
             <div class="input-field">

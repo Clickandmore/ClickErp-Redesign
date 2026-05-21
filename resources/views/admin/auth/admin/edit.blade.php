@@ -15,6 +15,10 @@
             <input type="text" name="name" value="{{ $obj->name }}" class="form-control" data-validation="required">
         </div>
         <div class="col-4">
+            <label for="username" class="form-label">اسم المستخدم </label>
+            <input type="text" id="username" name="username" value="{{ $obj->username }}" class="form-control" placeholder="username">
+        </div>
+        <div class="col-4">
             <label for="TextInput" class="form-label">رقم الاتصال </label>
             <input type="text" name="phone" value="{{ $obj->phone }}" class="form-control" data-validation="required">
         </div>
@@ -43,6 +47,11 @@
         <div class="col-4">
             <label for="TextInput" class="form-label">البريد الالكترونى </label>
             <input type="text" name="email" value="{{ $obj->email }}" class="form-control">
+        </div>
+
+        <div class="col-4">
+            <label for="password" class="form-label">كلمة مرور جديدة </label>
+            <input type="password" id="password" name="password" class="form-control" placeholder="اتركها فارغة بدون تغيير">
         </div>
 
         <div class="col-4">
