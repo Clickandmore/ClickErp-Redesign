@@ -24,7 +24,7 @@
         <p class=" text-muted d-flex align-items-center gap-1">
             {{--            {{ __('auth.All Rights Reserved.') }} --}}
             {{ $main_setting->copyright_text ?? __('auth.All Rights Reserved.') }}
-            <a href="{{ $main_setting->copyright_link ?? '' }}" target="_blank" title="ROMOZ" class="namiFotter">
+            <a href="{{ $main_setting->copyright_link ?? '' }}" target="_blank" title="" class="namiFotter">
                 <img src="{{ showFile($main_setting->footer_logo ?? '') }}" width="50px" alt="">
             </a>
             © {{ date('Y') }}

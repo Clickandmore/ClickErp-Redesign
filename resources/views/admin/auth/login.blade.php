@@ -2,7 +2,8 @@
 
 @section('auth-page-title', __('auth.login'))
 @section('auth-heading', __('auth.login'))
-@section('auth-subtitle', app()->getLocale() === 'ar' ? 'سجل دخولك للوصول السريع إلى لوحة التحكم.' : 'Sign in for quick access to the dashboard.')
+@section('auth-subtitle', app()->getLocale() === 'ar' ? 'سجل دخولك للوصول السريع إلى لوحة التحكم.' : 'Sign in for quick
+    access to the dashboard.')
 
 @section('auth-body')
     <form id="loginForm" action="{{ route('admin.login') }}" method="POST" novalidate>
@@ -16,7 +17,7 @@
                         <img src="{{ asset('admin/login') }}/imgs/email.svg" alt="email">
                     </span>
                     <input type="text" id="email" name="login" value="{{ old('login') }}"
-                        placeholder="email@example.com أو username" autocomplete="username" required>
+                        placeholder="{{ __('auth.email') }}" autocomplete="username" required>
                 </div>
             </div>
             <div class="input-field">
@@ -26,7 +27,7 @@
                         <img src="{{ asset('admin/login') }}/imgs/password.svg" alt="password">
                     </span>
                     <input type="password" id="password" name="password" class="password-text-input"
-                        placeholder="•••••••••••••••" autocomplete="current-password" required>
+                        placeholder="{{ __('auth.password_placeholder') }}" autocomplete="current-password" required>
                     <button type="button" class="password-toggle" id="passwordToggle"
                         aria-label="{{ app()->getLocale() === 'ar' ? 'إظهار كلمة المرور' : 'Show password' }}"
                         aria-pressed="false">
@@ -89,7 +90,8 @@
                         formObj.find("[type='submit']").html("{{ __('auth.sign in') }}");
                         $('.form-alert').html(result.message)
                         if (result.code === 200) {
-                            successToster('{{ __('auth.done successfully') }}', result.message);
+                            successToster('{{ __('auth.done successfully') }}', result
+                            .message);
                             window.location.href = result.data.url;
                         } else if (result.code === 401) {
                             warningToster('{{ __('auth.an error occurred') }}', result.message)

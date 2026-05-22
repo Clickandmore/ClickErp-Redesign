@@ -38,6 +38,20 @@
                                     </fieldset>
                                 </div>
                             @endforeach
+
+                            <div class="col-12">
+                                <label class="form-label">{{ __('admin.settings_dashboard_footer_url') }}</label>
+                                <fieldset class="form-icon-group right-icon position-relative">
+                                    <div class="form-icon position-absolute">
+                                        <i class="fa fa-link"></i>
+                                    </div>
+                                    <input type="url" name="dashboard_footer_url"
+                                           value="{{ $settings->dashboard_footer_url ?? '' }}"
+                                           class="form-control"
+                                           placeholder="{{ url('/') }}">
+                                </fieldset>
+                                <small class="text-muted">{{ __('admin.settings_dashboard_footer_url_hint') }}</small>
+                            </div>
                         </div>
                     </div>
 

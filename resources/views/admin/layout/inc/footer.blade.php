@@ -5,14 +5,21 @@
             $footerName = isset($settings) ? optional($settings->translate($locale))->dashboard_name : null;
             $footerName = $footerName ?: (isset($settings) ? optional($settings->translate($locale))->website_name : null);
             $footerName = $footerName ?: documentSetting('website_name', config('app.name'));
-            $footerCopyright = isset($settings) ? optional($settings->translate($locale))->copyright : null;
+            $footerUrl = isset($settings) && !empty($settings->dashboard_footer_url) ? $settings->dashboard_footer_url : url('/');
+            $footerLogo = isset($settings) && !empty($settings->admin_logo)
+                ? showFile($settings->admin_logo)
+                : (isset($settings) && !empty($settings->logo_header)
+                    ? showFile($settings->logo_header)
+                    : asset('site/assets/images/company_logo.png'));
         @endphp
-        <p class=" text-muted d-flex align-items-center gap-1">
-            {{ $footerCopyright ?: __('auth.All Rights Reserved.') }}
-            <a href="{{ url('/') }}" target="_blank" title="{{ $footerName }}" class="namiFotter">
-                {{ $footerName }}
+        <p class="dashboard-copyright text-muted d-flex flex-wrap align-items-center justify-content-center gap-2 mb-0">
+            <span>{{ __('auth.All Rights Reserved To') }}</span>
+            <a href="{{ $footerUrl }}" target="_blank" rel="noopener" title="{{ $footerName }}" class="namiFotter dashboard-copyright-brand">
+                <img src="{{ $footerLogo }}" alt=""
+                     onerror="this.onerror=null;this.style.display='none';">
+                <span>{{ $footerName }}</span>
             </a>
-            © {{ date('Y') }}
+            <span>© {{ date('Y') }}</span>
         </p>
     </div>
 </footer>

@@ -32,10 +32,12 @@ return array (
   'placeholderEmail' => 'Enter your email address',
   'rememberme' => 'Remember Me',
   'All Rights Reserved.' => 'All Rights Reserved.',
+  'All Rights Reserved To' => 'All Rights Reserved To',
   'no_internet' => 'No Internet',
   'select' => 'Select',
   'new' => 'New',
   'success login' => 'Success login',
   'address_required' => 'Address required',
   'choose' => 'Choose',
+  'password_placeholder' => 'Password',
 );

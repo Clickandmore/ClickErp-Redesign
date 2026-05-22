@@ -182,22 +182,7 @@ class AdminController extends Controller
                             . '</button></li>';
                     }
 
-                    if (Auth::guard('admin')->user()->can('users_delete')) {
-                        if ($row->id != Auth::guard('admin')->user()->id) {
-                            $reassignmentCounts = $this->getReassignmentCounts((int) $row->id);
-                            $menuItems[] = '<li><button type="button" class="dropdown-item text-danger admin-delete-button"'
-                                . ' data-id="' . $row->id . '"'
-                                . ' data-name="' . e($row->name) . '"'
-                                . ' data-delete-route="' . route($this->mainRoute . ".destroy", $row->id) . '"'
-                                . ' data-requires-reassignment="' . ($reassignmentCounts['total'] > 0 ? 1 : 0) . '"'
-                                . ' data-orders-count="' . $reassignmentCounts['orders'] . '"'
-                                . ' data-bookings-count="' . $reassignmentCounts['bookings'] . '"'
-                                . ' data-contracts-count="' . $reassignmentCounts['contracts'] . '"'
-                                . ' title="حذف">'
-                                . '<i class="fa fa-trash-o"></i> ' . __('ingaz.delete')
-                                . '</button></li>';
-                        }
-                    }
+
 
                     if (Auth::guard('admin')->user()->can('users_edit')) {
                         $menuItems[] = '<li><button type="button" class="dropdown-item text-info admin-reset-password-button"'
@@ -229,7 +214,22 @@ class AdminController extends Controller
                                 . '<i class="fa fa-user-secret"></i> دخول كموظف'
                                 . '</button></li>';
                         }
-
+  if (Auth::guard('admin')->user()->can('users_delete')) {
+                        if ($row->id != Auth::guard('admin')->user()->id) {
+                            $reassignmentCounts = $this->getReassignmentCounts((int) $row->id);
+                            $menuItems[] = '<li><button type="button" class="dropdown-item text-danger admin-delete-button"'
+                                . ' data-id="' . $row->id . '"'
+                                . ' data-name="' . e($row->name) . '"'
+                                . ' data-delete-route="' . route($this->mainRoute . ".destroy", $row->id) . '"'
+                                . ' data-requires-reassignment="' . ($reassignmentCounts['total'] > 0 ? 1 : 0) . '"'
+                                . ' data-orders-count="' . $reassignmentCounts['orders'] . '"'
+                                . ' data-bookings-count="' . $reassignmentCounts['bookings'] . '"'
+                                . ' data-contracts-count="' . $reassignmentCounts['contracts'] . '"'
+                                . ' title="حذف">'
+                                . '<i class="fa fa-trash-o"></i> ' . __('ingaz.delete')
+                                . '</button></li>';
+                        }
+                    }
                         $isSuspended = $row->status === 'suspended';
                         $menuItems[] = '<li><a href="' . route("admins.toggle-status", $row->id) . '" class="dropdown-item '
                             . ($isSuspended ? 'text-success' : 'text-warning')

@@ -32,10 +32,12 @@ return array (
   'rememberme' => 'تذكرني',
   'login successful' => 'تم التسجيل بنجاح',
   'All Rights Reserved.' => 'جميع الحقوق محفوظة',
+  'All Rights Reserved To' => 'جميع الحقوق محفوظة لـ',
   'address_required' => 'العنوان مطلوب',
   'choose' => 'اختر',
   'SL' => '#',
   'no_internet' => 'لا يوجد اتصال بالإنترنت',
   'select' => 'اختر',
   'new' => 'جديد',
+  'password_placeholder' => 'كلمة المرور',
 );

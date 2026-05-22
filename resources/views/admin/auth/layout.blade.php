@@ -8,8 +8,8 @@
         $locale = app()->getLocale();
         $settingsName = isset($settings) ? optional($settings->translate($locale))->website_name : null;
         $dashboardName = isset($settings) ? optional($settings->translate($locale))->dashboard_name : null;
-        $copyrightText = isset($settings) ? optional($settings->translate($locale))->copyright : null;
         $brandName = $dashboardName ?: ($settingsName ?: (isset($developSettings) ? $developSettings->name : config('app.name', 'Platinum')));
+        $footerUrl = isset($settings) && !empty($settings->dashboard_footer_url) ? $settings->dashboard_footer_url : url('/');
 
         if (isset($settings) && !empty($settings->admin_login_background)) {
             $loginBg = showFile($settings->admin_login_background);
@@ -29,9 +29,11 @@
                     : (isset($developSettings) && !empty($developSettings->logo_login)
                         ? showFile($developSettings->logo_login)
                         : asset('site/assets/images/company_logo.png')));
+
+        $footerLogo = $loginLogo;
     @endphp
     <title>{{ $brandName }} | @yield('auth-page-title', __('auth.login'))</title>
-    <link rel="stylesheet" href="{{ asset('admin/login') }}/css/style-dashboard.css?v=3">
+    <link rel="stylesheet" href="{{ asset('admin/login') }}/css/style-dashboard.css?v=7">
     <link rel="stylesheet" href="{{ asset('admin/login') }}/css/fontawesome.min.css">
     <link rel="stylesheet" href="{{ asset('admin') }}/assets/vendor/toster/css/jquery.toast.css">
     @stack('auth-styles')
@@ -73,10 +75,15 @@
             </div>
         </div>
 
-        <p class="footer">
-            {{ $copyrightText ?: __('auth.copyright') }} © {{ date('Y') }}
-            <a href="{{ url('/') }}" target="_blank">{{ $brandName }}</a>
-        </p>
+        <div class="footer">
+            <span class="footer-copy">{{ __('auth.All Rights Reserved To') }}</span>
+            <a href="{{ $footerUrl }}" target="_blank" rel="noopener" class="footer-brand" title="{{ $brandName }}">
+                <img src="{{ $footerLogo }}" alt=""
+                    onerror="this.onerror=null;this.style.display='none';">
+                <span>{{ $brandName }}</span>
+            </a>
+            <span class="footer-copy">© {{ date('Y') }}</span>
+        </div>
     </div>
 
     <script src="{{ asset('admin') }}/assets/js/plugins.js"></script>

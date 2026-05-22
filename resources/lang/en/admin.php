@@ -1168,6 +1168,8 @@ return array (
   'settings_return_conditions' => 'Return Conditions',
   'settings_dashboard_data' => 'Dashboard Data',
   'settings_dashboard_name' => 'Dashboard Name',
+  'settings_dashboard_footer_url' => 'Dashboard Copyright Link',
+  'settings_dashboard_footer_url_hint' => 'Used when clicking the copyright logo and name on the login page and dashboard footer.',
   'settings_dashboard_identity' => 'Dashboard Identity',
   'settings_dashboard_logo' => 'Dashboard Logo',
   'settings_dashboard_logo_hint' => 'Used only in the dashboard header and dashboard login screen.',

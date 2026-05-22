@@ -1204,6 +1204,8 @@ return array (
   'settings_return_conditions' => 'شروط الاسترجاع',
   'settings_dashboard_data' => 'بيانات لوحة التحكم',
   'settings_dashboard_name' => 'اسم لوحة التحكم',
+  'settings_dashboard_footer_url' => 'رابط حقوق لوحة التحكم',
+  'settings_dashboard_footer_url_hint' => 'الرابط المستخدم عند الضغط على شعار واسم الحقوق في صفحة الدخول وفوتر اللوحة.',
   'settings_dashboard_identity' => 'هوية لوحة التحكم',
   'settings_dashboard_logo' => 'شعار لوحة التحكم',
   'settings_dashboard_logo_hint' => 'يستخدم في الهيدر وشاشة تسجيل الدخول للوحة التحكم فقط.',

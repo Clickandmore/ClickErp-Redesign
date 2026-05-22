@@ -44,14 +44,17 @@ $quickLinks = $quickLinks->filter(function ($link) {
         }
 
         .cm-brand {
-            min-height: 42px;
+            min-height: 58px;
             min-width: auto;
-            max-width: 220px;
-            gap: 0.55rem;
+            max-width: 320px;
+            gap: 0.7rem;
         }
 
         .cm-header-logo {
-            height: 34px;
+            height: 52px;
+            max-width: 150px;
+            width: auto;
+            object-fit: contain;
         }
 
         .cm-brand-text {
@@ -289,7 +292,12 @@ $quickLinks = $quickLinks->filter(function ($link) {
             .cm-brand {
                 margin-inline-start: 0.65rem !important;
                 margin-inline-end: 0 !important;
-                max-width: 180px;
+                max-width: 230px;
+            }
+
+            .cm-header-logo {
+                height: 44px;
+                max-width: 125px;
             }
         }
     </style>

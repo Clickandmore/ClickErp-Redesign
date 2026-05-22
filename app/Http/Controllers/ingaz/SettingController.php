@@ -20,6 +20,7 @@ class SettingController extends Controller
         'light_image',
         'cover_image',
         'admin_login_background',
+        'dashboard_footer_url',
         'experience_image',
         'qr_image',
         'second_qr_image',

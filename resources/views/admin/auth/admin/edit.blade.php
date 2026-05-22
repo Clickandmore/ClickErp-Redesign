@@ -36,12 +36,12 @@
 
         <div class="col-4">
             <label for="identity_number" class="form-label">رقم الهوية </label>
-            <input type="text" id="identity_number" name="identity_number" class="form-control" value="{{ $obj->identity_number }}" data-validation="required">
+            <input type="text" id="identity_number" name="identity_number" class="form-control" value="{{ $obj->identity_number }}">
         </div>
 
         <div class="col-4">
             <label for="identity_expiry_date" class="form-label">تاريخ انتهاء الهوية </label>
-            <input type="date" id="identity_expiry_date" name="identity_expiry_date" class="form-control" value="{{ $obj->identity_expiry_date }}" data-validation="required">
+            <input type="date" id="identity_expiry_date" name="identity_expiry_date" class="form-control" value="{{ $obj->identity_expiry_date }}">
         </div>
 
         <div class="col-4">
