@@ -528,3 +528,115 @@
 .dashboard-copyright-logo:empty {
     display: none;
 }
+
+/* ======================================================
+   SIDEBAR — clearer text & better visual hierarchy
+   ====================================================== */
+
+/* Primary menu links */
+.sidebar .m-link {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.1px;
+}
+
+.sidebar .m-link > span {
+    font-size: 14px;
+    line-height: 1.45;
+}
+
+.sidebar .m-link > i,
+.sidebar .m-link > svg {
+    font-size: 15px;
+    opacity: 0.92;
+}
+
+/* Active link — bolder + brand accent */
+.sidebar .m-link.active {
+    font-weight: 700;
+}
+
+/* Sub-menu items — slightly smaller but still readable */
+.sidebar .sub-menu .m-link {
+    font-size: 13.5px;
+    font-weight: 550;
+}
+
+.sidebar .sub-menu .m-link > span {
+    font-size: 13.5px;
+}
+
+/* Section divider labels */
+.sidebar .divider span.small {
+    font-size: 10.5px !important;
+    font-weight: 800 !important;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: var(--secondary-color);
+    opacity: 1;
+}
+
+/* ======================================================
+   HEADER — clearer brand text & readable meta values
+   ====================================================== */
+
+/* Brand / system name */
+.cm-brand-subtitle {
+    font-size: 14px !important;
+    font-weight: 800 !important;
+    color: #222940 !important;
+    letter-spacing: 0.15px;
+    line-height: 1.2;
+}
+
+/* Date / time meta values */
+.cm-header-meta-value {
+    font-size: 0.88rem !important;
+    font-weight: 800 !important;
+    color: #0f172a !important;
+}
+
+.cm-header-meta-subvalue {
+    font-size: 0.76rem !important;
+    color: #374151 !important;
+    font-weight: 600 !important;
+}
+
+/* Meta card icons — brand green instead of bootstrap blue */
+.cm-header-meta-icon {
+    background: linear-gradient(135deg, rgba(151, 191, 90, 0.22) 0%, rgba(151, 191, 90, 0.08) 100%) !important;
+    color: #4a7a1e !important;
+}
+
+/* Quick-link shortcut buttons */
+.cm-header-shortcut {
+    font-size: 0.82rem !important;
+    font-weight: 700 !important;
+    color: #1a2540 !important;
+}
+
+.cm-header-shortcut i {
+    color: var(--secondary-color);
+}
+
+.cm-header-shortcut:hover {
+    color: #222940 !important;
+    background: rgba(151, 191, 90, 0.12) !important;
+    border-color: rgba(151, 191, 90, 0.25) !important;
+}
+
+/* "Open site" button — brand navy */
+.cm-header-open-site {
+    background: #222940 !important;
+    font-size: 0.82rem !important;
+    font-weight: 700 !important;
+}
+
+.cm-header-open-site:hover {
+    background: #2d3a5e !important;
+}
+
+/* Header action icon buttons — brand hover */
+.cm-header-action:hover {
+    color: var(--secondary-color) !important;
+}

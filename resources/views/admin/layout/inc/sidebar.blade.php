@@ -1112,20 +1112,49 @@
                             request()->routeIs('settings.index') ||
                             (request()->routeIs('settings.section') && !$isDashboardSettings && !$isTranslationSettingsRoute) ||
                             (request()->routeIs('settings.*') && !request()->routeIs('settings.section'));
-                        $websiteManagementOpen =
-                            $isTranslationSettingsRoute ||
-                            $isWebsiteSettingsRoute ||
-                            request()->routeIs('form-settings.*') ||
+                        $isSelectWorkersSettingsRoute = request()->routeIs('select-workers.*') || request()->routeIs('select-workers-settings.*');
+                        $isHomeSettingsRoute =
+                            request()->routeIs('fast-news.*') ||
+                            request()->routeIs('sliders.*') ||
+                            request()->routeIs('what-do.*') ||
+                            request()->routeIs('what-do-setting.*') ||
                             request()->routeIs('about-us.*') ||
+                            request()->routeIs('features.*') ||
+                            request()->routeIs('services.*') ||
+                            request()->routeIs('statistics.*') ||
+                            request()->routeIs('steps.*') ||
+                            request()->routeIs('partenrs.*');
+                        $isRecruitmentSettingsRoute = in_array(Route::currentRouteName(), ['job-titles.index', 'nationalities.index', 'religions.index', 'skills.index', 'countries.index', 'cities.index', 'social-statuses.index', 'offices.index', 'offices.create', 'offices.edit', 'offices.show', 'recruitment-offices.index', 'recruitment-offices.create', 'recruitment-offices.edit', 'recruitment-offices.show']);
+                        $isRentalSettingsRoute =
+                            request()->routeIs('rent-contract.settings') ||
+                            request()->routeIs('rent-contract-terms.*') ||
+                            request()->routeIs('packages.*');
+                        $isInternalSystemSettingsRoute =
+                            $isTranslationSettingsRoute ||
+                            request()->routeIs('form-settings.*') ||
+                            request()->routeIs('dash.settings*') ||
+                            request()->routeIs('istiqdam.*') ||
+                            $isRentalSettingsRoute ||
+                            $isRecruitmentSettingsRoute ||
+                            Request::is('migration/*') ||
+                            Request::is('migration.php');
+                        $websiteManagementOpen =
+                            $isWebsiteSettingsRoute ||
                             request()->routeIs('questions.*') ||
-                            request()->routeIs('dash.settings*');
-                        $settingsOperationOpen = $isDashboardSettings || $websiteManagementOpen;
+                            request()->routeIs('requiremens.*') ||
+                            $isSelectWorkersSettingsRoute ||
+                            $isHomeSettingsRoute;
+                        $settingsOperationOpen =
+                            $isDashboardSettings ||
+                            $websiteManagementOpen ||
+                            $isInternalSystemSettingsRoute ||
+                            $isRecruitmentSettingsRoute;
                     @endphp
                     <li class="sidebar-module sidebar-module--settings {{ $settingsOperationOpen ? '' : 'collapsed' }}">
                         <a class="m-link" data-bs-toggle="collapse" data-bs-target="#settingsOperation"
                             href="#">
                             <i class="fa fa-cog fa-lg"></i>
-                            <span class="ms-2">{{ helperTrans('ingaz.system_settings') }}</span>
+                            <span class="ms-2">إدارة الإعدادات</span>
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
                         <ul class="sub-menu collapse {{ $settingsOperationOpen ? 'show' : '' }}" id="settingsOperation">
@@ -1134,7 +1163,7 @@
                                     <a class="m-link {{ $isDashboardSettings ? 'active' : '' }}"
                                         href="{{ route('settings.section', 'dashboard') }}">
                                         <i class="fa fa-gauge"></i>
-                                        <span class="ms-2">{{ helperTrans('ingaz.dashboard_settings') }}</span>
+                                        <span class="ms-2">إعدادات لوحة التحكم</span>
                                     </a>
                                 </li>
                             @endif
@@ -1144,7 +1173,7 @@
                                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#websiteManagement"
                                         href="#">
                                         <i class="fa fa-globe"></i>
-                                        <span class="ms-2">{{ helperTrans('ingaz.website_management') }}</span>
+                                        <span class="ms-2">إعدادات موقع العميل</span>
                                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                                     </a>
 
@@ -1156,11 +1185,166 @@
                                                     href="{{ route('settings.section', 'general') }}">
                                                     <i class="fa fa-cogs"></i>
                                                     <span
-                                                        class="ms-2">{{ helperTrans('ingaz.website_settings') }}</span>
+                                                        class="ms-2">بيانات الموقع الخارجية</span>
                                                 </a>
                                             </li>
                                         @endif
 
+                                        @if ($canViewHomeSettings)
+                                            <li class="{{ $isHomeSettingsRoute ? '' : 'collapsed' }}">
+                                                <a class="m-link" data-bs-toggle="collapse" data-bs-target="#home_settings"
+                                                    href="#">
+                                                    <i class="fa fa-home"></i>
+                                                    <span class="ms-2">الصفحة الرئيسية</span>
+                                                    <span class="arrow fa fa-angle-left ms-auto text-end"></span>
+                                                </a>
+
+                                                <ul class="sub-menu collapse {{ $isHomeSettingsRoute ? 'show' : '' }}" id="home_settings">
+
+                                                    @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
+                                                        <li>
+                                                            <a class="m-link" href="{{ route('fast-news.index') }}">
+                                                                <i class="fa fa-newspaper"></i>
+                                                                <span class="ms-2">الرئيسية - {{ __('web.fast_news') }}</span>
+                                                            </a>
+                                                        </li>
+                                                    @endif
+
+                                                    @if (@AdminGuardHasPerm(\App\PermKeys::SLIDERS_VIEW))
+                                                        <li>
+                                                            <a class="m-link {{ Route::currentRouteName() == 'sliders.index' ? 'active' : '' }}"
+                                                                href="{{ route('sliders.index') }}">
+                                                                <i class="fa fa-images"></i>
+                                                                <span class="ms-2">الرئيسية - {{ helperTrans('ingaz.banner') }}</span>
+                                                            </a>
+                                                        </li>
+                                                    @endif
+
+                                                    @if (@AdminGuardHasPerm(\App\PermKeys::SERVICES_VIEW))
+                                                        <li>
+                                                            <a class="m-link" href="{{ route('what-do.index') }}">
+                                                                <i class="fa fa-puzzle-piece"></i>
+                                                                <span class="ms-2">الرئيسية - {{ __('web.services') }}</span>
+                                                            </a>
+                                                        </li>
+                                                    @endif
+
+                                                    @if (@AdminGuardHasPerm(\App\PermKeys::ABOUT_US_VIEW))
+                                                        <li>
+                                                            <a class="m-link {{ Route::currentRouteName() == 'about-us.index' ? 'active' : '' }}"
+                                                                href="{{ route('about-us.index') }}">
+                                                                <i class="fa fa-circle-info"></i>
+                                                                <span class="ms-2">الرئيسية - {{ __('web.aboutUs') }}</span>
+                                                            </a>
+                                                        </li>
+                                                    @endif
+
+                                                    @if (@AdminGuardHasPerm(\App\PermKeys::FAQ_VIEW))
+                                                        <li>
+                                                            <a class="m-link {{ Route::currentRouteName() == 'features.index' ? 'active' : '' }}"
+                                                                href="{{ route('features.index') }}">
+                                                                <i class="fa fa-star"></i>
+                                                                <span class="ms-2">الرئيسية - {{ helperTrans('ingaz.features') }}</span>
+                                                            </a>
+                                                        </li>
+                                                    @endif
+
+                                                    @if (@AdminGuardHasPerm(\App\PermKeys::FAQ_VIEW))
+                                                        <li>
+                                                            <a class="m-link {{ Route::currentRouteName() == 'services.index' ? 'active' : '' }}"
+                                                                href="{{ route('services.index') }}">
+                                                                <i class="fa fa-tools"></i>
+                                                                <span class="ms-2">الرئيسية - {{ helperTrans('ingaz.services') }}</span>
+                                                            </a>
+                                                        </li>
+                                                    @endif
+
+                                                    @if (@AdminGuardHasPerm(\App\PermKeys::STATISTICS_VIEW))
+                                                        <li>
+                                                            <a class="m-link {{ Route::currentRouteName() == 'statistics.index' ? 'active' : '' }}"
+                                                                href="{{ route('statistics.index') }}">
+                                                                <i class="fa fa-chart-bar"></i>
+                                                                <span class="ms-2">الرئيسية - {{ helperTrans('ingaz.statistics') }}</span>
+                                                            </a>
+                                                        </li>
+                                                    @endif
+
+                                                    @if (@AdminGuardHasPerm(\App\PermKeys::STEPS_VIEW))
+                                                        <li>
+                                                            <a class="m-link" href="{{ route('steps.index') }}">
+                                                                <i class="fa fa-list-ol"></i>
+                                                                <span class="ms-2">الرئيسية - {{ helperTrans('ingaz.steps') }}</span>
+                                                            </a>
+                                                        </li>
+                                                    @endif
+
+                                                    @if (@AdminGuardHasPerm(\App\PermKeys::PARTENR_VIEW))
+                                                        <li>
+                                                            <a class="m-link {{ Route::currentRouteName() == 'partenrs.index' ? 'active' : '' }}"
+                                                                href="{{ route('partenrs.index') }}">
+                                                                <i class="fa fa-handshake"></i>
+                                                                <span class="ms-2">الرئيسية - {{ helperTrans('ingaz.partenrs') }}</span>
+                                                            </a>
+                                                        </li>
+                                                    @endif
+
+                                                </ul>
+                                            </li>
+                                        @endif
+
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::STATISTICS_VIEW))
+                                            <li>
+                                                <a class="m-link {{ Route::currentRouteName() == 'select-workers.index' ? 'active' : '' }}"
+                                                    href="{{ route('select-workers.index') }}">
+                                                    <i class="fa fa-users"></i>
+                                                    <span class="ms-2">
+                                                        صفحة اختيار العمالة</span>
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="m-link {{ Route::currentRouteName() == 'select-workers-settings.index' ? 'active' : '' }}"
+                                                    href="{{ route('select-workers-settings.index') }}">
+                                                    <i class="fa fa-sliders"></i>
+                                                    <span class="ms-2">
+                                                        إعدادات صفحة اختيار العمالة</span>
+                                                </a>
+                                            </li>
+                                        @endif
+
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::FAQ_VIEW))
+                                            <li>
+                                                <a class="m-link {{ Route::currentRouteName() == 'questions.index' ? 'active' : '' }}"
+                                                    href="{{ route('questions.index') }}">
+                                                    <i class="fa fa-question"></i>
+                                                    <span class="ms-2">{{ helperTrans('ingaz.faq') }}</span>
+                                                </a>
+                                            </li>
+                                        @endif
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::STATISTICS_VIEW))
+                                            <li>
+                                                <a class="m-link {{ Route::currentRouteName() == 'requiremens.index' ? 'active' : '' }}"
+                                                    href="{{ route('requiremens.index') }}">
+                                                    <i class="fa fa-list"></i>
+                                                    <span class="ms-2">
+                                                        {{ helperTrans('ingaz.requiremens') }}</span>
+                                                </a>
+                                            </li>
+                                        @endif
+                                    </ul>
+                                </li>
+                            @endif
+
+                            @if ($canViewWebsiteManagement || $canViewMaidsData || @AdminGuardHasAnyPerm([\App\PermKeys::PACKAGES_VIEW, \App\PermKeys::RENT_CONTRACT_VIEW]))
+                                <li class="{{ $isInternalSystemSettingsRoute ? '' : 'collapsed' }}">
+                                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#internalSystemSettings"
+                                        href="#">
+                                        <i class="fa fa-tools"></i>
+                                        <span class="ms-2">إعدادات النظام الداخلية</span>
+                                        <span class="arrow fa fa-angle-left ms-auto text-end"></span>
+                                    </a>
+
+                                    <ul class="sub-menu collapse {{ $isInternalSystemSettingsRoute ? 'show' : '' }}"
+                                        id="internalSystemSettings">
                                         @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
                                             <li>
                                                 <a class="m-link {{ $isTranslationSettingsRoute ? 'active' : '' }}"
@@ -1183,7 +1367,7 @@
 
                                         @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
                                             <li>
-                                                <a class="m-link" href="{{ route('istiqdam.index') }}">
+                                                <a class="m-link {{ request()->routeIs('istiqdam.*') ? 'active' : '' }}" href="{{ route('istiqdam.index') }}">
                                                     <i class="fa fa-building"></i>
                                                     <span class="ms-2">{{ helperTrans('ingaz.recruitment_platform') }}</span>
                                                 </a>
@@ -1200,158 +1384,54 @@
                                             </li>
                                         @endif
 
-                                        @if (@AdminGuardHasPerm(\App\PermKeys::STATISTICS_VIEW))
-                                            <li>
-                                                <a class="m-link {{ Route::currentRouteName() == 'select-workers.index' ? 'active' : '' }}"
-                                                    href="{{ route('select-workers.index') }}">
-                                                    <i class="fa fa-bar-chart"></i>
-                                                    <span class="ms-2">
-                                                        {{ helperTrans('ingaz.select_workers') }}</span>
+                                        @if (@AdminGuardHasAnyPerm([\App\PermKeys::RENT_CONTRACT_VIEW, \App\PermKeys::PACKAGES_VIEW]))
+                                            <li class="{{ $isRentalSettingsRoute ? '' : 'collapsed' }}">
+                                                <a class="m-link" data-bs-toggle="collapse" data-bs-target="#rentalSettings"
+                                                    href="#">
+                                                    <i class="fa fa-house-user"></i>
+                                                    <span class="ms-2">إعدادات التأجير</span>
+                                                    <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                                                 </a>
-                                            </li>
-                                            <li>
-                                                <a class="m-link {{ Route::currentRouteName() == 'select-workers-settings.index' ? 'active' : '' }}"
-                                                    href="{{ route('select-workers-settings.index') }}">
-                                                    <i class="fa fa-bar-chart"></i>
-                                                    <span class="ms-2">
-                                                        {{ helperTrans('ingaz.select_workers_settings') }}</span>
-                                                </a>
-                                            </li>
-                                        @endif
-
-                                        @if (@AdminGuardHasPerm(\App\PermKeys::FAQ_VIEW))
-                                            <li>
-                                                <a class="m-link {{ Route::currentRouteName() == 'questions.index' ? 'active' : '' }}"
-                                                    href="{{ route('questions.index') }}">
-                                                    <i class="fa fa-question"></i>
-                                                    <span class="ms-2">{{ helperTrans('ingaz.faq') }}</span>
-                                                </a>
-                                            </li>
-                                        @endif
-                                        @if (@AdminGuardHasPerm(\App\PermKeys::STATISTICS_VIEW))
-                                            <li>
-                                                <a class="m-link {{ Route::currentRouteName() == 'requiremens.index' ? 'active' : '' }}"
-                                                    href="{{ route('requiremens.index') }}">
-                                                    <i class="fa fa-user"></i>
-                                                    <span class="ms-2">
-                                                        {{ helperTrans('ingaz.requiremens') }}</span>
-                                                </a>
-                                            </li>
-                                        @endif
-                                    </ul>
-                                </li>
-                            @endif
-                            @if ($canViewHomeSettings)
-                                <li class="collapsed">
-                                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#home_settings"
-                                        href="#">
-                                        <i class="fa fa-cog"></i>
-                                        <span class="ms-2">{{ helperTrans('web.home_settings') }}</span>
-                                        <span class="arrow fa fa-angle-left ms-auto text-end"></span>
-                                    </a>
-
-                                    <ul class="sub-menu collapse" id="home_settings">
-
-                                        @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
-                                            <li>
-                                                <a class="m-link" href="{{ route('fast-news.index') }}">
-                                                    <i class="fa fa-newspaper"></i>
-                                                    <span class="ms-2">{{ __('web.fast_news') }}</span>
-                                                </a>
+                                                <ul class="sub-menu collapse {{ $isRentalSettingsRoute ? 'show' : '' }}"
+                                                    id="rentalSettings">
+                                                    @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_VIEW))
+                                                        <li>
+                                                            <a class="m-link {{ Route::currentRouteName() == 'rent-contract.settings' ? 'active' : '' }}"
+                                                                href="{{ route('rent-contract.settings') }}">
+                                                                <i class="fa fa-sliders"></i>
+                                                                <span class="ms-2">إعدادات عقد التأجير</span>
+                                                            </a>
+                                                        </li>
+                                                        <li>
+                                                            <a class="m-link {{ request()->routeIs('rent-contract-terms.*') ? 'active' : '' }}"
+                                                                href="{{ route('rent-contract-terms.index') }}">
+                                                                <i class="fa fa-file-contract"></i>
+                                                                <span class="ms-2">بنود عقد التأجير</span>
+                                                            </a>
+                                                        </li>
+                                                    @endif
+                                                    @if (@AdminGuardHasPerm(\App\PermKeys::PACKAGES_VIEW))
+                                                        <li>
+                                                            <a class="m-link {{ Route::currentRouteName() == 'packages.index' ? 'active' : '' }}"
+                                                                href="{{ route('packages.index') }}">
+                                                                <i class="fa fa-box"></i>
+                                                                <span class="ms-2">{{ helperTrans('ingaz.rental_packages') }}</span>
+                                                            </a>
+                                                        </li>
+                                                    @endif
+                                                </ul>
                                             </li>
                                         @endif
 
-                                        @if (@AdminGuardHasPerm(\App\PermKeys::SLIDERS_VIEW))
-                                            <li>
-                                                <a class="m-link {{ Route::currentRouteName() == 'sliders.index' ? 'active' : '' }}"
-                                                    href="{{ route('sliders.index') }}">
-                                                    <i class="fa fa-images"></i>
-                                                    <span class="ms-2">{{ helperTrans('ingaz.banner') }}</span>
-                                                </a>
-                                            </li>
-                                        @endif
-
-                                        @if (@AdminGuardHasPerm(\App\PermKeys::SERVICES_VIEW))
-                                            <li>
-                                                <a class="m-link" href="{{ route('what-do.index') }}">
-                                                    <i class="fa fa-puzzle-piece"></i>
-                                                    <span class="ms-2">{{ __('web.services') }}</span>
-                                                </a>
-                                            </li>
-                                        @endif
-
-                                        @if (@AdminGuardHasPerm(\App\PermKeys::ABOUT_US_VIEW))
-                                            <li>
-                                                <a class="m-link {{ Route::currentRouteName() == 'about-us.index' ? 'active' : '' }}"
-                                                    href="{{ route('about-us.index') }}">
-                                                    <i class="fa fa-circle-info"></i>
-                                                    <span class="ms-2">{{ __('web.aboutUs') }}</span>
-                                                </a>
-                                            </li>
-                                        @endif
-
-                                        @if (@AdminGuardHasPerm(\App\PermKeys::FAQ_VIEW))
-                                            <li>
-                                                <a class="m-link {{ Route::currentRouteName() == 'features.index' ? 'active' : '' }}"
-                                                    href="{{ route('features.index') }}">
-                                                    <i class="fa fa-star"></i>
-                                                    <span class="ms-2">{{ helperTrans('ingaz.features') }}</span>
-                                                </a>
-                                            </li>
-                                        @endif
-
-
-                                        @if (@AdminGuardHasPerm(\App\PermKeys::FAQ_VIEW))
-                                            <li>
-                                                <a class="m-link {{ Route::currentRouteName() == 'services.index' ? 'active' : '' }}"
-                                                    href="{{ route('services.index') }}">
-                                                    <i class="fa fa-tools"></i>
-                                                    <span class="ms-2">{{ helperTrans('ingaz.services') }}</span>
-                                                </a>
-                                            </li>
-                                        @endif
-
-                                        @if (@AdminGuardHasPerm(\App\PermKeys::STATISTICS_VIEW))
-                                            <li>
-                                                <a class="m-link {{ Route::currentRouteName() == 'statistics.index' ? 'active' : '' }}"
-                                                    href="{{ route('statistics.index') }}">
-                                                    <i class="fa fa-chart-bar"></i>
-                                                    <span class="ms-2">{{ helperTrans('ingaz.statistics') }}</span>
-                                                </a>
-                                            </li>
-                                        @endif
-
-                                        @if (@AdminGuardHasPerm(\App\PermKeys::STEPS_VIEW))
-                                            <li>
-                                                <a class="m-link" href="{{ route('steps.index') }}">
-                                                    <i class="fa fa-list-ol"></i>
-                                                    <span class="ms-2">{{ helperTrans('ingaz.steps') }}</span>
-                                                </a>
-                                            </li>
-                                        @endif
-
-                                        @if (@AdminGuardHasPerm(\App\PermKeys::PARTENR_VIEW))
-                                            <li>
-                                                <a class="m-link {{ Route::currentRouteName() == 'partenrs.index' ? 'active' : '' }}"
-                                                    href="{{ route('partenrs.index') }}">
-                                                    <i class="fa fa-handshake"></i>
-                                                    <span class="ms-2">{{ helperTrans('ingaz.partenrs') }}</span>
-                                                </a>
-                                            </li>
-                                        @endif
-
-                                    </ul>
-                                </li>
-                            @endif
-                            @if ($canViewMaidsData)
+                                        @if ($canViewMaidsData)
                                 <li class="collapsed">
                                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#my_dashboard3"
                                         href="#">
                                         <i class="fa fa-cog"></i>
-                                        <span class="ms-2">{{ helperTrans('ingaz.recruitment_settings') }}</span>
+                                        <span class="ms-2">إعدادات الاستقدام</span>
                                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                                     </a>
-                                    <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['job-titles.index', 'packages.index', 'nationalities.index', 'religions.index', 'countries.index', 'offices.index', 'offices.create', 'offices.edit', 'offices.show', 'recruitment-offices.index', 'recruitment-offices.create', 'recruitment-offices.edit', 'recruitment-offices.show']) ? 'show' : '' }}"
+                                    <ul class="sub-menu collapse {{ $isRecruitmentSettingsRoute ? 'show' : '' }}"
                                         id="my_dashboard3">
                                         @if (@AdminGuardHasPerm(\App\PermKeys::NATIONALITIES_VIEW))
                                             <li>
@@ -1421,14 +1501,6 @@
                                                 </a>
                                             </li>
                                         @endif
-                                        @if (@AdminGuardHasPerm(\App\PermKeys::PACKAGES_VIEW))
-                                            <li>
-                                                <a class="m-link" href="{{ route('packages.index') }}">
-                                                    <i class="fa fa-envelope"></i>
-                                                    <span class="ms-2">{{ helperTrans('ingaz.packages') }}</span>
-                                                </a>
-                                            </li>
-                                        @endif
                                         @if (@AdminGuardHasPerm(\App\PermKeys::OFFICE_VIEW))
                                             <li>
                                                 <a class="m-link {{ in_array(Route::currentRouteName(), ['offices.index', 'offices.create', 'offices.edit', 'offices.show', 'recruitment-offices.index', 'recruitment-offices.create', 'recruitment-offices.edit', 'recruitment-offices.show']) ? 'active' : '' }}"
@@ -1440,6 +1512,9 @@
                                         @endif
                                     </ul>
                                 </li>
+                            @endif
+                        </ul>
+                    </li>
                             @endif
                         </ul>
                     </li>

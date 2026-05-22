@@ -1,7 +1,7 @@
 @extends('admin.layout.indexs.index')
 
 @section('style')
-    <link rel="stylesheet" href="{{ asset('admin/assets/css/dashboard-new.css') }}?v=13">
+    <link rel="stylesheet" href="{{ asset('admin/assets/css/dashboard-new.css') }}?v=14">
     <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/main.min.css' rel='stylesheet' />
 @endsection
 
@@ -204,7 +204,7 @@
         @endif
 
         <div class="dashboard-route-grid">
-            <a href="{{ route('reports.index') }}" class="dashboard-route-card">
+            <a href="{{ route('reports.index') }}" class="dashboard-route-card rc-1">
                 <span class="dashboard-route-icon"><i class="fas fa-chart-line"></i></span>
                 <span>
                     <strong>{{ __('admin.dashboard_new.reports_center') }}</strong>
@@ -212,7 +212,7 @@
                 </span>
                 <i class="fas fa-arrow-left"></i>
             </a>
-            <a href="{{ route('finance.home.index') }}" class="dashboard-route-card">
+            <a href="{{ route('finance.home.index') }}" class="dashboard-route-card rc-2">
                 <span class="dashboard-route-icon"><i class="fas fa-file-invoice-dollar"></i></span>
                 <span>
                     <strong>{{ __('admin.dashboard_new.finance_dashboard') }}</strong>
@@ -220,7 +220,7 @@
                 </span>
                 <i class="fas fa-arrow-left"></i>
             </a>
-            <a href="{{ route('ShelterContract.index') }}" class="dashboard-route-card">
+            <a href="{{ route('ShelterContract.index') }}" class="dashboard-route-card rc-3">
                 <span class="dashboard-route-icon"><i class="fas fa-house-user"></i></span>
                 <span>
                     <strong>{{ __('admin.dashboard_new.shelter_management') }}</strong>
@@ -234,6 +234,7 @@
             <div class="stat-row">
                 @if ($canViewRecruitmentOrdersCard)
                     <div class="stat-card is-1">
+                        <div class="stat-card-icon"><i class="fas fa-shopping-cart"></i></div>
                         <div class="stat-head d-flex justify-content-between align-items-center">
                             <div>
                                 <small class="stat-label">{{ __('admin.dashboard_new.recruitment_orders') }}</small>
@@ -257,6 +258,7 @@
 
                 @if ($canViewRecruitmentContractsCard)
                     <div class="stat-card is-2">
+                        <div class="stat-card-icon"><i class="fas fa-handshake"></i></div>
                         <div class="stat-head d-flex justify-content-between align-items-center">
                             <div>
                                 <small class="stat-label">{{ __('admin.dashboard_new.recruitment_contracts_this_month') }}</small>
@@ -286,6 +288,7 @@
 
                 @if ($canViewCvCard)
                     <div class="stat-card is-3">
+                        <div class="stat-card-icon"><i class="fas fa-id-card-alt"></i></div>
                         <div class="stat-head d-flex justify-content-between align-items-center">
                             <div>
                                 <small class="stat-label">{{ __('admin.dashboard_new.cvs') }}</small>
@@ -307,6 +310,7 @@
 
                 @if ($canViewCompletedCvCard)
                     <div class="stat-card is-3">
+                        <div class="stat-card-icon"><i class="fas fa-check-circle"></i></div>
                         <div class="stat-head d-flex justify-content-between align-items-center">
                             <div>
                                 <small class="stat-label">{{ __('admin.dashboard_new.completed_cvs') }}</small>
@@ -326,6 +330,7 @@
 
                 @if ($canViewClientsCard)
                     <div class="stat-card is-4">
+                        <div class="stat-card-icon"><i class="fas fa-users"></i></div>
                         <div class="stat-head d-flex justify-content-between align-items-center">
                             <div>
                                 <small class="stat-label">{{ __('admin.dashboard_new.clients') }}</small>
@@ -347,6 +352,7 @@
 
                 @if ($canViewContactsCard)
                     <div class="stat-card is-4">
+                        <div class="stat-card-icon"><i class="fas fa-envelope"></i></div>
                         <div class="stat-head d-flex justify-content-between align-items-center">
                             <div>
                                 <small class="stat-label">{{ __('admin.dashboard_new.contact_messages') }}</small>
@@ -614,6 +620,7 @@
             <div class="stat-row mt-3">
                 @if ($canViewRentalContractsCard)
                     <div class="stat-card is-5">
+                        <div class="stat-card-icon"><i class="fas fa-home"></i></div>
                         <div class="stat-head d-flex justify-content-between align-items-center">
                             <div>
                                 <small class="stat-label">{{ __('admin.dashboard_new.rental_contracts') }}</small>
@@ -636,6 +643,7 @@
 
                 @if ($canViewRentalOrdersCard)
                     <div class="stat-card is-6">
+                        <div class="stat-card-icon"><i class="fas fa-clipboard-list"></i></div>
                         <div class="stat-head d-flex justify-content-between align-items-center">
                             <div>
                                 <small class="stat-label">{{ __('admin.dashboard_new.rental_orders') }}</small>
@@ -654,6 +662,7 @@
 
                 @if ($canViewSponsorshipTransfersCard)
                     <div class="stat-card is-2">
+                        <div class="stat-card-icon"><i class="fas fa-exchange-alt"></i></div>
                         <div class="stat-head d-flex justify-content-between align-items-center">
                             <div>
                                 <small class="stat-label">{{ __('admin.dashboard_new.sponsorship_transfers') }}</small>
@@ -671,6 +680,7 @@
 
                 @if ($canViewSponsorshipTransferRequestsCard)
                     <div class="stat-card is-1">
+                        <div class="stat-card-icon"><i class="fas fa-globe"></i></div>
                         <div class="stat-head d-flex justify-content-between align-items-center">
                             <div>
                                 <small class="stat-label">{{ __('admin.dashboard_new.sponsorship_transfer_requests') }}</small>
@@ -688,6 +698,7 @@
 
                 @if ($canViewShelterCard)
                     <div class="stat-card is-7">
+                        <div class="stat-card-icon"><i class="fas fa-house-user"></i></div>
                         <div class="stat-head d-flex justify-content-between align-items-center">
                             <div>
                                 <small class="stat-label">{{ __('admin.dashboard_new.shelter') }}</small>
@@ -1259,8 +1270,6 @@
     @endif
 @endsection
 @section('js')
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
     <script>
         $(document).ready(function() {
             const rootStyles = getComputedStyle(document.documentElement);
@@ -1304,6 +1313,36 @@
             const chartColor4 = getCssVar('--dash-chart-4', '#f4b347');
             const chartColor5 = getCssVar('--dash-chart-5', '#ef5350');
             const successColor = getCssVar('--success', '#28c76f');
+            const loadedAssets = new Map();
+
+            function loadExternalScript(src) {
+                if (loadedAssets.has(src)) {
+                    return loadedAssets.get(src);
+                }
+
+                const promise = new Promise((resolve, reject) => {
+                    const script = document.createElement('script');
+                    script.src = src;
+                    script.async = true;
+                    script.onload = resolve;
+                    script.onerror = reject;
+                    document.body.appendChild(script);
+                });
+
+                loadedAssets.set(src, promise);
+                return promise;
+            }
+
+            function loadExternalStyle(href) {
+                if (document.querySelector(`link[href="${href}"]`)) {
+                    return;
+                }
+
+                const link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = href;
+                document.head.appendChild(link);
+            }
 
             const rangeButtons = document.querySelectorAll('.range-btn');
             const rangeValues = document.querySelectorAll('[data-range-value]');
@@ -1359,107 +1398,113 @@
                 });
             });
 
-            // عقود
             const contractsCanvas = document.getElementById('contractsChart');
-            if (contractsCanvas) {
-                const contractsCtx = contractsCanvas.getContext('2d');
-                const contractsYearSeries = {!! json_encode($contractsYearSeries ?? []) !!};
-                const contractsYearColors = [chartColor1, chartColor2, successColor];
-
-                new Chart(contractsCtx, {
-                    type: 'bar',
-                    data: {
-                        labels: {!! json_encode($contractsChartLabels ?? []) !!},
-                        datasets: contractsYearSeries.map((series, index) => {
-                            const color = contractsYearColors[index % contractsYearColors.length];
-
-                            return {
-                                label: series.label,
-                                data: series.data || [],
-                                borderColor: color,
-                                backgroundColor: toRgba(color, 0.82),
-                                borderWidth: 2,
-                                borderRadius: 10,
-                                borderSkipped: false,
-                                maxBarThickness: 26,
-                                categoryPercentage: 0.72,
-                                barPercentage: 0.9
-                            };
-                        })
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: true
-                            },
-                            tooltip: {
-                                backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                                padding: 12,
-                                rtl: true,
-                                textDirection: 'rtl'
-                            }
-                        },
-                        interaction: {
-                            mode: 'index',
-                            intersect: false
-                        },
-                        scales: {
-                            x: {
-                                grid: {
-                                    display: false
-                                }
-                            },
-                            y: {
-                                beginAtZero: true,
-                                ticks: {
-                                    precision: 0
-                                },
-                                grid: {
-                                    borderDash: [4, 4],
-                                    color: 'rgba(15, 23, 42, 0.08)'
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-
-            // الجنسيات
             const nationalitiesCanvas = document.getElementById('nationalitiesChart');
-            if (nationalitiesCanvas) {
-                const nationalitiesCtx = nationalitiesCanvas.getContext('2d');
+            if (contractsCanvas || nationalitiesCanvas) {
+                loadExternalScript('https://cdn.jsdelivr.net/npm/chart.js').then(() => {
+                    // عقود
+                    if (contractsCanvas) {
+                        const contractsCtx = contractsCanvas.getContext('2d');
+                        const contractsYearSeries = {!! json_encode($contractsYearSeries ?? []) !!};
+                        const contractsYearColors = [chartColor1, chartColor2, successColor];
 
-                new Chart(nationalitiesCtx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: {!! json_encode($nationalityLabels ?? ['الفلبين', 'إندونيسيا', 'بنغلاديش', 'الهند', 'أخرى']) !!},
-                        datasets: [{
-                            data: {!! json_encode($nationalityData ?? [35, 25, 20, 15, 5]) !!},
-                            backgroundColor: [chartColor1, successColor, chartColor2, chartColor4,
-                                chartColor5
-                            ],
-                            borderColor: '#fff',
-                            borderWidth: 3,
-                            hoverOffset: 8,
-                            cutout: '68%'
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: false
+                        new Chart(contractsCtx, {
+                            type: 'bar',
+                            data: {
+                                labels: {!! json_encode($contractsChartLabels ?? []) !!},
+                                datasets: contractsYearSeries.map((series, index) => {
+                                    const color = contractsYearColors[index % contractsYearColors.length];
+
+                                    return {
+                                        label: series.label,
+                                        data: series.data || [],
+                                        borderColor: color,
+                                        backgroundColor: toRgba(color, 0.82),
+                                        borderWidth: 2,
+                                        borderRadius: 10,
+                                        borderSkipped: false,
+                                        maxBarThickness: 26,
+                                        categoryPercentage: 0.72,
+                                        barPercentage: 0.9
+                                    };
+                                })
                             },
-                            tooltip: {
-                                backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                                rtl: true,
-                                textDirection: 'rtl'
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        display: true
+                                    },
+                                    tooltip: {
+                                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                                        padding: 12,
+                                        rtl: true,
+                                        textDirection: 'rtl'
+                                    }
+                                },
+                                interaction: {
+                                    mode: 'index',
+                                    intersect: false
+                                },
+                                scales: {
+                                    x: {
+                                        grid: {
+                                            display: false
+                                        }
+                                    },
+                                    y: {
+                                        beginAtZero: true,
+                                        ticks: {
+                                            precision: 0
+                                        },
+                                        grid: {
+                                            borderDash: [4, 4],
+                                            color: 'rgba(15, 23, 42, 0.08)'
+                                        }
+                                    }
+                                }
                             }
-                        }
+                        });
                     }
+
+                    // الجنسيات
+                    if (nationalitiesCanvas) {
+                        const nationalitiesCtx = nationalitiesCanvas.getContext('2d');
+
+                        new Chart(nationalitiesCtx, {
+                            type: 'doughnut',
+                            data: {
+                                labels: {!! json_encode($nationalityLabels ?? ['الفلبين', 'إندونيسيا', 'بنغلاديش', 'الهند', 'أخرى']) !!},
+                                datasets: [{
+                                    data: {!! json_encode($nationalityData ?? [35, 25, 20, 15, 5]) !!},
+                                    backgroundColor: [chartColor1, successColor, chartColor2, chartColor4,
+                                        chartColor5
+                                    ],
+                                    borderColor: '#fff',
+                                    borderWidth: 3,
+                                    hoverOffset: 8,
+                                    cutout: '68%'
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        display: false
+                                    },
+                                    tooltip: {
+                                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                                        rtl: true,
+                                        textDirection: 'rtl'
+                                    }
+                                }
+                            }
+                        });
+                    }
+                }).catch((error) => {
+                    console.error('Chart library load failed', error);
                 });
             }
 
@@ -1468,65 +1513,89 @@
             if (calendarEl) {
                 const calendarEventsUrl = "{{ route('travel.calendar.events') }}";
                 const calendarCountEl = document.getElementById('calendarCount');
-
-                const calendar = new FullCalendar.Calendar(calendarEl, {
-                    locale: 'ar',
-                    direction: 'rtl',
-                    initialView: 'dayGridMonth',
-                    headerToolbar: {
-                        left: 'prev,next today',
-                        center: 'title',
-                        right: 'dayGridMonth,timeGridWeek,timeGridDay'
-                    },
-                    height: 500,
-                    events: function(fetchInfo, successCallback, failureCallback) {
-                        $.ajax({
-                            url: calendarEventsUrl,
-                            type: 'GET',
-                            data: {
-                                start: fetchInfo.startStr,
-                                end: fetchInfo.endStr
+                const renderCalendar = () => {
+                    loadExternalStyle('https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/main.min.css');
+                    loadExternalScript('https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js').then(() => {
+                        const calendar = new FullCalendar.Calendar(calendarEl, {
+                            locale: 'ar',
+                            direction: 'rtl',
+                            initialView: 'dayGridMonth',
+                            headerToolbar: {
+                                left: 'prev,next today',
+                                center: 'title',
+                                right: 'dayGridMonth,timeGridWeek,timeGridDay'
                             },
-                            success: function(response) {
-                                if (response && response.success && Array.isArray(response
-                                        .events)) {
-                                    successCallback(response.events);
-                                    if (calendarCountEl) {
-                                        calendarCountEl.textContent =
-                                            `${response.events.length} موعداً`;
+                            height: 500,
+                            events: function(fetchInfo, successCallback, failureCallback) {
+                                $.ajax({
+                                    url: calendarEventsUrl,
+                                    type: 'GET',
+                                    data: {
+                                        start: fetchInfo.startStr,
+                                        end: fetchInfo.endStr
+                                    },
+                                    success: function(response) {
+                                        if (response && response.success && Array.isArray(response
+                                                .events)) {
+                                            successCallback(response.events);
+                                            if (calendarCountEl) {
+                                                calendarCountEl.textContent =
+                                                    `${response.events.length} موعداً`;
+                                            }
+                                        } else {
+                                            successCallback([]);
+                                            if (calendarCountEl) {
+                                                calendarCountEl.textContent = '0 موعداً';
+                                            }
+                                        }
+                                    },
+                                    error: function(xhr) {
+                                        console.error('Calendar events load failed', xhr);
+                                        failureCallback(xhr);
+                                        if (calendarCountEl) {
+                                            calendarCountEl.textContent = '0 موعداً';
+                                        }
                                     }
-                                } else {
-                                    successCallback([]);
-                                    if (calendarCountEl) {
-                                        calendarCountEl.textContent = '0 موعداً';
-                                    }
+                                });
+                            },
+                            eventClick: function(info) {
+                                const eventUrl = info.event.extendedProps.url;
+                                if (eventUrl) {
+                                    window.location.href = eventUrl;
+                                    return;
                                 }
-                            },
-                            error: function(xhr) {
-                                console.error('Calendar events load failed', xhr);
-                                failureCallback(xhr);
-                                if (calendarCountEl) {
-                                    calendarCountEl.textContent = '0 موعداً';
+
+                                const tripId = info.event.extendedProps.trip_id || info.event.id;
+                                if (tripId) {
+                                    const editUrl = "{{ route('travel.edit', ':id') }}".replace(':id',
+                                    tripId);
+                                    window.location.href = editUrl;
                                 }
                             }
                         });
-                    },
-                    eventClick: function(info) {
-                        const eventUrl = info.event.extendedProps.url;
-                        if (eventUrl) {
-                            window.location.href = eventUrl;
+                        calendar.render();
+                    }).catch((error) => {
+                        console.error('Calendar library load failed', error);
+                        if (calendarCountEl) {
+                            calendarCountEl.textContent = '0 موعداً';
+                        }
+                    });
+                };
+
+                if ('IntersectionObserver' in window) {
+                    const calendarObserver = new IntersectionObserver((entries, observer) => {
+                        if (!entries.some((entry) => entry.isIntersecting)) {
                             return;
                         }
-
-                        const tripId = info.event.extendedProps.trip_id || info.event.id;
-                        if (tripId) {
-                            const editUrl = "{{ route('travel.edit', ':id') }}".replace(':id',
-                            tripId);
-                            window.location.href = editUrl;
-                        }
-                    }
-                });
-                calendar.render();
+                        observer.disconnect();
+                        renderCalendar();
+                    }, {
+                        rootMargin: '240px'
+                    });
+                    calendarObserver.observe(calendarEl);
+                } else {
+                    renderCalendar();
+                }
             }
         });
     </script>
