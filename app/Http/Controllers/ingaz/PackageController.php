@@ -15,7 +15,6 @@ class PackageController extends Controller
     public $folderPath = "admin.ingaz.packages";
     public $postData = [
         "original_price",
-        "price_after_discount",
         'nationality_id',
         "price_with_tax",
         "days_count",
@@ -49,16 +48,27 @@ class PackageController extends Controller
                 ->get();
 
             $data = $rows->values()->map(function ($row, $index) {
-                $editButton = '';
-                $deleteButton = '';
+                $actions = [
+                    '<li><button type="button" class="dropdown-item editButton" data-bs-toggle="modal" data-bs-target="#createModal" model-route="' . route($this->mainRoute . '.show', $row->id) . '" model-title="عرض ' . e($row->title ?: ('#' . $row->id)) . '"><i class="fa fa-eye me-1"></i> عرض الباقة</button></li>',
+                ];
 
                 if (@AdminGuardHasPerm(\App\PermKeys::PACKAGES_CONTROL)) {
-                    $editButton = editButton(route($this->mainRoute . ".edit", $row->id), $row->title ?: ('#' . $row->id));
+                    $toggleLabel = $row->is_show ? 'إخفاء' : 'تفعيل';
+                    $toggleIcon = $row->is_show ? 'fa-eye-slash' : 'fa-check';
+                    $actions[] = '<li><button type="button" class="dropdown-item editButton" data-bs-toggle="modal" data-bs-target="#createModal" model-route="' . route($this->mainRoute . '.edit', $row->id) . '" model-title="تعديل ' . e($row->title ?: ('#' . $row->id)) . '"><i class="fa fa-pencil me-1"></i> تعديل الباقة</button></li>';
+                    $actions[] = '<li><button type="button" class="dropdown-item editButton" data-bs-toggle="modal" data-bs-target="#createModal" model-route="' . route($this->mainRoute . '.offer', $row->id) . '" model-title="إدارة عرض ' . e($row->title ?: ('#' . $row->id)) . '"><i class="fa fa-tag me-1"></i> إدارة العرض</button></li>';
+                    $actions[] = '<li><button type="button" class="dropdown-item package-toggle-status" data-url="' . route($this->mainRoute . '.toggle-visibility', $row->id) . '"><i class="fa ' . $toggleIcon . ' me-1"></i> ' . $toggleLabel . '</button></li>';
                 }
 
                 if (@AdminGuardHasPerm(\App\PermKeys::PACKAGES_DELETE)) {
-                    $deleteButton = deleteButton(route($this->mainRoute . ".destroy", $row->id));
+                    $actions[] = '<li><hr class="dropdown-divider"></li>';
+                    $actions[] = '<li><button type="button" class="dropdown-item text-danger deleteButton" delete-route="' . route($this->mainRoute . '.destroy', $row->id) . '"><i class="fa fa-trash-o me-1"></i> حذف الباقة</button></li>';
                 }
+
+                $offerAmount = (float) ($row->offer_amount ?? 0);
+                $offerLabel = $row->offer_is_active && $offerAmount > 0
+                    ? number_format($offerAmount, 2) . ' حتى ' . ($row->offer_ends_at ? $row->offer_ends_at->format('Y-m-d') : 'بدون تاريخ انتهاء')
+                    : '<span class="text-muted">لا يوجد عرض</span>';
 
                 return [
                     'DT_RowIndex' => $index + 1,
@@ -67,12 +77,16 @@ class PackageController extends Controller
                     'rental_type' => $row->rental_type_label,
                     'duration' => ($row->duration_count ?: 1) . ' ' . $row->duration_unit_label,
                     'sort_order' => $row->sort_order ?? 0,
-                    'original_price' => $row->original_price,
-                    'price_after_discount' => $row->price_after_discount,
-                    'price_with_tax' => $row->price_with_tax,
+                    'original_price' => number_format((float) $row->original_price, 2),
+                    'vat_amount' => number_format(max(0, (float) $row->price_with_tax - (float) $row->original_price), 2),
+                    'price_with_tax' => number_format((float) $row->price_with_tax, 2),
+                    'offer' => $offerLabel,
                     'days_count' => $row->days_count,
                     'is_show' => $row->is_show ? '<span class="badge bg-success">ظاهر</span>' : '<span class="badge bg-secondary">مخفي</span>',
-                    'actions' => $editButton . " " . $deleteButton,
+                    'actions' => '<div class="dropdown actions-dropdown text-center">
+                        <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" aria-expanded="false">الإجراءات</button>
+                        <ul class="dropdown-menu dropdown-menu-end">' . implode('', $actions) . '</ul>
+                    </div>',
                 ];
             });
 
@@ -141,11 +155,46 @@ class PackageController extends Controller
      */
     public function show($id)
     {
+        $model = objModel::with('nationality')->findOrFail($id);
+        $returnHTML = view($this->folderPath . '.show', ['obj' => $model])->render();
 
-        $model = objModel::find($id);
+        return jsonSuccess(["html" => $returnHTML]);
+    }
+
+    public function toggleVisibility($id)
+    {
+        $model = objModel::findOrFail($id);
         $model->is_show = !$model->is_show;
         $model->update();
         return response()->json(['success' => true]);
+    }
+
+    public function offer($id)
+    {
+        $obj = objModel::findOrFail($id);
+        $returnHTML = view($this->folderPath . '.offer', compact('obj'))->render();
+
+        return jsonSuccess(["html" => $returnHTML]);
+    }
+
+    public function updateOffer(Request $request, $id)
+    {
+        $data = $request->validate([
+            'offer_amount' => 'nullable|numeric|min:0',
+            'offer_starts_at' => 'nullable|date',
+            'offer_ends_at' => 'nullable|date|after_or_equal:offer_starts_at',
+            'offer_is_active' => 'nullable|boolean',
+            'offer_description' => 'nullable|string|max:500',
+        ]);
+
+        $data['offer_is_active'] = (bool) ($data['offer_is_active'] ?? false);
+        $data['offer_amount'] = isset($data['offer_amount']) && $data['offer_amount'] !== ''
+            ? round((float) $data['offer_amount'], 2)
+            : null;
+
+        objModel::findOrFail($id)->update($data);
+
+        return jsonSuccess();
     }
 
     /**

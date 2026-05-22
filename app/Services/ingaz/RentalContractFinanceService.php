@@ -199,6 +199,25 @@ class RentalContractFinanceService
             ];
         }
 
+        if ($contract->info?->package_price_after_discount !== null && $contract->info?->package_total_with_tax !== null) {
+            $subtotal = $this->roundMoney((float) ($contract->info->package_original_price ?? $contract->info->package_price_after_discount));
+            $netSubtotal = $this->roundMoney((float) $contract->info->package_price_after_discount);
+            $discount = $this->roundMoney((float) ($contract->info->package_discount_amount ?? max(0, $subtotal - $netSubtotal)));
+            $vatAmount = $this->roundMoney((float) ($contract->info->package_vat_amount ?? max(0, $grossTotal - $netSubtotal)));
+
+            return [
+                'subtotal' => $subtotal,
+                'discount' => $discount,
+                'net_subtotal' => $netSubtotal,
+                'taxable_subtotal' => $netSubtotal,
+                'salary_exempt_amount' => 0.0,
+                'vat_amount' => $vatAmount,
+                'total_due' => $grossTotal,
+                'paid_amount' => $paidAmount,
+                'remaining_amount' => $remainingAmount,
+            ];
+        }
+
         $canUsePackagePricing = $package
             && (int) ($contract->info?->package_id ?? 0) === (int) $package->id
             && abs($grossTotal - $this->roundMoney((float) $package->price_with_tax)) < 0.05;

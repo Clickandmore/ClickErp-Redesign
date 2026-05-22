@@ -16,8 +16,13 @@ class Package extends Model
     protected $guarded = [];
     protected $casts = [
         'original_price' => 'decimal:2',
+        'discount_amount' => 'decimal:2',
         'price_after_discount' => 'decimal:2',
         'price_with_tax' => 'decimal:2',
+        'offer_amount' => 'decimal:2',
+        'offer_starts_at' => 'date',
+        'offer_ends_at' => 'date',
+        'offer_is_active' => 'boolean',
         'days_count' => 'integer',
         'duration_count' => 'integer',
         'sort_order' => 'integer',

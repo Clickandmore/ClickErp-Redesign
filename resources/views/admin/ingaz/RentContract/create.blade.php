@@ -714,7 +714,7 @@
                                                         data-original-price="{{ $package->original_price }}"
                                                         data-price="{{ $package->price_after_discount }}"
                                                         data-total="{{ $package->price_with_tax }}">
-                                                    {{ $package->title }} - {{ $package->rental_type_label }} - {{ $package->duration_count ?: max(1, (int) ceil(($package->days_count ?: 30) / 30)) }} {{ $package->duration_unit_label }} - {{ number_format((float) $package->price_with_tax, 2) }} ريال
+                                                    {{ $package->title }} - {{ $package->rental_type_label }} - {{ $package->duration_count ?: max(1, (int) ceil(($package->days_count ?: 30) / 30)) }} {{ $package->duration_unit_label }} - {{ number_format((float) $package->price_after_discount, 2) }} ريال بدون الضريبة
                                                 </option>
                                             @endforeach
                                         </select>

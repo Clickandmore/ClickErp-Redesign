@@ -250,6 +250,9 @@ Route::group(
             Route::get('maids/suspendCv', [App\Http\Controllers\ingaz\MaidController::class, 'suspendCv'])->name('maids.suspendCv');
 
             Route::resource('maids-test', MaidTestController::class);
+            Route::get('packages/{id}/toggle-visibility', [PackageController::class, 'toggleVisibility'])->name('packages.toggle-visibility');
+            Route::get('packages/{id}/offer', [PackageController::class, 'offer'])->name('packages.offer');
+            Route::put('packages/{id}/offer', [PackageController::class, 'updateOffer'])->name('packages.offer.update');
             Route::resource('packages', PackageController::class);
             Route::resource('complaints', ComplaintController::class);
             Route::get('complaints/cards/view', [ComplaintController::class, 'cards'])->name('complaints.cards');

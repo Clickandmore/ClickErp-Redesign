@@ -31,7 +31,7 @@
                         ? showFile($developSettings->logo_login)
                         : asset('site/assets/images/company_logo.png')));
 
-        $footerLogo = $loginLogo;
+        $footerLogo = asset('site/assets/images/fav.png');
     @endphp
     <title>{{ $brandName }} | @yield('auth-page-title', __('auth.login'))</title>
     <link rel="stylesheet" href="{{ asset('admin/login') }}/css/style-dashboard.css?v=7">
@@ -79,7 +79,7 @@
         <div class="footer">
             <span class="footer-copy">جميع الحقوق محفوظة لـ</span>
             <a href="{{ $footerUrl }}" target="_blank" rel="noopener" class="footer-brand" title="{{ $footerName }}">
-                <img src="{{ $footerLogo }}" alt=""
+                <img src="{{ $footerLogo }}" alt="{{ $footerName }}"
                     onerror="this.onerror=null;this.style.display='none';">
                 <span>{{ $footerName }}</span>
             </a>

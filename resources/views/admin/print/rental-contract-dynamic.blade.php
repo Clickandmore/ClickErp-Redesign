@@ -62,16 +62,30 @@
         $contractValue = data_get($contractInfo, 'contract_value')
             ?? data_get($contractInfo, 'total_cost');
         $package = data_get($contractInfo, 'package');
-        $packageNetValue = data_get($package, 'price_after_discount');
-        $packageGrossValue = data_get($package, 'price_with_tax');
+        $packageOriginalValue = data_get($contractInfo, 'package_original_price');
+        $packageDiscountValue = data_get($contractInfo, 'package_discount_amount');
+        $packageNetValue = data_get($contractInfo, 'package_price_after_discount');
+        $packageVatValue = data_get($contractInfo, 'package_vat_amount');
+        $packageGrossValue = data_get($contractInfo, 'package_total_with_tax');
         $contractGrossValue = is_numeric($contractValue) ? (float) $contractValue : null;
         $serviceNetValue = null;
         $serviceTaxValue = null;
         $serviceGrossValue = $contractGrossValue;
 
-        if (is_numeric($packageNetValue) && is_numeric($packageGrossValue)) {
+        if (is_numeric($packageNetValue) && is_numeric($packageGrossValue) && is_numeric($packageVatValue)) {
             $packageNetValue = (float) $packageNetValue;
+            $packageOriginalValue = is_numeric($packageOriginalValue) ? (float) $packageOriginalValue : $packageNetValue;
+            $packageDiscountValue = is_numeric($packageDiscountValue) ? (float) $packageDiscountValue : max(0, $packageOriginalValue - $packageNetValue);
             $packageGrossValue = (float) $packageGrossValue;
+            $packageVatValue = (float) $packageVatValue;
+            $serviceNetValue = $packageNetValue;
+            $serviceGrossValue = $packageGrossValue;
+            $serviceTaxValue = $packageVatValue;
+        } elseif (is_numeric(data_get($package, 'price_after_discount')) && is_numeric(data_get($package, 'price_with_tax'))) {
+            $packageOriginalValue = (float) data_get($package, 'original_price', data_get($package, 'price_after_discount'));
+            $packageNetValue = (float) data_get($package, 'price_after_discount');
+            $packageDiscountValue = max(0, $packageOriginalValue - $packageNetValue);
+            $packageGrossValue = (float) data_get($package, 'price_with_tax');
             $matchesPackageTotal = $contractGrossValue !== null
                 && abs($contractGrossValue - $packageGrossValue) < 0.05;
 
@@ -86,6 +100,8 @@
             $serviceGrossValue = $contractGrossValue;
             $serviceNetValue = round($serviceGrossValue / 1.15, 2);
             $serviceTaxValue = max(0, $serviceGrossValue - $serviceNetValue);
+            $packageOriginalValue = $serviceNetValue;
+            $packageDiscountValue = 0;
         }
         $workingHours = data_get($contractInfo, 'working_hours_per_day')
             ?? data_get($contractInfo, 'working_hours')
@@ -1078,6 +1094,20 @@
                             <td>0 ريال</td>
                             <td>{{ $formatRentalMoney($salaryAmount, '0') }} ريال</td>
                         </tr>
+                        @if(($packageDiscountValue ?? 0) > 0)
+                            <tr>
+                                <td>سعر الخدمة قبل الخصم</td>
+                                <td>{{ $formatRentalMoney($packageOriginalValue, '______') }} ريال</td>
+                                <td>0 ريال</td>
+                                <td>{{ $formatRentalMoney($packageOriginalValue, '______') }} ريال</td>
+                            </tr>
+                            <tr>
+                                <td>خصم الباقة</td>
+                                <td>{{ $formatRentalMoney($packageDiscountValue, '0') }} ريال</td>
+                                <td>0 ريال</td>
+                                <td>-{{ $formatRentalMoney($packageDiscountValue, '0') }} ريال</td>
+                            </tr>
+                        @endif
                         <tr>
                             <td>قيمة الخدمة</td>
                             <td>{{ $formatRentalMoney($serviceNetValue, '______') }} ريال</td>

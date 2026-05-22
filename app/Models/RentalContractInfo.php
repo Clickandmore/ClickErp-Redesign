@@ -13,6 +13,11 @@ class RentalContractInfo extends Model
     protected $fillable = [
         'rental_contract_id',
         'package_id',
+        'package_original_price',
+        'package_discount_amount',
+        'package_price_after_discount',
+        'package_vat_amount',
+        'package_total_with_tax',
         'payment_type',
         'payment_status',
         'payment_receipt_path',
@@ -44,6 +49,11 @@ class RentalContractInfo extends Model
 
     protected $casts = [
         'package_id' => 'integer',
+        'package_original_price' => 'decimal:2',
+        'package_discount_amount' => 'decimal:2',
+        'package_price_after_discount' => 'decimal:2',
+        'package_vat_amount' => 'decimal:2',
+        'package_total_with_tax' => 'decimal:2',
         'hourly_rate' => 'decimal:2',
         'monthly_salary' => 'decimal:2',
         'sponsorship_transfer_amount' => 'decimal:2',
