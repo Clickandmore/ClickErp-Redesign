@@ -178,7 +178,7 @@ class AdminController extends Controller
                         $menuItems[] = '<li><button type="button" class="dropdown-item editButton" data-bs-toggle="modal" data-bs-target="#createModal"'
                             . ' model-route="' . route($this->mainRoute . ".edit", $row->id) . '"'
                             . ' model-title="' . e(__("buttons.edit") . ' ' . $row->name) . '">'
-                            . '<i class="fa fa-pencil"></i> ' . __('buttons.edit')
+                            . '<i class="fa fa-edit"></i> ' . __('buttons.edit')
                             . '</button></li>';
                     }
 

@@ -543,14 +543,18 @@
     transform: translateY(-1px);
 }
 
-.dashboard-copyright-brand img {
-    width: 24px;
-    height: 24px;
-    object-fit: contain;
-    padding: 3px;
-    border: 0;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.92);
+.dashboard-copyright-brand img,
+.dashboard-copyright-logo {
+    width: 24px !important;
+    height: 24px !important;
+    max-width: 24px !important;
+    max-height: 24px !important;
+    object-fit: contain !important;
+    padding: 3px !important;
+    border: 0 !important;
+    border-radius: 50% !important;
+    background: rgba(255, 255, 255, 0.92) !important;
+    flex: 0 0 24px !important;
 }
 
 .dashboard-copyright-name {
@@ -568,7 +572,8 @@
         font-size: 12px;
     }
 
-    .dashboard-copyright-brand img {
+    .dashboard-copyright-brand img,
+    .dashboard-copyright-logo {
         width: 24px;
         height: 24px;
     }

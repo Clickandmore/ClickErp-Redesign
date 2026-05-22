@@ -8,7 +8,8 @@
         <p class="dashboard-copyright d-flex flex-wrap align-items-center justify-content-center gap-2 mb-0">
             <span class="dashboard-copyright-text">جميع الحقوق محفوظة لـ</span>
             <a href="{{ $footerUrl }}" target="_blank" rel="noopener" title="{{ $footerName }}" class="namiFotter dashboard-copyright-brand">
-                <img src="{{ $footerLogo }}" alt="{{ $footerName }}">
+                <img class="dashboard-copyright-logo" src="{{ $footerLogo }}" alt="{{ $footerName }}"
+                     style="width:24px!important;height:24px!important;max-width:24px!important;max-height:24px!important;object-fit:contain!important;">
                 <span class="dashboard-copyright-name">{{ $footerName }}</span>
             </a>
             <span class="dashboard-copyright-year">© {{ date('Y') }}</span>

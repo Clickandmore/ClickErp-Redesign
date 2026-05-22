@@ -80,6 +80,7 @@
             <span class="footer-copy">جميع الحقوق محفوظة لـ</span>
             <a href="{{ $footerUrl }}" target="_blank" rel="noopener" class="footer-brand" title="{{ $footerName }}">
                 <img src="{{ $footerLogo }}" alt="{{ $footerName }}"
+                    style="width:24px!important;height:24px!important;max-width:24px!important;max-height:24px!important;object-fit:contain!important;"
                     onerror="this.onerror=null;this.style.display='none';">
                 <span>{{ $footerName }}</span>
             </a>
