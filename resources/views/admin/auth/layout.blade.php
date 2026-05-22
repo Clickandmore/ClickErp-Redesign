@@ -9,7 +9,8 @@
         $settingsName = isset($settings) ? optional($settings->translate($locale))->website_name : null;
         $dashboardName = isset($settings) ? optional($settings->translate($locale))->dashboard_name : null;
         $brandName = $dashboardName ?: ($settingsName ?: (isset($developSettings) ? $developSettings->name : config('app.name', 'Platinum')));
-        $footerUrl = isset($settings) && !empty($settings->dashboard_footer_url) ? $settings->dashboard_footer_url : url('/');
+        $footerName = 'Click ERP';
+        $footerUrl = 'https://clickerp.com.sa';
 
         if (isset($settings) && !empty($settings->admin_login_background)) {
             $loginBg = showFile($settings->admin_login_background);
@@ -76,11 +77,11 @@
         </div>
 
         <div class="footer">
-            <span class="footer-copy">{{ __('auth.All Rights Reserved To') }}</span>
-            <a href="{{ $footerUrl }}" target="_blank" rel="noopener" class="footer-brand" title="{{ $brandName }}">
+            <span class="footer-copy">جميع الحقوق محفوظة لـ</span>
+            <a href="{{ $footerUrl }}" target="_blank" rel="noopener" class="footer-brand" title="{{ $footerName }}">
                 <img src="{{ $footerLogo }}" alt=""
                     onerror="this.onerror=null;this.style.display='none';">
-                <span>{{ $brandName }}</span>
+                <span>{{ $footerName }}</span>
             </a>
             <span class="footer-copy">© {{ date('Y') }}</span>
         </div>
