@@ -137,8 +137,8 @@ class AdminController extends Controller
                                 . ' data-orders-count="' . $reassignmentCounts['orders'] . '"'
                                 . ' data-bookings-count="' . $reassignmentCounts['bookings'] . '"'
                                 . ' data-contracts-count="' . $reassignmentCounts['contracts'] . '"'
-                                . ' title="حذف نهائي">'
-                                . '<i class="fa fa-trash-o"></i> حذف نهائي'
+                                . ' title="' . e(__('admin.force_delete')) . '">'
+                                . '<i class="fa fa-trash-o"></i> ' . __('admin.force_delete')
                                 . '</button></li>';
                         }
 
@@ -156,7 +156,7 @@ class AdminController extends Controller
 
                     if ($canViewEmployeeAnalytics) {
                         $menuItems[] = '<li><a href="' . route('dashboard.employees.show', ['employee' => $row->id, 'range' => 'all']) . '" class="dropdown-item text-primary">'
-                            . '<i class="fa fa-line-chart"></i> الملف التحليلي'
+                            . '<i class="fa fa-line-chart"></i> ' . __('admin.analytics_profile')
                             . '</a></li>';
                     }
 
@@ -165,11 +165,11 @@ class AdminController extends Controller
 
                         if ($linkedEmployee && Route::has('employees.edit')) {
                             $menuItems[] = '<li><a href="' . route('employees.edit', $linkedEmployee->id) . '" class="dropdown-item text-success">'
-                                . '<i class="fa fa-id-card"></i> ملف الموظف'
+                                . '<i class="fa fa-id-card"></i> ' . __('admin.employee_file')
                                 . '</a></li>';
                         } else {
                             $menuItems[] = '<li><a href="' . route('employees.create', ['admin_id' => $row->id]) . '" class="dropdown-item text-success">'
-                                . '<i class="fa fa-user-plus"></i> توظيف المستخدم'
+                                . '<i class="fa fa-user-plus"></i> ' . __('admin.hire_user')
                                 . '</a></li>';
                         }
                     }
@@ -178,7 +178,7 @@ class AdminController extends Controller
                         $menuItems[] = '<li><button type="button" class="dropdown-item editButton" data-bs-toggle="modal" data-bs-target="#createModal"'
                             . ' model-route="' . route($this->mainRoute . ".edit", $row->id) . '"'
                             . ' model-title="' . e(__("buttons.edit") . ' ' . $row->name) . '">'
-                            . '<i class="fa fa-edit"></i> ' . __('buttons.edit')
+                            . '<i class="fa fa-pencil"></i> ' . __('buttons.edit')
                             . '</button></li>';
                     }
 
@@ -189,14 +189,14 @@ class AdminController extends Controller
                             . ' data-id="' . $row->id . '"'
                             . ' data-name="' . e($row->name) . '"'
                             . ' data-reset-route="' . route($this->mainRoute . ".reset-password", $row->id) . '">'
-                            . '<i class="fa fa-key"></i> تغيير كلمة السر'
+                            . '<i class="fa fa-key"></i> ' . __('admin.change_password')
                             . '</button></li>';
 
                         $menuItems[] = '<li><button type="button" class="dropdown-item text-primary admin-send-reset-link-button"'
                             . ' data-id="' . $row->id . '"'
                             . ' data-name="' . e($row->name) . '"'
                             . ' data-reset-link-route="' . route($this->mainRoute . ".send-reset-link", $row->id) . '">'
-                            . '<i class="fa fa-envelope"></i> إرسال رابط كلمة السر'
+                            . '<i class="fa fa-envelope"></i> ' . __('admin.send_password_link')
                             . '</button></li>';
 
                         if ($row->id != Auth::guard('admin')->id()) {
@@ -204,14 +204,14 @@ class AdminController extends Controller
                                 . ' data-id="' . $row->id . '"'
                                 . ' data-name="' . e($row->name) . '"'
                                 . ' data-terminate-route="' . route($this->mainRoute . ".terminate-session", $row->id) . '">'
-                                . '<i class="fa fa-sign-out"></i> إنهاء الجلسة'
+                                . '<i class="fa fa-sign-out"></i> ' . __('admin.terminate_session')
                                 . '</button></li>';
 
                             $menuItems[] = '<li><button type="button" class="dropdown-item text-success admin-impersonate-button"'
                                 . ' data-id="' . $row->id . '"'
                                 . ' data-name="' . e($row->name) . '"'
                                 . ' data-impersonate-route="' . route($this->mainRoute . ".impersonate", $row->id) . '">'
-                                . '<i class="fa fa-user-secret"></i> دخول كموظف'
+                                . '<i class="fa fa-user-secret"></i> ' . __('admin.impersonate_employee')
                                 . '</button></li>';
                         }
   if (Auth::guard('admin')->user()->can('users_delete')) {
@@ -225,7 +225,7 @@ class AdminController extends Controller
                                 . ' data-orders-count="' . $reassignmentCounts['orders'] . '"'
                                 . ' data-bookings-count="' . $reassignmentCounts['bookings'] . '"'
                                 . ' data-contracts-count="' . $reassignmentCounts['contracts'] . '"'
-                                . ' title="حذف">'
+                                . ' title="' . e(__('admin.delete')) . '">'
                                 . '<i class="fa fa-trash-o"></i> ' . __('ingaz.delete')
                                 . '</button></li>';
                         }
@@ -368,7 +368,7 @@ class AdminController extends Controller
                     'integer',
                     function ($attribute, $value, $fail) use ($admin) {
                         if ((int) $value === (int) $admin->id) {
-                            $fail('يجب اختيار موظف آخر غير الموظف المراد حذفه.');
+                            $fail(__('admin.replacement_employee_must_be_different'));
                             return;
                         }
 
@@ -379,7 +379,7 @@ class AdminController extends Controller
                             ->exists();
 
                         if (!$exists) {
-                            $fail('الموظف البديل غير صالح أو غير نشط.');
+                            $fail(__('admin.replacement_employee_invalid'));
                         }
                     },
                 ],
@@ -387,7 +387,7 @@ class AdminController extends Controller
 
             if ($validator->fails()) {
                 return response()->json([
-                    'message' => 'اختر موظفاً بديلاً لإسناد الطلبات والعقود قبل حذف الموظف.',
+                    'message' => __('admin.replacement_required_before_delete'),
                     'requires_reassignment' => true,
                     'assignment_counts' => $assignmentCounts,
                     'errors' => $validator->errors(),
@@ -403,7 +403,7 @@ class AdminController extends Controller
             $admin->delete();
         });
 
-        return jsonSuccess(null, 'تم حذف الموظف ويمكن استعادته من فلتر المحذوفين.');
+        return jsonSuccess(null, __('admin.employee_deleted_restorable'));
     }
 
     public function forceDelete($id, Request $request)
@@ -427,7 +427,7 @@ class AdminController extends Controller
                     'integer',
                     function ($attribute, $value, $fail) use ($admin) {
                         if ((int) $value === (int) $admin->id) {
-                            $fail('يجب اختيار موظف آخر غير الموظف المراد حذفه.');
+                            $fail(__('admin.replacement_employee_must_be_different'));
                             return;
                         }
 
@@ -438,7 +438,7 @@ class AdminController extends Controller
                             ->exists();
 
                         if (!$exists) {
-                            $fail('الموظف البديل غير صالح أو غير نشط.');
+                            $fail(__('admin.replacement_employee_invalid'));
                         }
                     },
                 ],
@@ -446,7 +446,7 @@ class AdminController extends Controller
 
             if ($validator->fails()) {
                 return response()->json([
-                    'message' => 'اختر موظفاً بديلاً لإسناد الطلبات والعقود قبل الحذف النهائي.',
+                    'message' => __('admin.replacement_required_before_force_delete'),
                     'requires_reassignment' => true,
                     'assignment_counts' => $assignmentCounts,
                     'errors' => $validator->errors(),
@@ -476,14 +476,14 @@ class AdminController extends Controller
             $admin->forceDelete();
         });
 
-        return jsonSuccess(null, 'تم حذف الموظف نهائياً.');
+        return jsonSuccess(null, __('admin.employee_force_deleted_successfully'));
     }
 
     public function restore($id)
     {
         $admin = ObjModel::withTrashed()->findOrFail($id);
         if (!$admin->trashed()) {
-            $message = 'الموظف غير محذوف.';
+            $message = __('admin.employee_not_deleted');
             return response()->json([
                 'message' => $message,
                 'errors' => [
@@ -493,7 +493,7 @@ class AdminController extends Controller
         }
 
         $admin->restore();
-        return jsonSuccess(['id' => $admin->id], 'تم استرجاع الموظف بنجاح.');
+        return jsonSuccess(['id' => $admin->id], __('admin.employee_restored_successfully'));
     }
 
     public function resetPassword($id, Request $request)
@@ -513,7 +513,7 @@ class AdminController extends Controller
             'current_session_user_agent' => null,
         ])->save();
 
-        return jsonSuccess(null, 'تم تغيير كلمة المرور وإنهاء الجلسات الحالية للموظف.');
+        return jsonSuccess(null, __('admin.password_changed_sessions_terminated'));
     }
 
     public function sendResetLink($id)
@@ -521,7 +521,7 @@ class AdminController extends Controller
         $admin = ObjModel::findOrFail($id);
 
         if (empty($admin->email)) {
-            return response()->json(['message' => 'لا يوجد بريد إلكتروني لهذا الموظف.'], 422);
+            return response()->json(['message' => __('admin.employee_email_missing')], 422);
         }
 
         $token = Str::random(64);
@@ -542,7 +542,7 @@ class AdminController extends Controller
             return response()->json(['message' => __('admin.reset_password_email_failed')], 422);
         }
 
-        return jsonSuccess(null, 'تم إرسال رابط تغيير كلمة المرور للموظف.');
+        return jsonSuccess(null, __('admin.password_link_sent_successfully'));
     }
 
     public function terminateSession($id)
@@ -556,7 +556,7 @@ class AdminController extends Controller
             'current_session_user_agent' => null,
         ])->save();
 
-        return jsonSuccess(null, 'تم إنهاء جلسة الموظف الحالية.');
+        return jsonSuccess(null, __('admin.employee_session_terminated'));
     }
 
     public function impersonate($id, Request $request)
@@ -564,28 +564,28 @@ class AdminController extends Controller
         $admin = ObjModel::findOrFail($id);
 
         if ((int) $admin->id === (int) Auth::guard('admin')->id()) {
-            return response()->json(['message' => 'أنت مسجل بهذا المستخدم بالفعل.'], 422);
+            return response()->json(['message' => __('admin.already_logged_in_as_user')], 422);
         }
 
         if (($admin->status ?? 'active') === 'suspended') {
-            return response()->json(['message' => 'لا يمكن الدخول بحساب موظف موقوف.'], 422);
+            return response()->json(['message' => __('admin.cannot_impersonate_suspended_employee')], 422);
         }
 
         $request->session()->put('impersonator_admin_id', Auth::guard('admin')->id());
         Auth::guard('admin')->login($admin);
         $this->startAdminSession($request, $admin);
 
-        return jsonSuccess(['url' => $this->defaultAdminRedirectUrl($admin)], 'تم الدخول كموظف.');
+        return jsonSuccess(['url' => $this->defaultAdminRedirectUrl($admin)], __('admin.impersonated_employee_successfully'));
     }
 
     private function renderAdminActionsDropdown(array $menuItems): string
     {
         if ($menuItems === []) {
-            return '<span class="text-muted small">لا توجد إجراءات</span>';
+            return '<span class="text-muted small">' . __('admin.no_actions') . '</span>';
         }
 
         return '<div class="admin-actions-dropdown">'
-            . '<button class="btn btn-sm btn-primary admin-actions-trigger actions-btn" type="button" aria-haspopup="true" aria-expanded="false" title="الإجراءات المتاحة">'
+            . '<button class="btn btn-sm btn-primary admin-actions-trigger actions-btn" type="button" aria-haspopup="true" aria-expanded="false" title="' . e(__('admin.available_actions')) . '">'
             . '<i class="fas fa-cogs me-1"></i> ' . __("ingaz.actions")
             . '</button>'
             . '<ul class="admin-actions-template">'
@@ -723,8 +723,11 @@ class AdminController extends Controller
 
     private function assignmentBlockedResponse(array $assignmentCounts)
     {
-        $message = "لا يمكن تنفيذ العملية قبل إعادة إسناد الأعمال إلى موظف آخر. "
-            . "الطلبات: {$assignmentCounts['orders']}، الحجوزات: {$assignmentCounts['bookings']}، العقود: {$assignmentCounts['contracts']}.";
+        $message = __('admin.reassignment_required_before_action', [
+            'orders' => $assignmentCounts['orders'],
+            'bookings' => $assignmentCounts['bookings'],
+            'contracts' => $assignmentCounts['contracts'],
+        ]);
 
         return response()->json([
             'message' => $message,
@@ -769,13 +772,13 @@ class AdminController extends Controller
         if ($user) {
             if ($user->isExternalOfficeOnlyAgent()) {
                 if (($user->status ?? 'active') === 'suspended') {
-                    return jsonSuccess(null, 'هذا الحساب موقوف حالياً.', 403);
+                    return jsonSuccess(null, __('admin.account_suspended_now'), 403);
                 }
 
                 if (auth()->guard("agent")->attempt(["email" => $user->email, "password" => $request->password], $request->boolean('rememberme'))) {
                     $request->session()->regenerate();
 
-                    return jsonSuccess(['url' => route('agent.dashboard')], 'تم تسجيل الدخول للوحة الوكيل الخارجي');
+                    return jsonSuccess(['url' => route('agent.dashboard')], __('admin.external_agent_logged_in'));
                 }
 
                 return jsonSuccess(null, __("auth.password"), 402);
@@ -783,7 +786,7 @@ class AdminController extends Controller
 
             if (Hash::check((string) $request->password, (string) $user->password)) {
                 if (($user->status ?? 'active') === 'suspended') {
-                    return jsonSuccess(null, 'هذا الحساب موقوف حالياً.', 403);
+                    return jsonSuccess(null, __('admin.account_suspended_now'), 403);
                 }
 
                 Auth::guard('admin')->login($user, $request->boolean('rememberme'));

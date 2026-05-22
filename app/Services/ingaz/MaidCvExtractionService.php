@@ -31,8 +31,14 @@ class MaidCvExtractionService
         $extension = strtolower($file->getClientOriginalExtension());
         $mime = (string) $file->getMimeType();
         $path = $file->getRealPath();
+        $isPdf = $extension === 'pdf' || $mime === 'application/pdf';
+        $isImage = str_starts_with($mime, 'image/') || in_array($extension, ['jpg', 'jpeg', 'png', 'webp', 'bmp', 'tif', 'tiff'], true);
 
-        if ($extension === 'pdf' || $mime === 'application/pdf') {
+        if (($isPdf || $isImage) && !function_exists('shell_exec')) {
+            throw new RuntimeException('قراءة الملف من السيرة تحتاج تفعيل shell_exec على السيرفر.');
+        }
+
+        if ($isPdf) {
             if ($this->commandExists('pdftotext')) {
                 $text = $this->runCommand(['pdftotext', '-layout', '-enc', 'UTF-8', $path, '-'], true);
 
@@ -48,7 +54,7 @@ class MaidCvExtractionService
             throw new RuntimeException('قراءة PDF تحتاج تثبيت pdftotext، أو تثبيت Tesseract مع Imagick لملفات PDF المصورة.');
         }
 
-        if (str_starts_with($mime, 'image/') || in_array($extension, ['jpg', 'jpeg', 'png', 'webp', 'bmp', 'tif', 'tiff'], true)) {
+        if ($isImage) {
             if (!$this->commandExists('tesseract')) {
                 throw new RuntimeException('قراءة الصور تحتاج تثبيت Tesseract OCR على السيرفر.');
             }
@@ -928,15 +934,23 @@ class MaidCvExtractionService
 
     private function commandExists(string $command): bool
     {
-        $result = trim((string) shell_exec('command -v ' . escapeshellarg($command) . ' 2>/dev/null'));
+        if (!function_exists('shell_exec')) {
+            return false;
+        }
+
+        $result = trim((string) \shell_exec('command -v ' . \escapeshellarg($command) . ' 2>/dev/null'));
 
         return $result !== '';
     }
 
     private function runCommand(array $parts, bool $allowEmpty = false): string
     {
-        $command = implode(' ', array_map('escapeshellarg', $parts)) . ' 2>&1';
-        $output = shell_exec($command);
+        if (!function_exists('shell_exec')) {
+            throw new RuntimeException('قراءة الملف من السيرة تحتاج تفعيل shell_exec على السيرفر.');
+        }
+
+        $command = implode(' ', array_map('\escapeshellarg', $parts)) . ' 2>&1';
+        $output = \shell_exec($command);
         $output = trim((string) $output);
 
         if ($output === '' && !$allowEmpty) {

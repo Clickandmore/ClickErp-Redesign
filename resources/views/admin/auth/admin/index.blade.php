@@ -267,12 +267,12 @@
                 <tr>
                     <th>{{ __('auth.SL') }}</th>
                     <th>{{__("auth.name")}}</th>
-                    <th>اسم المستخدم</th>
+                    <th>{{ __('admin.username') }}</th>
                     <th>{{helperTrans("ingaz.admin_type")}}</th>
                     <th>{{helperTrans("ingaz.role")}}</th>
-                    <th>رقم الاتصال</th>
-                    <th>رقم الواتساب</th>
-                    <th>رقم التحقق</th>
+                    <th>{{ __('admin.contact_phone') }}</th>
+                    <th>{{ __('admin.whatsapp_phone') }}</th>
+                    <th>{{ __('admin.verification_phone') }}</th>
                     <th>{{__("auth.email")}}</th>
                     <th>{{helperTrans("ingaz.sex_type")}}</th>
                     <th>{{ __('admin.status') }}</th>
@@ -349,7 +349,7 @@
                     ordering: true,
                     searching: true,
                     iDisplayLength: 10,
-                    lengthMenu: [[5, 10, 25, 50, -1], [5, 10, 25, 50, "الكل"]],
+                    lengthMenu: [[5, 10, 25, 50, -1], [5, 10, 25, 50, "{{ __('admin.all') }}"]],
                     processing: true,
                     serverSide: false,
                     ajax: url,
@@ -510,9 +510,9 @@
                 });
 
                 if (requiresReassignment && Object.keys(replacementOptions).length === 0) {
-                    const noEmployeeMessage = 'لا يوجد موظف نشط آخر يمكن إسناد الطلبات والعقود له.';
+                    const noEmployeeMessage = "{{ __('admin.no_active_reassignment_employee') }}";
                     if (adminSwal && typeof adminSwal.fire === 'function') {
-                        adminSwal.fire('تعذر الحذف', noEmployeeMessage, 'error');
+                        adminSwal.fire("{{ __('admin.delete_blocked') }}", noEmployeeMessage, 'error');
                     } else {
                         alert(noEmployeeMessage);
                     }
@@ -520,32 +520,35 @@
                 }
 
                 const reassignmentText = requiresReassignment
-                    ? ' الأعمال المرتبطة: الطلبات ' + ordersCount + '، الحجوزات ' + bookingsCount + '، العقود ' + contractsCount + '. يجب اختيار موظف بديل.'
-                    : ' لا توجد أعمال مرتبطة، واختيار موظف بديل اختياري.';
+                    ? "{{ __('admin.reassignment_required_text') }}"
+                        .replace(':orders', ordersCount)
+                        .replace(':bookings', bookingsCount)
+                        .replace(':contracts', contractsCount)
+                    : "{{ __('admin.reassignment_optional_text') }}";
 
                 if (!adminSwal || typeof adminSwal.fire !== 'function') {
-                    if (!window.confirm(isPermanent ? 'تأكيد الحذف النهائي؟' : 'تأكيد حذف الموظف؟')) {
+                    if (!window.confirm(isPermanent ? "{{ __('admin.confirm_force_delete_employee') }}" : "{{ __('admin.confirm_delete_employee') }}")) {
                         return;
                     }
                 }
 
                 const confirmation = adminSwal && typeof adminSwal.fire === 'function'
                     ? adminSwal.fire({
-                        title: isPermanent ? 'حذف نهائي للموظف' : 'حذف الموظف',
+                        title: isPermanent ? "{{ __('admin.force_delete_employee') }}" : "{{ __('admin.delete_employee') }}",
                         text: isPermanent
-                            ? 'سيتم حذف ' + adminName + ' نهائياً.' + reassignmentText
-                            : 'سيتم حذف ' + adminName + ' ويمكن استعادته لاحقاً من فلتر المحذوفين.' + reassignmentText,
+                            ? "{{ __('admin.force_delete_employee_text') }}".replace(':name', adminName) + reassignmentText
+                            : "{{ __('admin.delete_employee_text') }}".replace(':name', adminName) + reassignmentText,
                         icon: 'warning',
                         input: 'select',
                         inputOptions: replacementOptions,
-                        inputPlaceholder: 'اختر الموظف البديل عند وجود أعمال مرتبطة',
+                        inputPlaceholder: "{{ __('admin.select_replacement_employee_placeholder') }}",
                         showCancelButton: true,
                         confirmButtonColor: '#DD6B55',
-                        confirmButtonText: isPermanent ? 'حذف نهائي' : 'حذف',
+                        confirmButtonText: isPermanent ? "{{ __('admin.force_delete') }}" : "{{ __('admin.delete') }}",
                         cancelButtonText: "{{ __('buttons.cancel') }}",
                         inputValidator: function (value) {
                             if (requiresReassignment && !value) {
-                                return 'اختر موظفاً بديلاً لإسناد الطلبات والعقود له.';
+                                return "{{ __('admin.replacement_employee_required') }}";
                             }
 
                             return null;
@@ -570,7 +573,7 @@
                             if (adminSwal && typeof adminSwal.fire === 'function') {
                                 adminSwal.fire({
                                     icon: 'success',
-                                    title: data.message || (isPermanent ? 'تم حذف الموظف نهائياً' : 'تم حذف الموظف'),
+                                    title: data.message || (isPermanent ? "{{ __('admin.employee_force_deleted_successfully') }}" : "{{ __('admin.employee_deleted_successfully') }}"),
                                     confirmButtonText: "{{ __('buttons.close') }}",
                                 });
                             }
@@ -579,7 +582,7 @@
                         error: function (errorObj) {
                             if (errorObj.responseJSON && errorObj.responseJSON.requires_reassignment) {
                                 if (adminSwal && typeof adminSwal.fire === 'function') {
-                                    adminSwal.fire('تنبيه', errorObj.responseJSON.message, 'warning');
+                                    adminSwal.fire("{{ __('admin.notice') }}", errorObj.responseJSON.message, 'warning');
                                 } else {
                                     alert(errorObj.responseJSON.message);
                                 }
@@ -627,25 +630,25 @@
                 const name = $(this).data('name') || '';
                 const confirmation = adminSwal && typeof adminSwal.fire === 'function'
                     ? adminSwal.fire({
-                        title: 'إنهاء جلسة الموظف',
-                        text: 'سيتم إخراج ' + name + ' من لوحة التحكم عند أول تحقق دوري.',
+                        title: "{{ __('admin.terminate_employee_session') }}",
+                        text: "{{ __('admin.terminate_employee_session_text') }}".replace(':name', name),
                         icon: 'warning',
                         showCancelButton: true,
-                        confirmButtonText: 'إنهاء الجلسة',
+                        confirmButtonText: "{{ __('admin.terminate_session') }}",
                         cancelButtonText: "{{ __('buttons.cancel') }}",
                     })
-                    : Promise.resolve({isConfirmed: window.confirm('إنهاء جلسة الموظف؟')});
+                    : Promise.resolve({isConfirmed: window.confirm("{{ __('admin.confirm_terminate_employee_session') }}")});
 
                 confirmation.then(function (result) {
                     if (result.isConfirmed) {
-                        postAdminAction(url, {}, 'تم إنهاء الجلسة.');
+                        postAdminAction(url, {}, "{{ __('admin.employee_session_terminated') }}");
                     }
                 });
             });
 
             $(document).on('click', '.admin-send-reset-link-button', function (e) {
                 e.preventDefault();
-                postAdminAction($(this).data('reset-link-route'), {}, 'تم إرسال رابط كلمة المرور.');
+                postAdminAction($(this).data('reset-link-route'), {}, "{{ __('admin.password_link_sent_successfully') }}");
             });
 
             $(document).on('click', '.admin-impersonate-button', function (e) {
@@ -654,14 +657,14 @@
                 const name = $(this).data('name') || '';
                 const confirmation = adminSwal && typeof adminSwal.fire === 'function'
                     ? adminSwal.fire({
-                        title: 'الدخول كموظف',
-                        text: 'سيتم تبديل جلستك الحالية إلى حساب ' + name + '.',
+                        title: "{{ __('admin.impersonate_employee') }}",
+                        text: "{{ __('admin.impersonate_employee_text') }}".replace(':name', name),
                         icon: 'warning',
                         showCancelButton: true,
-                        confirmButtonText: 'دخول',
+                        confirmButtonText: "{{ __('admin.login_action') }}",
                         cancelButtonText: "{{ __('buttons.cancel') }}",
                     })
-                    : Promise.resolve({isConfirmed: window.confirm('الدخول بهذا الموظف؟')});
+                    : Promise.resolve({isConfirmed: window.confirm("{{ __('admin.confirm_impersonate_employee') }}")});
 
                 confirmation.then(function (result) {
                     if (!result.isConfirmed) {
@@ -685,35 +688,35 @@
                 const name = $(this).data('name') || '';
 
                 if (!adminSwal || typeof adminSwal.fire !== 'function') {
-                    const password = window.prompt('كلمة المرور الجديدة');
+                    const password = window.prompt("{{ __('admin.new_password') }}");
                     if (password) {
                         postAdminAction(url, {
                             password: password,
                             password_confirmation: password
-                        }, 'تم تغيير كلمة المرور.');
+                        }, "{{ __('admin.password_changed_sessions_terminated') }}");
                     }
                     return;
                 }
 
                 adminSwal.fire({
-                    title: 'تغيير كلمة المرور',
-                    html: '<input id="adminPassword" type="password" class="swal2-input" placeholder="كلمة المرور الجديدة">'
-                        + '<input id="adminPasswordConfirmation" type="password" class="swal2-input" placeholder="تأكيد كلمة المرور">',
+                    title: "{{ __('admin.change_password') }}",
+                    html: '<input id="adminPassword" type="password" class="swal2-input" placeholder="{{ __('admin.new_password') }}">'
+                        + '<input id="adminPasswordConfirmation" type="password" class="swal2-input" placeholder="{{ __('admin.new_password_confirmation') }}">',
                     text: name,
                     showCancelButton: true,
-                    confirmButtonText: 'حفظ',
+                    confirmButtonText: "{{ __('buttons.save') }}",
                     cancelButtonText: "{{ __('buttons.cancel') }}",
                     preConfirm: function () {
                         const password = document.getElementById('adminPassword').value;
                         const confirmation = document.getElementById('adminPasswordConfirmation').value;
 
                         if (!password || password.length < 6) {
-                            adminSwal.showValidationMessage('كلمة المرور يجب ألا تقل عن 6 أحرف.');
+                            adminSwal.showValidationMessage("{{ __('admin.password_min_six') }}");
                             return false;
                         }
 
                         if (password !== confirmation) {
-                            adminSwal.showValidationMessage('تأكيد كلمة المرور غير مطابق.');
+                            adminSwal.showValidationMessage("{{ __('admin.password_confirmation_mismatch') }}");
                             return false;
                         }
 
@@ -721,7 +724,7 @@
                     }
                 }).then(function (result) {
                     if (result.isConfirmed) {
-                        postAdminAction(url, result.value, 'تم تغيير كلمة المرور.');
+                        postAdminAction(url, result.value, "{{ __('admin.password_changed_sessions_terminated') }}");
                     }
                 });
             });
