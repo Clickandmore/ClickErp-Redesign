@@ -161,12 +161,12 @@
                                     </div>
                                 </div>
 
-                                <!-- الشعار -->
+                                <!-- الشعار والتوقيع -->
                                 <div class="row mb-4">
                                     <div class="col-12">
                                         <h4 class="border-bottom pb-2 mb-3">
                                             <i class="fas fa-image me-2"></i>
-                                            الشعار
+                                            الشعار والتوقيع
                                         </h4>
                                     </div>
 
@@ -174,9 +174,21 @@
                                         <label class="form-label">شعار الشركة</label>
                                         <input type="file" name="logo" class="form-control" accept="image/*">
                                         <small class="text-muted">اترك فارغاً إذا لم ترد تغيير الشعار</small>
-                                        @if(isset($settings['logo']))
+                                        @if(!empty($settings['logo']))
                                             <div class="mt-2">
                                                 <img src="{{ asset('storage/' . $settings['logo']) }}" alt="Logo"
+                                                     style="max-height: 100px;">
+                                            </div>
+                                        @endif
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">توقيع الشركة</label>
+                                        <input type="file" name="company_signature" class="form-control" accept="image/*">
+                                        <small class="text-muted">اترك فارغاً إذا لم ترد تغيير توقيع الشركة</small>
+                                        @if(!empty($settings['company_signature']))
+                                            <div class="mt-2">
+                                                <img src="{{ asset('storage/' . $settings['company_signature']) }}" alt="Company signature"
                                                      style="max-height: 100px;">
                                             </div>
                                         @endif

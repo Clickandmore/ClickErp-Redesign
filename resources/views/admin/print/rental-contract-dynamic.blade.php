@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     @php
-        $documentTitle = documentSetting('rental_contract_title', 'نموذج العقد الموحد الإلكتروني لتقديم خدمات إعارة العمالة المنزلية');
+        $documentTitle = documentSetting('rental_contract_title', 'العقد الموحد الإلكتروني لتقديم خدمات إعارة العمالة المنزلية');
+        $documentTitle = trim(preg_replace('/\bنموذج\s*/u', '', (string) $documentTitle));
         $documentCompanyName = documentSetting('document_company_name', $contractSettings['company_name'] ?? documentSetting('website_name', config('app.name')));
         $documentLogo = filled($contractSettings['logo'] ?? null)
             ? asset('storage/' . ltrim($contractSettings['logo'], '/'))
@@ -14,6 +15,7 @@
         $documentPhone = $contractSettings['phone'] ?? documentSetting('phone', '');
         $documentMobile = $contractSettings['mobile'] ?? documentSetting('other_phone', '');
         $documentEmail = $contractSettings['email'] ?? documentSetting('email', '');
+        $companySignature = $contractSettings['company_signature'] ?? null;
         $partyOneTitle = (string) documentSetting('rental_contract_party_one_title', 'بيانات الطرف الأول');
         $partyTwoTitle = (string) documentSetting('rental_contract_party_two_title', 'بيانات الطرف الثاني');
         $serviceTitle = (string) documentSetting('rental_contract_service_title', '1. معلومات الخدمة المطلوبة:');
@@ -59,6 +61,32 @@
         $monthlyCost = data_get($contractInfo, 'monthly_cost');
         $contractValue = data_get($contractInfo, 'contract_value')
             ?? data_get($contractInfo, 'total_cost');
+        $package = data_get($contractInfo, 'package');
+        $packageNetValue = data_get($package, 'price_after_discount');
+        $packageGrossValue = data_get($package, 'price_with_tax');
+        $contractGrossValue = is_numeric($contractValue) ? (float) $contractValue : null;
+        $serviceNetValue = null;
+        $serviceTaxValue = null;
+        $serviceGrossValue = $contractGrossValue;
+
+        if (is_numeric($packageNetValue) && is_numeric($packageGrossValue)) {
+            $packageNetValue = (float) $packageNetValue;
+            $packageGrossValue = (float) $packageGrossValue;
+            $matchesPackageTotal = $contractGrossValue !== null
+                && abs($contractGrossValue - $packageGrossValue) < 0.05;
+
+            if ($matchesPackageTotal || $contractGrossValue === null) {
+                $serviceNetValue = $packageNetValue;
+                $serviceGrossValue = $matchesPackageTotal ? $contractGrossValue : $packageGrossValue;
+                $serviceTaxValue = max(0, $serviceGrossValue - $serviceNetValue);
+            }
+        }
+
+        if ($serviceNetValue === null && $contractGrossValue !== null) {
+            $serviceGrossValue = $contractGrossValue;
+            $serviceNetValue = round($serviceGrossValue / 1.15, 2);
+            $serviceTaxValue = max(0, $serviceGrossValue - $serviceNetValue);
+        }
         $workingHours = data_get($contractInfo, 'working_hours_per_day')
             ?? data_get($contractInfo, 'working_hours')
             ?? 8;
@@ -86,7 +114,7 @@
         $maidExperience = data_get($contract, 'maid.experience', '-');
         $paymentDueDate = $formatRentalDate($contractStartDate);
         $salaryAmount = data_get($contractInfo, 'monthly_salary');
-        $taxAmount = is_numeric($contractValue) ? ((float) $contractValue * 0.15) : null;
+        $taxAmount = $serviceTaxValue;
         $partyOneText = replaceDocumentPlaceholders($partyOneTextTemplate, [
             'اسم_الشركة' => $documentCompanyName,
             'رقم_السجل' => $contractSettings['commercial_register'] ?? '______',
@@ -1052,15 +1080,15 @@
                         </tr>
                         <tr>
                             <td>قيمة الخدمة</td>
-                            <td>{{ $formatRentalMoney($contractValue, '______') }} ريال</td>
+                            <td>{{ $formatRentalMoney($serviceNetValue, '______') }} ريال</td>
                             <td>{{ $formatRentalMoney($taxAmount, '______') }} ريال</td>
-                            <td>{{ $formatRentalMoney(is_numeric($contractValue) ? ((float) $contractValue + (float) $taxAmount) : null, '______') }} ريال</td>
+                            <td>{{ $formatRentalMoney($serviceGrossValue, '______') }} ريال</td>
                         </tr>
                         <tr>
                             <th>قيمة العقد الإجمالي</th>
-                            <th>{{ $formatRentalMoney($contractValue, '______') }} ريال</th>
+                            <th>{{ $formatRentalMoney($serviceNetValue, '______') }} ريال</th>
                             <th>{{ $formatRentalMoney($taxAmount, '______') }} ريال</th>
-                            <th>{{ $formatRentalMoney(is_numeric($contractValue) ? ((float) $contractValue + (float) $taxAmount) : null, '______') }} ريال</th>
+                            <th>{{ $formatRentalMoney($serviceGrossValue, '______') }} ريال</th>
                         </tr>
                     </table>
                 @endif

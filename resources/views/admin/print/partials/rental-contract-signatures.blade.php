@@ -45,7 +45,14 @@
         <h4>الطرف الأول</h4>
         <div class="signature-line">الاسم: {{ $documentCompanyName }}</div>
         <div class="signature-line">الصفة: المنشأة</div>
-        <div class="signature-line">التوقيع: ........................</div>
+        <div class="signature-line">
+            التوقيع:
+            @if(!empty($companySignature))
+                <img src="{{ asset('storage/' . $companySignature) }}" style="max-width: 150px; max-height: 60px; vertical-align: middle;">
+            @else
+                ........................
+            @endif
+        </div>
     </div>
 
     <div class="signature-box">

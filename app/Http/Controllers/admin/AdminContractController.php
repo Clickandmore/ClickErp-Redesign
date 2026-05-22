@@ -135,7 +135,7 @@ class AdminContractController extends Controller
                 'user.nationality',
                 'maid.nationality.translations',
                 'maid.religion.translations',
-                'info',
+                'info.package',
                 'marketer'
             ])->findOrFail($contractId);
 
@@ -152,7 +152,8 @@ class AdminContractController extends Controller
                 'company_name', 'license_number', 'license_date', 'commercial_register',
                 'commercial_date', 'city', 'address', 'po_box', 'postal_code',
                 'phone', 'mobile', 'fax', 'email', 'default_trial_period',
-                'default_working_hours', 'daily_deduction', 'notice_period', 'logo'
+                'default_working_hours', 'daily_deduction', 'notice_period', 'logo',
+                'company_signature'
             ];
 
             foreach ($settingKeys as $key) {
