@@ -146,12 +146,14 @@ class AccountService extends MainService
     public function getConDetails()
     {
         return ConstraintDetails::query()
+            ->join('fn_constraints', 'fn_constraints.id', '=', 'fn_constraint_details.constraint_id')
+            ->whereNull('fn_constraints.deleted_at')
             ->select(
-                'account_id',
-                DB::raw('SUM(debtor_value) as debtor_value'),
-                DB::raw('SUM(creditor_value) as creditor_value')
+                'fn_constraint_details.account_id',
+                DB::raw('SUM(fn_constraint_details.debtor_value) as debtor_value'),
+                DB::raw('SUM(fn_constraint_details.creditor_value) as creditor_value')
             )
-            ->groupBy('account_id')
+            ->groupBy('fn_constraint_details.account_id')
             ->get()
             ->keyBy('account_id')
             ->map(function ($constraint) {
@@ -374,14 +376,18 @@ class AccountService extends MainService
                 $join->on('account.id', '=', 'c_details.account_id')
                     ->whereNull('c_details.deleted_at');
             })
+            ->leftJoin('fn_constraints as constraints', function ($join) {
+                $join->on('constraints.id', '=', 'c_details.constraint_id')
+                    ->whereNull('constraints.deleted_at');
+            })
             ->select(
                 'account.id',
                 'account.code',
                 'account.status',
                 'account.name',
                 DB::raw("CASE
-            WHEN account.status = 'debtor' THEN COALESCE(SUM(c_details.debtor_value), 0) - COALESCE(SUM(c_details.creditor_value), 0)
-            ELSE COALESCE(SUM(c_details.creditor_value), 0) - COALESCE(SUM(c_details.debtor_value), 0)
+            WHEN account.status = 'debtor' THEN COALESCE(SUM(CASE WHEN constraints.id IS NOT NULL THEN c_details.debtor_value ELSE 0 END), 0) - COALESCE(SUM(CASE WHEN constraints.id IS NOT NULL THEN c_details.creditor_value ELSE 0 END), 0)
+            ELSE COALESCE(SUM(CASE WHEN constraints.id IS NOT NULL THEN c_details.creditor_value ELSE 0 END), 0) - COALESCE(SUM(CASE WHEN constraints.id IS NOT NULL THEN c_details.debtor_value ELSE 0 END), 0)
         END AS balance")
             )
             ->when(isset($search['from_date']) && $search['from_date'], function ($query) use ($search) {
@@ -406,14 +412,18 @@ class AccountService extends MainService
                 $join->on('account.id', '=', 'c_details.account_id')
                     ->whereNull('c_details.deleted_at');
             })
+            ->leftJoin('fn_constraints as constraints', function ($join) {
+                $join->on('constraints.id', '=', 'c_details.constraint_id')
+                    ->whereNull('constraints.deleted_at');
+            })
             ->select(
                 'account.id',
                 'account.code',
                 'account.status',
                 'account.name',
                 DB::raw("CASE
-            WHEN account.status = 'debtor' THEN COALESCE(SUM(c_details.debtor_value), 0) - COALESCE(SUM(c_details.creditor_value), 0)
-            ELSE COALESCE(SUM(c_details.creditor_value), 0) - COALESCE(SUM(c_details.debtor_value), 0)
+            WHEN account.status = 'debtor' THEN COALESCE(SUM(CASE WHEN constraints.id IS NOT NULL THEN c_details.debtor_value ELSE 0 END), 0) - COALESCE(SUM(CASE WHEN constraints.id IS NOT NULL THEN c_details.creditor_value ELSE 0 END), 0)
+            ELSE COALESCE(SUM(CASE WHEN constraints.id IS NOT NULL THEN c_details.creditor_value ELSE 0 END), 0) - COALESCE(SUM(CASE WHEN constraints.id IS NOT NULL THEN c_details.debtor_value ELSE 0 END), 0)
         END AS balance")
             )
             ->where('account.status', $type)
@@ -435,14 +445,18 @@ class AccountService extends MainService
     {
         return DB::table('fn_constraint_details as d')
             ->rightJoin('fn_accounts as a', 'd.account_id', '=', 'a.id')
+            ->leftJoin('fn_constraints as c', function ($join) {
+                $join->on('c.id', '=', 'd.constraint_id')
+                    ->whereNull('c.deleted_at');
+            })
             ->select(
                 'a.id',
                 'a.code',
                 'a.status',
                 'a.name',
                 DB::raw("CASE
-            WHEN a.status = 'debtor' THEN COALESCE(SUM(d.debtor_value), 0) - COALESCE(SUM(d.creditor_value), 0)
-            ELSE COALESCE(SUM(d.creditor_value), 0) - COALESCE(SUM(d.debtor_value), 0)
+            WHEN a.status = 'debtor' THEN COALESCE(SUM(CASE WHEN c.id IS NOT NULL THEN d.debtor_value ELSE 0 END), 0) - COALESCE(SUM(CASE WHEN c.id IS NOT NULL THEN d.creditor_value ELSE 0 END), 0)
+            ELSE COALESCE(SUM(CASE WHEN c.id IS NOT NULL THEN d.creditor_value ELSE 0 END), 0) - COALESCE(SUM(CASE WHEN c.id IS NOT NULL THEN d.debtor_value ELSE 0 END), 0)
         END AS balance")
             )
             ->where('a.status', $type)

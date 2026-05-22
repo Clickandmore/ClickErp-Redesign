@@ -23,7 +23,8 @@ class Account extends Finance
     }
     public function constraintDetails()
     {
-        return $this->hasMany(ConstraintDetails::class, 'account_id', 'id');
+        return $this->hasMany(ConstraintDetails::class, 'account_id', 'id')
+            ->whereHas('constraint');
     }
 
 // recursive, loads all children
