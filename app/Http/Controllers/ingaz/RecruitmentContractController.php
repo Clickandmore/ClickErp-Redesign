@@ -539,11 +539,15 @@ class RecruitmentContractController extends Controller
                 'order.details', // تفاصيل الطلب
                 'order.details.admin' // بيانات المسوق
             ])
-                ->withCount(['notes', 'attachments'])
-                ->whereIn('type', ['recruitment', 'maid']);
+                ->withCount(['notes', 'attachments']);
 
             // فلتر الحالة - استخدام query parameter فقط
             $statusFilter = $this->getStatusFilterForRequest($request);
+
+            if ($statusFilter !== ContractStatusEnum::Shelter->value) {
+                $query->whereIn('type', ['recruitment', 'maid']);
+            }
+
             $this->applyStatusFilter($query, $statusFilter);
 
             if ($request->boolean('exclude_back')) {
@@ -4558,9 +4562,12 @@ class RecruitmentContractController extends Controller
 
             $baseQuery = Contract::query()
                 ->whereIn('type', ['recruitment', 'maid']);
+            $shelterQuery = Contract::query()
+                ->where('status', ContractStatusEnum::Shelter->value);
 
             // تطبيق نفس فلاتر البحث (بدون الحالة وحالة الضمان) للحصول على إحصائيات قابلة للتنقل
             $this->applyContractFilters($baseQuery, $request, true, true);
+            $this->applyContractFilters($shelterQuery, $request, true, true);
 
             $today = \Carbon\Carbon::now()->toDateString();
             $currentStatuses = [
@@ -4586,6 +4593,7 @@ class RecruitmentContractController extends Controller
                 'stage_tazker' => (clone $baseQuery)->where('status', ContractStatusEnum::Tazker->value)->count(),
                 'stage_arrival' => (clone $baseQuery)->where('status', ContractStatusEnum::Arrival->value)->count(),
                 'stage_completed' => (clone $baseQuery)->where('status', ContractStatusEnum::Completed->value)->count(),
+                'stage_shelter' => (clone $shelterQuery)->count(),
                 'warranty_active' => (clone $baseQuery)->where('status', ContractStatusEnum::Arrival->value)
                     ->whereNotNull('warranty_end_date')
                     ->whereDate('warranty_end_date', '>=', $today)

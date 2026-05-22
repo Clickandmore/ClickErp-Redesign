@@ -89,6 +89,10 @@
             background: linear-gradient(135deg, #f0fdf4, #dcfce7);
         }
 
+        .stat-card-shelter {
+            background: linear-gradient(135deg, #eef2ff, #e0f2fe);
+        }
+
         .stat-card-arrival {
             background: linear-gradient(135deg, #ecfdf5, #d1fae5);
         }
@@ -139,6 +143,10 @@
 
         .stat-card-completed .stat-icon {
             background: #16a34a;
+        }
+
+        .stat-card-shelter .stat-icon {
+            background: #4f46e5;
         }
 
         .stat-card-arrival .stat-icon {
@@ -278,7 +286,7 @@
                 'tazker',
                 'sari',
             ]);
-            $showCompletedStatsInitially = !$requestedStatus || in_array($requestedStatus, ['completed_stage', 'completed', 'arrival']);
+            $showCompletedStatsInitially = !$requestedStatus || in_array($requestedStatus, ['completed_stage', 'completed', 'arrival', 'shelter']);
         @endphp
 
         <!-- Header Section -->
@@ -448,6 +456,18 @@
                                         <div class="stat-body">
                                             <div class="stat-title">مكتمل منتهي الضمان</div>
                                             <div class="stat-value" data-stat-key="warranty_expired">0</div>
+                                        </div>
+                                    </button>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <button type="button" class="stat-card stat-filter stat-card-shelter"
+                                        data-status="shelter">
+                                        <div class="stat-icon">
+                                            <i class="fas fa-house-user"></i>
+                                        </div>
+                                        <div class="stat-body">
+                                            <div class="stat-title">عقود الإيواء</div>
+                                            <div class="stat-value" data-stat-key="stage_shelter">0</div>
                                         </div>
                                     </button>
                                 </div>
@@ -1195,7 +1215,7 @@
                 const currentStatuses = ['current', 'pending_maid_selection', 'new', 'msaned', 'tafwed', 'taffez',
                     'tazker', 'sari', 'accreditation_contracts'
                 ];
-                const completedStatuses = ['completed_stage', 'completed', 'arrival'];
+                const completedStatuses = ['completed_stage', 'completed', 'arrival', 'shelter'];
 
                 if (!statusValue) {
                     $('#currentStatsSection').show();
