@@ -39,7 +39,7 @@ class RentContractController extends Controller
     public function __construct()
     {
         $this->middleware('permission:' . \App\PermKeys::RENT_CONTRACT_VIEW . ',admin', [
-            'only' => ['index', 'show', 'statistics', 'exportExcel', 'getContractDetails', 'downloadAttachments'],
+            'only' => ['index', 'show', 'statistics', 'exportExcel', 'getContractDetails', 'downloadAttachments', 'downloadAttachment', 'viewAttachment'],
         ]);
         $this->middleware('permission:' . \App\PermKeys::RENT_CONTRACT_CREATE . ',admin', [
             'only' => ['create', 'store', 'getExistingClients'],
@@ -60,6 +60,8 @@ class RentContractController extends Controller
                 'deliverMaid',
                 'activateContract',
                 'extend',
+                'freeze',
+                'resume',
                 'saveSignature',
             ],
         ]);
@@ -293,6 +295,18 @@ class RentContractController extends Controller
                     if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CONTROL) && $row->canActivateContract()) {
                         $actions .= '<li><button class="dropdown-item text-success activate-contract" data-id="' . $row->id . '">
                                         <i class="fas fa-power-off"></i> تفعيل العقد
+                                    </button></li>';
+                    }
+
+                    if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CONTROL) && $row->canFreeze()) {
+                        $actions .= '<li><button class="dropdown-item text-warning freeze-contract" data-id="' . $row->id . '">
+                                        <i class="fas fa-pause-circle"></i> تجميد العقد
+                                    </button></li>';
+                    }
+
+                    if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CONTROL) && $row->canResume()) {
+                        $actions .= '<li><button class="dropdown-item text-success resume-contract" data-id="' . $row->id . '">
+                                        <i class="fas fa-play-circle"></i> استئناف العقد
                                     </button></li>';
                     }
 
@@ -686,6 +700,8 @@ class RentContractController extends Controller
             'maid.religion.translations',
             'info.package',
             'marketer',
+            'frozenBy',
+            'resumedBy',
             'order',
             'financeInvoice.receiptAccount',
             'extensions',
@@ -712,6 +728,9 @@ class RentContractController extends Controller
                 'warranty_status' => 'حالة الضمان',
                 'warranty_start_date' => 'بداية الضمان',
                 'warranty_end_date' => 'نهاية الضمان',
+                'freeze_reason' => 'سبب التجميد',
+                'frozen_at' => 'تاريخ التجميد',
+                'resumed_at' => 'تاريخ الاستئناف',
             ],
             'عقد التأجير'
         );
@@ -1139,6 +1158,7 @@ class RentContractController extends Controller
             'active' => '<span class="badge bg-success">نشط</span>',
             'cancelled' => '<span class="badge bg-danger">ملغي</span>',
             'suspended' => '<span class="badge bg-warning">معلق</span>',
+            'frozen' => '<span class="badge bg-dark">مجمد</span>',
         ];
 
         return $badges[$status] ?? '<span class="badge bg-secondary">' . $status . '</span>';
@@ -1148,7 +1168,7 @@ class RentContractController extends Controller
     {
         try {
             $total = RentalContract::count();
-            $active = RentalContract::whereNotIn('status', ['completed', 'cancelled'])->count();
+            $active = RentalContract::whereNotIn('status', ['completed', 'cancelled', 'frozen'])->count();
             $completed = RentalContract::where('status', 'completed')->count();
             $available = RentalContract::where('status', 'completed')->where('closure_type', 'available')->count();
             $transferred = RentalContract::where('status', 'completed')->where('closure_type', 'transferred')->count();
@@ -1267,10 +1287,15 @@ class RentContractController extends Controller
     {
         $statuses = [
             'new' => 'جديد',
+            'waiting_contract_send' => 'بانتظار التوقيع',
+            'contract_sent' => 'بانتظار التوقيع',
+            'contract_signed' => 'تم توقيع العقد',
+            'maid_delivered' => 'تم تسليم العاملة',
             'active' => 'نشط',
             'completed' => 'مكتمل',
             'cancelled' => 'ملغي',
             'suspended' => 'معلق',
+            'frozen' => 'مجمد',
         ];
 
         return $statuses[$status] ?? $status;
@@ -1296,6 +1321,7 @@ class RentContractController extends Controller
             'completed' => 'مكتمل',
             'cancelled' => 'ملغي',
             'suspended' => 'معلق',
+            'frozen' => 'مجمد',
         ];
     }
 
@@ -1388,7 +1414,7 @@ class RentContractController extends Controller
 
     private function rentalActiveContractStatuses(): array
     {
-        return ['new', 'waiting_contract_send', 'contract_sent', 'contract_signed', 'maid_delivered', 'active', 'transferred', 'suspended'];
+        return ['new', 'waiting_contract_send', 'contract_sent', 'contract_signed', 'maid_delivered', 'active', 'transferred', 'suspended', 'frozen'];
     }
 
     private function rentalBookedOrderStatuses(): array
@@ -1841,12 +1867,53 @@ class RentContractController extends Controller
             ->deleteFileAfterSend(true);
     }
 
+    public function downloadAttachment($id, string $attachment)
+    {
+        $contract = RentalContract::with(['info', 'maid', 'extensions', 'financialAdjustments'])->findOrFail($id);
+        $attachmentData = $this->findRentalContractAttachment($contract, $attachment);
+
+        if (!$attachmentData) {
+            abort(404);
+        }
+
+        return Storage::disk($attachmentData['disk'])->download($attachmentData['path'], $attachmentData['filename']);
+    }
+
+    public function viewAttachment($id, string $attachment)
+    {
+        $contract = RentalContract::with(['info', 'maid', 'extensions', 'financialAdjustments'])->findOrFail($id);
+        $attachmentData = $this->findRentalContractAttachment($contract, $attachment);
+
+        if (!$attachmentData) {
+            abort(404);
+        }
+
+        $filename = str_replace(['"', "\r", "\n"], '', $attachmentData['filename']);
+        $mimeType = Storage::disk($attachmentData['disk'])->mimeType($attachmentData['path']) ?: 'application/octet-stream';
+
+        return response()->file(Storage::disk($attachmentData['disk'])->path($attachmentData['path']), [
+            'Content-Type' => $mimeType,
+            'Content-Disposition' => 'inline; filename="' . $filename . '"',
+        ]);
+    }
+
+    private function findRentalContractAttachment(RentalContract $contract, string $attachmentKey): ?array
+    {
+        foreach ($this->collectRentalContractAttachments($contract) as $attachment) {
+            if ($attachment['key'] === $attachmentKey) {
+                return $attachment;
+            }
+        }
+
+        return null;
+    }
+
     private function collectRentalContractAttachments(RentalContract $contract): array
     {
         $contract->loadMissing(['info', 'maid', 'extensions', 'financialAdjustments']);
 
         $attachments = [];
-        $addAttachment = function (?string $path, string $label, string $keyPrefix) use (&$attachments) {
+        $addAttachment = function (?string $path, string $label, string $keyPrefix) use (&$attachments, $contract) {
             if (!$path || !Storage::disk('public')->exists($path)) {
                 return;
             }
@@ -1862,7 +1929,8 @@ class RentContractController extends Controller
                 'label' => $label,
                 'path' => $path,
                 'disk' => 'public',
-                'url' => Storage::disk('public')->url($path),
+                'url' => route('RentContract.attachments.view', [$contract->id, $keyPrefix . '-' . count($attachments)]),
+                'download_url' => route('RentContract.attachments.download.single', [$contract->id, $keyPrefix . '-' . count($attachments)]),
                 'filename' => (count($attachments) + 1) . '-' . $safeLabel . ($extension ? '.' . $extension : ''),
             ];
         };
@@ -2260,6 +2328,107 @@ class RentContractController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'حدث خطأ: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function freeze(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'freeze_reason' => 'required|string|max:1000',
+        ], [
+            'freeze_reason.required' => 'يرجى كتابة سبب تجميد العقد',
+            'freeze_reason.string' => 'سبب التجميد يجب أن يكون نصاً',
+            'freeze_reason.max' => 'سبب التجميد يجب ألا يتجاوز 1000 حرف',
+        ]);
+
+        try {
+            DB::transaction(function () use ($id, $validated) {
+                $contract = RentalContract::lockForUpdate()->findOrFail($id);
+
+                if (!$contract->canFreeze()) {
+                    throw new \RuntimeException('لا يمكن تجميد العقد في حالته الحالية');
+                }
+
+                $previousStatus = $contract->status === 'frozen'
+                    ? ($contract->status_before_freeze ?: 'active')
+                    : $contract->status;
+
+                $contract->update([
+                    'status' => 'frozen',
+                    'status_before_freeze' => $previousStatus,
+                    'freeze_reason' => $validated['freeze_reason'],
+                    'frozen_at' => now(),
+                    'frozen_by' => auth('admin')->id() ?: auth()->id(),
+                    'resumed_at' => null,
+                    'resumed_by' => null,
+                ]);
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تجميد عقد الإيجار بنجاح',
+            ]);
+        } catch (\RuntimeException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        } catch (\Throwable $e) {
+            Log::error('Error freezing rental contract', [
+                'contract_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء تجميد عقد الإيجار: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function resume(Request $request, $id)
+    {
+        try {
+            DB::transaction(function () use ($id) {
+                $contract = RentalContract::lockForUpdate()->findOrFail($id);
+
+                if (!$contract->canResume()) {
+                    throw new \RuntimeException('لا يمكن استئناف عقد غير مجمد');
+                }
+
+                $resumeStatus = $contract->status_before_freeze ?: 'active';
+
+                if (in_array($resumeStatus, ['completed', 'cancelled', 'frozen'], true)) {
+                    $resumeStatus = 'active';
+                }
+
+                $contract->update([
+                    'status' => $resumeStatus,
+                    'status_before_freeze' => null,
+                    'resumed_at' => now(),
+                    'resumed_by' => auth('admin')->id() ?: auth()->id(),
+                ]);
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم استئناف عقد الإيجار بنجاح',
+            ]);
+        } catch (\RuntimeException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        } catch (\Throwable $e) {
+            Log::error('Error resuming rental contract', [
+                'contract_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء استئناف عقد الإيجار: ' . $e->getMessage(),
             ], 500);
         }
     }

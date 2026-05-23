@@ -228,7 +228,7 @@ class StoreRentalContractRequest extends FormRequest
 
                 if ($maid) {
                     $activeRentalContractExists = $maid->rentalContracts()
-                        ->whereIn('status', ['new', 'waiting_contract_send', 'contract_sent', 'contract_signed', 'maid_delivered', 'active', 'transferred', 'suspended'])
+                        ->whereIn('status', ['new', 'waiting_contract_send', 'contract_sent', 'contract_signed', 'maid_delivered', 'active', 'transferred', 'suspended', 'frozen'])
                         ->when($currentContract, function ($query) use ($currentContract) {
                             $query->where('id', '!=', $currentContract->id);
                         })

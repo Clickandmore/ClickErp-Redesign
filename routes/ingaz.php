@@ -349,6 +349,8 @@ Route::group(
             // Ø¥ØºÙ„Ø§Ù‚ Ø¹Ù‚ÙˆØ¯ Ø§Ù„Ø¥ÙŠØ¬Ø§Ø±
             Route::get('RentContract/{id}/details', [RentContractController::class, 'getContractDetails'])->name('RentContract.details');
             Route::get('RentContract/{id}/attachments/download', [RentContractController::class, 'downloadAttachments'])->name('RentContract.attachments.download');
+            Route::get('RentContract/{id}/attachments/{attachment}/view', [RentContractController::class, 'viewAttachment'])->name('RentContract.attachments.view');
+            Route::get('RentContract/{id}/attachments/{attachment}/download', [RentContractController::class, 'downloadAttachment'])->name('RentContract.attachments.download.single');
             Route::post('RentContract/{id}/close-and-make-available', [RentContractController::class, 'closeAndMakeAvailable'])->name('RentContract.closeAndMakeAvailable');
             Route::post('RentContract/{id}/transfer-sponsorship', [RentContractController::class, 'transferSponsorship'])->name('RentContract.transferSponsorship');
 
@@ -358,6 +360,8 @@ Route::group(
             Route::post('RentContract/{id}/deliver-maid', [RentContractController::class, 'deliverMaid'])->name('RentContract.deliverMaid');
             Route::post('RentContract/{id}/activate-contract', [RentContractController::class, 'activateContract'])->name('RentContract.activateContract');
             Route::post('RentContract/{id}/extend', [RentContractController::class, 'extend'])->name('RentContract.extend');
+            Route::post('RentContract/{id}/freeze', [RentContractController::class, 'freeze'])->name('RentContract.freeze');
+            Route::post('RentContract/{id}/resume', [RentContractController::class, 'resume'])->name('RentContract.resume');
             Route::post('RentContract/{id}/change-maid', [RentContractController::class, 'changeMaid'])->name('RentContract.changeMaid');
 
             // Ø¥Ø¯Ø§Ø±Ø© Ø¨Ù†ÙˆØ¯ Ø¹Ù‚Ø¯ Ø§Ù„ØªØ£Ø¬ÙŠØ±

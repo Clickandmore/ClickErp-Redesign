@@ -488,12 +488,6 @@
                 }
             });
 
-            @if ($request)
-                setTimeout(function() {
-                    $('#btnSubmit').trigger('click');
-                }, 100);
-            @endif
-
             $(function() {
                 $('input[name="daterange"]').daterangepicker({
                     opens: 'left',
@@ -606,11 +600,8 @@
                 let url = "{{ route('noneAvailableMaids') }}";
                 let queryParams = buildQueryParams(filters);
 
-                // Check if the URL already has parameters
-                if (url.indexOf('?') === -1) {
+                if (queryParams) {
                     url += '?' + queryParams;
-                } else {
-                    url += '&' + queryParams;
                 }
 
                 // Update the browser history with the new URL
@@ -689,7 +680,11 @@
                 });
             }
 
-            showDataTable("{{ route('noneAvailableMaids') }}", columns);
+            const baseDataTableUrl = @json(route('noneAvailableMaids'));
+            const currentQueryParams = window.location.search.replace(/^\?/, '');
+            const initialDataTableUrl = currentQueryParams ? `${baseDataTableUrl}?${currentQueryParams}` : baseDataTableUrl;
+
+            showDataTable(initialDataTableUrl, columns);
 
             function initializeEventHandlers() {
                 // Remove existing event handlers to prevent duplicates

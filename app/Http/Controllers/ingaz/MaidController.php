@@ -35,7 +35,7 @@ class MaidController extends Controller
 {
 
     public $folderPath = "admin.ingaz.maids";
-    public $postData = ["nationality_id", "expertises", 'experience_status', 'image', 'video', 'childrens_count', 'duration', 'additional_notes', 'video_link', 'cv_file', 'marital_status:ar', 'marital_status:en', 'languages', 'percentage', 'experience_years', 'cv_preview', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'office_id', 'name:en', 'type_id', 'job_id', 'skills', 'birth_date', 'height', 'weight', 'id_number', 'id_expiry_date', 'arrival_date', 'create_shelter_contract', 'request_type'];
+    public $postData = ["nationality_id", "expertises", 'experience_status', 'image', 'video', 'childrens_count', 'duration', 'additional_notes', 'video_link', 'cv_file', 'marital_status:ar', 'marital_status:en', 'languages', 'percentage', 'experience_years', 'cv_preview', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'office_id', 'name:en', 'type_id', 'job_id', 'skills', 'birth_date', 'height', 'weight', 'id_number', 'id_expiry_date', 'border_number', 'passport_issue_date', 'passport_expiry_date', 'arrival_date', 'create_shelter_contract', 'request_type'];
     public $mainRoute = "maids";
 
     public function __construct()
@@ -818,7 +818,8 @@ class MaidController extends Controller
         $rows = objModel::latest()
             ->with(['nationality', 'religion', 'jobTypes', 'contracts', 'orders', 'unavailableRecords'])
             ->select(['id', 'name', 'cv_code', 'image', 'cv_file', 'cv_preview', 'nationality_id', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'is_show', 'available', 'available_at', 'created_at', 'is_pinned', 'status', 'back_out_reason'])
-            ->where('status', 'backout');
+            ->where('status', 'backout')
+            ->where('available', 0);
 
         if ($request->ajax()) {
             // تطبيق الفلاتر الإضافية مع الحفاظ على فلتر backout
@@ -2292,7 +2293,7 @@ class MaidController extends Controller
 
     private function rentalActiveContractStatuses(): array
     {
-        return ['new', 'waiting_contract_send', 'contract_sent', 'contract_signed', 'maid_delivered', 'active', 'transferred', 'suspended'];
+        return ['new', 'waiting_contract_send', 'contract_sent', 'contract_signed', 'maid_delivered', 'active', 'transferred', 'suspended', 'frozen'];
     }
 
     private function canDeleteMaidCv(Maid $maid): bool

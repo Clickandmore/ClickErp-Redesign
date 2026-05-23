@@ -336,6 +336,33 @@
                         <div id="passport_num_feedback" class="invalid-feedback"></div>
                     </div>
 
+                    <div class="col-4 passport-extra-field">
+                        <label for="border_number" class="form-label">
+                            رقم الحدود
+                            <small class="text-muted">({{ helperTrans('ingaz.optional') }})</small>
+                        </label>
+                        <input type="text" name="border_number" id="border_number" class="form-control" maxlength="50"
+                            value="{{ old('border_number') }}">
+                    </div>
+
+                    <div class="col-4 passport-extra-field">
+                        <label for="passport_issue_date" class="form-label">
+                            تاريخ إصدار جواز السفر
+                            <small class="text-muted">({{ helperTrans('ingaz.optional') }})</small>
+                        </label>
+                        <input type="date" name="passport_issue_date" id="passport_issue_date" class="form-control"
+                            value="{{ old('passport_issue_date') }}">
+                    </div>
+
+                    <div class="col-4 passport-extra-field">
+                        <label for="passport_expiry_date" class="form-label">
+                            تاريخ انتهاء جواز السفر
+                            <small class="text-muted">({{ helperTrans('ingaz.optional') }})</small>
+                        </label>
+                        <input type="date" name="passport_expiry_date" id="passport_expiry_date" class="form-control"
+                            value="{{ old('passport_expiry_date') }}">
+                    </div>
+
                     <div class="col-4">
                         <label for="TextInput" class="form-label">
                             {{ helperTrans('ingaz.id_number') }}
@@ -1289,6 +1316,7 @@
                 var jobField = $('select[name="job_id[]"]').closest('.col-4');
                 var requestTypeField = $('#request_type_field');
                 var languagesField = $('input.lang-check').closest('.col-12');
+                var passportExtraFields = $('.passport-extra-field');
                 var priceLabel = $('.price-label');
                 var rentalFinanceSection = $('#rental_finance_preview');
                 var idInputs = $('input[name="id_number"], input[name="id_expiry_date"]');
@@ -1311,6 +1339,7 @@
                 jobField.show();
                 requestTypeField.show();
                 languagesField.show();
+                passportExtraFields.show();
                 arrivalDateField.hide();
                 priceLabel.text('{{ helperTrans('ingaz.price') }}');
                 idInputs.attr('required', 'required');
@@ -1340,6 +1369,7 @@
                     heightWeightFields.hide();
                     maritalStatusField.hide();
                     officeField.hide();
+                    passportExtraFields.hide();
                     priceLabel.text(@json(helperTrans('ingaz.service_transfer_cost')));
                     maritalStatusEnField.val('');
                     shouldUpdateMaritalTranslation = false;

@@ -430,6 +430,7 @@
                             <option value="transferred" {{ request('status') === 'transferred' ? 'selected' : '' }}>تم النقل</option>
                             <option value="cancelled" {{ request('status') === 'cancelled' ? 'selected' : '' }}>ملغي</option>
                             <option value="suspended" {{ request('status') === 'suspended' ? 'selected' : '' }}>معلق</option>
+                            <option value="frozen" {{ request('status') === 'frozen' ? 'selected' : '' }}>مجمد</option>
                         </select>
                     </div>
 
@@ -2176,13 +2177,63 @@
                 });
             });
 
-            function executeWorkflowAction(contractId, action, successMessage) {
+            $(document).on('click', '.freeze-contract', function() {
+                const contractId = $(this).data('id');
+
+                Swal.fire({
+                    title: 'تجميد عقد الإيجار',
+                    input: 'textarea',
+                    inputLabel: 'سبب التجميد',
+                    inputPlaceholder: 'اكتب سبب تجميد العقد',
+                    inputAttributes: {
+                        maxlength: 1000
+                    },
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#64748b',
+                    cancelButtonColor: '#dc3545',
+                    confirmButtonText: 'تجميد العقد',
+                    cancelButtonText: 'إلغاء',
+                    inputValidator: (value) => {
+                        if (!value || !value.trim()) {
+                            return 'يرجى كتابة سبب التجميد';
+                        }
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        executeWorkflowAction(contractId, 'freeze', 'تم تجميد عقد الإيجار بنجاح', {
+                            freeze_reason: result.value
+                        });
+                    }
+                });
+            });
+
+            $(document).on('click', '.resume-contract', function() {
+                const contractId = $(this).data('id');
+
+                Swal.fire({
+                    title: 'استئناف عقد الإيجار',
+                    text: 'هل تريد استئناف هذا العقد؟',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#28a745',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'نعم، استئناف العقد',
+                    cancelButtonText: 'إلغاء'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        executeWorkflowAction(contractId, 'resume', 'تم استئناف عقد الإيجار بنجاح');
+                    }
+                });
+            });
+
+            function executeWorkflowAction(contractId, action, successMessage, extraData = {}) {
                 $.ajax({
                     url: `{{ url('/admin') }}/RentContract/${contractId}/${action}`,
                     type: 'POST',
-                    data: {
+                    data: Object.assign({
                         _token: '{{ csrf_token() }}'
-                    },
+                    }, extraData),
                     success: function(response) {
                         dataTable.ajax.reload();
 
