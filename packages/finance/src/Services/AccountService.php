@@ -41,16 +41,25 @@ class AccountService extends MainService
 
     public function storeAccount($data)
     {
-        if ($data["parent_id"] == 'without') {
-            $data["level"] = 1;
-            $data["parent_id"] = null;
-        } else {
-            $parent = $this->find($data["parent_id"]);
-            $data["level"] = $parent->level + 1;
-            $data["type"] = $data["type"] ?? $this->getChildType($parent);
-            $data["statement_type"] = $data["statement_type"] ?? $parent->statement_type;
-        }
-        return $this->store($data);
+        return DB::transaction(function () use ($data) {
+            if ($data["parent_id"] == 'without') {
+                $data["level"] = 1;
+                $data["parent_id"] = null;
+                $data["code"] = $this->nextAvailableRootCodeForUpdate();
+            } else {
+                $parent = $this->model->newQuery()
+                    ->whereKey($data["parent_id"])
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                $data["level"] = $parent->level + 1;
+                $data["code"] = $this->nextAvailableChildCodeForUpdate($parent);
+                $data["type"] = $data["type"] ?? $this->getChildType($parent);
+                $data["statement_type"] = $data["statement_type"] ?? $parent->statement_type;
+            }
+
+            return $this->store($data);
+        });
     }
 
 
@@ -66,35 +75,57 @@ class AccountService extends MainService
 
     public function updateAccount(int $id, $data, $getLevelParentById, $getLastChildByParentID)
     {
-        $obj = $this->find($id);
-        if ($data["parent_id"] == 'without') {
-            $parent = $getLevelParentById;
-            $data["level"] = $parent + 1;
-            $data["code"] = $data["level"];
-            // $data["type"] = 1;
-            $data["parent_id"] = null;
-            $data["statement_type"] = $data["statement_type"] ?? $obj->statement_type;
-        } else {
-            $parent = $this->find($data["parent_id"]);
-            $child = $getLastChildByParentID;
-            $data["level"] = $parent->level + 1;
-            //   $data["type"] = $this->getChildType($parent);
-            $data["statement_type"] = $data["statement_type"] ?? $parent->statement_type;
-        }
-        $data["type"] = $data["type"] ?? $obj->type;
-        $obj->update($data);
-        $this->updateChildrenCode($obj);
-        return true;
+        return DB::transaction(function () use ($id, $data) {
+            $obj = $this->model->newQuery()
+                ->whereKey($id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $oldParentId = $obj->parent_id;
+            $oldCode = (int) $obj->code;
+            $newParentId = $data["parent_id"] == 'without' ? null : (int) $data["parent_id"];
+
+            if ($newParentId === null) {
+                $data["level"] = 1;
+                $data["parent_id"] = null;
+                $data["statement_type"] = $data["statement_type"] ?? $obj->statement_type;
+
+                if ($oldParentId !== null) {
+                    $data["code"] = $this->nextAvailableRootCodeForUpdate($obj->id);
+                }
+            } else {
+                $parent = $this->model->newQuery()
+                    ->whereKey($newParentId)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                $data["level"] = $parent->level + 1;
+                $data["statement_type"] = $data["statement_type"] ?? $parent->statement_type;
+
+                if ((int) $oldParentId !== $newParentId) {
+                    $data["code"] = $this->nextAvailableChildCodeForUpdate($parent, $obj->id);
+                }
+            }
+
+            $data["type"] = $data["type"] ?? $obj->type;
+            $obj->update($data);
+
+            if ((int) $obj->code !== $oldCode) {
+                $this->updateChildrenCode($obj->fresh(['children']));
+            }
+
+            return true;
+        });
     }
 
     public function updateChildrenCode($account)
     {
         if ($account->children) {
-            foreach ($account->children as $child) {
-                $parentPluckCode = $this->parentPluckCode();
-                $childPluckCode = $this->childPluckCode($account->id);
-                $code = $this->getChildCode($account->id, $childPluckCode, $parentPluckCode);
-                $child->update(['code' => $code]);
+            $nextCode = ((int) $account->code) * 100;
+
+            foreach ($account->children->sortBy('code')->values() as $child) {
+                $child->update(['code' => $nextCode++]);
+                $this->updateChildrenCode($child->fresh(['children']));
             }
         }
     }
@@ -212,28 +243,48 @@ class AccountService extends MainService
     {
         if ($id != 'without') {
             $parent = $this->find($id);
-            $childCodes = $childPluckCode;
-
-            $start = $parent->code * 100;
-            foreach ($childCodes as $code) {
-                if ($code != $start) {
-                    return $start;
-                }
-                $start++;
-            }
-            return $start;
+            return $this->firstAvailableCode(((int) $parent->code) * 100, $childPluckCode);
         }
 
-        $parentCodes = $parentPluckCode;
+        return $this->firstAvailableCode(1, $parentPluckCode);
+    }
 
-        $start = 1;
-        foreach ($parentCodes as $code) {
-            if ($code != $start) {
+    protected function firstAvailableCode(int $start, $codes): int
+    {
+        foreach ($codes as $code) {
+            $code = (int) $code;
+            if ($code < $start) {
+                continue;
+            }
+            if ($code !== $start) {
                 return $start;
             }
             $start++;
         }
+
         return $start;
+    }
+
+    protected function nextAvailableRootCodeForUpdate(?int $excludeId = null): int
+    {
+        $query = $this->model->newQuery()
+            ->whereNull('parent_id')
+            ->when($excludeId, fn ($query) => $query->where('id', '<>', $excludeId))
+            ->orderBy('code')
+            ->lockForUpdate();
+
+        return $this->firstAvailableCode(1, $query->pluck('code'));
+    }
+
+    protected function nextAvailableChildCodeForUpdate(Account $parent, ?int $excludeId = null): int
+    {
+        $query = $this->model->newQuery()
+            ->where('parent_id', $parent->id)
+            ->when($excludeId, fn ($query) => $query->where('id', '<>', $excludeId))
+            ->orderBy('code')
+            ->lockForUpdate();
+
+        return $this->firstAvailableCode(((int) $parent->code) * 100, $query->pluck('code'));
     }
 
     public function childPluckCode($id)
