@@ -471,7 +471,7 @@ return array (
   'value_min_error' => 'عفواً، لا يمكن أن تكون القيمة أقل من 1',
   'available_amount_value' => 'لا يمكن أن تكون القيمة اقل من المتاحة ',
   'available_added_amount_value' => 'يجب أن تكون الكميه المضافه متناسبه راجع البيانات',
-  'Bond Sarf Account' => 'حساب سندات الضرف العام',
+  'Bond Sarf Account' => 'حساب سندات الصرف العام',
   'Bond Qabd Account' => 'حساب سندات القبض العام',
   'Musaned Account' => 'حساب مساند',
   'musaned_account' => 'حساب مساند',
