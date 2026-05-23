@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Schema;
 
 class Admin
 {
@@ -27,6 +28,12 @@ class Admin
                     return redirect()
                         ->route('admin.form.login')
                         ->with('status', 'تم إنهاء الجلسة لأن الحساب تم استخدامه من جهاز آخر.');
+                }
+
+                if (Schema::hasColumn('admins', 'last_activity_at')) {
+                    $admin->forceFill([
+                        'last_activity_at' => now(),
+                    ])->save();
                 }
             }
 

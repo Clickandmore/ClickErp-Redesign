@@ -120,6 +120,23 @@ class AdminController extends Controller
                         ? '<span class="badge bg-danger"> ' . __('admin.suspended') . ' </span>'
                         : '<span class="badge bg-success"> ' . __('admin.active') . ' </span>';
                 })
+                ->addColumn('activity_summary', function ($row) {
+                    return $this->renderAdminActivityButton($row, true);
+                })
+                ->addColumn('last_login_at', function ($row) {
+                    return $row->last_login_at ? optional($row->last_login_at)->format('Y-m-d H:i') : '-';
+                })
+                ->addColumn('last_activity_at', function ($row) {
+                    return $row->last_activity_at ? optional($row->last_activity_at)->format('Y-m-d H:i') : '-';
+                })
+                ->addColumn('current_session_ip', function ($row) {
+                    return $row->current_session_ip ?: '-';
+                })
+                ->addColumn('current_session_device', function ($row) {
+                    return $row->current_session_user_agent
+                        ? '<span title="' . e($row->current_session_user_agent) . '">' . e(Str::limit($row->current_session_user_agent, 70)) . '</span>'
+                        : '-';
+                })
                 ->addColumn('actions', function ($row) {
                     $menuItems = [];
 
@@ -128,15 +145,14 @@ class AdminController extends Controller
                             $menuItems[] = '<li><button type="button" class="dropdown-item restore-admin" data-id="' . $row->id . '">'
                                 . '<i class="fa fa-undo"></i> ' . __('ingaz.restore')
                                 . '</button></li>';
-                            $reassignmentCounts = $this->getReassignmentCounts((int) $row->id);
                             $menuItems[] = '<li><button type="button" class="dropdown-item text-danger admin-force-delete-button"'
                                 . ' data-id="' . $row->id . '"'
                                 . ' data-name="' . e($row->name) . '"'
                                 . ' data-delete-route="' . route($this->mainRoute . ".force-delete", $row->id) . '"'
-                                . ' data-requires-reassignment="' . ($reassignmentCounts['total'] > 0 ? 1 : 0) . '"'
-                                . ' data-orders-count="' . $reassignmentCounts['orders'] . '"'
-                                . ' data-bookings-count="' . $reassignmentCounts['bookings'] . '"'
-                                . ' data-contracts-count="' . $reassignmentCounts['contracts'] . '"'
+                                . ' data-requires-reassignment="0"'
+                                . ' data-orders-count="0"'
+                                . ' data-bookings-count="0"'
+                                . ' data-contracts-count="0"'
                                 . ' title="' . e(__('admin.force_delete')) . '">'
                                 . '<i class="fa fa-trash-o"></i> ' . __('admin.force_delete')
                                 . '</button></li>';
@@ -144,6 +160,8 @@ class AdminController extends Controller
 
                         return $this->renderAdminActionsDropdown($menuItems);
                     }
+
+                    $menuItems[] = '<li>' . $this->renderAdminActivityButton($row, false) . '</li>';
 
                     $adminUser = Auth::guard('admin')->user();
                     $canViewEmployeeAnalytics = Route::has('dashboard.employees.show')
@@ -178,7 +196,7 @@ class AdminController extends Controller
                         $menuItems[] = '<li><button type="button" class="dropdown-item editButton" data-bs-toggle="modal" data-bs-target="#createModal"'
                             . ' model-route="' . route($this->mainRoute . ".edit", $row->id) . '"'
                             . ' model-title="' . e(__("buttons.edit") . ' ' . $row->name) . '">'
-                            . '<i class="fa fa-pencil"></i> ' . __('buttons.edit')
+                            . '<i class="fas fa-edit"></i> ' . __('buttons.edit')
                             . '</button></li>';
                     }
 
@@ -216,15 +234,14 @@ class AdminController extends Controller
                         }
   if (Auth::guard('admin')->user()->can('users_delete')) {
                         if ($row->id != Auth::guard('admin')->user()->id) {
-                            $reassignmentCounts = $this->getReassignmentCounts((int) $row->id);
                             $menuItems[] = '<li><button type="button" class="dropdown-item text-danger admin-delete-button"'
                                 . ' data-id="' . $row->id . '"'
                                 . ' data-name="' . e($row->name) . '"'
                                 . ' data-delete-route="' . route($this->mainRoute . ".destroy", $row->id) . '"'
-                                . ' data-requires-reassignment="' . ($reassignmentCounts['total'] > 0 ? 1 : 0) . '"'
-                                . ' data-orders-count="' . $reassignmentCounts['orders'] . '"'
-                                . ' data-bookings-count="' . $reassignmentCounts['bookings'] . '"'
-                                . ' data-contracts-count="' . $reassignmentCounts['contracts'] . '"'
+                                . ' data-requires-reassignment="0"'
+                                . ' data-orders-count="0"'
+                                . ' data-bookings-count="0"'
+                                . ' data-contracts-count="0"'
                                 . ' title="' . e(__('admin.delete')) . '">'
                                 . '<i class="fa fa-trash-o"></i> ' . __('ingaz.delete')
                                 . '</button></li>';
@@ -511,6 +528,7 @@ class AdminController extends Controller
             'current_session_id' => 'terminated:' . Str::random(40),
             'current_session_ip' => null,
             'current_session_user_agent' => null,
+            'last_activity_at' => null,
         ])->save();
 
         return jsonSuccess(null, __('admin.password_changed_sessions_terminated'));
@@ -554,6 +572,7 @@ class AdminController extends Controller
             'current_session_id' => 'terminated:' . Str::random(40),
             'current_session_ip' => null,
             'current_session_user_agent' => null,
+            'last_activity_at' => null,
         ])->save();
 
         return jsonSuccess(null, __('admin.employee_session_terminated'));
@@ -592,6 +611,30 @@ class AdminController extends Controller
             . implode('', $menuItems)
             . '</ul>'
             . '</div>';
+    }
+
+    private function renderAdminActivityButton($row, bool $compact = false): string
+    {
+        $isOnline = $this->isAdminSessionActive($row);
+        $statusText = $isOnline ? __('admin.online_now') : __('admin.offline');
+        $buttonClass = $compact
+            ? 'btn btn-sm ' . ($isOnline ? 'btn-success' : 'btn-outline-secondary') . ' admin-activity-button admin-activity-icon'
+            : 'dropdown-item text-secondary admin-activity-button';
+        $label = $compact
+            ? '<i class="fas fa-signal"></i>'
+            : '<i class="fas fa-history"></i> ' . __('admin.activity');
+
+        return '<button type="button" class="' . $buttonClass . '"'
+            . ' data-name="' . e($row->name) . '"'
+            . ' data-status="' . e($statusText) . '"'
+            . ' data-online="' . ($isOnline ? 1 : 0) . '"'
+            . ' data-last-login="' . e($row->last_login_at ? optional($row->last_login_at)->format('Y-m-d H:i') : '-') . '"'
+            . ' data-last-activity="' . e($row->last_activity_at ? optional($row->last_activity_at)->format('Y-m-d H:i') : '-') . '"'
+            . ' data-ip="' . e($row->current_session_ip ?: '-') . '"'
+            . ' data-device="' . e($row->current_session_user_agent ?: '-') . '"'
+            . ' title="' . e(__('admin.activity')) . '">'
+            . $label
+            . '</button>';
     }
 
     private function findLinkedHrEmployee(int $adminId)
@@ -789,6 +832,10 @@ class AdminController extends Controller
                     return jsonSuccess(null, __('admin.account_suspended_now'), 403);
                 }
 
+                if ($this->isAdminSessionActive($user)) {
+                    return jsonSuccess(null, __('admin.account_already_logged_in'), 403);
+                }
+
                 Auth::guard('admin')->login($user, $request->boolean('rememberme'));
                 $this->startAdminSession($request, $user);
 
@@ -823,7 +870,30 @@ class AdminController extends Controller
             'current_session_ip' => $request->ip(),
             'current_session_user_agent' => Str::limit((string) $request->userAgent(), 1000, ''),
             'last_login_at' => now(),
+            'last_activity_at' => now(),
         ])->save();
+    }
+
+    private function isAdminSessionActive($admin): bool
+    {
+        if (
+            ! $admin
+            || ! Schema::hasColumn('admins', 'current_session_id')
+            || empty($admin->current_session_id)
+            || Str::startsWith((string) $admin->current_session_id, 'terminated:')
+        ) {
+            return false;
+        }
+
+        $lastActivity = Schema::hasColumn('admins', 'last_activity_at')
+            ? ($admin->last_activity_at ?: $admin->last_login_at)
+            : $admin->last_login_at;
+
+        if (! $lastActivity) {
+            return false;
+        }
+
+        return $lastActivity->greaterThanOrEqualTo(now()->subMinutes((int) config('session.lifetime', 120)));
     }
 
     public function logout()
@@ -834,6 +904,7 @@ class AdminController extends Controller
                 'current_session_id' => null,
                 'current_session_ip' => null,
                 'current_session_user_agent' => null,
+                'last_activity_at' => null,
             ])->save();
         }
 

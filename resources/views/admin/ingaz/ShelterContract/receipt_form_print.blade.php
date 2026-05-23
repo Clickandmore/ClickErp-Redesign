@@ -26,9 +26,12 @@
             background: var(--bg);
             color: var(--ink);
             direction: rtl;
-            font-family: Tahoma, "Segoe UI", Arial, sans-serif;
-            font-size: 15px;
-            line-height: 1.8;
+            font-family: "IBM Plex Sans Arabic", "Noto Sans Arabic", Tahoma, "Segoe UI", Arial, sans-serif;
+            font-size: 16px;
+            line-height: 1.9;
+            letter-spacing: 0;
+            -webkit-font-smoothing: antialiased;
+            text-rendering: optimizeLegibility;
         }
 
         .page-shell {
@@ -90,20 +93,22 @@
         .company {
             margin: 0 0 8px;
             color: var(--accent);
-            font-size: 18px;
-            font-weight: 700;
+            font-size: 19px;
+            font-weight: 800;
         }
 
         .title {
             margin: 0;
-            font-size: 30px;
+            font-size: 31px;
+            font-weight: 800;
             line-height: 1.3;
         }
 
         .subtitle {
             margin: 8px 0 0;
             color: var(--muted);
-            font-size: 13px;
+            font-size: 14px;
+            font-weight: 600;
         }
 
         .content {
@@ -116,8 +121,9 @@
             background: var(--soft);
             border-right: 4px solid var(--accent);
             color: var(--accent);
-            font-size: 16px;
-            font-weight: 700;
+            font-size: 17px;
+            font-weight: 800;
+            line-height: 1.6;
         }
 
         table {
@@ -130,16 +136,18 @@
         }
 
         .info-table td {
-            padding: 11px 12px;
+            padding: 12px 13px;
             border: 1px solid var(--line);
             vertical-align: middle;
+            line-height: 1.7;
         }
 
         .label {
             width: 18%;
             background: #f8fbfe;
             color: var(--accent);
-            font-weight: 700;
+            font-weight: 800;
+            white-space: nowrap;
         }
 
         .value {
@@ -150,6 +158,7 @@
         .field-value {
             display: inline-block;
             width: 100%;
+            font-weight: 600;
             unicode-bidi: plaintext;
             word-break: break-word;
         }
@@ -161,15 +170,18 @@
 
         .statement {
             margin-top: 16px;
-            padding: 18px 20px;
+            padding: 20px 22px;
             border: 1px solid var(--line);
             border-radius: 12px;
             background: #fbfdff;
+            font-size: 16.5px;
+            line-height: 2;
         }
 
         .statement p {
             margin: 0 0 14px;
             text-align: justify;
+            text-justify: inter-word;
         }
 
         .statement p:last-child {
@@ -192,12 +204,13 @@
         .intro-label {
             width: 155px;
             color: var(--accent);
-            font-weight: 700;
+            font-weight: 800;
             white-space: nowrap;
         }
 
         .intro-value {
             padding-right: 8px;
+            font-weight: 600;
         }
 
         .signatures {
@@ -222,7 +235,7 @@
         }
 
         .signature-label {
-            font-weight: 700;
+            font-weight: 800;
             margin-bottom: 4px;
         }
 
@@ -230,7 +243,8 @@
             margin-top: 18px;
             text-align: center;
             color: var(--muted);
-            font-size: 12px;
+            font-size: 13px;
+            line-height: 1.7;
         }
 
         .meta-footer {
@@ -256,8 +270,28 @@
             display: block;
             margin-bottom: 4px;
             color: var(--accent);
-            font-weight: 700;
+            font-weight: 800;
             font-size: 13px;
+        }
+
+        @media (max-width: 640px) {
+            body {
+                font-size: 15px;
+            }
+
+            .header,
+            .content {
+                padding-right: 18px;
+                padding-left: 18px;
+            }
+
+            .title {
+                font-size: 25px;
+            }
+
+            .info-table td {
+                padding: 10px;
+            }
         }
 
         @page {
@@ -296,7 +330,8 @@
         $documentSubtitle = documentSetting('shelter_receipt_subtitle', 'نموذج تسليم لحالات الإيواء');
         $documentCompanyName = $document_company_name ?? $documentBranding['company_name'];
         $documentOfficeName = $document_office_name ?? $documentBranding['office_name'];
-        $logoPath = documentLogoPath() ?: public_path('admin/assets/img/company_logo.png');
+        $logoPath = documentLogoPath() ?: public_path('admin/assets/img/company_logo.jpeg');
+        $logoUrl = documentLogoUrl(asset('admin/assets/img/company_logo.jpeg'));
         $defaultReceiptText = replaceDocumentPlaceholders((string) documentSetting(
             'shelter_receipt_default_text',
             'كما أتعهد في حالة نقل خدمات العاملة إلى صاحب عمل آخر بإخطار [اسم_المكتب] وتزويده كتابياً بكافة بيانات صاحب العمل الجديد من اسم وهوية وعنوان ورقم جوال. وفي حال عدم القيام بذلك أتحمل كامل المسؤولية عن أي مطالبات أو التزامات تخص العاملة.'
@@ -317,8 +352,8 @@
 
         <div class="paper">
             <div class="header">
-                @if (file_exists($logoPath))
-                    <img src="{{ $logoPath }}" alt="{{ $documentCompanyName }}">
+                @if ($logoUrl && file_exists($logoPath))
+                    <img src="{{ $logoUrl }}" alt="{{ $documentCompanyName }}">
                 @endif
                 <p class="company">{{ $documentCompanyName }}</p>
                 <h1 class="title">{{ $documentTitle }}</h1>

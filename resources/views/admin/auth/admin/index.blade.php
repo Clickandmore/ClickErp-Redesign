@@ -57,7 +57,7 @@
         #dataTableObject {
             border-collapse: separate !important;
             border-spacing: 0;
-            min-width: 1380px;
+            min-width: 1420px;
         }
 
         #dataTableObject thead th {
@@ -103,7 +103,7 @@
             white-space: nowrap;
         }
 
-        #dataTableObject td:nth-child(12) {
+        #dataTableObject td:nth-child(13) {
             max-width: 240px;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -192,6 +192,47 @@
             text-align: center;
         }
 
+        .admin-activity-icon {
+            width: 36px;
+            height: 34px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            padding: 0;
+        }
+
+        .admin-activity-details {
+            text-align: start;
+            display: grid;
+            gap: 0.65rem;
+        }
+
+        .admin-activity-details .activity-row {
+            display: grid;
+            grid-template-columns: 130px 1fr;
+            gap: 0.75rem;
+            align-items: start;
+            border-bottom: 1px solid #edf0f4;
+            padding-bottom: 0.55rem;
+        }
+
+        .admin-activity-details .activity-row:last-child {
+            border-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .admin-activity-details .activity-label {
+            color: #6b7280;
+            font-weight: 800;
+        }
+
+        .admin-activity-details .activity-value {
+            color: #111827;
+            font-weight: 700;
+            word-break: break-word;
+        }
+
         @media (max-width: 767.98px) {
             .admins-management-page #dataTableObject_wrapper {
                 padding: 0.75rem;
@@ -276,6 +317,7 @@
                     <th>{{__("auth.email")}}</th>
                     <th>{{helperTrans("ingaz.sex_type")}}</th>
                     <th>{{ __('admin.status') }}</th>
+                    <th>{{ __('admin.activity') }}</th>
                     <th>{{ __('admin.note') }}</th>
                     <th>{{__("auth.actions")}}</th>
                 </tr>
@@ -313,6 +355,7 @@
                 {"data": "email", orderable: true, searchable: true},
                 {"data": "sex_type", orderable: false, searchable: false},
                 {"data": "status", orderable: true, searchable: false},
+                {"data": "activity_summary", orderable: false, searchable: false},
                 {"data": "note", orderable: false, searchable: true},
                 {"data": "actions", orderable: false, searchable: false}
             ];
@@ -459,6 +502,51 @@
 
             $(window).on('resize scroll', closeAdminActionsMenu);
 
+            function escapeHtml(value) {
+                return $('<div>').text(value || '-').html();
+            }
+
+            function activityRow(label, value) {
+                return '<div class="activity-row">'
+                    + '<div class="activity-label">' + escapeHtml(label) + '</div>'
+                    + '<div class="activity-value">' + escapeHtml(value) + '</div>'
+                    + '</div>';
+            }
+
+            $(document).on('click', '.admin-activity-button', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const button = $(this);
+                const isOnline = Number(button.data('online')) === 1;
+                const html = '<div class="admin-activity-details">'
+                    + activityRow("{{ __('admin.online_status') }}", button.data('status'))
+                    + activityRow("{{ __('admin.last_login_at') }}", button.data('last-login'))
+                    + activityRow("{{ __('admin.last_activity_at') }}", button.data('last-activity'))
+                    + activityRow("{{ __('admin.login_ip') }}", button.data('ip'))
+                    + activityRow("{{ __('admin.device') }}", button.data('device'))
+                    + '</div>';
+
+                if (adminSwal && typeof adminSwal.fire === 'function') {
+                    adminSwal.fire({
+                        title: "{{ __('admin.activity') }} - " + button.data('name'),
+                        html: html,
+                        icon: isOnline ? 'success' : 'info',
+                        confirmButtonText: "{{ __('buttons.close') }}",
+                        width: 620
+                    });
+                    return;
+                }
+
+                alert([
+                    "{{ __('admin.online_status') }}: " + button.data('status'),
+                    "{{ __('admin.last_login_at') }}: " + button.data('last-login'),
+                    "{{ __('admin.last_activity_at') }}: " + button.data('last-activity'),
+                    "{{ __('admin.login_ip') }}: " + button.data('ip'),
+                    "{{ __('admin.device') }}: " + button.data('device')
+                ].join("\n"));
+            });
+
             $(document).on('click', '.toggle-status', function (e) {
                 e.preventDefault();
                 let id = $(this).data('id');
@@ -493,14 +581,14 @@
                 });
             });
 
-            function deleteAdmin(button, isPermanent) {
+            function deleteAdmin(button, isPermanent, forcedCounts) {
                 const adminId = Number(button.data('id'));
                 const deleteRoute = button.data('delete-route');
                 const adminName = button.data('name') || '';
-                const requiresReassignment = Number(button.data('requires-reassignment')) === 1;
-                const ordersCount = Number(button.data('orders-count')) || 0;
-                const bookingsCount = Number(button.data('bookings-count')) || 0;
-                const contractsCount = Number(button.data('contracts-count')) || 0;
+                const requiresReassignment = forcedCounts ? true : Number(button.data('requires-reassignment')) === 1;
+                const ordersCount = forcedCounts ? Number(forcedCounts.orders) || 0 : Number(button.data('orders-count')) || 0;
+                const bookingsCount = forcedCounts ? Number(forcedCounts.bookings) || 0 : Number(button.data('bookings-count')) || 0;
+                const contractsCount = forcedCounts ? Number(forcedCounts.contracts) || 0 : Number(button.data('contracts-count')) || 0;
                 const replacementOptions = {};
 
                 reassignmentAdmins.forEach(function (admin) {
@@ -581,11 +669,7 @@
                         },
                         error: function (errorObj) {
                             if (errorObj.responseJSON && errorObj.responseJSON.requires_reassignment) {
-                                if (adminSwal && typeof adminSwal.fire === 'function') {
-                                    adminSwal.fire("{{ __('admin.notice') }}", errorObj.responseJSON.message, 'warning');
-                                } else {
-                                    alert(errorObj.responseJSON.message);
-                                }
+                                deleteAdmin(button, isPermanent, errorObj.responseJSON.assignment_counts || {});
                                 return;
                             }
 
