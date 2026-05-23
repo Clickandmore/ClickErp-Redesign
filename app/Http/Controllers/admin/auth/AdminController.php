@@ -196,7 +196,7 @@ class AdminController extends Controller
                         $menuItems[] = '<li><button type="button" class="dropdown-item editButton" data-bs-toggle="modal" data-bs-target="#createModal"'
                             . ' model-route="' . route($this->mainRoute . ".edit", $row->id) . '"'
                             . ' model-title="' . e(__("buttons.edit") . ' ' . $row->name) . '">'
-                            . '<i class="fas fa-edit"></i> ' . __('buttons.edit')
+                            . '<i class="fa fa-edit"></i> ' . __('buttons.edit')
                             . '</button></li>';
                     }
 
@@ -830,10 +830,6 @@ class AdminController extends Controller
             if (Hash::check((string) $request->password, (string) $user->password)) {
                 if (($user->status ?? 'active') === 'suspended') {
                     return jsonSuccess(null, __('admin.account_suspended_now'), 403);
-                }
-
-                if ($this->isAdminSessionActive($user)) {
-                    return jsonSuccess(null, __('admin.account_already_logged_in'), 403);
                 }
 
                 Auth::guard('admin')->login($user, $request->boolean('rememberme'));
