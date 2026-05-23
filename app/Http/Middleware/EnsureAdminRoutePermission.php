@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Support\AdminRoutePermissionMatrix;
+use App\Support\SystemModuleManager;
 use Closure;
 use Illuminate\Http\Request;
 
@@ -11,6 +12,21 @@ class EnsureAdminRoutePermission
     public function handle(Request $request, Closure $next)
     {
         $routeName = $request->route()?->getName();
+        $disabledModule = SystemModuleManager::disabledModuleForRoute($routeName, $request->path());
+
+        if ($disabledModule) {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'message' => 'هذا الموديل مغلق حالياً من لوحة Super Admin.',
+                    'module' => $disabledModule['key'],
+                ], 403);
+            }
+
+            return redirect()
+                ->route('admin.no-permissions')
+                ->with('warning', 'هذا الموديل مغلق حالياً من لوحة Super Admin.');
+        }
+
         $requiredPermissions = AdminRoutePermissionMatrix::resolve($routeName, $request);
 
         if ($requiredPermissions === []) {

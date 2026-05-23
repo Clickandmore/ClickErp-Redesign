@@ -1984,7 +1984,7 @@ class RentContractController extends Controller
             }
 
             if ($transferIsPaid) {
-                $transferItems = $this->resolveTransferFinancialAdjustments($request);
+                $transferItems = $this->resolveTransferFinancialAdjustments($request, $transferAmount);
                 $this->upsertTransferFinancialAdjustments($oldContract, $transferAmount, $transferItems);
             } else {
                 $oldContract->financialAdjustments()
@@ -2031,6 +2031,59 @@ class RentContractController extends Controller
                 'success' => false,
                 'message' => 'حدث خطأ أثناء نقل الكفالة: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    private function resolveTransferFinancialAdjustments(Request $request, float $fallbackAmount): array
+    {
+        $items = [];
+
+        foreach ((array) $request->input('transfer_finance_items', []) as $item) {
+            $label = trim((string) ($item['label'] ?? ''));
+            $amount = round((float) ($item['amount'] ?? 0), 2);
+
+            if ($label === '' || $amount <= 0) {
+                continue;
+            }
+
+            $items[] = [
+                'type' => ($item['type'] ?? 'income') === 'expense' ? 'expense' : 'income',
+                'label' => Str::limit($label, 150, ''),
+                'amount' => $amount,
+            ];
+        }
+
+        if (empty($items) && $fallbackAmount > 0) {
+            $items[] = [
+                'type' => 'income',
+                'label' => 'نقل خدمات',
+                'amount' => round($fallbackAmount, 2),
+            ];
+        }
+
+        return $items;
+    }
+
+    private function upsertTransferFinancialAdjustments(RentalContract $contract, float $transferAmount, array $items): void
+    {
+        $contract->financialAdjustments()
+            ->where('context', 'transfer')
+            ->delete();
+
+        $adminId = auth('admin')->id() ?: auth()->id();
+
+        foreach ($items as $item) {
+            $contract->financialAdjustments()->create([
+                'maid_id' => $contract->maid_id,
+                'type' => $item['type'],
+                'label' => $item['label'],
+                'amount' => $item['amount'],
+                'notes' => 'نقل كفالة من عقد إيجار بقيمة ' . number_format($transferAmount, 2) . ' ريال',
+                'context' => 'transfer',
+                'created_by' => $adminId,
+                'settled_at' => now(),
+                'settled_by' => $adminId,
+            ]);
         }
     }
 

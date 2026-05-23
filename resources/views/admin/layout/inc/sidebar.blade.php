@@ -78,11 +78,11 @@
                     $contractsCount ?? [],
                 );
 
-                $canViewCrmModule = @AdminGuardHasPerm(\App\PermKeys::CRM_MODULE);
-                $canViewHrModule = @AdminGuardCanViewPackageModule('hr');
-                $canViewFinanceModule = @AdminGuardCanViewPackageModule('finance');
+                $canViewCrmModule = @SystemModuleEnabled('crm') && @AdminGuardHasPerm(\App\PermKeys::CRM_MODULE);
+                $canViewHrModule = @SystemModuleEnabled('hr') && @AdminGuardCanViewPackageModule('hr');
+                $canViewFinanceModule = @SystemModuleEnabled('finance') && @AdminGuardCanViewPackageModule('finance');
 
-                $canViewCrm = $canViewCrmModule || @AdminGuardHasAnyPerm([\App\PermKeys::CLIENTS_VIEW, \App\PermKeys::CLIENTS_CREATE, \App\PermKeys::CLIENTS_EDIT, \App\PermKeys::CLIENTS_DELETE, \App\PermKeys::CLIENTS_EXPORT, \App\PermKeys::CLIENTS_SHOW, \App\PermKeys::CLIENTS_SETTINGS]);
+                $canViewCrm = @SystemModuleEnabled('crm') && ($canViewCrmModule || @AdminGuardHasAnyPerm([\App\PermKeys::CLIENTS_VIEW, \App\PermKeys::CLIENTS_CREATE, \App\PermKeys::CLIENTS_EDIT, \App\PermKeys::CLIENTS_DELETE, \App\PermKeys::CLIENTS_EXPORT, \App\PermKeys::CLIENTS_SHOW, \App\PermKeys::CLIENTS_SETTINGS]));
 
                 $canViewCv = @AdminGuardHasAnyPerm([\App\PermKeys::MAIDS_VIEW, \App\PermKeys::MAIDS_CREATE, \App\PermKeys::MAIDS_EDIT, \App\PermKeys::MAIDS_DELETE, \App\PermKeys::MAIDS_EXPORT, \App\PermKeys::MAIDS_CONTROL, \App\PermKeys::MAIDS_TOGGLE_STATUS, \App\PermKeys::MAIDS_TOGGLE_PIN, \App\PermKeys::MAIDS_RENTAL_VIEW, \App\PermKeys::MAIDS_BACKOUT_VIEW, \App\PermKeys::MAIDS_DELETED_VIEW]);
 
@@ -116,14 +116,15 @@
                     $canViewSponsorshipTransfer ||
                     $canViewContactRequests;
 
-                $canViewSms = @AdminGuardHasAnyPerm([\App\PermKeys::NOTIFICATIONS_CONTROL, \App\PermKeys::NOTIFICATIONS_VIEW]);
+                $canViewSms = @SystemModuleEnabled('api_links') && @AdminGuardHasAnyPerm([\App\PermKeys::NOTIFICATIONS_CONTROL, \App\PermKeys::NOTIFICATIONS_VIEW]);
 
-                $canViewWebsiteManagement = @AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_VIEW, \App\PermKeys::FAQ_VIEW, \App\PermKeys::STATISTICS_VIEW, \App\PermKeys::DEVELOPERS_PERMS]);
+                $canViewWebsiteManagement = @SystemModuleEnabled('website') && @AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_VIEW, \App\PermKeys::FAQ_VIEW, \App\PermKeys::STATISTICS_VIEW, \App\PermKeys::DEVELOPERS_PERMS]);
 
                 $canViewHomeSettings = @AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_VIEW, \App\PermKeys::SLIDERS_VIEW, \App\PermKeys::ABOUT_US_VIEW, \App\PermKeys::FAQ_VIEW, \App\PermKeys::STATISTICS_VIEW, \App\PermKeys::STEPS_VIEW, \App\PermKeys::SERVICES_VIEW, \App\PermKeys::PARTENR_VIEW]);
 
                 $canViewMaidsData = @AdminGuardHasAnyPerm([\App\PermKeys::NATIONALITIES_VIEW, \App\PermKeys::REC_OFFICES_VIEW, \App\PermKeys::JOB_TITLES_VIEW, \App\PermKeys::RELIGIONS_VIEW, \App\PermKeys::SKILLS_VIEW, \App\PermKeys::COUNTRIES_VIEW, \App\PermKeys::SOCIAL_STATUS_VIEW, \App\PermKeys::OFFICE_VIEW, \App\PermKeys::USERS_VIEW, \App\PermKeys::MAIDS_VIEW]);
 
+                $canViewOperations = @SystemModuleEnabled('operations') && $canViewOperations;
                 $canViewSettingsOperation =
                     $canViewWebsiteManagement || $canViewHomeSettings || $canViewMaidsData || @AdminGuardHasAnyPerm([\App\PermKeys::PACKAGES_VIEW, \App\PermKeys::OFFICE_VIEW]);
             @endphp

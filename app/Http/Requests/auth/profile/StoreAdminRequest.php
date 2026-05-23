@@ -27,10 +27,12 @@ class StoreAdminRequest extends MainRequest
             'role_id' => ['required', Rule::exists('roles', 'id')->where('guard_name', 'admin')],
             'whatsapp' => ['nullable', 'string', 'max:255'],
             'verification_phone' => ['nullable', 'string', 'max:255'],
-            'identity_number' => ['required', 'string', 'max:255', 'unique:admins,identity_number'],
-            'identity_expiry_date' => ['required', 'date'],
+            'identity_number' => ['nullable', 'string', 'max:255', 'unique:admins,identity_number'],
+            'identity_expiry_date' => ['nullable', 'date'],
             'sex_type' => ['required', "in:0,1"],
             'sort' => ['nullable'],
+            'status' => ['nullable', 'in:active,suspended'],
+            'note' => ['nullable', 'string', 'max:1000'],
 
             //            'permissions' => 'required|min:1',
         ];

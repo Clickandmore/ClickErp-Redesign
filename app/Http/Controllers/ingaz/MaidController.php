@@ -816,10 +816,9 @@ class MaidController extends Controller
     public function noneAvailableMaids(Request $request, objAction $Action)
     {
         $rows = objModel::latest()
-            ->with(['nationality', 'religion', 'jobTypes', 'contracts', 'orders', 'unavailableRecords']) // Added unavailableRecords
-            ->select(['id', 'cv_code', 'image', 'cv_file', 'cv_preview', 'nationality_id', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'is_show', 'available', 'available_at', 'created_at', 'is_pinned', 'status']) // Added status field
-            ->where('status', 'backout')
-            ->where('available', false);
+            ->with(['nationality', 'religion', 'jobTypes', 'contracts', 'orders', 'unavailableRecords'])
+            ->select(['id', 'name', 'cv_code', 'image', 'cv_file', 'cv_preview', 'nationality_id', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'is_show', 'available', 'available_at', 'created_at', 'is_pinned', 'status', 'back_out_reason'])
+            ->where('status', 'backout');
 
         if ($request->ajax()) {
             // تطبيق الفلاتر الإضافية مع الحفاظ على فلتر backout
@@ -849,7 +848,7 @@ class MaidController extends Controller
                     $rawPath = $row->image ?: ($row->cv_preview ?: $row->cv_file);
                     $imageUrl = $rawPath ? showFile($rawPath) : asset('admin/assets/img/avatar.png');
 
-                    $imgTag = '<img src="' . $imageUrl . '" alt="maid-file" class="border" style="width:90px;height:120px;object-fit:cover;">';
+                    $imgTag = '<img src="' . $imageUrl . '" alt="maid-file" class="maid-cv-thumb">';
 
                     return '<a href="#" class="maidViewData" data-id="' . $row->id . '">' . $imgTag . '</a>';
                 })
@@ -892,13 +891,15 @@ class MaidController extends Controller
                     }
                 })
                 ->addColumn('unavailable_reason', function ($row) {
-                    // جلب سبب عدم التوفر من جدول maid_unavailable_records
                     $unavailableRecord = $row->unavailableRecords()->latest()->first();
-                    if ($unavailableRecord) {
-                        return '<span class="reason-badge" title="' . htmlspecialchars($unavailableRecord->reason) . '">' .
-                            htmlspecialchars(substr($unavailableRecord->reason, 0, 50)) .
-                            (strlen($unavailableRecord->reason) > 50 ? '...' : '') . '</span>';
+                    $reason = $unavailableRecord?->reason ?: $row->back_out_reason;
+
+                    if ($reason) {
+                        return '<span class="reason-badge" title="' . e($reason) . '">' .
+                            e(Str::limit($reason, 70)) .
+                            '</span>';
                     }
+
                     return '<span class="text-muted">' . helperTrans('ingaz.no_specific_reason') . '</span>';
                 })
                 ->addColumn('actions', function ($row) {

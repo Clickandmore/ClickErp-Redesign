@@ -8,6 +8,7 @@ use App\Http\Controllers\admin\AdminShelterWorkersContractCTLR;
 use App\Http\Controllers\admin\AdminTravelHistoryController;
 use App\Http\Controllers\admin\ContractReturnRequestController;
 use App\Http\Controllers\admin\FormSettingsController;
+use App\Http\Controllers\admin\DevSuperAdminController;
 use App\Http\Controllers\admin\office\OfficeController;
 use App\Http\Controllers\admin\PrintContractController;
 use App\Http\Controllers\admin\ShelterWorkersController;
@@ -555,6 +556,35 @@ Route::group(
 
             //** ACTIVITY LOG **//
             Route::get('/activity-log', [ActivityLogController::class, 'index'])->name('activity.log');
+        });
+    }
+);
+
+Route::group(
+    [
+        'prefix' => LaravelLocalization::setLocale(),
+        'middleware' => ['localeSessionRedirect', 'localizationRedirect', 'localeViewPath'],
+    ],
+    function () {
+        Route::get('superadmin', [DevSuperAdminController::class, 'loginForm'])->name('superadmin.login');
+        Route::post('superadmin', [DevSuperAdminController::class, 'login'])->name('superadmin.login.post');
+
+        Route::prefix('dev-super-admin')->name('dev-superadmin.')->group(function () {
+            Route::get('login', function () {
+                return redirect()->route('superadmin.login');
+            })->name('login');
+            Route::post('login', [DevSuperAdminController::class, 'login'])->name('login.post');
+
+            Route::middleware('dev.superadmin')->group(function () {
+                Route::get('modules', [DevSuperAdminController::class, 'modules'])->name('modules');
+                Route::put('modules', [DevSuperAdminController::class, 'updateModules'])->name('modules.update');
+                Route::post('impersonate/{admin}', [DevSuperAdminController::class, 'impersonate'])->name('impersonate');
+                Route::post('logout', [DevSuperAdminController::class, 'logout'])->name('logout');
+            });
+        });
+
+        Route::get('dash/super-admin/modules', function () {
+            return redirect()->route('dev-superadmin.modules');
         });
     }
 );

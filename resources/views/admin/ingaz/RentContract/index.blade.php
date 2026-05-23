@@ -1112,8 +1112,6 @@
 
     <!-- الملفات المحلية -->
     <!-- <script src="{{ asset('admin') }}/assets/jsbundle/dataTables.bundle.js"></script> -->
-    <script src="{{ asset('admin') }}/custom/admin-tables.js"></script>
-    <script src="{{ asset('admin') }}/custom/orders-dropdown-fix.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>

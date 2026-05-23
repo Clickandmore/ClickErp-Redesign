@@ -223,18 +223,21 @@
 
         /* تخصيص لصفحة العاملات باك اوت */
         .page-header {
-            background: linear-gradient(135deg, #dc3545, #c82333);
+            background: #fff;
             color: white;
-            padding: 20px;
-            border-radius: 10px;
+            padding: 18px 22px;
+            border-radius: 8px;
             margin-bottom: 20px;
-            text-align: center;
+            border: 1px solid #e9edf5;
+            border-right: 4px solid #dc3545;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
         }
 
         .page-header h2 {
             margin: 0;
-            font-size: 24px;
-            font-weight: bold;
+            color: #1f2937;
+            font-size: 22px;
+            font-weight: 700;
         }
 
         .page-header p {
@@ -248,22 +251,23 @@
         }
 
         .reason-badge {
-            background: linear-gradient(135deg, #ffc107, #e0a800);
-            color: #212529;
-            padding: 4px 8px;
-            border-radius: 12px;
+            background: #fff7ed;
+            color: #9a3412;
+            border: 1px solid #fed7aa;
+            padding: 5px 9px;
+            border-radius: 6px;
             font-size: 0.75rem;
             font-weight: 600;
+            display: inline-block;
+            line-height: 1.5;
         }
 
         .maids-non-table th {
-            font-size: 1rem !important;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            background: #2794eb;
+            font-size: .84rem !important;
+            background: #334155;
             color: white !important;
             border: 0;
-            padding: 0.9rem 1rem !important;
+            padding: .85rem .7rem !important;
             position: relative;
             box-shadow: inset 0 -1px 0 rgba(15, 23, 42, 0.08);
         }
@@ -301,6 +305,34 @@
         #dataTableObject_wrapper {
             overflow-x: auto;
         }
+
+        .backout-filter-card {
+            border: 1px solid #e9edf5;
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+        }
+
+        .backout-filter-card .form-control {
+            border-radius: 6px;
+            min-height: 42px;
+        }
+
+        .backout-table-card {
+            background: #fff;
+            border: 1px solid #e9edf5;
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+        }
+
+        .maid-cv-thumb {
+            width: 74px;
+            height: 96px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+            background: #f8fafc;
+        }
     </style>
 @endsection
 @section('page-title')
@@ -314,10 +346,10 @@
     @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_BACKOUT_VIEW))
         <!-- رأس الصفحة المخصص -->
         <div class="page-header">
-            <h2 style="color: #007bff;"><i class="fas fa-user-times text-primary me-2"></i>{{ helperTrans('ingaz.backout_maids') }}</h2>
+            <h2><i class="fas fa-user-times text-danger me-2"></i>{{ helperTrans('ingaz.backout_maids') }}</h2>
         </div>
 
-        <div class="card">
+        <div class="card backout-filter-card">
             <div class="card-body show">
                 <form id="filterForm">
                     <div class="row align-items-end">
@@ -386,31 +418,31 @@
             </div>
         </div>
 
-        <table id="dataTableObject" class="table table-hover align-middle maids-non-table" style="width:100%">
-            <thead>
-                <tr>
-                    <th class="d-none d-md-table-cell">ID</th>
-                    <th>{{ helperTrans('ingaz.cv_file') }}</th>
-                    <th class="d-none d-lg-table-cell">{{ helperTrans('ingaz.nationality_id') }}</th>
-                    <th class="d-none d-lg-table-cell">{{ helperTrans('ingaz.job_type') }}</th>
-                    <th>{{ helperTrans('ingaz.passport_num') }}</th>
-                    <th class="d-none d-md-table-cell">{{ helperTrans('ingaz.price') }}</th>
-                    <th class="d-none d-md-table-cell">{{ helperTrans('ingaz.salary') }}</th>
-                    <th class="d-none d-lg-table-cell">{{ helperTrans('ingaz.religion_id') }}</th>
-                    <th class="d-none d-md-table-cell">{{ helperTrans('ingaz.age') }}</th>
-                    <th class="d-none d-lg-table-cell">{{ helperTrans('ingaz.maidContractRemaining') }}</th>
-                    <th class="d-none d-lg-table-cell">{{ helperTrans('ingaz.is_show') }}</th>
-                    <th class="d-none d-lg-table-cell">{{ helperTrans('ingaz.pinned') }}</th>
-                    <th>{{ helperTrans('ingaz.cv_status') }}</th>
-                    <th>{{ helperTrans('ingaz.unavailable_reason') }}</th>
-                    <th class="d-none d-md-table-cell">{{ helperTrans('ingaz.created_at') }}</th>
-                    <th>{{ helperTrans('ingaz.actions') }}</th>
-                </tr>
-            </thead>
-            <tbody>
-
-            </tbody>
-        </table>
+        <div class="backout-table-card">
+            <table id="dataTableObject" class="table table-hover align-middle maids-non-table mb-0" style="width:100%">
+                <thead>
+                    <tr>
+                        <th class="d-none d-md-table-cell">ID</th>
+                        <th>{{ helperTrans('ingaz.cv_file') }}</th>
+                        <th class="d-none d-lg-table-cell">{{ helperTrans('ingaz.nationality_id') }}</th>
+                        <th class="d-none d-lg-table-cell">{{ helperTrans('ingaz.job_type') }}</th>
+                        <th>{{ helperTrans('ingaz.passport_num') }}</th>
+                        <th class="d-none d-md-table-cell">{{ helperTrans('ingaz.price') }}</th>
+                        <th class="d-none d-md-table-cell">{{ helperTrans('ingaz.salary') }}</th>
+                        <th class="d-none d-lg-table-cell">{{ helperTrans('ingaz.religion_id') }}</th>
+                        <th class="d-none d-md-table-cell">{{ helperTrans('ingaz.age') }}</th>
+                        <th class="d-none d-lg-table-cell">{{ helperTrans('ingaz.maidContractRemaining') }}</th>
+                        <th class="d-none d-lg-table-cell">{{ helperTrans('ingaz.is_show') }}</th>
+                        <th class="d-none d-lg-table-cell">{{ helperTrans('ingaz.pinned') }}</th>
+                        <th>{{ helperTrans('ingaz.cv_status') }}</th>
+                        <th>{{ helperTrans('ingaz.unavailable_reason') }}</th>
+                        <th class="d-none d-md-table-cell">{{ helperTrans('ingaz.created_at') }}</th>
+                        <th>{{ helperTrans('ingaz.actions') }}</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
 
         @include('web.ingaz.maids.sub.maid_modal_view')
     @else
