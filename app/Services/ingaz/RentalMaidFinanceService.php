@@ -10,20 +10,24 @@ use Nami\Finance\Models\ConfirmSetting;
 class RentalMaidFinanceService
 {
     private const ACCOUNT_DEFINITIONS = [
-        ['setting_key' => 'rental_maid_account_recruitment_cost', 'prepaid_setting_key' => 'rental_maid_prepaid_recruitment_cost', 'code' => 5911, 'prepaid_code' => 1592, 'fallback_name' => 'تكلفة استقدام عمالة تأجير', 'default_amount' => 0],
-        ['setting_key' => 'rental_maid_account_visa_fee', 'prepaid_setting_key' => 'rental_maid_prepaid_visa_fee', 'code' => 5921, 'prepaid_code' => 1597, 'fallback_name' => 'رسوم تأشيرات عمل التأجير', 'default_amount' => 2000],
-        ['setting_key' => 'rental_maid_account_enjaz_fee', 'prepaid_setting_key' => 'rental_maid_prepaid_enjaz_fee', 'code' => 5922, 'prepaid_code' => 1593, 'fallback_name' => 'رسوم إنجاز التأجير', 'default_amount' => 133],
-        ['setting_key' => 'rental_maid_account_iqama_fee', 'prepaid_setting_key' => 'rental_maid_prepaid_iqama_fee', 'code' => 5923, 'prepaid_code' => 1594, 'fallback_name' => 'رسوم إقامات التأجير', 'default_amount' => 0],
-        ['setting_key' => 'rental_maid_account_work_permit_fee', 'prepaid_setting_key' => 'rental_maid_prepaid_work_permit_fee', 'code' => 5924, 'prepaid_code' => 1595, 'fallback_name' => 'رسوم رخص عمل التأجير', 'default_amount' => 0],
-        ['setting_key' => 'rental_maid_account_medical_insurance', 'prepaid_setting_key' => 'rental_maid_prepaid_medical_insurance', 'code' => 5925, 'prepaid_code' => 1596, 'fallback_name' => 'رسوم تأمين طبي التأجير', 'default_amount' => 0],
-        ['setting_key' => 'rental_maid_account_social_insurance', 'prepaid_setting_key' => 'rental_maid_prepaid_social_insurance', 'code' => 5926, 'prepaid_code' => 1598, 'fallback_name' => 'رسوم تأمينات اجتماعية التأجير', 'default_amount' => 0],
-        ['setting_key' => 'rental_maid_account_salary', 'prepaid_setting_key' => 'rental_maid_prepaid_salary', 'code' => 5931, 'prepaid_code' => 1599, 'fallback_name' => 'رواتب عمالة التأجير', 'default_amount' => 0],
+        ['setting_key' => 'rental_maid_account_recruitment_cost', 'prepaid_setting_key' => 'rental_maid_prepaid_recruitment_cost', 'amount_setting_key' => 'rental_maid_amount_recruitment_cost', 'code' => 5911, 'prepaid_code' => 1592, 'fallback_name' => 'تكلفة استقدام عمالة تأجير', 'default_amount' => 0],
+        ['setting_key' => 'rental_maid_account_visa_fee', 'prepaid_setting_key' => 'rental_maid_prepaid_visa_fee', 'amount_setting_key' => 'rental_maid_amount_visa_fee', 'code' => 5921, 'prepaid_code' => 1597, 'fallback_name' => 'رسوم تأشيرات عمل التأجير', 'default_amount' => 2000],
+        ['setting_key' => 'rental_maid_account_enjaz_fee', 'prepaid_setting_key' => 'rental_maid_prepaid_enjaz_fee', 'amount_setting_key' => 'rental_maid_amount_enjaz_fee', 'code' => 5922, 'prepaid_code' => 1593, 'fallback_name' => 'رسوم إنجاز التأجير', 'default_amount' => 133],
+        ['setting_key' => 'rental_maid_account_iqama_fee', 'prepaid_setting_key' => 'rental_maid_prepaid_iqama_fee', 'amount_setting_key' => 'rental_maid_amount_iqama_fee', 'code' => 5923, 'prepaid_code' => 1594, 'fallback_name' => 'رسوم إقامات التأجير', 'default_amount' => 0],
+        ['setting_key' => 'rental_maid_account_work_permit_fee', 'prepaid_setting_key' => 'rental_maid_prepaid_work_permit_fee', 'amount_setting_key' => 'rental_maid_amount_work_permit_fee', 'code' => 5924, 'prepaid_code' => 1595, 'fallback_name' => 'رسوم رخص عمل التأجير', 'default_amount' => 0],
+        ['setting_key' => 'rental_maid_account_medical_insurance', 'prepaid_setting_key' => 'rental_maid_prepaid_medical_insurance', 'amount_setting_key' => 'rental_maid_amount_medical_insurance', 'code' => 5925, 'prepaid_code' => 1596, 'fallback_name' => 'رسوم تأمين طبي التأجير', 'default_amount' => 0],
+        ['setting_key' => 'rental_maid_account_social_insurance', 'prepaid_setting_key' => 'rental_maid_prepaid_social_insurance', 'amount_setting_key' => 'rental_maid_amount_social_insurance', 'code' => 5926, 'prepaid_code' => 1598, 'fallback_name' => 'رسوم تأمينات اجتماعية التأجير', 'default_amount' => 0],
+        ['setting_key' => 'rental_maid_account_salary', 'prepaid_setting_key' => 'rental_maid_prepaid_salary', 'amount_setting_key' => 'rental_maid_amount_salary', 'code' => 5931, 'prepaid_code' => 1599, 'fallback_name' => 'رواتب عمالة التأجير', 'default_amount' => 0],
     ];
 
     public static function confirmSettingTitles(): array
     {
         return collect(self::ACCOUNT_DEFINITIONS)
-            ->flatMap(fn (array $definition) => [$definition['setting_key'], $definition['prepaid_setting_key']])
+            ->flatMap(fn (array $definition) => [
+                $definition['setting_key'],
+                $definition['prepaid_setting_key'],
+                $definition['amount_setting_key'],
+            ])
             ->all();
     }
 
@@ -39,6 +43,7 @@ class RentalMaidFinanceService
                     'display_label' => $definition['fallback_name'],
                     'selected_account_id' => $account?->id,
                     'selected_prepaid_account_id' => $this->resolvePrepaidAccountForDefinition($definition, $settings)?->id,
+                    'selected_default_amount' => $this->resolveAmountForDefinition($definition, $settings),
                 ];
             })
             ->all();
@@ -82,7 +87,7 @@ class RentalMaidFinanceService
                     'account_code' => (string) $account->code,
                     'type' => $this->normalizeItemType($submittedItem['type'] ?? 'expense'),
                     'label' => $account->name,
-                    'amount' => $this->normalizeAmount($submittedItem['amount'] ?? ($definition['default_amount'] ?? 0)),
+                    'amount' => $this->normalizeAmount($submittedItem['amount'] ?? $this->resolveAmountForDefinition($definition, $settings)),
                 ];
             })
             ->filter()
@@ -180,6 +185,17 @@ class RentalMaidFinanceService
     private function normalizeAmount(mixed $amount): float
     {
         return is_numeric($amount) ? round((float) $amount, 2) : 0.0;
+    }
+
+    private function resolveAmountForDefinition(array $definition, Collection $settings): float
+    {
+        $configuredAmount = $settings->get($definition['amount_setting_key'])->value ?? null;
+
+        if ($configuredAmount !== null && $configuredAmount !== '') {
+            return $this->normalizeAmount($configuredAmount);
+        }
+
+        return $this->normalizeAmount($definition['default_amount'] ?? 0);
     }
 
     private function normalizeItemType(?string $type): string

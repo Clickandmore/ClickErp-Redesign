@@ -519,7 +519,7 @@
                     </div>
                     <div class="col-12" id="rental_finance_preview" style="display: none;">
                         <input type="hidden" name="rental_finance_items_confirmed" id="rental_finance_items_confirmed"
-                            value="{{ old('rental_finance_items_confirmed', '0') }}">
+                            value="{{ old('rental_finance_items_confirmed', $rentalFinanceItems->isNotEmpty() ? '1' : '0') }}">
                         <div class="card border-0 shadow-sm">
                             <div
                                 class="card-body d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">

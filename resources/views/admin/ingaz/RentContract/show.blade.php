@@ -822,6 +822,54 @@
                                 <span class="label">مبلغ نقل الكفالة</span>
                                 <span class="value">{{ $contract->info?->sponsorship_transfer_amount ? number_format($contract->info->sponsorship_transfer_amount, 2) . ' ريال' : 'غير محدد' }}</span>
                             </li>
+                            @if($contract->info?->sponsorship_transfer_total_amount || $contract->info?->sponsorship_transfer_payment_type || $contract->info?->sponsorship_transfer_payment_status)
+                                @php
+                                    $transferPaymentTypes = [
+                                        'cash' => 'نقداً',
+                                        'bank_transfer' => 'تحويل بنكي',
+                                        'mada' => 'مدى',
+                                        'tabby' => 'تابي',
+                                        'tamara' => 'تمارا',
+                                        'pay_later' => 'الدفع لاحقاً',
+                                        'other' => 'أخرى',
+                                    ];
+                                    $transferPaymentStatuses = [
+                                        'paid' => 'تم الدفع',
+                                        'partial' => 'مدفوع جزئياً',
+                                        'pending' => 'معلق',
+                                        'later' => 'الدفع لاحقاً',
+                                        'bank_pending' => 'بانتظار التحويل',
+                                    ];
+                                @endphp
+                                <li>
+                                    <span class="label">إجمالي نقل الكفالة</span>
+                                    <span class="value">{{ number_format((float) $contract->info->sponsorship_transfer_total_amount, 2) }} ريال</span>
+                                </li>
+                                <li>
+                                    <span class="label">مدفوع نقل الكفالة</span>
+                                    <span class="value">{{ number_format((float) $contract->info->sponsorship_transfer_paid_amount, 2) }} ريال</span>
+                                </li>
+                                <li>
+                                    <span class="label">متبقي نقل الكفالة</span>
+                                    <span class="value">{{ number_format((float) $contract->info->sponsorship_transfer_remaining_amount, 2) }} ريال</span>
+                                </li>
+                                <li>
+                                    <span class="label">طريقة دفع نقل الكفالة</span>
+                                    <span class="value">{{ $transferPaymentTypes[$contract->info->sponsorship_transfer_payment_type] ?? 'غير محدد' }}</span>
+                                </li>
+                                <li>
+                                    <span class="label">حالة دفع نقل الكفالة</span>
+                                    <span class="value">{{ $transferPaymentStatuses[$contract->info->sponsorship_transfer_payment_status] ?? 'غير محدد' }}</span>
+                                </li>
+                                @if($contract->info->sponsorship_transfer_payment_receipt_url)
+                                    <li>
+                                        <span class="label">إيصال دفع نقل الكفالة</span>
+                                        <span class="value">
+                                            <a href="{{ $contract->info->sponsorship_transfer_payment_receipt_url }}" target="_blank">عرض الإيصال</a>
+                                        </span>
+                                    </li>
+                                @endif
+                            @endif
                             <li>
                                 <span class="label">الراتب بعد نقل الكفالة</span>
                                 <span class="value">{{ $contract->info?->salary_after_sponsorship ? number_format($contract->info->salary_after_sponsorship, 2) . ' ريال' : 'غير محدد' }}</span>

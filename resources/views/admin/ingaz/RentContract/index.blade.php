@@ -628,7 +628,7 @@
                         </div>
                     </div>
 
-                    <div class="row mb-4">
+                    <div class="row mb-4" id="closeContractAttachmentsRow" style="display: none;">
                         <div class="col-12">
                             <div class="close-section-card">
                                 <div class="section-title"><i class="fas fa-paperclip"></i>مرفقات العقد</div>
@@ -641,7 +641,7 @@
                         </div>
                     </div>
 
-                    <div class="row mb-4">
+                    <div class="row mb-4" id="closeFinancialSettlementRow" style="display: none;">
                         <div class="col-12">
                             <div class="close-section-card">
                                 <div class="section-title"><i class="fas fa-file-invoice-dollar"></i>البيان المالي قبل الإنهاء</div>
@@ -770,6 +770,16 @@
                                             </div>
                                         </div>
                                     </div>
+                                    <div class="d-flex justify-content-end gap-2 mt-4">
+                                        <button type="button" class="btn btn-secondary" id="backToCloseOptionsBtn">
+                                            <i class="fas fa-arrow-right me-2"></i>
+                                            رجوع للخيارات
+                                        </button>
+                                        <button type="button" class="btn btn-success" id="confirmCloseAndMakeAvailableBtn">
+                                            <i class="fas fa-check me-2"></i>
+                                            تأكيد الإغلاق والإتاحة
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -849,7 +859,7 @@
                                     </div>
                                 </div>
 
-                                <form id="sponsorshipTransferForm">
+                                <form id="sponsorshipTransferForm" enctype="multipart/form-data">
                                     <div class="row">
                                         <div class="col-12">
                                             <div class="transfer-summary-box mb-3">
@@ -878,6 +888,60 @@
                                                 <label for="remainingAmount" class="form-label">المبلغ المتبقي</label>
                                                 <input type="number" class="form-control" id="remainingAmount"
                                                     name="remainingAmount" step="0.01" readonly>
+                                            </div>
+                                        </div>
+                                        <div class="col-12">
+                                            <div class="border rounded p-3 mb-3 bg-light">
+                                                <div class="d-flex align-items-center justify-content-between mb-3">
+                                                    <h6 class="mb-0">
+                                                        <i class="fas fa-credit-card text-primary me-2"></i>
+                                                        بيانات الدفع
+                                                    </h6>
+                                                    <small class="text-muted">طريقة الدفع وحالة السداد والمرفقات</small>
+                                                </div>
+                                                <div class="row g-3">
+                                                    <div class="col-md-4">
+                                                        <label for="transferPaymentType" class="form-label">طريقة الدفع <span
+                                                                class="text-danger">*</span></label>
+                                                        <select class="form-select" id="transferPaymentType" name="payment_type" required>
+                                                            <option value="">اختر الطريقة</option>
+                                                            <option value="cash">نقداً</option>
+                                                            <option value="bank_transfer">تحويل بنكي</option>
+                                                            <option value="mada">مدى</option>
+                                                            <option value="tabby">تابي</option>
+                                                            <option value="tamara">تمارا</option>
+                                                            <option value="pay_later">الدفع لاحقاً</option>
+                                                            <option value="other">أخرى</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <label for="transferPaymentStatus" class="form-label">حالة الدفع <span
+                                                                class="text-danger">*</span></label>
+                                                        <select class="form-select" id="transferPaymentStatus" name="payment_status" required>
+                                                            <option value="">اختر الحالة</option>
+                                                            <option value="paid">تم الدفع</option>
+                                                            <option value="partial">مدفوع جزئياً</option>
+                                                            <option value="pending">معلق</option>
+                                                            <option value="later">الدفع لاحقاً</option>
+                                                            <option value="bank_pending">بانتظار التحويل</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <label for="transferPaymentReceipt" class="form-label">
+                                                            إيصال الدفع <span class="text-danger d-none" id="transferReceiptRequiredMark">*</span>
+                                                        </label>
+                                                        <input type="file" class="form-control" id="transferPaymentReceipt"
+                                                            name="payment_receipt" accept=".jpg,.jpeg,.png,.pdf">
+                                                        <div class="form-text d-none" id="transferReceiptRequiredNote">
+                                                            الإيصال مطلوب عند اختيار تم الدفع أو مدفوع جزئياً.
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-12">
+                                                        <label for="transferAttachments" class="form-label">مرفقات إضافية</label>
+                                                        <input type="file" class="form-control" id="transferAttachments"
+                                                            name="attachments[]" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx" multiple>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                         <div class="col-12">
@@ -1738,6 +1802,22 @@
                 $('#transfer-adjustment-rows').empty();
             }
 
+            function toggleTransferReceiptRequirement() {
+                const paymentStatus = $('#transferPaymentStatus').val();
+                const receiptRequired = paymentStatus === 'paid' || paymentStatus === 'partial';
+
+                $('#transferPaymentReceipt').prop('required', receiptRequired);
+                $('#transferReceiptRequiredMark, #transferReceiptRequiredNote').toggleClass('d-none', !receiptRequired);
+            }
+
+            function resetTransferPaymentFields() {
+                $('#transferPaymentType').val('');
+                $('#transferPaymentStatus').val('');
+                $('#transferPaymentReceipt').val('');
+                $('#transferAttachments').val('');
+                toggleTransferReceiptRequirement();
+            }
+
             function getTransferAdjustments() {
                 const items = [];
 
@@ -1763,6 +1843,10 @@
 
             $(document).on('click', '#add-transfer-adjustment', function() {
                 addTransferAdjustmentRow();
+            });
+
+            $('#transferPaymentStatus').on('change', function() {
+                toggleTransferReceiptRequirement();
             });
 
             $(document).on('click', '.remove-transfer-adjustment', function() {
@@ -1855,9 +1939,13 @@
                             const contract = response.contract;
                             resetCloseFinancialFields();
                             resetTransferAdjustments();
+                            resetTransferPaymentFields();
                             $('#transferSponsorshipForm').hide();
+                            $('#closeContractAttachmentsRow').hide();
+                            $('#closeFinancialSettlementRow').hide();
                             $('#closeContractOptionsRow').show();
                             $('#sponsorshipTransferForm')[0].reset();
+                            resetTransferPaymentFields();
 
                             // تعبئة بيانات العقد في الـ modal
                             $('#contractId').text(contract.id);
@@ -1920,8 +2008,7 @@
                 });
             });
 
-            // إغلاق العقد وإرجاع العاملة متاحة
-            $('#closeAndMakeAvailableBtn').click(function() {
+            function executeCloseAndMakeAvailable() {
                 Swal.fire({
                     title: 'تأكيد الإغلاق',
                     text: 'هل أنت متأكد من إغلاق العقد وإرجاع العاملة متاحة؟',
@@ -2003,6 +2090,25 @@
                         });
                     }
                 });
+            }
+
+            // إظهار بيان الإغلاق بعد اختيار إرجاع العاملة متاحة
+            $('#closeAndMakeAvailableBtn').click(function() {
+                $('#transferSponsorshipForm').hide();
+                $('#closeContractOptionsRow').hide();
+                $('#closeContractAttachmentsRow').show();
+                $('#closeFinancialSettlementRow').show();
+            });
+
+            $('#confirmCloseAndMakeAvailableBtn').click(function() {
+                executeCloseAndMakeAvailable();
+            });
+
+            $('#backToCloseOptionsBtn').click(function() {
+                $('#closeContractAttachmentsRow').hide();
+                $('#closeFinancialSettlementRow').hide();
+                $('#transferSponsorshipForm').hide();
+                $('#closeContractOptionsRow').show();
             });
 
             function renderContractAttachments(attachments) {
@@ -2026,7 +2132,12 @@
             // إظهار نموذج نقل الكفالة
             $('#transferSponsorshipBtn').click(function() {
                 $('#transferSponsorshipForm').show();
+                $('#closeContractAttachmentsRow').hide();
+                $('#closeFinancialSettlementRow').hide();
                 $('#closeContractOptionsRow').hide();
+                $('#closeContractModal .modal-body').animate({
+                    scrollTop: $('#transferSponsorshipForm').position().top
+                }, 200);
                 if (!$('#transfer-adjustment-rows tr').length) {
                     addTransferAdjustmentRow({
                         type: 'income',
@@ -2039,9 +2150,12 @@
             // إلغاء نقل الكفالة
             $('#cancelTransferBtn').click(function() {
                 $('#transferSponsorshipForm').hide();
+                $('#closeContractAttachmentsRow').hide();
+                $('#closeFinancialSettlementRow').hide();
                 $('#closeContractOptionsRow').show();
                 $('#sponsorshipTransferForm')[0].reset();
                 resetTransferAdjustments();
+                resetTransferPaymentFields();
             });
 
             // حساب المبلغ المتبقي تلقائياً
@@ -2064,21 +2178,40 @@
             $('#sponsorshipTransferForm').submit(function(e) {
                 e.preventDefault();
 
-                const formData = {
-                    contract_id: selectedContractId,
-                    total_amount: $('#totalAmount').val(),
-                    paid_amount: $('#paidAmount').val(),
-                    remaining_amount: $('#remainingAmount').val(),
-                    notes: $('#transferNotes').val(),
-                    transfer_finance_items_present: 1,
-                    transfer_finance_items: getTransferAdjustments(),
-                    _token: '{{ csrf_token() }}'
-                };
+                const paymentStatus = $('#transferPaymentStatus').val();
+                const receiptInput = $('#transferPaymentReceipt')[0];
+                const hasReceipt = !!(receiptInput && receiptInput.files && receiptInput.files.length > 0);
+
+                if ((paymentStatus === 'paid' || paymentStatus === 'partial') && !hasReceipt) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'خطأ',
+                        text: 'يجب إرفاق إيصال الدفع عند تحديد حالة الدفع "تم الدفع" أو "مدفوع جزئياً".'
+                    });
+                    return;
+                }
+
+                const formData = new FormData(this);
+                formData.append('contract_id', selectedContractId);
+                formData.append('total_amount', $('#totalAmount').val());
+                formData.append('paid_amount', $('#paidAmount').val());
+                formData.append('remaining_amount', $('#remainingAmount').val());
+                formData.append('notes', $('#transferNotes').val());
+                formData.append('transfer_finance_items_present', '1');
+                formData.append('_token', '{{ csrf_token() }}');
+
+                getTransferAdjustments().forEach(function(item, index) {
+                    formData.append(`transfer_finance_items[${index}][type]`, item.type);
+                    formData.append(`transfer_finance_items[${index}][label]`, item.label);
+                    formData.append(`transfer_finance_items[${index}][amount]`, item.amount);
+                });
 
                 $.ajax({
                     url: `/admin/RentContract/${selectedContractId}/transfer-sponsorship`,
                     type: 'POST',
                     data: formData,
+                    processData: false,
+                    contentType: false,
                     success: function(response) {
                         if (response.success) {
                             Swal.fire({

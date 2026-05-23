@@ -33,6 +33,12 @@ class RentalContractInfo extends Model
         'sponsorship_transfer_total_amount',
         'sponsorship_transfer_paid_amount',
         'sponsorship_transfer_remaining_amount',
+        'sponsorship_transfer_payment_type',
+        'sponsorship_transfer_payment_status',
+        'sponsorship_transfer_payment_receipt_path',
+        'sponsorship_transfer_attachments',
+        'sponsorship_transfer_payment_confirmed_at',
+        'sponsorship_transfer_payment_confirmed_by',
         'salary_after_sponsorship',
         'sponsorship_transfer',
         'rental_type',
@@ -61,6 +67,8 @@ class RentalContractInfo extends Model
         'sponsorship_transfer_total_amount' => 'decimal:2',
         'sponsorship_transfer_paid_amount' => 'decimal:2',
         'sponsorship_transfer_remaining_amount' => 'decimal:2',
+        'sponsorship_transfer_attachments' => 'array',
+        'sponsorship_transfer_payment_confirmed_at' => 'datetime',
         'salary_after_sponsorship' => 'decimal:2',
         'monthly_cost' => 'decimal:2',
         'contract_value' => 'decimal:2',
@@ -91,6 +99,11 @@ class RentalContractInfo extends Model
         return $this->belongsTo(\App\Models\auth\Admin::class, 'payment_confirmed_by');
     }
 
+    public function sponsorshipTransferPaymentConfirmedBy()
+    {
+        return $this->belongsTo(\App\Models\auth\Admin::class, 'sponsorship_transfer_payment_confirmed_by');
+    }
+
     public function getPaymentReceiptUrlAttribute(): ?string
     {
         if (!$this->payment_receipt_path) {
@@ -98,6 +111,15 @@ class RentalContractInfo extends Model
         }
 
         return Storage::disk('public')->url($this->payment_receipt_path);
+    }
+
+    public function getSponsorshipTransferPaymentReceiptUrlAttribute(): ?string
+    {
+        if (!$this->sponsorship_transfer_payment_receipt_path) {
+            return null;
+        }
+
+        return Storage::disk('public')->url($this->sponsorship_transfer_payment_receipt_path);
     }
 
     public function getClosureClientIbanAttachmentUrlAttribute(): ?string

@@ -55,6 +55,8 @@ return array (
   'rental_maid_expense_accounts_hint' => 'اختر حساب المصروف وحساب المصروف المدفوع مقدماً لكل بند. عند حفظ عاملة التأجير يكون المصروف مديناً وحساب المصروف المدفوع مقدماً دائناً مع مركز تكلفة العاملة.',
   'rental_maid_expense_accounts_empty' => 'لا توجد حسابات مدينة طرفية متاحة حالياً لاستخدامها في بنود التأجير.',
   'rental_maid_prepaid_account_for' => 'مصروفات مدفوعة مقدماً - :name',
+  'rental_maid_default_amount_for' => 'القيمة الافتراضية - :name',
+  'rental_maid_default_amount_hint' => 'تظهر هذه القيمة تلقائياً في بنود مالية التأجير عند إضافة عاملة إيجار، ويمكن تعديلها قبل الحفظ.',
   'bank_account_name' => 'اسم الحساب والبنك',
   'bank_account_number' => 'رقم الحساب',
   'payment_email' => 'ايميل الدفع',

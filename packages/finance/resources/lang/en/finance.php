@@ -59,6 +59,8 @@ return array (
   'rental_maid_expense_accounts_hint' => 'Choose the expense account and matching prepaid expense account for each item. Saving a rental maid debits the expense and credits the prepaid expense account with the worker cost center.',
   'rental_maid_expense_accounts_empty' => 'There are no debtor leaf accounts available for rental maid expense items.',
   'rental_maid_prepaid_account_for' => 'Prepaid expense - :name',
+  'rental_maid_default_amount_for' => 'Default amount - :name',
+  'rental_maid_default_amount_hint' => 'This amount is loaded automatically into rental finance items when adding a rental worker, and can still be adjusted before saving.',
   'bank_account_name' => 'Bank and Account Name',
   'bank_account_number' => 'Account Number',
   'payment_email' => 'Payment Email',

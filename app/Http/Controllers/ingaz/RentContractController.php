@@ -1936,10 +1936,17 @@ class RentContractController extends Controller
         };
 
         $addAttachment($contract->info?->payment_receipt_path, 'إيصال دفع العقد', 'payment-receipt');
+        $addAttachment($contract->info?->sponsorship_transfer_payment_receipt_path, 'إيصال دفع نقل الكفالة', 'transfer-payment-receipt');
         $addAttachment($contract->info?->closure_client_iban_attachment_path, 'مرفق آيبان العميل', 'closure-iban');
         $addAttachment($contract->maid?->cv_file, 'سيرة العاملة', 'maid-cv');
         $addAttachment($contract->maid?->cv_preview, 'معاينة سيرة العاملة', 'maid-cv-preview');
         $addAttachment($contract->maid?->image, 'صورة العاملة', 'maid-image');
+
+        foreach ((array) ($contract->info?->sponsorship_transfer_attachments ?? []) as $index => $transferAttachment) {
+            $path = is_array($transferAttachment) ? ($transferAttachment['path'] ?? null) : null;
+            $name = is_array($transferAttachment) ? ($transferAttachment['name'] ?? null) : null;
+            $addAttachment($path, 'مرفق نقل الكفالة' . ($name ? ' - ' . $name : ' رقم ' . ($index + 1)), 'transfer-attachment-' . $index);
+        }
 
         foreach ($contract->extensions as $extension) {
             $addAttachment($extension->payment_receipt_path, 'إيصال تمديد رقم ' . $extension->id, 'extension-' . $extension->id);
@@ -1960,15 +1967,37 @@ class RentContractController extends Controller
         $request->validate([
             'transfer_amount' => 'nullable|numeric|min:0',
             'total_amount' => 'required|numeric|min:0',
-            'paid_amount' => 'required|numeric|min:0',
+            'paid_amount' => 'required|numeric|min:0|lte:total_amount',
             'remaining_amount' => 'required|numeric|min:0',
+            'payment_type' => 'required|in:cash,bank_transfer,mada,tabby,tamara,pay_later,other',
+            'payment_status' => 'required|in:paid,partial,pending,later,bank_pending',
+            'payment_receipt' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+            'attachments' => 'nullable|array',
+            'attachments.*' => 'file|mimes:jpg,jpeg,png,pdf,doc,docx|max:4096',
             'notes' => 'nullable|string',
             'transfer_finance_items' => 'nullable|array',
             'transfer_finance_items.*.type' => 'nullable|in:income,expense',
             'transfer_finance_items.*.label' => 'nullable|string|max:150',
             'transfer_finance_items.*.amount' => 'nullable|numeric|min:0',
             'transfer_finance_items_present' => 'nullable|boolean',
+        ], [
+            'paid_amount.lte' => 'المبلغ المدفوع لا يمكن أن يكون أكبر من المبلغ الكامل.',
+            'payment_type.required' => 'يجب اختيار طريقة الدفع.',
+            'payment_type.in' => 'طريقة الدفع غير صحيحة.',
+            'payment_status.required' => 'يجب اختيار حالة الدفع.',
+            'payment_status.in' => 'حالة الدفع غير صحيحة.',
+            'payment_receipt.file' => 'صيغة إيصال الدفع غير صحيحة.',
+            'payment_receipt.mimes' => 'صيغة إيصال الدفع يجب أن تكون pdf أو jpg أو jpeg أو png.',
+            'payment_receipt.max' => 'حجم إيصال الدفع يجب ألا يتجاوز 4 ميجابايت.',
+            'attachments.*.mimes' => 'صيغة المرفقات يجب أن تكون pdf أو jpg أو jpeg أو png أو doc أو docx.',
+            'attachments.*.max' => 'حجم كل مرفق يجب ألا يتجاوز 4 ميجابايت.',
         ]);
+
+        if (in_array($request->payment_status, ['paid', 'partial'], true) && !$request->hasFile('payment_receipt')) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'payment_receipt' => 'يجب إرفاق إيصال الدفع عند تحديد حالة الدفع "تم الدفع" أو "مدفوع جزئياً".',
+            ]);
+        }
 
         try {
             DB::beginTransaction();
@@ -1983,6 +2012,8 @@ class RentContractController extends Controller
             $transferAmount = $request->filled('transfer_amount')
                 ? (float) $request->transfer_amount
                 : $transferTotalAmount;
+            $transferPaidAmount = min((float) $request->paid_amount, $transferTotalAmount);
+            $transferRemainingAmount = max(0.0, $transferTotalAmount - $transferPaidAmount);
 
             // Close the old contract and set closure type to transferred
             $oldContract->status = 'completed';
@@ -1994,8 +2025,8 @@ class RentContractController extends Controller
             $transferDetails = "تفاصيل نقل الكفالة بتاريخ " . now()->format('Y-m-d H:i') . ":\n" .
                 "- مبلغ نقل الكفالة: " . number_format($transferAmount, 2) . " ريال\n" .
                 "- المبلغ الإجمالي: " . number_format($request->total_amount, 2) . " ريال\n" .
-                "- المبلغ المدفوع: " . number_format($request->paid_amount, 2) . " ريال\n" .
-                "- المبلغ المتبقي: " . number_format($request->remaining_amount, 2) . " ريال";
+                "- المبلغ المدفوع: " . number_format($transferPaidAmount, 2) . " ريال\n" .
+                "- المبلغ المتبقي: " . number_format($transferRemainingAmount, 2) . " ريال";
 
             if ($request->filled('notes')) { $transferDetails .= "\n- ملاحظات إضافية: " . $request->notes; if (false) {
                 throw new \Exception('لا يمكن العثور على بيانات العميل في عقد الإيجار');
@@ -2027,19 +2058,47 @@ class RentContractController extends Controller
 
             }
 
-            $transferPaidAmount = (float) $request->paid_amount;
-            $transferRemainingAmount = max(0.0, (float) $request->remaining_amount);
             $transferIsPaid = $transferRemainingAmount <= 0.0;
+            $paymentReceiptPath = $request->hasFile('payment_receipt')
+                ? $request->file('payment_receipt')->store('rental-contracts/sponsorship-transfer/receipts', 'public')
+                : null;
+            $transferAttachments = [];
+
+            foreach ($request->file('attachments', []) as $file) {
+                $transferAttachments[] = [
+                    'path' => $file->store('rental-contracts/sponsorship-transfer/attachments', 'public'),
+                    'name' => $file->getClientOriginalName(),
+                    'mime_type' => $file->getClientMimeType(),
+                    'size' => $file->getSize(),
+                ];
+            }
+
+            $transferPaymentUpdates = [
+                'sponsorship_transfer_payment_type' => $request->payment_type,
+                'sponsorship_transfer_payment_status' => $request->payment_status,
+                'sponsorship_transfer_payment_receipt_path' => $paymentReceiptPath,
+                'sponsorship_transfer_attachments' => $transferAttachments ?: null,
+                'sponsorship_transfer_payment_confirmed_at' => $transferPaidAmount > 0 ? now() : null,
+                'sponsorship_transfer_payment_confirmed_by' => $transferPaidAmount > 0 ? auth('admin')->id() : null,
+            ];
 
             if ($oldContract->info) {
                 $existingNotes = $oldContract->info->notes ? $oldContract->info->notes . "\n\n" : '';
+                $existingTransferAttachments = (array) ($oldContract->info->sponsorship_transfer_attachments ?? []);
+                if (!empty($existingTransferAttachments) || !empty($transferAttachments)) {
+                    $transferPaymentUpdates['sponsorship_transfer_attachments'] = array_values(array_merge(
+                        $existingTransferAttachments,
+                        $transferAttachments
+                    ));
+                }
+
                 $oldContract->info->update([
                     'sponsorship_transfer_amount' => $transferAmount,
                     'sponsorship_transfer_total_amount' => $transferTotalAmount,
                     'sponsorship_transfer_paid_amount' => $transferPaidAmount,
                     'sponsorship_transfer_remaining_amount' => $transferRemainingAmount,
                     'notes' => $existingNotes . $transferDetails,
-                ]);
+                ] + $transferPaymentUpdates);
             } else {
                 RentalContractInfo::create([
                     'rental_contract_id' => $oldContract->id,
@@ -2048,7 +2107,7 @@ class RentContractController extends Controller
                     'sponsorship_transfer_paid_amount' => $transferPaidAmount,
                     'sponsorship_transfer_remaining_amount' => $transferRemainingAmount,
                     'notes' => $transferDetails,
-                ]);
+                ] + $transferPaymentUpdates);
             }
 
             if ($transferIsPaid) {
@@ -2072,8 +2131,8 @@ class RentContractController extends Controller
                 'old_contract_id' => $oldContract->id,
                 'transfer_amount' => $transferAmount,
                 'total_amount' => $request->total_amount,
-                'paid_amount' => $request->paid_amount,
-                'remaining_amount' => $request->remaining_amount,
+                'paid_amount' => $transferPaidAmount,
+                'remaining_amount' => $transferRemainingAmount,
                 'transferred_by' => auth()->id()
             ]);
 
