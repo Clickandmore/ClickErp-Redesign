@@ -709,6 +709,11 @@
                                                 <span id="finalDueAmount">0.00 ريال</span>
                                             </div>
                                         </div>
+                                        <div class="col-12">
+                                            <label class="form-label">سبب الإرجاع / الإغلاق المبكر</label>
+                                            <textarea class="form-control" id="closeReturnReason" rows="3"
+                                                placeholder="اكتب سبب إرجاع العاملة أو الإغلاق المبكر..."></textarea>
+                                        </div>
                                     </div>
                                     <div class="row g-3 mt-2 align-items-end">
                                         <div class="col-md-4">
@@ -750,12 +755,12 @@
                                                 accept=".jpg,.jpeg,.png,.pdf">
                                         </div>
                                         <div class="col-md-4">
-                                            <label class="form-label">آيبان العميل</label>
+                                            <label class="form-label">آيبان العميل <small class="text-muted">(اختياري)</small></label>
                                             <input type="text" class="form-control" id="closeClientIban" dir="ltr"
                                                 maxlength="34" placeholder="SAxxxxxxxxxxxxxxxxxxxxxx">
                                         </div>
                                         <div class="col-md-4">
-                                            <label class="form-label">مرفق آيبان العميل</label>
+                                            <label class="form-label">مرفق آيبان العميل <small class="text-muted">(اختياري)</small></label>
                                             <input type="file" class="form-control" id="closeClientIbanAttachment"
                                                 accept=".jpg,.jpeg,.png,.pdf">
                                             <div class="form-text d-none" id="closeClientIbanAttachmentCurrentWrapper">
@@ -1689,6 +1694,7 @@
                 $('#closePaymentReceipt').val('');
                 $('#closeClientIban').val('');
                 $('#closeClientIbanAttachment').val('');
+                $('#closeReturnReason').val('');
                 $('#closeClientIbanAttachmentCurrentWrapper').addClass('d-none');
                 $('#closeClientIbanAttachmentCurrent').attr('href', '#');
                 $('#financialRemainingAmount').data('raw', 0);
@@ -1875,6 +1881,7 @@
                             $('#financialUsedCost').text(formatCurrency(contract.used_cost || 0) + ' ريال');
                             $('#financialSuggestedRefund').text(formatCurrency(contract.calculated_refund_value || 0) + ' ريال');
                             $('#closeAdjustmentAmount').val(parseFloat(contract.refund_value || 0).toFixed(2));
+                            $('#closeReturnReason').val(contract.closure_return_reason || '');
                             $('#closePaymentStatus').val(contract.payment_status || '');
                             $('#closeClientIban').val(contract.closure_client_iban || '');
                             renderContractAttachments(contract.attachments || []);
@@ -1930,6 +1937,7 @@
                         formData.append('adjustment_type', $('#closeAdjustmentType').val());
                         formData.append('adjustment_amount', $('#closeAdjustmentAmount').val() || 0);
                         formData.append('clear_remaining_amount', $('#closeClearRemainingToggle').is(':checked') ? ($('#closeClearRemainingAmount').val() || 0) : 0);
+                        formData.append('closure_return_reason', $('#closeReturnReason').val());
                         formData.append('close_payment_status', $('#closePaymentStatus').val());
                         formData.append('close_client_iban', $('#closeClientIban').val());
 

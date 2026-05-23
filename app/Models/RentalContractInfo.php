@@ -25,6 +25,7 @@ class RentalContractInfo extends Model
         'payment_confirmed_by',
         'closure_client_iban',
         'closure_client_iban_attachment_path',
+        'closure_return_reason',
         'working_hours_per_day',
         'hourly_rate',
         'monthly_salary',

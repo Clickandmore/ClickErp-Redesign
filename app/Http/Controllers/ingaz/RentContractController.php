@@ -1598,6 +1598,7 @@ class RentContractController extends Controller
             'payment_status' => $info?->payment_status,
             'closure_client_iban' => $info?->closure_client_iban,
             'closure_client_iban_attachment_url' => $info?->closure_client_iban_attachment_url,
+            'closure_return_reason' => $info?->closure_return_reason,
         ];
     }
 
@@ -1642,6 +1643,7 @@ class RentContractController extends Controller
                 'payment_status' => $summary['payment_status'],
                 'closure_client_iban' => $summary['closure_client_iban'],
                 'closure_client_iban_attachment_url' => $summary['closure_client_iban_attachment_url'],
+                'closure_return_reason' => $summary['closure_return_reason'],
                 'attachments' => $attachments,
             ];
 
@@ -1667,6 +1669,7 @@ class RentContractController extends Controller
             'adjustment_type' => 'nullable|in:refund',
             'adjustment_amount' => 'required|numeric|min:0',
             'clear_remaining_amount' => 'nullable|numeric|min:0',
+            'closure_return_reason' => 'nullable|string|max:1000',
             'close_payment_status' => 'nullable|in:paid,partial,pending,later,bank_pending',
             'close_payment_receipt' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
             'close_client_iban' => 'nullable|string|max:34',
@@ -1691,15 +1694,11 @@ class RentContractController extends Controller
             $clearRemainingAmount = (float) ($validated['clear_remaining_amount'] ?? 0);
             $currentRemainingAmount = (float) ($summary['remaining_amount'] ?? 0);
             $newRemainingAmount = max(0, $currentRemainingAmount - $clearRemainingAmount);
-
-            if ($adjustmentAmount > 0 && empty($validated['close_client_iban']) && !$request->hasFile('close_client_iban_attachment')) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
-                    'close_client_iban' => ['عند وجود مبلغ استرجاع يجب إدخال آيبان العميل أو إرفاق المرفق البنكي.'],
-                ]);
-            }
+            $closureReturnReason = trim((string) ($validated['closure_return_reason'] ?? ''));
 
             $infoUpdates = [
                 'remaining_amount' => $newRemainingAmount,
+                'closure_return_reason' => $closureReturnReason !== '' ? $closureReturnReason : null,
             ];
 
             if (!empty($validated['close_payment_status'])) {
@@ -1740,7 +1739,8 @@ class RentContractController extends Controller
                     'type' => 'expense',
                     'label' => 'استرجاع عند إغلاق العقد',
                     'amount' => $adjustmentAmount,
-                    'notes' => 'استرجاع مسجل أثناء إنهاء عقد الإيجار. القيمة المقترحة حسب الأيام: ' . number_format((float) ($summary['calculated_refund_value'] ?? 0), 2) . ' ريال',
+                    'notes' => 'استرجاع مسجل أثناء إنهاء عقد الإيجار. القيمة المقترحة حسب الأيام: ' . number_format((float) ($summary['calculated_refund_value'] ?? 0), 2) . ' ريال'
+                        . ($closureReturnReason !== '' ? "\nسبب الإرجاع: " . $closureReturnReason : ''),
                     'context' => 'closure',
                     'created_by' => auth('admin')->id(),
                 ]);
@@ -2208,12 +2208,6 @@ class RentContractController extends Controller
             $clearRemainingAmount = (float) ($validated['clear_remaining_amount'] ?? 0);
             $currentRemainingAmount = (float) ($summary['remaining_amount'] ?? 0);
             $newRemainingAmount = max(0, $currentRemainingAmount - $clearRemainingAmount);
-
-            if ($adjustmentAmount > 0 && empty($validated['close_client_iban']) && !$request->hasFile('close_client_iban_attachment')) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
-                    'close_client_iban' => ['عند وجود مبلغ استرجاع يجب إدخال آيبان العميل أو إرفاق المرفق البنكي.'],
-                ]);
-            }
 
             $infoUpdates = [
                 'remaining_amount' => $newRemainingAmount,
