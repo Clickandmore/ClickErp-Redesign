@@ -899,7 +899,7 @@
                                     <strong>{{ __('admin.dashboard_new.contracts_movement_three_years') }}</strong>
                                     <small>{{ __('admin.dashboard_new.contracts_movement_three_years_hint') }}</small>
                                 </div>
-                                <span class="contract-summary-pill">هذا الأسبوع:
+                                <span class="contract-summary-pill">{{ __('admin.dashboard_new.this_week_label') }}:
                                     {{ number_format($analyticsStats['thisWeek'] ?? 0) }}</span>
                             </div>
                             <div class="contracts-chart-wrap">
@@ -914,7 +914,7 @@
                                     <small>{{ __('admin.dashboard_new.contract_stages_hint') }}</small>
                                 </div>
                                 <div class="contract-stage-total">
-                                    <small>الإجمالي</small>
+                                    <small>{{ __('admin.dashboard_new.total_label') }}</small>
                                     <strong>{{ number_format($contractStagesRawTotal) }}</strong>
                                 </div>
                             </div>
@@ -1079,58 +1079,57 @@
                                         class="office-stock-card office-stock-link">
                                         <div class="office-stock-head">
                                             <div class="office-stock-heading">
-                                                <strong>{{ $office->title ?? 'مكتب' }}</strong>
+                                                <strong>{{ $office->title ?? __('admin.dashboard_new.office') }}</strong>
                                                 <div class="office-stock-meta">
-                                                    <span class="office-stock-pill">إجمالي
+                                                    <span class="office-stock-pill">{{ __('admin.dashboard_new.total_label') }}
                                                         {{ number_format($total) }}</span>
                                                     @if ($avgRecruitmentDays !== null)
-                                                        <span class="office-stock-pill">متوسط الوصول
+                                                        <span class="office-stock-pill">{{ __('admin.dashboard_new.average_arrival') }}
                                                             {{ number_format($avgRecruitmentDays) }}
-                                                            يوم</span>
+                                                            {{ __('admin.dashboard_new.day') }}</span>
                                                     @else
-                                                        <span class="office-stock-pill is-muted">متوسط الوصول غير
-                                                            متاح</span>
+                                                        <span class="office-stock-pill is-muted">{{ __('admin.dashboard_new.average_arrival_unavailable') }}</span>
                                                     @endif
                                                 </div>
                                             </div>
-                                            <span class="office-stock-total">سير {{ number_format($total) }}</span>
+                                            <span class="office-stock-total">{{ __('admin.dashboard_new.cv_count_short', ['count' => number_format($total)]) }}</span>
                                         </div>
 
                                         <div class="office-stock-nationality">
                                             @if ($nationalityFlagUrl)
                                                 <img src="{{ $nationalityFlagUrl }}"
-                                                    alt="{{ $office->nationality->title ?? 'الجنسية' }}">
+                                                    alt="{{ $office->nationality->title ?? __('admin.dashboard_new.nationality') }}">
                                             @else
                                                 <span class="office-stock-flag-fallback">
                                                     <i class="fas fa-flag"></i>
                                                 </span>
                                             @endif
-                                            <span>{{ $office->nationality->title ?? 'غير محدد' }}</span>
+                                            <span>{{ $office->nationality->title ?? __('admin.dashboard_new.not_specified') }}</span>
                                         </div>
 
                                         <div class="office-stock-stats">
-                                            <span class="office-status-pill is-available">متاح
+                                            <span class="office-status-pill is-available">{{ __('admin.dashboard_new.available') }}
                                                 {{ number_format($available) }}</span>
-                                            <span class="office-status-pill is-returned">مرتجع
+                                            <span class="office-status-pill is-returned">{{ __('admin.dashboard_new.returned') }}
                                                 {{ number_format($returned) }}</span>
-                                            <span class="office-status-pill is-backout">باك أوت
+                                            <span class="office-status-pill is-backout">{{ __('admin.dashboard_new.backout') }}
                                                 {{ number_format($backout) }}</span>
                                             @if ($other > 0)
-                                                <span class="office-status-pill is-other">أخرى
+                                                <span class="office-status-pill is-other">{{ __('admin.dashboard_new.other') }}
                                                     {{ number_format($other) }}</span>
                                             @endif
                                         </div>
 
                                         <small class="office-stock-foot">
                                             @if ($arrivalsTotal > 0)
-                                                متوسط المدة محسوب من {{ number_format($arrivalsTotal) }} حالة وصول
+                                                {{ __('admin.dashboard_new.average_from_arrivals', ['count' => number_format($arrivalsTotal)]) }}
                                             @else
-                                                لا توجد حالات وصول مكتملة لاحتساب المتوسط
+                                                {{ __('admin.dashboard_new.no_completed_arrivals_for_average') }}
                                             @endif
                                         </small>
                                     </a>
                                 @empty
-                                    <div class="empty-state py-3">لا توجد بيانات مكاتب</div>
+                                    <div class="empty-state py-3">{{ __('admin.dashboard_new.no_office_data') }}</div>
                                 @endforelse
                             </div>
                         </div>
@@ -1160,7 +1159,7 @@
                                             class="status-chip {{ $activity['type'] ?? 'info' }}">{{ $activity['status'] }}</span>
                                     </div>
                                 @empty
-                                    <div class="empty-state">لا يوجد نشاط حديث</div>
+                                    <div class="empty-state">{{ __('admin.dashboard_new.no_recent_activity') }}</div>
                                 @endforelse
                             </div>
                         </div>
@@ -1196,11 +1195,11 @@
                                 <a href="{{ route('admins.index') }}" class="btn btn-outline-primary btn-sm">{{ __('admin.dashboard_new.manage') }}</a>
                             </div>
                             <div class="employee-summary-row">
-                                <span class="employee-summary-pill">نشطون:
+                                <span class="employee-summary-pill">{{ __('admin.dashboard_new.active_employees') }}:
                                     {{ number_format($employeeBookingSummary['employees_with_activity'] ?? 0) }}</span>
-                                <span class="employee-summary-pill">الحجوزات:
+                                <span class="employee-summary-pill">{{ __('admin.dashboard_new.bookings') }}:
                                     {{ number_format($employeeBookingSummary['orders_total'] ?? 0) }}</span>
-                                <span class="employee-summary-pill">العقود:
+                                <span class="employee-summary-pill">{{ __('admin.dashboard_new.contracts') }}:
                                     {{ number_format($employeeBookingSummary['contracts_total'] ?? 0) }}</span>
                             </div>
                             <div class="employee-performance-list">
@@ -1213,43 +1212,43 @@
                                             <a href="{{ route('dashboard.employees.show', ['employee' => $emp->id, 'range' => 'all']) }}"
                                                 class="employee-profile-link">{{ $emp->name }}</a>
                                             <span class="employee-total-badge">{{ number_format($handledTotal) }}
-                                                متابعة</span>
+                                                {{ __('admin.dashboard_new.followups') }}</span>
                                         </div>
                                         <div class="employee-performance-metrics">
-                                            <span class="employee-metric-chip chip-orders">حجوزات:
+                                            <span class="employee-metric-chip chip-orders">{{ __('admin.dashboard_new.bookings') }}:
                                                 {{ number_format((int) $emp->orders_count) }}</span>
-                                            <span class="employee-metric-chip">جديد:
+                                            <span class="employee-metric-chip">{{ __('admin.dashboard_new.new') }}:
                                                 {{ number_format((int) $emp->orders_new) }}</span>
-                                            <span class="employee-metric-chip">تحت الإجراء:
+                                            <span class="employee-metric-chip">{{ __('admin.dashboard_new.under_process') }}:
                                                 {{ number_format((int) $emp->orders_under_process) }}</span>
-                                            <span class="employee-metric-chip">تم التعاقد:
+                                            <span class="employee-metric-chip">{{ __('admin.dashboard_new.contracted') }}:
                                                 {{ number_format((int) $emp->orders_contracted) }}</span>
-                                            <span class="employee-metric-chip">مغلقة:
+                                            <span class="employee-metric-chip">{{ __('admin.dashboard_new.closed') }}:
                                                 {{ number_format((int) $emp->orders_completed) }}</span>
-                                            <span class="employee-metric-chip chip-contracts">عقود:
+                                            <span class="employee-metric-chip chip-contracts">{{ __('admin.dashboard_new.contracts') }}:
                                                 {{ number_format((int) $emp->contracts_count) }}</span>
-                                            <span class="employee-metric-chip">جارية:
+                                            <span class="employee-metric-chip">{{ __('admin.dashboard_new.current') }}:
                                                 {{ number_format((int) $emp->contracts_current) }}</span>
-                                            <span class="employee-metric-chip">مكتملة:
+                                            <span class="employee-metric-chip">{{ __('admin.dashboard_new.completed') }}:
                                                 {{ number_format((int) $emp->contracts_completed) }}</span>
-                                            <span class="employee-metric-chip">مرتجعة:
+                                            <span class="employee-metric-chip">{{ __('admin.dashboard_new.returned') }}:
                                                 {{ number_format((int) $emp->contracts_returned) }}</span>
                                         </div>
                                         <div class="employee-performance-footer">
-                                            <small>نسبة التعاقد من الحجوزات:
+                                            <small>{{ __('admin.dashboard_new.conversion_rate_from_bookings') }}:
                                                 {{ number_format((int) ($emp->conversion_rate ?? 0)) }}%</small>
                                             <div class="employee-performance-actions">
                                                 <a href="{{ route('dashboard.employees.show', ['employee' => $emp->id, 'range' => 'all']) }}"
-                                                    class="btn btn-primary btn-sm">الملف التحليلي</a>
+                                                    class="btn btn-primary btn-sm">{{ __('admin.dashboard_new.analytics_profile') }}</a>
                                                 <a href="{{ route('orders.index', ['admin_id' => $emp->id]) }}"
-                                                    class="btn btn-outline-primary btn-sm">الحجوزات</a>
+                                                    class="btn btn-outline-primary btn-sm">{{ __('admin.dashboard_new.bookings') }}</a>
                                                 <a href="{{ route('RecruitmentContract.index', ['marketer_id' => $emp->id]) }}"
-                                                    class="btn btn-outline-success btn-sm">العقود</a>
+                                                    class="btn btn-outline-success btn-sm">{{ __('admin.dashboard_new.contracts') }}</a>
                                             </div>
                                         </div>
                                     </div>
                                 @empty
-                                    <div class="empty-state py-3">لا توجد بيانات</div>
+                                    <div class="empty-state py-3">{{ __('admin.dashboard_new.no_employee_data') }}</div>
                                 @endforelse
                             </div>
                         </div>
@@ -1310,7 +1309,9 @@
             const rangeValues = document.querySelectorAll('[data-range-value]');
             const rangeLabels = document.querySelectorAll('[data-range-label]');
 
-            const numberFormatter = new Intl.NumberFormat('ar-SA');
+            const dashboardLocale = @json(app()->getLocale() === 'ar' ? 'ar-SA' : 'en-US');
+            const dashboardDirection = @json(app()->getLocale() === 'ar' ? 'rtl' : 'ltr');
+            const numberFormatter = new Intl.NumberFormat(dashboardLocale);
 
             function formatValue(value, format) {
                 if (format === 'currency') {
@@ -1398,8 +1399,8 @@
                             tooltip: {
                                 backgroundColor: 'rgba(15, 23, 42, 0.9)',
                                 padding: 12,
-                                rtl: true,
-                                textDirection: 'rtl'
+                                rtl: dashboardDirection === 'rtl',
+                                textDirection: dashboardDirection
                             }
                         },
                         interaction: {
@@ -1435,7 +1436,7 @@
                 new Chart(nationalitiesCtx, {
                     type: 'doughnut',
                     data: {
-                        labels: {!! json_encode($nationalityLabels ?? ['الفلبين', 'إندونيسيا', 'بنغلاديش', 'الهند', 'أخرى']) !!},
+                        labels: {!! json_encode($nationalityLabels ?? __('admin.dashboard_new.default_nationalities')) !!},
                         datasets: [{
                             data: {!! json_encode($nationalityData ?? [35, 25, 20, 15, 5]) !!},
                             backgroundColor: [chartColor1, successColor, chartColor2, chartColor4,
@@ -1456,8 +1457,8 @@
                             },
                             tooltip: {
                                 backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                                rtl: true,
-                                textDirection: 'rtl'
+                                rtl: dashboardDirection === 'rtl',
+                                textDirection: dashboardDirection
                             }
                         }
                     }
@@ -1470,9 +1471,11 @@
                 const calendarEventsUrl = "{{ route('travel.calendar.events') }}";
                 const calendarCountEl = document.getElementById('calendarCount');
 
+                const appointmentCountText = @json(__('admin.dashboard_new.appointment_count', ['count' => '__count__']));
+
                 const calendar = new FullCalendar.Calendar(calendarEl, {
-                    locale: 'ar',
-                    direction: 'rtl',
+                    locale: @json(app()->getLocale()),
+                    direction: dashboardDirection,
                     initialView: 'dayGridMonth',
                     headerToolbar: {
                         left: 'prev,next today',
@@ -1493,13 +1496,12 @@
                                         .events)) {
                                     successCallback(response.events);
                                     if (calendarCountEl) {
-                                        calendarCountEl.textContent =
-                                            `${response.events.length} موعداً`;
+                                        calendarCountEl.textContent = appointmentCountText.replace('__count__', response.events.length);
                                     }
                                 } else {
                                     successCallback([]);
                                     if (calendarCountEl) {
-                                        calendarCountEl.textContent = '0 موعداً';
+                                        calendarCountEl.textContent = appointmentCountText.replace('__count__', 0);
                                     }
                                 }
                             },
@@ -1507,7 +1509,7 @@
                                 console.error('Calendar events load failed', xhr);
                                 failureCallback(xhr);
                                 if (calendarCountEl) {
-                                    calendarCountEl.textContent = '0 موعداً';
+                                    calendarCountEl.textContent = appointmentCountText.replace('__count__', 0);
                                 }
                             }
                         });

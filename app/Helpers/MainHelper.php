@@ -695,32 +695,24 @@ if (!function_exists('helperTrans')) {
 
         // Check if language file exists
         if (!file_exists($lang_file_path)) {
-            return __("$file.$key");
+            return __($str);
         }
 
         try {
             $lang_array = include $lang_file_path;
 
-            // Ensure $lang_array is actually an array
             if (!is_array($lang_array)) {
-                return __("$file.$key");
+                return __($str);
             }
 
-            $processed_key = ucfirst(str_replace('_', ' ', remove_invalid_characters($key)));
-
-            if (!array_key_exists($key, $lang_array)) {
-                $lang_array[$key] = $processed_key;
-                $str_content = "<?php return " . var_export($lang_array, true) . ";";
-                file_put_contents($lang_file_path, $str_content);
-                $result = $processed_key;
-            } else {
-                $result = __("$file.$key");
+            if (array_key_exists($key, $lang_array)) {
+                return __($str);
             }
         } catch (\Exception $exception) {
-            $result = __("$file.$key");
+            return __($str);
         }
 
-        return $result;
+        return ucfirst(str_replace('_', ' ', remove_invalid_characters($key)));
     }
 }
 
@@ -731,7 +723,10 @@ function remove_invalid_characters($str): string
 
 function get_api_lang(): string
 {
-    return request()->header('lang') ?? 'ar';
+    $locale = request()->header('lang') ?: request()->get('lang') ?: app()->getLocale();
+    $supportedLocales = array_keys(config('laravellocalization.supportedLocales', [])) ?: config('translatable.locales', ['ar', 'en']);
+
+    return in_array($locale, $supportedLocales, true) ? $locale : config('app.locale', 'ar');
 }
 
 if (!function_exists('generalReturn')) {
@@ -989,7 +984,9 @@ if (!function_exists('getContractStatus')) {
             ],
         ];
 
-        return $statuses[$status]['ar'] ?? $status;
+        $locale = app()->getLocale() === 'en' ? 'en' : 'ar';
+
+        return $statuses[$status][$locale] ?? $statuses[$status]['en'] ?? $status;
     }
 }
 

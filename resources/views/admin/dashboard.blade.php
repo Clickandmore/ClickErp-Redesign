@@ -2,10 +2,10 @@
 @section("style")
 @endsection
 @section('page-title')
-    الرئيسية
+    {{ __('admin.home') }}
 @endsection
 @section('page-links')
-    <li class="breadcrumb-item active" aria-current="page"> الرئيسية</li>
+    <li class="breadcrumb-item active" aria-current="page">{{ __('admin.home') }}</li>
 @endsection
 @section('content')
 
@@ -121,7 +121,7 @@
                         <div class="mb-2 text-uppercase">{{ helperTrans('ingaz.Rent contracts') }}</div>
                         <div>
                             <span class="h4" id="rental-contracts-count">0</span>
-                            <small class="text-success d-block" id="rental-contracts-value">0 ريال</small>
+                            <small class="text-success d-block" id="rental-contracts-value">0 {{ __('ingaz.currency_sar') }}</small>
                         </div>
                     </a>
                 </div>
@@ -381,7 +381,7 @@
                 method: 'GET',
                 success: function(data) {
                     $('#rental-contracts-count').text(data.total || 0);
-                    $('#rental-contracts-value').text((data.totalValue || 0).toLocaleString() + ' ريال');
+                    $('#rental-contracts-value').text((data.totalValue || 0).toLocaleString(@json(app()->getLocale() === 'ar' ? 'ar-SA' : 'en-US')) + ' ' + @json(__('ingaz.currency_sar')));
                 },
                 error: function() {
                     console.log('Error loading rental contracts statistics');

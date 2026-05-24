@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('page-title', 'Agent Dashboard')</title>
+    <title>@yield('page-title', __('agent.page_title_default'))</title>
     <link rel="stylesheet" href="{{ asset('admin') }}/assets/css/luno-style.css">
     <link rel="stylesheet" href="{{ asset('admin') }}/assets/css/custom.css">
     <link rel="stylesheet" href="{{ asset('admin/login') }}/css/fontawesome.min.css">
@@ -663,8 +663,8 @@
             <div class="agent-brand">
                 <span class="agent-brand-mark"><i class="fa fa-building"></i></span>
                 <div>
-                    <h1>{{ app()->getLocale() === 'ar' ? 'بوابة الوكيل' : 'Agent Portal' }}</h1>
-                    <small>{{ $agentOfficeNames ?: (app()->getLocale() === 'ar' ? 'مكتب خارجي' : 'External Office') }}</small>
+                    <h1>{{ __('agent.portal') }}</h1>
+                    <small>{{ $agentOfficeNames ?: __('agent.external_office') }}</small>
                 </div>
             </div>
 
@@ -672,39 +672,39 @@
                 <a href="{{ route('agent.dashboard') }}"
                     class="{{ request()->routeIs('agent.dashboard') ? 'active' : '' }}">
                     <i class="fa fa-chart-line"></i>
-                    <span>{{ app()->getLocale() === 'ar' ? 'لوحة التحكم' : 'Dashboard' }}</span>
+                    <span>{{ __('agent.dashboard') }}</span>
                 </a>
                 <a href="{{ route('agent.maids.index') }}"
                     class="{{ request()->routeIs('agent.maids.*') ? 'active' : '' }}">
                     <i class="fa fa-id-card"></i>
-                    <span>{{ app()->getLocale() === 'ar' ? 'السير الذاتية' : 'CVs' }}</span>
+                    <span>{{ __('agent.cvs') }}</span>
                 </a>
                 <a href="{{ route('agent.contracts.index') }}"
                     class="{{ request()->routeIs('agent.contracts.*') ? 'active' : '' }}">
                     <i class="fa fa-file-signature"></i>
-                    <span>{{ app()->getLocale() === 'ar' ? 'العقود' : 'Contracts' }}</span>
+                    <span>{{ __('agent.contracts') }}</span>
                 </a>
                 <a href="{{ route('agent.philippines-tracking.index') }}"
                     class="{{ request()->routeIs('agent.philippines-tracking.*') ? 'active' : '' }}">
                     <i class="fa fa-clipboard-list"></i>
-                    <span>{{ app()->getLocale() === 'ar' ? 'تتبع الإجراءات' : 'Procedures Tracking' }}</span>
+                    <span>{{ __('agent.procedures_tracking') }}</span>
                 </a>
                 <a href="{{ route('agent.dispatches.index') }}"
                     class="{{ request()->routeIs('agent.dispatches.*') ? 'active' : '' }}">
                     <i class="fa fa-truck-fast"></i>
-                    <span>{{ app()->getLocale() === 'ar' ? 'الإرساليات' : 'Dispatches' }}</span>
+                    <span>{{ __('agent.dispatches') }}</span>
                 </a>
                 <a href="{{ route('agent.invoices.index') }}"
                     class="{{ request()->routeIs('agent.invoices.*') ? 'active' : '' }}">
                     <i class="fa fa-file-invoice-dollar"></i>
-                    <span>{{ app()->getLocale() === 'ar' ? 'الفواتير' : 'Invoices' }}</span>
+                    <span>{{ __('agent.invoices') }}</span>
                 </a>
 
                 <form action="{{ route('agent.logout') }}" method="POST">
                     @csrf
                     <button type="submit" class="agent-logout">
                         <i class="fa fa-arrow-right-from-bracket"></i>
-                        <span>{{ app()->getLocale() === 'ar' ? 'تسجيل الخروج' : 'Logout' }}</span>
+                        <span>{{ __('agent.logout') }}</span>
                     </button>
                 </form>
             </nav>
@@ -716,8 +716,8 @@
                     <img class="agent-header-logo" src="{{ $headerLogo }}" alt="logo"
                         onerror="this.onerror=null;this.src='{{ asset('admin/assets/img/company_logo.jpeg') }}';">
                     <span>
-                        <strong>{{ app()->getLocale() === 'ar' ? 'لوحة تحكم الوكيل' : 'Agent Dashboard' }}</strong>
-                        <span>{{ app()->getLocale() === 'ar' ? 'مساحة المكتب الخارجي' : 'External office workspace' }}</span>
+                        <strong>{{ __('agent.dashboard_title') }}</strong>
+                        <span>{{ __('agent.external_workspace') }}</span>
                     </span>
                 </a>
 
@@ -750,23 +750,23 @@
                     <a class="agent-header-action agent-open-site" href="{{ publicSiteUrl() }}" target="_blank"
                         rel="noopener noreferrer">
                         <i class="fa fa-globe"></i>
-                        <span>{{ app()->getLocale() === 'ar' ? 'الموقع' : 'Website' }}</span>
+                        <span>{{ __('agent.website') }}</span>
                     </a>
 
                     <div class="agent-language">
                         <button type="button" class="agent-lang-button" aria-haspopup="true">
                             <i class="fa fa-language"></i>
-                            <span>{{ app()->getLocale() === 'ar' ? 'العربية' : 'English' }}</span>
+                            <span>{{ app()->getLocale() === 'ar' ? __('agent.arabic') : __('agent.english') }}</span>
                             <i class="fa fa-angle-down"></i>
                         </button>
                         <div class="agent-language-menu">
                             <a href="{{ $englishUrl }}" class="{{ app()->getLocale() === 'en' ? 'active' : '' }}">
                                 <span class="flag-icon flag-icon-us"></span>
-                                <span>US English</span>
+                                <span>{{ __('agent.us_english') }}</span>
                             </a>
                             <a href="{{ $arabicUrl }}" class="{{ app()->getLocale() === 'ar' ? 'active' : '' }}">
                                 <span class="flag-icon flag-icon-sa"></span>
-                                <span>العربية</span>
+                                <span>{{ __('agent.arabic_language') }}</span>
                             </a>
                         </div>
                     </div>
@@ -776,7 +776,7 @@
             <div class="agent-page">
                 <header class="agent-topbar">
                     <div>
-                        <h2>@yield('page-title', 'Agent Dashboard')</h2>
+                        <h2>@yield('page-title', __('agent.page_title_default'))</h2>
                         <div class="agent-user">{{ $agentUser?->name }}
                             {{ $agentUser?->email ? ' - ' . $agentUser->email : '' }}</div>
                     </div>

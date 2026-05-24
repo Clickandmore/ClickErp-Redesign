@@ -370,5 +370,6 @@ return [
     'project_name' => 'Platinum Al Sharqia Recruitment',
     'project_desc' => 'Over 20 years of providing highly professional recruitment services',
     'Platinum Company Services' => 'Platinum Company Services',
+    'aboutUs' => 'About Us',
 
 ];
