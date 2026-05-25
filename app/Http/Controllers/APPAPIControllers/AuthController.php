@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
 class AuthController extends Controller
@@ -140,22 +141,36 @@ class AuthController extends Controller
 
     public function resetPassword(ResetPasswordRequest $request)
     {
-        /** @var User $user */
-        $user = auth('api')->user();
+        $data = $request->validated();
 
-        $user->update([
-            'password' => Hash::make($request->new_password),
-        ]);
+        /** @var User|null $user */
+        $user = User::where('phone', $data['phone'])->first();
 
-        $user->setRememberToken(\Illuminate\Support\Str::random(60));
-        $user->save();
+        if (!$user) {
+            $message = app()->getLocale() === 'en'
+                ? 'Phone number is not registered.'
+                : 'رقم الجوال غير مسجل في النظام.';
+
+            return apiResponse(false, $message, [
+                'errors' => [
+                    'phone' => [$message],
+                ],
+            ], 422);
+        }
+
+        $user->forceFill([
+            'password' => Hash::make($data['new_password']),
+            'remember_token' => Str::random(60),
+        ])->saveOrFail();
 
         $user = $user->fresh();
-        $token = JWTAuth::fromUser($user);
+
+        if (!$user || !Hash::check($data['new_password'], $user->password)) {
+            return apiResponse(false, __('api.error_updating_profile'), null, 500);
+        }
 
         return apiResponse(true, __('ingaz.change_password_successfully'), [
             'user' => new UserResource($user),
-            'token' => $token,
         ]);
     }
 
