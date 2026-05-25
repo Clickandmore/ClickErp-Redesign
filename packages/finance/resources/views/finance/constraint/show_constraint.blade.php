@@ -316,23 +316,34 @@
                 margin: 10mm;
             }
 
+            html,
             body {
                 background: #fff !important;
+                height: auto !important;
+                min-height: 0 !important;
+                overflow: visible !important;
             }
 
             .no-print,
             .sidebar,
             .header,
             .right_chat,
+            .page-footer,
+            .footer,
             .page-header,
             .breadcrumb {
                 display: none !important;
             }
 
+            .wrapper,
             .main {
                 width: 100% !important;
+                height: auto !important;
+                min-height: 0 !important;
                 margin: 0 !important;
                 padding: 0 !important;
+                overflow: visible !important;
+                display: block !important;
             }
 
             .constraint-show-page {
@@ -343,11 +354,46 @@
             .constraint-show-page .show-card {
                 box-shadow: none;
                 border-color: #d1d5db;
-                break-inside: avoid;
+                break-inside: auto;
+                page-break-inside: auto;
             }
 
             .constraint-show-page .section-card {
                 margin-bottom: .75rem;
+            }
+
+            .constraint-show-page .hero-card,
+            .constraint-show-page .summary-item,
+            .constraint-show-page .activity-item,
+            .constraint-show-page .attachment-grid > div,
+            .constraint-show-page .constraint-table tr {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+
+            .constraint-show-page .table-responsive {
+                overflow: visible !important;
+            }
+
+            .constraint-show-page .constraint-table {
+                width: 100% !important;
+            }
+
+            .constraint-show-page .constraint-table thead {
+                display: table-header-group;
+            }
+
+            .constraint-show-page .constraint-table tfoot {
+                display: table-footer-group;
+            }
+
+            .constraint-show-page a {
+                color: inherit !important;
+                text-decoration: none !important;
+            }
+
+            .constraint-show-page .constraint-account-link i {
+                display: none !important;
             }
         }
     </style>

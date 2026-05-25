@@ -1,8 +1,16 @@
 @php
     $constraintFormClass = $constraintFormClass ?? 'from-submit-update-global';
     $inlineConstraintEdit = $inlineConstraintEdit ?? false;
-    $debtorTotal = (float) $obj->constraintDetails->where('type', 'debtor')->sum('debtor_value');
-    $creditorTotal = (float) $obj->constraintDetails->where('type', 'creditor')->sum('creditor_value');
+    $debtorTotal = (float) $obj->constraintDetails->sum('debtor_value');
+    $creditorTotal = (float) $obj->constraintDetails->sum('creditor_value');
+    $debtorDetails = $obj->constraintDetails->filter(function ($detail) {
+        return (float) $detail->debtor_value > 0
+            || ((float) $detail->creditor_value <= 0 && $detail->type === 'debtor');
+    });
+    $creditorDetails = $obj->constraintDetails->filter(function ($detail) {
+        return (float) $detail->creditor_value > 0
+            || ((float) $detail->debtor_value <= 0 && $detail->type === 'creditor');
+    });
 @endphp
 
 <form class="row g-3 constraint-edit-form {{ $constraintFormClass }}" method="post" action="{{ $updateRoute }}"
@@ -102,8 +110,7 @@
                     </thead>
 
                     <tbody class="table-body">
-                        @foreach ($obj->constraintDetails as $constraintDetails)
-                            @if ($constraintDetails->type == 'debtor')
+                        @foreach ($debtorDetails as $constraintDetails)
                                 <tr class="item-row debtor_append" id="debtor_append">
                                     <td>
                                         <input type="hidden" name="old_id[]" value="{{ $constraintDetails->id }}"
@@ -147,11 +154,9 @@
                                         </button>
                                     </td>
                                 </tr>
-                            @endif
                         @endforeach
 
-                        @foreach ($obj->constraintDetails as $constraintDetails)
-                            @if ($constraintDetails->type == 'creditor')
+                        @foreach ($creditorDetails as $constraintDetails)
                                 <tr class="item-row" id="creditor_append">
                                     <td>
                                         <input type="hidden" name="old_id[]" value="{{ $constraintDetails->id }}"
@@ -195,7 +200,6 @@
                                         </button>
                                     </td>
                                 </tr>
-                            @endif
                         @endforeach
                     </tbody>
 
