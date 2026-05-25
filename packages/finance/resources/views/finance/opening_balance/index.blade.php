@@ -268,12 +268,12 @@
                 // Collect the current non-zero opening balances so existing rows are preserved on update.
                 $('.debtor-input').each(function() {
                     let accountId = $(this).data('account-id');
-                    let accountStatus = $(this).data('account-status');
                     let debtorValue = $('.debtor-input[data-account-id="' + accountId + '"]').val() || 0;
                     let creditorValue = $('.creditor-input[data-account-id="' + accountId + '"]')
                         .val() || 0;
                     let debtorNumber = numericValue(debtorValue);
                     let creditorNumber = numericValue(creditorValue);
+                    let accountType = debtorNumber > 0 ? 'debtor' : 'creditor';
 
                     if (debtorNumber > 0 && creditorNumber > 0) {
                         hasRowWithBothSides = true;
@@ -285,7 +285,7 @@
 
                     if (accountIds.indexOf(accountId) === -1 && (debtorNumber > 0 || creditorNumber > 0)) {
                         accountIds.push(accountId);
-                        accountStatuses.push(accountStatus);
+                        accountStatuses.push(accountType);
                         debtorValues.push(debtorValue);
                         creditorValues.push(creditorValue);
                     }

@@ -298,10 +298,43 @@
             color: #0f172a;
         }
 
-        .constraint-show-page .activity-item span,
-        .constraint-show-page .activity-item small {
-            color: #6b7280;
-        }
+            .constraint-show-page .activity-item span,
+            .constraint-show-page .activity-item small {
+                color: #6b7280;
+            }
+
+            @if (request()->boolean('print'))
+                body {
+                    background: #fff !important;
+                }
+
+                .no-print,
+                .sidebar,
+                .header,
+                .right_chat,
+                .page-footer,
+                .footer,
+                .page-header,
+                .breadcrumb {
+                    display: none !important;
+                }
+
+                .wrapper,
+                .main {
+                    width: 100% !important;
+                    height: auto !important;
+                    min-height: 0 !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    overflow: visible !important;
+                    display: block !important;
+                }
+
+                .constraint-show-page {
+                    max-width: 1160px;
+                    padding: 20px 0;
+                }
+            @endif
 
         @media (max-width: 767.98px) {
             .constraint-show-page .activity-item {
@@ -349,6 +382,8 @@
             .constraint-show-page {
                 max-width: none;
                 padding: 0;
+                font-size: 12px;
+                color: #111827;
             }
 
             .constraint-show-page .show-card {
@@ -356,10 +391,12 @@
                 border-color: #d1d5db;
                 break-inside: auto;
                 page-break-inside: auto;
+                border-radius: 8px;
             }
 
             .constraint-show-page .section-card {
-                margin-bottom: .75rem;
+                padding: 8mm;
+                margin-bottom: 7mm;
             }
 
             .constraint-show-page .hero-card,
@@ -371,12 +408,66 @@
                 page-break-inside: avoid;
             }
 
+            .constraint-show-page .hero-card {
+                padding: 8mm;
+            }
+
+            .constraint-show-page .document-brand-bar {
+                padding: 4mm;
+                border-radius: 8px;
+                margin-bottom: 5mm;
+            }
+
+            .constraint-show-page .brand-copy img {
+                width: 52px;
+                height: 52px;
+            }
+
+            .constraint-show-page .hero-main {
+                margin-bottom: 5mm;
+            }
+
+            .constraint-show-page .hero-main h3 {
+                font-size: 18px;
+            }
+
+            .constraint-show-page .hero-main p,
+            .constraint-show-page .section-head p {
+                display: none !important;
+            }
+
+            .constraint-show-page .summary-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 4mm;
+            }
+
+            .constraint-show-page .summary-item {
+                padding: 4mm;
+                border-radius: 8px;
+            }
+
+            .constraint-show-page .summary-item strong {
+                font-size: 12px;
+                line-height: 1.6;
+            }
+
             .constraint-show-page .table-responsive {
                 overflow: visible !important;
             }
 
             .constraint-show-page .constraint-table {
                 width: 100% !important;
+                table-layout: fixed;
+                border-collapse: collapse !important;
+                font-size: 11px;
+            }
+
+            .constraint-show-page .constraint-table th,
+            .constraint-show-page .constraint-table td {
+                border: 1px solid #d1d5db !important;
+                padding: 6px !important;
+                white-space: normal !important;
+                word-break: break-word;
             }
 
             .constraint-show-page .constraint-table thead {
@@ -385,6 +476,32 @@
 
             .constraint-show-page .constraint-table tfoot {
                 display: table-footer-group;
+            }
+
+            .constraint-show-page .print-new-section {
+                break-before: page;
+                page-break-before: always;
+            }
+
+            .constraint-show-page .attachment-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 5mm;
+            }
+
+            .constraint-show-page .attachment-grid img {
+                height: auto;
+                max-height: 115mm;
+                object-fit: contain;
+                border-radius: 6px;
+            }
+
+            .constraint-show-page .activity-list {
+                gap: 0;
+            }
+
+            .constraint-show-page .activity-item {
+                grid-template-columns: 34mm 1fr 40mm;
+                padding: 3mm 0;
             }
 
             .constraint-show-page a {
@@ -427,6 +544,7 @@
         $taxNumber = isset($setting_web) && !empty($setting_web->tax_number) ? $setting_web->tax_number : '-';
         $entryCode = $obj->code ?: $obj->id;
         $printedAt = now(config('app.timezone', 'Asia/Riyadh'))->format('Y-m-d H:i:s');
+        $printUrl = request()->fullUrlWithQuery(['print' => 1]);
         $statementPermissions = [
             'finance.account-statement-read',
             'finance.account-statement.index-read',
@@ -455,7 +573,7 @@
         };
     @endphp
 
-    <div class="constraint-show-page">
+    <div class="constraint-show-page{{ request()->boolean('print') ? ' print-mode' : '' }}">
         @if (request()->boolean('saved'))
             <div class="alert alert-success no-print">
                 {{ __('finance::finance.constraint_saved_actions_hint', ['code' => $obj->code]) }}
@@ -500,7 +618,8 @@
                         <i class="fa fa-plus-circle"></i>
                         {{ __('finance::finance.create_new_constraint') }}
                     </a>
-                    <button type="button" class="btn btn-outline-secondary" onclick="window.print()">
+                    <button type="button" class="btn btn-outline-secondary"
+                        onclick="window.open('{{ $printUrl }}', '_blank', 'noopener')">
                         <i class="fa fa-print"></i>
                         {{ __('finance::finance.print') }}
                     </button>
@@ -539,7 +658,7 @@
             </div>
         </div>
 
-        <div class="show-card section-card">
+        <div class="show-card section-card constraint-lines-card">
             <div class="section-head">
                 <h5>{{ __('finance::finance.constraint_lines') }}</h5>
                 <p>{{ __('finance::finance.constraint_lines_review_hint') }}</p>
@@ -603,7 +722,7 @@
             </div>
         </div>
 
-        <div class="show-card section-card">
+        <div class="show-card section-card attachments-card print-new-section">
             <div class="section-head">
                 <h5>{{ __('finance::finance.attachments') }}</h5>
                 <p>{{ __('finance::finance.constraint_attachments_hint') }}</p>
@@ -624,7 +743,7 @@
             @endif
         </div>
 
-        <div class="show-card section-card">
+        <div class="show-card section-card activity-card print-new-section">
             <div class="section-head">
                 <h5>{{ __('finance::finance.constraint_activity_log') }}</h5>
                 <p>{{ __('finance::finance.constraint_activity_log_hint') }}</p>
@@ -656,4 +775,13 @@
 @endsection
 
 @section('js')
+    @if (request()->boolean('print'))
+        <script>
+            window.addEventListener('load', function () {
+                setTimeout(function () {
+                    window.print();
+                }, 350);
+            });
+        </script>
+    @endif
 @endsection
