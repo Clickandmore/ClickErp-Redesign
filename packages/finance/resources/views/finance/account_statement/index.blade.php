@@ -439,44 +439,45 @@
         }
 
         .statement-table--currency {
-            min-width: 1180px;
+            min-width: 100%;
             table-layout: fixed;
+            font-size: 0.82rem;
         }
 
         .statement-table--currency .statement-col-index {
-            width: 46px;
+            width: 3.5%;
         }
 
         .statement-table--currency .statement-col-date {
-            width: 96px;
+            width: 7.5%;
         }
 
         .statement-table--currency .statement-col-number {
-            width: 76px;
+            width: 6%;
         }
 
         .statement-table--currency .statement-col-type {
-            width: 112px;
+            width: 8.5%;
         }
 
         .statement-table--currency .statement-col-account {
-            width: 150px;
+            width: 12%;
         }
 
         .statement-table--currency .statement-col-statement {
-            width: auto;
+            width: 19%;
         }
 
         .statement-table--currency .statement-col-money {
-            width: 124px;
+            width: 11%;
         }
 
         .statement-table--currency .statement-col-balance {
-            width: 132px;
+            width: 12%;
         }
 
         .statement-table--currency .statement-col-user {
-            width: 96px;
+            width: 9.5%;
         }
 
         .statement-table thead th {
@@ -484,12 +485,13 @@
             top: 0;
             z-index: 1;
             vertical-align: middle;
-            white-space: nowrap;
-            padding: 0.95rem 0.85rem;
+            white-space: normal;
+            padding: 0.72rem 0.48rem;
             background: var(--statement-primary-dark);
             color: #fff;
             border-color: rgba(255, 255, 255, 0.08);
-            font-size: 0.88rem;
+            font-size: 0.82rem;
+            line-height: 1.35;
         }
 
         .statement-th-note {
@@ -503,9 +505,10 @@
 
         .statement-table tbody td,
         .statement-table tfoot td {
-            padding: 0.82rem 0.7rem;
+            padding: 0.62rem 0.45rem;
             vertical-align: middle;
             border-color: rgba(76, 129, 139, 0.12);
+            overflow-wrap: anywhere;
         }
 
         .statement-table tbody tr:nth-child(even):not(.statement-row--opening) {
@@ -556,9 +559,9 @@
             display: inline-flex;
             flex-direction: column;
             gap: 0.15rem;
-            width: 116px;
+            width: 104px;
             max-width: 100%;
-            padding: 0.45rem 0.6rem;
+            padding: 0.36rem 0.42rem;
             border-radius: 14px;
             border: 1px solid rgba(76, 129, 139, 0.14);
             background: #fff;
@@ -592,28 +595,31 @@
         .statement-currency-stack {
             display: flex;
             flex-direction: column;
-            gap: 0.28rem;
-            width: 112px;
+            gap: 0.22rem;
+            width: 96px;
             max-width: 100%;
             margin-inline: auto;
             line-height: 1.2;
             white-space: nowrap;
-            text-align: start;
-            direction: ltr;
+            text-align: center;
+            direction: rtl;
         }
 
         .statement-currency-row {
-            display: grid;
-            grid-template-columns: minmax(74px, 1fr) 42px;
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
             align-items: center;
-            gap: 0.4rem;
+            gap: 0.28rem;
             margin: 0;
-            padding: 0.18rem 0.38rem;
+            padding: 0.18rem 0.28rem;
             border-radius: 8px;
             background: rgba(76, 129, 139, 0.045);
+            direction: rtl;
         }
 
         .statement-currency-row b {
+            min-width: 58px;
             font-weight: 800;
             color: var(--statement-primary-dark);
             text-align: right;
@@ -624,8 +630,9 @@
 
         .statement-currency-row em {
             color: var(--statement-muted);
+            min-width: 28px;
             text-align: right;
-            font-size: 0.78rem;
+            font-size: 0.72rem;
             font-style: normal;
             font-weight: 700;
             white-space: nowrap;
@@ -741,6 +748,16 @@
 
             .statement-report-meta {
                 width: 100%;
+            }
+        }
+
+        @media (max-width: 1199.98px) {
+            .statement-table--currency {
+                min-width: 1060px;
+            }
+
+            .statement-table-scroll {
+                padding-bottom: 0.35rem;
             }
         }
 

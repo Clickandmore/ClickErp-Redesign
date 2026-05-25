@@ -315,14 +315,15 @@
 
         .statement-table--currency {
             table-layout: fixed;
+            font-size: 0.78rem;
         }
 
         .statement-table--currency .statement-col-index {
-            width: 4%;
+            width: 3.5%;
         }
 
         .statement-table--currency .statement-col-date {
-            width: 8%;
+            width: 7.5%;
         }
 
         .statement-table--currency .statement-col-number {
@@ -330,7 +331,7 @@
         }
 
         .statement-table--currency .statement-col-type {
-            width: 9%;
+            width: 8.5%;
         }
 
         .statement-table--currency .statement-col-account {
@@ -338,29 +339,30 @@
         }
 
         .statement-table--currency .statement-col-statement {
-            width: auto;
+            width: 19%;
         }
 
         .statement-table--currency .statement-col-money {
-            width: 10%;
-        }
-
-        .statement-table--currency .statement-col-balance {
             width: 11%;
         }
 
+        .statement-table--currency .statement-col-balance {
+            width: 12%;
+        }
+
         .statement-table--currency .statement-col-user {
-            width: 8%;
+            width: 9.5%;
         }
 
         .statement-table thead th {
-            padding: 0.85rem 0.7rem;
+            padding: 0.62rem 0.38rem;
             background: var(--statement-primary-dark);
             color: #fff;
             border: 1px solid rgba(255, 255, 255, 0.08);
             text-align: right;
-            white-space: nowrap;
-            font-size: 0.86rem;
+            white-space: normal;
+            font-size: 0.78rem;
+            line-height: 1.35;
         }
 
         .statement-th-note {
@@ -374,10 +376,11 @@
 
         .statement-table tbody td,
         .statement-table tfoot td {
-            padding: 0.68rem 0.52rem;
+            padding: 0.52rem 0.36rem;
             border: 1px solid rgba(76, 129, 139, 0.12);
             vertical-align: middle;
-            font-size: 0.9rem;
+            font-size: 0.78rem;
+            overflow-wrap: anywhere;
         }
 
         .statement-table tbody tr:nth-child(even):not(.statement-row--opening) {
@@ -424,9 +427,9 @@
             display: inline-flex;
             flex-direction: column;
             gap: 0.15rem;
-            width: 108px;
+            width: 96px;
             max-width: 100%;
-            padding: 0.42rem 0.58rem;
+            padding: 0.32rem 0.36rem;
             border-radius: 14px;
             border: 1px solid rgba(76, 129, 139, 0.14);
             background: #fff;
@@ -460,28 +463,31 @@
         .statement-currency-stack {
             display: flex;
             flex-direction: column;
-            gap: 0.28rem;
-            width: 104px;
+            gap: 0.2rem;
+            width: 88px;
             max-width: 100%;
             margin-inline: auto;
             line-height: 1.2;
             white-space: nowrap;
-            text-align: start;
-            direction: ltr;
+            text-align: center;
+            direction: rtl;
         }
 
         .statement-currency-row {
-            display: grid;
-            grid-template-columns: minmax(74px, 1fr) 42px;
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
             align-items: center;
-            gap: 0.4rem;
+            gap: 0.24rem;
             margin: 0;
-            padding: 0.18rem 0.38rem;
+            padding: 0.16rem 0.24rem;
             border-radius: 8px;
             background: rgba(76, 129, 139, 0.045);
+            direction: rtl;
         }
 
         .statement-currency-row b {
+            min-width: 52px;
             font-weight: 800;
             color: var(--statement-primary-dark);
             text-align: right;
@@ -492,8 +498,9 @@
 
         .statement-currency-row em {
             color: var(--statement-muted);
+            min-width: 26px;
             text-align: right;
-            font-size: 0.78rem;
+            font-size: 0.68rem;
             font-style: normal;
             font-weight: 700;
             white-space: nowrap;

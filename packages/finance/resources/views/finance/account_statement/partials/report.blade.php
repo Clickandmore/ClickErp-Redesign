@@ -61,11 +61,11 @@
         }
 
         return '<span class="statement-currency-stack">'
-            . '<span class="statement-currency-row statement-currency-row--usd">'
-            . '<b>' . $formatDollarValue($value) . '</b><em>دولار</em>'
-            . '</span>'
             . '<span class="statement-currency-row statement-currency-row--sar">'
             . '<b>' . $formatMoney($value) . '</b><em>ريال</em>'
+            . '</span>'
+            . '<span class="statement-currency-row statement-currency-row--usd">'
+            . '<b>' . $formatDollarValue($value) . '</b><em>دولار</em>'
             . '</span>'
             . '</span>';
     };
