@@ -62,7 +62,7 @@ class YearService extends MainService
     {
         $date = Carbon::parse($date);
         $exists = $this->model->whereDate('from_date','<=', $date)
-            ->whereDate('to_date','>', $date)->where('status', 1)->first();
+            ->whereDate('to_date','>=', $date)->where('status', 1)->first();
 
         return $exists;
     }

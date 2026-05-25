@@ -29,16 +29,29 @@
             'other_account' => 'yes',
         ]);
     };
-    $resolveBalanceLabel = function ($balance) {
+    $resolveBalanceLabel = function ($balance, $accountStatus = 'debtor') {
         if ($balance > 0) {
-            return __('finance::finance.debtor');
+            return $accountStatus === 'creditor'
+                ? __('finance::finance.creditor')
+                : __('finance::finance.debtor');
         }
 
         if ($balance < 0) {
-            return __('finance::finance.creditor');
+            return $accountStatus === 'creditor'
+                ? __('finance::finance.debtor')
+                : __('finance::finance.creditor');
         }
 
         return 'متوازن';
+    };
+    $resolveBalanceClass = function ($balance, $accountStatus = 'debtor') use ($resolveBalanceLabel) {
+        if (abs((float) $balance) < 0.01) {
+            return 'is-neutral';
+        }
+
+        return $resolveBalanceLabel($balance, $accountStatus) === __('finance::finance.creditor')
+            ? 'is-creditor'
+            : 'is-debtor';
     };
     $formatMoney = fn ($value) => number_format((float) $value, 2);
     $formatDollarValue = fn ($value) => $usdExchangeRate > 0 ? number_format(abs((float) $value) / $usdExchangeRate, 2) : '0.00';
@@ -49,21 +62,22 @@
 
         return '<span class="statement-currency-stack">'
             . '<span class="statement-currency-row statement-currency-row--usd">'
-            . '<em>$</em><b>' . $formatDollarValue($value) . '</b>'
+            . '<b>' . $formatDollarValue($value) . '</b><em>دولار</em>'
             . '</span>'
             . '<span class="statement-currency-row statement-currency-row--sar">'
-            . '<em>﷼</em><b>' . $formatMoney($value) . '</b>'
+            . '<b>' . $formatMoney($value) . '</b><em>ريال</em>'
             . '</span>'
             . '</span>';
     };
 
+    $accountStatus = $firstBalance->status ?? optional($rows->first())->status ?? 'debtor';
     $openingDebtor = round((float) ($firstBalance->sum_debtor_value ?? 0), 2);
     $openingCreditor = round((float) ($firstBalance->sum_creditor_value ?? 0), 2);
     $hasOpeningBalance = abs($openingDebtor) > 0.01 || abs($openingCreditor) > 0.01;
     $openingBalance = 0.0;
 
     if ($hasOpeningBalance) {
-        $openingBalance = (($firstBalance->status ?? 'debtor') === 'debtor')
+        $openingBalance = ($accountStatus === 'debtor')
             ? $openingDebtor - $openingCreditor
             : $openingCreditor - $openingDebtor;
         $openingBalance = round($openingBalance, 2);
@@ -81,7 +95,8 @@
     foreach ($rows as $index => $row) {
         $rowDebtorValue = round((float) $row->debtor_value, 2);
         $rowCreditorValue = round((float) $row->creditor_value, 2);
-        $rowBalance = (($row->status ?? 'debtor') === 'debtor')
+        $rowAccountStatus = $row->status ?? $accountStatus;
+        $rowBalance = ($rowAccountStatus === 'debtor')
             ? $rowDebtorValue - $rowCreditorValue
             : $rowCreditorValue - $rowDebtorValue;
 
@@ -110,7 +125,8 @@
             'creditor_value' => $rowCreditorValue,
             'running_balance' => $runningBalance,
             'running_balance_abs' => abs($runningBalance),
-            'running_balance_label' => $resolveBalanceLabel($runningBalance),
+            'running_balance_label' => $resolveBalanceLabel($runningBalance, $rowAccountStatus),
+            'running_balance_class' => $resolveBalanceClass($runningBalance, $rowAccountStatus),
             'user_name' => $row->name,
             'other_accounts' => collect(data_get($otherAccount ?? [], $row->constraint_id . '.accounts', [])),
             'is_zero' => $rowDebtorValue === 0.0 && $rowCreditorValue === 0.0,
@@ -136,9 +152,10 @@
         default => __('finance::finance.All'),
     };
 
-    $closingBalanceDirection = $runningBalance > 0 ? __('finance::finance.debtor') : ($runningBalance < 0 ? __('finance::finance.creditor') : 'متوازن');
-    $closingBalanceClass = $runningBalance > 0 ? 'is-debtor' : ($runningBalance < 0 ? 'is-creditor' : 'is-neutral');
-    $openingDirection = $openingBalance > 0 ? __('finance::finance.debtor') : ($openingBalance < 0 ? __('finance::finance.creditor') : 'متوازن');
+    $closingBalanceDirection = $resolveBalanceLabel($runningBalance, $accountStatus);
+    $closingBalanceClass = $resolveBalanceClass($runningBalance, $accountStatus);
+    $openingDirection = $resolveBalanceLabel($openingBalance, $accountStatus);
+    $openingBalanceClass = $resolveBalanceClass($openingBalance, $accountStatus);
 @endphp
 
 <div class="statement-report {{ $isPrint ? 'statement-report--print' : '' }}">
@@ -214,7 +231,7 @@
     </div>
 
     @if ($hasData)
-        <div class="statement-table-card">
+        <div class="statement-table-card {{ $showDollarEquivalent ? 'statement-table-card--currency' : '' }}">
             <div class="statement-table-head">
                 <div>
                     <h3>تفاصيل الحركات</h3>
@@ -225,37 +242,37 @@
                 @endif
             </div>
 
-            <div class="table-responsive">
-                <table class="table statement-table" id="simpleTable4">
+            <div class="table-responsive statement-table-scroll">
+                <table class="table statement-table {{ $showDollarEquivalent ? 'statement-table--currency' : '' }}" id="simpleTable4">
                     <thead>
                         <tr>
-                            <th scope="col">#</th>
-                            <th scope="col">{{ __('finance::finance.Transaction Date') }}</th>
-                            <th scope="col">{{ __('finance::finance.Transaction Number') }}</th>
-                            <th scope="col">{{ __('finance::finance.Transaction Type') }}</th>
+                            <th scope="col" class="statement-col-index">#</th>
+                            <th scope="col" class="statement-col-date">{{ __('finance::finance.Transaction Date') }}</th>
+                            <th scope="col" class="statement-col-number">{{ __('finance::finance.Transaction Number') }}</th>
+                            <th scope="col" class="statement-col-type">{{ __('finance::finance.Transaction Type') }}</th>
                             @if ($showOtherAccount)
-                                <th scope="col">{{ __('finance::finance.Counter Account') }}</th>
+                                <th scope="col" class="statement-col-account">{{ __('finance::finance.Counter Account') }}</th>
                             @endif
-                            <th scope="col">{{ __('finance::finance.statement') }}</th>
-                            <th scope="col">
+                            <th scope="col" class="statement-col-statement">{{ __('finance::finance.statement') }}</th>
+                            <th scope="col" class="statement-col-money">
                                 {{ __('finance::finance.debtor') }}
                                 @if ($showDollarEquivalent)
                                     <small class="statement-th-note">دولار / ريال</small>
                                 @endif
                             </th>
-                            <th scope="col">
+                            <th scope="col" class="statement-col-money">
                                 {{ __('finance::finance.creditor') }}
                                 @if ($showDollarEquivalent)
                                     <small class="statement-th-note">دولار / ريال</small>
                                 @endif
                             </th>
-                            <th scope="col">
+                            <th scope="col" class="statement-col-balance">
                                 {{ __('finance::finance.Balance') }}
                                 @if ($showDollarEquivalent)
                                     <small class="statement-th-note">دولار / ريال</small>
                                 @endif
                             </th>
-                            <th scope="col">{{ __('finance::finance.user') }}</th>
+                            <th scope="col" class="statement-col-user">{{ __('finance::finance.user') }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -265,7 +282,7 @@
                                 <td class="statement-money-cell">{!! $formatStatementMoney($openingDebtor) !!}</td>
                                 <td class="statement-money-cell">{!! $formatStatementMoney($openingCreditor) !!}</td>
                                 <td class="statement-balance-cell">
-                                    <span class="statement-balance-pill {{ $openingBalance > 0 ? 'is-debtor' : ($openingBalance < 0 ? 'is-creditor' : 'is-neutral') }}">
+                                    <span class="statement-balance-pill {{ $openingBalanceClass }}">
                                         <strong>{!! $formatStatementMoney(abs($openingBalance)) !!}</strong>
                                         <small>{{ $hasOpeningBalance ? $openingDirection : 'متوازن' }}</small>
                                     </span>
@@ -309,7 +326,7 @@
                                 <td class="statement-money-cell">{!! $formatStatementMoney($item['debtor_value']) !!}</td>
                                 <td class="statement-money-cell">{!! $formatStatementMoney($item['creditor_value']) !!}</td>
                                 <td class="statement-balance-cell">
-                                    <span class="statement-balance-pill {{ $item['running_balance'] > 0 ? 'is-debtor' : ($item['running_balance'] < 0 ? 'is-creditor' : 'is-neutral') }}">
+                                    <span class="statement-balance-pill {{ $item['running_balance_class'] }}">
                                         <strong>{!! $formatStatementMoney($item['running_balance_abs']) !!}</strong>
                                         <small>{{ $item['running_balance_label'] }}</small>
                                     </span>
@@ -324,7 +341,7 @@
                             <td class="statement-money-cell">{!! $formatStatementMoney($totalDebtor) !!}</td>
                             <td class="statement-money-cell">{!! $formatStatementMoney($totalCreditor) !!}</td>
                             <td class="statement-balance-cell">
-                                <span class="statement-balance-pill {{ $runningBalance > 0 ? 'is-debtor' : ($runningBalance < 0 ? 'is-creditor' : 'is-neutral') }}">
+                                <span class="statement-balance-pill {{ $closingBalanceClass }}">
                                     <strong>{!! $formatStatementMoney(abs($runningBalance)) !!}</strong>
                                     <small>{{ $closingBalanceDirection }}</small>
                                 </span>

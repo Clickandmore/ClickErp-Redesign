@@ -274,6 +274,10 @@
             overflow: hidden;
         }
 
+        .statement-table-card--currency {
+            margin-inline: -0.35rem;
+        }
+
         .statement-table-head {
             display: flex;
             flex-wrap: wrap;
@@ -304,6 +308,51 @@
             border-collapse: collapse;
         }
 
+        .statement-table-scroll {
+            width: 100%;
+            overflow-x: visible;
+        }
+
+        .statement-table--currency {
+            table-layout: fixed;
+        }
+
+        .statement-table--currency .statement-col-index {
+            width: 4%;
+        }
+
+        .statement-table--currency .statement-col-date {
+            width: 8%;
+        }
+
+        .statement-table--currency .statement-col-number {
+            width: 6%;
+        }
+
+        .statement-table--currency .statement-col-type {
+            width: 9%;
+        }
+
+        .statement-table--currency .statement-col-account {
+            width: 12%;
+        }
+
+        .statement-table--currency .statement-col-statement {
+            width: auto;
+        }
+
+        .statement-table--currency .statement-col-money {
+            width: 10%;
+        }
+
+        .statement-table--currency .statement-col-balance {
+            width: 11%;
+        }
+
+        .statement-table--currency .statement-col-user {
+            width: 8%;
+        }
+
         .statement-table thead th {
             padding: 0.85rem 0.7rem;
             background: var(--statement-primary-dark);
@@ -325,7 +374,7 @@
 
         .statement-table tbody td,
         .statement-table tfoot td {
-            padding: 0.8rem 0.7rem;
+            padding: 0.68rem 0.52rem;
             border: 1px solid rgba(76, 129, 139, 0.12);
             vertical-align: middle;
             font-size: 0.9rem;
@@ -350,8 +399,9 @@
         }
 
         .statement-cell--wide {
-            min-width: 250px;
             line-height: 1.7;
+            white-space: normal;
+            word-break: break-word;
         }
 
         .statement-entry-link {
@@ -366,8 +416,7 @@
         }
 
         .statement-money-cell {
-            min-width: 112px;
-            text-align: right;
+            text-align: center;
             white-space: normal;
         }
 
@@ -375,7 +424,8 @@
             display: inline-flex;
             flex-direction: column;
             gap: 0.15rem;
-            min-width: 112px;
+            width: 108px;
+            max-width: 100%;
             padding: 0.42rem 0.58rem;
             border-radius: 14px;
             border: 1px solid rgba(76, 129, 139, 0.14);
@@ -410,37 +460,44 @@
         .statement-currency-stack {
             display: flex;
             flex-direction: column;
-            gap: 0.24rem;
-            min-width: 96px;
+            gap: 0.28rem;
+            width: 104px;
+            max-width: 100%;
+            margin-inline: auto;
             line-height: 1.2;
-            white-space: normal;
-            text-align: right;
-            direction: rtl;
+            white-space: nowrap;
+            text-align: start;
+            direction: ltr;
         }
 
         .statement-currency-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            gap: 0.45rem;
+            display: grid;
+            grid-template-columns: minmax(74px, 1fr) 42px;
+            align-items: center;
+            gap: 0.4rem;
             margin: 0;
+            padding: 0.18rem 0.38rem;
+            border-radius: 8px;
+            background: rgba(76, 129, 139, 0.045);
         }
 
         .statement-currency-row b {
             font-weight: 800;
             color: var(--statement-primary-dark);
-            text-align: left;
+            text-align: right;
             direction: ltr;
-            unicode-bidi: plaintext;
+            font-variant-numeric: tabular-nums;
+            unicode-bidi: isolate;
         }
 
         .statement-currency-row em {
             color: var(--statement-muted);
-            min-width: 18px;
+            text-align: right;
             font-size: 0.78rem;
             font-style: normal;
             font-weight: 700;
             white-space: nowrap;
+            direction: rtl;
         }
 
         .statement-currency-row--usd b {
@@ -448,7 +505,6 @@
         }
 
         .statement-currency-row--sar {
-            padding-top: 0.14rem;
             border-top: 1px dashed rgba(76, 129, 139, 0.18);
         }
 

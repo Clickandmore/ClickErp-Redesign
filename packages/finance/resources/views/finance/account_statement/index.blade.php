@@ -48,6 +48,22 @@
             color: var(--statement-text);
         }
 
+        body.statement-page-wide .page-body,
+        body:has(.statement-shell) .page-body {
+            padding-inline: 0.45rem !important;
+        }
+
+        body.statement-page-wide .page-body > .container-fluid,
+        body:has(.statement-shell) .page-body > .container-fluid {
+            padding-inline: 0.45rem;
+            max-width: none;
+        }
+
+        body.statement-page-wide .page-body > .container-fluid > .card > .card-body,
+        body:has(.statement-shell) .page-body > .container-fluid > .card > .card-body {
+            padding: 0.75rem;
+        }
+
         .statement-hero {
             display: flex;
             flex-wrap: wrap;
@@ -384,6 +400,10 @@
             overflow: hidden;
         }
 
+        .statement-table-card--currency {
+            margin-inline: -0.55rem;
+        }
+
         .statement-table-head {
             display: flex;
             flex-wrap: wrap;
@@ -407,8 +427,56 @@
         }
 
         .statement-table {
+            width: 100%;
             margin-bottom: 0;
             color: var(--statement-text);
+        }
+
+        .statement-table-scroll {
+            width: 100%;
+            overflow-x: auto;
+            scrollbar-gutter: stable;
+        }
+
+        .statement-table--currency {
+            min-width: 1180px;
+            table-layout: fixed;
+        }
+
+        .statement-table--currency .statement-col-index {
+            width: 46px;
+        }
+
+        .statement-table--currency .statement-col-date {
+            width: 96px;
+        }
+
+        .statement-table--currency .statement-col-number {
+            width: 76px;
+        }
+
+        .statement-table--currency .statement-col-type {
+            width: 112px;
+        }
+
+        .statement-table--currency .statement-col-account {
+            width: 150px;
+        }
+
+        .statement-table--currency .statement-col-statement {
+            width: auto;
+        }
+
+        .statement-table--currency .statement-col-money {
+            width: 124px;
+        }
+
+        .statement-table--currency .statement-col-balance {
+            width: 132px;
+        }
+
+        .statement-table--currency .statement-col-user {
+            width: 96px;
         }
 
         .statement-table thead th {
@@ -435,7 +503,7 @@
 
         .statement-table tbody td,
         .statement-table tfoot td {
-            padding: 0.9rem 0.85rem;
+            padding: 0.82rem 0.7rem;
             vertical-align: middle;
             border-color: rgba(76, 129, 139, 0.12);
         }
@@ -459,8 +527,9 @@
         }
 
         .statement-cell--wide {
-            min-width: 280px;
             line-height: 1.7;
+            white-space: normal;
+            word-break: break-word;
         }
 
         .statement-entry-link {
@@ -479,8 +548,7 @@
         }
 
         .statement-money-cell {
-            min-width: 112px;
-            text-align: right;
+            text-align: center;
             white-space: normal;
         }
 
@@ -488,7 +556,8 @@
             display: inline-flex;
             flex-direction: column;
             gap: 0.15rem;
-            min-width: 112px;
+            width: 116px;
+            max-width: 100%;
             padding: 0.45rem 0.6rem;
             border-radius: 14px;
             border: 1px solid rgba(76, 129, 139, 0.14);
@@ -523,37 +592,44 @@
         .statement-currency-stack {
             display: flex;
             flex-direction: column;
-            gap: 0.24rem;
-            min-width: 96px;
+            gap: 0.28rem;
+            width: 112px;
+            max-width: 100%;
+            margin-inline: auto;
             line-height: 1.2;
-            white-space: normal;
-            text-align: right;
-            direction: rtl;
+            white-space: nowrap;
+            text-align: start;
+            direction: ltr;
         }
 
         .statement-currency-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: baseline;
-            gap: 0.45rem;
+            display: grid;
+            grid-template-columns: minmax(74px, 1fr) 42px;
+            align-items: center;
+            gap: 0.4rem;
             margin: 0;
+            padding: 0.18rem 0.38rem;
+            border-radius: 8px;
+            background: rgba(76, 129, 139, 0.045);
         }
 
         .statement-currency-row b {
             font-weight: 800;
             color: var(--statement-primary-dark);
-            text-align: left;
+            text-align: right;
             direction: ltr;
-            unicode-bidi: plaintext;
+            font-variant-numeric: tabular-nums;
+            unicode-bidi: isolate;
         }
 
         .statement-currency-row em {
             color: var(--statement-muted);
-            min-width: 18px;
+            text-align: right;
             font-size: 0.78rem;
             font-style: normal;
             font-weight: 700;
             white-space: nowrap;
+            direction: rtl;
         }
 
         .statement-currency-row--usd b {
@@ -561,7 +637,6 @@
         }
 
         .statement-currency-row--sar {
-            padding-top: 0.14rem;
             border-top: 1px dashed rgba(76, 129, 139, 0.18);
         }
 
@@ -825,6 +900,8 @@
 
 @section('js')
     <script>
+        document.body.classList.add('statement-page-wide');
+
         $('.select2').select2();
 
         const filtersContainer = $('#accountStatementFilters');

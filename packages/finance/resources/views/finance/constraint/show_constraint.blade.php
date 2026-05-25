@@ -298,14 +298,19 @@
             color: #0f172a;
         }
 
-            .constraint-show-page .activity-item span,
-            .constraint-show-page .activity-item small {
-                color: #6b7280;
-            }
+        .constraint-show-page .activity-item span,
+        .constraint-show-page .activity-item small {
+            color: #6b7280;
+        }
 
             @if (request()->boolean('print'))
+                html,
                 body {
                     background: #fff !important;
+                    height: auto !important;
+                    min-height: 100% !important;
+                    overflow-x: hidden !important;
+                    overflow-y: auto !important;
                 }
 
                 .no-print,
@@ -319,14 +324,19 @@
                     display: none !important;
                 }
 
+                body.layout-1,
+                body.layout-1 .wrapper,
+                body.layout-1 .wrapper .page-body,
                 .wrapper,
+                .page-body,
                 .main {
                     width: 100% !important;
                     height: auto !important;
                     min-height: 0 !important;
                     margin: 0 !important;
                     padding: 0 !important;
-                    overflow: visible !important;
+                    overflow-x: hidden !important;
+                    overflow-y: visible !important;
                     display: block !important;
                 }
 
@@ -778,6 +788,22 @@
     @if (request()->boolean('print'))
         <script>
             window.addEventListener('load', function () {
+                document.documentElement.style.height = 'auto';
+                document.documentElement.style.overflowX = 'hidden';
+                document.documentElement.style.overflowY = 'auto';
+                document.body.style.height = 'auto';
+                document.body.style.overflowX = 'hidden';
+                document.body.style.overflowY = 'auto';
+
+                ['.wrapper', '.page-body', '.main'].forEach(function (selector) {
+                    document.querySelectorAll(selector).forEach(function (element) {
+                        element.style.height = 'auto';
+                        element.style.minHeight = '0';
+                        element.style.overflowX = 'hidden';
+                        element.style.overflowY = 'visible';
+                    });
+                });
+
                 setTimeout(function () {
                     window.print();
                 }, 350);
