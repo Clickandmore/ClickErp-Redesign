@@ -7,6 +7,7 @@ return array (
   'partners' => 'الشركاء',
   'equipments' => 'المعدات',
   'business' => 'اعمالنا',
+  'Password changed successfully' => 'تم تغيير كلمة المرور بنجاح',
   'missions' => 'مهمتنا والرؤية',
   'aboutUs' => 'عنا',
   'name_min' => 'يجب أن يكون الاسم مكونًا من :min أحرف على الأقل.',

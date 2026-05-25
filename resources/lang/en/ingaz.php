@@ -2,6 +2,7 @@
 
 return array (
   'users' => 'Users',
+  'Password changed successfully' => 'Password changed successfully',
   'job_titles' => 'Job Titles',
   'title' => 'Title',
   'actions' => 'Actions',
