@@ -148,6 +148,10 @@ class RentContractController extends Controller
                 }
             }
 
+            if ($request->filled('expiry_filter')) {
+                $this->applyRentalContractExpiryFilter($query, $request->expiry_filter);
+            }
+
             $contracts = $query->latest();
 
             return DataTables::eloquent($contracts)
@@ -571,7 +575,8 @@ class RentContractController extends Controller
                 'contract_sent_by' => auth('admin')->id(),
             ]);
 
-            $selectedPackage = Package::find($request->package_id);
+            $packageId = (int) ($request->input('package_id') ?: $request->input('selected_package_id'));
+            $selectedPackage = Package::find($packageId);
             $contractDurationDays = (int) ($request->contract_duration_days ?: ($selectedPackage?->days_count ?: ($request->contract_duration_months * 30)));
             $contractDurationMonths = (int) ($request->contract_duration_months ?: max(1, (int) ceil($contractDurationDays / 30)));
             $monthlyCost = (float) ($request->monthly_cost ?: $this->resolvePackagePeriodCost($selectedPackage, $contractDurationMonths));
@@ -595,7 +600,7 @@ class RentContractController extends Controller
             // إنشاء معلومات العقد
             RentalContractInfo::create([
                 'rental_contract_id' => $rentalContract->id,
-                'package_id' => $request->package_id,
+                'package_id' => $packageId,
                 'package_original_price' => $packagePriceSnapshot['package_original_price'],
                 'package_discount_amount' => $packagePriceSnapshot['package_discount_amount'],
                 'package_price_after_discount' => $packagePriceSnapshot['package_price_after_discount'],
@@ -940,7 +945,8 @@ class RentContractController extends Controller
                 'contract_date' => $request->contract_date,
             ]);
 
-            $selectedPackage = Package::find($request->package_id);
+            $packageId = (int) ($request->input('package_id') ?: $request->input('selected_package_id'));
+            $selectedPackage = Package::find($packageId);
             $contractDurationDays = (int) ($request->contract_duration_days ?: ($selectedPackage?->days_count ?: ($request->contract_duration_months * 30)));
             $contractDurationMonths = (int) ($request->contract_duration_months ?: max(1, (int) ceil($contractDurationDays / 30)));
             $monthlyCost = (float) ($request->monthly_cost ?: $this->resolvePackagePeriodCost($selectedPackage, $contractDurationMonths));
@@ -956,6 +962,25 @@ class RentContractController extends Controller
                 $paidAmount = min((float) $request->paid_amount, $contractValue);
             }
 
+            if ($selectedPackage && (int) ($contract->info?->package_id ?? 0) !== (int) $selectedPackage->id) {
+                $packageDurationDays = (int) ($selectedPackage->days_count ?: 0);
+                $packageDurationMonths = max(1, (int) ceil(($packageDurationDays ?: 30) / 30));
+
+                $contractDurationDays = $packageDurationDays ?: (int) ($request->contract_duration_days ?: ($packageDurationMonths * 30));
+                $contractDurationMonths = $packageDurationMonths;
+                $monthlyCost = $this->resolvePackagePeriodCost($selectedPackage, $contractDurationMonths);
+                $contractValue = (float) ($selectedPackage->price_with_tax ?: ($monthlyCost * $contractDurationMonths));
+                $packagePriceSnapshot = $this->buildPackagePriceSnapshot($selectedPackage, $contractValue);
+
+                if ($request->payment_status === 'paid') {
+                    $paidAmount = $contractValue;
+                } elseif ($request->payment_status === 'partial') {
+                    $paidAmount = min((float) $request->paid_amount, $contractValue);
+                } else {
+                    $paidAmount = 0.0;
+                }
+            }
+
             $remainingAmount = max(0, $contractValue - $paidAmount);
             $paymentReceiptPath = $contract->info?->payment_receipt_path;
 
@@ -966,7 +991,7 @@ class RentContractController extends Controller
 
             // تحديث معلومات العقد
             $contract->info->update([
-                'package_id' => $request->package_id,
+                'package_id' => $packageId,
                 'package_original_price' => $packagePriceSnapshot['package_original_price'],
                 'package_discount_amount' => $packagePriceSnapshot['package_discount_amount'],
                 'package_price_after_discount' => $packagePriceSnapshot['package_price_after_discount'],
@@ -986,7 +1011,7 @@ class RentContractController extends Controller
                 'monthly_salary' => $request->monthly_salary,
                 'sponsorship_transfer_amount' => $request->sponsorship_transfer_amount,
                 'salary_after_sponsorship' => $request->salary_after_sponsorship,
-                'rental_type' => $request->rental_type,
+                'rental_type' => $selectedPackage?->rental_type ?: $request->rental_type,
                 'monthly_cost' => $monthlyCost,
                 'contract_duration_months' => $contractDurationMonths,
                 'contract_duration_days' => $contractDurationDays,
@@ -1040,6 +1065,13 @@ class RentContractController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error updating rental contract: ' . $e->getMessage());
+
+            if ($request->ajax() || $request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'حدث خطأ أثناء تحديث عقد التأجير: ' . $e->getMessage(),
+                ], 422);
+            }
 
             return redirect()->back()
                            ->withInput()
@@ -1220,6 +1252,9 @@ class RentContractController extends Controller
             if ($request->warranty_status) {
                 $query->where('warranty_status', $request->warranty_status);
             }
+            if ($request->expiry_filter) {
+                $this->applyRentalContractExpiryFilter($query, $request->expiry_filter);
+            }
 
             $contracts = $query->get();
 
@@ -1356,6 +1391,30 @@ class RentContractController extends Controller
         }
 
         $query->where('status', $status);
+    }
+
+    private function applyRentalContractExpiryFilter($query, ?string $expiryFilter): void
+    {
+        if (!$expiryFilter) {
+            return;
+        }
+
+        $query->whereNotIn('status', ['completed', 'cancelled']);
+
+        if ($expiryFilter === 'expired') {
+            $query->whereHas('info', function ($infoQuery) {
+                $infoQuery->whereNotNull('ingaz_to')
+                    ->whereDate('ingaz_to', '<=', Carbon::today());
+            });
+            return;
+        }
+
+        if ($expiryFilter === 'not_expired') {
+            $query->whereHas('info', function ($infoQuery) {
+                $infoQuery->whereNotNull('ingaz_to')
+                    ->whereDate('ingaz_to', '>', Carbon::today());
+            });
+        }
     }
 
     private function getAvailableRentalMaidsQuery(?int $currentMaidId = null)
