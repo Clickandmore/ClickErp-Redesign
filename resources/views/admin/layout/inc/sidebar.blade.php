@@ -140,7 +140,6 @@
                         </a>
                     </li>
                 @endif
-
                 @php
                     $supportedLocales = array_keys(config('laravellocalization.supportedLocales', []));
                     $firstSegment = request()->segment(1);
@@ -1521,6 +1520,30 @@
                     </li>
                 @endif
                 <!-- Clients Section -->
+                <li class="divider py-2 lh-sm"><span class="small">الدعم</span></li>
+                <li class="collapsed">
+                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#supportCenterMenu" href="#">
+                        <i class="fa fa-life-ring me-2"></i>
+                        <span class="ms-2">الدعم</span>
+                        <span class="arrow fa fa-angle-left ms-auto text-end"></span>
+                    </a>
+                    <ul class="sub-menu collapse {{ request()->routeIs('support.*') ? 'show' : '' }}" id="supportCenterMenu">
+                        <li>
+                            <a class="m-link {{ request()->routeIs('support.index', 'support.show', 'support.create', 'support.edit') ? 'active' : '' }}"
+                                href="{{ route('support.index') }}">
+                                <i class="fa fa-book"></i>
+                                <span class="ms-2">مركز المعرفة</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="m-link {{ request()->routeIs('support.tickets', 'support.tickets.create') ? 'active' : '' }}"
+                                href="{{ route('support.tickets') }}">
+                                <i class="fa fa-ticket"></i>
+                                <span class="ms-2">تذاكر الدعم</span>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
             </ul>
         </div>
 

@@ -1511,6 +1511,8 @@ return array (
   'video_title' => 'Watch the introductory video of the Musaned platform',
   'video_description' => 'Musaned - The National Platform for Domestic Labor Services',
   'video_link' => 'Video Link',
+  'video_link_or_iframe_placeholder' => 'Paste a video link or iframe code',
+  'video_link_iframe_hint' => 'When an iframe is pasted, the src link is extracted automatically and saved for the public site.',
   'Operations_Management' => 'Operations Management',
   'technical_support' => 'Technical Support',
   'salary_with_no_experience' => 'Salary with no experience',

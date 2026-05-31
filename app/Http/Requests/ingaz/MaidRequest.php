@@ -30,7 +30,7 @@ class MaidRequest extends MainRequest
             'name:en' => 'required|string|max:255',
             'cv_file' => 'nullable',
             'video' => 'nullable',
-            'video_link' => 'nullable',
+            'video_link' => 'nullable|url|max:2000',
             'nationality_id' => 'required|exists:nationalities,id',
             'passport_num' => [
                 'required',
@@ -100,15 +100,39 @@ class MaidRequest extends MainRequest
 
     protected function prepareForValidation()
     {
+        $data = [
+            'video_link' => $this->normalizeVideoLink($this->input('video_link')),
+        ];
+
         if ($this->isSelectedRentalType()) {
-            $this->merge([
+            $data = array_merge($data, [
                 'request_type' => Maid::REQUEST_TYPE_CUSTOM,
             ]);
         } else {
-            $this->merge([
+            $data = array_merge($data, [
                 'arrival_date' => null,
             ]);
         }
+
+        $this->merge($data);
+    }
+
+    private function normalizeVideoLink($value): ?string
+    {
+        if (!is_string($value)) {
+            return null;
+        }
+
+        $value = trim($value);
+        if ($value === '') {
+            return null;
+        }
+
+        if (preg_match('/<iframe\b[^>]*\bsrc\s*=\s*(["\']?)([^"\'\s>]+)\1/iu', $value, $matches)) {
+            $value = $matches[2];
+        }
+
+        return html_entity_decode(trim($value), ENT_QUOTES, 'UTF-8') ?: null;
     }
 
     public function messages()

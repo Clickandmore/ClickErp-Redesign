@@ -452,7 +452,15 @@
                 </div>
                     <div class="col-12">
                         <label for="TextInput" class="form-label">{{ helperTrans('ingaz.video_link') }} <small class="text-muted">({{ helperTrans('ingaz.optional') }})</small></label>
-                        <input type="url" name="video_link" class="form-control" value="{{$obj->video_link}}" placeholder="https://...">
+                        <input type="text" name="video_link" class="form-control js-video-link-input" value="{{ $obj->video_link }}"
+                            placeholder="{{ __('ingaz.video_link_or_iframe_placeholder') }}">
+                        <small class="text-muted d-block mt-1">{{ __('ingaz.video_link_iframe_hint') }}</small>
+                        <div class="maid-video-preview mt-2 d-none">
+                            <div class="border rounded overflow-hidden" style="height: 220px;">
+                                <iframe class="js-video-preview-frame" src="" width="100%" height="100%"
+                                    style="border: 0;" allowfullscreen loading="lazy"></iframe>
+                            </div>
+                        </div>
                     </div>
                 <div class="col-12" id="experience_section" style="display: {{$obj->experience_status == 'has_experience' ? 'block' : 'none'}};">
                     <label for="TextInput" class="form-label">{{helperTrans("ingaz.expertise")}}</label>
@@ -1471,6 +1479,9 @@
                         window.syncExperienceRow($(this));
                     });
                 }
+                if (typeof window.normalizeMaidVideoLinkInput === 'function') {
+                    window.normalizeMaidVideoLinkInput();
+                }
 
                 // إرسال النموذج باستخدام AJAX
                 var formData = new FormData(this);
@@ -1605,6 +1616,52 @@
             // Initialize shelter option on page load
             initializeShelterOption();
         });
+    </script>
+    <script>
+        (function() {
+            function extractVideoLink(value) {
+                value = (value || '').trim();
+                if (!value) {
+                    return '';
+                }
+
+                var iframeMatch = value.match(/<iframe\b[^>]*\bsrc\s*=\s*(["']?)([^"'\s>]+)\1/i);
+                if (iframeMatch && iframeMatch[2]) {
+                    return $('<textarea/>').html(iframeMatch[2]).text().trim();
+                }
+
+                return value;
+            }
+
+            function updatePreview() {
+                var $input = $('.js-video-link-input');
+                var videoLink = extractVideoLink($input.val());
+                var $preview = $('.maid-video-preview');
+                var $frame = $('.js-video-preview-frame');
+
+                if (/^https?:\/\//i.test(videoLink)) {
+                    $frame.attr('src', videoLink);
+                    $preview.removeClass('d-none');
+                    return;
+                }
+
+                $frame.attr('src', '');
+                $preview.addClass('d-none');
+            }
+
+            window.normalizeMaidVideoLinkInput = function() {
+                var $input = $('.js-video-link-input');
+                $input.val(extractVideoLink($input.val()));
+                updatePreview();
+            };
+
+            $(function() {
+                $('.js-video-link-input').on('input change paste', function() {
+                    setTimeout(updatePreview, 0);
+                });
+                updatePreview();
+            });
+        })();
     </script>
     <script>
         $(function () {
