@@ -71,6 +71,7 @@ class StoreRentalContractRequest extends FormRequest
             'monthly_salary' => 'nullable|numeric|min:0',
             'sponsorship_transfer' => 'nullable|string|in:yes,no',
             'package_id' => 'required|exists:packages,id',
+            'selected_package_id' => 'nullable|exists:packages,id',
             'payment_type' => 'required|string|in:cash,bank_transfer,mada,tabby,tamara,pay_later,other',
             'payment_status' => 'required|string|in:paid,partial,pending,later,bank_pending',
             'payment_receipt' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
@@ -117,6 +118,7 @@ class StoreRentalContractRequest extends FormRequest
             'sponsorship_transfer_amount' => 'nullable|numeric|min:0',
             'salary_after_sponsorship' => 'nullable|numeric|min:0',
             'package_id' => 'required|exists:packages,id',
+            'selected_package_id' => 'nullable|exists:packages,id',
             'payment_type' => 'required|string|in:cash,bank_transfer,mada,tabby,tamara,pay_later,other',
             'payment_status' => 'required|string|in:paid,partial,pending,later,bank_pending',
             'payment_receipt' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
@@ -240,8 +242,10 @@ class StoreRentalContractRequest extends FormRequest
                 }
             }
 
-            if ($this->package_id && $this->maid_id) {
-                $package = Package::with('nationality.translations')->find($this->package_id);
+            $packageId = $this->input('package_id') ?: $this->input('selected_package_id');
+
+            if ($packageId && $this->maid_id) {
+                $package = Package::with('nationality.translations')->find($packageId);
 
                 if ($package && $maid && !$this->packageMatchesMaidNationality($package, $maid)) {
                     $validator->errors()->add('package_id', 'الباقة المختارة لا تطابق جنسية العاملة');

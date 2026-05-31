@@ -502,6 +502,18 @@
                             <option value="not_extended">غير ممددة</option>
                         </select>
                     </div>
+                    <div class="col-md-3 mt-3">
+                        <label for="expiryFilter" class="form-label">حالة انتهاء العقد:</label>
+                        <select id="expiryFilter" class="form-select">
+                            <option value="" {{ request('expiry_filter') ? '' : 'selected' }}>جميع العقود</option>
+                            <option value="expired" {{ request('expiry_filter') === 'expired' ? 'selected' : '' }}>
+                                العقود المنتهية
+                            </option>
+                            <option value="not_expired" {{ request('expiry_filter') === 'not_expired' ? 'selected' : '' }}>
+                                العقود غير المنتهية
+                            </option>
+                        </select>
+                    </div>
                 </div>
                 <div class="row mt-3">
                     <div class="col-md-6">
@@ -1224,6 +1236,7 @@
                         d.request_type = $('#requestTypeFilter').val();
                         d.warranty_status = $('#warrantyStatusFilter').val();
                         d.extension_filter = $('#extensionFilter').val();
+                        d.expiry_filter = $('#expiryFilter').val();
                     }
                 },
                 columns: [{
@@ -1423,7 +1436,7 @@
 
             // Clear Filters
             $('#clearFilters').click(function() {
-                $('#statusFilter, #marketerFilter, #requestTypeFilter, #warrantyStatusFilter, #extensionFilter')
+                $('#statusFilter, #marketerFilter, #requestTypeFilter, #warrantyStatusFilter, #extensionFilter, #expiryFilter')
                     .val('');
                 $('#dateFromFilter, #dateToFilter, #clientPhoneFilter, #clientNameFilter, #maidPassportFilter, #maidNameFilter, #contractNumberFilter')
                     .val('');
@@ -1444,7 +1457,8 @@
                     marketer_id: $('#marketerFilter').val(),
                     request_type: $('#requestTypeFilter').val(),
                     warranty_status: $('#warrantyStatusFilter').val(),
-                    extension_filter: $('#extensionFilter').val()
+                    extension_filter: $('#extensionFilter').val(),
+                    expiry_filter: $('#expiryFilter').val()
                 });
             });
 
