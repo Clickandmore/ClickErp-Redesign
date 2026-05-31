@@ -371,6 +371,7 @@
                                         <th>{{ helperTrans('ingaz.last_activity') }}</th>
                                         <th>{{ helperTrans('ingaz.status') }}</th>
                                         <th>{{ helperTrans('ingaz.have_account') }}</th>
+                                        <th>أضيف بواسطة</th>
                                         <th>{{ helperTrans('ingaz.created_at') }}</th>
                                         <th>{{ helperTrans('ingaz.actions') }}</th>
                                     </tr>
@@ -544,6 +545,12 @@
                     {
                         data: 'account_id',
                         name: 'account_id',
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
+                        data: 'created_by',
+                        name: 'created_by',
                         orderable: false,
                         searchable: false
                     },
