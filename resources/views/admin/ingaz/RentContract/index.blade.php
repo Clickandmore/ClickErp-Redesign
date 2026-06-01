@@ -1131,11 +1131,11 @@
                                             <div class="fw-bold" id="extend_extension_value">-</div>
                                         </div>
                                         <div class="col-md-4">
-                                            <div class="text-muted small">إجمالي مدة العقد بعد التمديد</div>
+                                            <div class="text-muted small">مدة التمديد المحفوظة</div>
                                             <div class="fw-bold" id="extend_new_duration_text">-</div>
                                         </div>
                                         <div class="col-md-4">
-                                            <div class="text-muted small">قيمة العقد بعد التمديد</div>
+                                            <div class="text-muted small">قيمة التمديد المحفوظة</div>
                                             <div class="fw-bold" id="extend_new_contract_value_text">-</div>
                                         </div>
                                     </div>
@@ -1543,8 +1543,8 @@
                     $('#extend_extension_days').val('');
                     $('#extend_extension_end_date').val('');
                     $('#extend_extension_value').text('-');
-                    $('#extend_new_duration_text').text(currentDurationDays ? (currentDurationDays + ' يوم') : '-');
-                    $('#extend_new_contract_value_text').text(contractValue ? (formatCurrency(contractValue) + ' ريال') : '-');
+                    $('#extend_new_duration_text').text('-');
+                    $('#extend_new_contract_value_text').text('-');
                     return;
                 }
 
@@ -1560,14 +1560,12 @@
 
                 const newEndDate = new Date(baseDate.getTime() + (extensionDays * 24 * 60 * 60 * 1000));
                 const extensionValue = dailyRate * extensionDays;
-                const newDurationDays = currentDurationDays + extensionDays;
-                const newContractValue = contractValue + extensionValue;
 
                 $('#extend_extension_days').val(extensionDays + ' يوم');
                 $('#extend_extension_end_date').val(formatDate(newEndDate));
                 $('#extend_extension_value').text(formatCurrency(extensionValue) + ' ريال');
-                $('#extend_new_duration_text').text(newDurationDays + ' يوم');
-                $('#extend_new_contract_value_text').text(formatCurrency(newContractValue) + ' ريال');
+                $('#extend_new_duration_text').text(extensionDays + ' يوم');
+                $('#extend_new_contract_value_text').text(formatCurrency(extensionValue) + ' ريال');
             }
 
             function toggleExtendReceiptRequirement() {
