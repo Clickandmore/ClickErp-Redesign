@@ -214,7 +214,7 @@ class RentContractController extends Controller
                             if ($remainingDays > 0) {
                                 return '<span class="badge bg-success">' . $remainingDays . ' يوم متبقي</span>';
                             } else {
-                                return '<span class="badge bg-danger">منتهي</span>';
+                                return '<span class="badge bg-danger">منتهي منذ ' . abs((int) $remainingDays) . ' يوم</span>';
                             }
                         }
                         return '<span class="badge bg-secondary">غير محدد</span>';
