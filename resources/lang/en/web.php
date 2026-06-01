@@ -575,7 +575,6 @@ return array (
     'Platinum Company Services' => 'Platinum Company Services',
     'aboutUs' => 'About Us',
 
-];
     'active' => 'Active',
     'completed' => 'Completed',
     'cancelled' => 'Cancelled',
