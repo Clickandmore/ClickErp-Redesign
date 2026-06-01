@@ -253,6 +253,12 @@ const PARTENR_CONTROL = 'partenr_control';
     const COUNTRIES_DELETE = 'countries_delete';
     const COUNTRIES_CONTROL = 'countries_control';
 
+    const BRANCHES_VIEW = 'branches_view';
+    const BRANCHES_CREATE = 'branches_create';
+    const BRANCHES_EDIT = 'branches_edit';
+    const BRANCHES_DELETE = 'branches_delete';
+    const BRANCHES_CONTROL = 'branches_control';
+
     // ========================================
     // إدارة المستخدمين
     // ========================================

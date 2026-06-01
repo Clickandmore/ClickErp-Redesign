@@ -126,6 +126,7 @@
 
                 $canViewHomeSettings = @AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_VIEW, \App\PermKeys::SLIDERS_VIEW, \App\PermKeys::ABOUT_US_VIEW, \App\PermKeys::FAQ_VIEW, \App\PermKeys::STATISTICS_VIEW, \App\PermKeys::STEPS_VIEW, \App\PermKeys::SERVICES_VIEW, \App\PermKeys::PARTENR_VIEW]);
 
+                $canViewBranches = @SystemModuleEnabled('branches') && @AdminGuardHasAnyPerm([\App\PermKeys::BRANCHES_VIEW, \App\PermKeys::BRANCHES_CREATE, \App\PermKeys::BRANCHES_EDIT, \App\PermKeys::BRANCHES_DELETE, \App\PermKeys::BRANCHES_CONTROL]);
                 $canViewMaidsData = @AdminGuardHasAnyPerm([\App\PermKeys::NATIONALITIES_VIEW, \App\PermKeys::REC_OFFICES_VIEW, \App\PermKeys::JOB_TITLES_VIEW, \App\PermKeys::RELIGIONS_VIEW, \App\PermKeys::SKILLS_VIEW, \App\PermKeys::COUNTRIES_VIEW, \App\PermKeys::SOCIAL_STATUS_VIEW, \App\PermKeys::USERS_VIEW, \App\PermKeys::MAIDS_VIEW]);
 
                 $canViewOperations = @SystemModuleEnabled('operations') && $canViewOperations;
@@ -1037,6 +1038,49 @@
                                         href="{{ route('admin.zoho-salesiq.conversations.index') }}">
                                         <i class="fa fa-comments"></i>
                                         <span class="ms-2">{{ __('admin.sidebar.zoho_conversations') }}</span>
+                                    </a>
+                                </li>
+                            @endif
+                        </ul>
+                    </li>
+                @endif
+
+                @if ($canViewBranches)
+                    @php
+                        $branchesManagementOpen = request()->routeIs('branches.*');
+                    @endphp
+                    <li class="sidebar-module sidebar-module--branches {{ $branchesManagementOpen ? '' : 'collapsed' }}">
+                        <a class="m-link" data-bs-toggle="collapse" data-bs-target="#branchesManagement"
+                            href="#">
+                            <i class="fa fa-code-branch fa-lg"></i>
+                            <span class="ms-2">{{ __('admin.sidebar.branches_management') }}</span>
+                            <span class="arrow fa fa-angle-left ms-auto text-end"></span>
+                        </a>
+                        <ul class="sub-menu collapse {{ $branchesManagementOpen ? 'show' : '' }}" id="branchesManagement">
+                            @if (@AdminGuardHasAnyPerm([\App\PermKeys::BRANCHES_VIEW, \App\PermKeys::BRANCHES_CONTROL]))
+                                <li>
+                                    <a class="m-link {{ request()->routeIs('branches.index') ? 'active' : '' }}"
+                                        href="{{ route('branches.index') }}">
+                                        <i class="fa fa-list"></i>
+                                        <span class="ms-2">{{ __('admin.sidebar.branches_list') }}</span>
+                                    </a>
+                                </li>
+                            @endif
+                            @if (@AdminGuardHasAnyPerm([\App\PermKeys::BRANCHES_CREATE, \App\PermKeys::BRANCHES_CONTROL]))
+                                <li>
+                                    <a class="m-link {{ request()->routeIs('branches.create') ? 'active' : '' }}"
+                                        href="{{ route('branches.create') }}">
+                                        <i class="fa fa-plus"></i>
+                                        <span class="ms-2">{{ __('admin.sidebar.branch_create') }}</span>
+                                    </a>
+                                </li>
+                            @endif
+                            @if (@AdminGuardHasAnyPerm([\App\PermKeys::BRANCHES_VIEW, \App\PermKeys::BRANCHES_CONTROL]))
+                                <li>
+                                    <a class="m-link {{ request()->routeIs('branches.settings') ? 'active' : '' }}"
+                                        href="{{ route('branches.settings') }}">
+                                        <i class="fa fa-sliders"></i>
+                                        <span class="ms-2">{{ __('admin.sidebar.branch_settings') }}</span>
                                     </a>
                                 </li>
                             @endif

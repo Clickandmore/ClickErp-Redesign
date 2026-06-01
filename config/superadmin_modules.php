@@ -42,7 +42,8 @@ return [
             'branches.*',
         ],
         'path_patterns' => [
-            'dashboard/branches*',
+            'admin/branches*',
+            'admin/ingaz/branches*',
         ],
     ],
 

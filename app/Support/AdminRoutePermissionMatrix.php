@@ -115,6 +115,8 @@ class AdminRoutePermissionMatrix
             'social-statuses.index',
             'countries.index',
             'cities.index',
+            'branches.index',
+            'branches.settings',
             'packages.index',
             'offices.index',
             'dash.settings',
@@ -726,6 +728,13 @@ class AdminRoutePermissionMatrix
                 'cities.edit' => [PermKeys::COUNTRIES_EDIT, PermKeys::COUNTRIES_CONTROL],
                 'cities.update' => [PermKeys::COUNTRIES_EDIT, PermKeys::COUNTRIES_CONTROL],
                 'cities.destroy' => [PermKeys::COUNTRIES_DELETE, PermKeys::COUNTRIES_CONTROL],
+                'branches.index' => [PermKeys::BRANCHES_VIEW, PermKeys::BRANCHES_CONTROL],
+                'branches.settings' => [PermKeys::BRANCHES_VIEW, PermKeys::BRANCHES_CONTROL],
+                'branches.create' => [PermKeys::BRANCHES_CREATE, PermKeys::BRANCHES_CONTROL],
+                'branches.store' => [PermKeys::BRANCHES_CREATE, PermKeys::BRANCHES_CONTROL],
+                'branches.edit' => [PermKeys::BRANCHES_EDIT, PermKeys::BRANCHES_CONTROL],
+                'branches.update' => [PermKeys::BRANCHES_EDIT, PermKeys::BRANCHES_CONTROL],
+                'branches.destroy' => [PermKeys::BRANCHES_DELETE, PermKeys::BRANCHES_CONTROL],
             ]
         );
     }
