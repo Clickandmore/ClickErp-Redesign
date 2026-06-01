@@ -128,7 +128,7 @@ class MaidController extends Controller
 
                     return '<div class="d-flex flex-column gap-2">'
                         . '<div class="d-flex align-items-center gap-2">'
-                        . '<span class="fw-semibold text-dark maid-name">' . $name . '</span>'
+                        . '<span class="fw-semibold text-dark maid-name notranslate" translate="no" dir="auto" data-maid-display="' . $name . '" aria-label="' . $name . '"></span>'
                         . $pinnedBadge
                         . '</div>'
                         . $cvCodeLine
