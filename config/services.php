@@ -63,13 +63,12 @@ return [
     ],
 
     'zoho_salesiq' => [
-        'accounts_url' => env('ZOHO_SALESIQ_ACCOUNTS_URL', 'https://accounts.zoho.sa'),
-        'api_url' => env('ZOHO_SALESIQ_API_URL', 'https://salesiq.zoho.sa'),
-        'client_id' => env('ZOHO_SALESIQ_CLIENT_ID'),
-        'client_secret' => env('ZOHO_SALESIQ_CLIENT_SECRET'),
-        'refresh_token' => env('ZOHO_SALESIQ_REFRESH_TOKEN'),
-        'redirect_uri' => env('ZOHO_SALESIQ_REDIRECT_URI', env('APP_URL') . '/zoho/salesiq/oauth/callback'),
-        'screenname' => env('ZOHO_SALESIQ_SCREENNAME'),
+        'salesiq_base_url' => env('ZOHO_SALESIQ_BASE_URL', 'https://salesiq.zoho.sa'),
+        'accounts_base_url' => env('ZOHO_SALESIQ_ACCOUNTS_BASE_URL', 'https://accounts.zoho.sa'),
+        'screen_name' => env('ZOHO_SALESIQ_SCREEN_NAME', 'platinumeastern'),
+        'client_id' => env('ZOHO_SALESIQ_CLIENT_ID', ''),
+        'client_secret' => env('ZOHO_SALESIQ_CLIENT_SECRET', ''),
+        'refresh_token' => env('ZOHO_SALESIQ_REFRESH_TOKEN', ''),
         'timeout' => (int) env('ZOHO_SALESIQ_TIMEOUT', 20),
     ],
 

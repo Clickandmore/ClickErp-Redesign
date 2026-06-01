@@ -31,7 +31,7 @@
                     <button type="button" class="password-toggle" id="passwordToggle"
                         aria-label="{{ app()->getLocale() === 'ar' ? 'إظهار كلمة المرور' : 'Show password' }}"
                         aria-pressed="false">
-                        <i class="fa-regular fa-eye" aria-hidden="true"></i>
+                        <i class="fa fa-eye" aria-hidden="true"></i>
                     </button>
                 </div>
             </div>
@@ -46,6 +46,11 @@
             </span>
         </div>
         <button type="submit" class="primary-btn">{{ __('auth.sign in') }}</button>
+        <a href="{{ \Mcamara\LaravelLocalization\Facades\LaravelLocalization::getLocalizedURL(app()->getLocale(), route('agent.login.form'), [], true) }}"
+            class="agent-login-btn">
+            <i class="fa fa-user" aria-hidden="true"></i>
+            <span>{{ app()->getLocale() === 'ar' ? 'تسجيل دخول الوكلاء' : 'Agent Login' }}</span>
+        </a>
     </form>
 @endsection
 
@@ -72,7 +77,7 @@
                     passwordToggle.setAttribute('aria-label', isHidden ? hideLabel : showLabel);
 
                     if (eyeIcon) {
-                        eyeIcon.className = isHidden ? 'fa-regular fa-eye-slash' : 'fa-regular fa-eye';
+                        eyeIcon.className = isHidden ? 'fa fa-eye-slash' : 'fa fa-eye';
                     }
                 });
             }

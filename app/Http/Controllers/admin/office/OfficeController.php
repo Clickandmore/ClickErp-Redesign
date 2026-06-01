@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
+use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 use Spatie\Activitylog\Models\Activity;
@@ -55,7 +56,7 @@ class OfficeController extends Controller
         if ($request->ajax()) {
             $offices = objModel::query()
                 ->select('recruitment_offices.*')
-                ->with(['nationality', 'file', 'account', 'officeManager'])
+                ->with(['nationality', 'file', 'account', 'officeManager.admin'])
                 ->selectSub($linkedContractsCountSubquery, 'linked_contracts_count')
                 ->selectSub($this->previousSponsorshipsCountSubquery(), 'previous_sponsorships_count')
                 ->selectSub($this->externalDispatchesCountSubquery(), 'external_dispatches_count')
@@ -264,24 +265,7 @@ class OfficeController extends Controller
                 ]);
             }
 
-            if (
-                filled($data['manager_name'] ?? null)
-                && filled($data['manager_phone'] ?? null)
-                && filled($data['manager_email'] ?? null)
-                && filled($managerPassword)
-            ) {
-                $admin = $adminAction->store([
-                    'name' => $data['manager_name'],
-                    'phone' => $data['manager_phone'],
-                    'email' => $data['manager_email'],
-                    'password' => Hash::make($managerPassword),
-                ]);
-
-                $adminOfficeAction->store([
-                    'office_id' => $office->id,
-                    'admin_id' => $admin->id,
-                ]);
-            }
+            $this->syncOfficeAgentAccount($office, $data, $managerPassword, $adminAction, $adminOfficeAction);
 
             if ($attachmentFile && filled($attachmentName)) {
                 $officeAttachmentAction->store([
@@ -343,7 +327,7 @@ class OfficeController extends Controller
         Auth::guard('agent')->login($adminUser);
         request()->session()->regenerate();
 
-        return redirect()->route('agent.dashboard');
+        return redirect(LaravelLocalization::getLocalizedURL(app()->getLocale(), route('agent.dashboard'), [], true));
     }
 
     /**
@@ -354,7 +338,7 @@ class OfficeController extends Controller
      */
     public function edit(Request $request, $id, NationalityAction $nationalityAction, JobTypeAction $jobTypeAction)
     {
-        $office = objModel::with(['jobTypes', 'attachment', 'account'])
+        $office = objModel::with(['jobTypes', 'attachment', 'account', 'officeManager.admin'])
             ->withCount('maids')
             ->findorfail($id);
         $nationalities = $nationalityAction->get();
@@ -413,49 +397,8 @@ class OfficeController extends Controller
                 }
             }
 
-            if (isset($obj->officeManager->admin_id)) {
-                $admin = $adminAction->find($obj->officeManager->admin_id);
-                $adminData = [];
-
-                if (filled($data['manager_name'] ?? null)) {
-                    $adminData['name'] = $data['manager_name'];
-                }
-
-                if (filled($data['manager_phone'] ?? null)) {
-                    $adminData['phone'] = $data['manager_phone'];
-                }
-
-                if (filled($data['manager_email'] ?? null)) {
-                    $adminData['email'] = $data['manager_email'];
-                }
-
-                if (filled($managerPassword)) {
-                    $adminData['password'] = Hash::make($managerPassword);
-                }
-
-                if (! empty($adminData)) {
-                    $admin->update($adminData);
-                }
-            } elseif (
-                filled($data['manager_name'] ?? null)
-                && filled($data['manager_phone'] ?? null)
-                && filled($data['manager_email'] ?? null)
-                && filled($managerPassword)
-            ) {
-                $admin = $adminAction->store([
-                    'name' => $data['manager_name'],
-                    'phone' => $data['manager_phone'],
-                    'email' => $data['manager_email'],
-                    'password' => Hash::make($managerPassword),
-                ]);
-
-                $adminOfficeAction->store([
-                    'office_id' => $id,
-                    'admin_id' => $admin->id,
-                ]);
-            }
-
             $obj->update($data);
+            $this->syncOfficeAgentAccount($obj->fresh(['officeManager.admin']), $data, $managerPassword, $adminAction, $adminOfficeAction);
 
             $officeFinanceAccountService->ensureForOffice($obj->fresh(['translations', 'account']));
 
@@ -466,6 +409,49 @@ class OfficeController extends Controller
 
         return jsonSuccess(['url' => route('offices.index')], null, 201);
 
+    }
+
+    private function syncOfficeAgentAccount(
+        objModel $office,
+        array $data,
+        ?string $managerPassword,
+        AdminAction $adminAction,
+        AdminOfficeAction $adminOfficeAction
+    ): void {
+        if (! filled($data['manager_email'] ?? null)) {
+            return;
+        }
+
+        $office->loadMissing('officeManager.admin');
+
+        $adminData = [
+            'name' => filled($data['manager_name'] ?? null)
+                ? $data['manager_name']
+                : ((string) ($office->title ?: $data['manager_email'])),
+            'phone' => filled($data['manager_phone'] ?? null) ? $data['manager_phone'] : null,
+            'email' => $data['manager_email'],
+        ];
+
+        if (filled($managerPassword)) {
+            $adminData['password'] = Hash::make($managerPassword);
+        }
+
+        if ($office->officeManager?->admin) {
+            $office->officeManager->admin->update($adminData);
+
+            return;
+        }
+
+        if (! filled($managerPassword)) {
+            return;
+        }
+
+        $admin = $adminAction->store($adminData);
+
+        $adminOfficeAction->store([
+            'office_id' => $office->id,
+            'admin_id' => $admin->id,
+        ]);
     }
 
     /**

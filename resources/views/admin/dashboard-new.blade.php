@@ -910,7 +910,7 @@
                                     <strong>{{ __('admin.dashboard_new.contracts_movement_three_years') }}</strong>
                                     <small>{{ __('admin.dashboard_new.contracts_movement_three_years_hint') }}</small>
                                 </div>
-                                <span class="contract-summary-pill">{{ __('admin.dashboard_new.this_week') }}:
+                                <span class="contract-summary-pill">{{ __('admin.dashboard_new.this_week_label') }}:
                                     {{ number_format($analyticsStats['thisWeek'] ?? 0) }}</span>
                             </div>
                             <div class="contracts-chart-wrap">
@@ -925,7 +925,7 @@
                                     <small>{{ __('admin.dashboard_new.contract_stages_hint') }}</small>
                                 </div>
                                 <div class="contract-stage-total">
-                                    <small>{{ __('admin.dashboard_new.total') }}</small>
+                                    <small>{{ __('admin.dashboard_new.total_label') }}</small>
                                     <strong>{{ number_format($contractStagesRawTotal) }}</strong>
                                 </div>
                             </div>
@@ -1092,7 +1092,7 @@
                                             <div class="office-stock-heading">
                                                 <strong>{{ $office->title ?? __('admin.dashboard_new.office') }}</strong>
                                                 <div class="office-stock-meta">
-                                                    <span class="office-stock-pill">{{ __('admin.dashboard_new.total') }}
+                                                    <span class="office-stock-pill">{{ __('admin.dashboard_new.total_label') }}
                                                         {{ number_format($total) }}</span>
                                                     @if ($avgRecruitmentDays !== null)
                                                         <span class="office-stock-pill">{{ __('admin.dashboard_new.average_arrival') }}
@@ -1103,7 +1103,7 @@
                                                     @endif
                                                 </div>
                                             </div>
-                                            <span class="office-stock-total">{{ __('admin.dashboard_new.cvs') }} {{ number_format($total) }}</span>
+                                            <span class="office-stock-total">{{ __('admin.dashboard_new.cv_count_short', ['count' => number_format($total)]) }}</span>
                                         </div>
 
                                         <div class="office-stock-nationality">
@@ -1115,7 +1115,7 @@
                                                     <i class="fas fa-flag"></i>
                                                 </span>
                                             @endif
-                                            <span>{{ $office->nationality->title ?? __('admin.dashboard_new.undefined') }}</span>
+                                            <span>{{ $office->nationality->title ?? __('admin.dashboard_new.not_specified') }}</span>
                                         </div>
 
                                         <div class="office-stock-stats">
@@ -1133,7 +1133,7 @@
 
                                         <small class="office-stock-foot">
                                             @if ($arrivalsTotal > 0)
-                                                {{ __('admin.dashboard_new.average_duration_from_arrivals', ['count' => number_format($arrivalsTotal)]) }}
+                                                {{ __('admin.dashboard_new.average_from_arrivals', ['count' => number_format($arrivalsTotal)]) }}
                                             @else
                                                 {{ __('admin.dashboard_new.no_completed_arrivals_for_average') }}
                                             @endif
@@ -1246,7 +1246,7 @@
                                                 {{ number_format((int) $emp->contracts_returned) }}</span>
                                         </div>
                                         <div class="employee-performance-footer">
-                                            <small>{{ __('admin.dashboard_new.booking_conversion_rate') }}:
+                                            <small>{{ __('admin.dashboard_new.conversion_rate_from_bookings') }}:
                                                 {{ number_format((int) ($emp->conversion_rate ?? 0)) }}%</small>
                                             <div class="employee-performance-actions">
                                                 <a href="{{ route('dashboard.employees.show', ['employee' => $emp->id, 'range' => 'all']) }}"
@@ -1259,7 +1259,7 @@
                                         </div>
                                     </div>
                                 @empty
-                                    <div class="empty-state py-3">{{ __('admin.dashboard_new.no_data_available') }}</div>
+                                    <div class="empty-state py-3">{{ __('admin.dashboard_new.no_employee_data') }}</div>
                                 @endforelse
                             </div>
                         </div>
@@ -1348,7 +1348,9 @@
             const rangeValues = document.querySelectorAll('[data-range-value]');
             const rangeLabels = document.querySelectorAll('[data-range-label]');
 
-            const numberFormatter = new Intl.NumberFormat('ar-SA');
+            const dashboardLocale = @json(app()->getLocale() === 'ar' ? 'ar-SA' : 'en-US');
+            const dashboardDirection = @json(app()->getLocale() === 'ar' ? 'rtl' : 'ltr');
+            const numberFormatter = new Intl.NumberFormat(dashboardLocale);
 
             function formatValue(value, format) {
                 if (format === 'currency') {

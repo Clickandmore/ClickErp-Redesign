@@ -1,61 +1,62 @@
 @extends('agent.layout')
 
-@section('page-title', 'الرئيسية')
+@section('page-title', __('agent.dashboard'))
 
 @section('content')
     <section class="agent-grid">
         <div class="agent-card">
-            <span>إجمالي السير</span>
+            <span>{{ __('agent.total_cvs') }}</span>
             <strong>{{ $stats['maids_count'] }}</strong>
         </div>
         <div class="agent-card">
-            <span>السير المتاحة</span>
+            <span>{{ __('agent.available_cvs') }}</span>
             <strong>{{ $stats['available_maids_count'] }}</strong>
         </div>
         <div class="agent-card">
-            <span>إجمالي العقود</span>
+            <span>{{ __('agent.total_contracts') }}</span>
             <strong>{{ $stats['contracts_count'] }}</strong>
         </div>
         <div class="agent-card">
-            <span>العقود النشطة</span>
+            <span>{{ __('agent.active_contracts') }}</span>
             <strong>{{ $stats['active_contracts_count'] }}</strong>
         </div>
     </section>
 
     <section class="agent-section">
         <div class="agent-section-header">
-            <h3>بيانات المكتب</h3>
+            <h3>{{ __('agent.office_information') }}</h3>
         </div>
         <div class="agent-detail-grid">
             @forelse ($offices as $office)
                 <div class="agent-detail-item">
-                    <span>اسم المكتب</span>
+                    <span>{{ __('agent.office_name') }}</span>
                     <strong>{{ $office->title ?? '-' }}</strong>
                 </div>
                 <div class="agent-detail-item">
-                    <span>الجنسية</span>
+                    <span>{{ __('agent.nationality') }}</span>
                     <strong>{{ $office->nationality?->sub_title ?: ($office->nationality?->title ?: '-') }}</strong>
                 </div>
                 <div class="agent-detail-item">
-                    <span>الهاتف</span>
+                    <span>{{ __('agent.phone') }}</span>
                     <strong>{{ $office->phone_office ?: '-' }}</strong>
                 </div>
                 <div class="agent-detail-item">
-                    <span>مدير المكتب</span>
+                    <span>{{ __('agent.office_manager') }}</span>
                     <strong>{{ $office->manager_name ?: '-' }}</strong>
                 </div>
             @empty
-                <p class="agent-empty">لا توجد مكاتب مرتبطة بهذا الحساب.</p>
+                <p class="agent-empty">
+                    {{ __('agent.no_offices_linked') }}</p>
             @endforelse
         </div>
     </section>
 
     <section class="agent-section">
         <div class="agent-section-header">
-            <h3>أحدث السير الذاتية</h3>
+            <h3>{{ __('agent.latest_cvs') }}</h3>
             <a href="{{ route('agent.maids.index') }}" class="agent-button">
                 <i class="fa fa-list"></i>
-                <span>عرض الكل</span>
+                <span>{{ __('agent.view_all') }}</span>
             </a>
         </div>
         <div class="agent-table-wrap">
@@ -63,10 +64,10 @@
                 <thead>
                     <tr>
                         <th>#</th>
-                        <th>الاسم</th>
-                        <th>الجنسية</th>
-                        <th>جواز السفر</th>
-                        <th>الحالة</th>
+                        <th>{{ __('agent.name') }}</th>
+                        <th>{{ __('agent.nationality') }}</th>
+                        <th>{{ __('agent.passport') }}</th>
+                        <th>{{ __('agent.status') }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -80,7 +81,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5">لا توجد سير ذاتية حتى الآن.</td>
+                            <td colspan="5">{{ __('agent.no_cvs_added') }}</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -90,10 +91,10 @@
 
     <section class="agent-section">
         <div class="agent-section-header">
-            <h3>أحدث العقود</h3>
+            <h3>{{ __('agent.latest_contracts') }}</h3>
             <a href="{{ route('agent.contracts.index') }}" class="agent-button">
                 <i class="fa fa-list"></i>
-                <span>عرض الكل</span>
+                <span>{{ __('agent.view_all') }}</span>
             </a>
         </div>
         <div class="agent-table-wrap">
@@ -101,10 +102,10 @@
                 <thead>
                     <tr>
                         <th>#</th>
-                        <th>العميل</th>
-                        <th>العاملة</th>
-                        <th>الحالة</th>
-                        <th>تاريخ الإنشاء</th>
+                        <th>{{ __('agent.client') }}</th>
+                        <th>{{ __('agent.worker') }}</th>
+                        <th>{{ __('agent.status') }}</th>
+                        <th>{{ __('agent.created_at') }}</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -119,13 +120,13 @@
                             <td>
                                 <a href="{{ route('agent.contracts.show', $contract) }}" class="agent-button">
                                     <i class="fa fa-eye"></i>
-                                    <span>عرض</span>
+                                    <span>{{ __('agent.view') }}</span>
                                 </a>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="6">لا توجد عقود حتى الآن.</td>
+                            <td colspan="6">{{ __('agent.no_contracts_added') }}</td>
                         </tr>
                     @endforelse
                 </tbody>

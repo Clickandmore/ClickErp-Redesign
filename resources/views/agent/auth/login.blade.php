@@ -1,15 +1,21 @@
 @extends('admin.auth.layout')
 
-@section('auth-page-title', 'تسجيل دخول الوكيل')
-@section('auth-heading', 'لوحة الوكيل الخارجي')
-@section('auth-subtitle', 'تسجيل دخول المكاتب الخارجية')
+@php
+    $authLocale = \Mcamara\LaravelLocalization\Facades\LaravelLocalization::getCurrentLocale() ?: app()->getLocale();
+@endphp
+
+@section('auth-page-title', $authLocale === 'ar' ? 'تسجيل دخول الوكلاء' : 'Agent Login')
+@section('auth-heading', $authLocale === 'ar' ? 'لوحة الوكلاء الخارجيين' : 'External Agent Dashboard')
+@section('auth-subtitle', $authLocale === 'ar' ? 'سجل دخولك إلى مساحة عمل المكتب الخارجي' : 'Sign in to the external office workspace')
 
 @section('auth-body')
-    <form action="{{ route('agent.login') }}" method="POST" novalidate>
+    <form
+        action="{{ \Mcamara\LaravelLocalization\Facades\LaravelLocalization::getLocalizedURL(app()->getLocale(), route('agent.login'), [], true) }}"
+        method="POST" novalidate>
         @csrf
         <div class="form-group">
             <div class="input-field">
-                <label for="login">البريد الإلكتروني أو رقم الهاتف*</label>
+                <label for="login">{{ $authLocale === 'ar' ? 'البريد الإلكتروني أو رقم الجوال' : 'Email or phone number' }}*</label>
                 <div class="input-shell">
                     <span class="input-icon">
                         <img src="{{ asset('admin/login') }}/imgs/email.svg" alt="login">
@@ -20,13 +26,18 @@
             </div>
 
             <div class="input-field">
-                <label for="password">كلمة المرور*</label>
+                <label for="password">{{ $authLocale === 'ar' ? 'كلمة المرور' : 'Password' }}*</label>
                 <div class="input-shell">
                     <span class="input-icon">
                         <img src="{{ asset('admin/login') }}/imgs/password.svg" alt="password">
                     </span>
                     <input type="password" id="password" name="password" class="password-text-input"
                         placeholder="********" autocomplete="current-password" required>
+                    <button type="button" class="password-toggle" id="passwordToggle"
+                        aria-label="{{ app()->getLocale() === 'ar' ? 'إظهار كلمة المرور' : 'Show password' }}"
+                        aria-pressed="false">
+                        <i class="fa fa-eye" aria-hidden="true"></i>
+                    </button>
                 </div>
             </div>
         </div>
@@ -38,10 +49,40 @@
             </label>
         </div>
 
-        <button type="submit" class="primary-btn">دخول</button>
+        <button type="submit" class="primary-btn">{{ $authLocale === 'ar' ? 'تسجيل الدخول' : 'Sign In' }}</button>
     </form>
 @endsection
 
 @section('auth-footer')
-    <a class="secondary-link" href="{{ route('admin.form.login') }}">دخول الإدارة</a>
+    <a class="secondary-link"
+        href="{{ \Mcamara\LaravelLocalization\Facades\LaravelLocalization::getLocalizedURL(app()->getLocale(), route('admin.form.login'), [], true) }}">
+        {{ $authLocale === 'ar' ? 'تسجيل دخول الإدارة' : 'Admin Login' }}
+    </a>
 @endsection
+
+@push('auth-scripts')
+    <script type="text/javascript">
+        $(function() {
+            const passwordInput = document.getElementById('password');
+            const passwordToggle = document.getElementById('passwordToggle');
+
+            if (passwordInput && passwordToggle) {
+                const eyeIcon = passwordToggle.querySelector('i');
+                const showLabel = @json($authLocale === 'ar' ? 'إظهار كلمة المرور' : 'Show password');
+                const hideLabel = @json($authLocale === 'ar' ? 'إخفاء كلمة المرور' : 'Hide password');
+
+                passwordToggle.addEventListener('click', function() {
+                    const isHidden = passwordInput.type === 'password';
+
+                    passwordInput.type = isHidden ? 'text' : 'password';
+                    passwordToggle.setAttribute('aria-pressed', isHidden ? 'true' : 'false');
+                    passwordToggle.setAttribute('aria-label', isHidden ? hideLabel : showLabel);
+
+                    if (eyeIcon) {
+                        eyeIcon.className = isHidden ? 'fa fa-eye-slash' : 'fa fa-eye';
+                    }
+                });
+            }
+        });
+    </script>
+@endpush

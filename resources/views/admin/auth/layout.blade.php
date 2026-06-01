@@ -34,7 +34,7 @@
         $footerLogo = asset('site/assets/images/fav.png');
     @endphp
     <title>{{ $brandName }} | @yield('auth-page-title', __('auth.login'))</title>
-    <link rel="stylesheet" href="{{ asset('admin/login') }}/css/style-dashboard.css?v=7">
+    <link rel="stylesheet" href="{{ asset('admin/login') }}/css/style-dashboard.css?v=5">
     <link rel="stylesheet" href="{{ asset('admin/login') }}/css/fontawesome.min.css">
     <link rel="stylesheet" href="{{ asset('admin') }}/assets/vendor/toster/css/jquery.toast.css">
     @stack('auth-styles')
@@ -44,6 +44,24 @@
     <div class="auth-page" style="--login-bg-image: url('{{ $loginBg }}');">
         <div class="auth-frame">
             <div class="auth-card">
+                @php
+                    $supportedLocales = \Mcamara\LaravelLocalization\Facades\LaravelLocalization::getSupportedLocales();
+                    $currentLocale = app()->getLocale();
+                @endphp
+
+                @if (count($supportedLocales) > 1)
+                    <nav class="language-switcher"
+                        aria-label="{{ $currentLocale === 'ar' ? 'تغيير اللغة' : 'Change language' }}">
+                        @foreach ($supportedLocales as $localeCode => $properties)
+                            <a href="{{ \Mcamara\LaravelLocalization\Facades\LaravelLocalization::getLocalizedURL($localeCode, null, [], true) }}"
+                                class="{{ $currentLocale === $localeCode ? 'active' : '' }}"
+                                hreflang="{{ $localeCode }}">
+                                {{ strtoupper($localeCode) }}
+                            </a>
+                        @endforeach
+                    </nav>
+                @endif
+
                 <div class="brand-lockup">
                     <div class="brand-logo">
                         <img class="logo" src="{{ $loginLogo }}" alt="logo"
