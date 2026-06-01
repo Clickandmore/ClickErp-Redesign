@@ -58,6 +58,10 @@
             white-space: nowrap;
         }
 
+        .maid-name::before {
+            content: attr(data-maid-display);
+        }
+
         .job-type {
             border: 0.5px solid #2794eb;
             padding: 2px 13px;

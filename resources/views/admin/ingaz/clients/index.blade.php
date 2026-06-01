@@ -99,6 +99,10 @@
             max-height: min(420px, calc(100vh - 24px));
             overflow-y: auto;
         }
+
+        #dataTableObject_filter {
+            display: none;
+        }
     </style>
 @endsection
 
@@ -489,6 +493,7 @@
             const table = $('#dataTableObject').DataTable({
                 processing: true,
                 serverSide: true,
+                searching: false,
                 ajax: {
                     url: "{{ route('clients.index') }}",
                     data: function(d) {
