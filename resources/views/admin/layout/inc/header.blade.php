@@ -11,19 +11,19 @@ $quickLinks = collect($storedQuickLinks);
 if ($quickLinks->isEmpty()) {
     $quickLinks = collect([
         [
-            'title' => optional($settings)->header_link_1_title ?? 'مساند برو',
+            'title' => optional($settings)->header_link_1_title ?? __('admin.layout.default_musaned_pro'),
             'url' => optional($settings)->header_link_1_url ?? 'https://pros.musaned.com.sa/login',
             'icon' => 'fa-external-link',
             'is_visible' => true,
         ],
         [
-            'title' => optional($settings)->header_link_2_title ?? 'مساند توثيق',
+            'title' => optional($settings)->header_link_2_title ?? __('admin.layout.default_musaned_tawtheeq'),
             'url' => optional($settings)->header_link_2_url ?? 'https://tawtheeq.musaned.com.sa/',
             'icon' => 'fa-file-text-o',
             'is_visible' => true,
         ],
         [
-            'title' => optional($settings)->live_chat_title ?? 'اللايف شات',
+            'title' => optional($settings)->live_chat_title ?? __('admin.layout.default_live_chat'),
             'url' => optional($settings)->live_chat_url ?? 'https://salesiq.zoho.sa/platinumeastern/liveview',
             'icon' => 'fa-comments',
             'is_visible' => true,
@@ -336,7 +336,7 @@ $quickLinks = $quickLinks->filter(function ($link) {
                     <img class="cm-header-logo" src="{{ $headerLogo }}" alt="logo"
                         onerror="this.onerror=null;this.src='{{ asset('admin/assets/img/company_logo.jpeg') }}';">
                     <span class="cm-brand-text">
-                        <small class="cm-brand-subtitle">{{ $headerDashboardName ?: helperTrans('ingaz.dashboard') }}</small>
+                        <small class="cm-brand-subtitle">{{ $headerDashboardName ?: __('admin.dashboard') }}</small>
                     </span>
                 </a>
             </div>
@@ -350,7 +350,7 @@ $quickLinks = $quickLinks->filter(function ($link) {
                                     <i class="fa fa-calendar"></i>
                                 </span>
                                 <div class="cm-header-meta-body">
-                                    <span class="cm-header-meta-label">{{ helperTrans('ingaz.time') }}</span>
+                                    <span class="cm-header-meta-label">{{ __('admin.layout.time') }}</span>
                                     <strong class="cm-header-meta-value" id="cm-live-time">{{ $headerNow->format('H:i:s') }}</strong>
                                     <small class="cm-header-meta-subvalue" id="cm-live-date">{{ $headerNow->format('Y-m-d') }}</small>
                                 </div>
@@ -361,16 +361,16 @@ $quickLinks = $quickLinks->filter(function ($link) {
                                     <i class="fa fa-clock-o"></i>
                                 </span>
                                 <div class="cm-header-meta-body">
-                                    <span class="cm-header-meta-label">{{ helperTrans('ingaz.duration') }}</span>
+                                    <span class="cm-header-meta-label">{{ __('admin.layout.duration') }}</span>
                                     <strong class="cm-header-meta-value" id="cm-session-duration">00:00</strong>
-                                    <small class="cm-header-meta-subvalue">{{ helperTrans('ingaz.since_system_opened') }}</small>
+                                    <small class="cm-header-meta-subvalue">{{ __('admin.layout.session_since_open') }}</small>
                                 </div>
                             </div>
                         </div>
 
                         @if ($quickLinks->isNotEmpty())
                             <div class="cm-header-shortcuts">
-                                <p class="cm-header-shortcuts-label mb-0">{{ helperTrans('ingaz.quick_links') }}</p>
+                                <p class="cm-header-shortcuts-label mb-0">{{ __('admin.layout.quick_links') }}</p>
                                 <div class="cm-header-shortcuts-list">
                                     @foreach ($quickLinks as $link)
                                         <a class="cm-header-shortcut"
@@ -389,7 +389,7 @@ $quickLinks = $quickLinks->filter(function ($link) {
             <ul class="header-right justify-content-end d-flex align-items-center mb-0">
                 <li>
                     <div class="dropdown morphing {{$scaleDirection}} notifications">
-                        <a class="nav-link dropdown-toggle after-none cm-header-action" href="#" role="button" data-bs-toggle="dropdown" title="{{ helperTrans('ingaz.notifications') }}">
+                        <a class="nav-link dropdown-toggle after-none cm-header-action" href="#" role="button" data-bs-toggle="dropdown" title="{{ __('admin.layout.notifications') }}">
 
                             <i class="fa fa-bell"></i>
                             <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger notification-badge" style="display: none;">
