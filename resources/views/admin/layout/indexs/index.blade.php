@@ -52,7 +52,6 @@
 <script src="{{ asset('admin/assets/js/clickmore-sidebar-state.js') }}?v=5"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-@include('admin.layout.inc.en_hardcoded_translator')
 
 @section('js')
     <script src="{{asset('admin/assets/js/notifications.js')}}"></script>
