@@ -981,6 +981,8 @@
         'send_whatsapp' => 'إرسال رسائل واتساب',
         'integration_settings' => 'إعدادات الربط',
         'sent_messages' => 'جميع الرسائل المرسلة',
+        'zoho_visitors' => 'زوار Zoho',
+        'zoho_conversations' => 'محادثات Zoho',
         'system_settings' => 'إعدادات النظام',
         'istiqdam_platform' => 'منصة الاستقدام',
         'migration_system' => 'نظام نقل البيانات',

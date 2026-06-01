@@ -116,7 +116,8 @@
                     $canViewSponsorshipTransfer ||
                     $canViewContactRequests;
 
-                $canViewSms = @AdminGuardHasAnyPerm([\App\PermKeys::NOTIFICATIONS_CONTROL, \App\PermKeys::NOTIFICATIONS_VIEW]);
+                $canViewZohoSalesIq = @AdminGuardHasAnyPerm([\App\PermKeys::CRM_MODULE, \App\PermKeys::NOTIFICATIONS_CONTROL, \App\PermKeys::SETTINGS_VIEW]);
+                $canViewSms = @AdminGuardHasAnyPerm([\App\PermKeys::NOTIFICATIONS_CONTROL, \App\PermKeys::NOTIFICATIONS_VIEW]) || $canViewZohoSalesIq;
 
                 $canViewWebsiteManagement = @AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_VIEW, \App\PermKeys::FAQ_VIEW, \App\PermKeys::STATISTICS_VIEW, \App\PermKeys::DEVELOPERS_PERMS]);
 
@@ -1043,7 +1044,7 @@
                             <span class="ms-2">{{ __('admin.sidebar.messages_management') }}</span>
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
-                        <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['notifications.index', 'whatsapp.notifications.index', 'messages.index', 'notifications.settings']) || Request::is('admin/sms-templates*') ? 'show' : '' }}"
+                        <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['notifications.index', 'whatsapp.notifications.index', 'messages.index', 'notifications.settings']) || request()->routeIs('admin.zoho-salesiq.*') || Request::is('admin/sms-templates*') ? 'show' : '' }}"
                             id="smsManagement">
                             @if (@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL))
                                 <li>
@@ -1088,6 +1089,22 @@
                                     <span class="ms-2">{{ __('admin.sidebar.sms_templates') }}</span>
                                 </a>
                             </li>
+                            @if ($canViewZohoSalesIq)
+                                <li>
+                                    <a class="m-link {{ Route::currentRouteName() == 'admin.zoho-salesiq.visitors' ? 'active' : '' }}"
+                                        href="{{ route('admin.zoho-salesiq.visitors') }}">
+                                        <i class="fa fa-eye"></i>
+                                        <span class="ms-2">{{ __('admin.sidebar.zoho_visitors') }}</span>
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="m-link {{ request()->routeIs('admin.zoho-salesiq.conversations.*') ? 'active' : '' }}"
+                                        href="{{ route('admin.zoho-salesiq.conversations.index') }}">
+                                        <i class="fa fa-comments"></i>
+                                        <span class="ms-2">{{ __('admin.sidebar.zoho_conversations') }}</span>
+                                    </a>
+                                </li>
+                            @endif
                         </ul>
                     </li>
                 @endif

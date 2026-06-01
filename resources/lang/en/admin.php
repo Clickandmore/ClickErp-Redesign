@@ -945,6 +945,8 @@ return [
         'send_whatsapp' => 'Send WhatsApp Messages',
         'integration_settings' => 'Integration Settings',
         'sent_messages' => 'All Sent Messages',
+        'zoho_visitors' => 'Zoho Visitors',
+        'zoho_conversations' => 'Zoho Conversations',
         'system_settings' => 'System Settings',
         'istiqdam_platform' => 'Recruitment Platform',
         'migration_system' => 'Data Migration System',

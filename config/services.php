@@ -62,4 +62,14 @@ return [
         ],
     ],
 
+    'zoho_salesiq' => [
+        'salesiq_base_url' => env('ZOHO_SALESIQ_BASE_URL', 'https://salesiq.zoho.sa'),
+        'accounts_base_url' => env('ZOHO_SALESIQ_ACCOUNTS_BASE_URL', 'https://accounts.zoho.sa'),
+        'screen_name' => env('ZOHO_SALESIQ_SCREEN_NAME', 'platinumeastern'),
+        'client_id' => env('ZOHO_SALESIQ_CLIENT_ID', ''),
+        'client_secret' => env('ZOHO_SALESIQ_CLIENT_SECRET', ''),
+        'refresh_token' => env('ZOHO_SALESIQ_REFRESH_TOKEN', ''),
+        'timeout' => (int) env('ZOHO_SALESIQ_TIMEOUT', 20),
+    ],
+
 ];

@@ -408,6 +408,14 @@ Route::prefix('admin')->middleware(['auth:admin', 'admin.route.permission'])->gr
     Route::delete('sms-templates/{smsTemplate}', [\App\Http\Controllers\admin\SmsTemplateController::class, 'destroy'])->name('admin.sms-templates.destroy');
     Route::post('sms-templates/{smsTemplate}/test', [\App\Http\Controllers\admin\SmsTemplateController::class, 'test'])->name('admin.sms-templates.test');
     Route::post('sms-templates/{smsTemplate}/send', [\App\Http\Controllers\admin\SmsTemplateController::class, 'send'])->name('admin.sms-templates.send');
+
+    Route::prefix('zoho-salesiq')->name('admin.zoho-salesiq.')->group(function () {
+        Route::get('visitors', [\App\Http\Controllers\admin\ZohoSalesIqController::class, 'visitors'])->name('visitors');
+        Route::get('conversations', [\App\Http\Controllers\admin\ZohoSalesIqController::class, 'conversations'])->name('conversations.index');
+        Route::get('conversations/{conversationId}', [\App\Http\Controllers\admin\ZohoSalesIqController::class, 'conversation'])
+            ->where('conversationId', '[^/]+')
+            ->name('conversations.show');
+    });
 });
 
 // روابط التقييم العامة (بدون تسجيل دخول)

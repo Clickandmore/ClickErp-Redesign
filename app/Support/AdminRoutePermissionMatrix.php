@@ -89,6 +89,8 @@ class AdminRoutePermissionMatrix
             'notifications.index',
             'whatsapp.notifications.index',
             'messages.index',
+            'admin.zoho-salesiq.visitors',
+            'admin.zoho-salesiq.conversations.index',
             'settings.section',
             'sliders.index',
             'about-us.index',
@@ -515,6 +517,9 @@ class AdminRoutePermissionMatrix
                 'notifications.settings' => [PermKeys::NOTIFICATIONS_CONTROL],
                 'notifications.settings.update' => [PermKeys::NOTIFICATIONS_CONTROL],
                 'messages.index' => [PermKeys::NOTIFICATIONS_CONTROL],
+                'admin.zoho-salesiq.visitors' => [PermKeys::CRM_MODULE, PermKeys::NOTIFICATIONS_CONTROL, PermKeys::SETTINGS_VIEW],
+                'admin.zoho-salesiq.conversations.index' => [PermKeys::CRM_MODULE, PermKeys::NOTIFICATIONS_CONTROL, PermKeys::SETTINGS_VIEW],
+                'admin.zoho-salesiq.conversations.show' => [PermKeys::CRM_MODULE, PermKeys::NOTIFICATIONS_CONTROL, PermKeys::SETTINGS_VIEW],
             ]
         );
     }
