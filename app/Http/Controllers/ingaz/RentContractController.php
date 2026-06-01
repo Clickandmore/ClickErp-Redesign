@@ -214,7 +214,7 @@ class RentContractController extends Controller
                             if ($remainingDays > 0) {
                                 return '<span class="badge bg-success">' . $remainingDays . ' يوم متبقي</span>';
                             } else {
-                                return '<span class="badge bg-danger">منتهي</span>';
+                                return '<span class="badge bg-danger">منتهي منذ ' . abs((int) $remainingDays) . ' يوم</span>';
                             }
                         }
                         return '<span class="badge bg-secondary">غير محدد</span>';
@@ -2632,8 +2632,6 @@ class RentContractController extends Controller
                 'created_by' => auth('admin')->id(),
             ]);
 
-            $updatedMonths = (int) ($contract->info->contract_duration_months ?? 0) + $extensionMonths;
-            $updatedDays = (int) ($contract->info->contract_duration_days ?? 0) + $extensionDays;
             $monthlyCost = (float) ($contract->info->monthly_cost ?? 0);
             $currentContractValue = (float) ($contract->info->contract_value ?? 0);
             $currentDurationDays = (int) ($contract->info->contract_duration_days ?? 0);
@@ -2646,9 +2644,9 @@ class RentContractController extends Controller
             $extensionValue = round($dailyRate * $extensionDays, 2);
 
             $contract->info->update([
-                'contract_duration_months' => $updatedMonths,
-                'contract_duration_days' => $updatedDays,
-                'contract_value' => $currentContractValue + $extensionValue,
+                'contract_duration_months' => $extensionMonths,
+                'contract_duration_days' => $extensionDays,
+                'contract_value' => $extensionValue,
                 'ingaz_to' => $extensionEnd,
             ]);
 

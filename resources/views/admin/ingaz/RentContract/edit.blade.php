@@ -540,8 +540,8 @@
                             <div class="col-md-4">
                                 <label for="payment_receipt" class="form-label">إيصال الدفع</label>
                                 <input type="file" id="payment_receipt" name="payment_receipt" class="form-control" accept=".jpg,.jpeg,.png,.pdf">
-                                @if($contract->info->payment_receipt_url)
-                                    <a href="{{ $contract->info->payment_receipt_url }}" target="_blank" class="small d-inline-block mt-2">
+                                @if($contract->info->payment_receipt_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($contract->info->payment_receipt_path))
+                                    <a href="{{ route('RentContract.attachments.view', [$contract->id, 'payment-receipt-0']) }}" target="_blank" class="small d-inline-block mt-2">
                                         عرض الإيصال الحالي
                                     </a>
                                 @endif
@@ -763,7 +763,7 @@
 
 @endsection
 
-@section('script')
+@section('js')
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
@@ -917,6 +917,8 @@ $(document).ready(function() {
 
         if (!packageId) {
             $('#selected_package_id').val('');
+            $('#total_contract_value').val('0.00');
+            syncPaymentSummary();
             return;
         }
 
@@ -925,9 +927,12 @@ $(document).ready(function() {
         const days = parseInt(selectedOption.data('days'), 10) || 0;
         const rentalType = selectedOption.data('rental-type') || '';
         const durationUnit = selectedOption.data('duration-unit') || '';
+        const durationCount = parseInt(selectedOption.data('duration-count'), 10) || 0;
         const workingHours = parseInt(selectedOption.data('working-hours'), 10) || 0;
         const totalPrice = parseFloat(selectedOption.data('total')) || 0;
-        const months = Math.max(1, Math.ceil((days || 30) / 30));
+        const months = durationUnit === 'month' && durationCount
+            ? durationCount
+            : Math.max(1, Math.ceil((days || 30) / 30));
         const monthlyCost = (rentalType === 'monthly' || durationUnit === 'month') && months
             ? (totalPrice / months)
             : totalPrice;
