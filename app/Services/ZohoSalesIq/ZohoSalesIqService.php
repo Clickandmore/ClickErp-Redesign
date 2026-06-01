@@ -58,7 +58,7 @@ class ZohoSalesIqService
         );
 
         // If invalid scope, try v1
-        if (!$result['ok'] && (int)($result['status_code'] ?? 0) === 400) {
+        if (!$result['ok'] && (int)($result['status_code'] ?? 0) === 400 && !str_contains($result['error'] ?? '', 'not enabled')) {
             return $this->get(
                 sprintf('api/v1/%s/visitors', rawurlencode($this->screenName())),
                 $query,
@@ -242,7 +242,7 @@ class ZohoSalesIqService
 
     private function extractErrorMessage(array $payload): string
     {
-        foreach (['message', 'error_description', 'error', 'error_message', 'data.message', 'data.error'] as $key) {
+        foreach (['error.message', 'message', 'error_description', 'error', 'error_message', 'data.message', 'data.error'] as $key) {
             $value = data_get($payload, $key);
 
             if (is_scalar($value) && trim((string) $value) !== '') {

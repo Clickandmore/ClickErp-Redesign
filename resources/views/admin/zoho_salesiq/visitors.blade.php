@@ -81,12 +81,43 @@
                     </div>
                 </div>
             @else
-                <div class="alert alert-danger zoho-panel">
-                    تعذر جلب الزوار من Zoho SalesIQ.
-                    @if (!empty($result['status_code']))
-                        <span class="ms-2">HTTP {{ $result['status_code'] }}</span>
-                    @endif
-                    <div class="mt-1">{{ $result['error'] ?? '' }}</div>
+                <div class="card zoho-panel mb-4 border-0 shadow-sm" style="background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%); border-right: 4px solid #ef4444 !important;">
+                    <div class="card-body p-4">
+                        <div class="d-flex align-items-start gap-3">
+                            <div class="flex-shrink-0 rounded-circle d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; background-color: #fee2e2;">
+                                <i class="fa fa-exclamation-triangle text-danger fs-4"></i>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h5 class="text-danger fw-bold mb-0" style="font-size: 1.1rem;">تعذر جلب بيانات الزوار من Zoho SalesIQ</h5>
+                                    @if (!empty($result['status_code']))
+                                        <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-3 py-2 rounded-pill">
+                                            HTTP {{ $result['status_code'] }}
+                                        </span>
+                                    @endif
+                                </div>
+                                <p class="text-secondary mb-3" style="font-size: 0.95rem;">
+                                    لم نتمكن من سحب البيانات بنجاح بسبب رسالة الرفض التالية من خوادم Zoho:
+                                </p>
+                                
+                                <div class="p-3 rounded border border-danger border-opacity-25 mb-3" style="background-color: #ffffff; direction: ltr; text-align: left; font-family: monospace;">
+                                    <span class="text-danger fw-semibold">{{ $result['error'] ?? 'خطأ غير معروف' }}</span>
+                                </div>
+
+                                @if(str_contains(strtolower($result['error'] ?? ''), 'not enabled'))
+                                    <div class="d-flex align-items-start gap-2 p-3 rounded" style="background-color: #fffbeb; border: 1px solid #fde68a;">
+                                        <i class="fa fa-lightbulb-o text-warning mt-1"></i>
+                                        <div>
+                                            <strong class="text-dark d-block mb-1">تنبيه متعلق بخطة الاشتراك</strong>
+                                            <span class="text-secondary small">
+                                                يبدو أن خطة حسابك الحالية في Zoho SalesIQ لا تدعم ميزة "تتبع الزوار". يرجى ترقية الباقة (Upgrade Plan) لتتمكن من استخدام هذه الميزة.
+                                            </span>
+                                        </div>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
                 </div>
             @endif
         @endif
