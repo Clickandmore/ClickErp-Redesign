@@ -164,11 +164,11 @@ class OfficeController extends Controller
 
                     // Action Buttons
                     $actions = '
-                                <div class="dropdown actions-dropdown">
-                                    <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="الإجراءات المتاحة">
+                                <div class="actions-dropdown office-actions-dropdown">
+                                    <button class="btn btn-sm btn-primary dropdown-toggle actions-btn office-actions-btn" type="button" aria-expanded="false" title="الإجراءات المتاحة">
                                         <i class="fas fa-cogs me-1"></i> ' . __("ingaz.actions") . '
                                     </button>
-                                    <ul class="dropdown-menu dropdown-menu-end shadow-lg">
+                                    <ul class="office-actions-template">
                                         <li>' . $showButton . '</li>
                                         <li>' . $editButton . '</li>
                                         <li>' . $deleteButton . '</li>
