@@ -1508,9 +1508,10 @@
         </ul>
         {{-- @endif --}}
     </div>
-</div>
+    </div>
+    @endif
 
-<script>
+    <script>
     document.addEventListener('DOMContentLoaded', function() {
         // تحسين انتقالات القوائم المنسدلة
         const collapseElements = document.querySelectorAll('.collapse');
