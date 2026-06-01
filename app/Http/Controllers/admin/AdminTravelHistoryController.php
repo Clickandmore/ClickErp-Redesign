@@ -29,7 +29,7 @@ class AdminTravelHistoryController extends Controller
 
     public function __construct()
     {
-        $this->middleware('permission:travel_view,admin', ['only' => ['index', 'statistics', 'calendarEvents', 'downloadFile']]);
+        $this->middleware('permission:travel_view,admin', ['only' => ['index', 'statistics', 'calendarEvents', 'downloadFile', 'export', 'print']]);
         $this->middleware('permission:travel_control,admin', ['only' => ['assignableStaff', 'assignTrip', 'completeTrip']]);
         $this->middleware('permission:travel_delete,admin', ['only' => ['destroy', 'deleteFile']]);
         $this->middleware('permission:travel_create,admin', ['only' => ['storeTravelHistory']]);
@@ -39,46 +39,7 @@ class AdminTravelHistoryController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = TravelHistory::with(['user', 'maid', 'maid.nationality', 'maid.nationality.translations'])
-                ->where('travel_type', '!=', 'deportation') // استبعاد رحلات الترحيل
-                ->orderBy('id', 'desc');
-
-            // Default to show only active/new trips unless filtered
-            if (!$request->filled('status') || $request->status === '') {
-                $query->whereIn('status', ['new', 'active', 'scheduled', 'in_progress', 'pending', 'confirmed']);
-            } elseif ($request->status !== 'all') {
-                // If status is not 'all', filter by specific status
-                $query->where('status', $request->status);
-            }
-            // If status is 'all', don't add any status filter
-
-            // Apply filters
-            if ($request->filled('search')) {
-                $search = $request->search;
-                $query->where(function ($q) use ($search) {
-                    $q->where('travel_type', 'like', '%' . $search . '%')
-                    ->orWhere('travel_with', 'like', '%' . $search . '%')
-                    ->orWhere('notes', 'like', '%' . $search . '%')
-                    ->orWhere('status', 'like', '%' . $search . '%')
-                    ->orWhere('arrival_airport', 'like', '%' . $search . '%')
-                    ->orWhere('arrival_date', 'like', '%' . $search . '%')
-                    ->orWhere('arrival_time', 'like', '%' . $search . '%')
-                    ->orWhere('flight_company', 'like', '%' . $search . '%')
-                    ->orWhere('flight_number', 'like', '%' . $search . '%')
-                    ->orWhere('order_id', 'like', '%' . $search . '%')
-                    ->orWhereHas('user', function($q) use ($search) {
-                        $q->where('name', 'like', '%' . $search . '%');
-                    })
-                    ->orWhereHas('maid', function($q) use ($search) {
-                            $q->where('passport_num', 'like', '%' . $search . '%')
-                                ->orWhere('name', 'like', '%' . $search . '%');
-                    });
-            });
-        }
-
-            if ($request->filled('travel_type')) {
-                $query->where('travel_type', $request->travel_type);
-            }
+            $query = $this->travelIndexQuery($request);
 
             $groupedTrips = $this->buildGroupedTripsCollection($query->get());
 
@@ -241,6 +202,27 @@ class AdminTravelHistoryController extends Controller
 
         // For non-AJAX requests (initial page load)
         return view('admin.travel_history.index');
+    }
+
+    public function export(Request $request)
+    {
+        $rows = $this->buildGroupedTripsCollection($this->travelIndexQuery($request)->get());
+        $filename = 'travel-trips-' . now()->format('Y-m-d-His') . '.csv';
+
+        return $this->csvDownload($filename, $this->travelExportHeadings(), $rows->map(function ($row) {
+            return $this->travelExportRow($row);
+        }));
+    }
+
+    public function print(Request $request)
+    {
+        $rows = $this->buildGroupedTripsCollection($this->travelIndexQuery($request)->get());
+
+        return view('admin.travel_history.print', [
+            'title' => __('admin.travel_history'),
+            'headings' => $this->travelExportHeadings(),
+            'rows' => $rows->map(fn ($row) => $this->travelExportRow($row)),
+        ]);
     }
 
     public function statistics()
@@ -1133,11 +1115,6 @@ class AdminTravelHistoryController extends Controller
 
         $tripRecords = $this->resolveTripRecords($data);
         foreach ($tripRecords as $tripRecord) {
-            $order = Order::find($tripRecord->order_id);
-            if ($order) {
-                $order->status = ContractStatusEnum::Taffez;
-                $order->save();
-            }
             $tripRecord->delete();
         }
 
@@ -1180,6 +1157,128 @@ class AdminTravelHistoryController extends Controller
             })
             ->sortByDesc('id')
             ->values();
+    }
+
+    private function travelIndexQuery(Request $request)
+    {
+        $query = TravelHistory::with(['user', 'maid', 'maid.nationality', 'maid.nationality.translations'])
+            ->where('travel_type', '!=', 'deportation')
+            ->orderBy('id', 'desc');
+
+        if (!$request->filled('status') || $request->status === '') {
+            $query->whereIn('status', ['new', 'active', 'scheduled', 'in_progress', 'pending', 'confirmed']);
+        } elseif ($request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('travel_type', 'like', '%' . $search . '%')
+                    ->orWhere('travel_with', 'like', '%' . $search . '%')
+                    ->orWhere('notes', 'like', '%' . $search . '%')
+                    ->orWhere('status', 'like', '%' . $search . '%')
+                    ->orWhere('arrival_airport', 'like', '%' . $search . '%')
+                    ->orWhere('arrival_date', 'like', '%' . $search . '%')
+                    ->orWhere('arrival_time', 'like', '%' . $search . '%')
+                    ->orWhere('flight_company', 'like', '%' . $search . '%')
+                    ->orWhere('flight_number', 'like', '%' . $search . '%')
+                    ->orWhere('order_id', 'like', '%' . $search . '%')
+                    ->orWhereHas('user', function ($q) use ($search) {
+                        $q->where('name', 'like', '%' . $search . '%');
+                    })
+                    ->orWhereHas('maid', function ($q) use ($search) {
+                        $q->where('passport_num', 'like', '%' . $search . '%')
+                            ->orWhere('name', 'like', '%' . $search . '%');
+                    });
+            });
+        }
+
+        if ($request->filled('travel_type')) {
+            $query->where('travel_type', $request->travel_type);
+        }
+
+        return $query;
+    }
+
+    private function travelExportHeadings(): array
+    {
+        return [
+            '#',
+            __('admin.client_id'),
+            __('admin.maid_id'),
+            helperTrans('ingaz.contracts'),
+            __('admin.travel_type'),
+            __('admin.travel_with'),
+            __('admin.flight_company'),
+            __('admin.flight_number'),
+            __('admin.status'),
+            helperTrans('ingaz.arrival_datetime_prefix'),
+            'المطار',
+        ];
+    }
+
+    private function travelExportRow($row): array
+    {
+        $types = __('travel_types.travel_types') ?: [];
+        $statuses = __('travel_types.status') ?: [];
+        $travelWith = __('travel_types.travel_with') ?: [];
+        $travelWith += [
+            'group_transport' => helperTrans('ingaz.travel_with_group_transport'),
+        ];
+
+        return [
+            $row->id,
+            collect($row->users)->pluck('name')->filter()->implode('، ') ?: 'غير محدد',
+            collect($row->maids)->pluck('name')->filter()->implode('، ') ?: 'غير محدد',
+            collect($row->order_ids)->map(fn ($id) => '#' . $id)->implode('، ') ?: '-',
+            $types[$row->travel_type] ?? $row->travel_type ?? '-',
+            $travelWith[$row->travel_with] ?? $row->travel_with ?? '-',
+            $row->flight_company ?: '-',
+            $row->flight_number ?: '-',
+            $statuses[$row->status] ?? $row->status ?? '-',
+            trim(($row->arrival_date ?: '-') . ' ' . ($row->arrival_time ?: '')),
+            $this->travelAirportLabel($row->arrival_airport),
+        ];
+    }
+
+    private function travelAirportLabel(?string $airport): string
+    {
+        $airports = [
+            'RUH' => 'الرياض',
+            'JED' => 'جدة',
+            'DMM' => 'الدمام',
+            'MED' => 'المدينة المنورة',
+            'TUU' => 'تبوك',
+            'AHB' => 'أبها',
+            'TIF' => 'الطائف',
+            'ELQ' => 'القصيم',
+            'URY' => 'الجوف',
+            'HAS' => 'حائل',
+            'BHH' => 'الباحة',
+            'GIZ' => 'جازان',
+        ];
+
+        return $airports[$airport] ?? $airport ?? 'غير محدد';
+    }
+
+    private function csvDownload(string $filename, array $headings, Collection $rows)
+    {
+        $callback = function () use ($headings, $rows) {
+            $handle = fopen('php://output', 'w');
+            echo "\xEF\xBB\xBF";
+            fputcsv($handle, $headings);
+
+            foreach ($rows as $row) {
+                fputcsv($handle, $row);
+            }
+
+            fclose($handle);
+        };
+
+        return Response::streamDownload($callback, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
     }
 
     private function resolveTripGroupKey(TravelHistory $trip): string

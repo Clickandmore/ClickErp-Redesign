@@ -48,6 +48,22 @@
             color: var(--statement-text);
         }
 
+        body.statement-page-wide .page-body,
+        body:has(.statement-shell) .page-body {
+            padding-inline: 0.45rem !important;
+        }
+
+        body.statement-page-wide .page-body > .container-fluid,
+        body:has(.statement-shell) .page-body > .container-fluid {
+            padding-inline: 0.45rem;
+            max-width: none;
+        }
+
+        body.statement-page-wide .page-body > .container-fluid > .card > .card-body,
+        body:has(.statement-shell) .page-body > .container-fluid > .card > .card-body {
+            padding: 0.75rem;
+        }
+
         .statement-hero {
             display: flex;
             flex-wrap: wrap;
@@ -384,6 +400,10 @@
             overflow: hidden;
         }
 
+        .statement-table-card--currency {
+            margin-inline: -0.55rem;
+        }
+
         .statement-table-head {
             display: flex;
             flex-wrap: wrap;
@@ -407,8 +427,57 @@
         }
 
         .statement-table {
+            width: 100%;
             margin-bottom: 0;
             color: var(--statement-text);
+        }
+
+        .statement-table-scroll {
+            width: 100%;
+            overflow-x: auto;
+            scrollbar-gutter: stable;
+        }
+
+        .statement-table--currency {
+            min-width: 100%;
+            table-layout: fixed;
+            font-size: 0.82rem;
+        }
+
+        .statement-table--currency .statement-col-index {
+            width: 3.5%;
+        }
+
+        .statement-table--currency .statement-col-date {
+            width: 7.5%;
+        }
+
+        .statement-table--currency .statement-col-number {
+            width: 6%;
+        }
+
+        .statement-table--currency .statement-col-type {
+            width: 8.5%;
+        }
+
+        .statement-table--currency .statement-col-account {
+            width: 12%;
+        }
+
+        .statement-table--currency .statement-col-statement {
+            width: 19%;
+        }
+
+        .statement-table--currency .statement-col-money {
+            width: 11%;
+        }
+
+        .statement-table--currency .statement-col-balance {
+            width: 12%;
+        }
+
+        .statement-table--currency .statement-col-user {
+            width: 9.5%;
         }
 
         .statement-table thead th {
@@ -416,19 +485,30 @@
             top: 0;
             z-index: 1;
             vertical-align: middle;
-            white-space: nowrap;
-            padding: 0.95rem 0.85rem;
+            white-space: normal;
+            padding: 0.72rem 0.48rem;
             background: var(--statement-primary-dark);
             color: #fff;
             border-color: rgba(255, 255, 255, 0.08);
-            font-size: 0.88rem;
+            font-size: 0.82rem;
+            line-height: 1.35;
+        }
+
+        .statement-th-note {
+            display: block;
+            margin-top: 0.2rem;
+            color: rgba(255, 255, 255, 0.75);
+            font-size: 0.72rem;
+            font-weight: 600;
+            line-height: 1.2;
         }
 
         .statement-table tbody td,
         .statement-table tfoot td {
-            padding: 0.9rem 0.85rem;
+            padding: 0.62rem 0.45rem;
             vertical-align: middle;
             border-color: rgba(76, 129, 139, 0.12);
+            overflow-wrap: anywhere;
         }
 
         .statement-table tbody tr:nth-child(even):not(.statement-row--opening) {
@@ -450,8 +530,9 @@
         }
 
         .statement-cell--wide {
-            min-width: 280px;
             line-height: 1.7;
+            white-space: normal;
+            word-break: break-word;
         }
 
         .statement-entry-link {
@@ -466,14 +547,21 @@
 
         .statement-balance-cell {
             white-space: nowrap;
+            text-align: center;
+        }
+
+        .statement-money-cell {
+            text-align: center;
+            white-space: normal;
         }
 
         .statement-balance-pill {
             display: inline-flex;
             flex-direction: column;
             gap: 0.15rem;
-            min-width: 92px;
-            padding: 0.45rem 0.6rem;
+            width: 104px;
+            max-width: 100%;
+            padding: 0.36rem 0.42rem;
             border-radius: 14px;
             border: 1px solid rgba(76, 129, 139, 0.14);
             background: #fff;
@@ -502,6 +590,61 @@
         .statement-balance-pill.is-neutral {
             background: rgba(107, 114, 128, 0.08);
             border-color: rgba(107, 114, 128, 0.18);
+        }
+
+        .statement-currency-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 0.22rem;
+            width: 96px;
+            max-width: 100%;
+            margin-inline: auto;
+            line-height: 1.2;
+            white-space: nowrap;
+            text-align: center;
+            direction: rtl;
+        }
+
+        .statement-currency-row {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            gap: 0.28rem;
+            margin: 0;
+            padding: 0.18rem 0.28rem;
+            border-radius: 8px;
+            background: rgba(76, 129, 139, 0.045);
+            direction: rtl;
+        }
+
+        .statement-currency-row b {
+            min-width: 58px;
+            font-weight: 800;
+            color: var(--statement-primary-dark);
+            text-align: right;
+            direction: ltr;
+            font-variant-numeric: tabular-nums;
+            unicode-bidi: isolate;
+        }
+
+        .statement-currency-row em {
+            color: var(--statement-muted);
+            min-width: 28px;
+            text-align: right;
+            font-size: 0.72rem;
+            font-style: normal;
+            font-weight: 700;
+            white-space: nowrap;
+            direction: rtl;
+        }
+
+        .statement-currency-row--usd b {
+            color: #0f766e;
+        }
+
+        .statement-currency-row--sar {
+            border-top: 1px dashed rgba(76, 129, 139, 0.18);
         }
 
         .statement-other-accounts {
@@ -605,6 +748,16 @@
 
             .statement-report-meta {
                 width: 100%;
+            }
+        }
+
+        @media (max-width: 1199.98px) {
+            .statement-table--currency {
+                min-width: 1060px;
+            }
+
+            .statement-table-scroll {
+                padding-bottom: 0.35rem;
             }
         }
 
@@ -764,6 +917,8 @@
 
 @section('js')
     <script>
+        document.body.classList.add('statement-page-wide');
+
         $('.select2').select2();
 
         const filtersContainer = $('#accountStatementFilters');
@@ -831,6 +986,10 @@
 
         @if (!empty($filters['account_id'] ?? request('account_id')))
             searchAccountStatement();
+
+            if (window.history && window.history.replaceState) {
+                window.history.replaceState({}, document.title, statementBaseUrl);
+            }
         @endif
     </script>
 

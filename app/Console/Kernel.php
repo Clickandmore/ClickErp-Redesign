@@ -35,6 +35,12 @@ class Kernel extends ConsoleKernel
         );
         $orderUrgentThresholdHours = AutomationSettings::orderUrgentThresholdHours();
         $oldPendingOrdersDays = AutomationSettings::oldPendingOrdersDays();
+        $maidsAvailabilityUpdateTime = AutomationSettings::maidsAvailabilityUpdateTime();
+        $logClearKeepDays = AutomationSettings::logClearKeepDays();
+        $logClearWeekday = AutomationSettings::logClearWeekday();
+        $logClearTime = AutomationSettings::logClearTime();
+        $databaseOptimizeWeekday = AutomationSettings::databaseOptimizeWeekday();
+        $databaseOptimizeTime = AutomationSettings::databaseOptimizeTime();
 
         // ============ تحديثات الضمان ============
 
@@ -115,17 +121,15 @@ class Kernel extends ConsoleKernel
                 \Log::info("Released {$maidsToRelease} maids back to available status");
             }
         })->daily()
-          ->at('02:00')
+          ->at($maidsAvailabilityUpdateTime)
           ->name('update-maids-availability')
           ->withoutOverlapping();
 
         // ============ تنظيف عام ============
 
         // 6. تنظيف ملفات السجلات القديمة أسبوعياً
-        $schedule->command('log:clear --keep=30')
-            ->weekly()
-            ->sundays()
-            ->at('03:00');
+        $schedule->command('log:clear --keep=' . $logClearKeepDays)
+            ->weeklyOn($logClearWeekday, $logClearTime);
 
         // 7. تحسين قاعدة البيانات أسبوعياً
         $schedule->call(function () {
@@ -134,9 +138,7 @@ class Kernel extends ConsoleKernel
             \DB::statement('OPTIMIZE TABLE maids');
             \DB::statement('OPTIMIZE TABLE users');
             \Log::info('Database tables optimized');
-        })->weekly()
-          ->sundays()
-          ->at('04:00')
+        })->weeklyOn($databaseOptimizeWeekday, $databaseOptimizeTime)
           ->name('optimize-database')
           ->withoutOverlapping();
 

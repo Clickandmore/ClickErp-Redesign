@@ -8,6 +8,11 @@
                             {{ __('hr::hr.departments') }}
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="py-3 mx-1 nav-link {{ request()->routeIs('employee-custody-locations.*') ? 'active' : '' }}" href="{{ route('employee-custody-locations.index') }}">
+                            {{ __('hr::hr.custody_locations') }}
+                        </a>
+                    </li>
 {{--                @endif--}}
 
 {{--                @if (in_array('jobs-read', $user_permission_list))--}}
@@ -109,5 +114,4 @@
         </ul>
     </div>
 </div>
-
 

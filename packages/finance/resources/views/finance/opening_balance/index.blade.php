@@ -262,25 +262,30 @@
                 let accountStatuses = [];
                 let debtorValues = [];
                 let creditorValues = [];
+                let visibleAccountIds = [];
                 let hasRowWithBothSides = false;
 
-                // Collect only edited account_id, debtor_value, and creditor_value
-                $('input[data-edited="true"]').each(function() {
+                // Collect the current non-zero opening balances so existing rows are preserved on update.
+                $('.debtor-input').each(function() {
                     let accountId = $(this).data('account-id');
-                    let accountStatus = $(this).data('account-status');
                     let debtorValue = $('.debtor-input[data-account-id="' + accountId + '"]').val() || 0;
                     let creditorValue = $('.creditor-input[data-account-id="' + accountId + '"]')
                         .val() || 0;
                     let debtorNumber = numericValue(debtorValue);
                     let creditorNumber = numericValue(creditorValue);
+                    let accountType = debtorNumber > 0 ? 'debtor' : 'creditor';
 
                     if (debtorNumber > 0 && creditorNumber > 0) {
                         hasRowWithBothSides = true;
                     }
 
+                    if (visibleAccountIds.indexOf(accountId) === -1) {
+                        visibleAccountIds.push(accountId);
+                    }
+
                     if (accountIds.indexOf(accountId) === -1 && (debtorNumber > 0 || creditorNumber > 0)) {
                         accountIds.push(accountId);
-                        accountStatuses.push(accountStatus);
+                        accountStatuses.push(accountType);
                         debtorValues.push(debtorValue);
                         creditorValues.push(creditorValue);
                     }
@@ -306,6 +311,7 @@
                     debtor_value: debtorValues,
                     creditor_value: creditorValues,
                     year_id: year_id,
+                    visible_account_id: visibleAccountIds,
                 };
 
                 // Continue with form submission if valid

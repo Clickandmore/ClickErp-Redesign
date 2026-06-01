@@ -477,14 +477,21 @@
                                 <option value="{{ $package->id }}"
                                         data-days="{{ $package->days_count }}"
                                         data-rental-type="{{ $package->rental_type ?? 'monthly' }}"
+                                        data-duration-count="{{ $package->duration_count ?: max(1, (int) ceil(($package->days_count ?: 30) / 30)) }}"
+                                        data-duration-unit="{{ $package->duration_unit ?? 'month' }}"
+                                        data-duration-label="{{ $package->duration_label }}"
                                         data-working-hours="{{ $package->working_hours_per_day }}"
                                         data-price="{{ $package->price_after_discount }}"
                                         data-total="{{ $package->price_with_tax }}"
                                         {{ (int) ($contract->info->package_id ?? 0) === (int) $package->id ? 'selected' : '' }}>
-                                    {{ $package->title }} - {{ $package->rental_type_label }} - {{ $package->duration_count ?: max(1, (int) ceil(($package->days_count ?: 30) / 30)) }} {{ $package->duration_unit_label }} - {{ number_format((float) $package->price_with_tax, 2) }} ريال
+                                    {{ $package->title }} - {{ $package->rental_type_label }} - {{ $package->duration_count ?: max(1, (int) ceil(($package->days_count ?: 30) / 30)) }} {{ $package->duration_unit_label }} - {{ number_format((float) $package->price_after_discount, 2) }} ريال بدون الضريبة
                                 </option>
                             @endforeach
                         </select>
+                        <input type="hidden" name="selected_package_id" id="selected_package_id"
+                               value="{{ $contract->info->package_id ?? '' }}">
+                        <input type="hidden" name="rental_type" id="rental_type"
+                               value="{{ $contract->info->rental_type ?? $contract->info->package?->rental_type ?? 'monthly' }}">
                     </div>
                 </div>
 
@@ -648,7 +655,7 @@
                     <div class="form-group">
                         <label class="form-label">
                             <span class="required-star">*</span>
-                            التكلفة الشهرية (ريال)
+                            تكلفة الفترة (ريال)
                         </label>
                         <input type="number" class="form-control" id="monthly_cost" name="monthly_cost"
                                value="{{ $contract->info->monthly_cost ?? '' }}" min="0" step="0.01" required>
@@ -659,7 +666,7 @@
                     <div class="form-group">
                         <label class="form-label">
                             <span class="required-star">*</span>
-                            مدة العقد (شهور)
+                            مدة العقد بالشهور للحساب
                         </label>
                         <input type="number" class="form-control" id="contract_duration_months" name="contract_duration_months"
                                value="{{ $contract->info->contract_duration_months ?? '' }}" min="1" max="60" required>
@@ -844,6 +851,28 @@ $(document).ready(function() {
         $('#summary-daily-rate').text(dailyRate.toLocaleString() + ' ريال');
     }
 
+    function updateSelectedPackageSummary(monthlyCost, durationMonths, totalValue) {
+        return updateContractSummary(monthlyCost, durationMonths, totalValue);
+        $('#summary-monthly-cost').text(monthlyCost.toLocaleString() + ' Ø±ÙŠØ§Ù„');
+        $('#summary-duration').text(durationMonths + ' Ø´Ù‡Ø±');
+        $('#summary-total-value').text(totalValue.toLocaleString() + ' Ø±ÙŠØ§Ù„');
+
+        const dailyRate = monthlyCost / 30;
+        $('#summary-daily-rate').text(dailyRate.toLocaleString() + ' Ø±ÙŠØ§Ù„');
+    }
+
+    function updateContractSummary(monthlyCost, durationMonths, totalValue) {
+        const currencyLabel = '\u0631\u064a\u0627\u0644';
+        const monthLabel = '\u0634\u0647\u0631';
+
+        $('#summary-monthly-cost').text(monthlyCost.toLocaleString() + ' ' + currencyLabel);
+        $('#summary-duration').text(durationMonths + ' ' + monthLabel);
+        $('#summary-total-value').text(totalValue.toLocaleString() + ' ' + currencyLabel);
+
+        const dailyRate = monthlyCost / 30;
+        $('#summary-daily-rate').text(dailyRate.toLocaleString() + ' ' + currencyLabel);
+    }
+
     function syncPaymentSummary() {
         const totalValue = parseFloat($('#total_contract_value').val()) || 0;
         const status = $('#payment_status').val();
@@ -887,15 +916,23 @@ $(document).ready(function() {
         const packageId = $('#package_id').val();
 
         if (!packageId) {
+            $('#selected_package_id').val('');
             return;
         }
 
+        $('#selected_package_id').val(packageId);
+
         const days = parseInt(selectedOption.data('days'), 10) || 0;
+        const rentalType = selectedOption.data('rental-type') || '';
+        const durationUnit = selectedOption.data('duration-unit') || '';
         const workingHours = parseInt(selectedOption.data('working-hours'), 10) || 0;
         const totalPrice = parseFloat(selectedOption.data('total')) || 0;
-        const months = Math.max(1, Math.ceil(days / 30));
-        const monthlyCost = months ? (totalPrice / months) : 0;
+        const months = Math.max(1, Math.ceil((days || 30) / 30));
+        const monthlyCost = (rentalType === 'monthly' || durationUnit === 'month') && months
+            ? (totalPrice / months)
+            : totalPrice;
 
+        $('#rental_type').val(rentalType || 'monthly');
         $('#contract_duration_months').val(months);
         $('#contract_duration_days').val(days);
         $('#monthly_cost').val(monthlyCost ? monthlyCost.toFixed(2) : '');
@@ -906,7 +943,7 @@ $(document).ready(function() {
         }
 
         calculateIngazTo();
-        calculateContractValue();
+        updateContractSummary(monthlyCost, months, totalPrice);
         updatePaymentState();
     }
 
@@ -973,10 +1010,21 @@ $(document).ready(function() {
 
         submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>جاري الحفظ...');
 
+        const formData = new FormData($('#editRentalContractForm')[0]);
+        formData.set('package_id', $('#package_id').val() || '');
+        formData.set('selected_package_id', $('#package_id').val() || '');
+        formData.set('rental_type', $('#rental_type').val() || 'monthly');
+        formData.set('monthly_cost', $('#monthly_cost').val() || '0');
+        formData.set('contract_duration_months', $('#contract_duration_months').val() || '1');
+        formData.set('contract_duration_days', $('#contract_duration_days').val() || '1');
+        formData.set('total_contract_value', $('#total_contract_value').val() || '0');
+        formData.set('paid_amount', $('#paid_amount').val() || '0');
+        formData.set('remaining_amount', $('#remaining_amount').val() || '0');
+
         $.ajax({
             url: $('#editRentalContractForm').attr('action'),
             method: 'POST',
-            data: new FormData($('#editRentalContractForm')[0]),
+            data: formData,
             processData: false,
             contentType: false,
             success: function(response) {

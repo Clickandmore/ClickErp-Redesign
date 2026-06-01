@@ -7,13 +7,15 @@ use App\Models\Contract;
 use App\Models\DeportationProcedure;
 use App\Models\TravelHistory;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Response;
 use Yajra\DataTables\Facades\DataTables;
 
 class DeportationTravelController extends Controller
 {
     public function __construct()
     {
-        $this->middleware('permission:travel_view,admin', ['only' => ['index', 'show', 'statistics']]);
+        $this->middleware('permission:travel_view,admin', ['only' => ['index', 'show', 'statistics', 'export', 'print']]);
         $this->middleware('permission:travel_create,admin', ['only' => ['create', 'store']]);
         $this->middleware('permission:travel_edit,admin', ['only' => ['edit', 'update']]);
         $this->middleware('permission:travel_control,admin', ['only' => ['complete']]);
@@ -26,48 +28,7 @@ class DeportationTravelController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = TravelHistory::with([
-                'user',
-                'maid',
-                'maid.nationality.translations',
-                'order'
-            ])->where('travel_type', 'deportation')
-                ->orderBy('id', 'desc');
-
-
-            if (!$request->filled('status') || $request->status === '') {
-                $query->whereIn('status', [
-                    'new', 'active', 'scheduled', 'in_progress', 'pending', 'confirmed'
-                ]);
-            } elseif ($request->status !== 'all') {
-                $query->where('status', $request->status);
-            }
-
-            // فلترة حسب عقد
-            if ($request->filled('contract_number')) {
-                $contract_number = (int) $request->contract_number;
-                $query->where(function ($q) use ($contract_number) {
-                    $q->whereHas('order', function ($sub) use ($contract_number) {
-                        $sub->where('id', $contract_number);
-                    })
-                        ->orWhere('order_id', $contract_number);
-                });
-            }
-
-
-            // فلترة حسب اسم العاملة
-            if ($request->filled('maid_name')) {
-                $query->whereHas('maid', function ($q) use ($request) {
-                    $q->where('name', 'like', '%' . $request->maid_name . '%');
-                });
-            }
-
-            // فلترة حسب تاريخ السفر
-            if ($request->filled('travel_date')) {
-                $query->whereDate('arrival_date', $request->travel_date);
-            }
-
-
+            $query = $this->deportationTravelQuery($request);
 
             return DataTables::of($query)
                 ->addIndexColumn()
@@ -150,6 +111,27 @@ class DeportationTravelController extends Controller
         }
 
         return view('admin.ingaz.DeportationTravel.index');
+    }
+
+    public function export(Request $request)
+    {
+        $rows = $this->deportationTravelQuery($request)->get();
+        $filename = 'deportation-trips-' . now()->format('Y-m-d-His') . '.csv';
+
+        return $this->csvDownload($filename, $this->deportationExportHeadings(), $rows->map(function (TravelHistory $row) {
+            return $this->deportationExportRow($row);
+        }));
+    }
+
+    public function print(Request $request)
+    {
+        $rows = $this->deportationTravelQuery($request)->get();
+
+        return view('admin.ingaz.DeportationTravel.print', [
+            'title' => 'رحلات الترحيل',
+            'headings' => $this->deportationExportHeadings(),
+            'rows' => $rows->map(fn (TravelHistory $row) => $this->deportationExportRow($row)),
+        ]);
     }
 
     /**
@@ -433,6 +415,103 @@ class DeportationTravelController extends Controller
             'arrival_date.date' => 'صيغة تاريخ الوصول غير صحيحة.',
             'arrival_time.required' => 'حقل وقت الوصول مطلوب.',
             'travel_with.required' => 'يجب تحديد المرافق في السفر.',
+        ]);
+    }
+
+    private function deportationTravelQuery(Request $request)
+    {
+        $query = TravelHistory::with([
+            'user',
+            'maid',
+            'maid.nationality.translations',
+            'order'
+        ])->where('travel_type', 'deportation')
+            ->orderBy('id', 'desc');
+
+        if (!$request->filled('status') || $request->status === '') {
+            $query->whereIn('status', [
+                'new', 'active', 'scheduled', 'in_progress', 'pending', 'confirmed'
+            ]);
+        } elseif ($request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('contract_number')) {
+            $contractNumber = (int) $request->contract_number;
+            $query->where(function ($q) use ($contractNumber) {
+                $q->whereHas('order', function ($sub) use ($contractNumber) {
+                    $sub->where('id', $contractNumber);
+                })->orWhere('order_id', $contractNumber);
+            });
+        }
+
+        if ($request->filled('maid_name')) {
+            $query->whereHas('maid', function ($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->maid_name . '%');
+            });
+        }
+
+        if ($request->filled('travel_date')) {
+            $query->whereDate('arrival_date', $request->travel_date);
+        }
+
+        return $query;
+    }
+
+    private function deportationExportHeadings(): array
+    {
+        return [
+            '#',
+            'رقم العقد',
+            'العاملة',
+            'العميل',
+            'الجوال',
+            'المطار',
+            'تاريخ السفر',
+            'وقت السفر',
+            'نوع السفر',
+            'شركة الطيران',
+            'رقم الرحلة',
+            'الحالة',
+        ];
+    }
+
+    private function deportationExportRow(TravelHistory $row): array
+    {
+        $statuses = __('travel_types.status') ?: [];
+
+        return [
+            $row->id,
+            $row->order_id ? '#' . $row->order_id : 'غير محدد',
+            optional($row->maid)->name ?: 'غير محدد',
+            optional($row->user)->name ?: 'غير محدد',
+            optional($row->user)->phone ?: '-',
+            $row->arrival_airport ?: 'غير محدد',
+            $row->arrival_date ? \Carbon\Carbon::parse($row->arrival_date)->format('Y-m-d') : 'غير محدد',
+            $row->arrival_time ?: 'غير محدد',
+            $row->travel_with ?: '-',
+            $row->flight_company ?: '-',
+            $row->flight_number ?: '-',
+            $statuses[$row->status] ?? ($row->status === 'completed' ? 'مكتملة' : 'مجدولة'),
+        ];
+    }
+
+    private function csvDownload(string $filename, array $headings, Collection $rows)
+    {
+        $callback = function () use ($headings, $rows) {
+            $handle = fopen('php://output', 'w');
+            echo "\xEF\xBB\xBF";
+            fputcsv($handle, $headings);
+
+            foreach ($rows as $row) {
+                fputcsv($handle, $row);
+            }
+
+            fclose($handle);
+        };
+
+        return Response::streamDownload($callback, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
         ]);
     }
 }

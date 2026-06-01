@@ -51,51 +51,57 @@ class NotificationAction extends MainAction
 
         $templateId = $request->input('sms_template_id');
 
-        $template = SmsTemplate::query()
-            ->whereKey($templateId)
-            ->where('is_active', true)
-            ->first();
+        $template = null;
 
-        if (!$template) {
+        if ($this->usesSmsTemplate($templateId)) {
+            $template = SmsTemplate::query()
+                ->whereKey($templateId)
+                ->where('is_active', true)
+                ->first();
+        }
+
+        if ($this->usesSmsTemplate($templateId) && !$template) {
             throw ValidationException::withMessages([
                 'sms_template_id' => 'القالب المحدد غير موجود أو غير نشط.',
             ]);
         }
 
         $message = $this->buildSmsMessage($template, $request);
-        $users = $this->resolveTargetUsers($request);
+        $recipients = $this->resolveSmsRecipients($request);
 
-        if ($users->isEmpty()) {
+        if ($recipients->isEmpty()) {
             throw ValidationException::withMessages([
                 'user_id' => 'لا يوجد عملاء صالحون للإرسال.',
             ]);
         }
 
-        $this->assertBulkProtection($request, $users->count(), 'sms');
+        $this->assertBulkProtection($request, $recipients->count(), 'sms');
 
         $sentCount = 0;
         $failedCount = 0;
 
-        foreach ($users as $user) {
-            $response = $this->sendSMS(formatSaudiPhone($user->phone), $message, null, $senderNameType);
+        foreach ($recipients as $recipient) {
+            $response = $this->sendSMS($recipient['phone'], $message, null, $senderNameType);
 
             if (!$this->isSuccessfulSmsResponse($response)) {
                 $failedCount++;
                 continue;
             }
 
-            $this->storeSmsLog($user, $template, $message);
+            $this->storeSmsLog($recipient['user'], $template, $message, $recipient['is_external'] ? $recipient['phone'] : null);
             $sentCount++;
         }
 
         return [
-            'template_id' => $template->id,
-            'template_title' => $template->title,
+            'template_id' => $template?->id,
+            'template_title' => $template?->title ?? 'بدون قالب',
             'sender_name_type' => $senderNameType,
             'channel' => 'sms',
-            'total_count' => $users->count(),
+            'total_count' => $recipients->count(),
             'sent_count' => $sentCount,
             'failed_count' => $failedCount,
+            'internal_count' => $recipients->where('is_external', false)->count(),
+            'external_count' => $recipients->where('is_external', true)->count(),
         ];
     }
 
@@ -184,7 +190,7 @@ class NotificationAction extends MainAction
         ];
     }
 
-    private function buildSmsMessage(SmsTemplate $template, Request $request): string
+    private function buildSmsMessage(?SmsTemplate $template, Request $request): string
     {
         $variables = collect((array) $request->input('template_variables', []))
             ->mapWithKeys(function ($value, $key) {
@@ -193,7 +199,7 @@ class NotificationAction extends MainAction
             ->toArray();
 
         $message = trim((string) $request->input('message_override', ''));
-        if ($message === '') {
+        if ($message === '' && $template) {
             $message = trim($template->processMessage($variables));
         }
 
@@ -224,6 +230,78 @@ class NotificationAction extends MainAction
         }
 
         return $usersQuery->get();
+    }
+
+    private function resolveSmsRecipients(Request $request): Collection
+    {
+        $internalRecipients = $this->resolveTargetUsers($request)
+            ->map(fn (User $user): array => [
+                'user' => $user,
+                'phone' => $this->normalizeSmsPhone((string) $user->phone),
+                'is_external' => false,
+            ])
+            ->filter(fn (array $recipient): bool => $this->isValidSmsPhone($recipient['phone']))
+            ->values();
+
+        if ($request->input('all_or_some') !== 'some') {
+            return $internalRecipients;
+        }
+
+        $internalPhones = $internalRecipients->pluck('phone')->all();
+        $externalRecipients = collect($this->externalRecipientPhones($request))
+            ->reject(fn (string $phone): bool => in_array($phone, $internalPhones, true))
+            ->map(fn (string $phone): array => [
+                'user' => null,
+                'phone' => $phone,
+                'is_external' => true,
+            ]);
+
+        return $internalRecipients
+            ->concat($externalRecipients)
+            ->values();
+    }
+
+    private function externalRecipientPhones(Request $request): array
+    {
+        $phones = preg_split('/[\r\n,;]+/', (string) $request->input('external_recipient_phones', '')) ?: [];
+
+        return collect($phones)
+            ->map(fn (string $phone): string => trim($phone))
+            ->filter()
+            ->map(fn (string $phone): string => $this->normalizeSmsPhone($phone))
+            ->filter(fn (string $phone): bool => $this->isValidSmsPhone($phone))
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function usesSmsTemplate($templateId): bool
+    {
+        return !in_array((string) $templateId, ['', 'none'], true);
+    }
+
+    private function normalizeSmsPhone(string $phone): string
+    {
+        $digits = preg_replace('/\D+/', '', $phone) ?: '';
+
+        if (str_starts_with($digits, '00')) {
+            $digits = substr($digits, 2);
+        }
+
+        if (strlen($digits) === 10 && str_starts_with($digits, '05')) {
+            return '966' . substr($digits, 1);
+        }
+
+        if (strlen($digits) === 9 && str_starts_with($digits, '5')) {
+            return '966' . $digits;
+        }
+
+        return formatSaudiPhone($digits);
+    }
+
+    private function isValidSmsPhone(string $phone): bool
+    {
+        return (bool) preg_match('/^\d{8,15}$/', $phone);
     }
 
     private function assertBulkProtection(Request $request, int $totalRecipients, string $channel = 'sms'): void
@@ -272,20 +350,25 @@ class NotificationAction extends MainAction
         return [$keyword, $limit];
     }
 
-    private function storeSmsLog(User $user, SmsTemplate $template, string $message): void
+    private function storeSmsLog(?User $user, ?SmsTemplate $template, string $message, ?string $externalPhone = null): void
     {
         $titleTranslations = [];
         $descriptionTranslations = [];
+        $title = $template?->title ?? 'رسالة SMS بدون قالب';
+
+        if ($externalPhone) {
+            $title .= ' - ' . $externalPhone;
+        }
 
         foreach (config('translatable.locales', ['ar']) as $locale) {
-            $titleTranslations[$locale] = $template->title;
+            $titleTranslations[$locale] = $title;
             $descriptionTranslations[$locale] = $message;
         }
 
         $this->model->create([
             'title' => $titleTranslations,
             'description' => $descriptionTranslations,
-            'user_id' => $user->id,
+            'user_id' => $user?->id,
             'type' => 'sms',
         ]);
     }

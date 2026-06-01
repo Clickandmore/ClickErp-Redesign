@@ -54,6 +54,7 @@ class AccountStatementSuppliePrintController extends Controller
             "show_other_account" => $dataSearch["other_account"],
             "filters" => $dataSearch,
             "reportTitle" => __("finance::finance.account-statement-suppliers"),
+            "showDollarEquivalent" => true,
         ]);
     }
 

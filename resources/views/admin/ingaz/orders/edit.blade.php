@@ -12,7 +12,7 @@
             </div>
             <div class="col-md-6">
                 <label class="form-label fw-bold">{{helperTrans('ingaz.client')}}</label>
-                <input type="text" disabled class="form-control" value="{{ $obj->user->name ?? 'غير محدد'}}">
+                <input type="text" disabled class="form-control" value="{{ $obj->user->name ?? helperTrans('ingaz.not_specified') }}">
             </div>
         </div>
 
@@ -30,15 +30,28 @@
         @if($obj->maid && isset($obj->maid->available_at) && now() < $obj->maid->available_at)
             <div class="alert alert-info">
                 <i class="fa fa-info-circle"></i>
-                يرجي العلم ان تلك العاملة متاحة من يوم {{$obj->maid->available_at}}
+                {{ __('ingaz.maid_available_from_date', ['date' => $obj->maid->available_at]) }}
             </div>
         @endif
+
+        @php
+            $hasContract = $obj->relationLoaded('contracts')
+                ? $obj->contracts->isNotEmpty()
+                : $obj->contracts()->exists();
+            $canAddContract = !$hasContract && in_array($obj->status, [
+                \App\Enums\ingaz\OrderEnum::UnderProcess->value,
+                \App\Enums\ingaz\OrderEnum::Contracted->value,
+                \App\Enums\ingaz\OrderEnum::ContractedWithoutContract->value,
+                \App\Enums\ingaz\OrderEnum::Completed->value,
+                \App\Enums\ingaz\OrderEnum::Done->value,
+            ], true);
+        @endphp
 
         @if(in_array($obj->status, ['refused', 'done', 'completed']))
             <!-- Disabled for refused, done, or completed orders -->
             <div class="alert alert-warning">
                 <i class="fa fa-exclamation-triangle"></i>
-                لا يمكن تعديل هذا الطلب لأنه {{getEnumValue('orders_statuses', $obj->status)}}
+                {{ __('ingaz.order_cannot_be_edited_status', ['status' => getEnumValue('orders_statuses', $obj->status)]) }}
             </div>
 
             <!-- Close button only for disabled orders -->
@@ -47,6 +60,14 @@
                     <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">
                         <i class="fa fa-times"></i> {{__("buttons.close")}}
                     </button>
+
+                    @if($canAddContract)
+                        @if (@AdminGuardHasPerm(\App\PermKeys::FULL_CONTRACT))
+                            <button type="button" class="btn btn-success addNewContract" data-id="{{ $obj->id }}">
+                                <i class="fa fa-plus"></i> {{__("admin.add_new_contract")}}
+                            </button>
+                        @endif
+                    @endif
                 </div>
             </div>
         @else
@@ -67,13 +88,13 @@
                                     $availableStatuses = ['under_process', 'refused'];
                                     break;
                                 case 'under_process':
-                                    $availableStatuses = ['contracted', 'contracted_without_contract', 'refused'];
+                                    $availableStatuses = ['refused'];
                                     break;
                                 case 'contracted':
-                                    $availableStatuses = ['completed', 'done'];
+                                    $availableStatuses = $hasContract ? ['completed', 'done'] : ['refused'];
                                     break;
                                 case 'contracted_without_contract':
-                                    $availableStatuses = ['completed', 'done'];
+                                    $availableStatuses = $hasContract ? ['completed', 'done'] : ['refused'];
                                     break;
                                 case 'completed':
                                     $availableStatuses = ['done'];
@@ -115,7 +136,7 @@
                         <i class="fa fa-save"></i> {{__("buttons.save")}}
                     </button>
 
-                    @if($obj->status == 'under_process')
+                    @if($canAddContract)
                         @if (@AdminGuardHasPerm(\App\PermKeys::FULL_CONTRACT))
                             <button type="button" class="btn btn-success addNewContract" data-id="{{ $obj->id }}">
                                 <i class="fa fa-plus"></i> {{__("admin.add_new_contract")}}

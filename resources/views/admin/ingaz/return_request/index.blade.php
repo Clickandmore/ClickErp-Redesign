@@ -66,6 +66,10 @@
             -webkit-overflow-scrolling: touch;
         }
 
+        .orders-page .actions-dropdown .dropdown-menu {
+            z-index: 2147483647;
+        }
+
         .orders-page #dataTableObject_wrapper,
         .orders-page .dataTables_scroll,
         .orders-page .dataTables_scrollHead,
@@ -107,7 +111,7 @@
 
             .orders-page .table-responsive {
                 overflow-x: auto !important;
-                overflow-y: hidden !important;
+                overflow-y: visible !important;
             }
 
             .orders-page .dataTables_scrollBody {
@@ -320,6 +324,13 @@
     <script>
         $(document).ready(function() {
             const isMobileTableView = window.matchMedia('(max-width: 991.98px)').matches;
+            const returnRequestDestroyRouteTemplate = "{{ route('return_requests.destroy', ['return_request' => 'ORDER_ID']) }}";
+            const returnRequestRestoreRouteTemplate = "{{ route('return_requests.restore', ['id' => 'ORDER_ID']) }}";
+            const returnRequestRestorePreviousRouteTemplate = "{{ route('return_requests.restore_previous_status', ['id' => 'ORDER_ID']) }}";
+
+            function routeFor(template, orderId) {
+                return template.replace('ORDER_ID', orderId);
+            }
 
             let columns = [{
                     data: 'id',
@@ -523,27 +534,40 @@
                 window.open('{{ route('return_requests.export.pdf') }}?' + getFilterQueryParams(), '_blank');
             });
 
-            function handleOrderMutation(url, method, successMessage) {
+            function handleOrderMutation(url, method, successMessage, extraData = {}) {
                 $.ajax({
                     url: url,
                     type: method,
-                    data: {
+                    data: Object.assign({
                         _token: '{{ csrf_token() }}'
-                    },
+                    }, extraData),
                     success: function(response) {
                         dataTable.ajax.reload(null, false);
 
-                        if (response && (response.success || (response.data && response.data.success))) {
+                        if (isSuccessResponse(response)) {
                             Swal.fire('نجح!', response.message || successMessage, 'success');
                             return;
                         }
 
                         Swal.fire('خطأ!', '{{ helperTrans('ingaz.update_error') }}', 'error');
                     },
-                    error: function() {
-                        Swal.fire('خطأ!', '{{ helperTrans('ingaz.update_error') }}', 'error');
+                    error: function(xhr) {
+                        const message = xhr.responseJSON?.message || '{{ helperTrans('ingaz.update_error') }}';
+                        Swal.fire('خطأ!', message, 'error');
                     }
                 });
+            }
+
+            function isSuccessResponse(response) {
+                return !!(
+                    response &&
+                    (
+                        response.success ||
+                        response.code === 200 ||
+                        response.code === '200' ||
+                        (response.data && response.data.success)
+                    )
+                );
             }
 
             $(document).on('click', '.restore-order', function(e) {
@@ -561,8 +585,29 @@
                     cancelButtonText: '{{ helperTrans('buttons.cancel') }}',
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        handleOrderMutation('/admin/orders/' + orderId + '/restore', 'POST',
+                        handleOrderMutation(routeFor(returnRequestRestoreRouteTemplate, orderId), 'POST',
                             '{{ helperTrans('ingaz.order_restored') }}');
+                    }
+                });
+            });
+
+            $(document).on('click', '.restore-previous-status', function(e) {
+                e.preventDefault();
+                const orderId = $(this).data('id');
+
+                Swal.fire({
+                    title: '{{ helperTrans('buttons.Are You Sure') }}',
+                    text: 'سيتم إرجاع الطلب إلى حالته السابقة إن وجدت، أو تنشيطه كطلب جديد بعد التأكد من توفر العاملة.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: '{{ helperTrans('buttons.accept') }}',
+                    cancelButtonText: '{{ helperTrans('buttons.cancel') }}',
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        handleOrderMutation(routeFor(returnRequestRestorePreviousRouteTemplate, orderId), 'POST',
+                            'تم إرجاع الطلب إلى حالته السابقة');
                     }
                 });
             });
@@ -582,165 +627,15 @@
                     cancelButtonText: '{{ helperTrans('buttons.cancel') }}',
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        handleOrderMutation('/admin/orders/' + orderId, 'DELETE',
+                        handleOrderMutation(routeFor(returnRequestDestroyRouteTemplate, orderId), 'DELETE',
                             '{{ helperTrans('ingaz.order_deleted') }}');
-                    }
-                });
-            });
-
-            $(document).on('click', '.force-delete-order', function(e) {
-                e.preventDefault();
-                const orderId = $(this).data('id');
-
-                Swal.fire({
-                    title: '{{ helperTrans('buttons.Are You Sure') }}',
-                    text: '{{ helperTrans('buttons.You Can not to rollback') ?? 'This action cannot be undone!' }}',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: '{{ helperTrans('buttons.accept') }}',
-                    cancelButtonText: '{{ helperTrans('buttons.cancel') }}',
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        handleOrderMutation('/admin/orders/' + orderId, 'DELETE',
-                            '{{ helperTrans('ingaz.order_deleted') }}');
-                    }
-                });
-            });
-
-            function toggleRefuseReasonField(selectedStatus) {
-                const wrapper = $('#editStatusModal').find('[data-refuse-reason]');
-                if (!wrapper.length) {
-                    return;
-                }
-
-                const needsReason = ['refused', 'return'].includes(selectedStatus);
-                wrapper.toggleClass('d-none', !needsReason);
-            }
-
-            $(document).on('shown.bs.modal', '#editStatusModal', function() {
-                const checked = $(this).find('input[name="status"]:checked');
-                toggleRefuseReasonField(checked.length ? checked.val() : '');
-            });
-
-            $(document).on('change', '#editStatusModal input[name="status"]', function() {
-                toggleRefuseReasonField($(this).val());
-            });
-
-            $(document).on('click', '.edit-status', function(e) {
-                e.preventDefault();
-                const orderId = $(this).data('id');
-
-                const loadingModal = `
-                    <div class="modal fade" id="loadingModal" tabindex="-1">
-                        <div class="modal-dialog">
-                            <div class="modal-content">
-                                <div class="modal-body text-center">
-                                    <div class="spinner-border text-primary" role="status">
-                                        <span class="visually-hidden">جاري التحميل...</span>
-                                    </div>
-                                    <p class="mt-2">جاري تحميل نموذج التعديل...</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-
-                $('#loadingModal').remove();
-                $('#editStatusModal').remove();
-                $('body').append(loadingModal);
-                $('#loadingModal').modal('show');
-
-                $.ajax({
-                    url: '/admin/orders/' + orderId + '/edit',
-                    type: 'GET',
-                    success: function(response) {
-                        $('#loadingModal').modal('hide');
-                        $('#loadingModal').remove();
-
-                        if (!response.success) {
-                            Swal.fire('خطأ!', response.message ||
-                                '{{ helperTrans('ingaz.load_form_error') }}', 'error');
-                            return;
-                        }
-
-                        const modal = `
-                            <div class="modal fade" id="editStatusModal" tabindex="-1">
-                                <div class="modal-dialog modal-lg">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title">{{ helperTrans('ingaz.edit_order_status') }}</h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                        </div>
-                                        <div class="modal-body">
-                                            ${response.html}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-
-                        $('#editStatusModal').remove();
-                        $('body').append(modal);
-                        $('#editStatusModal').modal('show');
-
-                        $('#editStatusModal form').on('submit', function(submitEvent) {
-                            submitEvent.preventDefault();
-                            const formData = new FormData(this);
-
-                            $.ajax({
-                                url: $(this).attr('action'),
-                                type: 'POST',
-                                data: formData,
-                                processData: false,
-                                contentType: false,
-                                success: function(updateResponse) {
-                                    if (updateResponse.success) {
-                                        $('#editStatusModal').modal('hide');
-                                        setTimeout(function() {
-                                            $('#editStatusModal').remove();
-                                            $('.modal-backdrop').remove();
-                                            $('body').removeClass('modal-open');
-                                        }, 200);
-
-                                        dataTable.ajax.reload(null, false);
-                                        Swal.fire('نجح!',
-                                            '{{ helperTrans('ingaz.status_updated') }}',
-                                            'success');
-                                    } else {
-                                        Swal.fire('خطأ!', updateResponse.message ||
-                                            '{{ helperTrans('ingaz.status_update_error') }}',
-                                            'error');
-                                    }
-                                },
-                                error: function(xhr) {
-                                    let errorMessage =
-                                        '{{ helperTrans('ingaz.status_update_error') }}';
-                                    if (xhr.responseJSON && xhr.responseJSON.message) {
-                                        errorMessage = xhr.responseJSON.message;
-                                    }
-                                    Swal.fire('خطأ!', errorMessage, 'error');
-                                }
-                            });
-                        });
-                    },
-                    error: function(xhr) {
-                        $('#loadingModal').modal('hide');
-                        $('#loadingModal').remove();
-
-                        let errorMessage = '{{ helperTrans('ingaz.load_form_error') }}';
-                        if (xhr.responseJSON && xhr.responseJSON.message) {
-                            errorMessage = xhr.responseJSON.message;
-                        }
-                        Swal.fire('خطأ!', errorMessage, 'error');
                     }
                 });
             });
 
             dataTable.on('draw', function() {
                 $('.dropdown').removeClass('show');
-                $('.dropdown-menu').hide();
+                $('.dropdown-menu').removeClass('show').removeAttr('style');
             });
         });
     </script>

@@ -5,10 +5,13 @@ namespace App\Http\Controllers\ingaz;
 use App\Http\Controllers\admin\Controller;
 use App\Models\Contract;
 use App\Models\IngazDelegation;
+use App\Models\RentalContractInvoice;
 use App\Models\ingaz\Invoice;
+use App\Models\ingaz\Nationality;
 use App\Models\ingaz\Setting;
 use App\Models\ingaz\User as ClientUser;
 use App\Services\ingaz\InvoiceCalculationService;
+use App\Support\InvoiceQrCode;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -55,100 +58,129 @@ class InvoiceController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = Invoice::with(['contract.user', 'ingazDelegation.user', 'financeSale.zatca'])->select('invoices.*')->latest();
+            $recruitmentInvoices = Invoice::with(['contract.user', 'ingazDelegation.user', 'client', 'financeSale.zatca'])
+                ->latest()
+                ->get()
+                ->map(fn (Invoice $invoice) => $this->formatInvoiceIndexRow($invoice));
+
+            $rentalInvoices = RentalContractInvoice::with(['rentalContract.user', 'rentalContract.maid', 'invoiceConstraint'])
+                ->latest()
+                ->get()
+                ->map(fn (RentalContractInvoice $invoice) => $this->formatRentalInvoiceIndexRow($invoice));
+
+            $query = $recruitmentInvoices
+                ->concat($rentalInvoices)
+                ->sortByDesc('created_at_sort')
+                ->values();
 
             return DataTables::of($query)
                 ->addIndexColumn()
-                ->addColumn('invoice_number', function ($row) {
-                    return '<a href="' . route('invoice.download', ['id' => $row->id, 'autoprint' => 1]) . '" target="_blank" rel="noopener" class="fw-bold text-decoration-none">#' . $row->id . '</a>';
-                })
-                ->addColumn('contract_number', function ($row) {
-                    return $row->contract_id
-                        ? '#' . $row->contract_id
-                        : ('تفويض #' . $row->ingaz_delegation_id);
-                })
-                ->addColumn('invoice_source', function ($row) {
-                    if ($row->contract_id) {
-                        return '<span class="badge bg-info-subtle text-info border">عقد استقدام #' . $row->contract_id . '</span>';
-                    }
-
-                    if ($row->ingaz_delegation_id) {
-                        return '<span class="badge bg-primary-subtle text-primary border">تفويض إنجاز #' . $row->ingaz_delegation_id . '</span>';
-                    }
-
-                    return '<span class="badge bg-secondary-subtle text-secondary border">غير مرتبط</span>';
-                })
-                ->addColumn('client_name', function ($row) {
-                    return $row->contract?->user?->name ?: ($row->ingazDelegation?->user?->name ?: '-');
-                })
-                ->editColumn('subtotal', function ($row) {
-                    return number_format($row->subtotal, 2);
-                })
-                ->editColumn('vat_amount', function ($row) {
-                    return number_format($row->vat_amount, 2);
-                })
-                ->editColumn('discount', function ($row) {
-                    return number_format($row->discount, 2);
-                })
-                ->editColumn('total_due', function ($row) {
-                    return number_format($row->total_due, 2);
-                })
-                ->addColumn('status', function ($row) {
-                    $paid = (bool) $row->is_paid || (float) $row->total_due <= 0;
-                    $class = $paid ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning';
-                    $text = $paid ? 'مدفوعة' : 'غير مدفوعة';
-                    return '<span class="badge ' . $class . '">' . $text . '</span>';
-                })
-                ->addColumn('zatca_status', function ($row) {
-                    if (!$row->send_to_zatca) {
-                        return '<span class="badge bg-secondary-subtle text-secondary border">غير مطلوب</span>';
-                    }
-
-                    if (!$row->finance_sale_id) {
-                        return '<span class="badge bg-warning-subtle text-warning border">لم يدرج</span>';
-                    }
-
-                    $status = $row->financeSale?->zatca?->zatca_status;
-                    return match ($status) {
-                        'REPORTED' => '<span class="badge bg-success">مرحل للهيئة</span>',
-                        'CLEARED' => '<span class="badge bg-primary">معتمد من الهيئة</span>',
-                        'NOT_REPORTED', 'NOT_CLEARED' => '<span class="badge bg-danger">مرفوض من الهيئة</span>',
-                        default => '<span class="badge bg-warning-subtle text-warning border">معلق في المبيعات</span>',
-                    };
-                })
-                ->editColumn('created_at', function ($row) {
-                    return $row->created_at ? $row->created_at->format('Y-m-d H:i') : '-';
-                })
-                ->addColumn('actions', function ($row) {
-                    $viewUrl = route('invoices.show', $row->id);
-                    $pdfUrl = route('invoice.download', ['id' => $row->id, 'autoprint' => 1]);
-                    $queueUrl = route('invoices.queue-zatca-sale', $row->id);
-                    $queueButton = (!$row->finance_sale_id)
-                        ? '<form method="post" action="' . $queueUrl . '" class="d-inline queue-zatca-form">
-                                ' . csrf_field() . '
-                                <button type="submit" class="btn btn-sm btn-outline-success" title="إدراج في فواتير الزكاة">
-                                    <i class="fas fa-receipt"></i>
-                                </button>
-                            </form>'
-                        : '<a href="' . route('finance.bill-sales.show', $row->finance_sale_id) . '" class="btn btn-sm btn-outline-success" title="فاتورة المبيعات">
-                                <i class="fas fa-link"></i>
-                            </a>';
-
-                    return '<div class="d-flex justify-content-end gap-2">
-                                ' . $queueButton . '
-                                <a href="' . $viewUrl . '" class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-eye"></i>
-                                </a>
-                                <a href="' . $pdfUrl . '" class="btn btn-sm btn-outline-secondary" target="_blank">
-                                    <i class="fas fa-print"></i>
-                                </a>
-                            </div>';
-                })
                 ->rawColumns(['invoice_number', 'invoice_source', 'status', 'zatca_status', 'actions'])
                 ->make(true);
         }
 
         return view('admin.ingaz.invoices.index');
+    }
+
+    private function formatInvoiceIndexRow(Invoice $invoice): array
+    {
+        $paid = (bool) $invoice->is_paid || (float) $invoice->total_due <= 0;
+        $queueButton = (!$invoice->finance_sale_id)
+            ? '<form method="post" action="' . route('invoices.queue-zatca-sale', $invoice->id) . '" class="d-inline queue-zatca-form">
+                    ' . csrf_field() . '
+                    <button type="submit" class="btn btn-sm btn-outline-success" title="إدراج في فواتير الزكاة">
+                        <i class="fas fa-receipt"></i>
+                    </button>
+                </form>'
+            : '<a href="' . route('finance.bill-sales.show', $invoice->finance_sale_id) . '" class="btn btn-sm btn-outline-success" title="فاتورة المبيعات">
+                    <i class="fas fa-link"></i>
+                </a>';
+
+        return [
+            'id' => $invoice->id,
+            'invoice_number' => '<a href="' . route('invoice.download', ['id' => $invoice->id, 'autoprint' => 1]) . '" target="_blank" rel="noopener" class="fw-bold text-decoration-none">#' . $invoice->id . '</a>',
+            'invoice_source' => $this->invoiceSourceBadge($invoice),
+            'client_name' => $invoice->contract?->user?->name ?: ($invoice->ingazDelegation?->user?->name ?: ($invoice->client?->name ?: '-')),
+            'subtotal' => number_format((float) $invoice->subtotal, 2),
+            'vat_amount' => number_format((float) $invoice->vat_amount, 2),
+            'discount' => number_format((float) $invoice->discount, 2),
+            'total_due' => number_format((float) $invoice->total_due, 2),
+            'status' => '<span class="badge ' . ($paid ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning') . '">' . ($paid ? 'مدفوعة' : 'غير مدفوعة') . '</span>',
+            'zatca_status' => $this->invoiceZatcaBadge($invoice),
+            'created_at' => $invoice->created_at ? $invoice->created_at->format('Y-m-d H:i') : '-',
+            'created_at_sort' => optional($invoice->created_at)->timestamp ?? 0,
+            'actions' => '<div class="d-flex justify-content-end gap-2">
+                            ' . $queueButton . '
+                            <a href="' . route('invoices.show', $invoice->id) . '" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="' . route('invoice.download', ['id' => $invoice->id, 'autoprint' => 1]) . '" class="btn btn-sm btn-outline-secondary" target="_blank">
+                                <i class="fas fa-print"></i>
+                            </a>
+                        </div>',
+        ];
+    }
+
+    private function formatRentalInvoiceIndexRow(RentalContractInvoice $invoice): array
+    {
+        $contract = $invoice->rentalContract;
+        $paid = (bool) $invoice->is_paid || (float) $invoice->total_due <= 0;
+        $contractUrl = $contract ? route('RentContract.show', $contract->id) : '#';
+        $printUrl = route('rental.invoice.download', ['id' => $invoice->id, 'autoprint' => 1]);
+
+        return [
+            'id' => 'rental-' . $invoice->id,
+            'invoice_number' => '<a href="' . $printUrl . '" target="_blank" rel="noopener" class="fw-bold text-decoration-none">إيجار #' . $invoice->id . '</a>',
+            'invoice_source' => '<span class="badge bg-success-subtle text-success border">عقد تأجير #' . ($contract?->contract_number ?: $invoice->rental_contract_id) . '</span>',
+            'client_name' => $contract?->user?->name ?: '-',
+            'subtotal' => number_format((float) $invoice->subtotal, 2),
+            'vat_amount' => number_format((float) $invoice->vat_amount, 2),
+            'discount' => number_format((float) $invoice->discount, 2),
+            'total_due' => number_format((float) $invoice->total_due, 2),
+            'status' => '<span class="badge ' . ($paid ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning') . '">' . ($paid ? 'مدفوعة' : 'غير مدفوعة') . '</span>',
+            'zatca_status' => '<span class="badge bg-secondary-subtle text-secondary border">غير مطلوب</span>',
+            'created_at' => $invoice->created_at ? $invoice->created_at->format('Y-m-d H:i') : '-',
+            'created_at_sort' => optional($invoice->created_at)->timestamp ?? 0,
+            'actions' => '<div class="d-flex justify-content-end gap-2">
+                            <a href="' . $contractUrl . '" class="btn btn-sm btn-outline-primary" title="عرض عقد التأجير">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="' . $printUrl . '" class="btn btn-sm btn-outline-secondary" target="_blank" title="طباعة الفاتورة">
+                                <i class="fas fa-print"></i>
+                            </a>
+                        </div>',
+        ];
+    }
+
+    private function invoiceSourceBadge(Invoice $invoice): string
+    {
+        if ($invoice->contract_id) {
+            return '<span class="badge bg-info-subtle text-info border">عقد استقدام #' . $invoice->contract_id . '</span>';
+        }
+
+        if ($invoice->ingaz_delegation_id) {
+            return '<span class="badge bg-primary-subtle text-primary border">تفويض إنجاز #' . $invoice->ingaz_delegation_id . '</span>';
+        }
+
+        return '<span class="badge bg-secondary-subtle text-secondary border">فاتورة عامة</span>';
+    }
+
+    private function invoiceZatcaBadge(Invoice $invoice): string
+    {
+        if (!$invoice->send_to_zatca) {
+            return '<span class="badge bg-secondary-subtle text-secondary border">غير مطلوب</span>';
+        }
+
+        if (!$invoice->finance_sale_id) {
+            return '<span class="badge bg-warning-subtle text-warning border">لم يدرج</span>';
+        }
+
+        return match ($invoice->financeSale?->zatca?->zatca_status) {
+            'REPORTED' => '<span class="badge bg-success">مرحل للهيئة</span>',
+            'CLEARED' => '<span class="badge bg-primary">معتمد من الهيئة</span>',
+            'NOT_REPORTED', 'NOT_CLEARED' => '<span class="badge bg-danger">مرفوض من الهيئة</span>',
+            default => '<span class="badge bg-warning-subtle text-warning border">معلق في المبيعات</span>',
+        };
     }
 
     /**
@@ -162,6 +194,8 @@ class InvoiceController extends Controller
         $contractId = is_numeric($contractId) ? (int) $contractId : null;
         $ingazDelegationId = $request->query('ingaz_delegation_id');
         $ingazDelegationId = is_numeric($ingazDelegationId) ? (int) $ingazDelegationId : null;
+        $clientId = $request->query('client_id');
+        $clientId = is_numeric($clientId) ? (int) $clientId : null;
 
         $contracts = Contract::query()
             ->with(['user', 'maid.nationality', 'requiredMaidNationality'])
@@ -171,6 +205,7 @@ class InvoiceController extends Controller
 
         $selectedContract = null;
         $selectedIngazDelegation = null;
+        $selectedClient = null;
 
         if ($contractId) {
             $selectedContract = Contract::query()
@@ -196,12 +231,18 @@ class InvoiceController extends Controller
             }
         }
 
+        if ($clientId && !$contractId && !$ingazDelegationId) {
+            $selectedClient = ClientUser::query()->findOrFail($clientId);
+        }
+
         return view('admin.ingaz.invoices.create', compact(
             'contractId',
             'ingazDelegationId',
+            'clientId',
             'contracts',
             'selectedContract',
-            'selectedIngazDelegation'
+            'selectedIngazDelegation',
+            'selectedClient'
         ));
     }
 
@@ -214,8 +255,14 @@ class InvoiceController extends Controller
     public function store(Request $request, ObjService $service, YearService $yearService, BondService $bondService)
     {
         $request->validate([
-            'contract_id' => 'nullable|required_without:ingaz_delegation_id|exists:contracts,id',
-            'ingaz_delegation_id' => 'nullable|required_without:contract_id|exists:ingaz_delegations,id',
+            'contract_id' => 'nullable|required_without_all:ingaz_delegation_id,client_id|exists:contracts,id',
+            'ingaz_delegation_id' => 'nullable|required_without_all:contract_id,client_id|exists:ingaz_delegations,id',
+            'client_id' => 'nullable|required_without_all:contract_id,ingaz_delegation_id|exists:users,id',
+            'general_description' => 'nullable|string|max:2000',
+            'general_direct_label' => 'nullable|string|max:255',
+            'general_external_label' => 'nullable|string|max:255',
+            'general_government_label' => 'nullable|string|max:255',
+            'general_ticket_label' => 'nullable|string|max:255',
             'insurance_company' => 'nullable|string|max:255',
             'direct_recruitment_cost' => 'nullable|numeric|min:0',
             'external_recruitment_cost' => 'nullable|numeric|min:0',
@@ -234,23 +281,30 @@ class InvoiceController extends Controller
             'send_to_zatca' => 'nullable|boolean',
         ]);
 
-        if ($request->filled('contract_id') && $request->filled('ingaz_delegation_id')) {
+        $referenceCount = collect([
+            $request->filled('contract_id'),
+            $request->filled('ingaz_delegation_id'),
+            $request->filled('client_id'),
+        ])->filter()->count();
+
+        if ($referenceCount !== 1) {
             return response()->json([
                 'success' => false,
-                'message' => 'يجب ربط الفاتورة بعقد أو تفويض إنجاز فقط.'
+                'message' => 'يجب ربط الفاتورة بعقد أو تفويض إنجاز أو عميل فقط.'
             ], 422);
         }
 
-        $invoiceExists = $request->filled('contract_id')
-            ? Invoice::where('contract_id', $request->contract_id)->exists()
-            : Invoice::where('ingaz_delegation_id', $request->ingaz_delegation_id)->exists();
+        $invoiceExists = false;
+        if ($request->filled('contract_id')) {
+            $invoiceExists = Invoice::where('contract_id', $request->contract_id)->exists();
+        } elseif ($request->filled('ingaz_delegation_id')) {
+            $invoiceExists = Invoice::where('ingaz_delegation_id', $request->ingaz_delegation_id)->exists();
+        }
 
         if ($invoiceExists) {
             return response()->json([
                 'success' => false,
-                'message' => $request->filled('contract_id')
-                    ? 'هذا العقد لديه فاتورة سابقة'
-                    : 'هذا التفويض لديه فاتورة سابقة'
+                'message' => $request->filled('contract_id') ? 'هذا العقد لديه فاتورة سابقة' : 'هذا التفويض لديه فاتورة سابقة'
             ], 422);
         }
 
@@ -261,6 +315,17 @@ class InvoiceController extends Controller
 
                 if ($request->filled('ingaz_delegation_id')) {
                     return $this->storeIngazDelegationInvoice(
+                        $request,
+                        $invoicePayload,
+                        $sendToZatca,
+                        $service,
+                        $yearService,
+                        $bondService
+                    );
+                }
+
+                if ($request->filled('client_id')) {
+                    return $this->storeGeneralClientInvoice(
                         $request,
                         $invoicePayload,
                         $sendToZatca,
@@ -286,6 +351,7 @@ class InvoiceController extends Controller
                 $nationalityAccountId = $nationality?->account_id;
 
                 $nationalityName = $nationality?->sub_title ?? $nationality?->title ?? null;
+                $this->persistMissingNationalityInvoiceCosts($nationality, $invoicePayload);
 
                 if ($nationalityAccountId && !$this->isRecruitmentLiabilityAccount((int) $nationalityAccountId)) {
                     $nationalityAccountId = null;
@@ -310,7 +376,9 @@ class InvoiceController extends Controller
                 //1- انشاء الفاتورة وربطها بالعقد
                 $invoice = Invoice::create([
                     'contract_id' => $request->contract_id,
+                    'client_id' => null,
                     'insurance_company' => $request->insurance_company ?? null,
+                    'general_description' => $request->general_description ?? null,
                     'direct_recruitment_cost' => $invoicePayload['direct_recruitment_cost'],
                     'external_recruitment_cost' => $invoicePayload['external_recruitment_cost'],
                     'government_cost' => $invoicePayload['government_cost'],
@@ -408,18 +476,57 @@ class InvoiceController extends Controller
     {
         try {
             $invoice = Invoice::query()
-                ->with(['contract.user', 'ingazDelegation.user', 'financeSale.zatca'])
+                ->with(['contract.user', 'ingazDelegation.user', 'client', 'financeSale.zatca'])
                 ->findOrFail($id);
 
             DB::transaction(function () use ($invoice) {
                 $invoice->update(['send_to_zatca' => true]);
-                $this->queueInvoiceForZatcaSale($invoice->fresh(['contract.user', 'ingazDelegation.user']));
+                $this->queueInvoiceForZatcaSale($invoice->fresh(['contract.user', 'ingazDelegation.user', 'client']));
             });
 
             return back()->with('success', 'تم إدراج الفاتورة ضمن فواتير المبيعات المعلقة لهيئة الزكاة.');
         } catch (\Throwable $e) {
             return back()->with('error', $e->getMessage());
         }
+    }
+
+    public function searchClients(Request $request)
+    {
+        $search = trim((string) $request->input('term', $request->input('q', '')));
+        $page = max((int) $request->input('page', 1), 1);
+        $perPage = 20;
+
+        $clients = ClientUser::query()
+            ->select(['id', 'name', 'phone', 'phone_code', 'national_num'])
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                        ->orWhere('phone', 'like', "%{$search}%")
+                        ->orWhere('national_num', 'like', "%{$search}%");
+                });
+            })
+            ->latest('id')
+            ->paginate($perPage, ['*'], 'page', $page);
+
+        return response()->json([
+            'results' => $clients->getCollection()->map(function ($client) {
+                $phone = trim((string) (($client->phone_code ?? '') . ($client->phone ?? '')));
+                $label = collect([$client->name, $phone, $client->national_num])
+                    ->filter()
+                    ->implode(' - ');
+
+                return [
+                    'id' => $client->id,
+                    'text' => $label ?: ('عميل #' . $client->id),
+                    'name' => $client->name,
+                    'phone' => $phone,
+                    'national_num' => $client->national_num,
+                ];
+            })->values(),
+            'pagination' => [
+                'more' => $clients->hasMorePages(),
+            ],
+        ]);
     }
 
     private function queueInvoiceForZatcaSale(Invoice $invoice): Sale
@@ -433,8 +540,8 @@ class InvoiceController extends Controller
             $invoice->update(['finance_sale_id' => null]);
         }
 
-        $invoice->loadMissing(['contract.user', 'ingazDelegation.user']);
-        $clientUser = $invoice->contract?->user ?: $invoice->ingazDelegation?->user;
+        $invoice->loadMissing(['contract.user', 'ingazDelegation.user', 'client']);
+        $clientUser = $invoice->contract?->user ?: ($invoice->ingazDelegation?->user ?: $invoice->client);
 
         if (!$clientUser) {
             throw new \RuntimeException('الفاتورة غير مرتبطة بعميل، لا يمكن إدراجها في فواتير الزكاة.');
@@ -550,8 +657,10 @@ class InvoiceController extends Controller
         foreach ($invoices as $invoice) {
             fputcsv($stream, [
                 $invoice->id,
-                $invoice->contract_id ? ('عقد #' . $invoice->contract_id) : ('تفويض #' . $invoice->ingaz_delegation_id),
-                $invoice->contract?->user?->name ?: ($invoice->ingazDelegation?->user?->name ?: '-'),
+                $invoice->contract_id
+                    ? ('عقد #' . $invoice->contract_id)
+                    : ($invoice->ingaz_delegation_id ? ('تفويض #' . $invoice->ingaz_delegation_id) : 'فاتورة عامة'),
+                $invoice->contract?->user?->name ?: ($invoice->ingazDelegation?->user?->name ?: ($invoice->client?->name ?: '-')),
                 number_format((float) $invoice->subtotal, 2, '.', ''),
                 number_format((float) $invoice->vat_amount, 2, '.', ''),
                 number_format((float) $invoice->discount, 2, '.', ''),
@@ -591,7 +700,7 @@ class InvoiceController extends Controller
     private function exportInvoicesQuery(Request $request)
     {
         return Invoice::query()
-            ->with(['contract.user', 'ingazDelegation.user', 'financeSale.zatca'])
+            ->with(['contract.user', 'ingazDelegation.user', 'client', 'financeSale.zatca'])
             ->latest('id');
     }
 
@@ -898,10 +1007,14 @@ class InvoiceController extends Controller
         }
 
         $clientAccountId = $this->ensureClientUserAccountId($delegation->user);
+        $this->persistMissingNationalityInvoiceCosts($delegation->nationality, $invoicePayload);
+
         $invoice = Invoice::create([
             'contract_id' => null,
             'ingaz_delegation_id' => $delegation->id,
+            'client_id' => null,
             'insurance_company' => $request->insurance_company ?? null,
+            'general_description' => $request->general_description ?? null,
             'direct_recruitment_cost' => $invoicePayload['direct_recruitment_cost'],
             'external_recruitment_cost' => $invoicePayload['external_recruitment_cost'],
             'government_cost' => $invoicePayload['government_cost'],
@@ -968,6 +1081,83 @@ class InvoiceController extends Controller
         ];
     }
 
+    private function storeGeneralClientInvoice(
+        Request $request,
+        array $invoicePayload,
+        bool $sendToZatca,
+        ObjService $service,
+        YearService $yearService,
+        BondService $bondService
+    ): array
+    {
+        $client = ClientUser::query()
+            ->lockForUpdate()
+            ->findOrFail($request->client_id);
+
+        $clientAccountId = $this->ensureClientUserAccountId($client);
+
+        $invoice = Invoice::create([
+            'contract_id' => null,
+            'ingaz_delegation_id' => null,
+            'client_id' => $client->id,
+            'insurance_company' => $request->insurance_company ?? null,
+            'general_description' => $request->general_description ?? null,
+            'general_direct_label' => $this->normalizeGeneralItemLabel($request->general_direct_label, 'بند خدمة خاضع للضريبة'),
+            'general_external_label' => $this->normalizeGeneralItemLabel($request->general_external_label, 'بند خدمة غير خاضع للضريبة'),
+            'general_government_label' => $this->normalizeGeneralItemLabel($request->general_government_label, 'رسوم حكومية'),
+            'general_ticket_label' => $this->normalizeGeneralItemLabel($request->general_ticket_label, 'بند إضافي خاضع للضريبة'),
+            'direct_recruitment_cost' => $invoicePayload['direct_recruitment_cost'],
+            'external_recruitment_cost' => $invoicePayload['external_recruitment_cost'],
+            'government_cost' => $invoicePayload['government_cost'],
+            'internal_ticket_cost' => $invoicePayload['internal_ticket_cost'],
+            'visa_recruited_count' => $invoicePayload['visa_recruited_count'],
+            'direct_recruitment_count' => $invoicePayload['direct_recruitment_count'],
+            'external_recruitment_count' => $invoicePayload['external_recruitment_count'],
+            'insured_count' => $invoicePayload['insured_count'],
+            'government_cost_count' => $invoicePayload['government_cost_count'],
+            'internal_ticket_count' => $invoicePayload['internal_ticket_count'],
+            'subtotal' => $invoicePayload['subtotal'],
+            'discount' => $invoicePayload['discount'],
+            'vat_amount' => $invoicePayload['vat_amount'],
+            'total_due' => $invoicePayload['total_due'],
+            'is_paid' => true,
+            'paid_at' => now(),
+            'send_to_zatca' => $sendToZatca,
+        ]);
+
+        $invoice->setRelation('client', $client);
+
+        $invoiceConstraint = null;
+        $receiptBond = null;
+
+        if ((float) $invoice->total_due > 0) {
+            $invoiceConstraint = $this->storeInvoiceConstraintForGeneralInvoice(
+                $invoice,
+                $service,
+                $yearService,
+                $clientAccountId
+            );
+
+            $receiptBond = $this->storeReceiptBondForInvoice(
+                $invoice,
+                $bondService,
+                $yearService,
+                $clientAccountId,
+                (int) $this->resolveGeneralInvoiceReceiptAccount()->id
+            );
+        }
+
+        if ($invoice->send_to_zatca) {
+            $this->queueInvoiceForZatcaSale($invoice);
+        }
+
+        return [
+            'invoice' => $invoice,
+            'invoice_constraint' => $invoiceConstraint,
+            'receipt_bond' => $receiptBond,
+        ];
+    }
+
     private function storeInvoiceConstraintForIngazDelegation(
         Invoice $invoice,
         ObjService $service,
@@ -988,6 +1178,58 @@ class InvoiceController extends Controller
         $statement = $this->buildInvoiceStatement($invoice);
         $lines = [];
 
+        $netRevenueAmount = $this->roundMoney($amounts['direct_amount'] + $amounts['other_amount']);
+
+        if ($netRevenueAmount > 0) {
+            $this->appendConstraintPair(
+                $lines,
+                $revenueAccountId,
+                $clientAccountId,
+                $netRevenueAmount,
+                $statement
+            );
+        }
+
+        if ($amounts['vat_amount'] > 0) {
+            $taxAccountId = $this->resolveRevenueTaxAccountId();
+
+            if (!$taxAccountId) {
+                throw new \RuntimeException(
+                    'لا توجد ضريبة إيرادات معرفة في إعدادات الحسابات. الرجاء تحديدها من صفحة إعدادات الحسابات أولاً.'
+                );
+            }
+
+            $this->appendConstraintPair(
+                $lines,
+                $taxAccountId,
+                $clientAccountId,
+                $amounts['vat_amount'],
+                $statement
+            );
+        }
+
+        return $this->storeConstraintFromLines($service, $yearService, $invoice, $statement, $lines, $amounts['total_due']);
+    }
+
+    private function storeInvoiceConstraintForGeneralInvoice(
+        Invoice $invoice,
+        ObjService $service,
+        YearService $yearService,
+        int $clientAccountId
+    ): ?Constraint
+    {
+        $amounts = $this->buildInvoiceFinanceBreakdown($invoice);
+        if ($amounts['total_due'] <= 0) {
+            return null;
+        }
+
+        $revenueAccountId = $this->resolveSettingAccountId(
+            self::SETTING_DELEGATION_REVENUE_ACCOUNT,
+            'حساب إيراد الفواتير العامة غير محدد. الرجاء تحديد حساب إيراد تفاويض إنجاز من صفحة إعدادات الحسابات أولاً.',
+            'creditor'
+        );
+        $statement = $this->buildInvoiceStatement($invoice);
+        $lines = [];
         $netRevenueAmount = $this->roundMoney($amounts['direct_amount'] + $amounts['other_amount']);
 
         if ($netRevenueAmount > 0) {
@@ -1184,6 +1426,7 @@ class InvoiceController extends Controller
             'ingazDelegation.country',
             'ingazDelegation.nationality',
             'ingazDelegation.profession',
+            'client',
             'musanedTransferItem.transfer',
             'financeSale.zatca',
         ])->findOrFail($id);
@@ -1192,8 +1435,6 @@ class InvoiceController extends Controller
         $documentBranding = documentBranding();
         $settingsLogo = documentLogoUrl();
         $settingsZatcaLogo = ($settings && $settings->zatch_logo) ? showFile($settings->zatch_logo) : null;
-        $settingsQr = ($settings && $settings->qr_image) ? showFile($settings->qr_image) : null;
-        $settingsSecondQr = ($settings && $settings->second_qr_image) ? showFile($settings->second_qr_image) : null;
 
         $supplierName = (string) documentSetting('document_company_name', $settings?->website_name ?: config('app.name'));
         $supplierAddress = (string) documentSetting('location', 'الرياض، المملكة العربية السعودية');
@@ -1203,12 +1444,11 @@ class InvoiceController extends Controller
         $supplierTaxNumber = $this->printableSetting('tax_number', '314232024200003');
         $supplierLogo = $settingsLogo ?: $documentBranding['logo_url'];
         $zatcaLogo = $settingsZatcaLogo ?: asset('site/assets/images/zatca-logo.png');
-        $qrImage = $settingsQr ?: ($settingsSecondQr ?: asset('site/assets/images/qr1.png'));
         $invoiceTitle = (string) documentSetting('invoice_title', 'فاتورة ضريبية مبسطة');
         $invoiceSubtitle = (string) documentSetting('invoice_subtitle', 'Simplified Tax Invoice');
         $invoiceFooterText = (string) replaceDocumentPlaceholders(documentSetting('invoice_footer_text', ''));
 
-        $serviceDesc = $invoice->ingaz_delegation_id ? 'تفويض إنجاز' : 'طلب تعاقد';
+        $serviceDesc = $invoice->ingaz_delegation_id ? 'تفويض إنجاز' : ($invoice->client_id ? 'فاتورة عامة' : 'طلب تعاقد');
         $serviceLongDescription = $this->buildServiceDescription($invoice);
         $items = $this->buildInvoiceItems($invoice);
         $invoiceStatus = ((bool) $invoice->is_paid || (float) $invoice->total_due <= 0) ? 'مدفوعة' : 'غير مدفوعة';
@@ -1217,7 +1457,7 @@ class InvoiceController extends Controller
             ?? 'النظام';
         $printedAt = now();
 
-        $client = $invoice->contract?->user ?: $invoice->ingazDelegation?->user;
+        $client = $invoice->contract?->user ?: ($invoice->ingazDelegation?->user ?: $invoice->client);
         $customerName = $client?->name ?: '---';
         $customerNationalId = $client?->national_num ?: '---';
         $customerPhone = $this->formatPhone((string) ($client?->phone_code ?? ''), (string) ($client?->phone ?? ''));
@@ -1237,6 +1477,14 @@ class InvoiceController extends Controller
         $netSubtotal = $subtotalBeforeDiscount - $discountTotal;
         $vatAmount = (float) $invoice->vat_amount;
         $grandTotal = (float) $invoice->total_due;
+        $invoiceBarcodeValue = $this->buildInvoiceQrSerial(
+            $supplierName,
+            $supplierTaxNumber,
+            $invoiceDateTime,
+            $grandTotal,
+            $vatAmount
+        );
+        $qrImage = InvoiceQrCode::render($invoiceBarcodeValue);
 
         return [
             'invoice' => $invoice,
@@ -1253,6 +1501,7 @@ class InvoiceController extends Controller
             'invoiceFooterText' => $invoiceFooterText,
             'zatcaLogo' => $zatcaLogo,
             'qrImage' => $qrImage,
+            'invoiceBarcodeValue' => $invoiceBarcodeValue,
             'serviceDesc' => $serviceDesc,
             'serviceLongDescription' => $serviceLongDescription,
             'items' => $items,
@@ -1267,7 +1516,7 @@ class InvoiceController extends Controller
             'matchedHijriDate' => $matchedHijriDate,
             'invoiceDate' => $invoiceDate,
             'invoiceDateTime' => $invoiceDateTime,
-            'invoiceUrl' => url('/admin/invoices/download/' . $invoice->id),
+            'invoiceUrl' => route('invoice.download', ['id' => $invoice->id, 'autoprint' => 1]),
             'subtotalBeforeDiscount' => $subtotalBeforeDiscount,
             'discountTotal' => $discountTotal,
             'netSubtotal' => $netSubtotal,
@@ -1276,30 +1525,57 @@ class InvoiceController extends Controller
         ];
     }
 
+    private function buildInvoiceQrSerial(
+        string $sellerName,
+        string $vatNumber,
+        string $invoiceDateTime,
+        float $totalWithVat,
+        float $vatAmount
+    ): string
+    {
+        $fields = [
+            1 => $sellerName,
+            2 => $vatNumber,
+            3 => date('Y-m-d\TH:i:s\Z', strtotime($invoiceDateTime)),
+            4 => number_format($totalWithVat, 2, '.', ''),
+            5 => number_format($vatAmount, 2, '.', ''),
+        ];
+
+        $tlv = '';
+        foreach ($fields as $tag => $value) {
+            $value = (string) $value;
+            $tlv .= chr($tag) . chr(strlen($value)) . $value;
+        }
+
+        return base64_encode($tlv);
+    }
+
     private function buildInvoiceItems(Invoice $invoice): array
     {
+        $isGeneralInvoice = $invoice->client_id && !$invoice->contract_id && !$invoice->ingaz_delegation_id;
+        $generalLabels = $this->generalInvoiceItemLabels($invoice);
         $items = [
             [
                 'key' => 'direct',
-                'label' => 'تكاليف الاستقدام المباشر',
+                'label' => $isGeneralInvoice ? $generalLabels['direct'] : 'تكاليف الاستقدام المباشر',
                 'qty' => (int) $invoice->direct_recruitment_count,
                 'unit' => (float) $invoice->direct_recruitment_cost,
             ],
             [
                 'key' => 'external',
-                'label' => 'تكاليف الاستقدام الخارجية',
+                'label' => $isGeneralInvoice ? $generalLabels['external'] : 'تكاليف الاستقدام الخارجية',
                 'qty' => (int) $invoice->external_recruitment_count,
                 'unit' => (float) $invoice->external_recruitment_cost,
             ],
             [
                 'key' => 'government',
-                'label' => 'تكاليف حكومية',
+                'label' => $isGeneralInvoice ? $generalLabels['government'] : 'تكاليف حكومية',
                 'qty' => (int) $invoice->government_cost_count,
                 'unit' => (float) $invoice->government_cost,
             ],
             [
                 'key' => 'ticket',
-                'label' => 'تكلفة التذكرة الداخلية',
+                'label' => $isGeneralInvoice ? $generalLabels['ticket'] : 'تكلفة التذكرة الداخلية',
                 'qty' => (int) $invoice->internal_ticket_count,
                 'unit' => (float) $invoice->internal_ticket_cost,
             ],
@@ -1332,6 +1608,23 @@ class InvoiceController extends Controller
         }));
     }
 
+    private function generalInvoiceItemLabels(Invoice $invoice): array
+    {
+        return [
+            'direct' => $this->normalizeGeneralItemLabel($invoice->general_direct_label ?? null, 'بند خدمة خاضع للضريبة'),
+            'external' => $this->normalizeGeneralItemLabel($invoice->general_external_label ?? null, 'بند خدمة غير خاضع للضريبة'),
+            'government' => $this->normalizeGeneralItemLabel($invoice->general_government_label ?? null, 'رسوم حكومية'),
+            'ticket' => $this->normalizeGeneralItemLabel($invoice->general_ticket_label ?? null, 'بند إضافي خاضع للضريبة'),
+        ];
+    }
+
+    private function normalizeGeneralItemLabel(?string $value, string $fallback): string
+    {
+        $value = trim((string) $value);
+
+        return $value !== '' ? $value : $fallback;
+    }
+
     private function buildInvoicePayload(Request $request): array
     {
         $calculator = $this->invoiceCalculationService();
@@ -1360,13 +1653,50 @@ class InvoiceController extends Controller
         ]);
     }
 
+    private function persistMissingNationalityInvoiceCosts(?Nationality $nationality, array $invoicePayload): void
+    {
+        if (!$nationality || !Schema::hasTable('nationalities')) {
+            return;
+        }
+
+        $columns = [
+            'direct_recruitment_cost',
+            'external_recruitment_cost',
+            'government_cost',
+        ];
+
+        $updates = [];
+
+        foreach ($columns as $column) {
+            if (!Schema::hasColumn('nationalities', $column)) {
+                continue;
+            }
+
+            $currentValue = $nationality->{$column};
+            $incomingValue = (float) ($invoicePayload[$column] ?? 0);
+
+            if (($currentValue === null || (float) $currentValue <= 0) && $incomingValue > 0) {
+                $updates[$column] = $incomingValue;
+            }
+        }
+
+        if ($updates !== []) {
+            $nationality->forceFill($updates)->save();
+        }
+    }
+
     private function buildServiceDescription(Invoice $invoice): string
     {
         $contract = $invoice->contract;
         if (!$contract) {
             $delegation = $invoice->ingazDelegation;
             if (!$delegation) {
-                return 'طلب استقدام';
+                $clientName = $invoice->client?->name ?: 'غير محدد';
+                $description = trim((string) ($invoice->general_description ?? ''));
+
+                return 'فاتورة عامة - العميل: ' . $clientName
+                    . ' - رقم الفاتورة: ' . $invoice->id
+                    . ($description !== '' ? ' - التفاصيل: ' . $description : '');
             }
 
             $clientName = $delegation->user?->name ?: 'غير محدد';
@@ -1530,6 +1860,16 @@ class InvoiceController extends Controller
             return "قيد فاتورة تفويض إنجاز #{$invoice->ingaz_delegation_id} / الفاتورة #{$invoice->id} / إنجاز {$ingazNumber} / مساند {$msanedNumber}";
         }
 
+        if ($invoice->client_id) {
+            $clientName = $invoice->client?->name ?: 'غير محدد';
+            $description = trim((string) ($invoice->general_description ?? ''));
+            $itemsSummary = $this->buildInvoiceItemsSummary($invoice);
+
+            return "قيد فاتورة عامة #{$invoice->id} / العميل: {$clientName}"
+                . ($description !== '' ? " / التفاصيل: {$description}" : '')
+                . ($itemsSummary !== '' ? " / البنود: {$itemsSummary}" : '');
+        }
+
         $contractId = $invoice->contract_id;
         $msanedNumber = $invoice->contract?->info?->msaned_number
             ?? $invoice->contract?->msaned_number
@@ -1548,6 +1888,16 @@ class InvoiceController extends Controller
             return "سند قبض سداد فاتورة تفويض إنجاز #{$invoice->ingaz_delegation_id} / الفاتورة #{$invoice->id} / إلى حساب مساند / إنجاز {$ingazNumber} / مساند {$msanedNumber}";
         }
 
+        if ($invoice->client_id) {
+            $clientName = $invoice->client?->name ?: 'غير محدد';
+            $description = trim((string) ($invoice->general_description ?? ''));
+            $itemsSummary = $this->buildInvoiceItemsSummary($invoice);
+
+            return "سند قبض فاتورة عامة #{$invoice->id} / العميل: {$clientName}"
+                . ($description !== '' ? " / التفاصيل: {$description}" : '')
+                . ($itemsSummary !== '' ? " / البنود: {$itemsSummary}" : '');
+        }
+
         $contractId = $invoice->contract_id;
         $msanedNumber = $invoice->contract?->info?->msaned_number
             ?? $invoice->contract?->msaned_number
@@ -1564,6 +1914,15 @@ class InvoiceController extends Controller
         return "قيد تكلفة تفويض إنجاز #{$invoice->ingaz_delegation_id} / الفاتورة #{$invoice->id} / إنجاز {$ingazNumber}";
     }
 
+    private function buildInvoiceItemsSummary(Invoice $invoice): string
+    {
+        return collect($this->buildInvoiceItems($invoice))
+            ->map(function (array $item) {
+                return $item['label'] . ' (' . $item['qty'] . ' × ' . number_format((float) $item['unit'], 2) . ')';
+            })
+            ->implode('، ');
+    }
+
     private function buildConstraintPrintUrl(int $constraintId): string
     {
         return route('finance.add-constraint.show', [
@@ -1578,6 +1937,40 @@ class InvoiceController extends Controller
             'bonds_print' => $bondId,
             'type' => 'qabd',
         ]);
+    }
+
+    private function resolveGeneralInvoiceReceiptAccount(): Account
+    {
+        $accountId = ConfirmSetting::query()
+            ->where('title', ConfirmSettingTypes::BondQabdAccount->value)
+            ->latest('updated_at')
+            ->value('value');
+
+        if ($accountId) {
+            $account = Account::query()
+                ->whereKey((int) $accountId)
+                ->where('status', AccountStatusEnum::Debtor->value)
+                ->first();
+
+            if ($account) {
+                return $account;
+            }
+        }
+
+        $account = Account::query()
+            ->whereIn('type', [AccountTypesEnum::Box->value, AccountTypesEnum::Bank->value])
+            ->where('status', AccountStatusEnum::Debtor->value)
+            ->orderByRaw('type = ? desc', [AccountTypesEnum::Box->value])
+            ->orderBy('code')
+            ->first();
+
+        if ($account) {
+            return $account;
+        }
+
+        throw new \RuntimeException(
+            'لا يوجد حساب قبض عام صالح للفواتير العامة. الرجاء تحديد حساب قبض عام أو إنشاء صندوق/بنك في الحسابات.'
+        );
     }
 
     private function resolveMusanedReceiptAccount(): Account

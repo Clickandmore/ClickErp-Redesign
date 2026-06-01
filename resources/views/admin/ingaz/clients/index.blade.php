@@ -99,6 +99,10 @@
             max-height: min(420px, calc(100vh - 24px));
             overflow-y: auto;
         }
+
+        #dataTableObject_filter {
+            display: none;
+        }
     </style>
 @endsection
 
@@ -326,25 +330,25 @@
                             <div class="row g-3 align-items-center">
                                 <div class="col-lg-4">
                                     <div class="fw-semibold">
-                                        الإجراءات المجمعة
+                                        {{ helperTrans('ingaz.bulk_actions') }}
                                         <span class="badge bg-primary ms-2" id="clientsBulkCount">0</span>
                                     </div>
                                     <div class="small text-muted mt-1" id="clientsBulkSummary">
-                                        اختر عملاء من الجدول لتفعيل الإجراءات المجمعة.
+                                        {{ helperTrans('ingaz.select_clients_for_bulk_actions') }}
                                     </div>
                                 </div>
                                 <div class="col-lg-3 col-md-4">
                                     <select class="form-select" id="clientsBulkStatus">
-                                        <option value="active">تفعيل العملاء المحددين</option>
-                                        <option value="blocked">حظر العملاء المحددين</option>
+                                        <option value="active">{{ helperTrans('ingaz.activate_selected_clients') }}</option>
+                                        <option value="blocked">{{ helperTrans('ingaz.block_selected_clients') }}</option>
                                     </select>
                                 </div>
                                 <div class="col-lg-3 col-md-4 d-flex gap-2">
                                     <button type="button" class="btn btn-primary" id="clientsBulkApply" disabled>
-                                        تنفيذ
+                                        {{ helperTrans('ingaz.execute') }}
                                     </button>
                                     <button type="button" class="btn btn-outline-secondary" id="clientsBulkClear">
-                                        إلغاء التحديد
+                                        {{ helperTrans('ingaz.clear_selection') }}
                                     </button>
                                 </div>
                             </div>
@@ -371,6 +375,7 @@
                                         <th>{{ helperTrans('ingaz.last_activity') }}</th>
                                         <th>{{ helperTrans('ingaz.status') }}</th>
                                         <th>{{ helperTrans('ingaz.have_account') }}</th>
+                                        <th>أضيف بواسطة</th>
                                         <th>{{ helperTrans('ingaz.created_at') }}</th>
                                         <th>{{ helperTrans('ingaz.actions') }}</th>
                                     </tr>
@@ -390,6 +395,23 @@
 @section('js')
     <script src="{{ asset('admin') }}/assets/js/bundle/dataTables.bundle.js"></script>
     <script>
+        const clientsTranslations = {
+            selectClientsForBulkActions: @json(helperTrans('ingaz.select_clients_for_bulk_actions')),
+            selectedClientsCount: @json(helperTrans('ingaz.selected_clients_count')),
+            block: @json(helperTrans('ingaz.block')),
+            unblock: @json(helperTrans('ingaz.unblock')),
+            activate: @json(helperTrans('ingaz.activate')),
+            errorFallback: @json(helperTrans('ingaz.generic_error_try_again')),
+            errorTitle: @json(helperTrans('ingaz.error_title')),
+            confirmAction: @json(helperTrans('ingaz.confirm_action')),
+            clientActionConfirm: @json(helperTrans('ingaz.client_action_confirm')),
+            bulkClientActionConfirm: @json(helperTrans('ingaz.bulk_client_action_confirm')),
+            execute: @json(helperTrans('ingaz.execute')),
+            cancel: @json(helperTrans('ingaz.cancel')),
+            processing: @json(helperTrans('ingaz.processing')),
+            continueConfirm: @json(helperTrans('ingaz.continue_confirm')),
+        };
+
         $(function() {
             const selectedClients = new Map();
 
@@ -410,10 +432,10 @@
 
                 if (selectedCount === 0) {
                     $('#clientsBulkActions').addClass('d-none');
-                    $('#clientsBulkSummary').text('اختر عملاء من الجدول لتفعيل الإجراءات المجمعة.');
+                    $('#clientsBulkSummary').text(clientsTranslations.selectClientsForBulkActions);
                 } else {
                     $('#clientsBulkActions').removeClass('d-none');
-                    $('#clientsBulkSummary').text('تم تحديد ' + selectedCount + ' عميل.');
+                    $('#clientsBulkSummary').text(clientsTranslations.selectedClientsCount.replace(':count', selectedCount));
                 }
 
                 syncBulkCheckboxes();
@@ -471,6 +493,7 @@
             const table = $('#dataTableObject').DataTable({
                 processing: true,
                 serverSide: true,
+                searching: false,
                 ajax: {
                     url: "{{ route('clients.index') }}",
                     data: function(d) {
@@ -527,6 +550,12 @@
                     {
                         data: 'account_id',
                         name: 'account_id',
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
+                        data: 'created_by',
+                        name: 'created_by',
                         orderable: false,
                         searchable: false
                     },
@@ -595,7 +624,7 @@
                 const id = $button.data('id');
                 const status = $button.data('status');
                 const clientName = $button.data('name') || '';
-                const actionText = status === 'blocked' ? 'حظر' : 'إلغاء حظر';
+                const actionText = status === 'blocked' ? clientsTranslations.block : clientsTranslations.unblock;
 
                 const runRequest = () => {
                     $button.prop('disabled', true);
@@ -617,8 +646,8 @@
                         error: function(xhr) {
                             const message = xhr.responseJSON && xhr.responseJSON.message
                                 ? xhr.responseJSON.message
-                                : 'حصل خطأ، حاول مرة أخرى';
-                            errorToster('خطأ!', message);
+                                : clientsTranslations.errorFallback;
+                            errorToster(clientsTranslations.errorTitle, message);
                         },
                         complete: function() {
                             $button.prop('disabled', false);
@@ -628,18 +657,22 @@
 
                 if (typeof Swal !== 'undefined') {
                     Swal.fire({
-                        title: 'تأكيد الإجراء',
-                        text: 'سيتم ' + actionText + ' العميل' + (clientName ? ': ' + clientName : '') + '.',
+                        title: clientsTranslations.confirmAction,
+                        text: clientsTranslations.clientActionConfirm
+                            .replace(':action', actionText)
+                            .replace(':name', clientName ? ': ' + clientName : ''),
                         icon: 'warning',
                         showCancelButton: true,
-                        confirmButtonText: 'تنفيذ',
-                        cancelButtonText: 'إلغاء'
+                        confirmButtonText: clientsTranslations.execute,
+                        cancelButtonText: clientsTranslations.cancel
                     }).then(function(result) {
                         if (result.isConfirmed) {
                             runRequest();
                         }
                     });
-                } else if (confirm('سيتم ' + actionText + ' العميل' + (clientName ? ': ' + clientName : '') + '. هل تريد المتابعة؟')) {
+                } else if (confirm(clientsTranslations.clientActionConfirm
+                    .replace(':action', actionText)
+                    .replace(':name', clientName ? ': ' + clientName : '') + ' ' + clientsTranslations.continueConfirm)) {
                     runRequest();
                 }
             });
@@ -709,7 +742,7 @@
             $('#clientsBulkApply').on('click', function() {
                 const ids = Array.from(selectedClients.keys());
                 const status = $('#clientsBulkStatus').val();
-                const actionText = status === 'blocked' ? 'حظر' : 'تفعيل';
+                const actionText = status === 'blocked' ? clientsTranslations.block : clientsTranslations.activate;
 
                 if (ids.length === 0) {
                     return;
@@ -717,7 +750,7 @@
 
                 const runRequest = () => {
                     const btn = $('#clientsBulkApply');
-                    btn.prop('disabled', true).text('جاري التنفيذ...');
+                    btn.prop('disabled', true).text(clientsTranslations.processing);
 
                     $.ajax({
                         url: "{{ route('clients.bulk-update-status') }}",
@@ -735,11 +768,11 @@
                         error: function(xhr) {
                             const message = xhr.responseJSON && xhr.responseJSON.message
                                 ? xhr.responseJSON.message
-                                : 'حصل خطأ، حاول مرة أخرى';
-                            errorToster('خطأ!', message);
+                                : clientsTranslations.errorFallback;
+                            errorToster(clientsTranslations.errorTitle, message);
                         },
                         complete: function() {
-                            btn.text('تنفيذ');
+                            btn.text(clientsTranslations.execute);
                             updateBulkActions();
                         }
                     });
@@ -747,18 +780,22 @@
 
                 if (typeof Swal !== 'undefined') {
                     Swal.fire({
-                        title: 'تأكيد الإجراء',
-                        text: 'سيتم ' + actionText + ' ' + ids.length + ' عميل.',
+                        title: clientsTranslations.confirmAction,
+                        text: clientsTranslations.bulkClientActionConfirm
+                            .replace(':action', actionText)
+                            .replace(':count', ids.length),
                         icon: 'warning',
                         showCancelButton: true,
-                        confirmButtonText: 'تنفيذ',
-                        cancelButtonText: 'إلغاء'
+                        confirmButtonText: clientsTranslations.execute,
+                        cancelButtonText: clientsTranslations.cancel
                     }).then(function(result) {
                         if (result.isConfirmed) {
                             runRequest();
                         }
                     });
-                } else if (confirm('سيتم ' + actionText + ' ' + ids.length + ' عميل. هل تريد المتابعة؟')) {
+                } else if (confirm(clientsTranslations.bulkClientActionConfirm
+                    .replace(':action', actionText)
+                    .replace(':count', ids.length) + ' ' + clientsTranslations.continueConfirm)) {
                     runRequest();
                 }
             });
@@ -786,7 +823,7 @@
         $('#btnMakeAccounts').on('click', function() {
             let btn = $(this);
             let url = "{{ route('make-accounts-for-clients.store') }}";
-            btn.prop('disabled', true).text('جاري التنفيذ...');
+            btn.prop('disabled', true).text(clientsTranslations.processing);
             $.ajax({
                 url: url,
                 type: 'POST',
@@ -800,8 +837,7 @@
                 error: function(xhr) {
                     console.log(xhr);
                     
-                    errorToster('خطأ!', xhr.responseJSON.message || 'حصل خطأ، حاول مرة أخرى ❌');
-                    // alert('حصل خطأ، حاول مرة أخرى ❌');
+                    errorToster(clientsTranslations.errorTitle, xhr.responseJSON.message || clientsTranslations.errorFallback);
                 },
                 complete: function() {
                     btn.prop('disabled', false).text(

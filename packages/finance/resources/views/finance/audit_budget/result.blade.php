@@ -1,12 +1,12 @@
 {{--@dd($firstBalance)--}}
 @if($data->count() > 0)
 
-    <table class="table table-hover table-bordered table-striped" id="simpleTable4" style="width:100%">
+    <table class="table table-hover table-bordered table-striped align-middle audit-budget-table" id="simpleTable4" style="width:100%">
         <thead>
-        <tr class="header">
+        <tr class="header text-center">
             <th style="width: 5%" scope="col">#</th>
             <th style="width: 10%" scope="col">{{ __("finance::finance.code") }}</th>
-            <th style="width: 5%" scope="col">{{ __("finance::finance.account") }}</th>
+            <th style="min-width: 240px" scope="col">{{ __("finance::finance.account") }}</th>
             @if($firstBalance)
             <th style="width: 5%" scope="col">{{ __("finance::finance.first_balance")." ".__("finance::finance.debtor") }}</th>
             <th style="width: 5%" scope="col">{{ __("finance::finance.first_balance")." ".__("finance::finance.creditor") }}</th>
@@ -49,37 +49,37 @@
             @endphp
             <tr class="">
                 <td>{{ ++$loop->index }}</td>
-                <td>{{ $row->account_code }}</td>
+                <td class="text-nowrap">{{ $row->account_code }}</td>
                 <td>{{ $row->account_name }}</td>
                 @if($firstBalance)
-                <td>{{ $firstBalance[$key]->sum_debtor_value ?? 0 }}</td>
-                <td>{{ $firstBalance[$key]->sum_creditor_value ?? 0 }}</td>
+                <td class="text-end">{{ number_format($firstBalance[$key]->sum_debtor_value ?? 0, 2) }}</td>
+                <td class="text-end">{{ number_format($firstBalance[$key]->sum_creditor_value ?? 0, 2) }}</td>
                 @endif
-                <td>{{ $row->sum_debtor_value }}</td>
-                <td>{{ $row->sum_creditor_value }}</td>
+                <td class="text-end">{{ number_format($row->sum_debtor_value, 2) }}</td>
+                <td class="text-end">{{ number_format($row->sum_creditor_value, 2) }}</td>
                 @if($firstBalance)
-                 <td>{{ $firstBalance[$key]->sum_debtor_value ?? 0 }}</td>
-                <td>{{ $firstBalance[$key]->sum_creditor_value ?? 0 }}</td>
+                 <td class="text-end">{{ number_format($firstBalance[$key]->sum_debtor_value ?? 0, 2) }}</td>
+                <td class="text-end">{{ number_format($firstBalance[$key]->sum_creditor_value ?? 0, 2) }}</td>
                 @endif
-                <td>{{ ($row->account_status == "debtor") ? ($row->sum_debtor_value - $row->sum_creditor_value) : 0 }}</td>
-                <td>{{  ($row->account_status == "creditor") ? ($row->sum_creditor_value - $row->sum_debtor_value) : 0  }}</td>
+                <td class="text-end">{{ number_format(($row->account_status == "debtor") ? ($row->sum_debtor_value - $row->sum_creditor_value) : 0, 2) }}</td>
+                <td class="text-end">{{ number_format(($row->account_status == "creditor") ? ($row->sum_creditor_value - $row->sum_debtor_value) : 0, 2) }}</td>
 
             </tr>
         @endforeach
         <tr>
-            <td colspan="3" class="text-center">{{__('finance::finance.total')}}</td>
+            <td colspan="3" class="text-center fw-bold">{{__('finance::finance.total')}}</td>
             @if($firstBalance)
-            <td class="currency-egp">{{ $firstSumDebtorValue }}</td>
-            <td class="currency-egp">{{ $firstSumCreditorValue }}</td>
+            <td class="currency-egp text-end fw-bold">{{ number_format($firstSumDebtorValue, 2) }}</td>
+            <td class="currency-egp text-end fw-bold">{{ number_format($firstSumCreditorValue, 2) }}</td>
             @endif
-            <td class="currency-egp">{{ $balance_sum_debtor_value }}</td>
-            <td class="currency-egp">{{ $balance_sum_creditor_value }}</td>
+            <td class="currency-egp text-end fw-bold">{{ number_format($balance_sum_debtor_value, 2) }}</td>
+            <td class="currency-egp text-end fw-bold">{{ number_format($balance_sum_creditor_value, 2) }}</td>
             @if($firstBalance)
-            <td class="currency-egp">{{ $totalSumDebtorValue }}</td>
-            <td class="currency-egp">{{ $totalSumCreditorValue }}</td>
+            <td class="currency-egp text-end fw-bold">{{ number_format($totalSumDebtorValue, 2) }}</td>
+            <td class="currency-egp text-end fw-bold">{{ number_format($totalSumCreditorValue, 2) }}</td>
             @endif
-            <td class="currency-egp" >{{ $balanceDebtorValue }}</td>
-            <td class="currency-egp" >{{ $balanceCreditorValue }}</td>
+            <td class="currency-egp text-end fw-bold" >{{ number_format($balanceDebtorValue, 2) }}</td>
+            <td class="currency-egp text-end fw-bold" >{{ number_format($balanceCreditorValue, 2) }}</td>
         </tr>
         </tbody>
     </table>

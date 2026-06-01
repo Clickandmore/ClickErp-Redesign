@@ -124,6 +124,22 @@
         $selectedTravelType = old('travel_type') ?: (@$data->travel_type ?: 'international');
         $selectedTravelWith = 'airport';
         $selectedAssignedTo = old('assigned_to') ?: (@$data->assigned_to ?? '');
+        $arrivalAirports = [
+            ['value' => 'RUH', 'label' => __('ingaz.airport_ruh')],
+            ['value' => 'JED', 'label' => __('ingaz.airport_jed')],
+            ['value' => 'DMM', 'label' => __('ingaz.airport_dmm')],
+            ['value' => 'MED', 'label' => __('ingaz.airport_med')],
+            ['value' => 'TUU', 'label' => __('ingaz.airport_tuu')],
+            ['value' => 'AHB', 'label' => __('ingaz.airport_ahb')],
+            ['value' => 'TIF', 'label' => __('ingaz.airport_tif')],
+            ['value' => 'ELQ', 'label' => __('ingaz.airport_elq')],
+            ['value' => 'URY', 'label' => __('ingaz.airport_ury')],
+            ['value' => 'HAS', 'label' => __('ingaz.airport_has')],
+            ['value' => 'BHH', 'label' => __('ingaz.airport_bhh')],
+            ['value' => 'GIZ', 'label' => __('ingaz.airport_giz')],
+            ['value' => 'URY', 'label' => __('ingaz.airport_najran')],
+            ['value' => 'URY', 'label' => __('ingaz.airport_qurayyat')],
+        ];
     @endphp
 
     {{-- اختيار العقود (يدعم متعدد) --}}
@@ -138,18 +154,18 @@
                             @if (in_array($contract->id, $selectedContracts))
                                 selected
                             @endif>
-                            عقد #{{$contract->id}} | العميل: {{@$contract->user->name ?? 'غير محدد'}} | العاملة: {{@$contract->maid->name ?? 'غير محدد'}}
-                            @if(@$contract->info->msaned_number || @$contract->msaned_number) | مساند: {{@$contract->info->msaned_number ?: @$contract->msaned_number}} @endif
-                            @if(@$contract->user->national_num) | الهوية: {{@$contract->user->national_num}} @endif
-                            @if(@$contract->info->visa_number) | تأشيرة: {{@$contract->info->visa_number}} @endif
+                            {{ __('ingaz.contract_number_short', ['id' => $contract->id]) }} | {{ __('ingaz.client_feminine_prefix', ['value' => @$contract->user->name ?? helperTrans('ingaz.not_specified')]) }} | {{ __('ingaz.maid_prefix', ['value' => @$contract->maid->name ?? helperTrans('ingaz.not_specified')]) }}
+                            @if(@$contract->info->msaned_number || @$contract->msaned_number) | {{ __('ingaz.musaned_prefix', ['value' => @$contract->info->msaned_number ?: @$contract->msaned_number]) }} @endif
+                            @if(@$contract->user->national_num) | {{ __('ingaz.national_id_prefix', ['value' => @$contract->user->national_num]) }} @endif
+                            @if(@$contract->info->visa_number) | {{ __('ingaz.visa_prefix', ['value' => @$contract->info->visa_number]) }} @endif
                         </option>
                     @empty
                     @endforelse
                 </select>
-                <small class="text-muted d-block mt-2">يمكن البحث برقم العقد أو رقم عقد مساند أو هوية العميل، ويمكن اختيار أكثر من عقد لنفس الرحلة.</small>
+                <small class="text-muted d-block mt-2">{{ helperTrans('ingaz.contracts_multi_select_hint') }}</small>
 
                 <div id="selected_contracts_preview" class="contracts-preview mt-2">
-                    <span class="text-muted">لم يتم اختيار عقود بعد.</span>
+                    <span class="text-muted">{{ helperTrans('ingaz.no_contracts_selected') }}</span>
                 </div>
 
                 <div>
@@ -222,10 +238,10 @@
         <label for="" class="col-sm-3 col-form-label">{{ __('admin.travel_type') }}</label>
         <div class="col-sm-5">
             <select name="travel_type" id="travel_type" class="form-control cu-form-design select2">
-                <option value="international" @if ($selectedTravelType == 'international') selected @endif>رحلة دولية</option>
-                <option value="domestic" @if ($selectedTravelType == 'domestic') selected @endif>رحلة داخلية</option>
+                <option value="international" @if ($selectedTravelType == 'international') selected @endif>{{ helperTrans('ingaz.travel_type_international') }}</option>
+                <option value="domestic" @if ($selectedTravelType == 'domestic') selected @endif>{{ helperTrans('ingaz.travel_type_domestic') }}</option>
             </select>
-            <span class="travel-default-hint">الاختيار الافتراضي: رحلة دولية.</span>
+            <span class="travel-default-hint">{{ helperTrans('ingaz.default_travel_type_hint') }}</span>
             <div>
                 @error('travel_type')
                 <div class="text-danger">{{ $message }}</div>
@@ -236,9 +252,9 @@
 
     {{-- عرض مدن تسليم العملاء --}}
     <div class="mb-3 row">
-        <label for="" class="col-sm-3 col-form-label">مدن تسليم العملاء</label>
+        <label for="" class="col-sm-3 col-form-label">{{ helperTrans('ingaz.client_delivery_cities') }}</label>
         <div class="col-sm-5">
-            <textarea class="form-control" id="client_city" rows="2" readonly placeholder="سيتم ملؤها تلقائياً عند اختيار العقود"></textarea>
+            <textarea class="form-control" id="client_city" rows="2" readonly placeholder="{{ helperTrans('ingaz.client_city_auto_placeholder') }}"></textarea>
         </div>
     </div>
 
@@ -248,22 +264,11 @@
         <label for="" class="col-sm-3 col-form-label">{{ __('admin.arrival_airport') }}</label>
         <div class="col-sm-5">
             <select name="arrival_airport" id="arrival_airport" class="form-control cu-form-design select2">
-                <option value="">اختر مطار الوصول</option>
+                <option value="">{{ helperTrans('ingaz.select_arrival_airport') }}</option>
                 <optgroup>
-                    <option value="RUH" @if (@$data->arrival_airport == 'RUH') selected @endif>مطار الملك خالد الدولي - الرياض (RUH)</option>
-                    <option value="JED" @if (@$data->arrival_airport == 'JED') selected @endif>مطار الملك عبدالعزيز الدولي - جدة (JED)</option>
-                    <option value="DMM" @if (@$data->arrival_airport == 'DMM') selected @endif>مطار الملك فهد الدولي - الدمام (DMM)</option>
-                    <option value="MED" @if (@$data->arrival_airport == 'MED') selected @endif>مطار الأمير محمد بن عبدالعزيز الدولي - المدينة المنورة (MED)</option>
-                    <option value="TUU" @if (@$data->arrival_airport == 'TUU') selected @endif>مطار تبوك الدولي - تبوك (TUU)</option>
-                    <option value="AHB" @if (@$data->arrival_airport == 'AHB') selected @endif>مطار أبها الإقليمي - أبها (AHB)</option>
-                    <option value="TIF" @if (@$data->arrival_airport == 'TIF') selected @endif>مطار الطائف الإقليمي - الطائف (TIF)</option>
-                    <option value="ELQ" @if (@$data->arrival_airport == 'ELQ') selected @endif>مطار القصيم الإقليمي - بريدة (ELQ)</option>
-                    <option value="URY" @if (@$data->arrival_airport == 'URY') selected @endif>مطار الجوف الإقليمي - سكاكا (URY)</option>
-                    <option value="HAS" @if (@$data->arrival_airport == 'HAS') selected @endif>مطار حائل الإقليمي - حائل (HAS)</option>
-                    <option value="BHH" @if (@$data->arrival_airport == 'BHH') selected @endif>مطار الباحة الإقليمي - الباحة (BHH)</option>
-                    <option value="GIZ" @if (@$data->arrival_airport == 'GIZ') selected @endif>مطار جازان الإقليمي - جازان (GIZ)</option>
-                    <option value="URY" @if (@$data->arrival_airport == 'URY') selected @endif>مطار نجران الإقليمي - نجران (URY)</option>
-                    <option value="URY" @if (@$data->arrival_airport == 'URY') selected @endif>مطار القريات الإقليمي - القريات (URY)</option>
+                    @foreach ($arrivalAirports as $airport)
+                        <option value="{{ $airport['value'] }}" @if (@$data->arrival_airport == $airport['value']) selected @endif>{{ $airport['label'] }}</option>
+                    @endforeach
                 </optgroup>
             </select>
             <div>
@@ -276,7 +281,7 @@
 
     {{-- تحديث العناوين --}}
     <div class="mb-3 row">
-        <label for="arrival_date" class="col-sm-3 col-form-label">تاريخ الوصول</label>
+        <label for="arrival_date" class="col-sm-3 col-form-label">{{ helperTrans('ingaz.travel_arrival_date') }}</label>
         <div class="col-sm-5">
             <input type="date" name="arrival_date" id="arrival_date" value="{{ old('arrival_date', @$data->arrival_date) }}"
                 class="form-control">
@@ -289,7 +294,7 @@
     </div>
 
     <div class="mb-3 row">
-        <label for="arrival_time" class="col-sm-3 col-form-label">وقت الوصول </label>
+        <label for="arrival_time" class="col-sm-3 col-form-label">{{ helperTrans('ingaz.travel_arrival_time') }} </label>
         <div class="col-sm-5">
             <input type="time" name="arrival_time" id="arrival_time" value="{{ old('arrival_time', @$data->arrival_time) }}"
                 class="form-control">
@@ -305,7 +310,7 @@
         <label for="flight_company" class="col-sm-3 col-form-label">{{ __('admin.flight_company') }}</label>
         <div class="col-sm-5">
             <input type="text" name="flight_company" id="flight_company" value="{{ old('flight_company', @$data->flight_company) }}"
-                class="form-control" placeholder="اسم شركة الطيران">
+                class="form-control" placeholder="{{ helperTrans('ingaz.flight_company_placeholder') }}">
             <div>
                 @error('flight_company')
                 <div class="text-danger">{{ $message }}</div>
@@ -318,7 +323,7 @@
         <label for="flight_number" class="col-sm-3 col-form-label">{{ __('admin.flight_number') }}</label>
         <div class="col-sm-5">
             <input type="text" name="flight_number" id="flight_number" value="{{ old('flight_number', @$data->flight_number) }}"
-                class="form-control" placeholder="رقم الرحلة">
+                class="form-control" placeholder="{{ helperTrans('ingaz.flight_number_placeholder') }}">
             <div>
                 @error('flight_number')
                 <div class="text-danger">{{ $message }}</div>
@@ -330,7 +335,7 @@
     <div class="mb-3 row">
         <label for="notes" class="col-sm-3 col-form-label">{{ __('admin.notes') }}</label>
         <div class="col-sm-5">
-            <textarea name="notes" id="notes" rows="3" class="form-control" placeholder="ملاحظات إضافية">{{ old('notes', @$data->notes) }}</textarea>
+            <textarea name="notes" id="notes" rows="3" class="form-control" placeholder="{{ helperTrans('ingaz.notes_placeholder') }}">{{ old('notes', @$data->notes) }}</textarea>
             <div>
                 @error('notes')
                 <div class="text-danger">{{ $message }}</div>
@@ -340,10 +345,10 @@
     </div>
 
     <div class="mb-3 row">
-        <label for="assigned_to" class="col-sm-3 col-form-label">إسناد الرحلة إلى سائق / موظف</label>
+        <label for="assigned_to" class="col-sm-3 col-form-label">{{ helperTrans('ingaz.assign_trip_to_employee_driver') }}</label>
         <div class="col-sm-5">
             <select name="assigned_to" id="assigned_to" class="form-control cu-form-design select2">
-                <option value="">بدون إسناد الآن</option>
+                <option value="">{{ helperTrans('ingaz.no_assignment_now') }}</option>
                 @foreach (($assignableStaff ?? []) as $staff)
                     <option value="{{ $staff['id'] }}" @if ((string) $selectedAssignedTo === (string) $staff['id']) selected @endif>
                         {{ $staff['label'] }}
@@ -351,7 +356,7 @@
                     </option>
                 @endforeach
             </select>
-            <span class="travel-default-hint">عند اختيار سائق/موظف سيتم إرسال إشعار له بتفاصيل الرحلة ورابط إكمالها بعد استلام العاملات.</span>
+            <span class="travel-default-hint">{{ helperTrans('ingaz.assignment_notification_hint') }}</span>
             <div>
                 @error('assigned_to')
                 <div class="text-danger">{{ $message }}</div>
@@ -361,9 +366,9 @@
     </div>
 
     <div class="mb-3 row">
-        <label for="assignment_note" class="col-sm-3 col-form-label">ملاحظة الإسناد</label>
+        <label for="assignment_note" class="col-sm-3 col-form-label">{{ helperTrans('ingaz.assignment_note') }}</label>
         <div class="col-sm-5">
-            <textarea name="assignment_note" id="assignment_note" rows="2" class="form-control" placeholder="ملاحظة اختيارية للسائق">{{ old('assignment_note', @$data->assignment_note) }}</textarea>
+            <textarea name="assignment_note" id="assignment_note" rows="2" class="form-control" placeholder="{{ helperTrans('ingaz.assignment_note_driver_placeholder') }}">{{ old('assignment_note', @$data->assignment_note) }}</textarea>
             <div>
                 @error('assignment_note')
                 <div class="text-danger">{{ $message }}</div>
@@ -448,7 +453,7 @@
                             </a>
                             @if (@AdminGuardHasPerm(\App\PermKeys::TRAVEL_DELETE))
                             <button class="btn btn-sm btn-danger m-2 delete-file" data-id="{{ $fileRow->id }}">
-                                حذف الملف
+                                {{ helperTrans('ingaz.delete_file') }}
                             </button>
                             @endif
                         </div>
@@ -479,6 +484,15 @@ $(document).ready(function () {
     const contracts = @json($contracts);
     const initialSelectedOrderIds = @json(array_values(array_map('strval', $selectedContracts ?? [])));
     const contractIdFromUrl = "{{ request()->contract_id }}";
+    const travelControlTranslations = {
+        select2ContractPlaceholder: @json(helperTrans('ingaz.select2_contract_placeholder')),
+        noContractsSelected: @json(helperTrans('ingaz.no_contracts_selected')),
+        notSpecified: @json(helperTrans('ingaz.not_specified')),
+        contractPreviewHeader: @json(helperTrans('ingaz.contract_preview_header')),
+        contractPreviewDetails: @json(helperTrans('ingaz.contract_preview_details')),
+        additionalContractsCount: @json(helperTrans('ingaz.additional_contracts_count')),
+        atLeastOneContractRequired: @json(helperTrans('ingaz.at_least_one_contract_required')),
+    };
 
     $('.select2').select2({
         width: '100%'
@@ -486,7 +500,7 @@ $(document).ready(function () {
 
     $('#order_ids').select2({
         width: '100%',
-        placeholder: 'ابحث برقم العقد / رقم مساند / هوية العميل'
+        placeholder: travelControlTranslations.select2ContractPlaceholder
     });
 
     if (contractIdFromUrl && !initialSelectedOrderIds.includes(contractIdFromUrl)) {
@@ -507,28 +521,37 @@ $(document).ready(function () {
 
     function buildSelectedContractsPreview(selectedContracts) {
         if (!selectedContracts.length) {
-            $('#selected_contracts_preview').html('<span class="text-muted">لم يتم اختيار عقود بعد.</span>');
+            $('#selected_contracts_preview').html(`<span class="text-muted">${travelControlTranslations.noContractsSelected}</span>`);
             return;
         }
 
         const visibleContracts = selectedContracts.slice(0, 6);
         let html = visibleContracts.map(function(contract) {
-            const client = contract.user && contract.user.name ? contract.user.name : 'غير محدد';
-            const maid = contract.maid && contract.maid.name ? contract.maid.name : 'غير محدد';
-            const city = contract.user && contract.user.city ? contract.user.city : 'غير محدد';
+            const client = contract.user && contract.user.name ? contract.user.name : travelControlTranslations.notSpecified;
+            const maid = contract.maid && contract.maid.name ? contract.maid.name : travelControlTranslations.notSpecified;
+            const city = contract.user && contract.user.city ? contract.user.city : travelControlTranslations.notSpecified;
             const visa = contract.info && contract.info.visa_number ? contract.info.visa_number : '-';
             const musaned = contract.info && contract.info.msaned_number ? contract.info.msaned_number : (contract.msaned_number || '-');
             const nationalId = contract.user && contract.user.national_num ? contract.user.national_num : '-';
+            const header = travelControlTranslations.contractPreviewHeader
+                .replace(':id', contract.id)
+                .replace(':client', client);
+            const details = travelControlTranslations.contractPreviewDetails
+                .replace(':maid', maid)
+                .replace(':city', city)
+                .replace(':musaned', musaned)
+                .replace(':national_id', nationalId)
+                .replace(':visa', visa);
             return `
                 <div class="contract-preview-item">
-                    <div><strong>عقد #${contract.id}</strong> | عميلة: ${client}</div>
-                    <div class="text-muted small">العاملة: ${maid} | مدينة التسليم: ${city} | مساند: ${musaned} | الهوية: ${nationalId} | التأشيرة: ${visa}</div>
+                    <div><strong>${header}</strong></div>
+                    <div class="text-muted small">${details}</div>
                 </div>
             `;
         }).join('');
 
         if (selectedContracts.length > visibleContracts.length) {
-            html += `<div class="text-muted small">+ ${selectedContracts.length - visibleContracts.length} عقود إضافية</div>`;
+            html += `<div class="text-muted small">${travelControlTranslations.additionalContractsCount.replace(':count', selectedContracts.length - visibleContracts.length)}</div>`;
         }
 
         $('#selected_contracts_preview').html(html);
@@ -564,7 +587,7 @@ $(document).ready(function () {
         if (cities.length > 0) {
             $('#client_city').val(cities.join('\n'));
         } else {
-            $('#client_city').val('غير محدد');
+            $('#client_city').val(travelControlTranslations.notSpecified);
         }
 
         buildSelectedContractsPreview(selectedContracts);
@@ -627,7 +650,7 @@ $(document).ready(function () {
 
         if (orderIds.length === 0) {
             e.preventDefault();
-            swal('{{ __('admin.error') }}', 'يجب اختيار عقد واحد على الأقل.', 'error');
+            swal('{{ __('admin.error') }}', travelControlTranslations.atLeastOneContractRequired, 'error');
             return false;
         }
     });

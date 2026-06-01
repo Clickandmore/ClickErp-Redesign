@@ -1,4 +1,6 @@
-<?php return array (
+<?php
+
+return array (
   'failed' => 'بيانات الاعتماد هذه غير متطابقة مع البيانات المسجلة لدينا.',
   'password' => 'كلمة المرور.',
   'throttle' => 'عدد كبير جدا من محاولات الدخول. يرجى المحاولة مرة أخرى بعد :seconds ثانية.',
@@ -30,6 +32,12 @@
   'rememberme' => 'تذكرني',
   'login successful' => 'تم التسجيل بنجاح',
   'All Rights Reserved.' => 'جميع الحقوق محفوظة',
-  'address_required' => 'Address required',
-  'choose' => 'Choose',
+  'All Rights Reserved To' => 'جميع الحقوق محفوظة لـ',
+  'address_required' => 'العنوان مطلوب',
+  'choose' => 'اختر',
+  'SL' => '#',
+  'no_internet' => 'لا يوجد اتصال بالإنترنت',
+  'select' => 'اختر',
+  'new' => 'جديد',
+  'password_placeholder' => 'كلمة المرور',
 );

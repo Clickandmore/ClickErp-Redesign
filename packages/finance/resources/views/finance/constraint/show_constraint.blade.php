@@ -211,6 +211,67 @@
             border: 1px solid #e5e7eb;
         }
 
+        .constraint-show-page .constraint-attachment-grid {
+            grid-template-columns: repeat(auto-fill, minmax(112px, 112px));
+            align-items: start;
+            justify-content: flex-start;
+        }
+
+        .constraint-show-page .constraint-attachment-grid .img_upload,
+        .constraint-show-page .constraint-attachment-grid .uploadedImage {
+            width: 112px;
+            height: 112px;
+            border-radius: 12px;
+        }
+
+        .constraint-show-page .constraint-attachment-grid .img_upload {
+            border: 1px dashed #cbd5e1;
+            background: #f8fafc;
+            margin: 0;
+        }
+
+        .constraint-show-page .constraint-attachment-grid .img_upload .img {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .constraint-show-page .constraint-attachment-grid .img_upload img {
+            width: 28px !important;
+            height: 28px !important;
+        }
+
+        .constraint-show-page .constraint-attachment-grid .uploadedImage {
+            border: 1px solid #e5e7eb;
+            background: #fff;
+        }
+
+        .constraint-show-page .constraint-attachment-grid .uploadedImage > img,
+        .constraint-show-page .constraint-attachment-grid .uploadedImage > video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .constraint-show-page .constraint-attachment-grid .uploadedImage .delete {
+            top: 6px;
+            right: 6px;
+            width: 28px;
+            height: 28px;
+            padding: 0;
+            border: 0 !important;
+            border-radius: 50%;
+            background: #fff !important;
+            box-shadow: 0 6px 16px rgba(15, 23, 42, .16);
+        }
+
+        .constraint-show-page .constraint-attachment-grid .uploadedImage .delete img {
+            width: 14px;
+            height: 14px;
+        }
+
         .constraint-show-page .activity-list {
             display: flex;
             flex-direction: column;
@@ -242,6 +303,49 @@
             color: #6b7280;
         }
 
+            @if (request()->boolean('print'))
+                html,
+                body {
+                    background: #fff !important;
+                    height: auto !important;
+                    min-height: 100% !important;
+                    overflow-x: hidden !important;
+                    overflow-y: auto !important;
+                }
+
+                .no-print,
+                .sidebar,
+                .header,
+                .right_chat,
+                .page-footer,
+                .footer,
+                .page-header,
+                .breadcrumb {
+                    display: none !important;
+                }
+
+                body.layout-1,
+                body.layout-1 .wrapper,
+                body.layout-1 .wrapper .page-body,
+                .wrapper,
+                .page-body,
+                .main {
+                    width: 100% !important;
+                    height: auto !important;
+                    min-height: 0 !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    overflow-x: hidden !important;
+                    overflow-y: visible !important;
+                    display: block !important;
+                }
+
+                .constraint-show-page {
+                    max-width: 1160px;
+                    padding: 20px 0;
+                }
+            @endif
+
         @media (max-width: 767.98px) {
             .constraint-show-page .activity-item {
                 grid-template-columns: 1fr;
@@ -255,38 +359,168 @@
                 margin: 10mm;
             }
 
+            html,
             body {
                 background: #fff !important;
+                height: auto !important;
+                min-height: 0 !important;
+                overflow: visible !important;
             }
 
             .no-print,
             .sidebar,
             .header,
             .right_chat,
+            .page-footer,
+            .footer,
             .page-header,
             .breadcrumb {
                 display: none !important;
             }
 
+            .wrapper,
             .main {
                 width: 100% !important;
+                height: auto !important;
+                min-height: 0 !important;
                 margin: 0 !important;
                 padding: 0 !important;
+                overflow: visible !important;
+                display: block !important;
             }
 
             .constraint-show-page {
                 max-width: none;
                 padding: 0;
+                font-size: 12px;
+                color: #111827;
             }
 
             .constraint-show-page .show-card {
                 box-shadow: none;
                 border-color: #d1d5db;
-                break-inside: avoid;
+                break-inside: auto;
+                page-break-inside: auto;
+                border-radius: 8px;
             }
 
             .constraint-show-page .section-card {
-                margin-bottom: .75rem;
+                padding: 8mm;
+                margin-bottom: 7mm;
+            }
+
+            .constraint-show-page .hero-card,
+            .constraint-show-page .summary-item,
+            .constraint-show-page .activity-item,
+            .constraint-show-page .attachment-grid > div,
+            .constraint-show-page .constraint-table tr {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+
+            .constraint-show-page .hero-card {
+                padding: 8mm;
+            }
+
+            .constraint-show-page .document-brand-bar {
+                padding: 4mm;
+                border-radius: 8px;
+                margin-bottom: 5mm;
+            }
+
+            .constraint-show-page .brand-copy img {
+                width: 52px;
+                height: 52px;
+            }
+
+            .constraint-show-page .hero-main {
+                margin-bottom: 5mm;
+            }
+
+            .constraint-show-page .hero-main h3 {
+                font-size: 18px;
+            }
+
+            .constraint-show-page .hero-main p,
+            .constraint-show-page .section-head p {
+                display: none !important;
+            }
+
+            .constraint-show-page .summary-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 4mm;
+            }
+
+            .constraint-show-page .summary-item {
+                padding: 4mm;
+                border-radius: 8px;
+            }
+
+            .constraint-show-page .summary-item strong {
+                font-size: 12px;
+                line-height: 1.6;
+            }
+
+            .constraint-show-page .table-responsive {
+                overflow: visible !important;
+            }
+
+            .constraint-show-page .constraint-table {
+                width: 100% !important;
+                table-layout: fixed;
+                border-collapse: collapse !important;
+                font-size: 11px;
+            }
+
+            .constraint-show-page .constraint-table th,
+            .constraint-show-page .constraint-table td {
+                border: 1px solid #d1d5db !important;
+                padding: 6px !important;
+                white-space: normal !important;
+                word-break: break-word;
+            }
+
+            .constraint-show-page .constraint-table thead {
+                display: table-header-group;
+            }
+
+            .constraint-show-page .constraint-table tfoot {
+                display: table-footer-group;
+            }
+
+            .constraint-show-page .print-new-section {
+                break-before: page;
+                page-break-before: always;
+            }
+
+            .constraint-show-page .attachment-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 5mm;
+            }
+
+            .constraint-show-page .attachment-grid img {
+                height: auto;
+                max-height: 115mm;
+                object-fit: contain;
+                border-radius: 6px;
+            }
+
+            .constraint-show-page .activity-list {
+                gap: 0;
+            }
+
+            .constraint-show-page .activity-item {
+                grid-template-columns: 34mm 1fr 40mm;
+                padding: 3mm 0;
+            }
+
+            .constraint-show-page a {
+                color: inherit !important;
+                text-decoration: none !important;
+            }
+
+            .constraint-show-page .constraint-account-link i {
+                display: none !important;
             }
         }
     </style>
@@ -305,19 +539,22 @@
 
 @section('content')
     @php
-        $companyNameAr =
-            optional(optional($setting_web ?? null)->translate('ar'))->website_name ?:
-            optional($setting_web ?? null)->website_name ?:
-            config('app.name', 'Platinum');
-        $companyNameEn =
-            optional(optional($setting_web ?? null)->translate('en'))->website_name ?:
-            optional($setting_web ?? null)->website_name ?:
-            config('app.name', 'Platinum');
-        $logoUrl =
-            isset($setting_web) && !empty($setting_web->logo_header) ? showFile($setting_web->logo_header) : null;
+        $companyNameAr = documentSetting(
+            'document_company_name',
+            documentSetting('website_name', optional($setting_web ?? null)->website_name ?: config('app.name', 'Platinum'), 'ar'),
+            'ar',
+        );
+        $companyNameEn = documentSetting(
+            'document_company_name',
+            documentSetting('website_name', optional($setting_web ?? null)->website_name ?: config('app.name', 'Platinum'), 'en'),
+            'en',
+        );
+        $logoPath = documentSetting('document_logo') ?: optional($setting_web ?? null)->logo_header;
+        $logoUrl = $logoPath ? showFile($logoPath) : null;
         $taxNumber = isset($setting_web) && !empty($setting_web->tax_number) ? $setting_web->tax_number : '-';
         $entryCode = $obj->code ?: $obj->id;
         $printedAt = now(config('app.timezone', 'Asia/Riyadh'))->format('Y-m-d H:i:s');
+        $printUrl = request()->fullUrlWithQuery(['print' => 1]);
         $statementPermissions = [
             'finance.account-statement-read',
             'finance.account-statement.index-read',
@@ -346,7 +583,7 @@
         };
     @endphp
 
-    <div class="constraint-show-page">
+    <div class="constraint-show-page{{ request()->boolean('print') ? ' print-mode' : '' }}">
         @if (request()->boolean('saved'))
             <div class="alert alert-success no-print">
                 {{ __('finance::finance.constraint_saved_actions_hint', ['code' => $obj->code]) }}
@@ -362,7 +599,9 @@
 
                     <div>
                         <h4>{{ $companyNameAr }}</h4>
-                        <h5>{{ $companyNameEn }}</h5>
+                        @if ($companyNameEn && $companyNameEn !== $companyNameAr)
+                            <h5>{{ $companyNameEn }}</h5>
+                        @endif
                         <p>الرقم الضريبي / VAT: {{ $taxNumber }}</p>
                     </div>
                 </div>
@@ -389,7 +628,8 @@
                         <i class="fa fa-plus-circle"></i>
                         {{ __('finance::finance.create_new_constraint') }}
                     </a>
-                    <button type="button" class="btn btn-outline-secondary" onclick="window.print()">
+                    <button type="button" class="btn btn-outline-secondary"
+                        onclick="window.open('{{ $printUrl }}', '_blank', 'noopener')">
                         <i class="fa fa-print"></i>
                         {{ __('finance::finance.print') }}
                     </button>
@@ -428,20 +668,7 @@
             </div>
         </div>
 
-        @if ($inlineConstraintEditOpen)
-        <div class="no-print" id="constraintInlineEdit">
-            <div class="show-card section-card">
-                <div class="section-head">
-                    <h5>{{ __('buttons.edit') }} {{ __('finance::finance.constraint_details_page') }}</h5>
-                    <p class="mb-0">يتم التعديل من نفس صفحة العرض، والحسابات الحالية في القيد تظل ظاهرة حتى لو تغير شجر الحسابات لاحقاً.</p>
-                </div>
-
-                @include('finance::finance.constraint.edit')
-            </div>
-        </div>
-        @endif
-
-        <div class="show-card section-card">
+        <div class="show-card section-card constraint-lines-card">
             <div class="section-head">
                 <h5>{{ __('finance::finance.constraint_lines') }}</h5>
                 <p>{{ __('finance::finance.constraint_lines_review_hint') }}</p>
@@ -505,7 +732,7 @@
             </div>
         </div>
 
-        <div class="show-card section-card">
+        <div class="show-card section-card attachments-card print-new-section">
             <div class="section-head">
                 <h5>{{ __('finance::finance.attachments') }}</h5>
                 <p>{{ __('finance::finance.constraint_attachments_hint') }}</p>
@@ -526,7 +753,7 @@
             @endif
         </div>
 
-        <div class="show-card section-card">
+        <div class="show-card section-card activity-card print-new-section">
             <div class="section-head">
                 <h5>{{ __('finance::finance.constraint_activity_log') }}</h5>
                 <p>{{ __('finance::finance.constraint_activity_log_hint') }}</p>
@@ -558,53 +785,28 @@
 @endsection
 
 @section('js')
-    @if ($inlineConstraintEditOpen)
-        @include('finance::finance.constraint.partials.edit-scripts')
+    @if (request()->boolean('print'))
         <script>
-            $(document).on('submit', '.constraint-inline-edit-form', function(e) {
-                e.preventDefault();
-                e.stopImmediatePropagation();
+            window.addEventListener('load', function () {
+                document.documentElement.style.height = 'auto';
+                document.documentElement.style.overflowX = 'hidden';
+                document.documentElement.style.overflowY = 'auto';
+                document.body.style.height = 'auto';
+                document.body.style.overflowX = 'hidden';
+                document.body.style.overflowY = 'auto';
 
-                let form = this;
-                let formData = new FormData(form);
-                let submitButton = $(e.originalEvent.submitter);
-                let buttonText = submitButton.text();
-
-                $.ajax({
-                    url: $(form).attr('action'),
-                    type: 'POST',
-                    data: formData,
-                    cache: false,
-                    contentType: false,
-                    processData: false,
-                    beforeSend: function() {
-                        if (window.cmShowLoader) {
-                            window.cmShowLoader();
-                        } else {
-                            $('#loading-wrapper').show();
-                        }
-                        submitButton.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ' + buttonText);
-                    },
-                    complete: function() {
-                        if (window.cmHideLoader) {
-                            window.cmHideLoader();
-                        } else {
-                            $('#loading-wrapper').hide();
-                        }
-                        submitButton.html(buttonText);
-                    },
-                    success: function(result) {
-                        handleSuccessResponce(result);
-                        if (result.data && result.data.show_url) {
-                            window.location.href = result.data.show_url;
-                        } else {
-                            window.location.reload();
-                        }
-                    },
-                    error: function(errorObj) {
-                        handleErrorResponce(errorObj);
-                    }
+                ['.wrapper', '.page-body', '.main'].forEach(function (selector) {
+                    document.querySelectorAll(selector).forEach(function (element) {
+                        element.style.height = 'auto';
+                        element.style.minHeight = '0';
+                        element.style.overflowX = 'hidden';
+                        element.style.overflowY = 'visible';
+                    });
                 });
+
+                setTimeout(function () {
+                    window.print();
+                }, 350);
             });
         </script>
     @endif

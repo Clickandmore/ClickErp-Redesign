@@ -443,6 +443,35 @@
             color: #64748b;
         }
 
+        #changeMaidModal .select2-container {
+            width: 100% !important;
+        }
+
+        #changeMaidModal .select2-container--default .select2-selection--single {
+            min-height: 45px;
+            border: 1px solid #d9e2ec;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+        }
+
+        #changeMaidModal .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #111827;
+            line-height: 43px;
+            padding-right: 14px;
+            padding-left: 34px;
+        }
+
+        #changeMaidModal .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 43px;
+            left: 8px;
+            right: auto;
+        }
+
+        .select2-container--open {
+            z-index: 1060;
+        }
+
         .action-buttons {
             position: fixed;
             bottom: 28px;
@@ -545,6 +574,7 @@
                 'completed' => 'is-secondary',
                 'cancelled' => 'is-danger',
                 'suspended' => 'is-dark',
+                'frozen' => 'is-dark',
             ];
 
             $currentMaid = $contract->maid;
@@ -622,6 +652,11 @@
                                 <i class="fas fa-user-check"></i>
                                 أُغلِق العقد وأصبحت العاملة متاحة
                             </span>
+                        @elseif($contract->status === 'frozen')
+                            <span class="status-pill is-warning">
+                                <i class="fas fa-pause-circle"></i>
+                                مجمد بسبب: {{ \Illuminate\Support\Str::limit($contract->freeze_reason ?: 'غير محدد', 60) }}
+                            </span>
                         @endif
                     </div>
                 </div>
@@ -654,8 +689,8 @@
                 </div>
                 <div class="metric-card">
                     <div class="label">مدة العقد</div>
-                    <div class="value">{{ (int) ($contract->info->contract_duration_months ?? 0) }}</div>
-                    <div class="sub-value">شهر / {{ (int) ($contract->info->contract_duration_days ?? 0) }} يوم</div>
+                    <div class="value">{{ $contract->info?->package?->duration_label ?? ((int) ($contract->info->contract_duration_days ?? 0) . ' يوم') }}</div>
+                    <div class="sub-value">{{ (int) ($contract->info->contract_duration_months ?? 0) }} شهر للحساب / {{ (int) ($contract->info->contract_duration_days ?? 0) }} يوم</div>
                 </div>
                 <div class="metric-card">
                     <div class="label">قيمة العقد</div>
@@ -816,6 +851,54 @@
                                 <span class="label">مبلغ نقل الكفالة</span>
                                 <span class="value">{{ $contract->info?->sponsorship_transfer_amount ? number_format($contract->info->sponsorship_transfer_amount, 2) . ' ريال' : 'غير محدد' }}</span>
                             </li>
+                            @if($contract->info?->sponsorship_transfer_total_amount || $contract->info?->sponsorship_transfer_payment_type || $contract->info?->sponsorship_transfer_payment_status)
+                                @php
+                                    $transferPaymentTypes = [
+                                        'cash' => 'نقداً',
+                                        'bank_transfer' => 'تحويل بنكي',
+                                        'mada' => 'مدى',
+                                        'tabby' => 'تابي',
+                                        'tamara' => 'تمارا',
+                                        'pay_later' => 'الدفع لاحقاً',
+                                        'other' => 'أخرى',
+                                    ];
+                                    $transferPaymentStatuses = [
+                                        'paid' => 'تم الدفع',
+                                        'partial' => 'مدفوع جزئياً',
+                                        'pending' => 'معلق',
+                                        'later' => 'الدفع لاحقاً',
+                                        'bank_pending' => 'بانتظار التحويل',
+                                    ];
+                                @endphp
+                                <li>
+                                    <span class="label">إجمالي نقل الكفالة</span>
+                                    <span class="value">{{ number_format((float) $contract->info->sponsorship_transfer_total_amount, 2) }} ريال</span>
+                                </li>
+                                <li>
+                                    <span class="label">مدفوع نقل الكفالة</span>
+                                    <span class="value">{{ number_format((float) $contract->info->sponsorship_transfer_paid_amount, 2) }} ريال</span>
+                                </li>
+                                <li>
+                                    <span class="label">متبقي نقل الكفالة</span>
+                                    <span class="value">{{ number_format((float) $contract->info->sponsorship_transfer_remaining_amount, 2) }} ريال</span>
+                                </li>
+                                <li>
+                                    <span class="label">طريقة دفع نقل الكفالة</span>
+                                    <span class="value">{{ $transferPaymentTypes[$contract->info->sponsorship_transfer_payment_type] ?? 'غير محدد' }}</span>
+                                </li>
+                                <li>
+                                    <span class="label">حالة دفع نقل الكفالة</span>
+                                    <span class="value">{{ $transferPaymentStatuses[$contract->info->sponsorship_transfer_payment_status] ?? 'غير محدد' }}</span>
+                                </li>
+                                @if($contract->info->sponsorship_transfer_payment_receipt_url)
+                                    <li>
+                                        <span class="label">إيصال دفع نقل الكفالة</span>
+                                        <span class="value">
+                                            <a href="{{ $contract->info->sponsorship_transfer_payment_receipt_url }}" target="_blank">عرض الإيصال</a>
+                                        </span>
+                                    </li>
+                                @endif
+                            @endif
                             <li>
                                 <span class="label">الراتب بعد نقل الكفالة</span>
                                 <span class="value">{{ $contract->info?->salary_after_sponsorship ? number_format($contract->info->salary_after_sponsorship, 2) . ' ريال' : 'غير محدد' }}</span>
@@ -824,6 +907,26 @@
                                 <span class="label">حالة الضمان</span>
                                 <span class="value">{{ $contract->warranty_status ?? 'غير محدد' }}</span>
                             </li>
+                            @if ($contract->status === 'frozen' || $contract->frozen_at)
+                                <li>
+                                    <span class="label">سبب التجميد</span>
+                                    <span class="value">{{ $contract->freeze_reason ?: 'غير محدد' }}</span>
+                                </li>
+                                <li>
+                                    <span class="label">تاريخ التجميد</span>
+                                    <span class="value">{{ optional($contract->frozen_at)->format('Y-m-d H:i') ?? 'غير محدد' }}</span>
+                                </li>
+                                <li>
+                                    <span class="label">تم التجميد بواسطة</span>
+                                    <span class="value">{{ $contract->frozenBy?->name ?? 'غير محدد' }}</span>
+                                </li>
+                                @if ($contract->resumed_at)
+                                    <li>
+                                        <span class="label">آخر استئناف</span>
+                                        <span class="value">{{ optional($contract->resumed_at)->format('Y-m-d H:i') ?? 'غير محدد' }}</span>
+                                    </li>
+                                @endif
+                            @endif
                         </ul>
                     </div>
                 </div>
@@ -924,10 +1027,16 @@
                                         <label class="attachment-item">
                                             <input type="checkbox" name="attachments[]" value="{{ $attachment['key'] }}" checked>
                                             <span class="fw-bold">{{ $attachment['label'] }}</span>
-                                            <a href="{{ $attachment['url'] }}" target="_blank" class="d-block mt-2">
-                                                <i class="fas fa-download me-1"></i>
-                                                تحميل منفرد
-                                            </a>
+                                            <span class="d-flex flex-wrap gap-2 mt-2">
+                                                <a href="{{ $attachment['url'] }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">
+                                                    <i class="fas fa-eye me-1"></i>
+                                                    عرض
+                                                </a>
+                                                <a href="{{ $attachment['download_url'] }}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-download me-1"></i>
+                                                    تحميل منفرد
+                                                </a>
+                                            </span>
                                         </label>
                                     @endforeach
                                 </div>
@@ -1127,7 +1236,8 @@
 
                                 <div class="mb-3">
                                     <label for="new_maid_id" class="form-label">العاملة البديلة</label>
-                                    <select name="new_maid_id" id="new_maid_id" class="form-select" required>
+                                    <select name="new_maid_id" id="new_maid_id" class="form-select change-maid-select2"
+                                        data-placeholder="ابحث باسم العاملة أو رقم الجواز أو الجنسية" required>
                                         <option value="">اختر العاملة المتاحة</option>
                                         @forelse ($availableReplacementMaids as $maid)
                                             <option value="{{ $maid->id }}">
@@ -1179,9 +1289,21 @@
                 </a>
             @endif
 
-            @if ($contract->status !== 'completed' && @AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CONTROL))
+            @if ($contract->canCloseOrExtend() && @AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CONTROL))
                 <button type="button" class="btn-icon btn-complete" title="إنهاء العقد">
                     <i class="fas fa-check"></i>
+                </button>
+            @endif
+
+            @if ($contract->canFreeze() && @AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CONTROL))
+                <button type="button" class="btn-icon btn-back btn-freeze" title="تجميد العقد">
+                    <i class="fas fa-pause"></i>
+                </button>
+            @endif
+
+            @if ($contract->canResume() && @AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CONTROL))
+                <button type="button" class="btn-icon btn-complete btn-resume" title="استئناف العقد">
+                    <i class="fas fa-play"></i>
                 </button>
             @endif
 
@@ -1204,6 +1326,42 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         $(document).ready(function() {
+            function initChangeMaidSelect() {
+                const replacementMaidSelect = $('#new_maid_id');
+
+                if (!replacementMaidSelect.length || !$.fn.select2) {
+                    return;
+                }
+
+                if (replacementMaidSelect.hasClass('select2-hidden-accessible')) {
+                    replacementMaidSelect.select2('destroy');
+                }
+
+                replacementMaidSelect.select2({
+                    dir: 'rtl',
+                    width: '100%',
+                    dropdownParent: $('#changeMaidModal'),
+                    placeholder: replacementMaidSelect.data('placeholder'),
+                    minimumResultsForSearch: 0,
+                    language: {
+                        noResults: function() {
+                            return 'لا توجد نتائج مطابقة';
+                        },
+                        searching: function() {
+                            return 'جاري البحث...';
+                        }
+                    }
+                });
+            }
+
+            initChangeMaidSelect();
+
+            $('#new_maid_id').on('select2:open', function() {
+                setTimeout(function() {
+                    $('.select2-container--open .select2-search__field').trigger('focus');
+                }, 0);
+            });
+
             $(document).on('click', '.btn-complete', function() {
                 Swal.fire({
                     title: 'تأكيد إنهاء العقد',
@@ -1286,6 +1444,105 @@
                 });
             });
 
+            $(document).on('click', '.btn-freeze', function() {
+                Swal.fire({
+                    title: 'تجميد عقد الإيجار',
+                    input: 'textarea',
+                    inputLabel: 'سبب التجميد',
+                    inputPlaceholder: 'اكتب سبب تجميد العقد',
+                    inputAttributes: {
+                        maxlength: 1000
+                    },
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#64748b',
+                    cancelButtonColor: '#dc3545',
+                    confirmButtonText: 'تجميد العقد',
+                    cancelButtonText: 'إلغاء',
+                    inputValidator: (value) => {
+                        if (!value || !value.trim()) {
+                            return 'يرجى كتابة سبب التجميد';
+                        }
+                    }
+                }).then((result) => {
+                    if (!result.isConfirmed) {
+                        return;
+                    }
+
+                    $.ajax({
+                        url: "{{ route('RentContract.freeze', $contract->id) }}",
+                        method: 'POST',
+                        data: {
+                            _token: '{{ csrf_token() }}',
+                            freeze_reason: result.value
+                        },
+                        success: function(response) {
+                            Swal.fire({
+                                icon: response.success ? 'success' : 'error',
+                                title: response.success ? 'تم بنجاح' : 'خطأ',
+                                text: response.message
+                            }).then(() => {
+                                if (response.success) {
+                                    location.reload();
+                                }
+                            });
+                        },
+                        error: function(xhr) {
+                            const response = xhr.responseJSON || {};
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'خطأ',
+                                text: response.message || 'حدث خطأ أثناء تجميد العقد'
+                            });
+                        }
+                    });
+                });
+            });
+
+            $(document).on('click', '.btn-resume', function() {
+                Swal.fire({
+                    title: 'استئناف عقد الإيجار',
+                    text: 'هل تريد استئناف هذا العقد؟',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#22c55e',
+                    cancelButtonColor: '#64748b',
+                    confirmButtonText: 'نعم، استئناف العقد',
+                    cancelButtonText: 'إلغاء'
+                }).then((result) => {
+                    if (!result.isConfirmed) {
+                        return;
+                    }
+
+                    $.ajax({
+                        url: "{{ route('RentContract.resume', $contract->id) }}",
+                        method: 'POST',
+                        data: {
+                            _token: '{{ csrf_token() }}'
+                        },
+                        success: function(response) {
+                            Swal.fire({
+                                icon: response.success ? 'success' : 'error',
+                                title: response.success ? 'تم بنجاح' : 'خطأ',
+                                text: response.message
+                            }).then(() => {
+                                if (response.success) {
+                                    location.reload();
+                                }
+                            });
+                        },
+                        error: function(xhr) {
+                            const response = xhr.responseJSON || {};
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'خطأ',
+                                text: response.message || 'حدث خطأ أثناء استئناف العقد'
+                            });
+                        }
+                    });
+                });
+            });
+
             $('#changeMaidForm').on('submit', function(e) {
                 e.preventDefault();
 
@@ -1350,6 +1607,7 @@
             $('#changeMaidModal').on('hidden.bs.modal', function() {
                 const form = $('#changeMaidForm');
                 form.trigger('reset');
+                $('#new_maid_id').val('').trigger('change');
                 form.find('[data-field-error]').addClass('d-none').text('');
                 $('#submitChangeMaidBtn').prop('disabled', {{ $availableReplacementMaids->isEmpty() ? 'true' : 'false' }});
             });

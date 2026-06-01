@@ -6,6 +6,7 @@ use App\Http\Controllers\admin\Controller;
 use App\Models\ingaz\Setting;
 use App\Models\RentalContractInvoice;
 use App\Services\ingaz\InvoiceCalculationService;
+use App\Support\InvoiceQrCode;
 use Illuminate\Support\Facades\Auth;
 use PDF;
 
@@ -92,6 +93,16 @@ class RentalContractInvoiceController extends Controller
         $netSubtotal = $breakdown['net_subtotal'];
         $vatAmount = $breakdown['vat_amount'];
         $grandTotal = $breakdown['grand_total'];
+        $invoiceDate = optional($invoice->created_at)->format('Y-m-d') ?? now()->format('Y-m-d');
+        $invoiceDateTime = optional($invoice->created_at)->format('Y-m-d H:i:s') ?? now()->format('Y-m-d H:i:s');
+        $invoiceBarcodeValue = $this->buildInvoiceQrSerial(
+            $supplierName,
+            $supplierTaxNumber,
+            $invoiceDateTime,
+            $grandTotal,
+            $vatAmount
+        );
+        $qrImage = InvoiceQrCode::render($invoiceBarcodeValue, $qrImage);
 
         return [
             'invoice' => $invoice,
@@ -120,9 +131,10 @@ class RentalContractInvoiceController extends Controller
             'customerAddress' => $customer?->address ?: '---',
             'accountNumber' => $customer?->account_id ?: ($customer?->id ?: '---'),
             'matchedHijriDate' => '-',
-            'invoiceDate' => optional($invoice->created_at)->format('Y-m-d') ?? now()->format('Y-m-d'),
-            'invoiceDateTime' => optional($invoice->created_at)->format('Y-m-d H:i:s') ?? now()->format('Y-m-d H:i:s'),
-            'invoiceUrl' => route('rental.invoice.download', ['id' => $invoice->id]),
+            'invoiceDate' => $invoiceDate,
+            'invoiceDateTime' => $invoiceDateTime,
+            'invoiceUrl' => route('rental.invoice.download', ['id' => $invoice->id, 'autoprint' => 1]),
+            'invoiceBarcodeValue' => $invoiceBarcodeValue,
             'subtotalBeforeDiscount' => $subtotalBeforeDiscount,
             'discountTotal' => $discountTotal,
             'netSubtotal' => $netSubtotal,
@@ -130,6 +142,30 @@ class RentalContractInvoiceController extends Controller
             'grandTotal' => $grandTotal,
             'backUrl' => route('RentContract.show', $invoice->rental_contract_id),
         ];
+    }
+
+    private function buildInvoiceQrSerial(
+        string $sellerName,
+        string $vatNumber,
+        string $invoiceDateTime,
+        float $totalWithVat,
+        float $vatAmount
+    ): string {
+        $fields = [
+            1 => $sellerName,
+            2 => $vatNumber,
+            3 => date('Y-m-d\TH:i:s\Z', strtotime($invoiceDateTime)),
+            4 => number_format($totalWithVat, 2, '.', ''),
+            5 => number_format($vatAmount, 2, '.', ''),
+        ];
+
+        $tlv = '';
+        foreach ($fields as $tag => $value) {
+            $value = (string) $value;
+            $tlv .= chr($tag) . chr(strlen($value)) . $value;
+        }
+
+        return base64_encode($tlv);
     }
 
     private function buildInvoiceItems(RentalContractInvoice $invoice, array $breakdown): array

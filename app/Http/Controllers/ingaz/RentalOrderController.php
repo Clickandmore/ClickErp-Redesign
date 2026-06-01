@@ -45,7 +45,7 @@ class RentalOrderController extends Controller
                 'jobType',
                 'details.admin',
                 'customer',
-                'contracts'
+                'rentalContracts'
             ]);
 
             // Order by created_at desc to show newest orders first
@@ -191,7 +191,7 @@ class RentalOrderController extends Controller
                            return '<span class="badge bg-warning status-badge">لم يتم الدفع</span>';
                        })
                        ->addColumn('contract_status', function ($row) {
-                           if ($row->contracts()->exists()) {
+                           if ($row->rentalContracts->isNotEmpty()) {
                                return '<span class="badge bg-info status-badge">' . __('ingaz.has_contract') . '</span>';
                            }
                            return '<span class="badge bg-danger status-badge">' . __('ingaz.no_contract') . '</span>';

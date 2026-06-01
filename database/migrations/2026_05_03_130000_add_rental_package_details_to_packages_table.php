@@ -21,8 +21,12 @@ return new class extends Migration
                 $table->unsignedInteger('duration_count')->default(1)->after('duration_unit');
             }
 
+            if (!Schema::hasColumn('packages', 'sort_order')) {
+                $table->unsignedInteger('sort_order')->default(0)->after('duration_count');
+            }
+
             if (!Schema::hasColumn('packages', 'working_hours_per_day')) {
-                $table->unsignedTinyInteger('working_hours_per_day')->nullable()->after('duration_count');
+                $table->unsignedTinyInteger('working_hours_per_day')->nullable()->after('sort_order');
             }
 
             if (!Schema::hasColumn('packages', 'is_show')) {
@@ -38,7 +42,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('packages', function (Blueprint $table) {
-            foreach (['description', 'is_show', 'working_hours_per_day', 'duration_count', 'duration_unit', 'rental_type'] as $column) {
+            foreach (['description', 'is_show', 'working_hours_per_day', 'sort_order', 'duration_count', 'duration_unit', 'rental_type'] as $column) {
                 if (Schema::hasColumn('packages', $column)) {
                     $table->dropColumn($column);
                 }

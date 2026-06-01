@@ -3,6 +3,7 @@
 namespace App\Http\Requests\ingaz;
 
 use App\Http\Requests\MainRequest;
+use App\Models\SmsTemplate;
 use App\Support\CommunicationSettings;
 use Illuminate\Validation\Validator;
 
@@ -27,7 +28,7 @@ class StoreNotificationRequest extends MainRequest
     {
         return [
             'type' => 'nullable|in:sms,normal,whatsapp',
-            'sms_template_id' => 'required_if:type,sms|integer|exists:sms_templates,id',
+            'sms_template_id' => 'nullable|string|max:50',
             'sender_name_type' => 'required_if:type,sms|in:advertising,verification',
             'whatsapp_purpose' => 'required_if:type,whatsapp|in:verification,follow_up,advertising',
             'whatsapp_sender_key' => 'nullable|string|max:100',
@@ -35,8 +36,9 @@ class StoreNotificationRequest extends MainRequest
             'template_variables.*' => 'nullable|string|max:255',
             'message_override' => 'nullable|string|max:1000|required_if:type,whatsapp',
             'all_or_some' => 'required|in:all,some',
-            'user_id' => 'required_if:all_or_some,some|array|min:1',
+            'user_id' => 'nullable|array',
             'user_id.*' => 'integer|exists:users,id',
+            'external_recipient_phones' => 'nullable|string|max:10000',
             'confirm_bulk_send' => 'nullable|boolean',
             'bulk_confirmation_text' => 'nullable|string|max:50',
             'title' => 'required_if:type,normal|array',
@@ -51,10 +53,6 @@ class StoreNotificationRequest extends MainRequest
         $validator->after(function (Validator $validator) {
             $type = $this->input('type', 'sms');
 
-            if (!in_array($type, ['sms', 'whatsapp'], true)) {
-                return;
-            }
-
             if ($type === 'whatsapp') {
                 $whatsAppSettings = CommunicationSettings::whatsapp();
                 $purpose = (string) $this->input('whatsapp_purpose', $whatsAppSettings['default_purpose'] ?? 'verification');
@@ -65,7 +63,49 @@ class StoreNotificationRequest extends MainRequest
                 }
             }
 
+            if ($type === 'sms') {
+                $templateId = $this->input('sms_template_id');
+
+                if ($this->usesSmsTemplate($templateId)) {
+                    if (!ctype_digit((string) $templateId) || !SmsTemplate::query()->whereKey($templateId)->where('is_active', true)->exists()) {
+                        $validator->errors()->add('sms_template_id', 'القالب المحدد غير موجود أو غير نشط.');
+                    }
+                } elseif (trim((string) $this->input('message_override', '')) === '') {
+                    $validator->errors()->add('message_override', 'نص الرسالة مطلوب عند الإرسال بدون قالب.');
+                }
+
+                if ($this->input('all_or_some') === 'some') {
+                    $invalidExternalPhones = $this->invalidExternalRecipientPhones();
+                    if (!empty($invalidExternalPhones)) {
+                        $validator->errors()->add(
+                            'external_recipient_phones',
+                            'توجد أرقام خارجية غير صحيحة: ' . implode('، ', array_slice($invalidExternalPhones, 0, 5))
+                        );
+                    }
+                }
+            }
+
             if ($this->input('all_or_some') !== 'all') {
+                $selectedUsersCount = collect((array) $this->input('user_id', []))
+                    ->filter()
+                    ->unique()
+                    ->count();
+
+                $externalPhonesCount = $type === 'sms' ? count($this->validExternalRecipientPhones()) : 0;
+
+                if ($selectedUsersCount + $externalPhonesCount === 0) {
+                    $validator->errors()->add(
+                        'user_id',
+                        $type === 'sms'
+                            ? 'اختر عميلاً من النظام أو أضف رقمًا خارجيًا واحدًا على الأقل.'
+                            : 'اختر عميلًا واحدًا على الأقل.'
+                    );
+                }
+
+                return;
+            }
+
+            if (!in_array($type, ['sms', 'whatsapp'], true)) {
                 return;
             }
 
@@ -108,5 +148,59 @@ class StoreNotificationRequest extends MainRequest
         }
 
         return (string) (CommunicationSettings::sms()['bulk_confirmation_keyword'] ?? 'SEND_ALL_SMS');
+    }
+
+    private function usesSmsTemplate($templateId): bool
+    {
+        return !in_array((string) $templateId, ['', 'none'], true);
+    }
+
+    private function validExternalRecipientPhones(): array
+    {
+        return collect($this->externalRecipientPhoneLines())
+            ->map(fn (string $phone): string => $this->normalizeSmsPhone($phone))
+            ->filter(fn (string $phone): bool => $this->isValidSmsPhone($phone))
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function invalidExternalRecipientPhones(): array
+    {
+        return collect($this->externalRecipientPhoneLines())
+            ->filter(fn (string $phone): bool => !$this->isValidSmsPhone($this->normalizeSmsPhone($phone)))
+            ->values()
+            ->all();
+    }
+
+    private function externalRecipientPhoneLines(): array
+    {
+        $phones = preg_split('/[\r\n,;]+/', (string) $this->input('external_recipient_phones', '')) ?: [];
+
+        return array_values(array_filter(array_map('trim', $phones), fn (string $phone): bool => $phone !== ''));
+    }
+
+    private function normalizeSmsPhone(string $phone): string
+    {
+        $digits = preg_replace('/\D+/', '', $phone) ?: '';
+
+        if (str_starts_with($digits, '00')) {
+            $digits = substr($digits, 2);
+        }
+
+        if (strlen($digits) === 10 && str_starts_with($digits, '05')) {
+            return '966' . substr($digits, 1);
+        }
+
+        if (strlen($digits) === 9 && str_starts_with($digits, '5')) {
+            return '966' . $digits;
+        }
+
+        return formatSaudiPhone($digits);
+    }
+
+    private function isValidSmsPhone(string $phone): bool
+    {
+        return (bool) preg_match('/^\d{8,15}$/', $phone);
     }
 }

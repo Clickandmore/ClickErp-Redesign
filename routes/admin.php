@@ -31,6 +31,9 @@ Route::group(
         Route::get('dashboard-pro', 'admin\\DashboardController@professional')->name('dashboard.professional')->middleware(['admin', 'admin.route.permission']);
         Route::get('dashboard-old', 'admin\\DashboardController@indexOld')->name('dashboard.old')->middleware(['admin', 'admin.route.permission']);
         Route::get('dashboard/employees/{employee}', 'admin\\DashboardController@employeeShow')->name('dashboard.employees.show')->middleware(['admin', 'admin.route.permission']);
+        Route::get('admin/no-permissions', function () {
+            return view('admin.no-permissions');
+        })->name('admin.no-permissions')->middleware('admin');
 //        Route::get('/', 'admin\\auth\AdminController@formLogin')->name("admin.form.login");
         Route::group(["namespace" => "admin\\auth",'prefix' =>"dashboard"], function () {
             Route::get('login', 'AdminController@formLogin')->name("admin.form.login");
@@ -46,11 +49,21 @@ Route::group(
             return redirect()->route('reports.index');
         })->name('dashboard.reports.index');
 
+        Route::get('support/tickets', 'admin\SupportCenterController@tickets')->name('support.tickets');
+        Route::get('support/tickets/create', 'admin\SupportCenterController@createTicket')->name('support.tickets.create');
+        Route::post('support/tickets', 'admin\SupportCenterController@storeTicket')->name('support.tickets.store');
+        Route::delete('support/attachments/{attachment}', 'admin\SupportCenterController@destroyAttachment')->name('support.attachments.destroy');
+        Route::resource('support', 'admin\SupportCenterController')->parameters(['support' => 'article']);
+
         Route::group(["namespace" => "admin"], function () {
 
             Route::group(["namespace" => "auth"], function () {
                 Route::resource('profile', 'ProfileController');
                 Route::resource('change-password', 'ChangePasswordController');
+                Route::post('admins/{id}/reset-password', 'AdminController@resetPassword')->name('admins.reset-password');
+                Route::post('admins/{id}/send-reset-link', 'AdminController@sendResetLink')->name('admins.send-reset-link');
+                Route::post('admins/{id}/terminate-session', 'AdminController@terminateSession')->name('admins.terminate-session');
+                Route::post('admins/{id}/impersonate', 'AdminController@impersonate')->name('admins.impersonate');
                 Route::resource('admins', 'AdminController');
                 Route::post('admins/{id}/toggle-status', 'AdminController@toggleStatus')->name('admins.toggle-status');
                 Route::post('admins/{id}/restore', 'AdminController@restore')->name('admins.restore');

@@ -45,6 +45,7 @@ class Kernel extends HttpKernel
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
             \App\Http\Middleware\PreventBackHistory::class,
+            \App\Http\Middleware\TranslateHardcodedOutput::class,
 //            EnsureCorrectLocaleUrl::class
         ],
 
@@ -86,6 +87,7 @@ class Kernel extends HttpKernel
         'lang' => \App\Http\Middleware\lang::class,
         'RevalidateBackHistory' => RevalidateBackHistory::class,
         'admin.route.permission' => \App\Http\Middleware\EnsureAdminRoutePermission::class,
+        'dev.superadmin' => \App\Http\Middleware\EnsureDevSuperAdmin::class,
         'package.route.permission' => \App\Http\Middleware\EnsurePackageRoutePermission::class,
         'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
         'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,

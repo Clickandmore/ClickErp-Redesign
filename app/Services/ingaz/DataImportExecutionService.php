@@ -2,12 +2,14 @@
 
 namespace App\Services\ingaz;
 
+use App\Enums\ingaz\ContractStatusEnum;
 use App\Models\Contract;
 use App\Models\RentalContract;
 use App\Models\RecruitmentOffices;
 use App\Models\RentalFinancialAdjustment;
 use App\Models\ShelterPlaces;
 use App\Models\SponsorshipTransfer;
+use App\Models\auth\Admin;
 use App\Models\ingaz\JobTitle;
 use App\Models\ingaz\JobType;
 use App\Models\ingaz\Maid;
@@ -25,6 +27,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Nami\Finance\Models\ClientCategory;
+use Nami\Finance\Models\Account;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 
@@ -54,7 +57,7 @@ class DataImportExecutionService
             try {
                 DB::transaction(function () use ($type, $row, $adminId, &$result) {
                     $outcome = match ($type) {
-                        'clients' => $this->importClient($row),
+                        'clients' => $this->importClient($row, $adminId),
                         'rental_maids' => $this->importRentalMaid($row, $adminId),
                         'recruitment_contracts' => $this->importRecruitmentContract($row, $adminId),
                         'shelter_contracts' => $this->importShelterContract($row, $adminId),
@@ -116,18 +119,28 @@ class DataImportExecutionService
         return $rows;
     }
 
-    private function importClient(array $row): string
+    private function importClient(array $row, ?int $adminId): string
     {
         $phone = $this->normalizeSaudiPhone($row['phone'] ?? '');
         $name = trim((string) ($row['name'] ?? ''));
         $idNumber = $this->normalizeIdNumber($row['id_number'] ?? $row['national_num'] ?? null);
+        $databaseId = $this->optionalInteger($row['id'] ?? null);
 
         if (!$phone || $name === '' || $idNumber === '') {
             throw new \InvalidArgumentException('اسم العميل ورقم الجوال ورقم الهوية مطلوبة.');
         }
 
+        $userByDatabaseId = $databaseId ? User::whereKey($databaseId)->first() : null;
         $userById = User::where('national_num', $idNumber)->first();
         $userByPhone = $this->findUserByPhone($phone);
+
+        if ($userByDatabaseId && $userById && (int) $userByDatabaseId->id !== (int) $userById->id) {
+            throw new \InvalidArgumentException('ID العميل ورقم الهوية يعودان لعميلين مختلفين.');
+        }
+
+        if ($userByDatabaseId && $userByPhone && (int) $userByDatabaseId->id !== (int) $userByPhone->id) {
+            throw new \InvalidArgumentException('ID العميل ورقم الجوال يعودان لعميلين مختلفين.');
+        }
 
         if ($userByPhone && $userById && (int) $userByPhone->id !== (int) $userById->id) {
             throw new \InvalidArgumentException('رقم الهوية مستخدم لعميل ورقم الجوال مستخدم لعميل آخر.');
@@ -137,8 +150,11 @@ class DataImportExecutionService
             throw new \InvalidArgumentException('رقم الجوال موجود مسبقاً برقم هوية مختلف.');
         }
 
-        $user = $userById ?: $userByPhone;
+        $user = $userByDatabaseId ?: $userById ?: $userByPhone;
+        $createdBy = $this->resolveAdminId($row['created_by'] ?? null) ?: $adminId;
+        $accountId = $this->resolveAccountId($row['account_id'] ?? null);
         $payload = $this->filterColumns('users', [
+            'id' => $databaseId,
             'name' => $name,
             'phone_code' => '+966',
             'phone' => $phone,
@@ -146,9 +162,11 @@ class DataImportExecutionService
             'national_num' => $idNumber,
             'nationality_id' => $this->resolveCountryId($row['nationality'] ?? null),
             'birthdate' => $this->parseDate($row['birthdate'] ?? null),
+            'marital_status' => $this->normalizeClientMaritalStatus($row['marital_status'] ?? null),
             'phone2' => $this->normalizeOptionalPhone($row['phone2'] ?? null),
             'address' => $row['address'] ?? null,
             'city' => $row['city'] ?? null,
+            'account_id' => $accountId,
             'client_category_id' => $this->resolveClientCategoryId($row['client_category'] ?? null),
             'rooms_num' => $row['rooms_num'] ?? null,
             'family_num' => $row['family_num'] ?? null,
@@ -157,9 +175,11 @@ class DataImportExecutionService
             'password' => Hash::make(Str::random(16)),
             'register_from' => 'data_import',
             'is_blocked' => $this->normalizeStatus($row['status'] ?? null) === 'blocked' ? 1 : 0,
+            'created_by' => $createdBy,
         ]);
 
         if ($user) {
+            unset($payload['id']);
             unset($payload['password']);
             $user->update(array_filter($payload, fn ($value) => $value !== null && $value !== ''));
             return 'updated';
@@ -217,6 +237,14 @@ class DataImportExecutionService
     {
         $user = $this->clientFromRow($row);
         $maid = $this->maidFromRow($row, true);
+        $status = $this->normalizeRecruitmentContractStatus($row['status'] ?? null);
+
+        if (!$status) {
+            throw new \InvalidArgumentException(
+                'حالة عقد الاستقدام مطلوبة ويجب أن تكون إحدى القيم: ' . implode('، ', $this->recruitmentStatusAcceptedLabels()) . '.'
+            );
+        }
+
         $order = $this->ensureOrder($user, $maid, $row);
 
         $contract = $this->findContract($row['contract_number'] ?? null, $maid?->id, $user->id);
@@ -225,7 +253,7 @@ class DataImportExecutionService
             'maid_id' => $maid->id,
             'order_id' => $order?->id,
             'marketer_id' => $adminId,
-            'status' => $this->normalizeContractStatus($row['status'] ?? null),
+            'status' => $status,
             'contract_number' => $row['contract_number'] ?? null,
             'contract_date' => $this->parseDate($row['contract_date'] ?? null),
             'type' => 'recruitment',
@@ -296,6 +324,15 @@ class DataImportExecutionService
 
         $duration = (int) (($row['duration_months'] ?? null) ?: 1);
         $monthly = $this->decimal($row['monthly_amount'] ?? null);
+        $statusValue = $row['status'] ?? null;
+        $status = $this->normalizeRentalStatus($statusValue);
+
+        if (!$status) {
+            throw new \InvalidArgumentException(
+                'حالة عقد التأجير مطلوبة ويجب أن تكون إحدى القيم: ' . implode('، ', $this->rentalStatusAcceptedLabels()) . '.'
+            );
+        }
+
         $payload = [
             'user_id' => $user->id,
             'maid_id' => $maid->id,
@@ -303,7 +340,7 @@ class DataImportExecutionService
             'marketer_id' => $adminId,
             'contract_number' => $number ?: null,
             'contract_date' => $this->parseDate($row['start_date'] ?? null),
-            'status' => $this->normalizeRentalStatus($row['status'] ?? null),
+            'status' => $status,
         ];
 
         $created = false;
@@ -313,6 +350,8 @@ class DataImportExecutionService
             $contract = RentalContract::create($payload);
             $created = true;
         }
+
+        $this->syncRentalClosureType($contract, $statusValue, $status);
 
         $contract->info()->updateOrCreate([], [
             'monthly_cost' => $monthly,
@@ -681,6 +720,63 @@ class DataImportExecutionService
             ->value('id');
     }
 
+    private function resolveAccountId($value): ?int
+    {
+        $id = $this->optionalInteger($value);
+
+        if (!$id || !class_exists(Account::class) || !Schema::hasTable('fn_accounts')) {
+            return null;
+        }
+
+        return Account::query()->whereKey($id)->exists() ? $id : null;
+    }
+
+    private function resolveAdminId($value): ?int
+    {
+        $value = trim((string) $value);
+        if ($value === '') {
+            return null;
+        }
+
+        if (is_numeric($value) && Admin::query()->whereKey((int) $value)->exists()) {
+            return (int) $value;
+        }
+
+        return Admin::query()
+            ->where('name', $value)
+            ->value('id');
+    }
+
+    private function normalizeClientMaritalStatus($value): ?string
+    {
+        $normalized = $this->normalizeArabicText($value);
+
+        if ($normalized === '') {
+            return null;
+        }
+
+        return match ($normalized) {
+            'single', 'اعزب', 'عزباء', 'غير متزوج' => 'single',
+            'married', 'متزوج', 'متزوجه' => 'married',
+            'divorced', 'مطلق', 'مطلقه' => 'divorced',
+            'widowed', 'ارمل', 'ارمله' => 'widowed',
+            default => null,
+        };
+    }
+
+    private function optionalInteger($value): ?int
+    {
+        $value = trim((string) $value);
+
+        if ($value === '' || !is_numeric($value)) {
+            return null;
+        }
+
+        $integer = (int) $value;
+
+        return $integer > 0 ? $integer : null;
+    }
+
     private function resolveClientCategoryId(?string $value): ?int
     {
         $value = trim((string) $value);
@@ -891,22 +987,179 @@ class DataImportExecutionService
 
     private function normalizeContractStatus(?string $status): string
     {
-        return match (trim((string) $status)) {
-            'ساري', 'نشط', 'active' => 'new',
-            'مكتمل', 'completed' => 'completed',
-            'ملغي', 'cancelled' => 'cancelled',
-            default => 'new',
-        };
+        return $this->normalizeRecruitmentContractStatus($status) ?: ContractStatusEnum::New->value;
     }
 
-    private function normalizeRentalStatus(?string $status): string
+    private function normalizeRecruitmentContractStatus(?string $status): ?string
     {
-        return match (trim((string) $status)) {
-            'ساري', 'نشط', 'active' => 'active',
-            'مكتمل', 'completed' => 'completed',
-            'ملغي', 'cancelled' => 'cancelled',
-            default => 'new',
-        };
+        $normalizedStatus = $this->normalizeArabicText($status);
+
+        if ($normalizedStatus === '') {
+            return null;
+        }
+
+        foreach ($this->recruitmentStatusAliases() as $statusKey => $aliases) {
+            if ($normalizedStatus === $this->normalizeArabicText($statusKey)) {
+                return $statusKey;
+            }
+
+            foreach ($aliases as $alias) {
+                if ($normalizedStatus === $this->normalizeArabicText($alias)) {
+                    return $statusKey;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function recruitmentStatusAliases(): array
+    {
+        return [
+            ContractStatusEnum::PendingMaidSelection->value => ['بانتظار اختيار العاملة', 'انتظار اختيار العاملة'],
+            ContractStatusEnum::New->value => ['بانتظار الاعتماد', 'عقود جديدة', 'جديد', 'نشط', 'نشطة', 'ساري', 'سارية', 'active'],
+            ContractStatusEnum::AccreditationContracts->value => ['اعتماد العقود'],
+            ContractStatusEnum::Msaned->value => ['عقود مساند', 'مساند'],
+            ContractStatusEnum::Tafwed->value => ['تفويض', 'التفويض'],
+            ContractStatusEnum::Taffez->value => ['التفييز', 'تفييز'],
+            ContractStatusEnum::Tazker->value => ['تذكرة', 'التذكرة'],
+            ContractStatusEnum::Arrival->value => ['مرحلة الوصول', 'الوصول', 'وصول'],
+            ContractStatusEnum::Completed->value => ['عقد مكتمل', 'مكتمل', 'مكتملة', 'completed'],
+            ContractStatusEnum::Back->value => ['مرتجع', 'راجع'],
+            ContractStatusEnum::Sari->value => ['عقد ساري'],
+            ContractStatusEnum::Shelter->value => ['عقد إيواء', 'عقد ايواء', 'إيواء', 'ايواء'],
+            ContractStatusEnum::Trial->value => ['في فترة التجربة', 'فترة التجربة', 'تجربة'],
+            ContractStatusEnum::InProgress->value => ['مرحلة الاجراءات', 'مرحلة الإجراءات', 'قيد التنفيذ'],
+            ContractStatusEnum::ClientContracted->value => ['تم التعاقد مع العميل', 'التعاقد مع العميل'],
+            ContractStatusEnum::DelegateSelected->value => ['تم اختيار المندوب', 'تم اختيار أحد المندوبين', 'اختيار المندوب'],
+            ContractStatusEnum::UnderWarranty->value => ['تحت الضمان'],
+            ContractStatusEnum::Closed->value => ['عقد مغلق', 'مغلق'],
+            'cancelled' => ['ملغي', 'ملغى', 'ملغية'],
+        ];
+    }
+
+    private function recruitmentStatusAcceptedLabels(): array
+    {
+        return [
+            'بانتظار اختيار العاملة',
+            'بانتظار الاعتماد',
+            'اعتماد العقود',
+            'عقود مساند',
+            'تفويض',
+            'التفييز',
+            'تذكرة',
+            'مرحلة الوصول',
+            'عقد مكتمل',
+            'مرتجع',
+            'عقد ساري',
+            'عقد إيواء',
+            'في فترة التجربة',
+            'مرحلة الاجراءات',
+            'تم التعاقد مع العميل',
+            'تم اختيار المندوب',
+            'تحت الضمان',
+            'عقد مغلق',
+            'ملغي',
+        ];
+    }
+
+    private function normalizeRentalStatus(?string $status): ?string
+    {
+        $normalizedStatus = $this->normalizeArabicText($status);
+
+        if ($normalizedStatus === '') {
+            return null;
+        }
+
+        foreach ($this->rentalStatusAliases() as $statusKey => $aliases) {
+            if ($normalizedStatus === $this->normalizeArabicText($statusKey)) {
+                return $statusKey;
+            }
+
+            foreach ($aliases as $alias) {
+                if ($normalizedStatus === $this->normalizeArabicText($alias)) {
+                    return $statusKey;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private function rentalStatusAliases(): array
+    {
+        return [
+            'new' => ['جديد', 'عقد جديد', 'العقود الجديدة'],
+            'waiting_contract_send' => ['بانتظار التوقيع', 'في انتظار التوقيع', 'انتظار التوقيع'],
+            'contract_sent' => ['تم إرسال العقد', 'تم ارسال العقد', 'مرسل للتوقيع', 'مرسل'],
+            'contract_signed' => ['تم توقيع العقد', 'موقع', 'موقّع'],
+            'maid_delivered' => ['تم تسليم العاملة', 'تسليم العاملة', 'مسلمة'],
+            'active' => ['نشط', 'نشطة', 'ساري', 'سارية', 'العقود النشطة'],
+            'completed' => ['مكتمل', 'مكتملة', 'منتهي', 'منتهية', 'تم النقل', 'منقول', 'مغلق - متاحة', 'متاحة'],
+            'cancelled' => ['ملغي', 'ملغى', 'ملغية', 'العقود الملغية'],
+            'suspended' => ['معلق', 'معلقة'],
+        ];
+    }
+
+    private function rentalStatusAcceptedLabels(): array
+    {
+        return [
+            'جديد',
+            'بانتظار التوقيع',
+            'تم إرسال العقد',
+            'تم توقيع العقد',
+            'تم تسليم العاملة',
+            'نشط',
+            'مكتمل',
+            'تم النقل',
+            'ملغي',
+            'معلق',
+        ];
+    }
+
+    private function syncRentalClosureType(RentalContract $contract, ?string $statusValue, string $status): void
+    {
+        if (!Schema::hasColumn('rental_contracts', 'closure_type')) {
+            return;
+        }
+
+        $closureType = $this->normalizeRentalClosureType($statusValue);
+
+        if ($closureType) {
+            $payload = ['closure_type' => $closureType];
+
+            if (Schema::hasColumn('rental_contracts', 'closed_at')) {
+                $payload['closed_at'] = now();
+            }
+
+            $contract->forceFill($payload)->save();
+            return;
+        }
+
+        if ($status !== 'completed' && filled($contract->closure_type)) {
+            $payload = ['closure_type' => null];
+
+            if (Schema::hasColumn('rental_contracts', 'closed_at')) {
+                $payload['closed_at'] = null;
+            }
+
+            $contract->forceFill($payload)->save();
+        }
+    }
+
+    private function normalizeRentalClosureType(?string $status): ?string
+    {
+        $normalizedStatus = $this->normalizeArabicText($status);
+
+        if (in_array($normalizedStatus, ['transferred', 'تم النقل', 'منقول', 'نقل الكفاله'], true)) {
+            return 'transferred';
+        }
+
+        if (in_array($normalizedStatus, ['available', 'متاحه', 'مغلق متاحه', 'مكتمل متاحه'], true)) {
+            return 'available';
+        }
+
+        return null;
     }
 
     private function normalizeTransferStatus(?string $status): string
@@ -960,6 +1213,15 @@ class DataImportExecutionService
     private function cellCoordinate(int $column, int $row): string
     {
         return \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($column) . $row;
+    }
+
+    private function normalizeArabicText(?string $value): string
+    {
+        $value = mb_strtolower(trim((string) $value));
+        $value = str_replace(['أ', 'إ', 'آ', 'ى', 'ة', 'ـ'], ['ا', 'ا', 'ا', 'ي', 'ه', ''], $value);
+        $value = preg_replace('/[^\p{L}\p{N}_]+/u', ' ', $value);
+
+        return trim(preg_replace('/\s+/u', ' ', $value));
     }
 
     private function normalizeHeader(string $value): string

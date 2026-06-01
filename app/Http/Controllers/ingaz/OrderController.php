@@ -19,6 +19,8 @@ use App\Models\ingaz\OrderTransfers;
 use App\Models\ingaz\Religion;
 use App\Models\ingaz\User;
 use App\Models\ingaz\UserAddress;
+use App\Models\Contract;
+use App\Models\MaidUnavailableRecord;
 use App\Support\AutomationSettings;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -234,6 +236,8 @@ class OrderController extends Controller
                     return '<span class="text-info">' . ($row->resolveResponsibleAdmin()?->name ?? '-') . '</span>';
                 })
                 ->addColumn('actions', function ($row) {
+                    $isCompletedOrder = $this->isCompletedOrder($row);
+
                     $actions = ' <div class="dropdown actions-dropdown">
                                     <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" aria-expanded="false" title="الإجراءات المتاحة">
                                         <i class="fas fa-cogs me-1"></i> الإجراءات
@@ -255,8 +259,8 @@ class OrderController extends Controller
                         </button></li>';
                     }
 
-                    // Add Contract button only for "under process" orders
-                    if ($row->status == OrderEnum::UnderProcess->value) {
+                    // Add Contract button for open orders and legacy ended orders that still have no contract.
+                    if ($this->canAddRecruitmentContract($row)) {
                         $actions .= '<li><button class="dropdown-item addNewContract" data-id="' . $row->id . '">
                             <i class="fa fa-plus"></i> إضافة عقد
                         </button></li>';
@@ -270,14 +274,14 @@ class OrderController extends Controller
                     }
 
                     // Change Responsible Employee button
-                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT)) {
+                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT) && !$isCompletedOrder) {
                         $actions .= '<li><button class="dropdown-item change-responsible" data-id="' . $row->id . '">
                             <i class="fa fa-user-secret"></i> تغيير الموظف المسؤول
                         </button></li>';
                     }
 
                     // Refuse/Return button for new and under_process orders
-                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT)) {
+                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT) && !$isCompletedOrder) {
                         if (in_array($row->status, [OrderEnum::New->value, OrderEnum::UnderProcess->value])) {
                             $actions .= '<li><button class="dropdown-item refuse-order" data-id="' . $row->id . '">
                                 <i class="fa fa-times"></i> رفض/إرجاع الطلب
@@ -286,7 +290,7 @@ class OrderController extends Controller
                     }
 
                     // Delete button
-                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_DELETE)) {
+                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_DELETE) && !$isCompletedOrder) {
                         $actions .= '<li><hr class="dropdown-divider"></li>
                         <li><button class="dropdown-item delete-order" data-id="' . $row->id . '">
                             <i class="fa fa-trash"></i> حذف الطلب
@@ -444,6 +448,55 @@ class OrderController extends Controller
         return preg_match('/^5\d{8}$/', $digits) ? $digits : null;
     }
 
+    private function isCompletedOrder(Order $order): bool
+    {
+        return in_array($order->status, [
+            OrderEnum::Completed->value,
+            OrderEnum::Done->value,
+        ], true);
+    }
+
+    private function completedOrderLockedResponse()
+    {
+        return jsonError('لا يمكن تعديل المسؤول أو حذف أو إلغاء الطلب المكتمل.', 403);
+    }
+
+    private function hasRecruitmentContract(Order $order): bool
+    {
+        if ($order->relationLoaded('contracts')) {
+            return $order->contracts->isNotEmpty();
+        }
+
+        return $order->contracts()->exists();
+    }
+
+    private function requiresRecruitmentContract(string $status): bool
+    {
+        return in_array($status, [
+            OrderEnum::Contracted->value,
+            OrderEnum::ContractedWithoutContract->value,
+            OrderEnum::Completed->value,
+            OrderEnum::Done->value,
+        ], true);
+    }
+
+    private function canAddRecruitmentContract(Order $order): bool
+    {
+        return !$this->hasRecruitmentContract($order)
+            && in_array($order->status, [
+                OrderEnum::UnderProcess->value,
+                OrderEnum::Contracted->value,
+                OrderEnum::ContractedWithoutContract->value,
+                OrderEnum::Completed->value,
+                OrderEnum::Done->value,
+            ], true);
+    }
+
+    private function contractRequiredResponse()
+    {
+        return jsonError('لا يمكن تحويل الطلب إلى حالة منتهية بدون إنشاء عقد. الرجاء إضافة عقد أو رفض الطلب.', 422);
+    }
+
     public function edit(Request $request, $id)
     {
         if ($request->ajax()) {
@@ -487,6 +540,14 @@ class OrderController extends Controller
 
             $order = Order::findOrFail($id);
             $newStatus = $validated['status'];
+
+            if ($this->isCompletedOrder($order) && $newStatus !== $order->status) {
+                return $this->completedOrderLockedResponse();
+            }
+
+            if ($this->requiresRecruitmentContract($newStatus) && !$this->hasRecruitmentContract($order)) {
+                return $this->contractRequiredResponse();
+            }
 
             \Log::info('Update order request', [
                 'order_id' => $id,
@@ -555,6 +616,9 @@ class OrderController extends Controller
         $order = Order::withTrashed()->findOrFail($id);
         if (!$order) {
             return jsonError(__('index.order_not_found'), 404);
+        }
+        if ($this->isCompletedOrder($order)) {
+            return $this->completedOrderLockedResponse();
         }
         if ($order->trashed()) {
             $order->forceDelete();
@@ -698,7 +762,7 @@ class OrderController extends Controller
 
     public function showSingleOrder($orderId)
     {
-        $data = Order::with([
+        $data = Order::withTrashed()->with([
             'user.nationality',
             'maid.nationality',
             'maid.religion',
@@ -723,7 +787,7 @@ class OrderController extends Controller
 
     public function show($orderId)
     {
-        $data = Order::with([
+        $data = Order::withTrashed()->with([
             'user.nationality',
             'maid.nationality',
             'maid.religion',
@@ -834,7 +898,7 @@ class OrderController extends Controller
             $request->validate([
                 'maid_id' => 'required|exists:maids,id',
                 'old_maid_status' => 'required|in:available,backout',
-                'reason' => 'nullable|string|max:500'
+                'reason' => 'required_if:old_maid_status,backout|nullable|string|max:1000'
             ]);
 
             $newMaidId = $request->maid_id;
@@ -851,6 +915,25 @@ class OrderController extends Controller
                 ], 400);
             }
 
+            $hasActiveContract = Contract::where('maid_id', $newMaidId)
+                ->whereIn('status', [
+                    'pending_maid_selection',
+                    'new',
+                    'msaned',
+                    'tafwed',
+                    'taffez',
+                    'tazker',
+                    'arrival',
+                ])
+                ->exists();
+
+            if ($hasActiveContract) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'العاملة المختارة لها عقد نشط ولا يمكن استخدامها'
+                ], 400);
+            }
+
             // Check if maid is already assigned to another active order
             $existingOrder = Order::where('maid_id', $newMaidId)
                 ->where('id', '!=', $id)
@@ -864,11 +947,18 @@ class OrderController extends Controller
                 ], 400);
             }
 
+            $oldMaid = $order->maid;
+            if (!$oldMaid) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا توجد عاملة حالية مرتبطة بهذا الطلب'
+                ], 400);
+            }
+
             \DB::beginTransaction();
 
             try {
                 // Save old maid info
-                $oldMaid = $order->maid;
                 $oldMaidId = $oldMaid->id;
 
                 \Log::info('Changing maid in order', [
@@ -877,12 +967,6 @@ class OrderController extends Controller
                     'new_maid_id' => $newMaidId,
                     'old_maid_status' => $oldMaidStatus,
                     'reason' => $reason
-                ]);
-
-                // Update old maid status
-                $oldMaid->update([
-                    'status' => $oldMaidStatus,
-                    'available' => ($oldMaidStatus === 'available') ? true : false
                 ]);
 
                 // Update order with new maid
@@ -895,6 +979,47 @@ class OrderController extends Controller
                     'status' => 'reserved',
                     'available' => false
                 ]);
+
+                if ($oldMaidStatus === 'backout') {
+                    $oldMaid->update([
+                        'status' => 'backout',
+                        'available' => false,
+                        'back_out_reason' => $reason,
+                    ]);
+
+                    MaidUnavailableRecord::create([
+                        'maid_id' => $oldMaidId,
+                        'reason' => $reason,
+                        'admin_id' => auth()->guard('admin')->id() ?: auth()->id(),
+                    ]);
+                } else {
+                    $oldMaidHasActiveOrder = Order::where('maid_id', $oldMaidId)
+                        ->whereIn('status', [
+                            OrderEnum::New->value,
+                            OrderEnum::UnderProcess->value,
+                            OrderEnum::Contracted->value,
+                            OrderEnum::ContractedWithoutContract->value,
+                        ])
+                        ->exists();
+
+                    $oldMaidHasActiveContract = Contract::where('maid_id', $oldMaidId)
+                        ->whereIn('status', [
+                            'pending_maid_selection',
+                            'new',
+                            'msaned',
+                            'tafwed',
+                            'taffez',
+                            'tazker',
+                            'arrival',
+                        ])
+                        ->exists();
+
+                    $oldMaid->update([
+                        'status' => ($oldMaidHasActiveOrder || $oldMaidHasActiveContract) ? 'reserved' : 'available',
+                        'available' => !($oldMaidHasActiveOrder || $oldMaidHasActiveContract),
+                        'back_out_reason' => null,
+                    ]);
+                }
 
                 \Log::info('Maid changed in order successfully', [
                     'order_id' => $id,
@@ -939,7 +1064,7 @@ class OrderController extends Controller
                 throw $e;
             }
         } catch (\Exception $e) {
-            return jsonError(['message' => 'An error occurred while changing the maid']);
+            return jsonError('حدث خطأ أثناء تغيير العاملة', 500);
         }
     }
 
@@ -949,6 +1074,10 @@ class OrderController extends Controller
             // Get order ID from either route parameter or request
             $orderId = $id ?? $request->order_id;
             $order = Order::findOrFail($orderId);
+
+            if ($this->isCompletedOrder($order)) {
+                return $this->completedOrderLockedResponse();
+            }
 
             // Get customer service admins only
             $admin = \App\Models\auth\Admin::where('id', $request->admin_id)
@@ -988,6 +1117,10 @@ class OrderController extends Controller
             ]);
 
             $order = Order::findOrFail($id);
+            if ($this->isCompletedOrder($order)) {
+                return $this->completedOrderLockedResponse();
+            }
+
             $order->status = $validated['action'];
             $order->status_changed_at = now();
             $order->refuse_reason = $this->resolveRefuseReason($validated['reason'] ?? null, $validated['action']);
@@ -1447,6 +1580,20 @@ class OrderController extends Controller
     {
         try {
             $order = objModel::findOrFail($id);
+
+            if ($this->isCompletedOrder($order) && $request->status !== $order->status) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن تعديل المسؤول أو حذف أو إلغاء الطلب المكتمل.'
+                ], 403);
+            }
+
+            if ($this->requiresRecruitmentContract((string) $request->status) && !$this->hasRecruitmentContract($order)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن تحويل الطلب إلى حالة منتهية بدون إنشاء عقد. الرجاء إضافة عقد أو رفض الطلب.'
+                ], 422);
+            }
 
             // التحقق من أن الحالة الجديدة صحيحة
             $validStatuses = ['new', 'paid', 'started', 'completed', 'done', 'refused', 'canceled'];

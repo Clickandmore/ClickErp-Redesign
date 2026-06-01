@@ -27,7 +27,7 @@ class AccountRequest extends MainRequest
     {
         return [
             'name' => 'required|unique:fn_accounts,name',
-            'code' => 'required|numeric',
+            'code' => 'nullable|numeric',
             'status' => 'required|in:debtor,creditor',
             'parent_id' => 'nullable',
             'type' => 'nullable',
@@ -39,7 +39,7 @@ class AccountRequest extends MainRequest
     {
         return [
             'name' => 'required',
-            'code' => 'required|numeric',
+            'code' => 'nullable|numeric',
             'status' => 'required|in:debtor,creditor',
             'parent_id' => 'nullable',
             'type' => 'nullable',

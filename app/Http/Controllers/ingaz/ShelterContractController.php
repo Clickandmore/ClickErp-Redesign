@@ -1018,6 +1018,19 @@ class ShelterContractController extends Controller
     public function store(ShelterContactStore $request)
     {
         $contract = Contract::with(['maid.nationality', 'user', 'info'])->find($request->contract_id);
+
+        if (
+            !$contract ||
+            !in_array($contract->status, [
+                ContractStatusEnum::Arrival->value,
+                ContractStatusEnum::Completed->value,
+                ContractStatusEnum::UnderWarranty->value,
+                ContractStatusEnum::Closed->value,
+            ], true)
+        ) {
+            return jsonError('لا يمكن إضافة هذا العقد للإيواء. العقود المسموح بها هي عقود الوصول أو العقود المكتملة فقط.', 422);
+        }
+
         $wantsToWork = $request->input('wants_to_work') ?: 'unknown';
         $displayOnSite = $wantsToWork === 'yes' && $request->boolean('is_available_for_instant');
         $existingAttachments = $contract->info ? ($contract->info->shelter_attachments ?? []) : [];

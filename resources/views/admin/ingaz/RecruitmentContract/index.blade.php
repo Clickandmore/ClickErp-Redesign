@@ -89,6 +89,10 @@
             background: linear-gradient(135deg, #f0fdf4, #dcfce7);
         }
 
+        .stat-card-shelter {
+            background: linear-gradient(135deg, #eef2ff, #e0f2fe);
+        }
+
         .stat-card-arrival {
             background: linear-gradient(135deg, #ecfdf5, #d1fae5);
         }
@@ -139,6 +143,10 @@
 
         .stat-card-completed .stat-icon {
             background: #16a34a;
+        }
+
+        .stat-card-shelter .stat-icon {
+            background: #4f46e5;
         }
 
         .stat-card-arrival .stat-icon {
@@ -278,7 +286,7 @@
                 'tazker',
                 'sari',
             ]);
-            $showCompletedStatsInitially = !$requestedStatus || in_array($requestedStatus, ['completed_stage', 'completed', 'arrival']);
+            $showCompletedStatsInitially = !$requestedStatus || in_array($requestedStatus, ['completed_stage', 'completed', 'arrival', 'shelter']);
         @endphp
 
         <!-- Header Section -->
@@ -288,6 +296,10 @@
                 {{ helperTrans('ingaz.All Recruitment contracts') }}
             </h3>
             <div class="d-flex flex-wrap gap-2">
+                <a href="{{ route('musaned-transfers.create') }}" class="btn btn-outline-info">
+                    <i class="fas fa-money-bill-transfer me-2"></i>
+                    تسجيل تحويل مساند
+                </a>
                 <a href="{{ route('RecruitmentContract.externalOfficeDispatch.index') }}" class="btn btn-outline-primary">
                     <i class="fas fa-paper-plane me-2"></i>
                     إرسالات المكتب الخارجي
@@ -444,6 +456,18 @@
                                         <div class="stat-body">
                                             <div class="stat-title">مكتمل منتهي الضمان</div>
                                             <div class="stat-value" data-stat-key="warranty_expired">0</div>
+                                        </div>
+                                    </button>
+                                </div>
+                                <div class="col-12 col-md-6 col-lg-3">
+                                    <button type="button" class="stat-card stat-filter stat-card-shelter"
+                                        data-status="shelter">
+                                        <div class="stat-icon">
+                                            <i class="fas fa-house-user"></i>
+                                        </div>
+                                        <div class="stat-body">
+                                            <div class="stat-title">عقود الإيواء</div>
+                                            <div class="stat-value" data-stat-key="stage_shelter">0</div>
                                         </div>
                                     </button>
                                 </div>
@@ -1191,7 +1215,7 @@
                 const currentStatuses = ['current', 'pending_maid_selection', 'new', 'msaned', 'tafwed', 'taffez',
                     'tazker', 'sari', 'accreditation_contracts'
                 ];
-                const completedStatuses = ['completed_stage', 'completed', 'arrival'];
+                const completedStatuses = ['completed_stage', 'completed', 'arrival', 'shelter'];
 
                 if (!statusValue) {
                     $('#currentStatsSection').show();
@@ -2158,10 +2182,82 @@
             });
 
             // معالج زر الإرجاع من عمود المرحلة التالية
+            var pendingBackContractId = null;
+            var pendingBackTargetLabel = null;
+
+            function backContract(rowId, targetLabel) {
+                pendingBackContractId = rowId;
+                pendingBackTargetLabel = targetLabel || '';
+
+                var message = pendingBackTargetLabel
+                    ? 'هل أنت متأكد من إرجاع هذا العقد إلى مرحلة ' + escapeHtml(pendingBackTargetLabel) + '؟'
+                    : 'هل أنت متأكد من إرجاع هذا العقد؟';
+
+                $('#confirmBackModal .modal-body .alert').html(
+                    '<i class="fas fa-exclamation-triangle me-2"></i>' + message
+                );
+                $('#confirmBackModal').modal('show');
+            }
+
             $(document).on('click', '.backContract', function() {
                 var rowId = $(this).data('row-id');
                 var targetLabel = $(this).data('target-label');
                 backContract(rowId, targetLabel);
+            });
+
+            $('#confirmBackBtn').click(function() {
+                if (!pendingBackContractId) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'خطأ',
+                        text: 'لم يتم العثور على معرف العقد'
+                    });
+                    return;
+                }
+
+                var button = $(this);
+                var originalHtml = button.html();
+
+                button.prop('disabled', true).html('<i class="fa fa-spinner fa-spin me-1"></i> جاري الإرجاع...');
+
+                $.ajax({
+                    url: '{{ route('RecruitmentContract.back', ':rowId') }}'.replace(':rowId', pendingBackContractId),
+                    method: 'GET',
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'تم الإرجاع',
+                                text: response.message
+                            }).then(function() {
+                                $('#confirmBackModal').modal('hide');
+                                pendingBackContractId = null;
+                                pendingBackTargetLabel = null;
+                                dataTable.ajax.reload(null, false);
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'خطأ',
+                                text: response.message || 'تعذر إرجاع العقد'
+                            });
+                        }
+                    },
+                    error: function(xhr) {
+                        var message = xhr.responseJSON && xhr.responseJSON.message
+                            ? xhr.responseJSON.message
+                            : 'حدث خطأ أثناء إرجاع العقد';
+
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'خطأ',
+                            text: message
+                        });
+                    },
+                    complete: function() {
+                        button.prop('disabled', false).html(originalHtml);
+                    }
+                });
             });
 
             // معالج زر تحديث الحالة
@@ -2400,6 +2496,60 @@
                             }
                         });
                     }
+                });
+            });
+
+            $(document).on('click', '.cancel-travel-btn', function(e) {
+                e.preventDefault();
+
+                var tripId = $(this).data('trip-id');
+                if (!tripId) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'خطأ',
+                        text: 'لم يتم العثور على معرف الرحلة'
+                    });
+                    return;
+                }
+
+                Swal.fire({
+                    title: 'إلغاء الرحلة',
+                    text: 'سيتم إلغاء الرحلة فقط دون تغيير حالة العقد أو القيود المالية المرتبطة به.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'نعم، إلغاء الرحلة',
+                    cancelButtonText: 'تراجع'
+                }).then(function(result) {
+                    if (!result.isConfirmed) {
+                        return;
+                    }
+
+                    $.ajax({
+                        url: '{{ route('travel.delete', ':tripId') }}'.replace(':tripId', tripId),
+                        type: 'POST',
+                        data: {
+                            _token: '{{ csrf_token() }}',
+                            _method: 'DELETE'
+                        },
+                        success: function() {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'تم الإلغاء',
+                                text: 'تم إلغاء الرحلة بنجاح'
+                            }).then(function() {
+                                dataTable.ajax.reload(null, false);
+                            });
+                        },
+                        error: function(xhr) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'خطأ',
+                                text: xhr.responseJSON?.message || 'حدث خطأ أثناء إلغاء الرحلة'
+                            });
+                        }
+                    });
                 });
             });
 

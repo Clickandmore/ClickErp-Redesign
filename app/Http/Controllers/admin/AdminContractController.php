@@ -135,22 +135,31 @@ class AdminContractController extends Controller
                 'user.nationality',
                 'maid.nationality.translations',
                 'maid.religion.translations',
-                'info',
+                'info.package',
                 'marketer'
             ])->findOrFail($contractId);
 
                         // Get settings for contract printing
+            $defaultContractSettings = [
+                'license_number' => '4001772',
+                'license_date' => '2022-10-13',
+                'commercial_register' => '1010601958',
+                'commercial_date' => '1441-03-03',
+                'city' => 'الرياض',
+            ];
             $contractSettings = [];
             $settingKeys = [
                 'company_name', 'license_number', 'license_date', 'commercial_register',
                 'commercial_date', 'city', 'address', 'po_box', 'postal_code',
                 'phone', 'mobile', 'fax', 'email', 'default_trial_period',
-                'default_working_hours', 'daily_deduction', 'notice_period', 'logo'
+                'default_working_hours', 'daily_deduction', 'notice_period', 'logo',
+                'company_signature'
             ];
 
             foreach ($settingKeys as $key) {
                 $setting = Setting::where('key', 'rent_contract_' . $key)->first();
-                $contractSettings[$key] = $setting ? $setting->value : null;
+                $value = $setting ? trim((string) $setting->value) : '';
+                $contractSettings[$key] = $value !== '' ? $value : ($defaultContractSettings[$key] ?? null);
             }
 
             $contractSettings['company_name'] = documentSetting(
@@ -160,7 +169,7 @@ class AdminContractController extends Controller
             $contractSettings['address'] = $contractSettings['address'] ?: documentSetting('location', 'الرياض');
             $contractSettings['phone'] = $contractSettings['phone'] ?: documentSetting('phone', '');
             $contractSettings['email'] = $contractSettings['email'] ?: documentSetting('email', '');
-            $contractSettings['logo'] = documentSetting('document_logo', $contractSettings['logo'] ?? null);
+            $contractSettings['logo'] = $contractSettings['logo'] ?: null;
 
             // Get all active terms from the same source used by the admin editor.
             $termsByPage = RentalContractTerm::active()

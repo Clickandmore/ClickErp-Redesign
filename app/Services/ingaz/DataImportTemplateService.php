@@ -22,14 +22,17 @@ class DataImportTemplateService
                 'description' => 'بيانات العملاء الأساسية. رقم الهوية مطلوب وغير مكرر ويستخدم للربط مع الطلبات والعقود.',
                 'filename' => 'clients-import-template.xlsx',
                 'columns' => [
+                    ['key' => 'id', 'label' => 'ID', 'required' => false, 'example' => '172'],
                     ['key' => 'name', 'label' => 'اسم العميل', 'required' => true, 'example' => 'محمد أحمد علي'],
                     ['key' => 'phone', 'label' => 'رقم الجوال', 'required' => true, 'example' => '0500000000'],
                     ['key' => 'id_number', 'label' => 'رقم الهوية/الإقامة', 'required' => true, 'example' => '1000000000'],
                     ['key' => 'email', 'label' => 'البريد الإلكتروني', 'required' => false, 'example' => 'client@example.com'],
                     ['key' => 'nationality', 'label' => 'الجنسية', 'required' => false, 'example' => 'سعودي'],
                     ['key' => 'birthdate', 'label' => 'تاريخ الميلاد', 'required' => false, 'example' => '1990-01-01'],
+                    ['key' => 'marital_status', 'label' => 'الحالة الاجتماعية', 'required' => false, 'example' => 'متزوج', 'valid_values' => ['أعزب', 'متزوج', 'مطلق', 'أرمل', 'single', 'married', 'divorced', 'widowed']],
                     ['key' => 'phone2', 'label' => 'رقم جوال إضافي', 'required' => false, 'example' => '0550000000'],
                     ['key' => 'client_category', 'label' => 'تصنيف العميل', 'required' => false, 'example' => 'أفراد'],
+                    ['key' => 'account_id', 'label' => 'Account ID', 'required' => false, 'example' => '1001'],
                     ['key' => 'city', 'label' => 'المدينة', 'required' => false, 'example' => 'الرياض'],
                     ['key' => 'address', 'label' => 'العنوان', 'required' => false, 'example' => 'حي الياسمين'],
                     ['key' => 'rooms_num', 'label' => 'عدد الغرف', 'required' => false, 'example' => '4'],
@@ -37,6 +40,7 @@ class DataImportTemplateService
                     ['key' => 'children', 'label' => 'عدد الأطفال', 'required' => false, 'example' => '2'],
                     ['key' => 'job', 'label' => 'الوظيفة', 'required' => false, 'example' => 'موظف'],
                     ['key' => 'status', 'label' => 'الحالة', 'required' => false, 'example' => 'نشط'],
+                    ['key' => 'created_by', 'label' => 'أضيف بواسطة', 'required' => false, 'example' => '1'],
                     ['key' => 'notes', 'label' => 'ملاحظات', 'required' => false, 'example' => 'عميل مستورد من ملف خارجي'],
                 ],
             ],
@@ -97,7 +101,7 @@ class DataImportTemplateService
                 'label' => 'عقود الاستقدام',
                 'route_hint' => '/admin/RecruitmentContract',
                 'icon' => 'fas fa-file-signature',
-                'description' => 'العقود السارية أو المكتملة مع بيانات العميل والعاملة.',
+                'description' => 'عقود الاستقدام مع بيانات العميل والعاملة ومرحلة العقد الحالية.',
                 'filename' => 'recruitment-contracts-import-template.xlsx',
                 'columns' => [
                     ['key' => 'contract_number', 'label' => 'رقم العقد', 'required' => false, 'example' => 'RC-0001'],
@@ -107,7 +111,7 @@ class DataImportTemplateService
                     ['key' => 'maid_passport', 'label' => 'رقم جواز العاملة', 'required' => true, 'example' => 'P0000001'],
                     ['key' => 'nationality', 'label' => 'الجنسية', 'required' => false, 'example' => 'الفلبين'],
                     ['key' => 'contract_date', 'label' => 'تاريخ العقد', 'required' => true, 'example' => now()->format('Y-m-d')],
-                    ['key' => 'status', 'label' => 'حالة العقد', 'required' => true, 'example' => 'ساري'],
+                    ['key' => 'status', 'label' => 'حالة العقد', 'required' => true, 'example' => 'عقود مساند', 'valid_values' => $this->recruitmentContractStatusLabels()],
                     ['key' => 'amount', 'label' => 'قيمة العقد', 'required' => false, 'example' => '12000'],
                     ['key' => 'paid_amount', 'label' => 'المدفوع', 'required' => false, 'example' => '5000'],
                     ['key' => 'notes', 'label' => 'ملاحظات', 'required' => false, 'example' => 'عقد مستورد'],
@@ -149,7 +153,7 @@ class DataImportTemplateService
                     ['key' => 'end_date', 'label' => 'تاريخ النهاية', 'required' => false, 'example' => now()->addMonth()->format('Y-m-d')],
                     ['key' => 'duration_months', 'label' => 'المدة بالأشهر', 'required' => false, 'example' => '1'],
                     ['key' => 'monthly_amount', 'label' => 'المبلغ الشهري', 'required' => false, 'example' => '2500'],
-                    ['key' => 'status', 'label' => 'حالة العقد', 'required' => true, 'example' => 'ساري'],
+                    ['key' => 'status', 'label' => 'حالة العقد', 'required' => true, 'example' => 'نشط', 'valid_values' => $this->rentalContractStatusLabels()],
                     ['key' => 'notes', 'label' => 'ملاحظات', 'required' => false, 'example' => 'عقد تأجير مستورد'],
                 ],
             ],
@@ -177,6 +181,47 @@ class DataImportTemplateService
     public function template(string $type): ?array
     {
         return $this->templates()[$type] ?? null;
+    }
+
+    private function recruitmentContractStatusLabels(): array
+    {
+        return [
+            'بانتظار اختيار العاملة',
+            'بانتظار الاعتماد',
+            'اعتماد العقود',
+            'عقود مساند',
+            'تفويض',
+            'التفييز',
+            'تذكرة',
+            'مرحلة الوصول',
+            'عقد مكتمل',
+            'مرتجع',
+            'عقد ساري',
+            'عقد إيواء',
+            'في فترة التجربة',
+            'مرحلة الاجراءات',
+            'تم التعاقد مع العميل',
+            'تم اختيار المندوب',
+            'تحت الضمان',
+            'عقد مغلق',
+            'ملغي',
+        ];
+    }
+
+    private function rentalContractStatusLabels(): array
+    {
+        return [
+            'جديد',
+            'بانتظار التوقيع',
+            'تم إرسال العقد',
+            'تم توقيع العقد',
+            'تم تسليم العاملة',
+            'نشط',
+            'مكتمل',
+            'تم النقل',
+            'ملغي',
+            'معلق',
+        ];
     }
 
     public function createTemplateDownloadResponse(string $type)
@@ -218,7 +263,21 @@ class DataImportTemplateService
         $instructions->setCellValue('A2', $template['description']);
         $instructions->setCellValue('A3', 'لا تغير أسماء الأعمدة. استخدم الصف الثاني كمثال، واحذف أو عدل البيانات قبل الرفع.');
         $instructions->setCellValue('A4', 'الصف الثالث يوضح هل الحقل مطلوب أو اختياري.');
-        $instructions->getStyle('A1:A4')->getAlignment()->setWrapText(true);
+
+        $instructionRow = 5;
+        foreach ($template['columns'] as $column) {
+            if (empty($column['valid_values'])) {
+                continue;
+            }
+
+            $instructions->setCellValue(
+                "A{$instructionRow}",
+                ($column['label'] ?? $column['key']) . ': ' . implode('، ', $column['valid_values'])
+            );
+            $instructionRow++;
+        }
+
+        $instructions->getStyle('A1:A' . max(4, $instructionRow - 1))->getAlignment()->setWrapText(true);
         $instructions->getColumnDimension('A')->setWidth(90);
 
         $spreadsheet->setActiveSheetIndex(0);

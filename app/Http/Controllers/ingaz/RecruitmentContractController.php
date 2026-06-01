@@ -105,6 +105,24 @@ class RecruitmentContractController extends Controller
         ]);
     }
 
+    private function contractableRecruitmentOrderStatuses(): array
+    {
+        return [
+            OrderEnum::UnderProcess->value,
+            OrderEnum::Contracted->value,
+            OrderEnum::ContractedWithoutContract->value,
+            OrderEnum::Completed->value,
+            OrderEnum::Done->value,
+        ];
+    }
+
+    private function canCreateContractForOrder(Order $order): bool
+    {
+        return $order->job_type_id == 1
+            && in_array($order->status, $this->contractableRecruitmentOrderStatuses(), true)
+            && !$order->contracts()->exists();
+    }
+
     private function getManualStatusTransition(?string $status): ?array
     {
         return match ($status) {
@@ -252,6 +270,100 @@ class RecruitmentContractController extends Controller
             'action_type' => 'status_update',
             'action_text' => $transitionContext['next_status_text'],
         ]);
+    }
+
+    private function findClientByPhone(?string $phone): ?User
+    {
+        $phoneCandidates = $this->phoneCandidates($phone);
+
+        if (empty($phoneCandidates)) {
+            return null;
+        }
+
+        return User::whereIn('phone', $phoneCandidates)->first();
+    }
+
+    private function phoneCandidates(?string $phone): array
+    {
+        $phone = trim((string) $phone);
+        $normalizedPhone = $this->normalizeSaudiPhone($phone);
+
+        return array_values(array_unique(array_filter([
+            $phone,
+            $normalizedPhone,
+            $normalizedPhone ? '0' . $normalizedPhone : null,
+            $normalizedPhone ? '966' . $normalizedPhone : null,
+            $normalizedPhone ? '+966' . $normalizedPhone : null,
+        ])));
+    }
+
+    private function normalizeSaudiPhone(string $phone): ?string
+    {
+        $digits = preg_replace('/\D+/', '', $phone);
+
+        if (!$digits) {
+            return null;
+        }
+
+        if (str_starts_with($digits, '00966')) {
+            $digits = substr($digits, 5);
+        } elseif (str_starts_with($digits, '966')) {
+            $digits = substr($digits, 3);
+        }
+
+        if (str_starts_with($digits, '05')) {
+            $digits = substr($digits, 1);
+        }
+
+        return preg_match('/^5\d{8}$/', $digits) ? $digits : null;
+    }
+
+    private function buildTravelManagementActions(TravelHistory $travelHistory, string $context = 'buttons'): string
+    {
+        $canEditTravel = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_EDIT_TRAVEL)
+            && @AdminGuardHasPerm(\App\PermKeys::TRAVEL_EDIT);
+        $canDeleteTravel = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_DELETE_TRAVEL)
+            && @AdminGuardHasPerm(\App\PermKeys::TRAVEL_DELETE);
+
+        if (!$canEditTravel && !$canDeleteTravel) {
+            return '';
+        }
+
+        if ($context === 'dropdown') {
+            $html = '';
+
+            if ($canEditTravel) {
+                $html .= '<li><a class="dropdown-item" href="' . e(route('travel.edit', $travelHistory->id)) . '">
+                            <i class="fas fa-edit"></i> تعديل الرحلة
+                        </a></li>';
+            }
+
+            if ($canDeleteTravel) {
+                $html .= '<li><button type="button" class="dropdown-item text-danger cancel-travel-btn" data-trip-id="' . $travelHistory->id . '">
+                            <i class="fas fa-ban"></i> إلغاء الرحلة
+                        </button></li>';
+            }
+
+            return $html;
+        }
+
+        $html = '<div class="btn-group btn-group-sm travel-management-actions" role="group" aria-label="إدارة الرحلة">';
+
+        if ($canEditTravel) {
+            $html .= '<a class="btn btn-outline-primary btn-action" href="' . e(route('travel.edit', $travelHistory->id)) . '" title="تعديل الرحلة">
+                        <i class="fas fa-edit me-1"></i>تعديل الرحلة
+                    </a>';
+        }
+
+        if ($canDeleteTravel) {
+            $html .= '<button type="button" class="btn btn-outline-danger btn-action cancel-travel-btn" data-trip-id="' . $travelHistory->id . '" title="إلغاء الرحلة دون تغيير حالة العقد أو القيود المالية">
+                        <i class="fas fa-ban me-1"></i>إلغاء الرحلة
+                    </button>';
+        }
+
+        $html .= '</div>';
+
+        return $html;
     }
 
     private function updateContractStatusRecord(Contract $contract, string $nextStatus, ?string $date = null): array
@@ -427,11 +539,15 @@ class RecruitmentContractController extends Controller
                 'order.details', // تفاصيل الطلب
                 'order.details.admin' // بيانات المسوق
             ])
-                ->withCount(['notes', 'attachments'])
-                ->whereIn('type', ['recruitment', 'maid']);
+                ->withCount(['notes', 'attachments']);
 
             // فلتر الحالة - استخدام query parameter فقط
             $statusFilter = $this->getStatusFilterForRequest($request);
+
+            if ($statusFilter !== ContractStatusEnum::Shelter->value) {
+                $query->whereIn('type', ['recruitment', 'maid']);
+            }
+
             $this->applyStatusFilter($query, $statusFilter);
 
             if ($request->boolean('exclude_back')) {
@@ -1133,6 +1249,14 @@ class RecruitmentContractController extends Controller
                                         <i class="fas fa-check me-1"></i>إكمال الرحلة
                                     </button>';
                                 }
+
+                                if ($travelHistory) {
+                                    $travelActions = $this->buildTravelManagementActions($travelHistory);
+                                    if ($travelActions !== '') {
+                                        return $travelActions;
+                                    }
+                                }
+
                                 return '<span class="text-muted">يُستكمل تلقائياً بعد انتهاء الضمان</span>';
                             case ContractStatusEnum::Sari->value:
                                 // إضافة زر إكمال الرحلة إذا كان العقد لديه رحلة
@@ -1180,6 +1304,13 @@ class RecruitmentContractController extends Controller
                                     </button>';
                                 }
 
+                                if ($travelHistory) {
+                                    $travelActions = $this->buildTravelManagementActions($travelHistory);
+                                    if ($travelActions !== '') {
+                                        return $travelActions;
+                                    }
+                                }
+
                                 if (!empty($availableStatuses)) {
                                     $lastContractStatusLog = $row->getLastContractStatusLog();
                                     $targetStatusesJson = htmlspecialchars(json_encode($availableStatuses, JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8');
@@ -1214,6 +1345,24 @@ class RecruitmentContractController extends Controller
                     $actions .= '<li><a class="dropdown-item" href="' . route('contracts.details', $row->id) . '">
                                     <i class="fas fa-eye"></i> عرض تفاصيل العقد
                                 </a></li>';
+
+                    if (
+                        in_array($row->status, [
+                            ContractStatusEnum::Arrival->value,
+                            ContractStatusEnum::Completed->value,
+                            ContractStatusEnum::UnderWarranty->value,
+                            ContractStatusEnum::Closed->value,
+                        ], true)
+                        && @AdminGuardHasAnyPerm([
+                            \App\PermKeys::SHELTER_CONTRACT_ADDITION_CREATE,
+                            \App\PermKeys::SHELTER_CONTRACT_CREATE,
+                            \App\PermKeys::SHELTER_CONTRACT_CONTROL,
+                        ])
+                    ) {
+                        $actions .= '<li><a class="dropdown-item" href="' . e(route('ShelterContract.create', ['contract_id' => $row->id])) . '">
+                                        <i class="fas fa-house-user"></i> إضافة العاملة للإيواء
+                                    </a></li>';
+                    }
 
                     if ($row->isCurrentRecruitmentContract() || $row->externalOfficeDispatch) {
                         $dispatchState = $row->getExternalOfficeDispatchState();
@@ -1289,6 +1438,14 @@ class RecruitmentContractController extends Controller
 
                     // زر إكمال الرحلة - يظهر للعقود في مرحلة التذاكر التي لديها رحلة فعلية
                     $travelHistory = TravelHistory::where('order_id', $row->id)->first();
+                    if ($travelHistory) {
+                        $travelManagementActions = $this->buildTravelManagementActions($travelHistory, 'dropdown');
+                        if ($travelManagementActions !== '') {
+                            $actions .= '<li><hr class="dropdown-divider"></li>';
+                            $actions .= $travelManagementActions;
+                        }
+                    }
+
                     if ($travelHistory && @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_COMPLETE_TRAVEL)) {
                         if (
                             $row->status === ContractStatusEnum::Tazker->value &&
@@ -2212,7 +2369,8 @@ class RecruitmentContractController extends Controller
                 'jobType.translations',
             ])
             ->where('job_type_id', 1)
-            ->where('status', OrderEnum::UnderProcess->value)
+            ->whereIn('status', $this->contractableRecruitmentOrderStatuses())
+            ->whereDoesntHave('contracts')
             ->orderByDesc('created_at');
 
         // Load the selected order with all necessary relationships
@@ -2397,6 +2555,13 @@ class RecruitmentContractController extends Controller
                 $order = Order::findOrFail($request->order_id);
                 logger()->info('Found order:', ['order' => $order->toArray()]);
 
+                if (!$this->canCreateContractForOrder($order)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'لا يمكن إضافة عقد لهذا الطلب. يجب أن يكون طلب استقدام بدون عقد وفي حالة تحت الإجراء أو منتهية بدون عقد.'
+                    ], 422);
+                }
+
                 // تحديث بيانات المستخدم من الطلب المسبق
                 $user = $order->user;
                 if ($user) {
@@ -2455,6 +2620,10 @@ class RecruitmentContractController extends Controller
 
                 if ($request->filled('client_id')) {
                     $user = User::find($request->client_id);
+                }
+
+                if (!$user && $request->filled('client_phone')) {
+                    $user = $this->findClientByPhone($request->client_phone);
                 }
 
                 if (!$user) {
@@ -4393,9 +4562,12 @@ class RecruitmentContractController extends Controller
 
             $baseQuery = Contract::query()
                 ->whereIn('type', ['recruitment', 'maid']);
+            $shelterQuery = Contract::query()
+                ->where('status', ContractStatusEnum::Shelter->value);
 
             // تطبيق نفس فلاتر البحث (بدون الحالة وحالة الضمان) للحصول على إحصائيات قابلة للتنقل
             $this->applyContractFilters($baseQuery, $request, true, true);
+            $this->applyContractFilters($shelterQuery, $request, true, true);
 
             $today = \Carbon\Carbon::now()->toDateString();
             $currentStatuses = [
@@ -4421,6 +4593,7 @@ class RecruitmentContractController extends Controller
                 'stage_tazker' => (clone $baseQuery)->where('status', ContractStatusEnum::Tazker->value)->count(),
                 'stage_arrival' => (clone $baseQuery)->where('status', ContractStatusEnum::Arrival->value)->count(),
                 'stage_completed' => (clone $baseQuery)->where('status', ContractStatusEnum::Completed->value)->count(),
+                'stage_shelter' => (clone $shelterQuery)->count(),
                 'warranty_active' => (clone $baseQuery)->where('status', ContractStatusEnum::Arrival->value)
                     ->whereNotNull('warranty_end_date')
                     ->whereDate('warranty_end_date', '>=', $today)
@@ -4699,7 +4872,7 @@ class RecruitmentContractController extends Controller
             $request->validate([
                 'new_maid_id' => 'required|exists:maids,id',
                 'old_maid_status' => 'required|in:available,backout',
-                'reason' => 'nullable|string|max:500'
+                'reason' => 'required_if:old_maid_status,backout|nullable|string|max:1000'
             ]);
 
             $newMaidId = $request->new_maid_id;
@@ -4709,9 +4882,17 @@ class RecruitmentContractController extends Controller
             // التحقق من أن العاملة الجديدة متاحة
             $newMaid = Maid::findOrFail($newMaidId);
 
+            if (!$newMaid->available || $newMaid->status !== 'available') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'العاملة المختارة غير متاحة حالياً'
+                ], 400);
+            }
+
             // التحقق من أن العاملة الجديدة ليس لها عقود نشطة
             $hasActiveContracts = Contract::where('maid_id', $newMaidId)
                 ->whereIn('status', [
+                    ContractStatusEnum::PendingMaidSelection->value,
                     ContractStatusEnum::New->value,
                     ContractStatusEnum::Msaned->value,
                     ContractStatusEnum::Tafwed->value,
@@ -4745,11 +4926,18 @@ class RecruitmentContractController extends Controller
                 ], 400);
             }
 
+            $oldMaid = $contract->maid;
+            if (!$oldMaid) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا توجد عاملة حالية مرتبطة بهذا العقد'
+                ], 400);
+            }
+
             DB::beginTransaction();
 
             try {
                 // حفظ العاملة القديمة
-                $oldMaid = $contract->maid;
                 $oldMaidId = $oldMaid->id;
 
                 logger()->info('Changing maid in contract', [
@@ -4792,7 +4980,8 @@ class RecruitmentContractController extends Controller
                 if ($oldMaidStatus === 'backout') {
                     $oldMaid->update([
                         'status' => 'backout',
-                        'available' => false
+                        'available' => false,
+                        'back_out_reason' => $reason ?? 'تم تغيير العاملة من عقد',
                     ]);
 
                     \Artisan::call('maids:add-to-unavailable', [

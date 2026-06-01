@@ -8,10 +8,12 @@
     --primary-dark: #1b2033;
     --secondary: var(--dash-brand-green);
     --success: var(--dash-brand-green);
-    --warning: var(--dash-brand-sage);
-    --danger: var(--dash-brand-slate);
+    --warning: #f5a623;
+    --danger: #e53935;
     --dash-primary-rgb: 34, 41, 64;
     --dash-secondary-rgb: 151, 191, 90;
+    --dash-warning-rgb: 245, 166, 35;
+    --dash-danger-rgb: 229, 57, 53;
     --dash-chart-1: var(--dash-brand-navy);
     --dash-chart-2: var(--dash-brand-slate);
     --dash-chart-3: var(--dash-brand-green);
@@ -36,10 +38,11 @@
 .dashboard-hero {
     display: flex;
     gap: 32px;
-    padding: 24px;
+    padding: 28px 32px;
     background: linear-gradient(135deg,
-            color-mix(in srgb, var(--dash-brand-ice) 75%, var(--dash-brand-green) 25%),
-            color-mix(in srgb, var(--dash-brand-ice) 82%, var(--dash-brand-navy) 18%));
+            #eef1f8 0%,
+            #edf7e2 50%,
+            #f4f6fb 100%);
     color: var(--text);
     border: 1px solid var(--stroke);
     position: relative;
@@ -137,32 +140,37 @@
 }
 
 .hero-quick-actions a {
-    background: color-mix(in srgb, var(--dash-brand-ice) 70%, var(--dash-brand-navy) 30%);
+    background: rgba(255, 255, 255, 0.82);
     color: var(--text);
-    border: 1px solid rgba(var(--dash-primary-rgb), 0.18);
+    border: 1px solid rgba(var(--dash-primary-rgb), 0.14);
     border-radius: 12px;
-    padding: 8px 14px;
+    padding: 8px 16px;
     text-decoration: none;
     font-size: 13px;
-    transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
-    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+    font-weight: 600;
+    transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
 }
 
 .hero-quick-actions a:hover {
-    background: color-mix(in srgb, var(--dash-brand-ice) 60%, var(--dash-brand-navy) 40%);
+    background: var(--dash-brand-navy);
+    color: #fff;
+    border-color: var(--dash-brand-navy);
     transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(var(--dash-primary-rgb), 0.2);
 }
 
 .hero-controls {
     width: min(360px, 100%);
     border-radius: 24px;
-    background: color-mix(in srgb, var(--surface) 92%, var(--dash-brand-ice) 8%);
-    border: 1px solid var(--stroke);
-    padding: 16px;
+    background: rgba(255, 255, 255, 0.88);
+    border: 1px solid rgba(34, 41, 64, 0.1);
+    padding: 20px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    backdrop-filter: blur(8px);
+    gap: 14px;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 8px 32px rgba(34, 41, 64, 0.08);
 }
 
 .range-switch {
@@ -197,10 +205,13 @@
 }
 
 .hero-micro-grid div {
-    background: color-mix(in srgb, var(--surface) 70%, var(--dash-brand-green) 30%);
+    background: linear-gradient(145deg,
+        color-mix(in srgb, #ffffff 72%, var(--dash-brand-green) 28%),
+        color-mix(in srgb, #ffffff 80%, var(--dash-brand-navy) 20%));
     border-radius: 14px;
-    padding: 8px;
+    padding: 10px 8px;
     text-align: center;
+    border: 1px solid rgba(34, 41, 64, 0.08);
 }
 
 .hero-micro-grid strong {
@@ -260,6 +271,31 @@
 .stat-card>* {
     position: relative;
     z-index: 1;
+}
+
+.stat-card-icon {
+    position: absolute;
+    top: 16px;
+    inset-inline-end: 16px;
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--stat-accent-from), var(--stat-accent-to));
+    color: #fff;
+    font-size: 20px;
+    z-index: 2;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18);
+    opacity: 0.88;
+}
+
+.stat-card h3 {
+    font-size: clamp(24px, 2.8vw, 34px);
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    line-height: 1.15;
 }
 
 .stat-card.is-1 {
@@ -423,7 +459,24 @@
     background: var(--primary);
     color: #ffffff;
     flex-shrink: 0;
+    box-shadow: 0 6px 16px rgba(34, 41, 64, 0.2);
 }
+
+.dashboard-route-card.rc-1 .dashboard-route-icon {
+    background: linear-gradient(135deg, var(--dash-brand-navy), #2d3a5e);
+}
+
+.dashboard-route-card.rc-2 .dashboard-route-icon {
+    background: linear-gradient(135deg, #2e8b57, var(--dash-brand-green));
+}
+
+.dashboard-route-card.rc-3 .dashboard-route-icon {
+    background: linear-gradient(135deg, #5c7a9e, #3a5f8a);
+}
+
+.dashboard-route-card.rc-1 { border-inline-start: 3px solid var(--dash-brand-navy); }
+.dashboard-route-card.rc-2 { border-inline-start: 3px solid var(--dash-brand-green); }
+.dashboard-route-card.rc-3 { border-inline-start: 3px solid #5c7a9e; }
 
 .dashboard-route-card strong,
 .dashboard-route-card small {
@@ -1319,10 +1372,11 @@
 }
 
 .section-eyebrow {
-    font-size: 13px;
-    color: var(--muted);
-    letter-spacing: 0.5px;
+    font-size: 11px;
+    color: var(--dash-brand-green);
+    letter-spacing: 1.5px;
     text-transform: uppercase;
+    font-weight: 700;
     margin: 0;
 }
 
@@ -2326,12 +2380,12 @@
 }
 
 .status-chip.warning {
-    background: rgba(255, 167, 38, 0.12);
+    background: rgba(var(--dash-warning-rgb), 0.14);
     color: var(--warning);
 }
 
 .status-chip.danger {
-    background: rgba(255, 77, 79, 0.12);
+    background: rgba(var(--dash-danger-rgb), 0.12);
     color: var(--danger);
 }
 

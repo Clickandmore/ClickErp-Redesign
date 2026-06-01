@@ -16,6 +16,8 @@ use App\Models\RentalContract;
 use App\Models\SponsorshipTransfer;
 use App\Models\Contract;
 use App\Models\ingaz\Maid;
+use App\Models\auth\Admin;
+
 class User extends Authenticatable implements JWTSubject
 {
     use HasFactory, Notifiable, LogsActivity, HasRoles;
@@ -47,6 +49,11 @@ class User extends Authenticatable implements JWTSubject
     public function nationality()
     {
         return $this->belongsTo(\App\Models\Country::class, 'nationality_id');
+    }
+
+    public function createdBy()
+    {
+        return $this->belongsTo(Admin::class, 'created_by');
     }
 
     public function getJWTIdentifier()

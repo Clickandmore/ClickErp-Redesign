@@ -4,7 +4,9 @@ namespace App\Http\Controllers\admin;
 
 use App\Http\Actions\dashboard\SettingAction;
 use App\Http\Requests\ingaz\SettingRequest;
+use App\Models\RentalContractTerm;
 use App\Models\ingaz\Setting;
+use App\Support\RentalContractDefaultTerms;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
@@ -50,6 +52,18 @@ class FormSettingsController extends Controller
         'rental_contract_title:en',
         'rental_contract_intro_text:ar',
         'rental_contract_intro_text:en',
+        'rental_contract_party_one_title:ar',
+        'rental_contract_party_one_title:en',
+        'rental_contract_party_one_text:ar',
+        'rental_contract_party_one_text:en',
+        'rental_contract_party_two_title:ar',
+        'rental_contract_party_two_title:en',
+        'rental_contract_service_title:ar',
+        'rental_contract_service_title:en',
+        'rental_contract_sadad_label:ar',
+        'rental_contract_sadad_label:en',
+        'rental_contract_sadad_code:ar',
+        'rental_contract_sadad_code:en',
     ];
 
     public function index()
@@ -85,6 +99,23 @@ class FormSettingsController extends Controller
         return response()->view(
             $definition['view'],
             $this->buildPreviewData($template),
+            200,
+            ['Content-Type' => 'text/html; charset=UTF-8']
+        );
+    }
+
+    public function publicRentalContractPreview(Request $request)
+    {
+        $definition = $this->templates()['rental-contract'];
+
+        app()->setLocale($this->resolveLocale($request));
+
+        $data = $this->buildPreviewData('rental-contract');
+        $data['allowSignature'] = false;
+
+        return response()->view(
+            $definition['view'],
+            $data,
             200,
             ['Content-Type' => 'text/html; charset=UTF-8']
         );
@@ -148,6 +179,10 @@ class FormSettingsController extends Controller
                 'fields' => [
                     'عنوان العقد',
                     'مقدمة العقد',
+                    'بيانات الطرف الأول',
+                    'بيانات الطرف الثاني',
+                    'عنوان الخدمة',
+                    'رقم سداد',
                 ],
             ],
         ];
@@ -299,6 +334,17 @@ class FormSettingsController extends Controller
     private function rentalContractPreviewData(): array
     {
         $today = Carbon::now();
+        $termsByPage = RentalContractTerm::query()->exists()
+            ? RentalContractTerm::active()
+                ->orderBy('page_number')
+                ->ordered()
+                ->get()
+                ->groupBy('page_number')
+                ->sortKeys()
+            : collect(RentalContractDefaultTerms::all())
+                ->map(fn (array $term) => (object) $term)
+                ->groupBy('page_number')
+                ->sortKeys();
 
         $contract = (object) [
             'id' => 9001,
@@ -340,35 +386,11 @@ class FormSettingsController extends Controller
                 'commercial_date' => '2024-03-03',
                 'address' => documentSetting('location', 'الرياض'),
                 'phone' => documentSetting('phone', '+966 11 234 5678'),
+                'mobile' => documentSetting('other_phone', '+966 55 765 4321'),
                 'email' => documentSetting('email', 'info@clickerp.test'),
                 'fax' => '+966 11 222 1111',
             ],
-            'termsPage1' => collect([
-                (object) [
-                    'section_title' => 'أولاً: موضوع العقد',
-                    'term_number' => 1,
-                    'term_content' => 'يلتزم الطرف الأول بتوفير العاملة المنزلية للطرف الثاني خلال مدة العقد الموضحة في هذا النموذج، وذلك وفق البيانات والمقابل المالي المتفق عليهما.',
-                ],
-                (object) [
-                    'section_title' => 'ثانياً: مدة العقد والأجر',
-                    'term_number' => 2,
-                    'term_content' => 'مدة العقد [مدة_العقد] يوماً تبدأ من [تاريخ_البداية]، ويكون الأجر الشهري [التكلفة_الشهرية] ريال بإجمالي [إجمالي_التكلفة] ريال.',
-                ],
-            ]),
-            'termsPage2' => collect([
-                (object) [
-                    'section_title' => 'ثالثاً: بيانات العاملة',
-                    'term_number' => 3,
-                    'term_content' => 'اسم العاملة [اسم_العاملة] وجنسيتها [جنسية_العاملة] ورقم جوازها [رقم_الجواز]، ويلتزم الطرف الثاني باستلامها في الموعد المحدد.',
-                ],
-            ]),
-            'termsPage3' => collect([
-                (object) [
-                    'section_title' => 'رابعاً: أحكام عامة',
-                    'term_number' => 4,
-                    'term_content' => 'يُعمل بهذا العقد بعد توقيع الطرفين عليه، وتطبق عليه الأنظمة والتعليمات المعمول بها في المملكة العربية السعودية.',
-                ],
-            ]),
+            'termsByPage' => $termsByPage,
             'allowSignature' => true,
         ];
     }

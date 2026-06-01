@@ -38,17 +38,27 @@
     @endif
 </div>
 
+<div class="signature-closing">وعلى ذلك جرى التوقيع والله ولي التوفيق،،،</div>
+
 <div class="signature-section">
     <div class="signature-box">
         <h4>الطرف الأول</h4>
         <div class="signature-line">الاسم: {{ $documentCompanyName }}</div>
-        <div class="signature-line">التوقيع: ........................</div>
-        <div class="signature-line">التاريخ: {{ \Carbon\Carbon::now()->format('Y/m/d') }}</div>
+        <div class="signature-line">الصفة: المنشأة</div>
+        <div class="signature-line">
+            التوقيع:
+            @if(!empty($companySignature))
+                <img src="{{ asset('storage/' . $companySignature) }}" style="max-width: 150px; max-height: 60px; vertical-align: middle;">
+            @else
+                ........................
+            @endif
+        </div>
     </div>
 
     <div class="signature-box">
         <h4>الطرف الثاني</h4>
         <div class="signature-line">الاسم: {{ data_get($contract, 'user.name', '') }}</div>
+        <div class="signature-line">الصفة: المستفيد</div>
         <div class="signature-line">
             التوقيع:
             @if($contractSignature)
@@ -57,6 +67,5 @@
                 ........................
             @endif
         </div>
-        <div class="signature-line">التاريخ: {{ \Carbon\Carbon::now()->format('Y/m/d') }}</div>
     </div>
 </div>

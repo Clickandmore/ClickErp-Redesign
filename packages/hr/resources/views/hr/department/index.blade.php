@@ -8,9 +8,6 @@
 @section('page-links')
     <li class="breadcrumb-item active" aria-current="page"> {{__("finance.clients")}}</li>
 @endsection
-@section('up-card')
-    @include('hr::hr._nav_tabs')
-@endsection
 @section('content')
     @include('hr::hr._nav_tabs')
     {{-- @if (Auth::guard('admin')->user()->hasPermission('hr_department-create')) --}}

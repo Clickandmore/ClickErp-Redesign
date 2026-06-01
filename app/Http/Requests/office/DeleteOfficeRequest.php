@@ -3,9 +3,7 @@
 namespace App\Http\Requests\office;
 
 use App\Http\Requests\MainRequest;
-use App\Rules\DeleteOfficeRule;
-use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 
 class DeleteOfficeRequest extends MainRequest
 {
@@ -28,18 +26,27 @@ class DeleteOfficeRequest extends MainRequest
     {
         if ($this->isMethod('delete')) {
             $this->merge([
-                'office_id' => true,
+                'office_id' => $this->route('office'),
             ]);
         }
     }
+
     public function rules()
     {
         if ($this->isMethod('delete')) {
             $officeId = $this->route('office');
+
             return [
-                'office_id' => [new DeleteOfficeRule($officeId)],
+                'office_id' => ['required', 'exists:recruitment_offices,id'],
+                'replacement_office_id' => [
+                    'nullable',
+                    'integer',
+                    'exists:recruitment_offices,id',
+                    Rule::notIn([(int) $officeId]),
+                ],
             ];
         }
+
         return [];
     }
 

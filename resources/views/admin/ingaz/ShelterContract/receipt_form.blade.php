@@ -10,7 +10,8 @@
         $documentSubtitle = documentSetting('shelter_receipt_subtitle', 'نموذج تسليم مخصص لحالات الإيواء');
         $documentCompanyName = $document_company_name ?? $documentBranding['company_name'];
         $documentOfficeName = $document_office_name ?? $documentBranding['office_name'];
-        $logoPath = documentLogoPath() ?: public_path('admin/assets/img/company_logo.png');
+        $logoPath = documentLogoPath() ?: public_path('admin/assets/img/company_logo.jpeg');
+        $logoUrl = documentLogoUrl(asset('admin/assets/img/company_logo.jpeg'));
         $defaultReceiptText = replaceDocumentPlaceholders((string) documentSetting(
             'shelter_receipt_default_text',
             'كما يتعهد صاحب العمل في حالة نقل خدمات العاملة إلى صاحب عمل آخر بإخطار [اسم_المكتب] وتزويده كتابياً بكافة بيانات صاحب العمل الجديد من اسم وهوية وعنوان ورقم جوال. وفي حال عدم القيام بذلك يكون صاحب العمل الأول مسؤولاً مسؤولية كاملة عن كل ما يحدث للعاملة أو أي مطالبات تتقدم بها.'
@@ -156,8 +157,8 @@
 <body>
     <div class="page">
         <div class="header">
-            @if (file_exists($logoPath))
-                <img class="logo" src="{{ $logoPath }}" alt="{{ $documentCompanyName }}">
+            @if ($logoUrl && file_exists($logoPath))
+                <img class="logo" src="{{ $logoUrl }}" alt="{{ $documentCompanyName }}">
             @endif
             <p class="company-name">{{ $documentCompanyName }}</p>
             <h1 class="title">{{ $documentTitle }}</h1>

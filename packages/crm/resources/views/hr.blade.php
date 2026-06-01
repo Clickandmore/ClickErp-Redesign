@@ -23,6 +23,9 @@
         'rewards.index',
         'shifts.index',
         'officialVacations.index',
+        'employee-custody-locations.index',
+        'employee-custody-locations.create',
+        'employee-custody-locations.edit',
     ];
 //    $readPermissions = array_filter($user_permission_list, function ($permission) use ($hrSettingsRoutes) {
 //        return in_array(
@@ -77,6 +80,13 @@
     </a>
 </li>
 {{--@endif--}}
+<li>
+    <a class="m-link {{ in_array(Route::currentRouteName(), ['employee-custodies.index', 'employee-custodies.create', 'employee-custodies.edit']) ? 'active' : '' }}"
+       href="{{ route('employee-custodies.index') }}">
+        <i class="fas fa-briefcase"></i>
+        <span class="ms-2"> {{ __('hr::hr.employee_custodies') }}</span>
+    </a>
+</li>
 {{--@if (in_array('employeeSanctions-read', $user_permission_list))--}}
 <li>
     <a class="m-link {{ Route::currentRouteName() == 'employeeSanctions.index' ? 'active' : '' }}"

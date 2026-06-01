@@ -20,6 +20,7 @@ class SettingController extends Controller
         'light_image',
         'cover_image',
         'admin_login_background',
+        'dashboard_footer_url',
         'experience_image',
         'qr_image',
         'second_qr_image',
@@ -42,6 +43,7 @@ class SettingController extends Controller
         'header_link_2_url',
         'live_chat_title',
         'live_chat_url',
+        'admin_quick_links',
         'there_are_offer',
         'location:ar',
         'location:en',
@@ -85,6 +87,18 @@ class SettingController extends Controller
         'rental_contract_title:en',
         'rental_contract_intro_text:ar',
         'rental_contract_intro_text:en',
+        'rental_contract_party_one_title:ar',
+        'rental_contract_party_one_title:en',
+        'rental_contract_party_one_text:ar',
+        'rental_contract_party_one_text:en',
+        'rental_contract_party_two_title:ar',
+        'rental_contract_party_two_title:en',
+        'rental_contract_service_title:ar',
+        'rental_contract_service_title:en',
+        'rental_contract_sadad_label:ar',
+        'rental_contract_sadad_label:en',
+        'rental_contract_sadad_code:ar',
+        'rental_contract_sadad_code:en',
         'privacy:ar',
         'privacy:en',
         "about_image",
@@ -133,9 +147,13 @@ class SettingController extends Controller
 
     private function renderSection(string $section)
     {
-        $allowedSections = ['dashboard', 'general', 'social', 'branding', 'content', 'policies'];
+        $allowedSections = ['dashboard', 'general', 'social', 'branding', 'content', 'policies', 'translations'];
         if (!in_array($section, $allowedSections, true)) {
             $section = 'general';
+        }
+
+        if ($section === 'translations') {
+            return redirect()->route('translation-terms.index');
         }
 
         $settings = Setting::first();

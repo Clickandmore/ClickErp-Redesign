@@ -7,4 +7,5 @@
     'filters' => $filters ?? [],
     'reportTitle' => $reportTitle ?? null,
     'isPrint' => false,
+    'showDollarEquivalent' => $showDollarEquivalent ?? false,
 ])

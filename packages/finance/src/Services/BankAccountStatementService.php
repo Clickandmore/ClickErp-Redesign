@@ -171,14 +171,14 @@ class BankAccountStatementService extends MainService
         if($dataSearch["from_date"] != ""){
             $accountId = $dataSearch["account_id"];  // Replace with your desired account_id
             $customDate = $dataSearch["from_date"];  // Replace with your desired date
-            return  DB::table('fn_constraint_details')->select(\DB::raw('SUM(debtor_value) as sum_debtor_value, fn_accounts.status ,
-                                           SUM(creditor_value) as sum_creditor_value'))
+            return  DB::table('fn_constraint_details')->select(\DB::raw('SUM(fn_constraint_details.debtor_value) as sum_debtor_value, fn_accounts.status ,
+                                           SUM(fn_constraint_details.creditor_value) as sum_creditor_value'))
                                         ->join('fn_accounts', 'fn_accounts.id', '=', 'fn_constraint_details.account_id')
                                         ->join('fn_constraints', 'fn_constraints.id', '=', 'fn_constraint_details.constraint_id')
                                         ->whereNull('fn_constraint_details.deleted_at')
                                         ->whereNull('fn_constraints.deleted_at')
-                                        ->where('account_id', $accountId)
-                                        ->where('date', '<', $customDate)
+                                        ->where('fn_constraint_details.account_id', $accountId)
+                                        ->where('fn_constraint_details.date', '<', $customDate)
                                         ->first();
         }
         return null;

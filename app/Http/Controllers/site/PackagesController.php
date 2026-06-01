@@ -18,8 +18,7 @@ class PackagesController extends Controller
         $data['packages'] = \App\Models\ingaz\Package::with('translations')
             ->visible()
             ->forNationality($data['maid']->nationality_id)
-            ->orderBy('days_count')
-            ->orderBy('price_with_tax')
+            ->ordered()
             ->get();
         $data['addresses'] = $userAddressAction->getwhere(['user_id' => getGuardedUser('id')]);
         $data['type'] = $jobTypeAction->find(2);

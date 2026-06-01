@@ -48,6 +48,13 @@
             max-height: 150px;
             overflow: auto;
         }
+
+        .valid-values-preview {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background: #f8fafc;
+            padding: 10px 12px;
+        }
     </style>
 @endsection
 
@@ -156,6 +163,24 @@
                                         </span>
                                     @endforeach
                                 </div>
+
+                                @php
+                                    $columnsWithValues = collect($template['columns'])
+                                        ->filter(fn ($column) => !empty($column['valid_values']));
+                                @endphp
+
+                                @if ($columnsWithValues->isNotEmpty())
+                                    <div class="valid-values-preview mb-3 small">
+                                        @foreach ($columnsWithValues as $column)
+                                            <div class="fw-semibold mb-1">{{ $column['label'] }}:</div>
+                                            <div class="d-flex flex-wrap gap-1 mb-2">
+                                                @foreach ($column['valid_values'] as $value)
+                                                    <span class="badge bg-white text-dark border">{{ $value }}</span>
+                                                @endforeach
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @endif
                             @else
                                 <div class="alert alert-info py-2 small mb-3">
                                     يستخدم تمبلت السير الذاتية التفصيلي الموجود في صفحة الاستيراد الجماعي.

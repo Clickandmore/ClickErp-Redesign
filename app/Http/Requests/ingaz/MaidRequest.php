@@ -30,7 +30,7 @@ class MaidRequest extends MainRequest
             'name:en' => 'required|string|max:255',
             'cv_file' => 'nullable',
             'video' => 'nullable',
-            'video_link' => 'nullable',
+            'video_link' => 'nullable|url|max:2000',
             'nationality_id' => 'required|exists:nationalities,id',
             'passport_num' => [
                 'required',
@@ -50,6 +50,20 @@ class MaidRequest extends MainRequest
             'id_expiry_date' => [
                 'nullable',
                 'date',
+            ],
+            'border_number' => [
+                'nullable',
+                'string',
+                'max:50',
+            ],
+            'passport_issue_date' => [
+                'nullable',
+                'date',
+            ],
+            'passport_expiry_date' => [
+                'nullable',
+                'date',
+                Rule::when($this->filled('passport_issue_date'), 'after_or_equal:passport_issue_date'),
             ],
             'age' => 'nullable|numeric|min:20|max:50',
             'childrens_count' => 'nullable|numeric',
@@ -86,15 +100,39 @@ class MaidRequest extends MainRequest
 
     protected function prepareForValidation()
     {
+        $data = [
+            'video_link' => $this->normalizeVideoLink($this->input('video_link')),
+        ];
+
         if ($this->isSelectedRentalType()) {
-            $this->merge([
+            $data = array_merge($data, [
                 'request_type' => Maid::REQUEST_TYPE_CUSTOM,
             ]);
         } else {
-            $this->merge([
+            $data = array_merge($data, [
                 'arrival_date' => null,
             ]);
         }
+
+        $this->merge($data);
+    }
+
+    private function normalizeVideoLink($value): ?string
+    {
+        if (!is_string($value)) {
+            return null;
+        }
+
+        $value = trim($value);
+        if ($value === '') {
+            return null;
+        }
+
+        if (preg_match('/<iframe\b[^>]*\bsrc\s*=\s*(["\']?)([^"\'\s>]+)\1/iu', $value, $matches)) {
+            $value = $matches[2];
+        }
+
+        return html_entity_decode(trim($value), ENT_QUOTES, 'UTF-8') ?: null;
     }
 
     public function messages()
@@ -116,6 +154,10 @@ class MaidRequest extends MainRequest
             'id_number.max' => 'رقم الهوية يجب ألا يتجاوز 30 خانة',
             'id_number.regex' => 'يجب إدخال رقم هوية صالح من 5 إلى 30 خانة باستخدام الأرقام أو الحروف أو الشرطة (-)',
             'id_expiry_date.date' => 'تاريخ انتهاء الهوية يجب أن يكون تاريخاً صالحاً',
+            'border_number.max' => 'رقم الحدود يجب ألا يتجاوز 50 خانة',
+            'passport_issue_date.date' => 'تاريخ إصدار جواز السفر يجب أن يكون تاريخاً صالحاً',
+            'passport_expiry_date.date' => 'تاريخ انتهاء جواز السفر يجب أن يكون تاريخاً صالحاً',
+            'passport_expiry_date.after_or_equal' => 'تاريخ انتهاء جواز السفر يجب أن يكون بعد أو مساوي لتاريخ الإصدار',
             'age.numeric' => helperTrans('web.age_must_be_numeric'),
             'age.min' => __('web.age_min', ['min'=> '20']),
             'age.max' => __('web.age_max', ['max'=> '50']),

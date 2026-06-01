@@ -13,7 +13,10 @@ use App\Http\Actions\office\OfficeAttachmentAction;
 use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\office\DeleteOfficeRequest;
 use App\Http\Requests\office\OfficeRequest;
+use App\Models\ContractExternalOfficeDispatch;
+use App\Models\ContractInfo;
 use App\Models\office\Office as objModel;
+use App\Models\ingaz\Maid;
 use App\Services\office\OfficeFinanceAccountService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -21,6 +24,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
 use Spatie\Activitylog\Models\Activity;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -53,6 +58,8 @@ class OfficeController extends Controller
                 ->select('recruitment_offices.*')
                 ->with(['nationality', 'file', 'account', 'officeManager.admin'])
                 ->selectSub($linkedContractsCountSubquery, 'linked_contracts_count')
+                ->selectSub($this->previousSponsorshipsCountSubquery(), 'previous_sponsorships_count')
+                ->selectSub($this->externalDispatchesCountSubquery(), 'external_dispatches_count')
                 ->withCount(['maids as linked_cvs_count'])
                 ->get()
                 ->sortBy(function ($office) {
@@ -124,7 +131,13 @@ class OfficeController extends Controller
                     // }
                     // if (Auth::guard('admin')->user()->hasPermission('programs-delete')) {
                     // $deleteButton = deleteButton(route($this->mainRoute . ".destroy", $row->id));
-                    $deleteButton = ' <button type="button" class="dropdown-item deleteButton" delete-route="' . route($this->mainRoute . ".destroy", $row->id) . '" title="حذف">
+                    $linkedOperationsCount = (int) ($row->linked_cvs_count ?? 0)
+                        + (int) ($row->linked_contracts_count ?? 0)
+                        + (int) ($row->previous_sponsorships_count ?? 0)
+                        + (int) ($row->external_dispatches_count ?? 0)
+                        + $this->countOfficeAccountStatementLines((int) ($row->account_id ?? 0));
+
+                    $deleteButton = ' <button type="button" class="dropdown-item officeDeleteButton" delete-route="' . route($this->mainRoute . ".destroy", $row->id) . '" data-office-id="' . $row->id . '" data-office-title="' . e($row->title ?? '') . '" data-nationality-id="' . (int) ($row->nationality_id ?? 0) . '" data-linked-cvs="' . (int) ($row->linked_cvs_count ?? 0) . '" data-linked-contracts="' . (int) ($row->linked_contracts_count ?? 0) . '" data-linked-operations="' . $linkedOperationsCount . '" title="حذف">
                             <i class="fa fa-trash"></i> حذف المكتب
                         </button>';
                     // }
@@ -183,8 +196,14 @@ class OfficeController extends Controller
         ];
 
         $nationalities = $nationalityAction->get();
+        $deleteReplacementOffices = objModel::query()
+            ->get(['id', 'nationality_id'])
+            ->sortBy(function ($office) {
+                return mb_strtolower((string) ($office->title ?? ''));
+            })
+            ->values();
 
-        return view($this->folderPath . '.index', compact('stats', 'nationalities'));
+        return view($this->folderPath . '.index', compact('stats', 'nationalities', 'deleteReplacementOffices'));
     }
 
     /**
@@ -441,15 +460,57 @@ class OfficeController extends Controller
      * @param int $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy(DeleteOfficeRequest $request, $id, objAction $action, AdminAction $adminAction)
+    public function destroy(
+        DeleteOfficeRequest $request,
+        $id,
+        objAction $action,
+        AdminAction $adminAction,
+        OfficeFinanceAccountService $officeFinanceAccountService
+    )
     {
-        $obj = $action->find($id);
-        if (isset($obj->officeManager->admin_id)) {
-            $admin = $adminAction->find($obj->officeManager->admin_id);
-            $adminAction->delete($admin->id);
-        }
-        $action->delete($id);
-        return jsonSuccess();
+        $replacementOfficeId = (int) $request->input('replacement_office_id') ?: null;
+
+        DB::transaction(function () use ($id, $replacementOfficeId, $action, $adminAction, $officeFinanceAccountService) {
+            $obj = objModel::query()->with(['officeManager', 'account'])->lockForUpdate()->findOrFail($id);
+            $linkedCounts = $this->getOfficeLinkedCounts($obj);
+
+            if ($this->officeHasLinkedOperations($linkedCounts)) {
+                if (!$replacementOfficeId) {
+                    throw ValidationException::withMessages([
+                        'replacement_office_id' => 'يرجى اختيار مكتب آخر لدمج العمليات قبل حذف هذا المكتب.',
+                    ]);
+                }
+
+                $replacementOffice = objModel::query()
+                    ->with(['translations', 'account'])
+                    ->whereKey($replacementOfficeId)
+                    ->where('id', '!=', $obj->id)
+                    ->when(
+                        $obj->nationality_id,
+                        fn ($query) => $query->where('nationality_id', $obj->nationality_id),
+                        fn ($query) => $query->whereNull('nationality_id')
+                    )
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$replacementOffice) {
+                    throw ValidationException::withMessages([
+                        'replacement_office_id' => 'يجب اختيار مكتب بديل من نفس جنسية المكتب المحذوف.',
+                    ]);
+                }
+
+                $this->mergeOfficeOperations($obj, $replacementOffice, $officeFinanceAccountService);
+            }
+
+            if (isset($obj->officeManager->admin_id)) {
+                $admin = $adminAction->find($obj->officeManager->admin_id);
+                $adminAction->delete($admin->id);
+            }
+
+            $action->delete($obj->id);
+        });
+
+        return jsonSuccess(null, 'تم حذف المكتب ودمج عملياته بنجاح.');
     }
 
     private function linkedContractsCountSubquery()
@@ -467,6 +528,24 @@ class OfficeController extends Controller
             });
     }
 
+    private function previousSponsorshipsCountSubquery()
+    {
+        return DB::table('contract_infos')
+            ->selectRaw('COUNT(*)')
+            ->whereColumn('contract_infos.previous_sponsorship', 'recruitment_offices.id');
+    }
+
+    private function externalDispatchesCountSubquery()
+    {
+        if (!Schema::hasTable('contract_external_office_dispatches')) {
+            return DB::query()->selectRaw('0');
+        }
+
+        return DB::table('contract_external_office_dispatches')
+            ->selectRaw('COUNT(*)')
+            ->whereColumn('contract_external_office_dispatches.recruitment_office_id', 'recruitment_offices.id');
+    }
+
     private function renderRelatedCountBadge(int $count, string $url, string $class): string
     {
         if ($count < 1) {
@@ -476,5 +555,89 @@ class OfficeController extends Controller
         return '<a href="' . $url . '" class="related-count-badge ' . $class . '" data-order="' . $count . '">'
             . $count .
             '</a>';
+    }
+
+    private function getOfficeLinkedCounts(objModel $office): array
+    {
+        return [
+            'maids' => Maid::withTrashed()->where('office_id', $office->id)->count(),
+            'manual_contracts' => ContractInfo::query()->where('manual_maid_office_id', $office->id)->count(),
+            'previous_sponsorships' => ContractInfo::query()->where('previous_sponsorship', $office->id)->count(),
+            'dispatches' => Schema::hasTable('contract_external_office_dispatches')
+                ? ContractExternalOfficeDispatch::query()->where('recruitment_office_id', $office->id)->count()
+                : 0,
+            'account_statement_lines' => $this->countOfficeAccountStatementLines((int) ($office->account_id ?? 0)),
+        ];
+    }
+
+    private function officeHasLinkedOperations(array $linkedCounts): bool
+    {
+        return array_sum($linkedCounts) > 0;
+    }
+
+    private function mergeOfficeOperations(
+        objModel $sourceOffice,
+        objModel $replacementOffice,
+        OfficeFinanceAccountService $officeFinanceAccountService
+    ): void {
+        $replacementAccount = $officeFinanceAccountService->ensureForOffice($replacementOffice);
+        $sourceAccountId = $sourceOffice->account_id ?: $sourceOffice->account?->id;
+
+        Maid::withTrashed()
+            ->where('office_id', $sourceOffice->id)
+            ->update(['office_id' => $replacementOffice->id]);
+
+        ContractInfo::query()
+            ->where('manual_maid_office_id', $sourceOffice->id)
+            ->update(['manual_maid_office_id' => $replacementOffice->id]);
+
+        ContractInfo::query()
+            ->where('previous_sponsorship', $sourceOffice->id)
+            ->update(['previous_sponsorship' => $replacementOffice->id]);
+
+        if (Schema::hasTable('contract_external_office_dispatches')) {
+            ContractExternalOfficeDispatch::query()
+                ->where('recruitment_office_id', $sourceOffice->id)
+                ->update([
+                    'recruitment_office_id' => $replacementOffice->id,
+                    'office_name' => (string) ($replacementOffice->title ?? ''),
+                ]);
+        }
+
+        if ($sourceAccountId && $replacementAccount && (int) $sourceAccountId !== (int) $replacementAccount->id) {
+            $this->mergeOfficeAccountStatement((int) $sourceAccountId, (int) $replacementAccount->id);
+        }
+    }
+
+    private function mergeOfficeAccountStatement(int $sourceAccountId, int $replacementAccountId): void
+    {
+        foreach (['fn_constraint_details', 'constraint_details'] as $table) {
+            if (!Schema::hasTable($table) || !Schema::hasColumn($table, 'account_id')) {
+                continue;
+            }
+
+            DB::table($table)
+                ->where('account_id', $sourceAccountId)
+                ->update(['account_id' => $replacementAccountId]);
+        }
+    }
+
+    private function countOfficeAccountStatementLines(int $accountId): int
+    {
+        if ($accountId < 1) {
+            return 0;
+        }
+
+        $count = 0;
+
+        foreach (['fn_constraint_details', 'constraint_details'] as $table) {
+            if (!Schema::hasTable($table) || !Schema::hasColumn($table, 'account_id')) {
+                continue;
+            }
+
+            $count += DB::table($table)->where('account_id', $accountId)->count();
+        }
+
+        return $count;
     }
 }

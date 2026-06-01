@@ -37,6 +37,12 @@ class Setting extends Model
         'invoice_footer_text',
         'rental_contract_title',
         'rental_contract_intro_text',
+        'rental_contract_party_one_title',
+        'rental_contract_party_one_text',
+        'rental_contract_party_two_title',
+        'rental_contract_service_title',
+        'rental_contract_sadad_label',
+        'rental_contract_sadad_code',
         'about_us_sub_title',
         'footer_text',
         'terms_conditions',
@@ -56,8 +62,12 @@ class Setting extends Model
 //        $this->translatedAttributes = array_diff($this->fillable, ['setting_id','locale','created_at','updated_at']);
 //    }
 
-    protected $fillable = ['logo_header', 'document_logo', 'admin_logo', 'light_image', 'cover_image', 'admin_login_background', 'there_are_offer', 'logo_footer', 'favicon', 'about_image', 'twitter', 'facebook', 'instagram', 'snapchat', 'linkedin', 'youtube', 'whatsapp', 'email', 'phone', 'other_phone', 'map_link', 'header_link_1_title', 'header_link_1_url', 'header_link_2_title', 'header_link_2_url', 'live_chat_title', 'live_chat_url', 'show_public_site'
+    protected $fillable = ['logo_header', 'document_logo', 'admin_logo', 'light_image', 'cover_image', 'admin_login_background', 'dashboard_footer_url', 'there_are_offer', 'logo_footer', 'favicon', 'about_image', 'twitter', 'facebook', 'instagram', 'snapchat', 'linkedin', 'youtube', 'whatsapp', 'email', 'phone', 'other_phone', 'map_link', 'header_link_1_title', 'header_link_1_url', 'header_link_2_title', 'header_link_2_url', 'live_chat_title', 'live_chat_url', 'admin_quick_links', 'show_public_site'
         , 'qr_image', 'experience_image', 'second_qr_image', 'tax_number', 'zatch_logo'
+    ];
+
+    protected $casts = [
+        'admin_quick_links' => 'array',
     ];
 
     protected $appends = ['header_logo_url', 'footer_logo_url'];

@@ -19,7 +19,7 @@
         @method('PUT')
 
         <div class="col-12">
-            <label class="form-label">رابط الحقوق والواجبات</label>
+            <label class="form-label">{{ __('admin.settings_rights_duties_link') }}</label>
             <input type="url" name="link_rights_and_duties" class="form-control"
                    value="{{ $settings->link_rights_and_duties ?? '' }}">
         </div>
@@ -30,7 +30,7 @@
 
         @foreach (config('translatable.locales') as $locale)
             <div class="col-12">
-                <label class="form-label">سياسة الخصوصية {{ getFieldLanguage($locale) }}</label>
+                <label class="form-label">{{ __('admin.settings_privacy_policy') }} {{ getFieldLanguage($locale) }}</label>
                 <textarea class="mytextarea" rows="10"
                           name="privacy:{{ $locale }}">{{ $settings->translate($locale)->privacy ?? '' }}</textarea>
             </div>
@@ -38,7 +38,7 @@
 
         @foreach (config('translatable.locales') as $locale)
             <div class="col-12">
-                <label class="form-label">الشروط والاحكام {{ getFieldLanguage($locale) }}</label>
+                <label class="form-label">{{ __('admin.settings_terms_conditions') }} {{ getFieldLanguage($locale) }}</label>
                 <textarea class="mytextarea" rows="10"
                           name="terms_conditions:{{ $locale }}">{{ $settings->translate($locale)->terms_conditions ?? '' }}</textarea>
             </div>
@@ -46,7 +46,7 @@
 
         @foreach (config('translatable.locales') as $locale)
             <div class="col-12">
-                <label class="form-label">عن التطبيق {{ getFieldLanguage($locale) }}</label>
+                <label class="form-label">{{ __('admin.settings_about_app') }} {{ getFieldLanguage($locale) }}</label>
                 <textarea class="mytextarea" rows="10"
                           name="about_us_app:{{ $locale }}">{{ $settings->translate($locale)->about_us_app ?? '' }}</textarea>
             </div>
@@ -54,21 +54,21 @@
 
         @foreach (config('translatable.locales') as $locale)
             <div class="col-12">
-                <label class="form-label">حقوق وواجبات صاحب العمل {{ getFieldLanguage($locale) }}</label>
+                <label class="form-label">{{ __('admin.settings_employer_rights_duties') }} {{ getFieldLanguage($locale) }}</label>
                 <textarea class="mytextarea" name="rights_users:{{ $locale }}">{{ $settings->translate($locale)->rights_users ?? '' }}</textarea>
             </div>
         @endforeach
 
         @foreach (config('translatable.locales') as $locale)
             <div class="col-12">
-                <label class="form-label">حقوق وواجبات العمالة {{ getFieldLanguage($locale) }}</label>
+                <label class="form-label">{{ __('admin.settings_worker_rights_duties') }} {{ getFieldLanguage($locale) }}</label>
                 <textarea class="mytextarea" name="rights_maids:{{ $locale }}">{{ $settings->translate($locale)->rights_maids ?? '' }}</textarea>
             </div>
         @endforeach
 
         @foreach (config('translatable.locales') as $locale)
             <div class="col-12">
-                <label class="form-label">شروط الإسترجاع {{ getFieldLanguage($locale) }}</label>
+                <label class="form-label">{{ __('admin.settings_return_conditions') }} {{ getFieldLanguage($locale) }}</label>
                 <textarea class="mytextarea" rows="10"
                           name="return_conditions:{{ $locale }}">{{ $settings->translate($locale)->return_conditions ?? '' }}</textarea>
             </div>

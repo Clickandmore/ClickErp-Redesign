@@ -88,6 +88,7 @@ use Nami\Finance\Http\Controllers\LoadBladeViewController;
 use Nami\Finance\Http\Controllers\ManualDepreciationController;
 use Nami\Finance\Http\Controllers\MissingItemController;
 use Nami\Finance\Http\Controllers\OpeningBalanceController;
+use Nami\Finance\Http\Controllers\ProfitLossController;
 use Nami\Finance\Http\Controllers\PrincipleController;
 use Nami\Finance\Http\Controllers\PrincipleImageController;
 use Nami\Finance\Http\Controllers\PrincipleReportController;
@@ -324,6 +325,7 @@ Route::group(
 
         Route::resource('client-files', ClientFilesController::class);
         Route::resource('income-list', IncomeListController::class);
+        Route::resource('profit-loss', ProfitLossController::class);
 
         Route::resource('sales-analysis', SalesAnalysisController::class);
         Route::resource('purchases-analysis', PurchasesAnalysisController::class);

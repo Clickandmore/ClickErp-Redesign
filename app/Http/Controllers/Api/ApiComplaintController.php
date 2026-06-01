@@ -21,7 +21,7 @@ class ApiComplaintController extends Controller
      */
     public function index()
     {
-        $complaints = objModel::where('user_id', getGuardedUser()->id)->latest()->get();
+        $complaints = objModel::with('complaintType')->where('user_id', getGuardedUser()->id)->latest()->get();
         $complaintTypes = \App\Models\ingaz\ComplaintType::all();
 
         $data = [

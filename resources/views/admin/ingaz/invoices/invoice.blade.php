@@ -166,7 +166,7 @@
         <div class="title-row">
             <p class="title">{{ $invoiceTitle ?? 'فاتورة ضريبية مبسطة' }}</p>
             <p class="subtitle">
-                {{ $invoiceSubtitle ?? ('رقم الفاتورة: ' . $invoice->id . ' | ' . ($invoice->contract_id ? 'رقم العقد: ' . $invoice->contract_id : 'رقم التفويض: ' . $invoice->ingaz_delegation_id)) }}
+                {{ $invoiceSubtitle ?? ('رقم الفاتورة: ' . $invoice->id . ' | ' . ($invoice->contract_id ? 'رقم العقد: ' . $invoice->contract_id : ($invoice->ingaz_delegation_id ? 'رقم التفويض: ' . $invoice->ingaz_delegation_id : 'فاتورة عامة'))) }}
             </p>
         </div>
 

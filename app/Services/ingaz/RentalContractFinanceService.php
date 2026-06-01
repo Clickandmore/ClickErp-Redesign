@@ -199,6 +199,25 @@ class RentalContractFinanceService
             ];
         }
 
+        if ($contract->info?->package_price_after_discount !== null && $contract->info?->package_total_with_tax !== null) {
+            $subtotal = $this->roundMoney((float) ($contract->info->package_original_price ?? $contract->info->package_price_after_discount));
+            $netSubtotal = $this->roundMoney((float) $contract->info->package_price_after_discount);
+            $discount = $this->roundMoney((float) ($contract->info->package_discount_amount ?? max(0, $subtotal - $netSubtotal)));
+            $vatAmount = $this->roundMoney((float) ($contract->info->package_vat_amount ?? max(0, $grossTotal - $netSubtotal)));
+
+            return [
+                'subtotal' => $subtotal,
+                'discount' => $discount,
+                'net_subtotal' => $netSubtotal,
+                'taxable_subtotal' => $netSubtotal,
+                'salary_exempt_amount' => 0.0,
+                'vat_amount' => $vatAmount,
+                'total_due' => $grossTotal,
+                'paid_amount' => $paidAmount,
+                'remaining_amount' => $remainingAmount,
+            ];
+        }
+
         $canUsePackagePricing = $package
             && (int) ($contract->info?->package_id ?? 0) === (int) $package->id
             && abs($grossTotal - $this->roundMoney((float) $package->price_with_tax)) < 0.05;
@@ -262,12 +281,14 @@ class RentalContractFinanceService
         }
 
         if ($salaryExemptAmount > 0) {
+            $salaryStatement = $this->buildWorkerSalaryStatement($statement, $contract, $salaryExemptAmount);
+
             $this->appendConstraintPair(
                 $lines,
                 $deferredRevenueAccountId,
                 $clientAccountId,
                 $salaryExemptAmount,
-                $statement . ' / راتب العاملة المعفى من الضريبة',
+                $salaryStatement,
                 $costCenterId
             );
         }
@@ -397,6 +418,16 @@ class RentalContractFinanceService
             . ($contract->user?->name ?: 'غير محدد');
     }
 
+    private function buildWorkerSalaryStatement(string $baseStatement, RentalContract $contract, float $salaryAmount): string
+    {
+        $maidName = $contract->maid?->name ?: 'غير محدد';
+
+        return $baseStatement
+            . ' / مرتب العامل (معفى ضريبياً)'
+            . ' / العاملة: ' . $maidName
+            . ' / المبلغ: ' . number_format($salaryAmount, 2, '.', '') . ' ريال';
+    }
+
     private function resolveSalaryExemptAmount(RentalContract $contract, float $grossTotal): float
     {
         $monthlySalary = (float) ($contract->info?->monthly_salary ?? 0);
@@ -442,6 +473,8 @@ class RentalContractFinanceService
         $durationDays = (int) ($contract->info?->contract_duration_days ?? 0);
         $durationMonths = (int) ($contract->info?->contract_duration_months ?? 0);
         $packageTitle = $package?->title ?: 'باقة إيجار';
+        $durationLabel = $package?->duration_label
+            ?: ($durationMonths > 0 ? $durationMonths . ' شهر' : 'غير محدد');
 
         return 'عقد تأجير - رقم العقد: '
             . ($contract->contract_number ?: $contract->id)
@@ -449,7 +482,7 @@ class RentalContractFinanceService
             . ' - العاملة: ' . $maidName
             . ' - الجنسية: ' . $nationality
             . ' - الباقة: ' . $packageTitle
-            . ' - المدة: ' . ($durationMonths > 0 ? $durationMonths . ' شهر' : 'غير محدد')
+            . ' - المدة: ' . $durationLabel
             . ($durationDays > 0 ? ' / ' . $durationDays . ' يوم' : '');
     }
 

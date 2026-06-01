@@ -1,13 +1,13 @@
 @extends('admin.layout.indexs.index')
 
 @section('page-title')
-إضافة شكوى جديدة
+{{ __('ingaz.complaint_add_new') }}
 @endsection
 
 @section('links')
-    <li class="breadcrumb-item"><a href="{{ route('dashboard.index') }}">الرئيسية</a></li>
-    <li class="breadcrumb-item"><a href="{{ route('complaints.index') }}">الشكاوى</a></li>
-    <li class="breadcrumb-item active">إضافة شكوى</li>
+    <li class="breadcrumb-item"><a href="{{ route('dashboard.index') }}">{{ __('ingaz.dashboard_home') }}</a></li>
+    <li class="breadcrumb-item"><a href="{{ route('complaints.index') }}">{{ __('ingaz.complaints') }}</a></li>
+    <li class="breadcrumb-item active">{{ __('ingaz.complaint_add_new') }}</li>
 @endsection
 
 @section('style')
@@ -59,7 +59,7 @@
     <div class="card-header">
         <h4 class="card-title mb-0">
             <i class="fas fa-exclamation-triangle me-2"></i>
-            تسجيل شكوى جديدة
+            {{ __('ingaz.complaint_register_new') }}
         </h4>
     </div>
     <div class="card-body">
@@ -70,14 +70,14 @@
             <div class="section-header">
                 <h5 class="mb-0">
                     <i class="fas fa-user me-2"></i>
-                    معلومات مقدم الشكوى
+                    {{ __('ingaz.complainant_information') }}
                 </h5>
             </div>
             <div class="row mb-4">
                 <div class="col-md-4 mb-3">
-                    <label class="form-label">اسم مقدم الشكوى <span class="required-star">*</span></label>
+                    <label class="form-label">{{ __('ingaz.complainant_name') }} <span class="required-star">*</span></label>
                     <input type="text" name="complainant_name" class="form-control" required
-                           placeholder="أدخل اسم مقدم الشكوى" value="{{ old('complainant_name') }}"
+                           placeholder="{{ __('ingaz.complainant_name_placeholder') }}" value="{{ old('complainant_name') }}"
                            data-validation="required">
                     @error('complainant_name')
                         <span class="text-danger">{{ $message }}</span>
@@ -85,7 +85,7 @@
                 </div>
 
                 <div class="col-md-4 mb-3">
-                    <label class="form-label">رقم الجوال <span class="required-star">*</span></label>
+                    <label class="form-label">{{ __('ingaz.phone') }} <span class="required-star">*</span></label>
                     <input type="tel" name="complainant_phone" class="form-control" required
                            placeholder="05XXXXXXXX | 5XXXXXXXX" pattern="^(05|5)[0-9]{8}$" value="{{ old('complainant_phone') }}"
                            data-validation="required">
@@ -95,9 +95,9 @@
                 </div>
 
                 <div class="col-md-4 mb-3">
-                    <label class="form-label">العميل المسجل (اختياري)</label>
+                    <label class="form-label">{{ __('ingaz.registered_client_optional') }}</label>
                     <select name="user_id" class="form-select select2">
-                        <option value="">-- اختر عميل مسجل --</option>
+                        <option value="">{{ __('ingaz.select_registered_client') }}</option>
                         @foreach($users as $user)
                             <option value="{{ $user->id }}" {{ old('user_id') == $user->id ? 'selected' : '' }}
                                     data-name="{{ $user->name }}" data-phone="{{ $user->phone }}">
@@ -115,23 +115,23 @@
             <div class="section-header">
                 <h5 class="mb-0">
                     <i class="fas fa-female me-2"></i>
-                    معلومات العاملة
+                    {{ __('ingaz.worker_information') }}
                 </h5>
             </div>
             <div class="row mb-4">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">رقم جواز العاملة</label>
+                    <label class="form-label">{{ __('ingaz.worker_passport_number') }}</label>
                     <input type="text" name="maid_passport" class="form-control"
-                           placeholder="رقم الجواز" value="{{ old('maid_passport') }}">
+                           placeholder="{{ __('ingaz.passport_number_placeholder') }}" value="{{ old('maid_passport') }}">
                     @error('maid_passport')
                         <span class="text-danger">{{ $message }}</span>
                     @enderror
                 </div>
 
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">جنسية العاملة</label>
+                    <label class="form-label">{{ __('ingaz.worker_nationality') }}</label>
                     <select name="maid_nationality_id" class="form-select select2">
-                        <option value="">-- اختر الجنسية --</option>
+                        <option value="">{{ __('ingaz.select_nationality') }}</option>
                         @foreach($nationalities as $nationality)
                             <option value="{{ $nationality->id }}" {{ old('maid_nationality_id') == $nationality->id ? 'selected' : '' }}>
                                 {{ $nationality->title }}
@@ -148,14 +148,14 @@
             <div class="section-header">
                 <h5 class="mb-0">
                     <i class="fas fa-file-alt me-2"></i>
-                    تفاصيل الشكوى
+                    {{ __('ingaz.complaint_details') }}
                 </h5>
             </div>
             <div class="row">
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">موضوع الشكوى <span class="required-star">*</span></label>
+                    <label class="form-label">{{ __('ingaz.complaint_subject') }} <span class="required-star">*</span></label>
                     <input type="text" name="subject" class="form-control" required
-                           placeholder="موضوع الشكوى" value="{{ old('subject') }}"
+                           placeholder="{{ __('ingaz.complaint_subject_placeholder') }}" value="{{ old('subject') }}"
                            data-validation="required">
                     @error('subject')
                         <span class="text-danger">{{ $message }}</span>
@@ -163,9 +163,9 @@
                 </div>
 
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">نوع الشكوى <span class="required-star">*</span></label>
+                    <label class="form-label">{{ __('ingaz.complaint_type') }} <span class="required-star">*</span></label>
                     <select name="complaint_type_id" class="form-select" required data-validation="required">
-                        <option value="">-- اختر نوع الشكوى --</option>
+                        <option value="">{{ __('ingaz.select_complaint_type') }}</option>
                         @foreach($complaintTypes as $type)
                             <option value="{{ $type->id }}" {{ old('complaint_type_id') == $type->id ? 'selected' : '' }}>
                                 {{ $type->name }}
@@ -178,19 +178,19 @@
                 </div>
 
                 <div class="col-md-4 mb-3">
-                    <label class="form-label">الأولوية <span class="required-star">*</span></label>
+                    <label class="form-label">{{ __('ingaz.priority') }} <span class="required-star">*</span></label>
                     <select name="priority" class="form-select" required data-validation="required">
                         <option value="low" {{ old('priority') == 'low' ? 'selected' : '' }}>
-                            <i class="fas fa-circle text-info"></i> منخفضة
+                            {{ __('ingaz.priority_low') }}
                         </option>
                         <option value="medium" {{ old('priority', 'medium') == 'medium' ? 'selected' : '' }}>
-                            <i class="fas fa-circle text-warning"></i> متوسطة
+                            {{ __('ingaz.priority_medium') }}
                         </option>
                         <option value="high" {{ old('priority') == 'high' ? 'selected' : '' }}>
-                            <i class="fas fa-circle text-danger"></i> عالية
+                            {{ __('ingaz.priority_high') }}
                         </option>
                         <option value="urgent" {{ old('priority') == 'urgent' ? 'selected' : '' }}>
-                            <i class="fas fa-exclamation-circle text-danger"></i> عاجلة
+                            {{ __('ingaz.priority_urgent') }}
                         </option>
                     </select>
                     @error('priority')
@@ -199,9 +199,9 @@
                 </div>
 
                 <div class="col-md-8 mb-3">
-                    <label class="form-label">الموظف المختص</label>
+                    <label class="form-label">{{ __('ingaz.assigned_employee') }}</label>
                     <select name="assigned_to" class="form-select select2">
-                        <option value="">-- اختر الموظف المختص --</option>
+                        <option value="">{{ __('ingaz.select_assigned_employee') }}</option>
                         @foreach($admins as $admin)
                             <option value="{{ $admin->id }}" {{ old('assigned_to') == $admin->id ? 'selected' : '' }}>
                                 {{ $admin->name }}
@@ -214,19 +214,19 @@
                 </div>
 
                 <div class="col-12 mb-3">
-                    <label class="form-label">تفاصيل الشكوى <span class="required-star">*</span></label>
+                    <label class="form-label">{{ __('ingaz.complaint_details') }} <span class="required-star">*</span></label>
                     <textarea name="details" class="form-control" rows="5" required
-                              placeholder="اكتب تفاصيل الشكوى هنا..." data-validation="required">{{ old('details') }}</textarea>
+                              placeholder="{{ __('ingaz.complaint_details_placeholder') }}" data-validation="required">{{ old('details') }}</textarea>
                     @error('details')
                         <span class="text-danger">{{ $message }}</span>
                     @enderror
                 </div>
 
                 <div class="col-12 mb-3">
-                    <label class="form-label">المرفقات</label>
+                    <label class="form-label">{{ __('ingaz.attachments') }}</label>
                     <input type="file" name="attachments[]" class="form-control" multiple
                            accept="image/*,application/pdf,.doc,.docx">
-                    <small class="text-muted">يمكنك رفع عدة ملفات (صور، PDF، Word) - الحد الأقصى 5 ميجا لكل ملف</small>
+                    <small class="text-muted">{{ __('ingaz.attachments_hint') }}</small>
                     @error('attachments')
                         <span class="text-danger">{{ $message }}</span>
                     @enderror
@@ -235,10 +235,10 @@
 
             <div class="text-end mt-4">
                 <a href="{{ route('complaints.index') }}" class="btn btn-secondary">
-                    <i class="fas fa-times me-2"></i>إلغاء
+                    <i class="fas fa-times me-2"></i>{{ __('buttons.cancel') }}
                 </a>
                 <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-save me-2"></i>حفظ الشكوى
+                    <i class="fas fa-save me-2"></i>{{ __('ingaz.save_complaint') }}
                 </button>
             </div>
         </form>
@@ -254,18 +254,25 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
 $(document).ready(function() {
+    const complaintFormTranslations = {
+        selectPlaceholder: @json(__('ingaz.select_placeholder')),
+        noResults: @json(__('ingaz.no_results')),
+        searching: @json(__('ingaz.searching')),
+        phoneInvalid: @json(__('ingaz.complaint_phone_invalid')),
+    };
+
     // تهيئة Select2
     $('.select2').select2({
-        placeholder: 'اختر...',
+        placeholder: complaintFormTranslations.selectPlaceholder,
         allowClear: true,
         dir: 'rtl',
         width: '100%',
         language: {
             noResults: function() {
-                return "لا توجد نتائج";
+                return complaintFormTranslations.noResults;
             },
             searching: function() {
-                return "جاري البحث...";
+                return complaintFormTranslations.searching;
             }
         }
     });
@@ -286,7 +293,7 @@ $(document).ready(function() {
     $('input[name="complainant_phone"]').on('blur', function() {
         var phone = $(this).val();
         if (phone && !phone.match(/^(05|5)[0-9]{8}$/)) {
-            toastr.warning('رقم الجوال يجب أن يبدأ بـ 05 ويتكون من 10 أرقام');
+            toastr.warning(complaintFormTranslations.phoneInvalid);
             $(this).focus();
         }
     });

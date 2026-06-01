@@ -8,7 +8,7 @@
 @endsection
 @section('content')
     @php
-        $selectedCountry = collect($countries)->firstWhere('id', $obj->country_id);
+        $selectedCountry = collect($hrCountries)->firstWhere('id', $obj->country_id);
         $selectedCountryLabel = $selectedCountry
             ? trim(implode(' - ', array_filter([
                 $selectedCountry->nationality ?? null,

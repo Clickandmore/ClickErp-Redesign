@@ -86,6 +86,7 @@ class SettingAction extends MainAction
     public function updateSetting($id, $data)
     {
         $setting = $this->find($id);
+        unset($data['_token'], $data['_method']);
 
         if (isset($data['qr_image']) && $data['qr_image'] instanceof \Illuminate\Http\UploadedFile) {
             deleteFile($setting->qr_image);
@@ -171,6 +172,15 @@ class SettingAction extends MainAction
             }
         }
 
+        if (array_key_exists('admin_quick_links_empty', $data) && !array_key_exists('admin_quick_links', $data)) {
+            $data['admin_quick_links'] = [];
+        }
+        unset($data['admin_quick_links_empty']);
+
+        if (array_key_exists('admin_quick_links', $data)) {
+            $data['admin_quick_links'] = $this->normalizeAdminQuickLinks($data['admin_quick_links']);
+        }
+
         // Separate translation data from main data
         $translationData = [];
         $mainData = [];
@@ -210,6 +220,32 @@ class SettingAction extends MainAction
         $setting->save();
 
         return $setting;
+    }
+
+    private function normalizeAdminQuickLinks($links): array
+    {
+        if (!is_array($links)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($links as $link) {
+            $title = trim((string)($link['title'] ?? ''));
+            $url = trim((string)($link['url'] ?? ''));
+
+            if ($title === '' || $url === '') {
+                continue;
+            }
+
+            $normalized[] = [
+                'title' => $title,
+                'url' => $url,
+                'icon' => trim((string)($link['icon'] ?? 'fa-external-link')) ?: 'fa-external-link',
+                'is_visible' => !empty($link['is_visible']),
+            ];
+        }
+
+        return array_values($normalized);
     }
 
     public function deleteSetting($id)

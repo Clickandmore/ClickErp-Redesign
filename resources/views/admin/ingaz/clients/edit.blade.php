@@ -195,7 +195,7 @@
             <div class="client-edit-header">
                 <div>
                     <h4>{{ helperTrans('ingaz.edit_client') }}</h4>
-                    <p>الحقول المطلوبة: اسم العميل ورقم الجوال فقط، ويمكن تعديل بقية البيانات عند الحاجة.</p>
+                    <p>{{ helperTrans('ingaz.client_edit_required_fields_hint') }}</p>
                 </div>
 
                 <a href="{{ route('clients.index') }}" class="btn btn-outline-secondary">
@@ -213,8 +213,8 @@
                     <div class="card-body">
                         <div class="section-heading">
                             <i class="fas fa-user-edit"></i>
-                            <span>البيانات الأساسية</span>
-                            <span class="required-label">مطلوب</span>
+                            <span>{{ helperTrans('ingaz.basic_information') }}</span>
+                            <span class="required-label">{{ helperTrans('ingaz.required') }}</span>
                         </div>
 
                         <div class="row g-3">
@@ -240,9 +240,9 @@
                     <div class="card-header">
                         <div class="section-heading mb-0">
                             <i class="fas fa-id-card"></i>
-                            <span>بيانات إضافية</span>
+                            <span>{{ helperTrans('ingaz.additional_information') }}</span>
                         </div>
-                        <span class="optional-label">اختياري</span>
+                        <span class="optional-label">{{ helperTrans('ingaz.optional') }}</span>
                     </div>
 
                     <div class="card-body">
@@ -275,6 +275,20 @@
                                 <label for="birthdate" class="form-label">{{ helperTrans('ingaz.birthdate') }}</label>
                                 <input type="date" id="birthdate" name="birthdate" class="form-control"
                                        value="{{ old('birthdate', $client->birthdate) }}">
+                            </div>
+
+                            <div class="col-lg-6">
+                                <label class="form-label d-block">{{ helperTrans('ingaz.marital_status') }}</label>
+                                <div class="d-flex flex-wrap gap-3">
+                                    @foreach(['single' => 'أعزب', 'married' => 'متزوج', 'divorced' => 'مطلق', 'widowed' => 'أرمل'] as $value => $label)
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="marital_status"
+                                                   id="marital_status_{{ $value }}" value="{{ $value }}"
+                                                   @checked(old('marital_status', $client->marital_status) === $value) required>
+                                            <label class="form-check-label" for="marital_status_{{ $value }}">{{ $label }}</label>
+                                        </div>
+                                    @endforeach
+                                </div>
                             </div>
 
                             <div class="col-lg-6">

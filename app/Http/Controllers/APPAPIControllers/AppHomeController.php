@@ -163,7 +163,7 @@ class AppHomeController extends Controller
             $query->forNationality($request->nationality_id);
         }
 
-        return jsonSuccess(PackageResource::collection($query->orderBy('days_count')->orderBy('price_with_tax')->get()), __('api.All items'));
+        return jsonSuccess(PackageResource::collection($query->ordered()->get()), __('api.All items'));
     }
 
     public function notifications(Request $request)

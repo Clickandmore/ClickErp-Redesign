@@ -5,28 +5,35 @@ $user = getAuthUser();
 $settings = $settings ?? null;
 $appTimezone = config('app.timezone', 'Asia/Riyadh');
 $headerNow = now()->timezone($appTimezone);
-$quickLinks = collect([
-    [
-        'title' => optional($settings)->header_link_1_title ?? __('admin.layout.default_musaned_pro'),
-        'url' => optional($settings)->header_link_1_url ?? 'https://pros.musaned.com.sa/login',
-        'icon' => 'fa-external-link',
-        'variant' => 'default',
-    ],
-    [
-        'title' => optional($settings)->header_link_2_title ?? __('admin.layout.default_musaned_tawtheeq'),
-        'url' => optional($settings)->header_link_2_url ?? 'https://tawtheeq.musaned.com.sa/',
-        'icon' => 'fa-file-text-o',
-        'variant' => 'default',
-    ],
-    [
-        'title' => optional($settings)->live_chat_title ?? __('admin.layout.default_live_chat'),
-        'url' => optional($settings)->live_chat_url ?? 'https://salesiq.zoho.sa/platinumeastern/liveview',
-        'icon' => 'fa-comments',
-        'variant' => 'primary',
-    ],
-])->filter(function ($link) {
-    return filled($link['title']) && filled($link['url']);
-});
+$storedQuickLinks = optional($settings)->admin_quick_links ?: [];
+$quickLinks = collect($storedQuickLinks);
+
+if ($quickLinks->isEmpty()) {
+    $quickLinks = collect([
+        [
+            'title' => optional($settings)->header_link_1_title ?? 'مساند برو',
+            'url' => optional($settings)->header_link_1_url ?? 'https://pros.musaned.com.sa/login',
+            'icon' => 'fa-external-link',
+            'is_visible' => true,
+        ],
+        [
+            'title' => optional($settings)->header_link_2_title ?? 'مساند توثيق',
+            'url' => optional($settings)->header_link_2_url ?? 'https://tawtheeq.musaned.com.sa/',
+            'icon' => 'fa-file-text-o',
+            'is_visible' => true,
+        ],
+        [
+            'title' => optional($settings)->live_chat_title ?? 'اللايف شات',
+            'url' => optional($settings)->live_chat_url ?? 'https://salesiq.zoho.sa/platinumeastern/liveview',
+            'icon' => 'fa-comments',
+            'is_visible' => true,
+        ],
+    ]);
+}
+
+$quickLinks = $quickLinks->filter(function ($link) {
+    return filled($link['title'] ?? null) && filled($link['url'] ?? null) && ($link['is_visible'] ?? true);
+})->values();
 @endphp
 @once
     <style>
@@ -37,14 +44,17 @@ $quickLinks = collect([
         }
 
         .cm-brand {
-            min-height: 42px;
+            min-height: 58px;
             min-width: auto;
-            max-width: 220px;
-            gap: 0.55rem;
+            max-width: 320px;
+            gap: 0.7rem;
         }
 
         .cm-header-logo {
-            height: 34px;
+            height: 52px;
+            max-width: 150px;
+            width: auto;
+            object-fit: contain;
         }
 
         .cm-brand-text {
@@ -74,6 +84,7 @@ $quickLinks = collect([
             flex-wrap: nowrap;
             align-items: center;
             gap: 0.45rem;
+            flex: 0 0 auto;
             min-width: 0;
         }
 
@@ -264,12 +275,6 @@ $quickLinks = collect([
             }
         }
 
-        @media (max-width: 1380px) {
-            .cm-header-meta {
-                display: none;
-            }
-        }
-
         @media (max-width: 1280px) {
             .cm-header-open-site span {
                 display: none;
@@ -287,7 +292,12 @@ $quickLinks = collect([
             .cm-brand {
                 margin-inline-start: 0.65rem !important;
                 margin-inline-end: 0 !important;
-                max-width: 180px;
+                max-width: 230px;
+            }
+
+            .cm-header-logo {
+                height: 44px;
+                max-width: 125px;
             }
         }
     </style>
@@ -340,7 +350,7 @@ $quickLinks = collect([
                                     <i class="fa fa-calendar"></i>
                                 </span>
                                 <div class="cm-header-meta-body">
-                                    <span class="cm-header-meta-label">{{ __('admin.layout.time') }}</span>
+                                    <span class="cm-header-meta-label">{{ helperTrans('ingaz.time') }}</span>
                                     <strong class="cm-header-meta-value" id="cm-live-time">{{ $headerNow->format('H:i:s') }}</strong>
                                     <small class="cm-header-meta-subvalue" id="cm-live-date">{{ $headerNow->format('Y-m-d') }}</small>
                                 </div>
@@ -351,21 +361,21 @@ $quickLinks = collect([
                                     <i class="fa fa-clock-o"></i>
                                 </span>
                                 <div class="cm-header-meta-body">
-                                    <span class="cm-header-meta-label">{{ __('admin.layout.duration') }}</span>
+                                    <span class="cm-header-meta-label">{{ helperTrans('ingaz.duration') }}</span>
                                     <strong class="cm-header-meta-value" id="cm-session-duration">00:00</strong>
-                                    <small class="cm-header-meta-subvalue">{{ __('admin.layout.session_since_open') }}</small>
+                                    <small class="cm-header-meta-subvalue">{{ helperTrans('ingaz.since_system_opened') }}</small>
                                 </div>
                             </div>
                         </div>
 
                         @if ($quickLinks->isNotEmpty())
                             <div class="cm-header-shortcuts">
-                                <p class="cm-header-shortcuts-label mb-0">{{ __('admin.layout.quick_links') }}</p>
+                                <p class="cm-header-shortcuts-label mb-0">{{ helperTrans('ingaz.quick_links') }}</p>
                                 <div class="cm-header-shortcuts-list">
                                     @foreach ($quickLinks as $link)
-                                        <a class="cm-header-shortcut {{ $link['variant'] === 'primary' ? 'is-primary' : '' }}"
+                                        <a class="cm-header-shortcut"
                                            href="{{ $link['url'] }}" target="_blank" rel="noopener noreferrer">
-                                            <i class="fa {{ $link['icon'] }}"></i>
+                                            <i class="fa {{ $link['icon'] ?? 'fa-external-link' }}"></i>
                                             <span>{{ $link['title'] }}</span>
                                         </a>
                                     @endforeach
@@ -379,7 +389,7 @@ $quickLinks = collect([
             <ul class="header-right justify-content-end d-flex align-items-center mb-0">
                 <li>
                     <div class="dropdown morphing {{$scaleDirection}} notifications">
-                        <a class="nav-link dropdown-toggle after-none cm-header-action" href="#" role="button" data-bs-toggle="dropdown" title="{{ __('admin.layout.notifications') }}">
+                        <a class="nav-link dropdown-toggle after-none cm-header-action" href="#" role="button" data-bs-toggle="dropdown" title="{{ helperTrans('ingaz.notifications') }}">
 
                             <i class="fa fa-bell"></i>
                             <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger notification-badge" style="display: none;">

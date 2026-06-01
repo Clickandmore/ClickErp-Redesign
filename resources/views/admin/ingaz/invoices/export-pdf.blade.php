@@ -59,8 +59,8 @@
             @foreach ($invoices as $invoice)
                 <tr>
                     <td>#{{ $invoice->id }}</td>
-                    <td>{{ $invoice->contract_id ? 'عقد #' . $invoice->contract_id : 'تفويض #' . $invoice->ingaz_delegation_id }}</td>
-                    <td>{{ $invoice->contract?->user?->name ?: ($invoice->ingazDelegation?->user?->name ?: '-') }}</td>
+                    <td>{{ $invoice->contract_id ? 'عقد #' . $invoice->contract_id : ($invoice->ingaz_delegation_id ? 'تفويض #' . $invoice->ingaz_delegation_id : 'فاتورة عامة') }}</td>
+                    <td>{{ $invoice->contract?->user?->name ?: ($invoice->ingazDelegation?->user?->name ?: ($invoice->client?->name ?: '-')) }}</td>
                     <td>{{ number_format((float) $invoice->subtotal, 2) }}</td>
                     <td>{{ number_format((float) $invoice->vat_amount, 2) }}</td>
                     <td>{{ number_format((float) $invoice->discount, 2) }}</td>

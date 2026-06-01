@@ -71,7 +71,7 @@ class SmsTemplateController extends Controller
             'name' => $request->name,
             'title' => $request->title,
             'channel' => $request->channel,
-            'sort_order' => $request->integer('sort_order', $this->nextSortOrder()),
+            'sort_order' => $request->filled('sort_order') ? (int) $request->input('sort_order') : $this->nextSortOrder(),
             'message' => $request->message,
             'is_active' => $request->boolean('is_active'),
             'variables' => $this->extractVariables($request->message)
@@ -129,7 +129,7 @@ class SmsTemplateController extends Controller
             'name' => $request->name,
             'title' => $request->title,
             'channel' => $request->channel,
-            'sort_order' => $request->integer('sort_order', $smsTemplate->sort_order ?? 0),
+            'sort_order' => $request->filled('sort_order') ? (int) $request->input('sort_order') : (int) ($smsTemplate->sort_order ?? 0),
             'message' => $request->message,
             'is_active' => $request->boolean('is_active'),
             'variables' => $this->extractVariables($request->message)

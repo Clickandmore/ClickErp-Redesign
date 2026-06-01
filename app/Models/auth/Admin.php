@@ -19,6 +19,10 @@ class Admin extends Authenticatable
     protected $table ='admins';
     protected $guarded = [];
     protected $guard_name = 'admin';
+    protected $casts = [
+        'last_login_at' => 'datetime',
+        'last_activity_at' => 'datetime',
+    ];
 
 
     public function role()

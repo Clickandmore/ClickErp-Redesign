@@ -209,13 +209,13 @@
                             <form method="POST" action="{{ route('hr.maids.employ', $maid->id) }}">
                                 @csrf
                                 <button type="submit" class="btn btn-success">
-                                    <i class="fas fa-user-plus me-1"></i>توظيف العاملة
+                                    <i class="fas fa-user-plus me-1"></i>{{ helperTrans('ingaz.employ_maid') }}
                                 </button>
                             </form>
                         @endif
                         @if ($hrEmployeeRecord && $hrEmployeeRecord->employee_category === \Nami\Hr\Models\Employee::CATEGORY_EMPLOYEE && Route::has('employees.edit'))
                             <a href="{{ route('employees.edit', $hrEmployeeRecord->id) }}" class="btn btn-outline-success">
-                                <i class="fas fa-id-badge me-1"></i>ملف الموظفة
+                                <i class="fas fa-id-badge me-1"></i>{{ helperTrans('ingaz.employee_file') }}
                             </a>
                         @endif
                         @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT))
@@ -224,7 +224,7 @@
                             </a>
                         @endif
                         <a href="#maid-attachments" class="btn btn-outline-info">
-                            <i class="fas fa-paperclip me-1"></i>المرفقات
+                            <i class="fas fa-paperclip me-1"></i>{{ helperTrans('ingaz.attachments') }}
                         </a>
                     </div>
                 </div>
@@ -402,24 +402,24 @@
                         <div class="card maid-card">
                             <div class="card-body">
                                 <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
-                                    <i class="fas fa-wallet text-success"></i>البنود المالية
+                                    <i class="fas fa-wallet text-success"></i>{{ helperTrans('ingaz.financial_items') }}
                                 </h5>
                                 <div class="row g-3 mb-3">
                                     <div class="col-md-4">
                                         <div class="border rounded-3 p-3 h-100">
-                                            <div class="text-muted small">إجمالي الإيرادات</div>
+                                            <div class="text-muted small">{{ helperTrans('ingaz.total_income') }}</div>
                                             <div class="fw-bold text-success">{{ number_format($rentalFinanceSummary['income'] ?? 0, 2) }}</div>
                                         </div>
                                     </div>
                                     <div class="col-md-4">
                                         <div class="border rounded-3 p-3 h-100">
-                                            <div class="text-muted small">إجمالي المصروفات</div>
+                                            <div class="text-muted small">{{ helperTrans('ingaz.total_expenses') }}</div>
                                             <div class="fw-bold text-danger">{{ number_format($rentalFinanceSummary['expense'] ?? 0, 2) }}</div>
                                         </div>
                                     </div>
                                     <div class="col-md-4">
                                         <div class="border rounded-3 p-3 h-100">
-                                            <div class="text-muted small">الصافي</div>
+                                            <div class="text-muted small">{{ helperTrans('ingaz.net') }}</div>
                                             <div class="fw-bold {{ ($rentalFinanceSummary['net'] ?? 0) >= 0 ? 'text-primary' : 'text-danger' }}">
                                                 {{ number_format($rentalFinanceSummary['net'] ?? 0, 2) }}
                                             </div>
@@ -430,10 +430,10 @@
                                     <table class="table table-hover align-middle mb-0">
                                         <thead>
                                             <tr>
-                                                <th style="width: 18%;">النوع</th>
-                                                <th>البند</th>
-                                                <th style="width: 20%;">المبلغ</th>
-                                                <th style="width: 22%;">الحالة</th>
+                                                <th style="width: 18%;">{{ helperTrans('ingaz.type') }}</th>
+                                                <th>{{ helperTrans('ingaz.item') }}</th>
+                                                <th style="width: 20%;">{{ helperTrans('ingaz.amount') }}</th>
+                                                <th style="width: 22%;">{{ helperTrans('ingaz.status') }}</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -441,22 +441,22 @@
                                                 <tr>
                                                     <td>
                                                         <span class="badge {{ $item->type === 'income' ? 'bg-success' : 'bg-danger' }}">
-                                                            {{ $item->type === 'income' ? 'إيراد' : 'مصروف' }}
+                                                            {{ $item->type === 'income' ? helperTrans('ingaz.income') : helperTrans('ingaz.expense') }}
                                                         </span>
                                                     </td>
                                                     <td>{{ $item->label ?? '-' }}</td>
                                                     <td>{{ number_format((float) $item->amount, 2) }}</td>
                                                     <td>
                                                         @if ($item->settled_at)
-                                                            <span class="badge bg-info text-dark">مسكن {{ $item->settled_at->format('Y-m-d H:i') }}</span>
+                                                            <span class="badge bg-info text-dark">{{ __('ingaz.settled_at', ['date' => $item->settled_at->format('Y-m-d H:i')]) }}</span>
                                                         @else
-                                                            <span class="badge bg-secondary">غير مسكن</span>
+                                                            <span class="badge bg-secondary">{{ helperTrans('ingaz.unsettled') }}</span>
                                                         @endif
                                                     </td>
                                                 </tr>
                                             @empty
                                                 <tr>
-                                                    <td colspan="4" class="text-center text-muted">لا توجد بنود مالية مسجلة</td>
+                                                    <td colspan="4" class="text-center text-muted">{{ helperTrans('ingaz.no_financial_items_recorded') }}</td>
                                                 </tr>
                                             @endforelse
                                         </tbody>
@@ -561,7 +561,7 @@
                     <div class="card maid-card" id="maid-attachments">
                         <div class="card-body">
                             <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
-                                <i class="fas fa-paperclip text-info"></i>مرفقات العاملة
+                                <i class="fas fa-paperclip text-info"></i>{{ helperTrans('ingaz.maid_attachments') }}
                             </h5>
 
                             @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT))
@@ -569,17 +569,17 @@
                                     enctype="multipart/form-data" class="mb-3">
                                     @csrf
                                     <div class="mb-2">
-                                        <label class="form-label">وصف اختياري</label>
+                                        <label class="form-label">{{ helperTrans('ingaz.attachment_optional_description') }}</label>
                                         <input type="text" name="title" class="form-control"
-                                            value="{{ old('title') }}" placeholder="مثال: جواز السفر">
+                                            value="{{ old('title') }}" placeholder="{{ helperTrans('ingaz.attachment_placeholder_passport') }}">
                                     </div>
                                     <div class="mb-2">
-                                        <label class="form-label">اختيار المرفقات</label>
+                                        <label class="form-label">{{ helperTrans('ingaz.select_attachments') }}</label>
                                         <input type="file" name="attachments[]" class="form-control" multiple required>
-                                        <div class="form-text">يمكن رفع أكثر من ملف. الحد الأقصى لكل ملف 20 ميجابايت.</div>
+                                        <div class="form-text">{{ helperTrans('ingaz.attachments_upload_hint') }}</div>
                                     </div>
                                     <button type="submit" class="btn btn-primary btn-sm">
-                                        <i class="fas fa-upload me-1"></i>رفع المرفقات
+                                        <i class="fas fa-upload me-1"></i>{{ helperTrans('ingaz.upload_attachments') }}
                                     </button>
                                 </form>
                             @endif
@@ -588,10 +588,10 @@
                                 <form id="maidAttachmentsDownloadForm" method="GET"
                                     action="{{ route('maids.attachments.download', $maid->id) }}"></form>
                                 <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <strong class="small text-muted">المرفقات الحالية</strong>
+                                    <strong class="small text-muted">{{ helperTrans('ingaz.current_attachments') }}</strong>
                                     <button type="submit" class="btn btn-outline-success btn-sm"
                                         form="maidAttachmentsDownloadForm">
-                                        <i class="fas fa-file-archive me-1"></i>تنزيل المحدد
+                                        <i class="fas fa-file-archive me-1"></i>{{ helperTrans('ingaz.download_selected') }}
                                     </button>
                                 </div>
                                 <div class="d-flex flex-column gap-2">
@@ -620,20 +620,20 @@
                                             <div class="d-flex flex-wrap gap-2 mt-2">
                                                 <a href="{{ route('maids.attachments.view', [$maid->id, $attachment->id]) }}"
                                                     class="btn btn-outline-primary btn-sm" target="_blank">
-                                                    <i class="fas fa-eye me-1"></i>عرض
+                                                    <i class="fas fa-eye me-1"></i>{{ helperTrans('ingaz.view') }}
                                                 </a>
                                                 <a href="{{ route('maids.attachments.download.single', [$maid->id, $attachment->id]) }}"
                                                     class="btn btn-light btn-sm border">
-                                                    <i class="fas fa-download me-1"></i>تنزيل
+                                                    <i class="fas fa-download me-1"></i>{{ helperTrans('ingaz.download') }}
                                                 </a>
                                                 @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT))
                                                     <form method="POST"
                                                         action="{{ route('maids.attachments.delete', [$maid->id, $attachment->id]) }}"
-                                                        onsubmit="return confirm('هل تريد حذف هذا المرفق؟');">
+                                                        onsubmit="return confirm('{{ helperTrans('ingaz.confirm_delete_this_attachment') }}');">
                                                         @csrf
                                                         @method('DELETE')
                                                         <button type="submit" class="btn btn-outline-danger btn-sm">
-                                                            <i class="fas fa-trash me-1"></i>حذف
+                                                            <i class="fas fa-trash me-1"></i>{{ helperTrans('ingaz.delete') }}
                                                         </button>
                                                     </form>
                                                 @endif
@@ -642,7 +642,7 @@
                                     @endforeach
                                 </div>
                             @else
-                                <p class="text-muted mb-0">لا توجد مرفقات مرتبطة بهذه العاملة.</p>
+                                <p class="text-muted mb-0">{{ helperTrans('ingaz.no_maid_attachments') }}</p>
                             @endif
                         </div>
                     </div>
@@ -650,26 +650,26 @@
                     <div class="card maid-card">
                         <div class="card-body">
                             <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
-                                <i class="fas fa-id-badge text-primary"></i>سجل الموارد البشرية
+                                <i class="fas fa-id-badge text-primary"></i>{{ helperTrans('ingaz.hr_record') }}
                             </h5>
                             @if ($hrEmployeeRecord)
                                 <div class="d-flex flex-column gap-2">
                                     <div class="d-flex justify-content-between">
-                                        <span class="text-muted">الحالة الحالية</span>
+                                        <span class="text-muted">{{ helperTrans('ingaz.current_status') }}</span>
                                         <span class="fw-semibold">
-                                            {{ $hrEmployeeRecord->employee_category === \Nami\Hr\Models\Employee::CATEGORY_EMPLOYEE ? 'موظفة بالشركة' : 'عاملة إيجار داخل HR' }}
+                                            {{ $hrEmployeeRecord->employee_category === \Nami\Hr\Models\Employee::CATEGORY_EMPLOYEE ? helperTrans('ingaz.company_employee') : helperTrans('ingaz.rental_worker_in_hr') }}
                                         </span>
                                     </div>
                                     <div class="d-flex justify-content-between">
-                                        <span class="text-muted">الكود</span>
+                                        <span class="text-muted">{{ helperTrans('ingaz.code') }}</span>
                                         <span class="fw-semibold">{{ $hrEmployeeRecord->code ?? '-' }}</span>
                                     </div>
                                     <div class="d-flex justify-content-between">
-                                        <span class="text-muted">القسم</span>
+                                        <span class="text-muted">{{ helperTrans('ingaz.department') }}</span>
                                         <span class="fw-semibold">{{ $hrEmployeeRecord->departments?->title ?? '-' }}</span>
                                     </div>
                                     <div class="d-flex justify-content-between">
-                                        <span class="text-muted">الوظيفة</span>
+                                        <span class="text-muted">{{ helperTrans('ingaz.job') }}</span>
                                         <span class="fw-semibold">{{ $hrEmployeeRecord->jobs?->title ?? '-' }}</span>
                                     </div>
                                 </div>
@@ -678,23 +678,23 @@
                                         <form method="POST" action="{{ route('hr.maids.employ', $maid->id) }}">
                                             @csrf
                                             <button type="submit" class="btn btn-success btn-sm">
-                                                <i class="fas fa-user-plus me-1"></i>توظيف العاملة
+                                                <i class="fas fa-user-plus me-1"></i>{{ helperTrans('ingaz.employ_maid') }}
                                             </button>
                                         </form>
                                     @endif
                                     @if ($hrEmployeeRecord->employee_category === \Nami\Hr\Models\Employee::CATEGORY_EMPLOYEE && Route::has('employees.edit'))
                                         <a href="{{ route('employees.edit', $hrEmployeeRecord->id) }}" class="btn btn-outline-success btn-sm">
-                                            <i class="fas fa-pen me-1"></i>تعديل بيانات الموظفة
+                                            <i class="fas fa-pen me-1"></i>{{ helperTrans('ingaz.edit_employee_data') }}
                                         </a>
                                     @endif
                                 </div>
                             @else
-                                <p class="text-muted mb-3">لا يوجد سجل HR مرتبط بهذه العاملة حتى الآن.</p>
+                                <p class="text-muted mb-3">{{ helperTrans('ingaz.no_hr_record_for_maid') }}</p>
                                 @if ($isRentalMaid && Route::has('hr.maids.employ'))
                                     <form method="POST" action="{{ route('hr.maids.employ', $maid->id) }}">
                                         @csrf
                                         <button type="submit" class="btn btn-success btn-sm">
-                                            <i class="fas fa-user-plus me-1"></i>إنشاء سجل HR وتوظيف العاملة
+                                            <i class="fas fa-user-plus me-1"></i>{{ helperTrans('ingaz.create_hr_record_and_employ_maid') }}
                                         </button>
                                     </form>
                                 @endif

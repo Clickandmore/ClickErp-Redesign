@@ -163,7 +163,7 @@ Route::group(
             Route::post('/register', [AppAuthController::class, 'register']);
             Route::post('/send-code', [AppAuthController::class, 'sendCode']);
             Route::post('/confirm-code', [AppAuthController::class, 'confirmCode']);
-            Route::post('/reset-password', [AppAuthController::class, 'resetPassword'])->middleware('auth:api');
+            Route::post('/reset-password', [AppAuthController::class, 'resetPassword']);
             Route::post('/update/profile', [AppAuthController::class, 'updateProfile'])->middleware('auth:api');
             Route::post('/logout', [AppAuthController::class, 'logout'])->middleware('auth:api');
             Route::delete('/delete/profile', [AppAuthController::class, 'delete'])->middleware('auth:api');
