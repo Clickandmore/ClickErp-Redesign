@@ -250,6 +250,11 @@ function getSexType($value)
 if (!function_exists('getEnumValue')) {
     function getEnumValue($array_name, $key)
     {
+        if ($array_name === 'contract_statuses') {
+            return \App\Support\RecruitmentContractStageLabels::label((string) $key, \App::currentLocale())
+                ?? "undefined";
+        }
+
         $constantArray = Constant::globalArray[$array_name];
         $locale = \App::currentLocale();
         return (isset($constantArray[$key][$locale])) ? $constantArray[$key][$locale] : "undefined";
@@ -986,7 +991,10 @@ if (!function_exists('getContractStatus')) {
 
         $locale = app()->getLocale() === 'en' ? 'en' : 'ar';
 
-        return $statuses[$status][$locale] ?? $statuses[$status]['en'] ?? $status;
+        return \App\Support\RecruitmentContractStageLabels::label((string) $status, $locale)
+            ?? $statuses[$status][$locale]
+            ?? $statuses[$status]['en']
+            ?? $status;
     }
 }
 

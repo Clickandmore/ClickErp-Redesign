@@ -27,6 +27,11 @@ enum ContractStatusEnum: string
 
     public function lang()
     {
+        $customLabel = \App\Support\RecruitmentContractStageLabels::label($this->value, app()->getLocale());
+        if ($customLabel) {
+            return $customLabel;
+        }
+
         return match ($this) {
             self::New => __('ingaz.new'),
             self::Msaned => __('ingaz.msaned'),

@@ -100,6 +100,7 @@ class AdminRoutePermissionMatrix
             'admin.zoho-salesiq.visitors',
             'admin.zoho-salesiq.conversations.index',
             'settings.section',
+            'recruitment-contract-stage-labels.edit',
             'sliders.index',
             'about-us.index',
             'questions.index',
@@ -590,6 +591,8 @@ class AdminRoutePermissionMatrix
             'settings.section' => [PermKeys::SETTINGS_VIEW],
             'settings.store' => [PermKeys::SETTINGS_CONTROL],
             'settings.update' => [PermKeys::SETTINGS_CONTROL],
+            'recruitment-contract-stage-labels.edit' => [PermKeys::SETTINGS_VIEW],
+            'recruitment-contract-stage-labels.update' => [PermKeys::SETTINGS_CONTROL],
             'admin.ingaz.settings.index' => [PermKeys::SETTINGS_VIEW],
             'admin.ingaz.settings.update' => [PermKeys::SETTINGS_CONTROL],
         ];
@@ -704,6 +707,8 @@ class AdminRoutePermissionMatrix
             ]),
             [
                 'offices.login-as-agent' => [PermKeys::OFFICE_CONTROL],
+                'offices.users.index' => [PermKeys::OFFICE_VIEW, PermKeys::OFFICE_CONTROL],
+                'offices.files.index' => [PermKeys::OFFICE_VIEW, PermKeys::OFFICE_CONTROL],
             ],
             [
                 'countries.index' => [PermKeys::COUNTRIES_VIEW, PermKeys::COUNTRIES_CONTROL],

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\admin\office\OfficeController;
 use App\Http\Controllers\admin\office\OfficeFileController;
+use App\Http\Controllers\admin\office\OfficeManagementController;
 use App\Http\Controllers\admin\office\OfficeStatusController;
 use App\Http\Controllers\admin\office\ResetPasswordController;
 use App\Http\Controllers\admin\office\SendEmailResetPasswordController;
@@ -30,6 +31,10 @@ Route::group(
 
             Route::post('offices/{office}/login-as-agent', [OfficeController::class, 'loginAsAgent'])
                 ->name('offices.login-as-agent');
+            Route::get('offices/users', [OfficeManagementController::class, 'users'])
+                ->name('offices.users.index');
+            Route::get('offices/files', [OfficeManagementController::class, 'files'])
+                ->name('offices.files.index');
             Route::resource('offices', OfficeController::class);
             Route::resource('offices-status', OfficeStatusController::class);
             Route::resource('offices-file', OfficeFileController::class);

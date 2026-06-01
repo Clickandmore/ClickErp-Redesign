@@ -48,6 +48,64 @@
     <link rel="stylesheet" href="{{ asset('admin') }}/assets/cssbundle/dropify.min.css">
     <link rel="stylesheet" href="{{ asset('admin') }}/assets/cssbundle/select2.min.css">
     <link rel="stylesheet" href="{{ asset('admin') }}/assets/cssbundle/sweetalert2.min.css">
+    <style>
+        .maid-type-picker {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 14px;
+            background: #f8fafc;
+        }
+
+        .maid-type-option {
+            width: 100%;
+            min-height: 92px;
+            border: 1px solid #d7dde5;
+            border-radius: 8px;
+            background: #fff;
+            color: #1f2937;
+            text-align: start;
+            padding: 14px 16px;
+            transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease;
+        }
+
+        .maid-type-option:hover,
+        .maid-type-option:focus {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 .18rem rgba(13, 110, 253, .12);
+            outline: 0;
+        }
+
+        .maid-type-option.is-active {
+            border-color: #0d6efd;
+            background: #eef5ff;
+            box-shadow: inset 0 0 0 1px #0d6efd;
+        }
+
+        .maid-type-option__icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #e9eef5;
+            color: #0d6efd;
+            flex: 0 0 38px;
+        }
+
+        .maid-type-option.is-active .maid-type-option__icon {
+            background: #0d6efd;
+            color: #fff;
+        }
+
+        .maid-type-native-select {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+            pointer-events: none;
+        }
+    </style>
 @endsection
 
 @section('page-title')
@@ -105,11 +163,71 @@
                         <input type="text" name="name:en" class="form-control" required>
                     </div>
 
-                    <!-- أنواع الوظائف -->
-                    <div class="col-4">
-                        <label for="TextInput" class="form-label">{{ helperTrans('ingaz.job_types_2') }} </label>
-                        <select name="type_id" id="type_id" class="form-control" required
-                            data-default-type="{{ $defaultTypeId }}">
+                    <!-- نوع السيرة -->
+                    <div class="col-12">
+                        <div class="maid-type-picker">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                                <div>
+                                    <label for="type_id" class="form-label mb-1">{{ helperTrans('ingaz.job_types_2') }}</label>
+                                    <div class="text-muted small">{{ helperTrans('ingaz.cv_type_picker_hint') }}</div>
+                                </div>
+                            </div>
+                            <div class="row g-3" id="maid_type_picker">
+                                @foreach ($types as $type)
+                                    @php
+                                        $title = $type->title ?? '';
+                                        $normalizedTitle = mb_strtolower(str_replace(['أ', 'إ', 'آ'], 'ا', $title));
+                                        $isInstantReceipt = \Illuminate\Support\Str::contains(mb_strtolower($title), [
+                                            'استلام',
+                                            'إستلام',
+                                            'فوري',
+                                            'instant',
+                                            'immediate',
+                                        ]);
+                                        $isRentalType = \Illuminate\Support\Str::contains($normalizedTitle, [
+                                            'ايجار',
+                                            'تاجير',
+                                            'rent',
+                                        ]);
+                                        $isRecruitmentType = \Illuminate\Support\Str::contains($normalizedTitle, [
+                                            'استقدام',
+                                            'recruit',
+                                        ]);
+                                        $isSelectedType = $selectedTypeId === (int) $type->id;
+                                    @endphp
+                                    @if (!$isInstantReceipt)
+                                        <div class="col-md-6 col-xl-4">
+                                            <button type="button"
+                                                class="maid-type-option {{ $isSelectedType ? 'is-active' : '' }}"
+                                                data-type-id="{{ $type->id }}">
+                                                <span class="d-flex gap-3 align-items-start">
+                                                    <span class="maid-type-option__icon">
+                                                        <i class="fas {{ $isRentalType ? 'fa-key' : 'fa-user-plus' }}"></i>
+                                                    </span>
+                                                    <span>
+                                                        <span class="d-block fw-semibold">{{ $type->title }}</span>
+                                                        <span class="d-block text-muted small mt-1">
+                                                            @if ($isRentalType)
+                                                                {{ helperTrans('ingaz.cv_type_rental_hint') }}
+                                                            @elseif ($isRecruitmentType)
+                                                                {{ helperTrans('ingaz.cv_type_recruitment_hint') }}
+                                                            @else
+                                                                {{ helperTrans('ingaz.cv_type_general_hint') }}
+                                                            @endif
+                                                        </span>
+                                                    </span>
+                                                </span>
+                                            </button>
+                                        </div>
+                                    @endif
+                                @endforeach
+                            </div>
+                            @if ($isRentalForm)
+                                <small class="text-muted d-block mt-2">{{ helperTrans('ingaz.rental_cv_fixed_hint') }}</small>
+                            @endif
+                        </div>
+                        <select name="type_id" id="type_id" class="form-control maid-type-native-select" required
+                            data-default-type="{{ $defaultTypeId }}" aria-label="{{ helperTrans('ingaz.select_cv_type') }}">
                             <option value="">{{ helperTrans('ingaz.select_cv_type') }}</option>
                             @foreach ($types as $type)
                                 @php
@@ -124,14 +242,11 @@
                                 @endphp
                                 @if (!$isInstantReceipt)
                                     <option value="{{ $type->id }}"
-                                        {{ ($defaultTypeId ?? null) == $type->id ? 'selected' : '' }}>{{ $type->title }}
+                                        {{ $selectedTypeId === (int) $type->id ? 'selected' : '' }}>{{ $type->title }}
                                     </option>
                                 @endif
                             @endforeach
                         </select>
-                        @if ($isRentalForm)
-                            <small class="text-muted d-block mt-1">{{ helperTrans('ingaz.rental_cv_fixed_hint') }}</small>
-                        @endif
                     </div>
                     <!-- خيار تسكين للإيواء -->
                     {{-- <div class="col-4" id="shelter_option" style="display: none;">
@@ -677,6 +792,7 @@
             officeFetchError: @json(helperTrans('ingaz.office_fetch_error')),
             workerImageRequired: @json(helperTrans('ingaz.worker_image_required')),
             validIdNumberRequired: @json(helperTrans('ingaz.valid_id_number_required')),
+            cvTypeRequired: @json(helperTrans('ingaz.cv_type_required')),
             idExpiryRequired: @json(helperTrans('ingaz.id_expiry_required')),
             nationalityRequired: @json(helperTrans('ingaz.nationality_required')),
             passportRequired: @json(helperTrans('ingaz.passport_required')),
@@ -1435,9 +1551,22 @@
             toggleFields();
             updateMaritalStatusTranslation();
 
+            function syncMaidTypePicker() {
+                var selectedTypeId = $('select[name="type_id"]').val();
+                $('.maid-type-option').removeClass('is-active');
+                $('.maid-type-option[data-type-id="' + selectedTypeId + '"]').addClass('is-active');
+            }
+
+            $('#maid_type_picker').on('click', '.maid-type-option', function() {
+                $('select[name="type_id"]').val($(this).data('type-id')).trigger('change');
+            });
+
+            syncMaidTypePicker();
+
             // Call when type changes
             $('select[name="type_id"]').change(function() {
                 console.log('Type changed');
+                syncMaidTypePicker();
                 toggleFields();
                 toggleShelterOption();
             });
@@ -1616,6 +1745,12 @@
                 var isValid = true;
                 var errors = [];
                 var typeContext = getTypeContext();
+                var cvTypeValue = $('select[name="type_id"]').val();
+
+                if (!cvTypeValue || cvTypeValue.trim() === '') {
+                    errors.push(maidCreateTranslations.cvTypeRequired);
+                    isValid = false;
+                }
 
                 // التحقق من الملفات
                 var imageInput = $('#maid_image').get(0);
