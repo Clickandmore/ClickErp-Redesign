@@ -9,6 +9,7 @@ use App\Models\RecruitmentOffices;
 use App\Models\RentalFinancialAdjustment;
 use App\Models\ShelterPlaces;
 use App\Models\SponsorshipTransfer;
+use App\Models\auth\Admin;
 use App\Models\ingaz\JobTitle;
 use App\Models\ingaz\JobType;
 use App\Models\ingaz\Maid;
@@ -26,6 +27,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Nami\Finance\Models\ClientCategory;
+use Nami\Finance\Models\Account;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 
@@ -55,7 +57,7 @@ class DataImportExecutionService
             try {
                 DB::transaction(function () use ($type, $row, $adminId, &$result) {
                     $outcome = match ($type) {
-                        'clients' => $this->importClient($row),
+                        'clients' => $this->importClient($row, $adminId),
                         'rental_maids' => $this->importRentalMaid($row, $adminId),
                         'recruitment_contracts' => $this->importRecruitmentContract($row, $adminId),
                         'shelter_contracts' => $this->importShelterContract($row, $adminId),
@@ -117,18 +119,28 @@ class DataImportExecutionService
         return $rows;
     }
 
-    private function importClient(array $row): string
+    private function importClient(array $row, ?int $adminId): string
     {
         $phone = $this->normalizeSaudiPhone($row['phone'] ?? '');
         $name = trim((string) ($row['name'] ?? ''));
         $idNumber = $this->normalizeIdNumber($row['id_number'] ?? $row['national_num'] ?? null);
+        $databaseId = $this->optionalInteger($row['id'] ?? null);
 
         if (!$phone || $name === '' || $idNumber === '') {
             throw new \InvalidArgumentException('اسم العميل ورقم الجوال ورقم الهوية مطلوبة.');
         }
 
+        $userByDatabaseId = $databaseId ? User::whereKey($databaseId)->first() : null;
         $userById = User::where('national_num', $idNumber)->first();
         $userByPhone = $this->findUserByPhone($phone);
+
+        if ($userByDatabaseId && $userById && (int) $userByDatabaseId->id !== (int) $userById->id) {
+            throw new \InvalidArgumentException('ID العميل ورقم الهوية يعودان لعميلين مختلفين.');
+        }
+
+        if ($userByDatabaseId && $userByPhone && (int) $userByDatabaseId->id !== (int) $userByPhone->id) {
+            throw new \InvalidArgumentException('ID العميل ورقم الجوال يعودان لعميلين مختلفين.');
+        }
 
         if ($userByPhone && $userById && (int) $userByPhone->id !== (int) $userById->id) {
             throw new \InvalidArgumentException('رقم الهوية مستخدم لعميل ورقم الجوال مستخدم لعميل آخر.');
@@ -138,8 +150,11 @@ class DataImportExecutionService
             throw new \InvalidArgumentException('رقم الجوال موجود مسبقاً برقم هوية مختلف.');
         }
 
-        $user = $userById ?: $userByPhone;
+        $user = $userByDatabaseId ?: $userById ?: $userByPhone;
+        $createdBy = $this->resolveAdminId($row['created_by'] ?? null) ?: $adminId;
+        $accountId = $this->resolveAccountId($row['account_id'] ?? null);
         $payload = $this->filterColumns('users', [
+            'id' => $databaseId,
             'name' => $name,
             'phone_code' => '+966',
             'phone' => $phone,
@@ -147,9 +162,11 @@ class DataImportExecutionService
             'national_num' => $idNumber,
             'nationality_id' => $this->resolveCountryId($row['nationality'] ?? null),
             'birthdate' => $this->parseDate($row['birthdate'] ?? null),
+            'marital_status' => $this->normalizeClientMaritalStatus($row['marital_status'] ?? null),
             'phone2' => $this->normalizeOptionalPhone($row['phone2'] ?? null),
             'address' => $row['address'] ?? null,
             'city' => $row['city'] ?? null,
+            'account_id' => $accountId,
             'client_category_id' => $this->resolveClientCategoryId($row['client_category'] ?? null),
             'rooms_num' => $row['rooms_num'] ?? null,
             'family_num' => $row['family_num'] ?? null,
@@ -158,9 +175,11 @@ class DataImportExecutionService
             'password' => Hash::make(Str::random(16)),
             'register_from' => 'data_import',
             'is_blocked' => $this->normalizeStatus($row['status'] ?? null) === 'blocked' ? 1 : 0,
+            'created_by' => $createdBy,
         ]);
 
         if ($user) {
+            unset($payload['id']);
             unset($payload['password']);
             $user->update(array_filter($payload, fn ($value) => $value !== null && $value !== ''));
             return 'updated';
@@ -699,6 +718,63 @@ class DataImportExecutionService
             ->where('name_ar', $value)
             ->orWhere('name_en', $value)
             ->value('id');
+    }
+
+    private function resolveAccountId($value): ?int
+    {
+        $id = $this->optionalInteger($value);
+
+        if (!$id || !class_exists(Account::class) || !Schema::hasTable('fn_accounts')) {
+            return null;
+        }
+
+        return Account::query()->whereKey($id)->exists() ? $id : null;
+    }
+
+    private function resolveAdminId($value): ?int
+    {
+        $value = trim((string) $value);
+        if ($value === '') {
+            return null;
+        }
+
+        if (is_numeric($value) && Admin::query()->whereKey((int) $value)->exists()) {
+            return (int) $value;
+        }
+
+        return Admin::query()
+            ->where('name', $value)
+            ->value('id');
+    }
+
+    private function normalizeClientMaritalStatus($value): ?string
+    {
+        $normalized = $this->normalizeArabicText($value);
+
+        if ($normalized === '') {
+            return null;
+        }
+
+        return match ($normalized) {
+            'single', 'اعزب', 'عزباء', 'غير متزوج' => 'single',
+            'married', 'متزوج', 'متزوجه' => 'married',
+            'divorced', 'مطلق', 'مطلقه' => 'divorced',
+            'widowed', 'ارمل', 'ارمله' => 'widowed',
+            default => null,
+        };
+    }
+
+    private function optionalInteger($value): ?int
+    {
+        $value = trim((string) $value);
+
+        if ($value === '' || !is_numeric($value)) {
+            return null;
+        }
+
+        $integer = (int) $value;
+
+        return $integer > 0 ? $integer : null;
     }
 
     private function resolveClientCategoryId(?string $value): ?int

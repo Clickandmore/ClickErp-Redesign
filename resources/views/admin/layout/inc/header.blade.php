@@ -329,7 +329,7 @@ $quickLinks = collect([
                     <img class="cm-header-logo" src="{{ $headerLogo }}" alt="logo"
                         onerror="this.onerror=null;this.src='{{ asset('admin/assets/img/company_logo.jpeg') }}';">
                     <span class="cm-brand-text">
-                        <small class="cm-brand-subtitle">{{ $headerDashboardName ?: helperTrans('ingaz.dashboard') }}</small>
+                        <small class="cm-brand-subtitle">{{ $headerDashboardName ?: __('admin.dashboard') }}</small>
                     </span>
                 </a>
             </div>

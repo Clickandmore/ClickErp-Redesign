@@ -5,6 +5,15 @@
 @section('auth-subtitle', app()->getLocale() === 'ar' ? 'سجل دخولك للوصول السريع إلى لوحة التحكم.' : 'Sign in for quick
     access to the dashboard.')
 
+@section('auth-top-actions')
+    <a href="{{ \Mcamara\LaravelLocalization\Facades\LaravelLocalization::getLocalizedURL(app()->getLocale(), route('agent.login.form'), [], true) }}"
+        class="agent-login-icon"
+        title="{{ app()->getLocale() === 'ar' ? 'تسجيل دخول الوكلاء' : 'Agent Login' }}"
+        aria-label="{{ app()->getLocale() === 'ar' ? 'تسجيل دخول الوكلاء' : 'Agent Login' }}">
+        <i class="fa fa-user" aria-hidden="true"></i>
+    </a>
+@endsection
+
 @section('auth-body')
     <form id="loginForm" action="{{ route('admin.login') }}" method="POST" novalidate>
         @csrf
@@ -46,11 +55,6 @@
             </span>
         </div>
         <button type="submit" class="primary-btn">{{ __('auth.sign in') }}</button>
-        <a href="{{ \Mcamara\LaravelLocalization\Facades\LaravelLocalization::getLocalizedURL(app()->getLocale(), route('agent.login.form'), [], true) }}"
-            class="agent-login-btn">
-            <i class="fa fa-user" aria-hidden="true"></i>
-            <span>{{ app()->getLocale() === 'ar' ? 'تسجيل دخول الوكلاء' : 'Agent Login' }}</span>
-        </a>
     </form>
 @endsection
 

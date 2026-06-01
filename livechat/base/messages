@@ -1,0 +1,85 @@
+response = Map();
+msg = message.get("text");
+companyName = "شركة هجر للاستقدام";
+apiUrl = "https://hajar.sa/api";
+mainOptions = {"طلب استقدام جديد","متابعة أو دعم","خدمة العملاء"};
+supportOptions = {"متابعة طلب سابق","الدعم المباشر","القائمة الرئيسية"};
+branchOptions = {"فرع الرياض","فرع الأحساء"};
+welcomeText = "حياكم وبياكم في موقع شركة هجر للاستقدام ✨\nنفرح بزيارتكم، ونسعد بخدمتكم على أكمل وجه.\n\nوش حاب تسوّي اليوم؟\nحدد الخيار اللي يناسبك خلنا نخدمك بأفضل شكل 😊";
+if(!msg.isNull())
+{
+	response.put("action","context");
+	if(msg.containsIgnoreCase("انهاء") || msg.containsIgnoreCase("إنهاء") || msg.containsIgnoreCase("اغلاق") || msg.containsIgnoreCase("إغلاق"))
+	{
+		response.put("action","end");
+		response.put("replies",{"شكراً لتواصلك مع " + companyName + ".\nيسعدنا خدمتك دائماً."});
+		return response;
+	}
+	if(msg.containsIgnoreCase("الرئيسية") || msg.containsIgnoreCase("القائمة الرئيسية"))
+	{
+		response.put("action","reply");
+		response.put("replies",{welcomeText});
+		response.put("input",{"type":"select","options":mainOptions});
+		return response;
+	}
+	if(msg.containsIgnoreCase("طلب استقدام") || msg.containsIgnoreCase("طلب جديد") || msg.containsIgnoreCase("جديد") || msg.containsIgnoreCase("استقدام"))
+	{
+		response.put("context_id","service_estqdam");
+		question = {"name":"branch","replies":{"أبشر، نبدأ طلب الاستقدام بخطوة واحدة.\nاختر الفرع المناسب:"},"input":{"type":"select","options":branchOptions}};
+		response.put("questions",{question});
+		return response;
+	}
+	if(msg.containsIgnoreCase("متابعة") || msg.containsIgnoreCase("دعم"))
+	{
+		response.put("context_id","support");
+		question = {"name":"support_request","replies":{"أبشر، كيف نقدر نخدمك؟"},"input":{"type":"select","options":supportOptions}};
+		response.put("questions",{question});
+		return response;
+	}
+	if(msg.containsIgnoreCase("خدمة العملاء"))
+	{
+		staffLinks = Collection();
+		try
+		{
+			data_info = invokeurl
+			[
+				url :apiUrl + "/all_staff"
+				type :GET
+				headers:{"Content-Type":"application/json"}
+			];
+			staffs = data_info.get('data');
+			if(staffs != null && staffs.size() > 0)
+			{
+				staff_keys = staffs.keys();
+				for each  staff_name in staff_keys
+				{
+					staff_phone = staffs.get(staff_name);
+					if(staff_phone != null && staff_phone != "")
+					{
+						staffLinks.insert({"url":"https://wa.me/" + staff_phone,"text":staff_name});
+					}
+				}
+			}
+		}
+		catch (e)
+		{
+			staffLinks = Collection();
+		}
+		if(staffLinks.size() > 0)
+		{
+			response.put("action","reply");
+			question = {"type":"links","text":"اختر ممثل خدمة العملاء للتواصل عبر واتساب:","links":staffLinks};
+			response.put("replies",{question});
+			response.put("input",{"type":"select","options":mainOptions});
+			return response;
+		}
+		response.put("action","forward");
+		response.put("replies",{"جاري تحويلك إلى أحد موظفي خدمة العملاء."});
+		return response;
+	}
+	response.put("action","reply");
+	response.put("replies",{welcomeText});
+	response.put("input",{"type":"select","options":mainOptions});
+	return response;
+}
+return response;

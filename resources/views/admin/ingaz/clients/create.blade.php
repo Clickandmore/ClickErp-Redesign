@@ -265,6 +265,20 @@
                         </div>
 
                         <div class="col-lg-6">
+                            <label class="form-label d-block">{{ helperTrans('ingaz.marital_status') ?: 'الحالة الاجتماعية' }}</label>
+                            <div class="d-flex flex-wrap gap-3">
+                                @foreach(['single' => 'أعزب', 'married' => 'متزوج', 'divorced' => 'مطلق', 'widowed' => 'أرمل'] as $value => $label)
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="marital_status"
+                                               id="marital_status_{{ $value }}" value="{{ $value }}"
+                                               @checked(old('marital_status') === $value) required>
+                                        <label class="form-check-label" for="marital_status_{{ $value }}">{{ $label }}</label>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        <div class="col-lg-6">
                             <label class="form-label" for="phone2">{{ helperTrans('ingaz.phone2') }}</label>
                             <input type="text" id="phone2" name="phone2" class="form-control" dir="ltr"
                                    value="{{ old('phone2') }}">

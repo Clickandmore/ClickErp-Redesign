@@ -186,6 +186,7 @@
                         <span><i class="fas fa-id-card me-1"></i>{{ $client->national_num ?? helperTrans('ingaz.not_specified') }}</span>
                         <span><i class="fas fa-flag me-1"></i>{{ $client->nationality->title ?? helperTrans('ingaz.not_specified') }}</span>
                         <span><i class="fas fa-calendar-plus me-1"></i>{{ $client->created_at?->format('Y-m-d') ?? '-' }}</span>
+                        <span><i class="fas fa-user-plus me-1"></i>أضيف بواسطة: {{ $client->createdBy?->name ?? helperTrans('ingaz.not_specified') }}</span>
                         @if($lastInteractionAt)
                             <span><i class="fas fa-history me-1"></i>{{ helperTrans('ingaz.last_interaction') }}: {{ $lastInteractionAt->diffForHumans() }}</span>
                         @endif
@@ -298,6 +299,14 @@
                             <i class="fas fa-user-circle text-primary"></i>
                             {{ helperTrans('ingaz.client_information') }}
                         </div>
+                        @php
+                            $maritalStatuses = [
+                                'single' => 'أعزب',
+                                'married' => 'متزوج',
+                                'divorced' => 'مطلق',
+                                'widowed' => 'أرمل',
+                            ];
+                        @endphp
                         <div class="info-grid">
                             <div class="info-item">
                                 <div class="label">{{ helperTrans('ingaz.client_name') }}</div>
@@ -342,6 +351,14 @@
                             <div class="info-item">
                                 <div class="label">{{ helperTrans('ingaz.birth_date') }}</div>
                                 <div class="value">{{ $client->birthdate ? \Carbon\Carbon::parse($client->birthdate)->format('Y-m-d') : helperTrans('ingaz.not_specified') }}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="label">{{ helperTrans('ingaz.marital_status') }}</div>
+                                <div class="value">{{ $maritalStatuses[$client->marital_status] ?? helperTrans('ingaz.not_specified') }}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="label">أضيف بواسطة</div>
+                                <div class="value">{{ $client->createdBy?->name ?? helperTrans('ingaz.not_specified') }}</div>
                             </div>
                             <div class="info-item">
                                 <div class="label">{{ helperTrans('ingaz.family_num') }}</div>

@@ -99,6 +99,10 @@
             max-height: min(420px, calc(100vh - 24px));
             overflow-y: auto;
         }
+
+        #dataTableObject_filter {
+            display: none;
+        }
     </style>
 @endsection
 
@@ -371,6 +375,7 @@
                                         <th>{{ helperTrans('ingaz.last_activity') }}</th>
                                         <th>{{ helperTrans('ingaz.status') }}</th>
                                         <th>{{ helperTrans('ingaz.have_account') }}</th>
+                                        <th>أضيف بواسطة</th>
                                         <th>{{ helperTrans('ingaz.created_at') }}</th>
                                         <th>{{ helperTrans('ingaz.actions') }}</th>
                                     </tr>
@@ -488,6 +493,7 @@
             const table = $('#dataTableObject').DataTable({
                 processing: true,
                 serverSide: true,
+                searching: false,
                 ajax: {
                     url: "{{ route('clients.index') }}",
                     data: function(d) {
@@ -544,6 +550,12 @@
                     {
                         data: 'account_id',
                         name: 'account_id',
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
+                        data: 'created_by',
+                        name: 'created_by',
                         orderable: false,
                         searchable: false
                     },

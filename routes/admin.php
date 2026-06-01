@@ -49,6 +49,12 @@ Route::group(
             return redirect()->route('reports.index');
         })->name('dashboard.reports.index');
 
+        Route::get('support/tickets', 'admin\SupportCenterController@tickets')->name('support.tickets');
+        Route::get('support/tickets/create', 'admin\SupportCenterController@createTicket')->name('support.tickets.create');
+        Route::post('support/tickets', 'admin\SupportCenterController@storeTicket')->name('support.tickets.store');
+        Route::delete('support/attachments/{attachment}', 'admin\SupportCenterController@destroyAttachment')->name('support.attachments.destroy');
+        Route::resource('support', 'admin\SupportCenterController')->parameters(['support' => 'article']);
+
         Route::group(["namespace" => "admin"], function () {
 
             Route::group(["namespace" => "auth"], function () {

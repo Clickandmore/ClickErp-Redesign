@@ -141,7 +141,6 @@
                         </a>
                     </li>
                 @endif
-
                 @php
                     $supportedLocales = array_keys(config('laravellocalization.supportedLocales', []));
                     $firstSegment = request()->segment(1);
@@ -1172,7 +1171,7 @@
                                     <a class="m-link {{ $isDashboardSettings ? 'active' : '' }}"
                                         href="{{ route('settings.section', 'dashboard') }}">
                                         <i class="fa fa-gauge"></i>
-                                        <span class="ms-2">إعدادات لوحة التحكم</span>
+                                        <span class="ms-2">{{ __('admin.sidebar.dashboard_settings') }}</span>
                                     </a>
                                 </li>
                             @endif
@@ -1182,7 +1181,7 @@
                                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#websiteManagement"
                                         href="#">
                                         <i class="fa fa-globe"></i>
-                                        <span class="ms-2">إعدادات موقع العميل</span>
+                                        <span class="ms-2">{{ __('admin.sidebar.client_website_settings') }}</span>
                                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                                     </a>
 
@@ -1194,7 +1193,7 @@
                                                     href="{{ route('settings.section', 'general') }}">
                                                     <i class="fa fa-cogs"></i>
                                                     <span
-                                                        class="ms-2">بيانات الموقع الخارجية</span>
+                                                        class="ms-2">{{ __('admin.sidebar.external_website_data') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -1204,7 +1203,7 @@
                                                 <a class="m-link" data-bs-toggle="collapse" data-bs-target="#home_settings"
                                                     href="#">
                                                     <i class="fa fa-home"></i>
-                                                    <span class="ms-2">الصفحة الرئيسية</span>
+                                                    <span class="ms-2">{{ __('admin.sidebar.home_page') }}</span>
                                                     <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                                                 </a>
 
@@ -1274,7 +1273,7 @@
                                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#internalSystemSettings"
                                         href="#">
                                         <i class="fa fa-tools"></i>
-                                        <span class="ms-2">إعدادات النظام الداخلية</span>
+                                        <span class="ms-2">{{ __('admin.sidebar.internal_system_settings') }}</span>
                                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                                     </a>
 
@@ -1304,7 +1303,7 @@
                                             <li>
                                                 <a class="m-link {{ request()->routeIs('istiqdam.*') ? 'active' : '' }}" href="{{ route('istiqdam.index') }}">
                                                     <i class="fa fa-building"></i>
-                                                    <span class="ms-2">{{ helperTrans('ingaz.recruitment_platform') }}</span>
+                                                    <span class="ms-2">{{ __('admin.sidebar.istiqdam_platform') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -1313,8 +1312,8 @@
                                                 <a class="m-link {{ Request::is('migration/*') || Request::is('migration.php') ? 'active' : '' }}"
                                                     href="/migration/new_migration_system.php">
                                                     <i class="fa fa-exchange"></i>
-                                                    <span class="ms-2">{{ helperTrans('ingaz.data_migration_system') }}</span>
-                                                    <span class="badge bg-success ms-2">{{ helperTrans('ingaz.updated') }}</span>
+                                                    <span class="ms-2">{{ __('admin.sidebar.migration_system') }}</span>
+                                                    <span class="badge bg-success ms-2">{{ __('admin.sidebar.updated') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -1324,7 +1323,7 @@
                                                 <a class="m-link" data-bs-toggle="collapse" data-bs-target="#rentalSettings"
                                                     href="#">
                                                     <i class="fa fa-house-user"></i>
-                                                    <span class="ms-2">إعدادات التأجير</span>
+                                                    <span class="ms-2">{{ __('admin.sidebar.rental_settings') }}</span>
                                                     <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                                                 </a>
                                                 <ul class="sub-menu collapse {{ $isRentalSettingsRoute ? 'show' : '' }}"
@@ -1334,14 +1333,14 @@
                                                             <a class="m-link {{ Route::currentRouteName() == 'rent-contract.settings' ? 'active' : '' }}"
                                                                 href="{{ route('rent-contract.settings') }}">
                                                                 <i class="fa fa-sliders"></i>
-                                                                <span class="ms-2">إعدادات عقد التأجير</span>
+                                                                <span class="ms-2">{{ __('admin.sidebar.rent_contract_settings') }}</span>
                                                             </a>
                                                         </li>
                                                         <li>
                                                             <a class="m-link {{ request()->routeIs('rent-contract-terms.*') ? 'active' : '' }}"
                                                                 href="{{ route('rent-contract-terms.index') }}">
                                                                 <i class="fa fa-file-contract"></i>
-                                                                <span class="ms-2">بنود عقد التأجير</span>
+                                                                <span class="ms-2">{{ __('admin.sidebar.rental_contract_terms') }}</span>
                                                             </a>
                                                         </li>
                                                     @endif
@@ -1350,7 +1349,7 @@
                                                             <a class="m-link {{ Route::currentRouteName() == 'packages.index' ? 'active' : '' }}"
                                                                 href="{{ route('packages.index') }}">
                                                                 <i class="fa fa-box"></i>
-                                                                <span class="ms-2">{{ helperTrans('ingaz.rental_packages') }}</span>
+                                                                <span class="ms-2">{{ __('admin.sidebar.rental_packages') }}</span>
                                                             </a>
                                                         </li>
                                                     @endif
@@ -1363,7 +1362,7 @@
                                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#my_dashboard3"
                                         href="#">
                                         <i class="fa fa-cog"></i>
-                                        <span class="ms-2">إعدادات الاستقدام</span>
+                                        <span class="ms-2">{{ __('admin.sidebar.recruitment_settings') }}</span>
                                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                                     </a>
                                     <ul class="sub-menu collapse {{ $isRecruitmentSettingsRoute ? 'show' : '' }}"
@@ -1455,6 +1454,30 @@
                     </li>
                 @endif
                 <!-- Clients Section -->
+                <li class="divider py-2 lh-sm"><span class="small">{{ __('admin.sidebar.support') }}</span></li>
+                <li class="collapsed">
+                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#supportCenterMenu" href="#">
+                        <i class="fa fa-life-ring me-2"></i>
+                        <span class="ms-2">{{ __('admin.sidebar.support') }}</span>
+                        <span class="arrow fa fa-angle-left ms-auto text-end"></span>
+                    </a>
+                    <ul class="sub-menu collapse {{ request()->routeIs('support.*') ? 'show' : '' }}" id="supportCenterMenu">
+                        <li>
+                            <a class="m-link {{ request()->routeIs('support.index', 'support.show', 'support.create', 'support.edit') ? 'active' : '' }}"
+                                href="{{ route('support.index') }}">
+                                <i class="fa fa-book"></i>
+                                <span class="ms-2">{{ __('admin.sidebar.knowledge_center') }}</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a class="m-link {{ request()->routeIs('support.tickets', 'support.tickets.create') ? 'active' : '' }}"
+                                href="{{ route('support.tickets') }}">
+                                <i class="fa fa-ticket"></i>
+                                <span class="ms-2">{{ __('admin.sidebar.support_tickets') }}</span>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
             </ul>
         </div>
 

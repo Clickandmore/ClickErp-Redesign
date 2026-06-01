@@ -49,17 +49,25 @@
                     $currentLocale = app()->getLocale();
                 @endphp
 
-                @if (count($supportedLocales) > 1)
-                    <nav class="language-switcher"
-                        aria-label="{{ $currentLocale === 'ar' ? 'تغيير اللغة' : 'Change language' }}">
-                        @foreach ($supportedLocales as $localeCode => $properties)
-                            <a href="{{ \Mcamara\LaravelLocalization\Facades\LaravelLocalization::getLocalizedURL($localeCode, null, [], true) }}"
-                                class="{{ $currentLocale === $localeCode ? 'active' : '' }}"
-                                hreflang="{{ $localeCode }}">
-                                {{ strtoupper($localeCode) }}
-                            </a>
-                        @endforeach
-                    </nav>
+                @if (count($supportedLocales) > 1 || View::hasSection('auth-top-actions'))
+                    <div class="auth-top-actions">
+                        @hasSection('auth-top-actions')
+                            @yield('auth-top-actions')
+                        @endif
+
+                        @if (count($supportedLocales) > 1)
+                            <nav class="language-switcher"
+                                aria-label="{{ $currentLocale === 'ar' ? 'تغيير اللغة' : 'Change language' }}">
+                                @foreach ($supportedLocales as $localeCode => $properties)
+                                    <a href="{{ \Mcamara\LaravelLocalization\Facades\LaravelLocalization::getLocalizedURL($localeCode, null, [], true) }}"
+                                        class="{{ $currentLocale === $localeCode ? 'active' : '' }}"
+                                        hreflang="{{ $localeCode }}">
+                                        {{ strtoupper($localeCode) }}
+                                    </a>
+                                @endforeach
+                            </nav>
+                        @endif
+                    </div>
                 @endif
 
                 <div class="brand-lockup">
