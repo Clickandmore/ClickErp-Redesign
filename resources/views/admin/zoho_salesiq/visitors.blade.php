@@ -106,12 +106,15 @@
 
                                 @if(str_contains(strtolower($result['error'] ?? ''), 'not enabled'))
                                     <div class="d-flex align-items-start gap-2 p-3 rounded" style="background-color: #fffbeb; border: 1px solid #fde68a;">
-                                        <i class="fa fa-lightbulb-o text-warning mt-1"></i>
-                                        <div>
+                                        <i class="fa fa-lightbulb-o text-warning mt-1 fs-5"></i>
+                                        <div class="w-100">
                                             <strong class="text-dark d-block mb-1">تنبيه متعلق بخطة الاشتراك</strong>
-                                            <span class="text-secondary small">
+                                            <span class="text-secondary small d-block mb-2">
                                                 يبدو أن خطة حسابك الحالية في Zoho SalesIQ لا تدعم ميزة "تتبع الزوار". يرجى ترقية الباقة (Upgrade Plan) لتتمكن من استخدام هذه الميزة.
                                             </span>
+                                            <a href="{{ rtrim(config('services.zoho_salesiq.salesiq_base_url', 'https://salesiq.zoho.sa'), '/') }}" target="_blank" class="btn btn-sm text-dark fw-bold mt-1 shadow-sm px-3" style="background-color: #fbbf24; border: 1px solid #f59e0b;">
+                                                <i class="fa fa-external-link me-1"></i> الذهاب إلى حساب Zoho لترقية الخطة
+                                            </a>
                                         </div>
                                     </div>
                                 @endif
