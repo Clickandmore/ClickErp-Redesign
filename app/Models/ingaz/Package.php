@@ -16,10 +16,16 @@ class Package extends Model
     protected $guarded = [];
     protected $casts = [
         'original_price' => 'decimal:2',
+        'discount_amount' => 'decimal:2',
         'price_after_discount' => 'decimal:2',
         'price_with_tax' => 'decimal:2',
+        'offer_amount' => 'decimal:2',
+        'offer_starts_at' => 'date',
+        'offer_ends_at' => 'date',
+        'offer_is_active' => 'boolean',
         'days_count' => 'integer',
         'duration_count' => 'integer',
+        'sort_order' => 'integer',
         'working_hours_per_day' => 'integer',
         'is_show' => 'boolean',
     ];
@@ -50,6 +56,20 @@ class Package extends Model
                 $query->orWhere('nationality_id', $nationalityId);
             }
         });
+    }
+
+    public function scopeOrdered($query)
+    {
+        return $query
+            ->orderByRaw('COALESCE(sort_order, 0) asc')
+            ->orderBy('days_count')
+            ->orderBy('price_with_tax')
+            ->orderBy('id');
+    }
+
+    public function getDurationLabelAttribute(): string
+    {
+        return ($this->duration_count ?: 1) . ' ' . $this->duration_unit_label;
     }
 
     public function getRentalTypeLabelAttribute(): string

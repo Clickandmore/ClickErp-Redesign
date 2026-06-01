@@ -13,6 +13,11 @@ class RentalContractInfo extends Model
     protected $fillable = [
         'rental_contract_id',
         'package_id',
+        'package_original_price',
+        'package_discount_amount',
+        'package_price_after_discount',
+        'package_vat_amount',
+        'package_total_with_tax',
         'payment_type',
         'payment_status',
         'payment_receipt_path',
@@ -20,6 +25,7 @@ class RentalContractInfo extends Model
         'payment_confirmed_by',
         'closure_client_iban',
         'closure_client_iban_attachment_path',
+        'closure_return_reason',
         'working_hours_per_day',
         'hourly_rate',
         'monthly_salary',
@@ -27,6 +33,12 @@ class RentalContractInfo extends Model
         'sponsorship_transfer_total_amount',
         'sponsorship_transfer_paid_amount',
         'sponsorship_transfer_remaining_amount',
+        'sponsorship_transfer_payment_type',
+        'sponsorship_transfer_payment_status',
+        'sponsorship_transfer_payment_receipt_path',
+        'sponsorship_transfer_attachments',
+        'sponsorship_transfer_payment_confirmed_at',
+        'sponsorship_transfer_payment_confirmed_by',
         'salary_after_sponsorship',
         'sponsorship_transfer',
         'rental_type',
@@ -44,12 +56,19 @@ class RentalContractInfo extends Model
 
     protected $casts = [
         'package_id' => 'integer',
+        'package_original_price' => 'decimal:2',
+        'package_discount_amount' => 'decimal:2',
+        'package_price_after_discount' => 'decimal:2',
+        'package_vat_amount' => 'decimal:2',
+        'package_total_with_tax' => 'decimal:2',
         'hourly_rate' => 'decimal:2',
         'monthly_salary' => 'decimal:2',
         'sponsorship_transfer_amount' => 'decimal:2',
         'sponsorship_transfer_total_amount' => 'decimal:2',
         'sponsorship_transfer_paid_amount' => 'decimal:2',
         'sponsorship_transfer_remaining_amount' => 'decimal:2',
+        'sponsorship_transfer_attachments' => 'array',
+        'sponsorship_transfer_payment_confirmed_at' => 'datetime',
         'salary_after_sponsorship' => 'decimal:2',
         'monthly_cost' => 'decimal:2',
         'contract_value' => 'decimal:2',
@@ -70,9 +89,19 @@ class RentalContractInfo extends Model
         return $this->belongsTo(RentalContract::class, 'rental_contract_id');
     }
 
+    public function package()
+    {
+        return $this->belongsTo(\App\Models\ingaz\Package::class, 'package_id');
+    }
+
     public function paymentConfirmedBy()
     {
         return $this->belongsTo(\App\Models\auth\Admin::class, 'payment_confirmed_by');
+    }
+
+    public function sponsorshipTransferPaymentConfirmedBy()
+    {
+        return $this->belongsTo(\App\Models\auth\Admin::class, 'sponsorship_transfer_payment_confirmed_by');
     }
 
     public function getPaymentReceiptUrlAttribute(): ?string
@@ -82,6 +111,15 @@ class RentalContractInfo extends Model
         }
 
         return Storage::disk('public')->url($this->payment_receipt_path);
+    }
+
+    public function getSponsorshipTransferPaymentReceiptUrlAttribute(): ?string
+    {
+        if (!$this->sponsorship_transfer_payment_receipt_path) {
+            return null;
+        }
+
+        return Storage::disk('public')->url($this->sponsorship_transfer_payment_receipt_path);
     }
 
     public function getClosureClientIbanAttachmentUrlAttribute(): ?string

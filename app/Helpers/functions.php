@@ -277,6 +277,23 @@ function AdminGuardHasPerm($perm_name)
     return $user->can($perm_name) ?? false;
 }
 
+function AdminGuardIsSuperAdmin(): bool
+{
+    $user = Auth::guard('admin')->user();
+
+    if (!$user) {
+        return false;
+    }
+
+    return (int) ($user->admin_type ?? 0) === \App\Enums\AdminTypeisEnum::Developer->value
+        || adminHasAnyRoleSafe($user, ['Administrator', 'super_admin']);
+}
+
+function SystemModuleEnabled(string $key): bool
+{
+    return \App\Support\SystemModuleManager::isEnabled($key);
+}
+
 function adminHasAnyRoleSafe($admin, array $roleNames): bool
 {
     if (!$admin) {
@@ -347,7 +364,7 @@ function AdminGuardHasAllPerms($permissions)
 
 function AdminGuardCanAccessDashboard(): bool
 {
-    return AdminGuardHasAnyPerm(\App\Support\AdminRoutePermissionMatrix::dashboardAccessPermissions());
+    return AdminGuardHasAnyPerm(\App\Support\AdminRoutePermissionMatrix::dashboardRoutePermissions());
 }
 
 function AdminGuardPermissionNames(): array

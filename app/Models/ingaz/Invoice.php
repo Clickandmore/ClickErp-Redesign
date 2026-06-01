@@ -31,6 +31,11 @@ class Invoice extends Model
         return $this->belongsTo(IngazDelegation::class, 'ingaz_delegation_id');
     }
 
+    public function client()
+    {
+        return $this->belongsTo(User::class, 'client_id');
+    }
+
     public function musanedTransferItem()
     {
         return $this->hasOne(MusanedTransferItem::class, 'invoice_id');

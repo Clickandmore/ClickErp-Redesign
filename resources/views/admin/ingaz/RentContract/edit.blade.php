@@ -477,11 +477,13 @@
                                 <option value="{{ $package->id }}"
                                         data-days="{{ $package->days_count }}"
                                         data-rental-type="{{ $package->rental_type ?? 'monthly' }}"
+                                        data-duration-unit="{{ $package->duration_unit ?? 'month' }}"
+                                        data-duration-label="{{ $package->duration_label }}"
                                         data-working-hours="{{ $package->working_hours_per_day }}"
                                         data-price="{{ $package->price_after_discount }}"
                                         data-total="{{ $package->price_with_tax }}"
                                         {{ (int) ($contract->info->package_id ?? 0) === (int) $package->id ? 'selected' : '' }}>
-                                    {{ $package->title }} - {{ $package->rental_type_label }} - {{ $package->duration_count ?: max(1, (int) ceil(($package->days_count ?: 30) / 30)) }} {{ $package->duration_unit_label }} - {{ number_format((float) $package->price_with_tax, 2) }} ريال
+                                    {{ $package->title }} - {{ $package->rental_type_label }} - {{ $package->duration_count ?: max(1, (int) ceil(($package->days_count ?: 30) / 30)) }} {{ $package->duration_unit_label }} - {{ number_format((float) $package->price_after_discount, 2) }} ريال بدون الضريبة
                                 </option>
                             @endforeach
                         </select>
@@ -648,7 +650,7 @@
                     <div class="form-group">
                         <label class="form-label">
                             <span class="required-star">*</span>
-                            التكلفة الشهرية (ريال)
+                            تكلفة الفترة (ريال)
                         </label>
                         <input type="number" class="form-control" id="monthly_cost" name="monthly_cost"
                                value="{{ $contract->info->monthly_cost ?? '' }}" min="0" step="0.01" required>
@@ -659,7 +661,7 @@
                     <div class="form-group">
                         <label class="form-label">
                             <span class="required-star">*</span>
-                            مدة العقد (شهور)
+                            مدة العقد بالشهور للحساب
                         </label>
                         <input type="number" class="form-control" id="contract_duration_months" name="contract_duration_months"
                                value="{{ $contract->info->contract_duration_months ?? '' }}" min="1" max="60" required>
@@ -891,10 +893,14 @@ $(document).ready(function() {
         }
 
         const days = parseInt(selectedOption.data('days'), 10) || 0;
+        const rentalType = selectedOption.data('rental-type') || '';
+        const durationUnit = selectedOption.data('duration-unit') || '';
         const workingHours = parseInt(selectedOption.data('working-hours'), 10) || 0;
         const totalPrice = parseFloat(selectedOption.data('total')) || 0;
         const months = Math.max(1, Math.ceil(days / 30));
-        const monthlyCost = months ? (totalPrice / months) : 0;
+        const monthlyCost = (rentalType === 'monthly' || durationUnit === 'month') && months
+            ? (totalPrice / months)
+            : totalPrice;
 
         $('#contract_duration_months').val(months);
         $('#contract_duration_days').val(days);

@@ -24,6 +24,11 @@ class PackageAction extends MainAction
         return $this->model->create($this->prepareData($data));
     }
 
+    public function get()
+    {
+        return $this->model->ordered()->get();
+    }
+
     private function prepareData(array $data): array
     {
         $data = $this->clearRequesrt($data);
@@ -33,8 +38,20 @@ class PackageAction extends MainAction
         $data['duration_unit'] = $data['duration_unit'] ?? 'month';
         $data['duration_count'] = max(1, (int) ($data['duration_count'] ?? 1));
         $data['days_count'] = $this->resolveDaysCount($data);
-        $data['price_after_discount'] = $data['price_after_discount'] ?? $data['original_price'];
-        $data['price_with_tax'] = $data['price_with_tax'] ?? round(((float) $data['price_after_discount']) * 1.15, 2);
+        $data['sort_order'] = max(0, (int) ($data['sort_order'] ?? 0));
+        $priceWithTax = round((float) ($data['price_with_tax'] ?? 0), 2);
+        $originalPrice = round((float) ($data['original_price'] ?? 0), 2);
+
+        if ($priceWithTax > 0 && abs($priceWithTax - round($originalPrice * 1.15, 2)) >= 0.05) {
+            $originalPrice = round($priceWithTax / 1.15, 2);
+        } else {
+            $priceWithTax = round($originalPrice * 1.15, 2);
+        }
+
+        $data['original_price'] = $originalPrice;
+        $data['discount_amount'] = 0;
+        $data['price_after_discount'] = $originalPrice;
+        $data['price_with_tax'] = $priceWithTax;
         $data['is_show'] = array_key_exists('is_show', $data) ? (bool) $data['is_show'] : true;
 
         return $data;

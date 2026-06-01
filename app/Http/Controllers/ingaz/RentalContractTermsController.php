@@ -128,7 +128,8 @@ class RentalContractTermsController extends Controller
             'default_working_hours',
             'daily_deduction',
             'notice_period',
-            'logo'
+            'logo',
+            'company_signature'
         ];
 
         foreach ($settingKeys as $key) {
@@ -146,13 +147,18 @@ class RentalContractTermsController extends Controller
     {
         abort_unless(\AdminGuardHasPerm(PermKeys::CONTRACT_SETTINGS), 403);
 
-        $data = $request->except(['_token', '_method', 'logo']);
+        $request->validate([
+            'logo' => ['nullable', 'image', 'max:2048'],
+            'company_signature' => ['nullable', 'image', 'max:2048'],
+        ]);
+
+        $data = $request->except(['_token', '_method', 'logo', 'company_signature']);
 
         // حفظ الإعدادات
         foreach ($data as $key => $value) {
             Setting::updateOrCreate(
                 ['key' => 'rent_contract_' . $key],
-                ['value' => $value]
+                ['value' => $value ?? '']
             );
         }
 
@@ -164,6 +170,16 @@ class RentalContractTermsController extends Controller
             Setting::updateOrCreate(
                 ['key' => 'rent_contract_logo'],
                 ['value' => $logoPath]
+            );
+        }
+
+        if ($request->hasFile('company_signature')) {
+            $signature = $request->file('company_signature');
+            $signaturePath = $signature->store('contract_signatures', 'public');
+
+            Setting::updateOrCreate(
+                ['key' => 'rent_contract_company_signature'],
+                ['value' => $signaturePath]
             );
         }
         return jsonSuccess(['url' => route('rent-contract.settings')], __("تم حفظ الإعدادات بنجاح"), 201);

@@ -8,6 +8,7 @@
 docs/PERMISSIONS.md  أوامر الصلاحيات وتجهيز شاشة /dash/perms/1
 docs/FINANCE.md      أوامر المالية والشجرة المالية وحسابات التأجير
 docs/CRON_JOBS.md    أوامر cron job والمهام المجدولة
+docs/CV_EXTRACTION.md أوامر تجهيز استخراج بيانات السيرة الذاتية
 ```
 
 ## قبل أي تحديث على الاستضافة
@@ -117,6 +118,12 @@ docs/FINANCE.md
 
 ```text
 docs/CRON_JOBS.md
+```
+
+إذا كانت المشكلة في استخراج بيانات السيرة الذاتية أو ظهور رسالة `shell_exec`:
+
+```text
+docs/CV_EXTRACTION.md
 ```
 
 ## أوامر آمنة بعد أي تعديل

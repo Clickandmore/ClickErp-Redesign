@@ -57,6 +57,25 @@
             </a>
         </div>
 
+        @if (session('success'))
+            <div class="alert alert-success">{{ session('success') }}</div>
+        @endif
+
+        @if (session('error'))
+            <div class="alert alert-danger">{{ session('error') }}</div>
+        @endif
+
+        @if (session('bulk_dispatch_errors') && count(session('bulk_dispatch_errors')))
+            <div class="alert alert-warning">
+                <div class="fw-semibold mb-2">ملاحظات على الحفظ المجمع:</div>
+                <ul class="mb-0 ps-3">
+                    @foreach (session('bulk_dispatch_errors') as $bulkDispatchError)
+                        <li>{{ $bulkDispatchError }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         <div class="row g-3 mb-4">
             <div class="col-md-4">
                 <button type="button"
@@ -119,10 +138,24 @@
 
         <div class="card shadow-sm border-0">
             <div class="card-body">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                    <div class="text-muted small">
+                        حدد أكثر من عقد من الجدول ثم أنشئ الإرساليات دفعة واحدة.
+                    </div>
+                    <button type="button" id="open-bulk-dispatch-modal" class="btn btn-primary" disabled
+                        data-bs-toggle="modal" data-bs-target="#bulkDispatchModal">
+                        <i class="fas fa-layer-group me-1"></i>
+                        إنشاء إرساليات مجمعة
+                        <span class="badge bg-light text-primary ms-1" id="selected-dispatch-count">0</span>
+                    </button>
+                </div>
                 <div class="table-responsive">
                     <table id="external-office-dispatch-table" class="table table-hover align-middle mb-0" style="width: 100%;">
                         <thead class="table-light">
                             <tr>
+                                <th style="width: 42px;">
+                                    <input type="checkbox" class="form-check-input" id="select-all-dispatch-contracts">
+                                </th>
                                 <th>رقم العقد</th>
                                 <th>العميل</th>
                                 <th>العاملة</th>
@@ -140,11 +173,73 @@
             </div>
         </div>
     </div>
+
+    <div class="modal fade" id="bulkDispatchModal" tabindex="-1" aria-labelledby="bulkDispatchModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <form method="POST" action="{{ route('RecruitmentContract.externalOfficeDispatch.bulkStore') }}" class="modal-content" id="bulkDispatchForm">
+                @csrf
+                <div id="bulk-dispatch-contract-inputs"></div>
+                <div class="modal-header">
+                    <h5 class="modal-title" id="bulkDispatchModalLabel">إنشاء إرساليات مجمعة</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        سيتم إنشاء أو تحديث الإرسالية للعقود المحددة باستخدام تكلفة المكتب المسجلة على كل عقد.
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">عدد العقود المحددة</label>
+                        <input type="text" class="form-control" id="bulk-dispatch-selected-summary" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">تاريخ الإرسالية <span class="text-danger">*</span></label>
+                        <input type="date" name="dispatch_date" class="form-control" value="{{ now()->toDateString() }}" required>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label">محطة الوصول</label>
+                        <input type="text" name="arrival_station" class="form-control"
+                            placeholder="اتركها فارغة لاستخدام محطة الوصول المسجلة لكل عقد">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>
+                        حفظ الإرساليات
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 @endsection
 
 @section('js')
     <script>
         $(document).ready(function() {
+            const selectedDispatchContracts = new Set();
+
+            function syncBulkDispatchControls() {
+                const selectedCount = selectedDispatchContracts.size;
+                $('#selected-dispatch-count').text(selectedCount);
+                $('#open-bulk-dispatch-modal').prop('disabled', selectedCount === 0);
+                $('#bulk-dispatch-selected-summary').val(selectedCount + ' عقد');
+
+                const inputs = Array.from(selectedDispatchContracts)
+                    .map(id => `<input type="hidden" name="contract_ids[]" value="${id}">`)
+                    .join('');
+                $('#bulk-dispatch-contract-inputs').html(inputs);
+
+                $('.dispatch-contract-checkbox').each(function() {
+                    $(this).prop('checked', selectedDispatchContracts.has(String($(this).val())));
+                });
+
+                const visibleCheckboxes = $('.dispatch-contract-checkbox:not(:disabled)');
+                const visibleCheckedCount = visibleCheckboxes.filter(':checked').length;
+                $('#select-all-dispatch-contracts')
+                    .prop('checked', visibleCheckboxes.length > 0 && visibleCheckedCount === visibleCheckboxes.length)
+                    .prop('indeterminate', visibleCheckedCount > 0 && visibleCheckedCount < visibleCheckboxes.length);
+            }
+
             const table = $('#external-office-dispatch-table').DataTable({
                 processing: true,
                 serverSide: true,
@@ -152,7 +247,7 @@
                 pageLength: 25,
                 searching: false,
                 order: [
-                    [0, 'desc']
+                    [1, 'desc']
                 ],
                 ajax: {
                     url: "{{ route('RecruitmentContract.externalOfficeDispatch.index') }}",
@@ -164,6 +259,12 @@
                     }
                 },
                 columns: [{
+                        data: 'selection',
+                        name: 'selection',
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
                         data: 'contract_number',
                         name: 'id'
                     },
@@ -216,7 +317,8 @@
                 ],
                 language: {
                     url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/ar.json'
-                }
+                },
+                drawCallback: syncBulkDispatchControls
             });
 
             $('#external-office-dispatch-filter-form').on('submit', function(event) {
@@ -230,6 +332,8 @@
                 $('#dispatch_filter').val('sent');
                 $('.dispatch-filter-chip').removeClass('active');
                 $('.dispatch-filter-chip[data-dispatch-filter="sent"]').addClass('active');
+                selectedDispatchContracts.clear();
+                syncBulkDispatchControls();
                 table.ajax.reload();
             });
 
@@ -238,7 +342,32 @@
                 $('#dispatch_filter').val(filter);
                 $('.dispatch-filter-chip').removeClass('active');
                 $(this).addClass('active');
+                selectedDispatchContracts.clear();
+                syncBulkDispatchControls();
                 table.ajax.reload();
+            });
+
+            $(document).on('change', '.dispatch-contract-checkbox', function() {
+                const contractId = String($(this).val());
+                if ($(this).is(':checked')) {
+                    selectedDispatchContracts.add(contractId);
+                } else {
+                    selectedDispatchContracts.delete(contractId);
+                }
+                syncBulkDispatchControls();
+            });
+
+            $('#select-all-dispatch-contracts').on('change', function() {
+                const shouldSelect = $(this).is(':checked');
+                $('.dispatch-contract-checkbox:not(:disabled)').each(function() {
+                    const contractId = String($(this).val());
+                    if (shouldSelect) {
+                        selectedDispatchContracts.add(contractId);
+                    } else {
+                        selectedDispatchContracts.delete(contractId);
+                    }
+                });
+                syncBulkDispatchControls();
             });
         });
     </script>

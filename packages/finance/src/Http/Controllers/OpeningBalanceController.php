@@ -50,6 +50,8 @@ class OpeningBalanceController extends Controller
             'creditor_value' => ['required', 'array'],
             'creditor_value.*' => ['required', 'numeric', 'min:0'],
             'year_id' => ['required', 'integer'],
+            'visible_account_id' => ['nullable', 'array'],
+            'visible_account_id.*' => ['required', 'integer'],
         ]);
 
         if (

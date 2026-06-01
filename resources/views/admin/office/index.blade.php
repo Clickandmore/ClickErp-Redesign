@@ -430,6 +430,13 @@
                     </div>
                 </div>
             </div>
+
+            <select id="officeDeleteReplacementOptions" class="d-none" aria-hidden="true">
+                <option value="">اختر المكتب البديل</option>
+                @foreach ($deleteReplacementOffices as $deleteReplacementOffice)
+                    <option value="{{ $deleteReplacementOffice->id }}" data-nationality-id="{{ (int) ($deleteReplacementOffice->nationality_id ?? 0) }}">{{ $deleteReplacementOffice->title ?? ('مكتب #' . $deleteReplacementOffice->id) }}</option>
+                @endforeach
+            </select>
         </div>
     @else
         @include('components.no_permissions')
@@ -682,6 +689,134 @@
                 },
                 complete: function() {
                     $btn.prop('disabled', false).html(originalHtml);
+                }
+            });
+        });
+
+        $(document).on('click', '.officeDeleteButton', function(event) {
+            event.preventDefault();
+
+            const $button = $(this);
+            const deleteRoute = $button.attr('delete-route');
+            const officeId = String($button.data('office-id'));
+            const officeTitle = $button.data('office-title') || 'هذا المكتب';
+            const nationalityId = String($button.data('nationality-id') || '0');
+            const linkedCvs = parseInt($button.data('linked-cvs') || '0', 10);
+            const linkedContracts = parseInt($button.data('linked-contracts') || '0', 10);
+            const linkedOperations = parseInt($button.data('linked-operations') || '0', 10);
+            const hasLinks = linkedOperations > 0 || linkedCvs > 0 || linkedContracts > 0;
+            const currentPage = $('#dataTableObject').DataTable().page();
+            let replacementOfficeId = null;
+
+            const confirmDelete = function() {
+                $.ajax({
+                    url: deleteRoute,
+                    type: 'DELETE',
+                    data: replacementOfficeId ? {
+                        replacement_office_id: replacementOfficeId
+                    } : {},
+                    beforeSend: function() {
+                        if (window.cmShowLoader) {
+                            window.cmShowLoader();
+                        } else {
+                            $('#loading-wrapper').show();
+                        }
+                    },
+                    complete: function() {
+                        if (window.cmHideLoader) {
+                            window.cmHideLoader();
+                        } else {
+                            $('#loading-wrapper').hide();
+                        }
+                    },
+                    success: function(response) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: "{{ __('buttons.Deleted successfully') }}",
+                            text: response.message || 'تم حذف المكتب بنجاح',
+                            confirmButtonText: "{{ __('buttons.close') }}",
+                        });
+                        officeTable.ajax.reload(function() {
+                            $('#dataTableObject').DataTable().page(currentPage).draw('page');
+                        }, false);
+                    },
+                    error: function(errorObj) {
+                        handleErrorResponce(errorObj);
+                    }
+                });
+            };
+
+            if (!hasLinks) {
+                Swal.fire({
+                    title: "{{ __('buttons.Are You Sure') }}",
+                    text: "{{ __('buttons.You Can not to rollback') }}",
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#DD6B55',
+                    confirmButtonText: "{{ __('buttons.accept') }}",
+                    cancelButtonText: "{{ __('buttons.cancel') }}",
+                }).then(function(result) {
+                    if (result.isConfirmed) {
+                        confirmDelete();
+                    }
+                });
+
+                return;
+            }
+
+            const optionsHtml = $('#officeDeleteReplacementOptions option').filter(function() {
+                const optionValue = String($(this).val());
+                const optionNationalityId = String($(this).data('nationality-id') || '0');
+
+                return optionValue === '' || (optionValue !== officeId && optionNationalityId === nationalityId);
+            }).map(function() {
+                return '<option value="' + $('<div>').text($(this).val()).html() + '">' + $('<div>').text($(this).text()).html() + '</option>';
+            }).get().join('');
+
+            const hasReplacementOffice = $('#officeDeleteReplacementOptions option').filter(function() {
+                const optionValue = String($(this).val());
+                const optionNationalityId = String($(this).data('nationality-id') || '0');
+
+                return optionValue !== '' && optionValue !== officeId && optionNationalityId === nationalityId;
+            }).length > 0;
+
+            if (!hasReplacementOffice) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'لا يوجد مكتب بديل مناسب',
+                    text: 'لا يوجد مكتب آخر من نفس الجنسية لدمج العمليات عليه.',
+                    confirmButtonText: "{{ __('buttons.close') }}",
+                });
+
+                return;
+            }
+
+            Swal.fire({
+                title: 'دمج العمليات قبل الحذف',
+                html: '<div class="text-start" dir="rtl">' +
+                    '<p class="mb-2">المكتب <strong>' + $('<div>').text(officeTitle).html() + '</strong> عليه عمليات مرتبطة.</p>' +
+                    '<p class="text-muted small mb-3">سيتم نقل السير والعقود والإرساليات وكشوفات الحساب إلى المكتب البديل قبل الحذف.</p>' +
+                    '<select id="replacementOfficeId" class="form-select">' + optionsHtml + '</select>' +
+                    '</div>',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#DD6B55',
+                confirmButtonText: 'دمج وحذف',
+                cancelButtonText: "{{ __('buttons.cancel') }}",
+                preConfirm: function() {
+                    const value = $('#replacementOfficeId').val();
+
+                    if (!value) {
+                        Swal.showValidationMessage('يرجى اختيار المكتب البديل');
+                        return false;
+                    }
+
+                    replacementOfficeId = value;
+                    return true;
+                }
+            }).then(function(result) {
+                if (result.isConfirmed) {
+                    confirmDelete();
                 }
             });
         });

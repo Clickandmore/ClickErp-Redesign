@@ -497,3 +497,196 @@
     background: var(--secondary-color) !important
 }
 
+.dashboard-footer {
+    border-top: 1px solid rgba(25, 36, 68, 0.08);
+    background: transparent;
+}
+
+.dashboard-copyright {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px 10px;
+    max-width: 100%;
+    padding: 9px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 999px;
+    background: rgba(15, 27, 45, 0.38);
+    color: rgba(255, 255, 255, 0.84);
+    font-size: 12px;
+    line-height: 1.8;
+    font-weight: 600;
+    text-align: center;
+    backdrop-filter: blur(10px);
+}
+
+.dashboard-copyright-text,
+.dashboard-copyright-year {
+    color: rgba(255, 255, 255, 0.84);
+    font-weight: 600;
+}
+
+.dashboard-copyright-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: #a9d66d !important;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.dashboard-copyright-brand:hover {
+    color: #c6f287 !important;
+    transform: translateY(-1px);
+}
+
+.dashboard-copyright-brand img,
+.dashboard-copyright-logo {
+    width: 24px !important;
+    height: 24px !important;
+    max-width: 24px !important;
+    max-height: 24px !important;
+    object-fit: contain !important;
+    padding: 3px !important;
+    border: 0 !important;
+    border-radius: 50% !important;
+    background: rgba(255, 255, 255, 0.92) !important;
+    flex: 0 0 24px !important;
+}
+
+.dashboard-copyright-name {
+    white-space: nowrap;
+}
+
+@media (max-width: 575.98px) {
+    .dashboard-copyright {
+        width: auto;
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+
+    .dashboard-copyright-brand {
+        font-size: 12px;
+    }
+
+    .dashboard-copyright-brand img,
+    .dashboard-copyright-logo {
+        width: 24px;
+        height: 24px;
+    }
+}
+
+/* ======================================================
+   SIDEBAR — clearer text & better visual hierarchy
+   ====================================================== */
+
+/* Primary menu links */
+.sidebar .m-link {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.1px;
+}
+
+.sidebar .m-link > span {
+    font-size: 14px;
+    line-height: 1.45;
+}
+
+.sidebar .m-link > i,
+.sidebar .m-link > svg {
+    font-size: 15px;
+    opacity: 0.92;
+}
+
+/* Active link — bolder + brand accent */
+.sidebar .m-link.active {
+    font-weight: 700;
+}
+
+/* Sub-menu items — slightly smaller but still readable */
+.sidebar .sub-menu .m-link {
+    font-size: 13.5px;
+    font-weight: 550;
+}
+
+.sidebar .sub-menu .m-link > span {
+    font-size: 13.5px;
+}
+
+/* Section divider labels */
+.sidebar .divider span.small {
+    font-size: 10.5px !important;
+    font-weight: 800 !important;
+    letter-spacing: 1.4px;
+    text-transform: uppercase;
+    color: var(--secondary-color);
+    opacity: 1;
+}
+
+/* ======================================================
+   HEADER — clearer brand text & readable meta values
+   ====================================================== */
+
+/* Brand / system name */
+.cm-brand-subtitle {
+    font-size: 14px !important;
+    font-weight: 800 !important;
+    color: #222940 !important;
+    letter-spacing: 0.15px;
+    line-height: 1.2;
+}
+
+/* Date / time meta values */
+.cm-header-meta-value {
+    font-size: 0.88rem !important;
+    font-weight: 800 !important;
+    color: #0f172a !important;
+}
+
+.cm-header-meta-subvalue {
+    font-size: 0.76rem !important;
+    color: #374151 !important;
+    font-weight: 600 !important;
+}
+
+/* Meta card icons — brand green instead of bootstrap blue */
+.cm-header-meta-icon {
+    background: linear-gradient(135deg, rgba(151, 191, 90, 0.22) 0%, rgba(151, 191, 90, 0.08) 100%) !important;
+    color: #4a7a1e !important;
+}
+
+/* Quick-link shortcut buttons */
+.cm-header-shortcut {
+    font-size: 0.82rem !important;
+    font-weight: 700 !important;
+    color: #1a2540 !important;
+}
+
+.cm-header-shortcut i {
+    color: var(--secondary-color);
+}
+
+.cm-header-shortcut:hover {
+    color: #222940 !important;
+    background: rgba(151, 191, 90, 0.12) !important;
+    border-color: rgba(151, 191, 90, 0.25) !important;
+}
+
+/* "Open site" button — brand navy */
+.cm-header-open-site {
+    background: #222940 !important;
+    font-size: 0.82rem !important;
+    font-weight: 700 !important;
+}
+
+.cm-header-open-site:hover {
+    background: #2d3a5e !important;
+}
+
+/* Header action icon buttons — brand hover */
+.cm-header-action:hover {
+    color: var(--secondary-color) !important;
+}

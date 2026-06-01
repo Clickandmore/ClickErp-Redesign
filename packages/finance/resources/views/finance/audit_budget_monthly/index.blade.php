@@ -76,14 +76,14 @@
             <input type="hidden" name="start_date" value="{{ $year->from_date }}" class=" search_keys">
             <div class="col-md-3">
                 <label for="TextInput" class="form-label"> {{ __('finance::finance.From Date') }}</label>
-                <input type="month" value="{{ $year->from_date }}" min="{{ $year->from_date }}" max="{{ $year->to_date }}"
+                <input type="month" value="{{ substr($year->from_date, 0, 7) }}" min="{{ substr($year->from_date, 0, 7) }}" max="{{ substr($year->to_date, 0, 7) }}"
                     name="from_date" class="form-control search_keys " id="from_date">
             </div>
 
             <div class="col-md-3">
                 <label for="TextInput" class="form-label"> {{ __('finance::finance.To Date') }}</label>
-                <input type="month" lang="ar" value="{{ $year->to_date }}" name="to_date"
-                    min="{{ $year->from_date }}" max="{{ $year->to_date }}" class="form-control search_keys "
+                <input type="month" lang="ar" value="{{ substr($year->to_date, 0, 7) }}" name="to_date"
+                    min="{{ substr($year->from_date, 0, 7) }}" max="{{ substr($year->to_date, 0, 7) }}" class="form-control search_keys "
                     id="to_date">
             </div>
             <div class="col-md-3">

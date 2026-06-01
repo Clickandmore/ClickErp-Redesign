@@ -64,8 +64,6 @@ class RecruitmentTripAccountingService
             throw new \RuntimeException('لا يمكن إنشاء القيود المحاسبية لأن جنسية العقد غير محددة.');
         }
 
-        $costCenterId = $this->ensureRecruitmentContractCostCenter($contract, $nationalityName)->id;
-
         $result = [
             'skipped_reason' => null,
             'revenue_constraint_id' => $invoice->arrival_revenue_constraint_id ? (int) $invoice->arrival_revenue_constraint_id : null,
@@ -76,16 +74,20 @@ class RecruitmentTripAccountingService
 
         if ($invoice->arrival_revenue_constraint_id) {
             $this->syncArrivalRevenueConstraintCostCenter(
-                (int) $invoice->arrival_revenue_constraint_id,
-                $costCenterId
+                (int) $invoice->arrival_revenue_constraint_id
             );
         }
 
         if ($invoice->external_office_cost_constraint_id) {
+            $this->syncConstraintStatement(
+                (int) $invoice->external_office_cost_constraint_id,
+                $this->buildExternalOfficeCostStatement($contract, $invoice)
+            );
+
             $this->syncExternalOfficeCostConstraintCostCenter(
                 (int) $invoice->external_office_cost_constraint_id,
-                $nationalityName,
-                $costCenterId
+                $contract,
+                $nationalityName
             );
         }
 
@@ -101,7 +103,6 @@ class RecruitmentTripAccountingService
                     $contract,
                     $invoice,
                     $nationalityName,
-                    $costCenterId,
                     $date,
                     $activeYear
                 );
@@ -109,7 +110,7 @@ class RecruitmentTripAccountingService
             }
 
             if ($revenueConstraint) {
-                $this->syncArrivalRevenueConstraintCostCenter($revenueConstraint->id, $costCenterId);
+                $this->syncArrivalRevenueConstraintCostCenter($revenueConstraint->id);
                 $invoice->arrival_revenue_constraint_id = $revenueConstraint->id;
                 $result['revenue_constraint_id'] = (int) $revenueConstraint->id;
             }
@@ -118,6 +119,7 @@ class RecruitmentTripAccountingService
         if (!$invoice->external_office_cost_constraint_id) {
             $officeCostAmount = $this->resolveExternalOfficeCostAmount($contract);
             $officeCostStatement = $this->buildExternalOfficeCostStatement($contract, $invoice);
+            $costCenterId = $this->ensureRecruitmentContractCostCenter($contract, $nationalityName)->id;
 
             $officeCostConstraint = $this->findExistingConstraint(
                 $officeCostStatement,
@@ -142,8 +144,8 @@ class RecruitmentTripAccountingService
             if ($officeCostConstraint) {
                 $this->syncExternalOfficeCostConstraintCostCenter(
                     $officeCostConstraint->id,
-                    $nationalityName,
-                    $costCenterId
+                    $contract,
+                    $nationalityName
                 );
                 $invoice->external_office_cost_constraint_id = $officeCostConstraint->id;
                 $result['external_office_cost_constraint_id'] = (int) $officeCostConstraint->id;
@@ -164,7 +166,6 @@ class RecruitmentTripAccountingService
         Contract $contract,
         Invoice $invoice,
         string $nationalityName,
-        int $costCenterId,
         string $date,
         $activeYear
     ): ?Constraint {
@@ -193,8 +194,7 @@ class RecruitmentTripAccountingService
                 $liabilityAccountId,
                 $salesAccountId,
                 $breakdown['direct_amount'],
-                $this->buildRevenueDetailStatement($contract, $invoice, 'تكاليف الاستقدام المباشر'),
-                $costCenterId
+                $this->buildRevenueDetailStatement($contract, $invoice, 'تكاليف الاستقدام المباشر')
             );
         }
 
@@ -204,8 +204,7 @@ class RecruitmentTripAccountingService
                 $liabilityAccountId,
                 $salesAccountId,
                 $breakdown['other_amount'],
-                $this->buildRevenueDetailStatement($contract, $invoice, 'تكاليف الاستقدام الخارجية'),
-                $costCenterId
+                $this->buildRevenueDetailStatement($contract, $invoice, 'تكاليف الاستقدام الخارجية')
             );
         }
 
@@ -261,22 +260,24 @@ class RecruitmentTripAccountingService
         return $this->storeConstraint($lines, $statement, $date, $amount, $activeYear);
     }
 
-    private function syncArrivalRevenueConstraintCostCenter(int $constraintId, int $costCenterId): void
+    private function syncArrivalRevenueConstraintCostCenter(int $constraintId): void
     {
         \Nami\Finance\Models\ConstraintDetails::query()
             ->where('constraint_id', $constraintId)
-            ->update(['cost_center_id' => $costCenterId]);
+            ->update(['cost_center_id' => null]);
     }
 
     private function syncExternalOfficeCostConstraintCostCenter(
         int $constraintId,
-        string $nationalityName,
-        int $costCenterId
+        Contract $contract,
+        string $nationalityName
     ): void {
         $costOfSalesAccountId = $this->resolveCostOfSalesAccountId($nationalityName);
         if (!$costOfSalesAccountId) {
             throw new \RuntimeException('لا يوجد حساب تكلفة مبيعات مرتبط بجنسية العقد: ' . $nationalityName);
         }
+
+        $costCenterId = $this->ensureRecruitmentContractCostCenter($contract, $nationalityName)->id;
 
         \Nami\Finance\Models\ConstraintDetails::query()
             ->where('constraint_id', $constraintId)
@@ -285,8 +286,18 @@ class RecruitmentTripAccountingService
         \Nami\Finance\Models\ConstraintDetails::query()
             ->where('constraint_id', $constraintId)
             ->where('account_id', $costOfSalesAccountId)
-            ->where('type', 'debtor')
             ->update(['cost_center_id' => $costCenterId]);
+    }
+
+    private function syncConstraintStatement(int $constraintId, string $statement): void
+    {
+        Constraint::query()
+            ->whereKey($constraintId)
+            ->update(['statement' => $statement]);
+
+        \Nami\Finance\Models\ConstraintDetails::query()
+            ->where('constraint_id', $constraintId)
+            ->update(['statement' => $statement]);
     }
 
     private function storeConstraint(array $lines, string $statement, string $date, float $value, $activeYear): ?Constraint
@@ -618,7 +629,7 @@ class RecruitmentTripAccountingService
 
     private function buildExternalOfficeCostStatement(Contract $contract, Invoice $invoice): string
     {
-        return 'إغلاق طلب: ' . $contract->id
+        return 'فاتورة مورد: إغلاق طلب: ' . $contract->id
             . ', فاتورة رقم: ' . $invoice->id
             . ' العميل: ' . $this->resolveClientReference($contract);
     }

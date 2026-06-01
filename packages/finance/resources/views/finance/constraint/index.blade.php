@@ -5,12 +5,15 @@
             display: flex;
             flex-direction: column;
             gap: 4px;
-            min-width: 320px;
+            min-width: 360px;
+            max-width: 520px;
         }
 
         .constraint-statement-cell strong {
             white-space: normal;
             line-height: 1.8;
+            overflow-wrap: anywhere;
+            word-break: break-word;
         }
 
         .constraint-statement-cell small {
@@ -82,7 +85,9 @@
 
         .constraints-table-wrap .table {
             table-layout: fixed;
-            min-width: 980px;
+            min-width: 1320px;
+            border-collapse: separate;
+            border-spacing: 0;
         }
 
         .constraints-table-wrap .table thead th {
@@ -92,18 +97,24 @@
             border-bottom: 1px solid #e9eef5;
         }
 
+        .constraints-table-wrap .table tbody td {
+            vertical-align: top;
+            white-space: normal;
+            line-height: 1.7;
+        }
+
         .constraint-account-list {
             display: flex;
             flex-direction: column;
             gap: 5px;
-            min-width: 210px;
-            max-width: 260px;
+            min-width: 240px;
+            max-width: 320px;
         }
 
         .constraint-account-line {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
-            align-items: center;
+            grid-template-columns: minmax(0, 1fr) minmax(92px, auto);
+            align-items: start;
             gap: 10px;
             padding-bottom: 4px;
             border-bottom: 1px dashed #edf0f4;
@@ -112,9 +123,9 @@
 
         .constraint-account-name {
             min-width: 0;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+            white-space: normal;
+            overflow-wrap: anywhere;
+            word-break: break-word;
         }
 
         .constraint-account-line:last-child {
@@ -131,6 +142,7 @@
             direction: ltr;
             white-space: nowrap;
             color: #1f2937;
+            text-align: left;
         }
 
         .constraint-account-more {
@@ -148,32 +160,43 @@
 
         #dataTableObject th:nth-child(1),
         #dataTableObject td:nth-child(1) {
-            width: 90px;
+            width: 95px;
         }
 
         #dataTableObject th:nth-child(2),
         #dataTableObject td:nth-child(2) {
-            width: 340px;
+            width: 390px;
         }
 
         #dataTableObject th:nth-child(3),
         #dataTableObject td:nth-child(3),
         #dataTableObject th:nth-child(4),
         #dataTableObject td:nth-child(4) {
-            width: 110px;
+            width: 125px;
         }
 
         #dataTableObject th:nth-child(5),
         #dataTableObject td:nth-child(5),
         #dataTableObject th:nth-child(6),
         #dataTableObject td:nth-child(6) {
-            width: 235px;
+            width: 285px;
             vertical-align: top;
         }
 
         #dataTableObject th:nth-child(7),
         #dataTableObject td:nth-child(7) {
-            width: 120px;
+            width: 135px;
+            text-align: center;
+        }
+
+        #dataTableObject th:nth-child(8),
+        #dataTableObject td:nth-child(8) {
+            width: 175px;
+        }
+
+        #dataTableObject th:nth-child(9),
+        #dataTableObject td:nth-child(9) {
+            width: 155px;
             text-align: center;
         }
 
@@ -359,6 +382,8 @@
                 "serverSide": false,
                 "searching": true,
                 "sort": false,
+                "autoWidth": false,
+                "scrollX": true,
                 "ajax": {
                     "url": "{{ $dataTableRoute }}",
                     "type": "GET",

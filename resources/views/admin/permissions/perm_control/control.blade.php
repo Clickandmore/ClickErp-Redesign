@@ -1166,22 +1166,20 @@
             if (scopeElement) {
                 const scopeCheckboxes = Array.from(scopeElement.querySelectorAll('.permission-checkbox'));
                 const scopeLabel = scopeElement.dataset.scopeLabel || 'هذا القسم';
+                const scopePermissions = scopeCheckboxes.map((checkbox) => checkbox.value);
+                const selectedPermissions = scopeCheckboxes
+                    .filter((checkbox) => checkbox.checked)
+                    .map((checkbox) => checkbox.value);
 
-                scopeCheckboxes.forEach((checkbox) => {
-                    appendHiddenInput(submissionForm, 'scope_permissions[]', checkbox.value);
-
-                    if (checkbox.checked) {
-                        appendHiddenInput(submissionForm, 'perms[]', checkbox.value);
-                    }
-                });
-
+                appendHiddenInput(submissionForm, 'scope_permissions_json', JSON.stringify(scopePermissions));
+                appendHiddenInput(submissionForm, 'perms_json', JSON.stringify(selectedPermissions));
                 appendHiddenInput(submissionForm, 'scope_label', scopeLabel);
             } else {
-                Array.from(baseForm.querySelectorAll('.permission-checkbox')).forEach((checkbox) => {
-                    if (checkbox.checked) {
-                        appendHiddenInput(submissionForm, 'perms[]', checkbox.value);
-                    }
-                });
+                const selectedPermissions = Array.from(baseForm.querySelectorAll('.permission-checkbox'))
+                    .filter((checkbox) => checkbox.checked)
+                    .map((checkbox) => checkbox.value);
+
+                appendHiddenInput(submissionForm, 'perms_json', JSON.stringify(selectedPermissions));
             }
 
             return submissionForm;

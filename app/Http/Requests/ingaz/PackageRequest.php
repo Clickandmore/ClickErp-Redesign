@@ -26,6 +26,12 @@ class PackageRequest extends MainRequest
     {
         return [
             'original_price' => 'required|numeric|min:0',
+            'discount_amount' => 'nullable|numeric|min:0|lte:original_price',
+            'offer_amount' => 'nullable|numeric|min:0',
+            'offer_starts_at' => 'nullable|date',
+            'offer_ends_at' => 'nullable|date|after_or_equal:offer_starts_at',
+            'offer_is_active' => 'nullable|boolean',
+            'offer_description' => 'nullable|string|max:500',
             'price_after_discount' => 'nullable|numeric|min:0|lte:original_price',
             'price_with_tax' => 'nullable|numeric|min:0',
             'nationality_id' => 'nullable|exists:nationalities,id',
@@ -33,6 +39,7 @@ class PackageRequest extends MainRequest
             'rental_type' => 'required|string|in:hourly,daily,weekly,monthly,yearly',
             'duration_unit' => 'required|string|in:hour,day,week,month,year',
             'duration_count' => 'required|integer|min:1',
+            'sort_order' => 'nullable|integer|min:0',
             'working_hours_per_day' => 'nullable|integer|min:1|max:24',
             'is_show' => 'nullable|boolean',
             'description' => 'nullable|string|max:1000',

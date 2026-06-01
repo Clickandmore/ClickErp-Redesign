@@ -21,6 +21,12 @@ class RentalContract extends Model
         'marketer_id',
         'order_id',
         'status',
+        'status_before_freeze',
+        'freeze_reason',
+        'frozen_at',
+        'resumed_at',
+        'frozen_by',
+        'resumed_by',
         'contract_date',
         'contract_number',
         'warranty_status',
@@ -46,6 +52,8 @@ class RentalContract extends Model
         'contract_signed_at' => 'datetime',
         'maid_delivered_at' => 'datetime',
         'trial_started_at' => 'datetime',
+        'frozen_at' => 'datetime',
+        'resumed_at' => 'datetime',
     ];
 
     protected $with = ['info'];
@@ -117,6 +125,16 @@ class RentalContract extends Model
         return $this->belongsTo(Admin::class, 'trial_started_by');
     }
 
+    public function frozenBy()
+    {
+        return $this->belongsTo(Admin::class, 'frozen_by');
+    }
+
+    public function resumedBy()
+    {
+        return $this->belongsTo(Admin::class, 'resumed_by');
+    }
+
     // Scopes
     public function scopeActive($query)
     {
@@ -174,6 +192,7 @@ class RentalContract extends Model
             'completed' => 'مكتمل',
             'cancelled' => 'ملغي',
             'suspended' => 'معلق',
+            'frozen' => 'مجمد',
         ];
 
         return $statusTexts[$this->status] ?? 'غير محدد';
@@ -220,6 +239,21 @@ class RentalContract extends Model
     public function canActivateContract()
     {
         return $this->status === 'maid_delivered';
+    }
+
+    public function canCloseOrExtend()
+    {
+        return $this->status === 'active';
+    }
+
+    public function canFreeze()
+    {
+        return in_array($this->status, ['new', 'waiting_contract_send', 'contract_sent', 'contract_signed', 'maid_delivered', 'active', 'suspended'], true);
+    }
+
+    public function canResume()
+    {
+        return $this->status === 'frozen';
     }
 
     public function getActivitylogOptions(): LogOptions

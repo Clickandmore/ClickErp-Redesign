@@ -67,37 +67,37 @@
                 <div class="mainInfo">
                     <!-- sub -->
                     <div class="sub">
-                        <h5 class="title">الجنسية</h5>
+                        <h5 class="title">{{ helperTrans('ingaz.nationality') }}</h5>
                         <p class="dis">{{ $obj->nationality ? $obj->nationality->title : '' }}</p>
                     </div>
                     <!-- sub -->
                     <div class="sub">
-                        <h5 class="title">المهنة :</h5>
+                        <h5 class="title">{{ helperTrans('ingaz.job') }} :</h5>
                         <p class="dis">{{ $obj->jobTitles ? $obj->jobTitles->first()->title : '' }}</p>
                     </div>
                     <!-- sub -->
                     <div class="sub">
-                        <h5 class="title">الديانة :</h5>
+                        <h5 class="title">{{ helperTrans('ingaz.religion_id') }} :</h5>
                         <p class="dis">{{ $obj->religion ? $obj->religion->title : '' }}</p>
                     </div>
                     <!-- sub -->
                     <div class="sub">
-                        <h5 class="title">العمر :</h5>
+                        <h5 class="title">{{ helperTrans('ingaz.age') }} :</h5>
                         <p class="dis">{{ Carbon\Carbon::parse($obj->birthdate)->age }}</p>
                     </div>
                     <!-- sub -->
                     <div class="sub">
-                        <h5 class="title">الخبرات :</h5>
+                        <h5 class="title">{{ helperTrans('ingaz.experience_years') }} :</h5>
                         <p class="dis">{{ $obj->experience_years != null && $obj->experience_years > 0 ? $obj->experience_years : '' }}</p>
                     </div>
                     <!-- sub -->
                     <div class="sub">
-                        <h5 class="title"> المرتب الشهري :</h5>
+                        <h5 class="title">{{ helperTrans('ingaz.monthly_salary') }} :</h5>
                         <p class="dis">{{ $obj->salary }}</p>
                     </div>
                     <!-- languages -->
      <div class="languages">
-                        <h5 class="title">اللغات :</h5>
+                        <h5 class="title">{{ helperTrans('ingaz.languages she talk') }} :</h5>
                         <div class="Percentages">
                             <div class="percentDiv">
                                 <div class="percent p75">
@@ -107,7 +107,7 @@
                                         <div class="fill"></div>
                                     </div>
                                 </div>
-                                <h5>عربي</h5>
+                                <h5>{{ helperTrans('ingaz.arabic_language') }}</h5>
                             </div>
                             <div class="percentDiv">
                                 <div class="percent p100">
@@ -117,7 +117,7 @@
                                         <div class="fill"></div>
                                     </div>
                                 </div>
-                                <h5>إنجليزي</h5>
+                                <h5>{{ helperTrans('ingaz.english_language') }}</h5>
                             </div>
                         </div>
                     </div>
@@ -128,11 +128,11 @@
                 <div class="head">
                     <div class="name">
                         <div class="data">
-                            <p class="innerTitle">اسم العامل :</p>
+                            <p class="innerTitle">{{ helperTrans('ingaz.worker_name') }} :</p>
                             <h3 class="innerData">{{ $obj->name }}</h3>
                         </div>
                         <div class="data">
-                            <p class="innerTitle">رقم الجواز :</p>
+                            <p class="innerTitle">{{ helperTrans('ingaz.passport_num') }} :</p>
                             <h6 class="innerData">{{ $obj->passport_num }}</h6>
                         </div>
 
@@ -157,42 +157,42 @@
                                         fill="#E7E7E7" data-original="#ffc850"></path>
                                 </g>
                             </svg>
-                            خبرة السنين تفرق
+                            {{ helperTrans('ingaz.experience_makes_difference') }}
                         </h4>
                     </span>
                 </div>
                 <div class="category">
-                    <h5 class="title"><span>البيانات الشخصية </span></h5>
+                    <h5 class="title"><span>{{ helperTrans('ingaz.personal_data') }}</span></h5>
                     <div class="infoRow">
                         <!-- data -->
                         <div class="data">
-                            <p class="innerTitle">الحالة الاجتماعية</p>
+                            <p class="innerTitle">{{ helperTrans('ingaz.marital_status') }}</p>
                             <h6 class="innerData">{{ @$obj->status }}</h6>
                         </div>
                         <!-- data -->
                         <div class="data">
-                            <p class="innerTitle">عدد الاطفال</p>
+                            <p class="innerTitle">{{ helperTrans('ingaz.childrens_count') }}</p>
                             <h6 class="innerData">{{ @$obj->childrens_count }}</h6>
                         </div>
                         <!-- data -->
                         <div class="data">
-                            <p class="innerTitle">الطول</p>
+                            <p class="innerTitle">{{ helperTrans('ingaz.height') }}</p>
                             <h6 class="innerData">{{ $obj->height }}</h6>
                         </div>
                         <!-- data -->
                         <div class="data">
-                            <p class="innerTitle">الوزن</p>
+                            <p class="innerTitle">{{ helperTrans('ingaz.weight') }}</p>
                             <h6 class="innerData">{{ $obj->weight }}</h6>
                         </div>
                         <!-- data -->
                         <div class="data">
-                            <p class="innerTitle">المستوى التعليمي</p>
+                            <p class="innerTitle">{{ helperTrans('ingaz.education_level') }}</p>
                             <h6 class="innerData">{{ @$obj->education }}</h6>
                         </div>
                     </div>
                 </div>
                 <div class="category">
-                    <h5 class="title"><span> المهارات </span></h5>
+                    <h5 class="title"><span>{{ helperTrans('ingaz.skills') }}</span></h5>
                     <div class="passportData">
                         <table style="text-align: center">
                             <tr>
@@ -206,7 +206,7 @@
                 </div>
 
                 <div class="category">
-                    <h5 class="title"><span> تواصل معنا </span></h5>
+                    <h5 class="title"><span>{{ helperTrans('ingaz.contact_us_section') }}</span></h5>
                     <div class="passportData">
                         <div class="info_social">
                             @if (isset($settings->id) && isset($settings->whatsapp_qrcode) && isset($settings->net_qrcode))

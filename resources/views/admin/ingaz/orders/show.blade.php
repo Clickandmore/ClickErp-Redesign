@@ -1,30 +1,47 @@
 @extends('admin.layout.indexs.index')
 @section('style')
     <style>
+        .order-show-page {
+            --order-border: #e8edf5;
+            --order-muted: #6b7280;
+            --order-ink: #182033;
+            color: var(--order-ink);
+        }
+
         .order-info-card {
             background: #fff;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--order-border);
+            box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
             margin-bottom: 20px;
+            overflow: hidden;
         }
 
         .order-info-header {
-            background: #f8f9fa;
-            padding: 15px 20px;
-            border-bottom: 1px solid #dee2e6;
+            background: #f8fafc;
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--order-border);
             border-radius: 8px 8px 0 0;
         }
 
+        .order-info-header h5 {
+            margin: 0;
+            font-size: 15px;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
         .order-info-body {
-            padding: 20px;
+            padding: 18px;
         }
 
         .info-row {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            padding: 10px 0;
-            border-bottom: 1px solid #f1f1f1;
+            gap: 18px;
+            align-items: flex-start;
+            padding: 11px 0;
+            border-bottom: 1px solid #f1f5f9;
         }
 
         .info-row:last-child {
@@ -33,13 +50,14 @@
 
         .info-label {
             font-weight: 600;
-            color: #495057;
-            min-width: 150px;
+            color: var(--order-muted);
+            min-width: 145px;
         }
 
         .info-value {
-            color: #212529;
+            color: var(--order-ink);
             text-align: right;
+            word-break: break-word;
         }
 
         .status-badge {
@@ -95,12 +113,12 @@
         }
 
         .maid-photo {
-            width: 80px;
-            height: 80px;
+            width: 118px;
+            height: 138px;
             object-fit: cover;
-            border-radius: 50%;
+            border-radius: 8px;
             border: 3px solid #fff;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
         }
 
         .action-buttons {
@@ -117,11 +135,12 @@
         }
 
         .progress-section {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #172033 0%, #2f4f63 100%);
             color: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+            padding: 22px;
+            border-radius: 10px;
+            margin-bottom: 22px;
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.14);
         }
 
         .refuse-reason {
@@ -139,6 +158,54 @@
             color: #d1d1d1;
             font-size: 14px;
         }
+
+        .order-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+
+        .order-summary-item {
+            background: #fff;
+            border: 1px solid var(--order-border);
+            border-radius: 8px;
+            padding: 14px 16px;
+        }
+
+        .order-summary-item span {
+            display: block;
+            color: var(--order-muted);
+            font-size: 12px;
+            margin-bottom: 6px;
+        }
+
+        .order-summary-item strong {
+            color: var(--order-ink);
+            font-size: 15px;
+        }
+
+        @media (max-width: 991.98px) {
+            .order-summary-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 575.98px) {
+            .order-summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .info-row {
+                display: block;
+            }
+
+            .info-value {
+                display: block;
+                margin-top: 4px;
+                text-align: right;
+            }
+        }
     </style>
 @endsection
 
@@ -148,11 +215,26 @@
 
 @section('content')
     @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_VIEW))
+        @php
+            $isCompletedOrder = in_array($data->status, [
+                \App\Enums\ingaz\OrderEnum::Completed->value,
+                \App\Enums\ingaz\OrderEnum::Done->value,
+            ], true);
+        @endphp
 
+        @php
+            $maidRawPath = $data->maid?->image ?: ($data->maid?->cv_preview ?: $data->maid?->cv_file);
+            $maidPhoto = $maidRawPath ? showFile($maidRawPath) : asset('admin/assets/img/avatar.png');
+        @endphp
+
+        <div class="order-show-page">
         <!-- Back Button -->
-        <div class="mb-3">
+        <div class="mb-3 d-flex flex-wrap gap-2 justify-content-between align-items-center">
             <a href="{{ route('orders.index') }}" class="btn btn-secondary">
                 <i class="fa fa-arrow-left"></i> {{ helperTrans('ingaz.back_to_orders') }}
+            </a>
+            <a href="{{ route('return_requests.index') }}" class="btn btn-outline-secondary">
+                <i class="fa fa-ban"></i> {{ helperTrans('ingaz.cancelled_orders') }}
             </a>
         </div>
 
@@ -177,6 +259,25 @@
                     </p>
                 </div>
             @endif
+        </div>
+
+        <div class="order-summary-grid">
+            <div class="order-summary-item">
+                <span>{{ helperTrans('ingaz.order_code') }}</span>
+                <strong>#{{ $data->order_code }}</strong>
+            </div>
+            <div class="order-summary-item">
+                <span>{{ helperTrans('ingaz.client') }}</span>
+                <strong>{{ $data->user?->name ?? '-' }}</strong>
+            </div>
+            <div class="order-summary-item">
+                <span>{{ helperTrans('ingaz.maid_name') }}</span>
+                <strong>{{ $data->maid?->name ?? '-' }}</strong>
+            </div>
+            <div class="order-summary-item">
+                <span>{{ helperTrans('ingaz.responsible_employee') }}</span>
+                <strong>{{ $data->resolveResponsibleAdmin()?->name ?? '-' }}</strong>
+            </div>
         </div>
 
         <div class="row">
@@ -255,7 +356,7 @@
                     <div class="order-info-body">
                         <div class="row">
                             <div class="col-md-3 text-center">
-                                <img src="{{ $data->maid?->photo_url ?? asset('images/no-image.png') }}" alt="Maid Photo"
+                                <img src="{{ $maidPhoto }}" alt="Maid Photo"
                                     class="maid-photo mb-3">
                             </div>
                             <div class="col-md-9">
@@ -470,14 +571,14 @@
                             @endif
 
                             <!-- Change Responsible Employee Button -->
-                            @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_CHANGE_RESPONSIBLE))
+                            @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_CHANGE_RESPONSIBLE) && !$isCompletedOrder)
                                 <button class="btn btn-warning" onclick="changeResponsible({{ $data->id }})">
                                     <i class="fa fa-user-cog"></i> {{ helperTrans('ingaz.change_responsible') }}
                                 </button>
                             @endif
 
                             <!-- Refuse/Return Order Button -->
-                            @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT))
+                            @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT) && !$isCompletedOrder)
                                 @if ($data->status != 'refused' && $data->status != 'done')
                                     <button class="btn btn-danger" onclick="refuseReturnOrder({{ $data->id }})">
                                         <i class="fa fa-times"></i> {{ helperTrans('ingaz.refuse_return_order') }}
@@ -487,7 +588,13 @@
 
                             <!-- Add Contract Button -->
                             @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_ADD_CONTRACT))
-                                @if ($data->status == 'under_process' || ($data->status == 'contracted' && !$data->contracts()->exists()))
+                                @if (!$data->contracts()->exists() && in_array($data->status, [
+                                    \App\Enums\ingaz\OrderEnum::UnderProcess->value,
+                                    \App\Enums\ingaz\OrderEnum::Contracted->value,
+                                    \App\Enums\ingaz\OrderEnum::ContractedWithoutContract->value,
+                                    \App\Enums\ingaz\OrderEnum::Completed->value,
+                                    \App\Enums\ingaz\OrderEnum::Done->value,
+                                ], true))
                                     <button class="btn btn-success addNewContract" data-id="{{ $data->id }}">
                                         <i class="fa fa-plus"></i> {{ helperTrans('ingaz.add_contract') }}
                                     </button>
@@ -495,7 +602,7 @@
                             @endif
 
                             <!-- Delete Order Button -->
-                            @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_DELETE))
+                            @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_DELETE) && !$isCompletedOrder)
                                 <button class="btn btn-danger" onclick="deleteOrder({{ $data->id }})">
                                     <i class="fa fa-trash"></i> {{ helperTrans('ingaz.delete_order') }}
                                 </button>
@@ -509,6 +616,7 @@
                     </div>
                 </div>
             </div>
+        </div>
         </div>
     @else
         @include('components.no_permissions')
@@ -685,20 +793,20 @@
                         $('#changeResponsibleModal').modal('hide');
                         // Show success message and reload after a short delay
                         Swal.fire({
-                            title: 'تم الحفظ!',
-                            text: response.message || 'تم تحديث الموظف بنجاح',
+                            title: '{{ helperTrans('ingaz.saved_successfully_title') }}',
+                            text: response.message || '{{ helperTrans('ingaz.employee_updated_successfully') }}',
                             icon: 'success',
-                            confirmButtonText: 'حسناً'
+                            confirmButtonText: '{{ helperTrans('ingaz.ok') }}'
                         })
                         setTimeout(function() {
                             window.location.reload();
                         }, 1000);
                     } else {
                         Swal.fire({
-                            title: 'تم الحفظ!',
-                            text: response.message || 'تم تحديث الموظف بنجاح',
+                            title: '{{ helperTrans('ingaz.saved_successfully_title') }}',
+                            text: response.message || '{{ helperTrans('ingaz.employee_updated_successfully') }}',
                             icon: 'success',
-                            confirmButtonText: 'حسناً'
+                            confirmButtonText: '{{ helperTrans('ingaz.ok') }}'
                         })
                     }
                 },
@@ -708,10 +816,10 @@
                         errorMessage = xhr.responseJSON.message;
                     }
                     Swal.fire({
-                        title: 'حدث خطأ!',
+                        title: '{{ helperTrans('ingaz.error_occurred_title') }}',
                         text: errorMessage,
                         icon: 'error',
-                        confirmButtonText: 'حسناً',
+                        confirmButtonText: '{{ helperTrans('ingaz.ok') }}',
                         confirmButtonColor: '#3085d6'
                     });
                 }
@@ -721,13 +829,13 @@
         function deleteOrder(orderId) {
             Swal.fire({
                 title: '{{ helperTrans('ingaz.confirm_delete_order') }}',
-                text: 'هل أنت متأكد من رغبتك في حذف هذا العنصر؟ لا يمكن التراجع عن هذه العملية.',
+                text: '{{ helperTrans('ingaz.delete_item_confirm_text') }}',
                 icon: 'info',
                 showCancelButton: true,
                 confirmButtonColor: '#28a745',
                 cancelButtonColor: '#6c757d',
-                confirmButtonText: 'حذف',
-                cancelButtonText: 'إلغاء'
+                confirmButtonText: '{{ helperTrans('ingaz.delete') }}',
+                cancelButtonText: '{{ helperTrans('ingaz.cancel') }}'
             }).then((result) => {
                 if (result.isConfirmed) {
                     $.ajax({
@@ -739,10 +847,10 @@
                         success: function(response) {
                             if (response.data.success) {
                                 Swal.fire({
-                                    title: 'تم الحذف!',
-                                    text: response.message || 'تم حذف الموظف بنجاح',
+                                    title: '{{ helperTrans('ingaz.deleted_successfully_title') }}',
+                                    text: response.message || '{{ helperTrans('ingaz.employee_deleted_successfully') }}',
                                     icon: 'success',
-                                    confirmButtonText: 'حسناً'
+                                    confirmButtonText: '{{ helperTrans('ingaz.ok') }}'
                                 })
                                 window.location.href = '{{ route('orders.index') }}';
                             } else {
@@ -914,10 +1022,10 @@
                     if (response.data.success) {
                         $('#refuseReturnModal').modal('hide');
                         Swal.fire({
-                            title: 'تم الحفظ!',
+                            title: '{{ helperTrans('ingaz.saved_successfully_title') }}',
                             text: response.message || '{{ helperTrans('ingaz.order_updated') }}',
                             icon: 'success',
-                            confirmButtonText: 'حسناً'
+                            confirmButtonText: '{{ helperTrans('ingaz.ok') }}'
                         }).then(() => {
                             window.location.reload();
                         })
@@ -926,10 +1034,10 @@
                         }, 1000);
                     } else {
                         Swal.fire({
-                            title: 'تم الحفظ!',
+                            title: '{{ helperTrans('ingaz.saved_successfully_title') }}',
                             text: response.message || '{{ helperTrans('ingaz.order_updated') }}',
                             icon: 'success',
-                            confirmButtonText: 'حسناً'
+                            confirmButtonText: '{{ helperTrans('ingaz.ok') }}'
                         }).then(() => {
                             window.location.reload();
                         })
@@ -937,10 +1045,10 @@
                 },
                 error: function() {
                     Swal.fire({
-                        title: ' حدث خطأ!',
+                        title: '{{ helperTrans('ingaz.error_occurred_title') }}',
                         text: '{{ helperTrans('ingaz.update_error') }}',
                         icon: 'error',
-                        confirmButtonText: 'حسناً'
+                        confirmButtonText: '{{ helperTrans('ingaz.ok') }}'
                     })
                 }
             });

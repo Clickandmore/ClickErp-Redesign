@@ -81,7 +81,9 @@
         {
             return '<button type="button" class="btn btn-sm btn-danger btn-delete deleteButton" delete-route="' .
                 $route .
-                '" title="حذف">
+                '" title="' .
+                e(__('finance::finance.Delete')) .
+                '">
                         <i class="fa fa-trash-o"></i>
                     </button>';
         }
@@ -149,34 +151,25 @@
                     'other_account' => 'yes',
                 ]);
 
-                if ($canOpenPrintedStatement) {
-                    $codeLabel =
-                        '<a href="' .
-                        $printStatementRoute .
-                        '" class="account-tree-code" target="_blank" rel="noopener" title="فتح كشف الحساب">' .
-                        e((string) $account->code) .
-                        '</a>';
-                } elseif ($canOpenStatementPage) {
-                    $codeLabel =
-                        '<a href="' .
-                        $statementRoute .
-                        '" class="account-tree-code" target="_blank" rel="noopener" title="كشف الحساب">' .
-                        e((string) $account->code) .
-                        '</a>';
-                } else {
-                    $codeLabel =
-                        '<span class="account-tree-code account-tree-code--plain">' .
-                        e((string) $account->code) .
-                        '</span>';
-                }
+                $codeLabel =
+                    '<a href="' .
+                    $statementRoute .
+                    '" class="account-tree-code" target="_blank" rel="noopener" title="' .
+                    e(__('finance::finance.open_account_statement')) .
+                    '">' .
+                    e((string) $account->code) .
+                    '</a>';
 
                 $status =
                     $account->status->value === 'debtor'
-                        ? '<b style="color: red"> (مدين) </b>'
-                        : '<b style="color: blue"> (دائن) </b>';
-                $price = "<span class='price'>رصيد " . number_format((float) $balance, 2) . '</span>';
+                        ? '<b style="color: red"> (' . e(__('finance::finance.Debtor')) . ') </b>'
+                        : '<b style="color: blue"> (' . e(__('finance::finance.Creditor')) . ') </b>';
+                $price = "<span class='price'>" . e(__('finance::finance.Balance')) . ' ' . number_format((float) $balance, 2) . '</span>';
                 $name = e($account->name);
                 $isParent = $account->childrenRecursive->isNotEmpty();
+                $startsCollapsed = $account->type?->value === \Nami\Finance\Enums\AccountTypesEnum::Clients->value;
+                $branchExpanded = $startsCollapsed ? 'false' : 'true';
+                $branchClass = $startsCollapsed ? 'collapse account-tree-branch' : 'collapse in show account-tree-branch';
 
                 echo '<li data-account-level="' . (int) $account->level . '">';
                 if ($isParent) {
@@ -188,7 +181,9 @@
                         ' /
                             <a class="account-tree-toggle-link" data-bs-toggle="collapse" href="#Page-' .
                         $account->id .
-                        '" aria-expanded="true" aria-controls="Page-' .
+                        '" aria-expanded="' .
+                        $branchExpanded .
+                        '" aria-controls="Page-' .
                         $account->id .
                         '">
                                 <i class="collapsed"><i class="fa fa-folder"></i></i>
@@ -205,7 +200,9 @@
                           </span>
                           <ul id="Page-' .
                         $account->id .
-                        '" class="collapse in show account-tree-branch">';
+                        '" class="' .
+                        $branchClass .
+                        '">';
                     createTreeView(
                         $account->childrenRecursive,
                         $createRoute,
@@ -261,13 +258,13 @@
     <div class="col-md-12 account-tree-filters" id="option_search">
         <div class="row">
             <div class="col-md-4 col-sm-6 col-xs-12">
-                <input type="text" class="form-control" id="filterUl" placeholder="بحــــث">
+                <input type="text" class="form-control" id="filterUl" placeholder="{{ __('finance::finance.Search') }}">
             </div>
             <div class="col-md-2 col-sm-4 col-xs-12">
                 <select id="levelFilter" class="form-control">
-                    <option value="">كل المستويات</option>
+                    <option value="">{{ __('finance::finance.all_levels') }}</option>
                     @foreach ($accountLevels as $level)
-                        <option value="{{ $level }}">المستوى {{ $level }}</option>
+                        <option value="{{ $level }}">{{ __('finance::finance.level_number', ['level' => $level]) }}</option>
                     @endforeach
                 </select>
             </div>
@@ -294,6 +291,18 @@
 @section('js')
     <script>
         window.accountingGuideReloadOnCreate = false;
+
+        document.addEventListener('click', function(event) {
+            const accountCodeLink = event.target.closest('.account-tree-code[href]');
+
+            if (!accountCodeLink) {
+                return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+            window.open(accountCodeLink.href, '_blank', 'noopener');
+        }, true);
 
         function applyAccountTreeFilters() {
             const filter = ($('#filterUl').val() || '').trim().toLowerCase();

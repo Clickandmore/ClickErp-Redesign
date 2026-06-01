@@ -28,6 +28,7 @@ class AdminAction extends MainAction
 
         $admin = Admin::create([
             'name' => $data['name'],
+            'username' => $data['username'] ?? null,
             'email' => $data['email'],
             'whatsapp' => !empty($data['whatsapp']) ? $data['whatsapp'] : $data['phone'],
             'phone' => $data['phone'],
@@ -57,6 +58,13 @@ class AdminAction extends MainAction
         $data['whatsapp'] = !empty($data['whatsapp']) ? $data['whatsapp'] : $data['phone'];
         $data['verification_phone'] = !empty($data['verification_phone']) ? $data['verification_phone'] : $data['phone'];
         $data['role_id'] = $role?->id;
+        if (empty($data['password'])) {
+            unset($data['password']);
+        } else {
+            $data['password'] = bcrypt($data['password']);
+            $data['remember_token'] = null;
+            $data['current_session_id'] = 'terminated:' . time() . ':' . $admin->id;
+        }
         $admin->update($data);
 
         $admin->syncRoles($role ? [$role] : []);

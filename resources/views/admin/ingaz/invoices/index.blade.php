@@ -53,7 +53,7 @@
                 <div class="invoice-index-toolbar">
                     <div>
                         <h4 class="invoice-index-title">جميع الفواتير</h4>
-                        <small class="text-muted">متابعة فواتير إنجاز وحالة الإدراج في فواتير هيئة الزكاة.</small>
+                        <small class="text-muted">متابعة فواتير الاستقدام والتأجير وحالة الإدراج في فواتير هيئة الزكاة.</small>
                     </div>
                     <div class="invoice-index-actions">
                         @if (AdminGuardHasAnyPerm([\App\PermKeys::INVOICES_EXPORT, \App\PermKeys::INVOICES_CONTROL, \App\PermKeys::REC_CONTRACTS_EXPORT, \App\PermKeys::REC_CONTRACTS_MANAGE]))

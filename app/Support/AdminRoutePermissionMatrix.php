@@ -5,10 +5,18 @@ namespace App\Support;
 use App\NewPermKeys;
 use App\PermKeys;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 
 class AdminRoutePermissionMatrix
 {
+    public static function dashboardRoutePermissions(): array
+    {
+        return [
+            PermKeys::DASHBOARD_VIEW,
+        ];
+    }
+
     public static function dashboardAccessPermissions(): array
     {
         return [
@@ -115,6 +123,53 @@ class AdminRoutePermissionMatrix
         ];
     }
 
+    public static function firstAccessibleRouteNameForAdmin($admin, array $excludedRouteNames = []): ?string
+    {
+        if (!$admin) {
+            return null;
+        }
+
+        foreach (self::primaryRouteNames() as $routeName) {
+            if (in_array($routeName, $excludedRouteNames, true) || !Route::has($routeName)) {
+                continue;
+            }
+
+            $permissions = self::resolve($routeName, request());
+
+            if ($permissions !== [] && self::adminHasAnyPermission($admin, $permissions)) {
+                return $routeName;
+            }
+        }
+
+        return null;
+    }
+
+    public static function firstAccessibleUrlForAdmin($admin, array $excludedRouteNames = []): ?string
+    {
+        $routeName = self::firstAccessibleRouteNameForAdmin($admin, $excludedRouteNames);
+
+        return $routeName ? route($routeName) : null;
+    }
+
+    public static function adminHasAnyPermission($admin, array $permissions): bool
+    {
+        if (!$admin) {
+            return false;
+        }
+
+        if (method_exists($admin, 'hasAnyPermission') && $admin->hasAnyPermission($permissions)) {
+            return true;
+        }
+
+        foreach ($permissions as $permission) {
+            if ($admin->can($permission)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public static function resolve(?string $routeName, ?Request $request = null): array
     {
         if (!$routeName) {
@@ -177,9 +232,9 @@ class AdminRoutePermissionMatrix
     private static function dashboardDefinitions(): array
     {
         return [
-            'dashboard.index' => self::dashboardAccessPermissions(),
-            'dashboard.professional' => self::dashboardAccessPermissions(),
-            'dashboard.old' => self::dashboardAccessPermissions(),
+            'dashboard.index' => self::dashboardRoutePermissions(),
+            'dashboard.professional' => self::dashboardRoutePermissions(),
+            'dashboard.old' => self::dashboardRoutePermissions(),
             'dashboard.employees.show' => [
                 PermKeys::DASHBOARD_VIEW,
                 PermKeys::DASHBOARD_EMPLOYEE_PERFORMANCE,
@@ -262,8 +317,8 @@ class AdminRoutePermissionMatrix
                 'index' => [PermKeys::RETURN_REQUEST_VIEW],
                 'show' => [PermKeys::RETURN_REQUEST_VIEW],
                 'create' => [PermKeys::RETURN_REQUEST_CREATE],
-                'edit' => [PermKeys::RETURN_REQUEST_EDIT],
-                'destroy' => [PermKeys::RETURN_REQUEST_DELETE],
+                'edit' => [PermKeys::RETURN_REQUEST_EDIT, PermKeys::RETURN_REQUEST_CONTROL],
+                'destroy' => [PermKeys::RETURN_REQUEST_DELETE, PermKeys::RETURN_REQUEST_CONTROL],
             ]),
             [
                 'orders.current' => [PermKeys::ORDERS_VIEW],
@@ -285,6 +340,8 @@ class AdminRoutePermissionMatrix
                 'showDataOfMaid' => [PermKeys::MAIDS_VIEW],
                 'showUserFromContract' => [PermKeys::CLIENTS_VIEW],
                 'order_files.download' => [PermKeys::ORDERS_VIEW],
+                'return_requests.restore' => [PermKeys::RETURN_REQUEST_DELETE, PermKeys::RETURN_REQUEST_CONTROL],
+                'return_requests.restore_previous_status' => [PermKeys::RETURN_REQUEST_EDIT, PermKeys::RETURN_REQUEST_CONTROL],
                 'return_requests.export.pdf' => [PermKeys::RETURN_REQUEST_EXPORT],
                 'return_requests.export.excel' => [PermKeys::RETURN_REQUEST_EXPORT],
                 'professional_application.index' => [PermKeys::PROFESSIONAL_APPLICATION_VIEW],
@@ -319,6 +376,7 @@ class AdminRoutePermissionMatrix
             'RecruitmentContract.externalOfficeDispatch.index' => [NewPermKeys::REC_CONTRACTS_VIEW, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.externalOfficeDispatch.edit' => [NewPermKeys::REC_CONTRACTS_EDIT, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.externalOfficeDispatch.store' => [NewPermKeys::REC_CONTRACTS_EDIT, NewPermKeys::REC_CONTRACTS_MANAGE],
+            'RecruitmentContract.externalOfficeDispatch.bulkStore' => [NewPermKeys::REC_CONTRACTS_EDIT, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.externalOfficeDispatch.print' => [NewPermKeys::REC_CONTRACTS_VIEW, NewPermKeys::REC_CONTRACTS_MANAGE],
             'ingaz-delegations.index' => [
                 PermKeys::INGAZ_DELEGATIONS_VIEW,
@@ -515,6 +573,7 @@ class AdminRoutePermissionMatrix
                 'whatsapp.notifications.index' => [PermKeys::NOTIFICATIONS_CONTROL],
                 'whatsapp.notifications.store' => [PermKeys::NOTIFICATIONS_CONTROL],
                 'notifications.settings' => [PermKeys::NOTIFICATIONS_CONTROL],
+                'notifications.settings.alerts' => [PermKeys::NOTIFICATIONS_CONTROL],
                 'notifications.settings.update' => [PermKeys::NOTIFICATIONS_CONTROL],
                 'messages.index' => [PermKeys::NOTIFICATIONS_CONTROL],
                 'admin.zoho-salesiq.visitors' => [PermKeys::CRM_MODULE, PermKeys::NOTIFICATIONS_CONTROL, PermKeys::SETTINGS_VIEW],

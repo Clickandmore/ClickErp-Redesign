@@ -79,19 +79,35 @@ class DashboardController extends Controller
         $contractsByMonthPrevious = [];
 
         $buildOrderStats = function (int $jobTypeId) use ($todayDate, $weekStart, $weekEnd, $currentMonth, $currentYear) {
-            $baseQuery = Order::query()->where('job_type_id', $jobTypeId);
+            $row = Order::query()
+                ->where('job_type_id', $jobTypeId)
+                ->selectRaw('COUNT(*) as total')
+                ->selectRaw('SUM(CASE WHEN DATE(created_at) = ? THEN 1 ELSE 0 END) as today_total', [$todayDate])
+                ->selectRaw('SUM(CASE WHEN created_at BETWEEN ? AND ? THEN 1 ELSE 0 END) as week_total', [$weekStart, $weekEnd])
+                ->selectRaw('SUM(CASE WHEN MONTH(created_at) = ? AND YEAR(created_at) = ? THEN 1 ELSE 0 END) as month_total', [$currentMonth, $currentYear])
+                ->selectRaw('SUM(CASE WHEN status IN (?, ?, ?) THEN 1 ELSE 0 END) as completed_total', [
+                    OrderEnum::Completed->value,
+                    OrderEnum::Done->value,
+                    OrderEnum::Contracted->value,
+                ])
+                ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as new_total', [OrderEnum::New->value])
+                ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as under_process_total', [OrderEnum::UnderProcess->value])
+                ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as contracted_total', [OrderEnum::Contracted->value])
+                ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as contracted_without_total', [OrderEnum::ContractedWithoutContract->value])
+                ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as refused_total', [OrderEnum::Refused->value])
+                ->first();
 
             return [
-                'total' => (clone $baseQuery)->count(),
-                'today' => (clone $baseQuery)->whereDate('created_at', $todayDate)->count(),
-                'thisWeek' => (clone $baseQuery)->whereBetween('created_at', [$weekStart, $weekEnd])->count(),
-                'thisMonth' => (clone $baseQuery)->whereMonth('created_at', $currentMonth)->whereYear('created_at', $currentYear)->count(),
-                'completed' => (clone $baseQuery)->whereIn('status', [OrderEnum::Completed->value, OrderEnum::Done->value, OrderEnum::Contracted->value])->count(),
-                'new' => (clone $baseQuery)->where('status', OrderEnum::New->value)->count(),
-                'under_process' => (clone $baseQuery)->where('status', OrderEnum::UnderProcess->value)->count(),
-                'contracted' => (clone $baseQuery)->where('status', OrderEnum::Contracted->value)->count(),
-                'contracted_without' => (clone $baseQuery)->where('status', OrderEnum::ContractedWithoutContract->value)->count(),
-                'refused' => (clone $baseQuery)->where('status', OrderEnum::Refused->value)->count(),
+                'total' => (int) ($row->total ?? 0),
+                'today' => (int) ($row->today_total ?? 0),
+                'thisWeek' => (int) ($row->week_total ?? 0),
+                'thisMonth' => (int) ($row->month_total ?? 0),
+                'completed' => (int) ($row->completed_total ?? 0),
+                'new' => (int) ($row->new_total ?? 0),
+                'under_process' => (int) ($row->under_process_total ?? 0),
+                'contracted' => (int) ($row->contracted_total ?? 0),
+                'contracted_without' => (int) ($row->contracted_without_total ?? 0),
+                'refused' => (int) ($row->refused_total ?? 0),
             ];
         };
 
@@ -99,28 +115,40 @@ class DashboardController extends Controller
         $ordersStats = $buildOrderStats(1);
 
         // السير الذاتية
+        $cvAggregate = Maid::query()
+            ->selectRaw('COUNT(*) as total')
+            ->selectRaw('SUM(CASE WHEN available = 1 THEN 1 ELSE 0 END) as available_total')
+            ->selectRaw('SUM(CASE WHEN available = 0 OR status = ? THEN 1 ELSE 0 END) as booked_total', [Maid::STATUS_RESERVED['en']])
+            ->selectRaw('SUM(CASE WHEN created_at BETWEEN ? AND ? THEN 1 ELSE 0 END) as week_total', [$weekStart, $weekEnd])
+            ->selectRaw('SUM(CASE WHEN MONTH(created_at) = ? AND YEAR(created_at) = ? THEN 1 ELSE 0 END) as month_total', [$currentMonth, $currentYear])
+            ->first();
+
         $cvStats = [
-            'total' => Maid::count(),
-            'available' => Maid::where('available', true)->count(),
-            'booked' => Maid::where(function ($q) {
-                $q->where('available', false)
-                    ->orWhere('status', Maid::STATUS_RESERVED['en']);
-            })->count(),
-            'completed' => $action->orderedCvCount(),
-            'newThisWeek' => Maid::whereBetween('created_at', [$weekStart, $weekEnd])->count(),
-            'newThisMonth' => Maid::whereMonth('created_at', $currentMonth)->whereYear('created_at', $currentYear)->count(),
+            'total' => (int) ($cvAggregate->total ?? 0),
+            'available' => (int) ($cvAggregate->available_total ?? 0),
+            'booked' => (int) ($cvAggregate->booked_total ?? 0),
+            'completed' => Cache::remember('admin_dashboard.ordered_cv_count.v1', now()->addMinutes(5), function () use ($action) {
+                return $action->orderedCvCount();
+            }),
+            'newThisWeek' => (int) ($cvAggregate->week_total ?? 0),
+            'newThisMonth' => (int) ($cvAggregate->month_total ?? 0),
         ];
 
         // العملاء
         $clientTotal = User::count();
-        $clientsWithOrders = User::whereHas('orders')->count();
-        $clientsWithContracts = User::whereHas('contracts')->count();
+        $clientsWithOrders = Order::query()->whereNotNull('user_id')->distinct('user_id')->count('user_id');
+        $clientsWithContracts = Contract::query()->whereNotNull('user_id')->distinct('user_id')->count('user_id');
+        $clientDateAggregate = User::query()
+            ->selectRaw('SUM(CASE WHEN MONTH(created_at) = ? AND YEAR(created_at) = ? THEN 1 ELSE 0 END) as month_total', [$currentMonth, $currentYear])
+            ->selectRaw('SUM(CASE WHEN created_at BETWEEN ? AND ? THEN 1 ELSE 0 END) as week_total', [$weekStart, $weekEnd])
+            ->selectRaw('SUM(CASE WHEN DATE(created_at) = ? THEN 1 ELSE 0 END) as today_total', [$todayDate])
+            ->first();
         $clientsStats = [
             'total' => $clientTotal,
-            'newThisMonth' => User::whereMonth('created_at', $currentMonth)->whereYear('created_at', $currentYear)->count(),
-            'newThisWeek' => User::whereBetween('created_at', [$weekStart, $weekEnd])->count(),
-            'newToday' => User::whereDate('created_at', $todayDate)->count(),
-            'active' => Contract::distinct('user_id')->count('user_id'),
+            'newThisMonth' => (int) ($clientDateAggregate->month_total ?? 0),
+            'newThisWeek' => (int) ($clientDateAggregate->week_total ?? 0),
+            'newToday' => (int) ($clientDateAggregate->today_total ?? 0),
+            'active' => $clientsWithContracts,
             'vip' => Contract::select('user_id')
                 ->selectRaw('count(*) as contract_count')
                 ->groupBy('user_id')
@@ -136,31 +164,54 @@ class DashboardController extends Controller
         ];
 
         // الإيجار ونقل الكفالة
+        $rentalAggregate = RentalContract::query()
+            ->selectRaw('COUNT(*) as total')
+            ->selectRaw("SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active_total")
+            ->selectRaw("SUM(CASE WHEN status IN ('contract_sent', 'contract_signed', 'maid_delivered') THEN 1 ELSE 0 END) as workflow_total")
+            ->selectRaw("SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed_total")
+            ->selectRaw("SUM(CASE WHEN status = 'contract_sent' THEN 1 ELSE 0 END) as sent_total")
+            ->selectRaw("SUM(CASE WHEN status = 'contract_signed' THEN 1 ELSE 0 END) as signed_total")
+            ->selectRaw("SUM(CASE WHEN status = 'maid_delivered' THEN 1 ELSE 0 END) as delivered_total")
+            ->first();
+
         $rentalStats = [
-            'total' => RentalContract::count(),
-            'active' => RentalContract::where('status', 'active')->count(),
-            'in_workflow' => RentalContract::whereIn('status', ['contract_sent', 'contract_signed', 'maid_delivered'])->count(),
-            'completed' => RentalContract::where('status', 'completed')->count(),
-            'sent' => RentalContract::where('status', 'contract_sent')->count(),
-            'signed' => RentalContract::where('status', 'contract_signed')->count(),
-            'delivered' => RentalContract::where('status', 'maid_delivered')->count(),
+            'total' => (int) ($rentalAggregate->total ?? 0),
+            'active' => (int) ($rentalAggregate->active_total ?? 0),
+            'in_workflow' => (int) ($rentalAggregate->workflow_total ?? 0),
+            'completed' => (int) ($rentalAggregate->completed_total ?? 0),
+            'sent' => (int) ($rentalAggregate->sent_total ?? 0),
+            'signed' => (int) ($rentalAggregate->signed_total ?? 0),
+            'delivered' => (int) ($rentalAggregate->delivered_total ?? 0),
         ];
 
+        $transferAggregate = SponsorshipTransfer::query()
+            ->selectRaw('COUNT(*) as total')
+            ->selectRaw("SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_total")
+            ->selectRaw("SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved_total")
+            ->selectRaw("SUM(CASE WHEN status = 'transferred' THEN 1 ELSE 0 END) as transferred_total")
+            ->first();
+
         $transferStats = [
-            'total' => SponsorshipTransfer::count(),
-            'pending' => SponsorshipTransfer::where('status', 'pending')->count(),
-            'approved' => SponsorshipTransfer::where('status', 'approved')->count(),
-            'transferred' => SponsorshipTransfer::where('status', 'transferred')->count(),
+            'total' => (int) ($transferAggregate->total ?? 0),
+            'pending' => (int) ($transferAggregate->pending_total ?? 0),
+            'approved' => (int) ($transferAggregate->approved_total ?? 0),
+            'transferred' => (int) ($transferAggregate->transferred_total ?? 0),
         ];
 
         $rentalOrderStats = $buildOrderStats(2);
 
-        $transferWebRequestQuery = Order::query()->where('job_type_id', 3);
+        $transferWebAggregate = Order::query()
+            ->where('job_type_id', 3)
+            ->selectRaw('COUNT(*) as total')
+            ->selectRaw("SUM(CASE WHEN status = 'new' THEN 1 ELSE 0 END) as new_total")
+            ->selectRaw("SUM(CASE WHEN status = 'paid' THEN 1 ELSE 0 END) as paid_total")
+            ->selectRaw("SUM(CASE WHEN status IN ('completed', 'done') THEN 1 ELSE 0 END) as completed_total")
+            ->first();
         $transferWebRequestStats = [
-            'total' => (clone $transferWebRequestQuery)->count(),
-            'new' => (clone $transferWebRequestQuery)->where('status', 'new')->count(),
-            'paid' => (clone $transferWebRequestQuery)->where('status', 'paid')->count(),
-            'completed' => (clone $transferWebRequestQuery)->whereIn('status', ['completed', 'done'])->count(),
+            'total' => (int) ($transferWebAggregate->total ?? 0),
+            'new' => (int) ($transferWebAggregate->new_total ?? 0),
+            'paid' => (int) ($transferWebAggregate->paid_total ?? 0),
+            'completed' => (int) ($transferWebAggregate->completed_total ?? 0),
         ];
 
         // حسب نوع الخدمة
@@ -284,6 +335,15 @@ class DashboardController extends Controller
         $currentYear = (int) $now->year;
         $contractWeekStartDate = $contractWeekStart->toDateString();
         $contractWeekEndDate = $contractWeekEnd->toDateString();
+        $contractAnalyticsCacheKey = implode('.', [
+            'admin_dashboard',
+            'contract_analytics',
+            'v4',
+            $dashboardLocale,
+            $contractToday,
+            $selectedContractNationalityId ?: 'all',
+            $selectedContractProfessionId ?: 'all',
+        ]);
 
         $maidPrimaryJobTitle = DB::table('maid_job_titles')
             ->selectRaw('maid_id, MIN(job_title_id) as job_title_id')
@@ -412,13 +472,29 @@ class DashboardController extends Controller
             return $query->whereBetween('contract_reference_date', [$contractMonthStartDate, $contractMonthEndDate]);
         };
 
-        $globalContractAnalyticsAggregateRow = $buildContractAnalyticsAggregate(
-            $applyContractCurrentMonthScope($contractAnalyticsBaseQuery())
-        );
-        $contractAnalyticsAggregateRow = $buildContractAnalyticsAggregate($applyContractAnalyticsBaseFilters($contractAnalyticsBaseQuery()));
+        $globalContractAnalyticsAggregateRow = Cache::remember($contractAnalyticsCacheKey . '.global_aggregate', now()->addMinutes(5), function () use (
+            $buildContractAnalyticsAggregate,
+            $applyContractCurrentMonthScope,
+            $contractAnalyticsBaseQuery
+        ) {
+            return $buildContractAnalyticsAggregate(
+                $applyContractCurrentMonthScope($contractAnalyticsBaseQuery())
+            );
+        });
+        $contractAnalyticsAggregateRow = Cache::remember($contractAnalyticsCacheKey . '.filtered_aggregate', now()->addMinutes(5), function () use (
+            $buildContractAnalyticsAggregate,
+            $applyContractAnalyticsBaseFilters,
+            $contractAnalyticsBaseQuery
+        ) {
+            return $buildContractAnalyticsAggregate($applyContractAnalyticsBaseFilters($contractAnalyticsBaseQuery()));
+        });
 
-        $globalArrivalStageCount = $buildContractArrivalStageCount(false);
-        $arrivalStageCount = $buildContractArrivalStageCount();
+        $globalArrivalStageCount = Cache::remember($contractAnalyticsCacheKey . '.global_arrivals_today', now()->addMinutes(5), function () use ($buildContractArrivalStageCount) {
+            return $buildContractArrivalStageCount(false);
+        });
+        $arrivalStageCount = Cache::remember($contractAnalyticsCacheKey . '.filtered_arrivals_today', now()->addMinutes(5), function () use ($buildContractArrivalStageCount) {
+            return $buildContractArrivalStageCount();
+        });
 
         $contractsStats = [
             'total' => (int) ($globalContractAnalyticsAggregateRow->total ?? 0),
@@ -440,15 +516,20 @@ class DashboardController extends Controller
             'expired_over_2y' => (int) ($globalContractAnalyticsAggregateRow->expired_over_2y_total ?? 0),
         ];
 
-        $globalContractsYearBuckets = $contractAnalyticsBaseQuery()
-            ->selectRaw('YEAR(contract_reference_date) as year, MONTH(contract_reference_date) as month, COUNT(*) as monthly_total')
-            ->where('contract_reference_date', '>=', \Carbon\Carbon::create($currentYear - 1, 1, 1)->toDateString())
-            ->groupBy('year', 'month')
-            ->get()
-            ->groupBy('year')
-            ->map(function ($rows) {
-                return $rows->keyBy('month');
-            });
+        $globalContractsYearBuckets = Cache::remember($contractAnalyticsCacheKey . '.global_year_buckets', now()->addMinutes(10), function () use (
+            $contractAnalyticsBaseQuery,
+            $currentYear
+        ) {
+            return $contractAnalyticsBaseQuery()
+                ->selectRaw('YEAR(contract_reference_date) as year, MONTH(contract_reference_date) as month, COUNT(*) as monthly_total')
+                ->where('contract_reference_date', '>=', \Carbon\Carbon::create($currentYear - 1, 1, 1)->toDateString())
+                ->groupBy('year', 'month')
+                ->get()
+                ->groupBy('year')
+                ->map(function ($rows) {
+                    return $rows->keyBy('month');
+                });
+        });
 
         for ($m = 1; $m <= 12; $m++) {
             $contractsByMonthCurrent[] = (int) optional(optional($globalContractsYearBuckets->get($currentYear))->get($m))->monthly_total;
@@ -475,12 +556,17 @@ class DashboardController extends Controller
             'expired_over_2y' => (int) ($contractAnalyticsAggregateRow->expired_over_2y_total ?? 0),
         ];
 
-        $contractAnalyticsStatusBreakdown = $applyContractAnalyticsBaseFilters($contractAnalyticsBaseQuery())
-            ->select('status')
-            ->selectRaw('COUNT(*) as total')
-            ->groupBy('status')
-            ->pluck('total', 'status')
-            ->toArray();
+        $contractAnalyticsStatusBreakdown = Cache::remember($contractAnalyticsCacheKey . '.status_breakdown', now()->addMinutes(5), function () use (
+            $applyContractAnalyticsBaseFilters,
+            $contractAnalyticsBaseQuery
+        ) {
+            return $applyContractAnalyticsBaseFilters($contractAnalyticsBaseQuery())
+                ->select('status')
+                ->selectRaw('COUNT(*) as total')
+                ->groupBy('status')
+                ->pluck('total', 'status')
+                ->toArray();
+        });
 
         $contractsChartLabels = [];
         for ($month = 1; $month <= 12; $month++) {
@@ -489,13 +575,19 @@ class DashboardController extends Controller
                 ->translatedFormat('F');
         }
 
-        $contractsYearBuckets = $applyContractAnalyticsBaseFilters($contractAnalyticsBaseQuery())
-            ->selectRaw('YEAR(contract_reference_date) as year, MONTH(contract_reference_date) as month, COUNT(*) as total')
-            ->where('contract_reference_date', '>=', \Carbon\Carbon::create($currentYear - 2, 1, 1)->toDateString())
-            ->groupBy('year', 'month')
-            ->orderBy('year')
-            ->orderBy('month')
-            ->get();
+        $contractsYearBuckets = Cache::remember($contractAnalyticsCacheKey . '.filtered_year_buckets', now()->addMinutes(10), function () use (
+            $applyContractAnalyticsBaseFilters,
+            $contractAnalyticsBaseQuery,
+            $currentYear
+        ) {
+            return $applyContractAnalyticsBaseFilters($contractAnalyticsBaseQuery())
+                ->selectRaw('YEAR(contract_reference_date) as year, MONTH(contract_reference_date) as month, COUNT(*) as total')
+                ->where('contract_reference_date', '>=', \Carbon\Carbon::create($currentYear - 2, 1, 1)->toDateString())
+                ->groupBy('year', 'month')
+                ->orderBy('year')
+                ->orderBy('month')
+                ->get();
+        });
 
         $contractsYearSeries = collect(range(2, 0))->map(function ($yearsBack) use ($currentYear, $contractsYearBuckets) {
             $year = $currentYear - $yearsBack;
@@ -516,87 +608,106 @@ class DashboardController extends Controller
 
         $contractsThreeYearsTotal = (int) $contractsYearSeries->sum('total');
 
-        $contractNationalityOptions = $applyContractAnalyticsBaseFilters($contractAnalyticsBaseQuery(), 'contract_analytics', false, true)
-            ->leftJoin('nationalities_translations as nationality_locale', function ($join) use ($dashboardLocale) {
-                $join->on('nationality_locale.nationality_id', '=', 'contract_analytics.contract_nationality_id')
-                    ->where('nationality_locale.locale', $dashboardLocale);
-            })
-            ->leftJoin('nationalities_translations as nationality_ar', function ($join) {
-                $join->on('nationality_ar.nationality_id', '=', 'contract_analytics.contract_nationality_id')
-                    ->where('nationality_ar.locale', 'ar');
-            })
-            ->selectRaw('contract_analytics.contract_nationality_id as id')
-            ->selectRaw('COALESCE(nationality_locale.title, nationality_ar.title, ?) as title', ['غير محدد'])
-            ->selectRaw('COUNT(*) as total')
-            ->whereNotNull('contract_analytics.contract_nationality_id')
-            ->groupBy('id', 'title')
-            ->orderBy('title')
-            ->get()
-            ->map(function ($row) {
-                return [
-                    'id' => (int) $row->id,
-                    'title' => trim((string) ($row->title ?? '')) ?: 'غير محدد',
-                    'total' => (int) ($row->total ?? 0),
-                ];
-            })
-            ->values();
+        $contractNationalityOptions = Cache::remember($contractAnalyticsCacheKey . '.nationality_options', now()->addMinutes(10), function () use (
+            $applyContractAnalyticsBaseFilters,
+            $contractAnalyticsBaseQuery,
+            $dashboardLocale
+        ) {
+            return $applyContractAnalyticsBaseFilters($contractAnalyticsBaseQuery(), 'contract_analytics', false, true)
+                ->leftJoin('nationalities_translations as nationality_locale', function ($join) use ($dashboardLocale) {
+                    $join->on('nationality_locale.nationality_id', '=', 'contract_analytics.contract_nationality_id')
+                        ->where('nationality_locale.locale', $dashboardLocale);
+                })
+                ->leftJoin('nationalities_translations as nationality_ar', function ($join) {
+                    $join->on('nationality_ar.nationality_id', '=', 'contract_analytics.contract_nationality_id')
+                        ->where('nationality_ar.locale', 'ar');
+                })
+                ->selectRaw('contract_analytics.contract_nationality_id as id')
+                ->selectRaw('COALESCE(nationality_locale.title, nationality_ar.title, ?) as title', ['غير محدد'])
+                ->selectRaw('COUNT(*) as total')
+                ->whereNotNull('contract_analytics.contract_nationality_id')
+                ->groupBy('id', 'title')
+                ->orderBy('title')
+                ->get()
+                ->map(function ($row) {
+                    return [
+                        'id' => (int) $row->id,
+                        'title' => trim((string) ($row->title ?? '')) ?: 'غير محدد',
+                        'total' => (int) ($row->total ?? 0),
+                    ];
+                })
+                ->values();
+        });
 
-        $contractProfessionOptions = $applyContractAnalyticsBaseFilters($contractAnalyticsBaseQuery(), 'contract_analytics', true, false)
-            ->leftJoin('job_titles_translations as profession_locale', function ($join) use ($dashboardLocale) {
-                $join->on('profession_locale.job_title_id', '=', 'contract_analytics.contract_profession_id')
-                    ->where('profession_locale.locale', $dashboardLocale);
-            })
-            ->leftJoin('job_titles_translations as profession_ar', function ($join) {
-                $join->on('profession_ar.job_title_id', '=', 'contract_analytics.contract_profession_id')
-                    ->where('profession_ar.locale', 'ar');
-            })
-            ->selectRaw('contract_analytics.contract_profession_id as id')
-            ->selectRaw('COALESCE(profession_locale.title, profession_ar.title, ?) as title', ['غير محدد'])
-            ->selectRaw('COUNT(*) as total')
-            ->whereNotNull('contract_analytics.contract_profession_id')
-            ->groupBy('id', 'title')
-            ->orderBy('title')
-            ->get()
-            ->map(function ($row) {
-                return [
-                    'id' => (int) $row->id,
-                    'title' => trim((string) ($row->title ?? '')) ?: 'غير محدد',
-                    'total' => (int) ($row->total ?? 0),
-                ];
-            })
-            ->values();
+        $contractProfessionOptions = Cache::remember($contractAnalyticsCacheKey . '.profession_options', now()->addMinutes(10), function () use (
+            $applyContractAnalyticsBaseFilters,
+            $contractAnalyticsBaseQuery,
+            $dashboardLocale
+        ) {
+            return $applyContractAnalyticsBaseFilters($contractAnalyticsBaseQuery(), 'contract_analytics', true, false)
+                ->leftJoin('job_titles_translations as profession_locale', function ($join) use ($dashboardLocale) {
+                    $join->on('profession_locale.job_title_id', '=', 'contract_analytics.contract_profession_id')
+                        ->where('profession_locale.locale', $dashboardLocale);
+                })
+                ->leftJoin('job_titles_translations as profession_ar', function ($join) {
+                    $join->on('profession_ar.job_title_id', '=', 'contract_analytics.contract_profession_id')
+                        ->where('profession_ar.locale', 'ar');
+                })
+                ->selectRaw('contract_analytics.contract_profession_id as id')
+                ->selectRaw('COALESCE(profession_locale.title, profession_ar.title, ?) as title', ['غير محدد'])
+                ->selectRaw('COUNT(*) as total')
+                ->whereNotNull('contract_analytics.contract_profession_id')
+                ->groupBy('id', 'title')
+                ->orderBy('title')
+                ->get()
+                ->map(function ($row) {
+                    return [
+                        'id' => (int) $row->id,
+                        'title' => trim((string) ($row->title ?? '')) ?: 'غير محدد',
+                        'total' => (int) ($row->total ?? 0),
+                    ];
+                })
+                ->values();
+        });
 
-        $contractProfessionStats = $applyContractAnalyticsBaseFilters($contractAnalyticsBaseQuery())
-            ->leftJoin('job_titles_translations as profession_locale', function ($join) use ($dashboardLocale) {
-                $join->on('profession_locale.job_title_id', '=', 'contract_analytics.contract_profession_id')
-                    ->where('profession_locale.locale', $dashboardLocale);
-            })
-            ->leftJoin('job_titles_translations as profession_ar', function ($join) {
-                $join->on('profession_ar.job_title_id', '=', 'contract_analytics.contract_profession_id')
-                    ->where('profession_ar.locale', 'ar');
-            })
-            ->selectRaw('contract_analytics.contract_profession_id as profession_id')
-            ->selectRaw('COALESCE(profession_locale.title, profession_ar.title, ?) as profession', ['غير محدد'])
-            ->selectRaw('COUNT(*) as total')
-            ->groupBy('profession_id', 'profession')
-            ->orderByDesc('total')
-            ->limit(8)
-            ->get()
-            ->map(function ($row) use ($contractAnalyticsStats) {
-                $contractsTotal = max((int) ($contractAnalyticsStats['total'] ?? 0), 1);
-                $profession = trim((string) ($row->profession ?? '')) ?: 'غير محدد';
-                $total = (int) ($row->total ?? 0);
-                $professionId = isset($row->profession_id) ? (int) $row->profession_id : null;
+        $contractProfessionStats = Cache::remember($contractAnalyticsCacheKey . '.profession_stats', now()->addMinutes(10), function () use (
+            $applyContractAnalyticsBaseFilters,
+            $contractAnalyticsBaseQuery,
+            $dashboardLocale,
+            $contractAnalyticsStats
+        ) {
+            return $applyContractAnalyticsBaseFilters($contractAnalyticsBaseQuery())
+                ->leftJoin('job_titles_translations as profession_locale', function ($join) use ($dashboardLocale) {
+                    $join->on('profession_locale.job_title_id', '=', 'contract_analytics.contract_profession_id')
+                        ->where('profession_locale.locale', $dashboardLocale);
+                })
+                ->leftJoin('job_titles_translations as profession_ar', function ($join) {
+                    $join->on('profession_ar.job_title_id', '=', 'contract_analytics.contract_profession_id')
+                        ->where('profession_ar.locale', 'ar');
+                })
+                ->selectRaw('contract_analytics.contract_profession_id as profession_id')
+                ->selectRaw('COALESCE(profession_locale.title, profession_ar.title, ?) as profession', ['غير محدد'])
+                ->selectRaw('COUNT(*) as total')
+                ->groupBy('profession_id', 'profession')
+                ->orderByDesc('total')
+                ->limit(8)
+                ->get()
+                ->map(function ($row) use ($contractAnalyticsStats) {
+                    $contractsTotal = max((int) ($contractAnalyticsStats['total'] ?? 0), 1);
+                    $profession = trim((string) ($row->profession ?? '')) ?: 'غير محدد';
+                    $total = (int) ($row->total ?? 0);
+                    $professionId = isset($row->profession_id) ? (int) $row->profession_id : null;
 
-                return [
-                    'id' => $professionId ?: null,
-                    'profession' => $profession,
-                    'total' => $total,
-                    'share' => round(($total / $contractsTotal) * 100),
-                    'is_unknown' => $professionId === null || $profession === 'غير محدد',
-                ];
-            })
-            ->values();
+                    return [
+                        'id' => $professionId ?: null,
+                        'profession' => $profession,
+                        'total' => $total,
+                        'share' => round(($total / $contractsTotal) * 100),
+                        'is_unknown' => $professionId === null || $profession === 'غير محدد',
+                    ];
+                })
+                ->values();
+        });
 
         $contractProfessionSummary = [
             'tracked_professions' => $contractProfessionStats->filter(function ($row) {
@@ -853,12 +964,17 @@ class DashboardController extends Controller
         $calendarEvents = [];
 
         // تقسيمات إضافية للاستخدام المحتمل
-        $contractStatusBreakdown = $applyContractCurrentMonthScope($contractAnalyticsBaseQuery())
-            ->select('status')
-            ->selectRaw('count(*) as total')
-            ->groupBy('status')
-            ->pluck('total', 'status')
-            ->toArray();
+        $contractStatusBreakdown = Cache::remember($contractAnalyticsCacheKey . '.current_month_status_breakdown', now()->addMinutes(5), function () use (
+            $applyContractCurrentMonthScope,
+            $contractAnalyticsBaseQuery
+        ) {
+            return $applyContractCurrentMonthScope($contractAnalyticsBaseQuery())
+                ->select('status')
+                ->selectRaw('count(*) as total')
+                ->groupBy('status')
+                ->pluck('total', 'status')
+                ->toArray();
+        });
 
         $arrivalTodayCount = $contractsPipeline['arrival_stage'] ?? 0;
         $delayedWithoutTickets = $contractsPipeline['delayed_arrival'] ?? 0;

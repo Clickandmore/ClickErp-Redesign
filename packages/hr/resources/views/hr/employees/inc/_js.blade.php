@@ -101,6 +101,30 @@
 
     registerEmployeeCountryInputs();
 
+    function registerEmployeeCountrySelects() {
+        $('.employee-country-select').each(function () {
+            let $select = $(this);
+
+            if (!$.fn.select2 || $select.data('employee-country-select-ready')) {
+                return;
+            }
+
+            if ($select.hasClass('select2-hidden-accessible')) {
+                $select.select2('destroy');
+            }
+
+            $select.data('employee-country-select-ready', true);
+            $select.select2({
+                width: '100%',
+                placeholder: $select.data('placeholder') || '',
+                allowClear: true,
+                dir: '{{ app()->getLocale() === 'ar' ? 'rtl' : 'ltr' }}'
+            });
+        });
+    }
+
+    registerEmployeeCountrySelects();
+
     function calculateTotal() {
         var totalDaysInput = document.getElementsByClassName('total_days');
         var tokenDaysInput = document.getElementsByClassName('token_days');
@@ -260,6 +284,7 @@
         updateNetSalary();
         registerEmployeeFilterInputs();
         registerEmployeeCountryInputs();
+        registerEmployeeCountrySelects();
 
         $('#createAdminToggle').on('change', function () {
             if ($(this).is(':checked')) {

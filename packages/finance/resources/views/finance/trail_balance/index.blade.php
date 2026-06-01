@@ -1,13 +1,24 @@
 @extends('click.layout.indexs.index')
 @section('style')
     <style>
+        :root {
+            --trial-primary: #315a63;
+            --trial-accent: #f7941d;
+            --trial-surface: #ffffff;
+            --trial-soft: #f7fafb;
+            --trial-border: #dce7ea;
+            --trial-text: #1f2937;
+            --trial-muted: #6b7280;
+            --trial-shadow: 0 12px 28px rgba(49, 90, 99, 0.08);
+        }
+
         .loader {
-            border: 12px solid #f3f3f3;
-            border-top: 12px solid #F7941D;
+            border: 10px solid #edf2f4;
+            border-top: 10px solid var(--trial-accent);
             border-radius: 50%;
-            width: 120px;
-            height: 120px;
-            animation: spin 1s linear infinite;
+            width: 84px;
+            height: 84px;
+            animation: spin 0.9s linear infinite;
         }
 
         @keyframes spin {
@@ -20,14 +31,254 @@
             }
         }
 
-        .header {
+        .trial-balance-page {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            color: var(--trial-text);
+        }
+
+        .trial-panel,
+        .trial-actions,
+        .trial-result {
+            background: var(--trial-surface);
+            border: 1px solid var(--trial-border);
+            border-radius: 8px;
+            box-shadow: var(--trial-shadow);
+        }
+
+        .trial-panel {
+            padding: 1rem;
+        }
+
+        .trial-panel__head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            padding-bottom: 0.85rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--trial-border);
+        }
+
+        .trial-panel__title {
+            margin: 0;
+            color: var(--trial-primary);
+            font-size: 1.05rem;
+            font-weight: 800;
+        }
+
+        .trial-year {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            min-height: 34px;
+            padding: 0.25rem 0.7rem;
+            border-radius: 6px;
+            background: var(--trial-soft);
+            color: var(--trial-primary);
+            font-size: 0.9rem;
+            font-weight: 700;
+            border: 1px solid var(--trial-border);
+        }
+
+        .trial-filter-grid {
+            display: grid;
+            grid-template-columns: repeat(12, minmax(0, 1fr));
+            gap: 0.9rem;
+            align-items: end;
+        }
+
+        .trial-field {
+            grid-column: span 3;
+        }
+
+        .trial-field--small {
+            grid-column: span 2;
+        }
+
+        .trial-field--action {
+            grid-column: span 1;
+        }
+
+        .trial-field label {
+            display: block;
+            margin-bottom: 0.4rem;
+            color: var(--trial-primary);
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+
+        .trial-field .form-control {
+            min-height: 42px;
+            border-color: var(--trial-border);
+            border-radius: 6px;
+            box-shadow: none;
+        }
+
+        .trial-field .form-control:focus {
+            border-color: rgba(247, 148, 29, 0.65);
+            box-shadow: 0 0 0 0.15rem rgba(247, 148, 29, 0.12);
+        }
+
+        .trial-search-btn {
+            width: 100%;
+            min-height: 42px;
+            border-radius: 6px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .trial-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.6rem;
+            padding: 0.75rem;
+        }
+
+        .trial-actions .btn {
+            min-height: 38px;
+            border-radius: 6px;
+            font-weight: 700;
+        }
+
+        .trial-result {
+            min-height: 260px;
+            overflow: hidden;
+        }
+
+        .trial-table-wrap {
+            width: 100%;
+            overflow: auto;
+        }
+
+        .trial-table {
+            min-width: 980px;
+            margin: 0;
+            color: var(--trial-text);
+        }
+
+        .trial-table thead th {
             position: sticky;
             top: 0;
-            background-color: #F7941D;
+            z-index: 2;
+            vertical-align: middle;
+            background: var(--trial-primary);
+            color: #fff;
+            border-color: rgba(255, 255, 255, 0.22);
+            font-size: 0.88rem;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .trial-table tbody td {
+            vertical-align: middle;
+            border-color: var(--trial-border);
+            background: #fff;
+        }
+
+        .trial-table tbody tr:nth-child(even) td {
+            background: var(--trial-soft);
+        }
+
+        .trial-table .trial-code {
+            width: 110px;
+            color: var(--trial-primary);
+            font-weight: 800;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .trial-table .trial-name {
+            min-width: 260px;
+            font-weight: 700;
+        }
+
+        .trial-table .trial-number {
+            min-width: 120px;
+            direction: ltr;
+            text-align: end;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+
+        .trial-total-row td {
+            position: sticky;
+            bottom: 0;
+            z-index: 1;
+            background: #fff4e6 !important;
+            color: #4f3420;
+            font-weight: 800;
+        }
+
+        .trial-result__empty {
+            min-height: 260px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--trial-muted);
+            background: var(--trial-soft);
+            text-align: center;
+            padding: 1rem;
+        }
+
+        .trial-loading {
+            min-height: 260px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--trial-soft);
         }
 
         td {
             font-size: small;
+        }
+
+        @media (max-width: 991.98px) {
+            .trial-field,
+            .trial-field--small,
+            .trial-field--action {
+                grid-column: span 6;
+            }
+        }
+
+        @media (max-width: 575.98px) {
+            .trial-panel__head,
+            .trial-actions {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .trial-field,
+            .trial-field--small,
+            .trial-field--action {
+                grid-column: span 12;
+            }
+        }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+
+            #result,
+            #result * {
+                visibility: visible;
+            }
+
+            #result {
+                position: absolute;
+                inset: 0;
+                width: 100%;
+                box-shadow: none;
+                border: 0;
+            }
+
+            .sidebar,
+            .trial-panel,
+            .trial-actions {
+                display: none !important;
+            }
         }
     </style>
 @endsection
@@ -38,63 +289,76 @@
     <li class="breadcrumb-item active" aria-current="page"> {{ $bladeTitle }}</li>
 @endsection
 @section('content')
+    <div class="trial-balance-page">
+        @if ($active_year)
+            <div class="trial-panel">
+                <div class="trial-panel__head">
+                    <h3 class="trial-panel__title">{{ $bladeTitle }}</h3>
+                    <span class="trial-year">
+                        <i class="fa fa-calendar"></i>
+                        {{ $active_year['from_date'] }} / {{ $active_year['to_date'] }}
+                    </span>
+                </div>
 
-    @if ($active_year)
-        <div class="row g-3 my-2">
+                <div class="trial-filter-grid">
+                    <div class="trial-field">
+                        <label for="from_date">{{ __('finance::finance.from_date') }}</label>
+                        <input type="date" name="from_date" class="form-control search_keys" id="from_date"
+                            value="{{ $active_year['from_date'] }}">
+                    </div>
 
-            <div class="col-md-3">
-                <label for="from_date" class="form-label"> {{ __('finance::finance.from_date') }}</label>
-                <input type="date" name="from_date" class="form-control search_keys" id="from_date"
-                    value="{{ $active_year['from_date'] }}">
+                    <div class="trial-field">
+                        <label for="to_date">{{ __('finance::finance.to_date') }}</label>
+                        <input type="date" name="to_date" class="form-control search_keys" id="to_date"
+                            value="{{ $active_year['to_date'] }}">
+                    </div>
+
+                    <div class="trial-field">
+                        <label for="levelSelect">{{ __('finance::finance.select the level') }}</label>
+                        <select name="level" id="levelSelect" class="form-control search_keys">
+                            @foreach ($levels as $level)
+                                <option value="{{ $level }}">
+                                    {{ helperTrans('finance::finance.level') }}
+                                    {{ $level }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="trial-field trial-field--small">
+                        <label for="show_first_balance">{{ __('finance::finance.show first balance') }}</label>
+                        <select name="show_first_balance" id="show_first_balance" class="form-control search_keys">
+                            <option value="0">{{ helperTrans('finance::finance.No') }}</option>
+                            <option value="1">{{ helperTrans('finance::finance.Yes') }}</option>
+                        </select>
+                    </div>
+
+                    <div class="trial-field trial-field--action">
+                        <button type="button" id="search_button" class="btn btn-success trial-search-btn">
+                            <i class="fa fa-search"></i> {{ __('finance::finance.Search') }}
+                        </button>
+                    </div>
+                </div>
             </div>
+        @else
+            <div class="alert alert-info mb-0" style="color:red;">{{ trans('finance::finance.the year is not active') }}</div>
+        @endif
 
-            <div class="col-md-3">
-                <label for="to_date" class="form-label"> {{ __('finance::finance.to_date') }}</label>
-                <input type="date" name="to_date" class="form-control search_keys" id="to_date"
-                    value="{{ $active_year['to_date'] }}">
-            </div>
-
-            <div class="col-md-3">
-                <label for="levelSelect" class="form-label"> {{ __('finance::finance.select the level') }}</label>
-                <select name="level" id="levelSelect" class="form-control search_keys">
-                    @foreach ($levels as $level)
-                        <option value="{{ $level }}">
-                            {{ helperTrans('finance::finance.level') }}
-                            {{ $level }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
-
-            <div class="col-md-2">
-                <label for="show_first_balance" class="form-label"> {{ __('finance::finance.show first balance') }}</label>
-                <select name="show_first_balance" id="show_first_balance" class="form-control search_keys">
-                    <option value="0">{{ helperTrans('finance::finance.No') }}</option>
-                    <option value="1">{{ helperTrans('finance::finance.Yes') }}</option>
-                </select>
-            </div>
-
-            <div class="col-md-1 mt-4">
-                <br>
-                <button type="button" id="search_button" class="btn btn-sm btn-success float-right">
-                    <i class="fa fa-search"></i> {{ __('finance::finance.Search') }}
-                </button>
-            </div>
+        <div class="trial-actions print-and-excel-buttons d-none">
+            <button onclick="window.print()" class="btn btn-primary">
+                <i class="fa fa-print"></i>
+                {{ helperTrans('dataTable.print') }}
+            </button>
+            <button id="toExcel" class="btn btn-warning text-white">
+                <i class="fa fa-file-excel-o"></i>
+                {{ helperTrans('dataTable.Export to Excel') }}
+            </button>
         </div>
-    @else
-        <div class="row g-3 my-2">
-            <h5 class="alert alert-info" style="color:red;">{{ trans('finance::finance.the year is not active') }}</h5>
-        </div>
-    @endif
-    <div class="row print-and-excel-buttons d-none">
-        <div class="col-12 mt-4" style="text-align: left">
-            <button onclick="window.print()" class="btn btn-primary"><i class="fa fa-print"></i>
-                {{ helperTrans('dataTable.print') }}</button>
-            <button id="toExcel" class="btn btn-warning text-white"><i class="fa fa-file-excel-o"></i>
-                {{ helperTrans('dataTable.Export to Excel') }}</button>
+
+        <div class="trial-result" id="result">
+            <div class="trial-result__empty">{{ __('finance::finance.no_data_found') }}</div>
         </div>
     </div>
-    <div class="row g-3 m-2" id="result"></div>
 @endsection
 @section('js')
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -169,9 +433,7 @@
                 type: 'GET',
                 data: data,
                 beforeSend: function() {
-                    $("#result").html('<div class="col-sm-12 col-md-12 col-lg-12 col-xs-12">' +
-                        '  <div class="loader" style="margin: auto;"></div>' +
-                        '</div>');
+                    $("#result").html('<div class="trial-loading"><div class="loader"></div></div>');
                 },
                 success: function(result) {
                     console.log(result);

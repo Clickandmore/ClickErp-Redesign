@@ -12,7 +12,7 @@
         <div class="col-12">
             <div class="row g-3">
                 <div class="col-md-6 col-xl-4">
-                    <label class="form-label">رابط تويتر</label>
+                    <label class="form-label">{{ __('admin.settings_twitter_url') }}</label>
                     <fieldset class="form-icon-group right-icon position-relative">
                         <div class="form-icon position-absolute">
                             <i class="fa fa-twitter"></i>
@@ -23,7 +23,7 @@
                 </div>
 
                 <div class="col-md-6 col-xl-4">
-                    <label class="form-label">رابط فيسبوك</label>
+                    <label class="form-label">{{ __('admin.settings_facebook_url') }}</label>
                     <fieldset class="form-icon-group right-icon position-relative">
                         <div class="form-icon position-absolute">
                             <i class="fa fa-facebook"></i>
@@ -34,7 +34,7 @@
                 </div>
 
                 <div class="col-md-6 col-xl-4">
-                    <label class="form-label">رابط انستجرام</label>
+                    <label class="form-label">{{ __('admin.settings_instagram_url') }}</label>
                     <fieldset class="form-icon-group right-icon position-relative">
                         <div class="form-icon position-absolute">
                             <i class="fa fa-instagram"></i>
@@ -45,7 +45,7 @@
                 </div>
 
                 <div class="col-md-6 col-xl-4">
-                    <label class="form-label">رابط سناب شات</label>
+                    <label class="form-label">{{ __('admin.settings_snapchat_url') }}</label>
                     <fieldset class="form-icon-group right-icon position-relative">
                         <div class="form-icon position-absolute">
                             <i class="fa fa-qq"></i>
@@ -56,7 +56,7 @@
                 </div>
 
                 <div class="col-md-6 col-xl-4">
-                    <label class="form-label">رابط لينكدان</label>
+                    <label class="form-label">{{ __('admin.settings_linkedin_url') }}</label>
                     <fieldset class="form-icon-group right-icon position-relative">
                         <div class="form-icon position-absolute">
                             <i class="fa fa-linkedin-square"></i>
@@ -67,7 +67,7 @@
                 </div>
 
                 <div class="col-md-6 col-xl-4">
-                    <label class="form-label">رابط يوتيوب</label>
+                    <label class="form-label">{{ __('admin.settings_youtube_url') }}</label>
                     <fieldset class="form-icon-group right-icon position-relative">
                         <div class="form-icon position-absolute">
                             <i class="fa fa-youtube"></i>
@@ -78,7 +78,7 @@
                 </div>
 
                 <div class="col-md-6 col-xl-4">
-                    <label class="form-label">رقم واتساب</label>
+                    <label class="form-label">{{ __('admin.settings_whatsapp_number') }}</label>
                     <fieldset class="form-icon-group right-icon position-relative">
                         <div class="form-icon position-absolute">
                             <i class="fa fa-whatsapp"></i>

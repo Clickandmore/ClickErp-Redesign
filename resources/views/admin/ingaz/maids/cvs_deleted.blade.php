@@ -308,7 +308,7 @@
     </style>
 @endsection
 @section('page-title')
-    السير الذاتية المحذوفة
+    {{ helperTrans('ingaz.deleted_cvs') }}
 @endsection
 {{-- @section('page-links') --}}
 {{--    <li class="breadcrumb-item active" aria-current="page"> {{__("finance.clients")}}</li> --}}
@@ -318,7 +318,7 @@
     @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_DELETED_VIEW))
         <!-- رأس الصفحة المخصص -->
         <div class="page-header">
-            <h2 style="color: #007bff;"><i class="fas fa-user-times text-primary me-2"></i> السير الذاتية المحذوفة </h2>
+            <h2 style="color: #007bff;"><i class="fas fa-user-times text-primary me-2"></i> {{ helperTrans('ingaz.deleted_cvs') }} </h2>
         </div>
 
         <div class="card">
@@ -327,11 +327,11 @@
                     <div class="row align-items-end">
                         <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
                             <input type="text" class="form-control" id="passport_num" name="passport_num"
-                                value="{{ $request->passport_num }}" placeholder="رقم الجواز">
+                                value="{{ $request->passport_num }}" placeholder="{{ helperTrans('ingaz.passport_num') }}">
                         </div>
                         <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
                             <select class="form-control" name="nationality_id" id="nationality_id">
-                                <option value="" selected>الجنسية</option>
+                                <option value="" selected>{{ helperTrans('ingaz.nationality') }}</option>
                                 @foreach ($filter['nationalities'] as $nationality)
                                     <option value="{{ $nationality->id }}"
                                         {{ $request->nationality_id == $nationality->id ? 'selected' : '' }}>
@@ -342,7 +342,7 @@
                         </div>
                         <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
                             <select class="form-control" name="job_type" id="type">
-                                <option value="" selected>نوع السيرة الذاتية</option>
+                                <option value="" selected>{{ helperTrans('ingaz.job_type') }}</option>
                                 @foreach ($filter['job_types'] as $jobtype)
                                     <option value="{{ $jobtype->id }}"
                                         {{ $request->job_type == $jobtype->id ? 'selected' : '' }}>{{ $jobtype->title }}
@@ -352,18 +352,18 @@
                         </div>
                         <div class="col-lg-3 col-md-3 col-sm-6 mb-3">
                             <input type="text" name="experience_years" value="{{ $request->experience_years }}"
-                                class="form-control" placeholder="سنوات الخبرة">
+                                class="form-control" placeholder="{{ helperTrans('ingaz.experience_years') }}">
                         </div>
                         <div class="col-lg-3 col-md-3 col-sm-6 mb-2">
-                            <input type="text" class="form-control" name="daterange" placeholder="مدى التاريخ"
+                            <input type="text" class="form-control" name="daterange" placeholder="{{ helperTrans('ingaz.date_range') }}"
                                 data-separator=" - " autocomplete="off" data-advanced-range="true">
                         </div>
                         <div class="col-lg-3 col-md-3 col-sm-12 mb-3 text-end">
                             <button id="btnSubmit" type="button" class="btn btn-primary btn-search me-2">
-                                <i class="fa fa-search me-1"></i> بحث
+                                <i class="fa fa-search me-1"></i> {{ helperTrans('ingaz.search') }}
                             </button>
                             <a href="{{ route('maids.deleted_cvs') }}" class="btn btn-outline-secondary btn-clear">
-                                <i class="fa fa-times me-1"></i> إلغاء البحث
+                                <i class="fa fa-times me-1"></i> {{ helperTrans('ingaz.clear_filters') }}
                             </a>
                         </div>
                     </div>
@@ -372,17 +372,17 @@
                             @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EXPORT_PDF))
                                 <a href="{{ route('maids.export.pdf') }}?deleted=1"
                                     class="btn btn-danger btn-export" target="_blank">
-                                    <i class="fa fa-file-pdf-o me-1"></i> تصدير PDF
+                                    <i class="fa fa-file-pdf-o me-1"></i> {{ helperTrans('ingaz.export_pdf') }}
                                 </a>
                             @endif
                             @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EXPORT_EXCEL))
                                 <a href="{{ route('maids.export.excel') }}?deleted=1"
                                     class="btn btn-success btn-export">
-                                    <i class="fa fa-file-excel-o me-1"></i> تصدير Excel
+                                    <i class="fa fa-file-excel-o me-1"></i> {{ helperTrans('ingaz.export_excel') }}
                                 </a>
                             @endif
                             <a href="{{ route('maids.index') }}" class="btn btn-info">
-                                <i class="fa fa-list me-1"></i> جميع العاملات
+                                <i class="fa fa-list me-1"></i> {{ helperTrans('ingaz.all_maids') }}
                             </a>
                         </div>
                     </div>
@@ -423,6 +423,12 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         $(document).ready(function() {
+            const deletedCvsTranslations = {
+                errorTitle: @json(helperTrans('ingaz.error')),
+                dataLoadError: @json(helperTrans('ingaz.data_load_error')),
+                loading: @json(helperTrans('ingaz.loading_text')),
+            };
+
             // Setup CSRF token for all AJAX requests
             $.ajaxSetup({
                 headers: {
@@ -570,8 +576,8 @@
                         error: function(xhr, error, thrown) {
                             console.error('DataTables error:', error);
                             $.toast({
-                                heading: 'خطأ',
-                                text: 'حدث خطأ أثناء تحميل البيانات',
+                                heading: deletedCvsTranslations.errorTitle,
+                                text: deletedCvsTranslations.dataLoadError,
                                 showHideTransition: 'slide',
                                 icon: 'error',
                                 hideAfter: 3000,
@@ -584,7 +590,7 @@
                     pageLength: 10,
                     order: [[8, 'desc']], // Order by deleted_at column by default in descending order
                     language: {
-                        processing: '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">جاري التحميل...</span></div>'
+                        processing: `<div class="spinner-border text-primary" role="status"><span class="visually-hidden">${deletedCvsTranslations.loading}</span></div>`
                     },
                     drawCallback: function() {
                         // Reinitialize any event handlers after table redraw

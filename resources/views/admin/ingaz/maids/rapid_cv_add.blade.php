@@ -25,12 +25,12 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
                     <div>
-                        <h5 class="mb-1">إضافة سيرة مختصرة</h5>
-                        <div class="text-muted small">يمكن إدخال الحد الأدنى من البيانات الآن، مع إمكانية رفع ملف الجواز بشكل اختياري.</div>
+                        <h5 class="mb-1">{{ helperTrans('ingaz.add_short_cv') }}</h5>
+                        <div class="text-muted small">{{ helperTrans('ingaz.short_cv_minimal_hint') }}</div>
                     </div>
                     <a href="{{ route('maids.create') }}" class="btn btn-outline-primary">
                         <i class="fas fa-arrow-right me-1"></i>
-                        إضافة سيرة كاملة
+                        {{ helperTrans('ingaz.add_full_cv') }}
                     </a>
                 </div>
                 <form class="row g-3 from-submit-global-maid" method="post" action="{{ route('maids.store_rapid_cv') }}"
@@ -43,15 +43,15 @@
                             {{ helperTrans('ingaz.maid_name') }} ({{ helperTrans('ingaz.en') }})
                         </label>
                         <input type="text" name="name:en" class="form-control"
-                            placeholder="اختياري في السيرة المختصرة">
-                        <small class="text-muted">يمكن ترك اسم العاملة فارغًا في السيرة المختصرة.</small>
+                            placeholder="{{ helperTrans('ingaz.short_cv_optional_name_placeholder') }}">
+                        <small class="text-muted">{{ helperTrans('ingaz.short_cv_name_optional_hint') }}</small>
                     </div>
                     
                     <!-- الجنسية -->
                     <div class="col-12">
                         <label for="TextInput" class="form-label">{{ helperTrans('ingaz.nationality') }} <span class="text-danger">*</span></label>
                         <select name="nationality_id" id="Pnationality_id" class="form-control" required>
-                            <option value="">اختر</option>
+                            <option value="">{{ helperTrans('ingaz.choose') }}</option>
                             @foreach ($nationalities as $nationality)
                                 <option value="{{ $nationality->id }}" data-price="{{ $nationality->price }}"
                                     data-salary="{{ $nationality->monthly_salary }}"
@@ -67,7 +67,7 @@
                     <div class="col-12 office-field">
                         <label for="TextInput" class="form-label">{{ helperTrans('ingaz.recruitment office') }} <span class="text-danger">*</span></label>
                         <select name="office_id" class="form-control">
-                            <option value="">اختر مكتب الاستقدام</option>
+                            <option value="">{{ helperTrans('ingaz.choose_recruitment_office') }}</option>
                             {{-- {!! showSelectElement($offices, 'title') !!} --}}
                             @foreach ($offices as $office)
                                 <option value="{{ $office->id }}">{{ $office->title }} <span class="text-danger">*</span></option>
@@ -85,10 +85,10 @@
                     </div>
 
                     <div class="col-12">
-                        <label for="cv_file" class="form-label">ملف الجواز</label>
+                        <label for="cv_file" class="form-label">{{ helperTrans('ingaz.passport_file') }}</label>
                         <input type="file" data-default-file="" name="cv_file" id="cv_file" class="dropify"
                             accept=".pdf,.jpg,.jpeg,.png">
-                        <small class="text-muted">اختياري. الصيغ المدعومة: PDF, JPG, JPEG, PNG.</small>
+                        <small class="text-muted">{{ helperTrans('ingaz.passport_file_optional_hint') }}</small>
                     </div>
 
                     <div class="col-12">
@@ -110,6 +110,23 @@
     <script src="{{ asset('admin') }}/assets/js/bundle/sweetalert2.bundle.js"></script>
     <script>
         $(document).ready(function() {
+            const rapidCvTranslations = {
+                passportRegisteredBefore: @json(helperTrans('ingaz.passport_registered_before')),
+                passportAvailable: @json(helperTrans('ingaz.passport_available')),
+                chooseRecruitmentOffice: @json(helperTrans('ingaz.choose_recruitment_office')),
+                errorTitle: @json(helperTrans('ingaz.error_title')),
+                officeFetchError: @json(helperTrans('ingaz.office_fetch_error')),
+                ok: @json(helperTrans('ingaz.ok')),
+                nationalityRequired: @json(helperTrans('ingaz.nationality_required')),
+                passportRequired: @json(helperTrans('ingaz.passport_required')),
+                passportDuplicateValidation: @json(helperTrans('ingaz.passport_duplicate_validation')),
+                correctErrorsPrefix: @json(helperTrans('ingaz.correct_errors_prefix')),
+                loading: @json(helperTrans('ingaz.loading_text')),
+                successTitle: @json(helperTrans('ingaz.success_title')),
+                shortCvAddedSuccessfully: @json(helperTrans('ingaz.short_cv_added_successfully')),
+                maidAddError: @json(helperTrans('ingaz.maid_add_error')),
+                create: @json(__('ingaz.create')),
+            };
             $('.dropify').dropify();
 
             // التحقق من رقم الجواز - فحص التكرار
@@ -143,12 +160,12 @@
                             if (response.exists) {
                                 $('#passport_num').addClass('is-invalid');
                                 feedback.addClass('invalid-feedback').text(
-                                    'رقم الجواز مسجل مسبقاً في النظام، يرجى التحقق من الرقم أو اختيار رقم آخر'
+                                    rapidCvTranslations.passportRegisteredBefore
                                 );
                             } else {
                                 $('#passport_num').addClass('is-valid');
                                 feedback.addClass('valid-feedback').text(
-                                    'رقم الجواز متاح');
+                                    rapidCvTranslations.passportAvailable);
                             }
                         },
                         error: function() {
@@ -177,7 +194,7 @@
                             var officeSelect = $('select[name="office_id"]');
                             officeSelect.empty();
                             officeSelect.append(
-                                '<option value="">اختر مكتب الاستقدام</option>');
+                                `<option value="">${rapidCvTranslations.chooseRecruitmentOffice}</option>`);
 
                             response.forEach(function(office) {
                                 officeSelect.append('<option value="' + office.id +
@@ -190,9 +207,9 @@
                         error: function(xhr) {
                             Swal.fire({
                                 icon: 'error',
-                                title: 'خطأ',
-                                text: 'حدث خطأ أثناء جلب مكاتب الاستقدام',
-                                confirmButtonText: 'حسناً'
+                                title: rapidCvTranslations.errorTitle,
+                                text: rapidCvTranslations.officeFetchError,
+                                confirmButtonText: rapidCvTranslations.ok
                             });
                         }
                     });
@@ -212,26 +229,26 @@
 
                 // التحقق من الحقول المطلوبة
                 var requiredFields = {
-                    'nationality_id': 'الجنسية'
+                    'nationality_id': rapidCvTranslations.nationalityRequired
                 };
 
                 // التحقق من الجنسية دائماً
                 var nationalityValue = $('[name="nationality_id"]').val();
                 if (!nationalityValue || nationalityValue.trim() === '') {
-                    errors.push('الجنسية مطلوبة');
+                    errors.push(rapidCvTranslations.nationalityRequired);
                     isValid = false;
                 }
 
                 // التحقق من رقم الجواز
                 var passportNum = $('input[name="passport_num"]').val().trim();
                 if (!passportNum) {
-                    errors.push('رقم الجواز مطلوب');
+                    errors.push(rapidCvTranslations.passportRequired);
                     isValid = false;
                 } else {
                     // Check if passport number is already invalid (from real-time validation)
                     if ($('input[name="passport_num"]').hasClass('is-invalid')) {
                         errors.push(
-                            'رقم الجواز مسجل مسبقاً في النظام، يرجى التحقق من الرقم أو اختيار رقم آخر');
+                            rapidCvTranslations.passportDuplicateValidation);
                         isValid = false;
                     }
                 }
@@ -239,9 +256,9 @@
                 if (!isValid) {
                     Swal.fire({
                         icon: 'error',
-                        title: 'خطأ',
-                        text: 'الرجاء تصحيح الأخطاء التالية:\n' + errors.join('\n'),
-                        confirmButtonText: 'حسناً'
+                        title: rapidCvTranslations.errorTitle,
+                        text: rapidCvTranslations.correctErrorsPrefix + '\n' + errors.join('\n'),
+                        confirmButtonText: rapidCvTranslations.ok
                     });
                     return false;
                 }
@@ -260,7 +277,7 @@
                     },
                     beforeSend: function() {
                         $('#maidForm button[type="submit"]').html(
-                            '<div class="spinner-border text-light spinner-border-sm" role="status"><span class="visually-hidden">Loading...</span></div>'
+                            `<div class="spinner-border text-light spinner-border-sm" role="status"><span class="visually-hidden">${rapidCvTranslations.loading}</span></div>`
                             );
                     },
                     success: function(response) {
@@ -276,9 +293,9 @@
                         if (response.code === 200) {
                             Swal.fire({
                                 icon: 'success',
-                                title: 'نجاح',
-                                text: 'تم إضافة العاملة بنجاح',
-                                confirmButtonText: 'حسناً'
+                                title: rapidCvTranslations.successTitle,
+                                text: rapidCvTranslations.shortCvAddedSuccessfully,
+                                confirmButtonText: rapidCvTranslations.ok
                             }).then((result) => {
                                 if (result.isConfirmed) {
                                     window.location.href =
@@ -289,14 +306,14 @@
                         } else {
                             Swal.fire({
                                 icon: 'error',
-                                title: 'خطأ',
-                                text: response.message || 'حدث خطأ أثناء إضافة العاملة',
-                                confirmButtonText: 'حسناً'
+                                title: rapidCvTranslations.errorTitle,
+                                text: response.message || rapidCvTranslations.maidAddError,
+                                confirmButtonText: rapidCvTranslations.ok
                             });
                         }
                     },
                     error: function(xhr) {
-                        var errorMessage = 'حدث خطأ أثناء إضافة العاملة';
+                        var errorMessage = rapidCvTranslations.maidAddError;
 
                         if (xhr.responseJSON && xhr.responseJSON.errors) {
                             var errors = xhr.responseJSON.errors;
@@ -309,13 +326,13 @@
 
                         Swal.fire({
                             icon: 'error',
-                            title: 'خطأ',
+                            title: rapidCvTranslations.errorTitle,
                             text: errorMessage,
-                            confirmButtonText: 'حسناً'
+                            confirmButtonText: rapidCvTranslations.ok
                         });
                     },
                     complete: function() {
-                        $('#maidForm button[type="submit"]').html('{{ __('ingaz.create') }}');
+                        $('#maidForm button[type="submit"]').html(rapidCvTranslations.create);
                     }
                 });
             });

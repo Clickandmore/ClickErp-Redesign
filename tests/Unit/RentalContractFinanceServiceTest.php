@@ -66,6 +66,23 @@ class RentalContractFinanceServiceTest extends TestCase
         $this->assertSame(1466.0, $amounts['total_due']);
     }
 
+    public function test_it_labels_worker_salary_in_constraint_statement(): void
+    {
+        $contract = new RentalContract();
+        $contract->setRelation('maid', (object) ['name' => 'AYNALEM KEBEDE NEGASH']);
+
+        $reflection = new ReflectionClass(RentalContractFinanceService::class);
+        $service = $reflection->newInstanceWithoutConstructor();
+        $method = $reflection->getMethod('buildWorkerSalaryStatement');
+        $method->setAccessible(true);
+
+        $statement = $method->invoke($service, 'قيد فاتورة عقد تأجير رقم 147', $contract, 1000);
+
+        $this->assertStringContainsString('مرتب العامل (معفى ضريبياً)', $statement);
+        $this->assertStringContainsString('AYNALEM KEBEDE NEGASH', $statement);
+        $this->assertStringContainsString('1000.00 ريال', $statement);
+    }
+
     private function buildInvoiceAmounts(array $infoAttributes, ?Package $package = null): array
     {
         $contract = new RentalContract();

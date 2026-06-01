@@ -16,19 +16,18 @@ class CountriesService extends MainService
 
     public function getCountries()
     {
-        $locale = app()->getLocale();
-        $nameColumn = $locale === 'ar' ? 'name_ar' : 'name_en';
-        $fallbackColumn = $locale === 'ar' ? 'name_en' : 'name_ar';
-
         return DB::table('countries')
             ->where('is_active', true)
             ->select(
                 'id',
-                DB::raw("COALESCE(NULLIF({$nameColumn}, ''), NULLIF({$fallbackColumn}, '')) as name"),
+                'name_ar',
+                'name_en',
+                'code',
+                DB::raw("TRIM(CONCAT(COALESCE(NULLIF(name_ar, ''), name_en), ' - ', COALESCE(NULLIF(name_en, ''), name_ar))) as name"),
                 DB::raw('NULL as nationality')
             )
             ->orderBy('sort_order')
-            ->orderBy($nameColumn)
+            ->orderBy('name_ar')
             ->get();
     }
 

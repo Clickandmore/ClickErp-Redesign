@@ -19,6 +19,12 @@ class AutomationSettings
         'orders_timer_interval_minutes' => 30,
         'orders_expired_handler_interval_minutes' => 5,
         'orders_auto_cancel_interval_minutes' => 60,
+        'maids_availability_update_time' => '02:00',
+        'log_clear_keep_days' => 30,
+        'log_clear_weekday' => 0,
+        'log_clear_time' => '03:00',
+        'database_optimize_weekday' => 0,
+        'database_optimize_time' => '04:00',
     ];
 
     private static array $cache = [];
@@ -42,6 +48,12 @@ class AutomationSettings
             'orders_timer_interval_minutes' => self::ordersTimerIntervalMinutes(),
             'orders_expired_handler_interval_minutes' => self::ordersExpiredHandlerIntervalMinutes(),
             'orders_auto_cancel_interval_minutes' => self::ordersAutoCancelIntervalMinutes(),
+            'maids_availability_update_time' => self::maidsAvailabilityUpdateTime(),
+            'log_clear_keep_days' => self::logClearKeepDays(),
+            'log_clear_weekday' => self::logClearWeekday(),
+            'log_clear_time' => self::logClearTime(),
+            'database_optimize_weekday' => self::databaseOptimizeWeekday(),
+            'database_optimize_time' => self::databaseOptimizeTime(),
         ];
     }
 
@@ -113,6 +125,36 @@ class AutomationSettings
         return max(1, min(60, (int) self::get('orders_auto_cancel_interval_minutes')));
     }
 
+    public static function maidsAvailabilityUpdateTime(): string
+    {
+        return self::timeValue('maids_availability_update_time');
+    }
+
+    public static function logClearKeepDays(): int
+    {
+        return max(1, min(365, (int) self::get('log_clear_keep_days')));
+    }
+
+    public static function logClearWeekday(): int
+    {
+        return max(0, min(6, (int) self::get('log_clear_weekday')));
+    }
+
+    public static function logClearTime(): string
+    {
+        return self::timeValue('log_clear_time');
+    }
+
+    public static function databaseOptimizeWeekday(): int
+    {
+        return max(0, min(6, (int) self::get('database_optimize_weekday')));
+    }
+
+    public static function databaseOptimizeTime(): string
+    {
+        return self::timeValue('database_optimize_time');
+    }
+
     public static function minutesCronExpression(int $minutes): string
     {
         $minutes = max(1, min(60, $minutes));
@@ -166,6 +208,13 @@ class AutomationSettings
         return self::$cache[$key] = self::DEFAULTS[$key];
     }
 
+    private static function timeValue(string $key): string
+    {
+        $time = (string) self::get($key);
+
+        return preg_match('/^\d{2}:\d{2}$/', $time) ? $time : self::DEFAULTS[$key];
+    }
+
     private static function set(string $key, mixed $value): void
     {
         Setting::setValue($key, (string) $value, self::groupFor($key));
@@ -202,6 +251,12 @@ class AutomationSettings
             'orders_timer_interval_minutes',
             'orders_expired_handler_interval_minutes',
             'orders_auto_cancel_interval_minutes' => 'orders',
+            'maids_availability_update_time' => 'workers',
+            'log_clear_keep_days',
+            'log_clear_weekday',
+            'log_clear_time' => 'maintenance',
+            'database_optimize_weekday',
+            'database_optimize_time' => 'database',
             default => 'automation',
         };
     }

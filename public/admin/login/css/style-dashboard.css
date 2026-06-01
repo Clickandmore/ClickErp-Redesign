@@ -156,7 +156,8 @@ select {
 }
 
 .brand-logo .logo {
-  height: 64px;
+  height: clamp(84px, 9vw, 112px);
+  max-width: min(280px, 70vw);
   width: auto;
   object-fit: contain;
 }
@@ -425,15 +426,46 @@ select {
 }
 
 .footer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  max-width: min(92vw, 620px);
+  padding: 9px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 999px;
+  background: rgba(15, 27, 45, 0.38);
+  color: rgba(255, 255, 255, 0.84);
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.78);
   text-align: center;
+  backdrop-filter: blur(10px);
 }
 
-.footer a {
+.footer-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   color: var(--cm-gold);
   text-decoration: none;
   font-weight: 600;
+}
+
+.footer-brand:hover {
+  color: #f0c982;
+}
+
+.footer-brand img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  padding: 3px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.footer-brand-logo:empty {
+  display: none;
 }
 
 body[dir="rtl"] .input-shell {

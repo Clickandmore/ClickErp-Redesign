@@ -202,7 +202,7 @@
                         </a>
                     @endif
                     <a href="#client-attachments" class="btn btn-outline-info">
-                        <i class="fas fa-paperclip me-1"></i>مرفقات العميل
+                        <i class="fas fa-paperclip me-1"></i>{{ helperTrans('ingaz.client_attachments') }}
                         <span class="badge bg-info text-white ms-1">{{ $client->clientAttachments->count() }}</span>
                     </a>
                 </div>
@@ -418,19 +418,19 @@
                     <div class="card-body">
                         <div class="card-section-title mb-3">
                             <i class="fas fa-file-invoice-dollar text-success"></i>
-                            الفواتير
+                            {{ helperTrans('ingaz.invoices') }}
                         </div>
                         <div class="table-responsive">
                             <table class="table table-clean">
                                 <thead>
                                     <tr>
-                                        <th>رقم الفاتورة</th>
-                                        <th>رقم العقد</th>
-                                        <th>الإجمالي</th>
-                                        <th>الضريبة</th>
-                                        <th>الخصم</th>
-                                        <th>المطلوب</th>
-                                        <th>تاريخ الإنشاء</th>
+                                        <th>{{ helperTrans('ingaz.invoice_number') }}</th>
+                                        <th>{{ helperTrans('ingaz.contract_number') }}</th>
+                                        <th>{{ helperTrans('ingaz.total') }}</th>
+                                        <th>{{ helperTrans('ingaz.tax') }}</th>
+                                        <th>{{ helperTrans('ingaz.discount') }}</th>
+                                        <th>{{ helperTrans('ingaz.amount_due') }}</th>
+                                        <th>{{ helperTrans('ingaz.created_at') }}</th>
                                         <th></th>
                                     </tr>
                                 </thead>
@@ -642,7 +642,7 @@
                     <div class="card-body">
                         <div class="card-section-title mb-3">
                             <i class="fas fa-paperclip text-info"></i>
-                            مرفقات العميل
+                            {{ helperTrans('ingaz.client_attachments') }}
                         </div>
 
                         @if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_EDIT))
@@ -650,17 +650,17 @@
                                 enctype="multipart/form-data" class="border rounded-3 p-3 mb-3 bg-light">
                                 @csrf
                                 <div class="mb-3">
-                                    <label class="form-label">عنوان المرفق</label>
+                                    <label class="form-label">{{ helperTrans('ingaz.attachment_title') }}</label>
                                     <input type="text" name="title" class="form-control" value="{{ old('title') }}"
-                                        placeholder="مثال: الهوية الوطنية أو عقد العميل">
+                                        placeholder="{{ helperTrans('ingaz.attachment_title_placeholder') }}">
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label">الملفات</label>
+                                    <label class="form-label">{{ helperTrans('ingaz.files') }}</label>
                                     <input type="file" name="attachments[]" class="form-control" multiple required>
-                                    <small class="text-muted">يمكن رفع أكثر من ملف. الحد الأقصى لكل ملف 20MB.</small>
+                                    <small class="text-muted">{{ helperTrans('ingaz.attachments_upload_hint') }}</small>
                                 </div>
                                 <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-upload me-1"></i>إضافة مرفقات
+                                    <i class="fas fa-upload me-1"></i>{{ helperTrans('ingaz.add_attachments') }}
                                 </button>
                             </form>
                         @endif
@@ -671,10 +671,10 @@
 
                             <div class="d-flex flex-wrap gap-2 mb-3">
                                 <button type="submit" form="download-client-attachments-form" class="btn btn-outline-success btn-sm">
-                                    <i class="fas fa-download me-1"></i>تحميل المحدد
+                                    <i class="fas fa-download me-1"></i>{{ helperTrans('ingaz.download_selected') }}
                                 </button>
                                 <a href="{{ route('clients.attachments.download', $client->id) }}" class="btn btn-outline-secondary btn-sm">
-                                    <i class="fas fa-file-archive me-1"></i>تحميل الكل
+                                    <i class="fas fa-file-archive me-1"></i>{{ helperTrans('ingaz.download_all') }}
                                 </a>
                             </div>
 
@@ -683,10 +683,10 @@
                                     <thead>
                                         <tr>
                                             <th style="width: 36px;"></th>
-                                            <th>الملف</th>
-                                            <th>الحجم</th>
-                                            <th>أضيف بواسطة</th>
-                                            <th>التاريخ</th>
+                                            <th>{{ helperTrans('ingaz.file') }}</th>
+                                            <th>{{ helperTrans('ingaz.size') }}</th>
+                                            <th>{{ helperTrans('ingaz.added_by') }}</th>
+                                            <th>{{ helperTrans('ingaz.date') }}</th>
                                             <th></th>
                                         </tr>
                                     </thead>
@@ -717,7 +717,7 @@
                                                         @if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_EDIT))
                                                             <form method="POST"
                                                                 action="{{ route('clients.attachments.delete', [$client->id, $attachment->id]) }}"
-                                                                onsubmit="return confirm('هل أنت متأكد من حذف هذا المرفق؟')">
+                                                                onsubmit="return confirm(@json(helperTrans('ingaz.confirm_delete_attachment')))">
                                                                 @csrf
                                                                 @method('DELETE')
                                                                 <button type="submit" class="btn btn-sm btn-outline-danger">
@@ -733,7 +733,7 @@
                                 </table>
                             </div>
                         @else
-                            <p class="text-muted mb-0">لا توجد مرفقات لهذا العميل.</p>
+                            <p class="text-muted mb-0">{{ helperTrans('ingaz.no_client_attachments') }}</p>
                         @endif
                     </div>
                 </div>

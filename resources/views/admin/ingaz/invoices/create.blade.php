@@ -374,10 +374,14 @@
     @php
         $selectedContractId = old('contract_id', $contractId ?? request('contract_id'));
         $selectedIngazDelegationId = old('ingaz_delegation_id', $ingazDelegationId ?? request('ingaz_delegation_id'));
+        $selectedClientId = old('client_id', $clientId ?? request('client_id'));
         $contracts = $contracts ?? collect();
         $selectedContract = $selectedContract ?? null;
         $selectedIngazDelegation = $selectedIngazDelegation ?? null;
+        $selectedClient = $selectedClient ?? null;
         $isDelegationInvoice = (bool) $selectedIngazDelegation;
+        $isGeneralInvoice = !$isDelegationInvoice && !$selectedContract && $selectedClientId;
+        $invoiceMode = $isDelegationInvoice ? 'delegation' : ($isGeneralInvoice ? 'general' : 'contract');
         $selectedContractFromList =
             !$selectedContract && $selectedContractId ? $contracts->firstWhere('id', (int) $selectedContractId) : null;
         $currentContract = $selectedContract ?: $selectedContractFromList;
@@ -389,17 +393,26 @@
             : (optional($currentContract?->maid?->nationality ?? $currentContract?->requiredMaidNationality)->sub_title ?:
                 (optional($currentContract?->maid?->nationality ?? $currentContract?->requiredMaidNationality)->title ?:
                     'غير محدد'));
+        $currentNationalityModel = $isDelegationInvoice
+            ? $selectedIngazDelegation?->nationality
+            : ($currentContract?->maid?->nationality ?? $currentContract?->requiredMaidNationality);
+        $currentNationalityCosts = [
+            'direct_recruitment_cost' => (float) ($currentNationalityModel?->direct_recruitment_cost ?? 0),
+            'external_recruitment_cost' => (float) ($currentNationalityModel?->external_recruitment_cost ?? 0),
+            'government_cost' => (float) ($currentNationalityModel?->government_cost ?? 0),
+        ];
+        $currentNationalityHasCosts = collect($currentNationalityCosts)->contains(fn ($value) => (float) $value > 0);
         $currentContractStatus = $currentContract
             ? getEnumValue('contract_statuses', $currentContract->status) ?? ($currentContract->status ?? 'غير محدد')
-            : ($isDelegationInvoice ? ($selectedIngazDelegation?->status_label ?? 'غير محدد') : 'غير محدد');
-        $currentClient = $isDelegationInvoice ? $selectedIngazDelegation?->user : $currentContract?->user;
+            : ($isDelegationInvoice ? ($selectedIngazDelegation?->status_label ?? 'غير محدد') : ($isGeneralInvoice ? 'فاتورة عامة' : 'غير محدد'));
+        $currentClient = $isDelegationInvoice ? $selectedIngazDelegation?->user : ($isGeneralInvoice ? $selectedClient : $currentContract?->user);
         $currentClientName = $currentClient?->name ?? 'غير محدد';
         $currentClientRawPhone = $currentClient?->phone;
         $currentClientPhone = $currentClientRawPhone && !str_starts_with($currentClientRawPhone, 'ingaz-delegation-')
             ? trim(($currentClient?->phone_code ?? '') . $currentClientRawPhone)
             : 'غير محدد';
         $currentClientIdentity = $currentClient?->national_num ?? 'غير محدد';
-        $canCreateInvoice = $isDelegationInvoice || (bool) $currentContract || $contracts->isNotEmpty();
+        $canCreateInvoice = true;
     @endphp
 
     <div class="container-fluid py-3 invoice-create-page">
@@ -442,7 +455,7 @@
                         <div class="mini-section">
                             <div class="mini-title">
                                 <i class="fas fa-link"></i>
-                                {{ $isDelegationInvoice ? 'ربط تفويض إنجاز' : 'ربط العقد' }}
+                                {{ $isDelegationInvoice ? 'ربط تفويض إنجاز' : 'مصدر الفاتورة' }}
                             </div>
 
                             @if ($isDelegationInvoice)
@@ -458,48 +471,69 @@
                             @elseif (!$selectedContract)
                                 <div class="row g-3">
                                     <div class="col-12">
-                                        <label class="form-label" for="contract_id">
+                                        <label class="form-label" for="invoice_mode">نوع الفاتورة</label>
+                                        <select id="invoice_mode" class="form-select">
+                                            <option value="contract" {{ $invoiceMode === 'contract' ? 'selected' : '' }}>فاتورة مرتبطة بعقد</option>
+                                            <option value="general" {{ $invoiceMode === 'general' ? 'selected' : '' }}>فاتورة عامة مرتبطة بعميل</option>
+                                        </select>
+                                        <div class="field-note">الفاتورة العامة تحتاج اختيار عميل فقط ولا ترتبط بعقد.</div>
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="invoice-mode-section" data-mode-section="contract">
+                                            <label class="form-label" for="contract_id">
                                             العقد
                                             <span class="text-danger">*</span>
-                                        </label>
-                                        <select name="contract_id" id="contract_id" class="form-select" required
-                                            @disabled(!$canCreateInvoice)>
-                                            <option value="" disabled {{ $selectedContractId ? '' : 'selected' }}>
-                                                اختر العقد
-                                            </option>
-                                            @foreach ($contracts as $contract)
-                                                @php
-                                                    $contractNationality =
-                                                        optional(
-                                                            $contract->maid?->nationality ??
-                                                                $contract->requiredMaidNationality,
-                                                        )->sub_title ?:
-                                                        (optional(
-                                                            $contract->maid?->nationality ??
-                                                                $contract->requiredMaidNationality,
-                                                        )->title ?:
-                                                        'غير محدد');
-                                                    $contractStatus =
-                                                        getEnumValue('contract_statuses', $contract->status) ??
-                                                        ($contract->status ?? 'غير محدد');
-                                                    $contractPhone =
-                                                        trim(
-                                                            ($contract->user?->phone_code ?? '') .
-                                                                ($contract->user?->phone ?? ''),
-                                                        ) ?:
-                                                        'غير محدد';
-                                                @endphp
-                                                <option value="{{ $contract->id }}"
-                                                    data-client-name="{{ e($contract->user?->name ?? 'غير محدد') }}"
-                                                    data-client-phone="{{ e($contractPhone) }}"
-                                                    data-client-identity="{{ e($contract->user?->national_num ?? 'غير محدد') }}"
-                                                    data-nationality="{{ e($contractNationality) }}"
-                                                    data-status="{{ e($contractStatus) }}"
-                                                    {{ (string) $selectedContractId === (string) $contract->id ? 'selected' : '' }}>
-                                                    {{ $contract->desc ?? 'العقد #' . $contract->id }}
+                                            </label>
+                                            <select name="contract_id" id="contract_id" class="form-select"
+                                                @disabled(!$canCreateInvoice)>
+                                                <option value="" disabled {{ $selectedContractId ? '' : 'selected' }}>
+                                                    اختر العقد
                                                 </option>
-                                            @endforeach
-                                        </select>
+                                                @foreach ($contracts as $contract)
+                                                    @php
+                                                        $contractNationalityModel =
+                                                            $contract->maid?->nationality ??
+                                                            $contract->requiredMaidNationality;
+                                                        $contractNationality =
+                                                            optional(
+                                                                $contractNationalityModel,
+                                                            )->sub_title ?:
+                                                            (optional(
+                                                                $contractNationalityModel,
+                                                            )->title ?:
+                                                            'غير محدد');
+                                                        $contractNationalityCosts = [
+                                                            'direct_recruitment_cost' => (float) ($contractNationalityModel?->direct_recruitment_cost ?? 0),
+                                                            'external_recruitment_cost' => (float) ($contractNationalityModel?->external_recruitment_cost ?? 0),
+                                                            'government_cost' => (float) ($contractNationalityModel?->government_cost ?? 0),
+                                                        ];
+                                                        $contractNationalityHasCosts = collect($contractNationalityCosts)->contains(fn ($value) => (float) $value > 0);
+                                                        $contractStatus =
+                                                            getEnumValue('contract_statuses', $contract->status) ??
+                                                            ($contract->status ?? 'غير محدد');
+                                                        $contractPhone =
+                                                            trim(
+                                                                ($contract->user?->phone_code ?? '') .
+                                                                    ($contract->user?->phone ?? ''),
+                                                            ) ?:
+                                                            'غير محدد';
+                                                    @endphp
+                                                    <option value="{{ $contract->id }}"
+                                                        data-client-name="{{ e($contract->user?->name ?? 'غير محدد') }}"
+                                                        data-client-phone="{{ e($contractPhone) }}"
+                                                        data-client-identity="{{ e($contract->user?->national_num ?? 'غير محدد') }}"
+                                                        data-nationality="{{ e($contractNationality) }}"
+                                                        data-status="{{ e($contractStatus) }}"
+                                                        data-direct-cost="{{ $contractNationalityCosts['direct_recruitment_cost'] }}"
+                                                        data-external-cost="{{ $contractNationalityCosts['external_recruitment_cost'] }}"
+                                                        data-government-cost="{{ $contractNationalityCosts['government_cost'] }}"
+                                                        data-has-nationality-costs="{{ $contractNationalityHasCosts ? 1 : 0 }}"
+                                                        {{ (string) $selectedContractId === (string) $contract->id ? 'selected' : '' }}>
+                                                        {{ $contract->desc ?? 'العقد #' . $contract->id }}
+                                                    </option>
+                                                @endforeach
+                                            </select>
+                                        </div>
 
                                         @if (!$canCreateInvoice)
                                             <div class="alert alert-warning mt-3 mb-0">
@@ -509,6 +543,52 @@
                                             <div class="field-note">اختر العقد لتحديث بيانات العميل في العمود الجانبي
                                                 مباشرة.</div>
                                         @endif
+                                    </div>
+                                    <div class="col-12 invoice-mode-section" data-mode-section="general">
+                                        <label class="form-label" for="client_id">
+                                            العميل
+                                            <span class="text-danger">*</span>
+                                        </label>
+                                        <select name="client_id" id="client_id" class="form-select ajax-client-select" data-placeholder="ابحث باسم العميل أو الجوال أو الهوية">
+                                            @if ($selectedClient)
+                                                <option value="{{ $selectedClient->id }}" selected
+                                                    data-name="{{ e($selectedClient->name ?? 'غير محدد') }}"
+                                                    data-phone="{{ e(trim(($selectedClient->phone_code ?? '') . ($selectedClient->phone ?? '')) ?: 'غير محدد') }}"
+                                                    data-identity="{{ e($selectedClient->national_num ?? 'غير محدد') }}">
+                                                    {{ $selectedClient->name }} - {{ $selectedClient->phone ?? 'بدون جوال' }}
+                                                </option>
+                                            @endif
+                                        </select>
+                                        <div class="field-note">ستظهر الفاتورة باسم هذا العميل في قائمة الفواتير وتفاصيل الطباعة.</div>
+                                    </div>
+                                    <div class="col-12 invoice-mode-section" data-mode-section="general">
+                                        <label class="form-label" for="general_description">تفاصيل الفاتورة العامة</label>
+                                        <textarea name="general_description" id="general_description" class="form-control" rows="3"
+                                            placeholder="مثال: رسوم خدمة إضافية أو تسوية مالية">{{ old('general_description') }}</textarea>
+                                    </div>
+                                    <div class="col-md-6 invoice-mode-section" data-mode-section="general">
+                                        <label class="form-label" for="general_direct_label">اسم البند الخاضع للضريبة</label>
+                                        <input type="text" name="general_direct_label" id="general_direct_label"
+                                            class="form-control general-label-input"
+                                            value="{{ old('general_direct_label', 'خدمة عامة') }}">
+                                    </div>
+                                    <div class="col-md-6 invoice-mode-section" data-mode-section="general">
+                                        <label class="form-label" for="general_ticket_label">اسم البند الإضافي الخاضع للضريبة</label>
+                                        <input type="text" name="general_ticket_label" id="general_ticket_label"
+                                            class="form-control general-label-input"
+                                            value="{{ old('general_ticket_label', 'خدمة إضافية') }}">
+                                    </div>
+                                    <div class="col-md-6 invoice-mode-section" data-mode-section="general">
+                                        <label class="form-label" for="general_external_label">اسم البند غير الخاضع</label>
+                                        <input type="text" name="general_external_label" id="general_external_label"
+                                            class="form-control general-label-input"
+                                            value="{{ old('general_external_label', 'بند غير خاضع') }}">
+                                    </div>
+                                    <div class="col-md-6 invoice-mode-section" data-mode-section="general">
+                                        <label class="form-label" for="general_government_label">اسم بند الرسوم</label>
+                                        <input type="text" name="general_government_label" id="general_government_label"
+                                            class="form-control general-label-input"
+                                            value="{{ old('general_government_label', 'رسوم حكومية') }}">
                                     </div>
                                 </div>
                             @else
@@ -529,6 +609,11 @@
                                 <i class="fas fa-sack-dollar"></i>
                                 بنود التكلفة
                             </div>
+                            <div class="alert {{ $currentNationalityHasCosts ? 'alert-info' : 'alert-warning' }} py-2 mb-3" id="nationalityCostHint">
+                                {{ $currentNationalityHasCosts
+                                    ? 'تم تحميل تكاليف الاستقدام المحفوظة على الجنسية المحددة.'
+                                    : 'لا توجد تكاليف استقدام محفوظة لهذه الجنسية. أدخل القيم هنا وسيتم حفظها على الجنسية عند إصدار الفاتورة.' }}
+                            </div>
 
                             <div class="row g-3">
                                 <div class="col-md-6 col-lg-4">
@@ -537,25 +622,25 @@
                                         class="form-control" value="{{ old('insurance_company') }}" placeholder="اختياري">
                                 </div>
                                 <div class="col-md-6 col-lg-4">
-                                    <label class="form-label" for="direct_recruitment_cost">الاستقدام المباشر</label>
+                                    <label class="form-label" for="direct_recruitment_cost" id="directCostLabel">الاستقدام المباشر</label>
                                     <input type="number" step="0.01" min="0" name="direct_recruitment_cost"
                                         id="direct_recruitment_cost" class="form-control calc-input"
-                                        value="{{ old('direct_recruitment_cost', 0) }}">
+                                        value="{{ old('direct_recruitment_cost', $currentNationalityCosts['direct_recruitment_cost']) }}">
                                 </div>
                                 <div class="col-md-6 col-lg-4">
-                                    <label class="form-label" for="external_recruitment_cost">الاستقدام الخارجي</label>
+                                    <label class="form-label" for="external_recruitment_cost" id="externalCostLabel">الاستقدام الخارجي</label>
                                     <input type="number" step="0.01" min="0" name="external_recruitment_cost"
                                         id="external_recruitment_cost" class="form-control calc-input"
-                                        value="{{ old('external_recruitment_cost', 0) }}">
+                                        value="{{ old('external_recruitment_cost', $currentNationalityCosts['external_recruitment_cost']) }}">
                                 </div>
                                 <div class="col-md-6 col-lg-4">
-                                    <label class="form-label" for="government_cost">تكاليف حكومية</label>
+                                    <label class="form-label" for="government_cost" id="governmentCostLabel">تكاليف حكومية</label>
                                     <input type="number" step="0.01" min="0" name="government_cost"
                                         id="government_cost" class="form-control calc-input"
-                                        value="{{ old('government_cost', 0) }}">
+                                        value="{{ old('government_cost', $currentNationalityCosts['government_cost']) }}">
                                 </div>
                                 <div class="col-md-6 col-lg-4">
-                                    <label class="form-label" for="internal_ticket_cost">التذكرة الداخلية</label>
+                                    <label class="form-label" for="internal_ticket_cost" id="ticketCostLabel">التذكرة الداخلية</label>
                                     <input type="number" step="0.01" min="0" name="internal_ticket_cost"
                                         id="internal_ticket_cost" class="form-control calc-input"
                                         value="{{ old('internal_ticket_cost', 0) }}">
@@ -679,11 +764,11 @@
                             </div>
 
                             <div class="side-section">
-                                <div class="meta-grid {{ $currentContract || $isDelegationInvoice ? '' : 'is-empty' }}" id="contractPreview">
+                                <div class="meta-grid {{ $currentContract || $isDelegationInvoice || $isGeneralInvoice ? '' : 'is-empty' }}" id="contractPreview">
                                     <div class="meta-item">
-                                        <span class="meta-label">{{ $isDelegationInvoice ? 'رقم التفويض' : 'رقم العقد' }}</span>
+                                        <span class="meta-label" id="previewReferenceLabel">{{ $isDelegationInvoice ? 'رقم التفويض' : ($isGeneralInvoice ? 'نوع الفاتورة' : 'رقم العقد') }}</span>
                                         <strong class="meta-value" id="previewContractNumber">
-                                            {{ $isDelegationInvoice ? '#' . $selectedIngazDelegation->id : ($currentContract ? '#' . $currentContract->id : '---') }}
+                                            {{ $isDelegationInvoice ? '#' . $selectedIngazDelegation->id : ($isGeneralInvoice ? 'فاتورة عامة' : ($currentContract ? '#' . $currentContract->id : '---')) }}
                                         </strong>
                                     </div>
                                     <div class="meta-item">
@@ -692,12 +777,12 @@
                                             id="previewClientName">{{ $currentClientName }}</strong>
                                     </div>
                                     <div class="meta-item">
-                                        <span class="meta-label">{{ $isDelegationInvoice ? 'الدولة' : 'الجنسية' }}</span>
+                                        <span class="meta-label" id="previewNationalityLabel">{{ $isDelegationInvoice ? 'الدولة' : ($isGeneralInvoice ? 'الارتباط' : 'الجنسية') }}</span>
                                         <strong class="meta-value"
                                             id="previewNationality">{{ $currentNationality }}</strong>
                                     </div>
                                     <div class="meta-item">
-                                        <span class="meta-label">{{ $isDelegationInvoice ? 'حالة التفويض' : 'حالة العقد' }}</span>
+                                        <span class="meta-label" id="previewStatusLabel">{{ $isDelegationInvoice ? 'حالة التفويض' : ($isGeneralInvoice ? 'الحالة' : 'حالة العقد') }}</span>
                                         <strong class="meta-value"
                                             id="previewContractStatus">{{ $currentContractStatus }}</strong>
                                     </div>
@@ -737,19 +822,19 @@
 
                                 <div class="line-breakdown">
                                     <div class="breakdown-row">
-                                        <span>المباشر</span>
+                                        <span id="summaryDirectLabel">المباشر</span>
                                         <strong id="summaryDirectLine">0 × 0.00 = 0.00 ريال</strong>
                                     </div>
                                     <div class="breakdown-row">
-                                        <span>الخارجي</span>
+                                        <span id="summaryExternalLabel">الخارجي</span>
                                         <strong id="summaryExternalLine">0 × 0.00 = 0.00 ريال</strong>
                                     </div>
                                     <div class="breakdown-row">
-                                        <span>الحكومي</span>
+                                        <span id="summaryGovernmentLabel">الحكومي</span>
                                         <strong id="summaryGovernmentLine">0 × 0.00 = 0.00 ريال</strong>
                                     </div>
                                     <div class="breakdown-row">
-                                        <span>التذاكر</span>
+                                        <span id="summaryTicketLabel">التذاكر</span>
                                         <strong id="summaryTicketLine">0 × 0.00 = 0.00 ريال</strong>
                                     </div>
                                 </div>
@@ -851,7 +936,100 @@
                 $(selector).text(value && String(value).trim() !== '' ? value : fallback);
             }
 
+            function setCostValue(selector, value) {
+                const parsed = parseFloat(value);
+                $(selector).val(Number.isFinite(parsed) ? parsed.toFixed(2) : '0.00');
+            }
+
+            function updateNationalityCostHint(hasCosts) {
+                const $hint = $('#nationalityCostHint');
+                if (!$hint.length) {
+                    return;
+                }
+
+                $hint
+                    .toggleClass('alert-info', hasCosts)
+                    .toggleClass('alert-warning', !hasCosts)
+                    .text(hasCosts
+                        ? 'تم تحميل تكاليف الاستقدام المحفوظة على الجنسية المحددة.'
+                        : 'لا توجد تكاليف استقدام محفوظة لهذه الجنسية. أدخل القيم هنا وسيتم حفظها على الجنسية عند إصدار الفاتورة.');
+            }
+
+            function applyNationalityCosts($option) {
+                const hasOption = $option && $option.length && $option.val();
+                const hasCosts = hasOption && Number($option.attr('data-has-nationality-costs')) === 1;
+
+                setCostValue('#direct_recruitment_cost', hasOption ? $option.attr('data-direct-cost') : 0);
+                setCostValue('#external_recruitment_cost', hasOption ? $option.attr('data-external-cost') : 0);
+                setCostValue('#government_cost', hasOption ? $option.attr('data-government-cost') : 0);
+                updateNationalityCostHint(Boolean(hasCosts));
+            }
+
+            function currentInvoiceMode() {
+                return $('#invoice_mode').val() || '{{ $invoiceMode }}';
+            }
+
+            function updateModeSections() {
+                const mode = currentInvoiceMode();
+                $('.invoice-mode-section').each(function() {
+                    $(this).toggleClass('d-none', $(this).data('mode-section') !== mode);
+                });
+
+                $('#contract_id').prop('disabled', mode !== 'contract');
+                $('#client_id').prop('disabled', mode !== 'general');
+                $('.general-label-input, #general_description').prop('disabled', mode !== 'general');
+                $('#directCostLabel').text(mode === 'general' ? 'بند خدمة خاضع للضريبة' : 'الاستقدام المباشر');
+                $('#externalCostLabel').text(mode === 'general' ? 'بند خدمة غير خاضع' : 'الاستقدام الخارجي');
+                $('#governmentCostLabel').text(mode === 'general' ? 'رسوم حكومية' : 'تكاليف حكومية');
+                $('#ticketCostLabel').text(mode === 'general' ? 'بند إضافي خاضع للضريبة' : 'التذكرة الداخلية');
+
+                if (mode === 'contract') {
+                    $('#client_id').val(null).trigger('change');
+                } else {
+                    $('#contract_id').val('').trigger('change');
+                }
+
+                updateContractPreview();
+            }
+
+            function generalLabel(selector, fallback) {
+                const value = String($(selector).val() || '').trim();
+                return value || fallback;
+            }
+
+            function updateGeneralClientPreview() {
+                const data = $.fn.select2 && $('#client_id').hasClass('select2-hidden-accessible')
+                    ? ($('#client_id').select2('data')[0] || {})
+                    : {};
+                const clientId = $('#client_id').val();
+                const textParts = String(data.text || '').split(' - ');
+                const clientName = data.name || textParts[0] || 'غير محدد';
+                const clientPhone = data.phone || textParts[1] || 'غير محدد';
+                const clientIdentity = data.national_num || data.identity || textParts[2] || 'غير محدد';
+
+                $('#contractPreview').toggleClass('is-empty', !clientId);
+                setPreviewValue('#previewReferenceLabel', 'نوع الفاتورة');
+                setPreviewValue('#previewContractNumber', clientId ? 'فاتورة عامة' : '---', '---');
+                setPreviewValue('#previewClientName', clientName);
+                setPreviewValue('#previewNationalityLabel', 'الارتباط');
+                setPreviewValue('#previewNationality', 'عميل فقط');
+                setPreviewValue('#previewStatusLabel', 'الحالة');
+                setPreviewValue('#previewContractStatus', 'جاهزة للإصدار');
+                setPreviewValue('#previewClientIdentity', clientIdentity);
+                setPreviewValue('#previewClientPhone', clientPhone);
+                $('#nationalityCostHint')
+                    .removeClass('alert-warning')
+                    .addClass('alert-info')
+                    .text('أدخل بنود الفاتورة العامة، وسيتم حفظها على العميل بدون ربطها بعقد.');
+            }
+
             function updateContractPreview() {
+                if (currentInvoiceMode() === 'general') {
+                    updateGeneralClientPreview();
+                    updateCalculation();
+                    return;
+                }
+
                 const $select = $('#contract_id');
 
                 if (!$select.length) {
@@ -869,16 +1047,23 @@
                     setPreviewValue('#previewContractStatus', '');
                     setPreviewValue('#previewClientIdentity', '');
                     setPreviewValue('#previewClientPhone', '');
+                    applyNationalityCosts(null);
+                    updateCalculation();
                     return;
                 }
 
                 $('#contractPreview').removeClass('is-empty');
+                setPreviewValue('#previewReferenceLabel', 'رقم العقد');
+                setPreviewValue('#previewNationalityLabel', 'الجنسية');
+                setPreviewValue('#previewStatusLabel', 'حالة العقد');
                 setPreviewValue('#previewContractNumber', `#${contractId}`, '---');
                 setPreviewValue('#previewClientName', $selectedOption.data('client-name'));
                 setPreviewValue('#previewNationality', $selectedOption.data('nationality'));
                 setPreviewValue('#previewContractStatus', $selectedOption.data('status'));
                 setPreviewValue('#previewClientIdentity', $selectedOption.data('client-identity'));
                 setPreviewValue('#previewClientPhone', $selectedOption.data('client-phone'));
+                applyNationalityCosts($selectedOption);
+                updateCalculation();
             }
 
             function updateCalculation() {
@@ -911,6 +1096,17 @@
                 $('#summaryVat').text(formatMoney(vat));
                 $('#summaryDiscount').text(formatMoney(discount));
                 $('#summaryGrandTotal').text(formatMoney(totalDue));
+
+                const isGeneral = currentInvoiceMode() === 'general';
+                const directLabel = isGeneral ? generalLabel('#general_direct_label', 'خدمة عامة') : 'المباشر';
+                const externalLabel = isGeneral ? generalLabel('#general_external_label', 'بند غير خاضع') : 'الخارجي';
+                const governmentLabel = isGeneral ? generalLabel('#general_government_label', 'رسوم حكومية') : 'الحكومي';
+                const ticketLabel = isGeneral ? generalLabel('#general_ticket_label', 'خدمة إضافية') : 'التذاكر';
+
+                $('#summaryDirectLabel').text(directLabel);
+                $('#summaryExternalLabel').text(externalLabel);
+                $('#summaryGovernmentLabel').text(governmentLabel);
+                $('#summaryTicketLabel').text(ticketLabel);
 
                 $('#summaryDirectLine').text(
                     `${directCount} × ${directCost.toFixed(2)} = ${formatMoney(directTotal)}`);
@@ -962,9 +1158,37 @@
             }
 
             $('.calc-input').on('input', updateCalculation);
+            $('.general-label-input').on('input', updateCalculation);
             $('#contract_id').on('change', updateContractPreview);
+            $('#invoice_mode').on('change', updateModeSections);
+            $('#client_id').on('change select2:select select2:clear', updateContractPreview);
 
-            updateContractPreview();
+            if ($.fn.select2) {
+                $('.ajax-client-select').select2({
+                    placeholder: $('.ajax-client-select').data('placeholder') || 'ابحث عن العميل...',
+                    allowClear: true,
+                    dir: 'rtl',
+                    width: '100%',
+                    minimumInputLength: 1,
+                    ajax: {
+                        url: "{{ route('invoices.searchClients') }}",
+                        dataType: 'json',
+                        delay: 250,
+                        data: function(params) {
+                            return {
+                                term: params.term || '',
+                                page: params.page || 1
+                            };
+                        },
+                        processResults: function(data) {
+                            return data;
+                        },
+                        cache: true
+                    }
+                });
+            }
+
+            updateModeSections();
             updateCalculation();
 
             $form.on('submit', function(e) {

@@ -93,6 +93,9 @@ class MaidAction extends MainAction
         $data['passport_num'] = $data['passport_num'] ?? '';
         $data['id_number'] = $data['id_number'] ?? '';
         $data['id_expiry_date'] = $data['id_expiry_date'] ?? null;
+        $data['border_number'] = $data['border_number'] ?? null;
+        $data['passport_issue_date'] = $data['passport_issue_date'] ?? null;
+        $data['passport_expiry_date'] = $data['passport_expiry_date'] ?? null;
         $data['price'] = $data['price'] ?? 0;
         $data['salary'] = $data['salary'] ?? 0;
         $data['age'] = $data['age'] ?? 0;
@@ -109,7 +112,7 @@ class MaidAction extends MainAction
 
         // Clean the data but preserve required fields - only remove truly empty strings, not zeros or nulls
         foreach ($data as $key => $value) {
-            if (is_string($value) && trim($value) === '' && !in_array($key, ['nationality_id', 'religion_id', 'passport_num', 'id_number', 'id_expiry_date'])) {
+            if (is_string($value) && trim($value) === '' && !in_array($key, ['nationality_id', 'religion_id', 'passport_num', 'id_number', 'id_expiry_date', 'border_number', 'passport_issue_date', 'passport_expiry_date'])) {
                 unset($data[$key]);
             }
         }
@@ -131,6 +134,9 @@ class MaidAction extends MainAction
         $data['passport_num'] = $data['passport_num'] ?? '';
         $data['id_number'] = $data['id_number'] ?? '';
         $data['id_expiry_date'] = $data['id_expiry_date'] ?? null;
+        $data['border_number'] = $data['border_number'] ?? null;
+        $data['passport_issue_date'] = $data['passport_issue_date'] ?? null;
+        $data['passport_expiry_date'] = $data['passport_expiry_date'] ?? null;
 
         // Robust handling for languages field
         \Log::info('Before languages processing - languages data:', [$data['languages'] ?? 'not set']);
@@ -210,6 +216,14 @@ class MaidAction extends MainAction
             unset($data['birth_date']); // Remove if empty
         }
 
+        foreach (['id_expiry_date', 'passport_issue_date', 'passport_expiry_date'] as $dateField) {
+            if (array_key_exists($dateField, $data)) {
+                $data[$dateField] = $data[$dateField]
+                    ? date('Y-m-d', strtotime($data[$dateField]))
+                    : null;
+            }
+        }
+
         // Verify that the nationality and religion exist in the database
         $nationality = \App\Models\ingaz\Nationality::find($data['nationality_id']);
         if (!$nationality) {
@@ -257,6 +271,9 @@ class MaidAction extends MainAction
         $offerDescriptionColumnExists = Schema::hasColumn('maids', 'offer_description');
         $offerStartsColumnExists = Schema::hasColumn('maids', 'offer_starts_at');
         $offerExpiresColumnExists = Schema::hasColumn('maids', 'offer_expires_at');
+        $borderNumberColumnExists = Schema::hasColumn('maids', 'border_number');
+        $passportIssueColumnExists = Schema::hasColumn('maids', 'passport_issue_date');
+        $passportExpiryColumnExists = Schema::hasColumn('maids', 'passport_expiry_date');
 
         // Ensure all required fields are present in the data array
         $createData = [
@@ -313,6 +330,15 @@ class MaidAction extends MainAction
         }
         if ($offerExpiresColumnExists) {
             $createData['offer_expires_at'] = $data['offer_expires_at'] ?? null;
+        }
+        if ($borderNumberColumnExists) {
+            $createData['border_number'] = $data['border_number'] ?? null;
+        }
+        if ($passportIssueColumnExists) {
+            $createData['passport_issue_date'] = $data['passport_issue_date'] ?? null;
+        }
+        if ($passportExpiryColumnExists) {
+            $createData['passport_expiry_date'] = $data['passport_expiry_date'] ?? null;
         }
 
 
@@ -1154,6 +1180,9 @@ class MaidAction extends MainAction
         $offerDescriptionColumnExists = Schema::hasColumn('maids', 'offer_description');
         $offerStartsColumnExists = Schema::hasColumn('maids', 'offer_starts_at');
         $offerExpiresColumnExists = Schema::hasColumn('maids', 'offer_expires_at');
+        $borderNumberColumnExists = Schema::hasColumn('maids', 'border_number');
+        $passportIssueColumnExists = Schema::hasColumn('maids', 'passport_issue_date');
+        $passportExpiryColumnExists = Schema::hasColumn('maids', 'passport_expiry_date');
 
         $experienceStatusValue = $data['experience_status']  ?? 'no_experience';
         // unset($data['duration'], $data['additional_notes'], $data['id']);
@@ -1190,6 +1219,14 @@ class MaidAction extends MainAction
         // Handle id_expiry_date field
         if (isset($data['id_expiry_date']) && !empty($data['id_expiry_date'])) {
             $data['id_expiry_date'] = date('Y-m-d', strtotime($data['id_expiry_date']));
+        }
+
+        foreach (['passport_issue_date', 'passport_expiry_date'] as $dateField) {
+            if (array_key_exists($dateField, $data)) {
+                $data[$dateField] = $data[$dateField]
+                    ? date('Y-m-d', strtotime($data[$dateField]))
+                    : null;
+            }
         }
 
         // Handle marital_status:ar field for translation
@@ -1250,11 +1287,6 @@ class MaidAction extends MainAction
         $data['languages'] = json_encode($langs, JSON_UNESCAPED_UNICODE);
         $data['percentage'] = json_encode($percs, JSON_UNESCAPED_UNICODE);
 
-        // Also store localized languages list
-        $translation = $maid->translateOrNew(app()->getLocale());
-        $translation->languages = json_encode($langs, JSON_UNESCAPED_UNICODE);
-        $translation->save();
-
         if ($requestTypeColumnExists) {
             $data['request_type'] = array_key_exists('request_type', $data)
                 ? Maid::resolveRequestType($data['request_type'])
@@ -1314,6 +1346,16 @@ class MaidAction extends MainAction
             unset($data['offer_duration']);
         }
 
+        if (!$borderNumberColumnExists) {
+            unset($data['border_number']);
+        }
+        if (!$passportIssueColumnExists) {
+            unset($data['passport_issue_date']);
+        }
+        if (!$passportExpiryColumnExists) {
+            unset($data['passport_expiry_date']);
+        }
+
 
         $row = parent::find($id);
 
@@ -1323,6 +1365,7 @@ class MaidAction extends MainAction
         }
 
         $row->update($data);
+        $this->syncLegacyMaidLanguageTranslations($row, $langs);
 
         if (isset($data['expertises']) && $experienceStatusValue === 'has_experience') {
             $row->expertises()->delete();
@@ -1340,22 +1383,7 @@ class MaidAction extends MainAction
             $row->translateOrNew('en')->marital_status = $maritalStatusEn;
         }
 
-        if (isset($languagesData)) {
-            if (is_array($languagesData)) {
-                $languagesArray = [];
-                foreach ($languagesData as $key => $value) {
-                    if ($value === 'نعم' || $value === 'yes') {
-                        $languagesArray[] = $key;
-                    }
-                }
-                $languagesString = implode(', ', $languagesArray);
-            } else {
-                $languagesString = $languagesData;
-            }
-            $row->translateOrNew('ar')->languages = $languagesString;
-        }
-
-        if (isset($maritalStatus) || isset($languagesData)) {
+        if (isset($maritalStatusAr) || isset($maritalStatusEn)) {
             $row->save();
         }
 
@@ -1375,6 +1403,22 @@ class MaidAction extends MainAction
 
         $this->syncHrMaidRecord($maid->fresh(['jobTypes', 'nationality', 'office']));
         return parent::find($id);
+    }
+
+    private function syncLegacyMaidLanguageTranslations(Maid $maid, array $languages): void
+    {
+        $encodedLanguages = json_encode(array_values($languages), JSON_UNESCAPED_UNICODE);
+        $locales = collect([app()->getLocale(), 'ar', 'en'])
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        foreach ($locales as $locale) {
+            $maid->translateOrNew($locale)->languages = $encodedLanguages;
+        }
+
+        $maid->save();
     }
 
     /**

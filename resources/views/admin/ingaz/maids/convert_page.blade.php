@@ -36,20 +36,20 @@
     <div class="imageCol">
         <!-- sub -->
         <div class="sub">
-            <h5 class="title"> الراتب الشهري: </h5>
-            <p class="dis"> {{$data->salary}} ريال </p>
+            <h5 class="title"> {{ helperTrans('ingaz.monthly_salary') }}: </h5>
+            <p class="dis"> {{$data->salary}} {{ helperTrans('ingaz.currency_sar') }} </p>
         </div>
         <div class="sub">
             <h5 class="title"> {{helperTrans('web.recruitment_price')}}: </h5>
-            <p class="dis"> {{$data->price}} ريال </p>
+            <p class="dis"> {{$data->price}} {{ helperTrans('ingaz.currency_sar') }} </p>
         </div>
         <!-- sub -->
         <div class="sub">
-            <h5 class="title"> الخبرة : </h5>
+            <h5 class="title"> {{ helperTrans('ingaz.experience_years') }} : </h5>
             <p class="dis">{{$data->experience_years}} </p>
         </div>
         <div class="sub">
-            <h5 class="title"> حالة الخبرة : </h5>
+            <h5 class="title"> {{ helperTrans('ingaz.experience_status') }} : </h5>
             <p class="dis">{{$data->experience_status}} </p>
         </div>
         <div class="sub">
@@ -89,7 +89,7 @@
     <!-- col -->
     <div class="informationCol">
         <div class="category">
-            <h3 class="title"><span> البيانات الشخصية </span></h3>
+            <h3 class="title"><span> {{ helperTrans('ingaz.personal_data') }} </span></h3>
             <div class="innerInfo">
                 <div class="infoRow">
                     <!-- data -->
@@ -104,7 +104,7 @@
                     </div>
                     <!-- data -->
                     <div class="data">
-                        <h6 class=" innerTitle"> الحالة الاجتماعية </h6>
+                        <h6 class=" innerTitle"> {{ helperTrans('ingaz.marital_status') }} </h6>
                         <h3 class="innerData"> {{$data->marital_status}} </h3>
                     </div>
                     <!-- data -->
@@ -134,10 +134,10 @@
             </div>
         </div>
         <div class="category">
-            <h3 class="title"><span> تفاصيل جواز السفر </span></h3>
+            <h3 class="title"><span> {{ helperTrans('ingaz.passport_details') }} </span></h3>
             <div class="passportData">
                 <div class="data">
-                    <h6> رقم جواز السفر : </h6>
+                    <h6> {{ helperTrans('ingaz.passport_num') }} : </h6>
                     <h5> {{$data->passport_num}} </h5>
                 </div>
             </div>

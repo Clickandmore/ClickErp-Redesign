@@ -441,7 +441,7 @@
                     <span class="settings-nav__icon"><i class="fa fa-list-ul"></i></span>
                     <span>
                         <span class="settings-nav__title">{{ __('finance::finance.rental_maid_expense_accounts') }}</span>
-                        <span class="settings-nav__count">{{ count($rental_maid_expense_definitions) }} {{ __('finance::finance.settings_fields') }}</span>
+                        <span class="settings-nav__count">{{ count($rental_maid_expense_definitions) * 3 }} {{ __('finance::finance.settings_fields') }}</span>
                     </span>
                 </a>
                 <a class="settings-nav__item" href="#shelter-living-settings-section">
@@ -808,6 +808,40 @@
                                     <strong>{{ $accountTreeLabel }}:</strong>
                                     {{ __('finance::finance.rental_maid_account_tree_hint', ['code' => $definition['code']]) }}
                                 </div>
+                            </div>
+                            <div class="setting-field">
+                                <div class="setting-field__top">
+                                    <label for="{{ $definition['prepaid_setting_key'] }}">{{ __('finance::finance.rental_maid_prepaid_account_for', ['name' => $definition['display_label']]) }}</label>
+                                    <span class="setting-field__tools">
+                                        {!! addUpButton(route('finance.accounts.create'), $definition['prepaid_setting_key'], false, 'name', true) !!}
+                                        <span class="setting-info" title="{{ __('finance::finance.rental_maid_prepaid_account_tree_hint', ['code' => $definition['prepaid_code']]) }}"><i class="fa fa-info"></i></span>
+                                    </span>
+                                </div>
+                                <input type="hidden" value="{{ $definition['prepaid_setting_key'] }}" name="data[{{ $definition['prepaid_setting_key'] }}][title]">
+                                <select name="data[{{ $definition['prepaid_setting_key'] }}][value]" id="{{ $definition['prepaid_setting_key'] }}" class="form-control select2">
+                                    <option value="">{{ __('finance::finance.choose') }}</option>
+                                    @foreach ($debtor_accounts as $item)
+                                        <option value="{{ $item->id }}" {{ (string) ($definition['selected_prepaid_account_id'] ?? '') === (string) $item->id ? 'selected' : '' }}>
+                                            {{ $item->code }} / {{ $item->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <div class="setting-field__tree">
+                                    <strong>{{ $accountTreeLabel }}:</strong>
+                                    {{ __('finance::finance.rental_maid_prepaid_account_tree_hint', ['code' => $definition['prepaid_code']]) }}
+                                </div>
+                            </div>
+                            <div class="setting-field">
+                                <div class="setting-field__top">
+                                    <label for="{{ $definition['amount_setting_key'] }}">{{ __('finance::finance.rental_maid_default_amount_for', ['name' => $definition['display_label']]) }}</label>
+                                </div>
+                                <input type="hidden" value="{{ $definition['amount_setting_key'] }}" name="data[{{ $definition['amount_setting_key'] }}][title]">
+                                <input type="number" step="0.01" min="0"
+                                       name="data[{{ $definition['amount_setting_key'] }}][value]"
+                                       id="{{ $definition['amount_setting_key'] }}"
+                                       class="form-control"
+                                       value="{{ $definition['selected_default_amount'] ?? 0 }}">
+                                <small>{{ __('finance::finance.rental_maid_default_amount_hint') }}</small>
                             </div>
                         @empty
                             <div class="alert alert-warning mb-0">{{ __('finance::finance.rental_maid_expense_accounts_empty') }}</div>

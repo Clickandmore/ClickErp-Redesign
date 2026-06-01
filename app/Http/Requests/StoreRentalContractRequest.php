@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use App\Models\RentalContract;
 use App\Models\ingaz\Maid;
+use App\Models\ingaz\Order;
 use App\Models\ingaz\Package;
 use App\Models\ingaz\JobType;
 use Illuminate\Foundation\Http\FormRequest;
@@ -202,11 +203,20 @@ class StoreRentalContractRequest extends FormRequest
             $maid = $this->maid_id
                 ? Maid::with('nationality.translations')->find($this->maid_id)
                 : null;
+            $selectedOrder = $this->order_id
+                ? Order::query()
+                    ->whereKey($this->order_id)
+                    ->where('maid_id', $this->maid_id)
+                    ->whereIn('status', ['under_process', 'done'])
+                    ->first()
+                : null;
+            $isSelectedOrderMaid = (bool) $selectedOrder;
 
             if ($this->maid_id) {
                 if (
                     $maid
                     && !$maid->available
+                    && !$isSelectedOrderMaid
                     && (!$currentContract || (int) $currentContract->maid_id !== (int) $maid->id)
                 ) {
                     $validator->errors()->add('maid_id', 'العاملة المختارة غير متاحة حالياً');
@@ -218,7 +228,7 @@ class StoreRentalContractRequest extends FormRequest
 
                 if ($maid) {
                     $activeRentalContractExists = $maid->rentalContracts()
-                        ->whereIn('status', ['new', 'waiting_contract_send', 'contract_sent', 'contract_signed', 'maid_delivered', 'active', 'transferred', 'suspended'])
+                        ->whereIn('status', ['new', 'waiting_contract_send', 'contract_sent', 'contract_signed', 'maid_delivered', 'active', 'transferred', 'suspended', 'frozen'])
                         ->when($currentContract, function ($query) use ($currentContract) {
                             $query->where('id', '!=', $currentContract->id);
                         })

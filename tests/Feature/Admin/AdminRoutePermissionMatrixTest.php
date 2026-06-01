@@ -29,6 +29,16 @@ class AdminRoutePermissionMatrixTest extends TestCase
         $this->assertSame([PermKeys::ROLES_CREATE], $permissions);
     }
 
+    public function test_dashboard_route_requires_dashboard_view_permission_only(): void
+    {
+        $permissions = AdminRoutePermissionMatrix::resolve(
+            'dashboard.index',
+            Request::create('/dashboard')
+        );
+
+        $this->assertSame([PermKeys::DASHBOARD_VIEW], $permissions);
+    }
+
     public function test_roles_store_uses_edit_permission_for_edit_requests(): void
     {
         $permissions = AdminRoutePermissionMatrix::resolve(

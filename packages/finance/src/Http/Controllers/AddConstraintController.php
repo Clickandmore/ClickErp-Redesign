@@ -60,34 +60,46 @@ class AddConstraintController extends Controller
 
     public function show($id, Request $request, ObjService $service)
     {
-        $inlineConstraintEditOpen = $request->boolean('edit');
-        $constraint = $service->find($id)->load(['logs.admin']);
+        if ($request->boolean('edit')) {
+            return redirect()->route($this->mainRoute . ".edit", $id);
+        }
+
+        $constraint = $service->find($id)->load([
+            'constraintDetails.account',
+            'constraintDetails.costCenter',
+            'files',
+            'logs.admin',
+        ]);
 
         return view($this->folderPath . ".show_constraint")->with([
             "obj" => $constraint,
-            'accounts' => $inlineConstraintEditOpen ? $service->getAccountsForConstraint($constraint) : collect(),
-            "cost_centers" => $inlineConstraintEditOpen ? $service->getCostCenters() : collect(),
             "bladeTitle" => __("finance::finance.constraint_details_page") . " #{$constraint->code}",
             "createRoute" => route($this->mainRoute . ".create"),
-            "editRoute" => route($this->mainRoute . ".show", [
-                "add_constraint" => $constraint->id,
-                "edit" => 1,
-            ]),
-            "updateRoute" => route($this->mainRoute . ".update", $constraint->id),
+            "editRoute" => route($this->mainRoute . ".edit", $constraint->id),
             "indexRoute" => route("finance.constraints.index"),
-            "cost_center_required" => null,
-            "constraintFormClass" => "constraint-inline-edit-form",
-            "inlineConstraintEdit" => true,
-            "inlineConstraintEditOpen" => $inlineConstraintEditOpen,
-            "closeRoute" => route($this->mainRoute . ".show", $constraint->id),
         ]);
     }
 
     public function edit($id, Request $request, ObjService $service)
     {
-        return redirect()->route($this->mainRoute . ".show", [
-            "add_constraint" => $id,
-            "edit" => 1,
+        $constraint = $service->find($id)->load([
+            'constraintDetails.account',
+            'constraintDetails.costCenter',
+            'files',
+        ]);
+
+        return view($this->folderPath . ".edit_constraint")->with([
+            "obj" => $constraint,
+            'accounts' => $service->getAccountsForConstraint($constraint),
+            "bladeTitle" => __("buttons.edit") . " " . __("finance::finance.constraint_details_page") . " #{$constraint->code}",
+            "cost_centers" => $service->getCostCenters(),
+            "updateRoute" => route($this->mainRoute . ".update", $id),
+            "indexRoute" => route("finance.constraints.index"),
+            "showRoute" => route($this->mainRoute . ".show", $id),
+            "closeRoute" => route($this->mainRoute . ".show", $id),
+            "cost_center_required" => null,
+            "constraintFormClass" => "constraint-edit-page-form",
+            "inlineConstraintEdit" => true,
         ]);
     }
 

@@ -239,7 +239,7 @@
     </style>
 @endsection
 @section('page-title')
-    طلبات الاستقدام
+    {{ helperTrans('ingaz.recruitment_orders') }}
 @endsection
 
 @section('content')
@@ -250,13 +250,13 @@
                 <div class="d-sm-flex align-items-center justify-content-between mb-4">
                     <h3 class="h3 mb-0 text-gray-800">
                         <i class="fas fa-exchange-alt text-primary me-2"></i>
-                        طلبات الاستقدام
+                        {{ helperTrans('ingaz.recruitment_orders') }}
                     </h3>
                     <div class="export-buttons text-end d-flex flex-wrap gap-2 justify-content-end">
                         @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_CREATE))
                             <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal"
                                 data-bs-target="#quickRecruitmentModal">
-                                <i class="fa fa-bolt"></i> طلب سريع
+                                <i class="fa fa-bolt"></i> {{ helperTrans('ingaz.quick_order') }}
                             </button>
                         @endif
                         @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EXPORT))
@@ -469,28 +469,28 @@
                     <div class="modal-content">
                         <form id="quickRecruitmentForm">
                             <div class="modal-header">
-                                <h5 class="modal-title" id="quickRecruitmentModalLabel">طلب استقدام سريع</h5>
+                                <h5 class="modal-title" id="quickRecruitmentModalLabel">{{ helperTrans('ingaz.quick_recruitment_order') }}</h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                             </div>
                             <div class="modal-body">
                                 <div class="mb-3">
-                                    <label for="quick_client_name" class="form-label">اسم العميل</label>
+                                    <label for="quick_client_name" class="form-label">{{ helperTrans('ingaz.client_name') }}</label>
                                     <input type="text" class="form-control" id="quick_client_name" name="name"
-                                        placeholder="مثال: محمد أحمد" required>
+                                        placeholder="{{ helperTrans('ingaz.client_name_example') }}" required>
                                     <div class="invalid-feedback" data-error-for="name"></div>
                                 </div>
                                 <div class="mb-3">
-                                    <label for="quick_client_phone" class="form-label">رقم الجوال</label>
+                                    <label for="quick_client_phone" class="form-label">{{ helperTrans('ingaz.phone') }}</label>
                                     <input type="text" class="form-control" id="quick_client_phone" name="phone"
                                         placeholder="05XXXXXXXX" required>
                                     <div class="invalid-feedback" data-error-for="phone"></div>
                                 </div>
-                                <small class="text-muted">سيتم تعيين كلمة مرور افتراضية للعميل الجديد: <strong>123456</strong></small>
+                                <small class="text-muted">{!! __('ingaz.default_client_password_notice', ['password' => '<strong>123456</strong>']) !!}</small>
                             </div>
                             <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ helperTrans('ingaz.cancel') }}</button>
                                 <button type="submit" class="btn btn-primary" id="quickRecruitmentSubmitBtn">
-                                    <i class="fa fa-check"></i> متابعة لاختيار السيرة
+                                    <i class="fa fa-check"></i> {{ helperTrans('ingaz.continue_to_select_cv') }}
                                 </button>
                             </div>
                         </form>
@@ -510,6 +510,59 @@
 
     <script src="{{ asset('admin') }}/assets/js/bundle/dataTables.bundle.js"></script>
     <script>
+        const orderTranslations = {
+            redirecting: @json(helperTrans('ingaz.quick_order_redirecting')),
+            errorTitle: @json(helperTrans('ingaz.error_title')),
+            successTitle: @json(helperTrans('ingaz.success')),
+            quickOrderCreateError: @json(helperTrans('ingaz.quick_order_create_error')),
+            loading: @json(helperTrans('ingaz.loading_text')),
+            emptyTable: @json(trans('dataTable.sZeroRecords')),
+            info: @json(trans('dataTable.sInfo')),
+            infoEmpty: @json(trans('dataTable.sInfoEmpty')),
+            infoFiltered: @json(trans('dataTable.sInfoFiltered')),
+            lengthMenu: @json(trans('dataTable.sLengthMenu')),
+            zeroRecords: @json(trans('dataTable.sZeroRecords')),
+            paginateFirst: @json(trans('dataTable.sFirst')),
+            paginateLast: @json(trans('dataTable.sLast')),
+            paginateNext: @json(trans('dataTable.sNext')),
+            paginatePrevious: @json(trans('dataTable.sPrevious')),
+            loadingEditForm: @json(helperTrans('ingaz.loading_edit_form')),
+            orderNotFound: @json(helperTrans('ingaz.order_not_found')),
+            serverError: @json(helperTrans('ingaz.server_error')),
+            serverConnectionFailed: @json(helperTrans('ingaz.server_connection_failed')),
+            orderIdNotFound: @json(helperTrans('ingaz.order_id_not_found')),
+            changeMaidInOrderNumber: @json(helperTrans('ingaz.change_maid_in_order_number')),
+            searchAvailableMaids: @json(helperTrans('ingaz.search_available_maids')),
+            searchByNameOrPassport: @json(helperTrans('ingaz.search_by_name_or_passport')),
+            searchAvailableMaidsHint: @json(helperTrans('ingaz.search_available_maids_hint')),
+            selectNewMaid: @json(helperTrans('ingaz.select_new_maid')),
+            selectNewMaidPlaceholder: @json(helperTrans('ingaz.select_new_maid_placeholder')),
+            availableMaidsLoading: @json(helperTrans('ingaz.available_maids_loading')),
+            previousMaidStatus: @json(helperTrans('ingaz.previous_maid_status')),
+            available: @json(helperTrans('ingaz.available')),
+            backout: @json(helperTrans('ingaz.backout')),
+            changeReasonOptional: @json(helperTrans('ingaz.change_reason_optional')),
+            changeReasonPlaceholder: @json(helperTrans('ingaz.change_reason_placeholder')),
+            cancel: @json(helperTrans('ingaz.cancel')),
+            saveChange: @json(helperTrans('ingaz.save_change')),
+            availableMaidsLoaded: @json(helperTrans('ingaz.available_maids_loaded')),
+            noAvailableMaids: @json(helperTrans('ingaz.no_available_maids')),
+            maidsLoadFailed: @json(helperTrans('ingaz.maids_load_failed')),
+            maidsLoadError: @json(helperTrans('ingaz.maids_load_error')),
+            selectNewMaidRequired: @json(helperTrans('ingaz.select_new_maid_required')),
+            selectPreviousMaidStatusRequired: @json(helperTrans('ingaz.select_previous_maid_status_required')),
+            confirmChangeMaidTitle: @json(helperTrans('ingaz.confirm_change_maid_title')),
+            confirmChangeMaidText: @json(helperTrans('ingaz.confirm_change_maid_text')),
+            yesChangeMaid: @json(helperTrans('ingaz.yes_change_maid')),
+            maidChangedSuccessfully: @json(helperTrans('ingaz.maid_changed_successfully')),
+            maidChangeFailed: @json(helperTrans('ingaz.maid_change_failed')),
+            maidChangeError: @json(helperTrans('ingaz.maid_change_error')),
+            comingSoon: @json(helperTrans('ingaz.coming_soon')),
+            featureUnderDevelopment: @json(helperTrans('ingaz.feature_under_development')),
+            deleteActionText: @json(helperTrans('ingaz.delete_item_confirm_text')),
+            deleteConfirmButton: @json(helperTrans('ingaz.yes_delete')),
+        };
+
         $(document).ready(function() {
             let columns = [{
                     "data": 'id',
@@ -618,7 +671,7 @@
                     resetQuickRecruitmentValidation();
 
                     quickRecruitmentSubmitBtn.prop('disabled', true).html(
-                        '<i class="fa fa-spinner fa-spin"></i> جاري التحويل...');
+                        `<i class="fa fa-spinner fa-spin"></i> ${orderTranslations.redirecting}`);
 
                     $.ajax({
                         url: '{{ route('orders.quickRecruitment') }}',
@@ -630,7 +683,7 @@
                         },
                         success: function(response) {
                             if (!response.success) {
-                                Swal.fire('خطأ', response.message || 'تعذر إنشاء الطلب السريع.', 'error');
+                                Swal.fire(orderTranslations.errorTitle, response.message || orderTranslations.quickOrderCreateError, 'error');
                                 quickRecruitmentSubmitBtn.prop('disabled', false).html(
                                     quickRecruitmentSubmitDefaultHtml);
                                 return;
@@ -656,7 +709,7 @@
                             }
 
                             if (!errors.name && !errors.phone) {
-                                Swal.fire('خطأ', response.message || 'تعذر إنشاء الطلب السريع.', 'error');
+                                Swal.fire(orderTranslations.errorTitle, response.message || orderTranslations.quickOrderCreateError, 'error');
                             }
 
                             quickRecruitmentSubmitBtn.prop('disabled', false).html(
@@ -720,19 +773,19 @@
                 },
                 columns: columns,
                 language: {
-                    processing: '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">جاري التحميل...</span></div>',
-                    loadingRecords: "جاري التحميل...",
-                    emptyTable: "لا توجد بيانات متاحة",
-                    info: "عرض _START_ إلى _END_ من _TOTAL_ سجل",
-                    infoEmpty: "عرض 0 إلى 0 من 0 سجل",
-                    infoFiltered: "(تمت التصفية من _MAX_ إجمالي السجلات)",
-                    lengthMenu: "عرض _MENU_ سجلات",
-                    zeroRecords: "لم يتم العثور على سجلات مطابقة",
+                    processing: `<div class="spinner-border text-primary" role="status"><span class="visually-hidden">${orderTranslations.loading}</span></div>`,
+                    loadingRecords: orderTranslations.loading,
+                    emptyTable: orderTranslations.emptyTable,
+                    info: orderTranslations.info,
+                    infoEmpty: orderTranslations.infoEmpty,
+                    infoFiltered: orderTranslations.infoFiltered,
+                    lengthMenu: orderTranslations.lengthMenu,
+                    zeroRecords: orderTranslations.zeroRecords,
                     paginate: {
-                        first: "الأول",
-                        last: "الأخير",
-                        next: "التالي",
-                        previous: "السابق"
+                        first: orderTranslations.paginateFirst,
+                        last: orderTranslations.paginateLast,
+                        next: orderTranslations.paginateNext,
+                        previous: orderTranslations.paginatePrevious
                     }
                 },
                 drawCallback: function() {
@@ -838,14 +891,14 @@
                                     dataTable.ajax.reload();
                                     // toastr.success(
                                     //     '{{ helperTrans('ingaz.order_deleted') }}');
-                                    Swal.fire('نجح!', response.message ||
+                                    Swal.fire(orderTranslations.successTitle, response.message ||
                                         '{{ helperTrans('ingaz.order_deleted_successfully') }}',
                                         'success');
                                 } else {
                                     dataTable.ajax.reload();
                                     // toastr.error(
                                     //     '{{ helperTrans('ingaz.delete_error') }}');
-                                    Swal.fire('خطأ!',
+                                    Swal.fire(orderTranslations.errorTitle,
                                         '{{ helperTrans('ingaz.delete_error') }}',
                                         'error');
                                 }
@@ -853,7 +906,7 @@
                             error: function() {
                                 // toastr.error(
                                 //     '{{ helperTrans('ingaz.delete_error') }}');
-                                Swal.fire('خطأ!',
+                                Swal.fire(orderTranslations.errorTitle,
                                     '{{ helperTrans('ingaz.delete_error') }}',
                                     'error');
                             }
@@ -917,9 +970,9 @@
                     <div class="modal-content">
                         <div class="modal-body text-center">
                             <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">جاري التحميل...</span>
+                                <span class="visually-hidden">${orderTranslations.loading}</span>
                             </div>
-                            <p class="mt-2">جاري تحميل نموذج التعديل...</p>
+                            <p class="mt-2">${orderTranslations.loadingEditForm}</p>
                         </div>
                     </div>
                 </div>
@@ -1110,11 +1163,11 @@
                         if (xhr.responseJSON && xhr.responseJSON.message) {
                             errorMessage = xhr.responseJSON.message;
                         } else if (xhr.status === 404) {
-                            errorMessage = 'الطلب غير موجود';
+                            errorMessage = orderTranslations.orderNotFound;
                         } else if (xhr.status === 500) {
-                            errorMessage = 'خطأ في الخادم';
+                            errorMessage = orderTranslations.serverError;
                         } else if (xhr.status === 0) {
-                            errorMessage = 'فشل في الاتصال بالخادم';
+                            errorMessage = orderTranslations.serverConnectionFailed;
                         }
 
                         toastr.error(errorMessage);
@@ -1358,7 +1411,7 @@
                     const adminId = $('#changeResponsibleForm select[name="admin_id"]').val();
                     if (!adminId) {
                         // toastr.error('{{ helperTrans('ingaz.please_select_employee') }}');
-                        Swal.fire('خطأ!', '{{ helperTrans('ingaz.please_select_employee') }}',
+                        Swal.fire(orderTranslations.errorTitle, '{{ helperTrans('ingaz.please_select_employee') }}',
                             'error');
                         return;
                     }
@@ -1379,20 +1432,20 @@
                                 // toastr.success(
                                 //     '{{ helperTrans('ingaz.responsible_updated') }}'
                                 // );
-                                Swal.fire('نجح!', response.message ||
+                                Swal.fire(orderTranslations.successTitle, response.message ||
                                     '{{ helperTrans('ingaz.responsible_updated') }}',
                                     'success');
                             } else {
                                 // toastr.error(response.message ||
                                 //     '{{ helperTrans('ingaz.update_error') }}');
-                                Swal.fire('خطأ!', response.message ||
+                                Swal.fire(orderTranslations.errorTitle, response.message ||
                                     '{{ helperTrans('ingaz.update_error') }}',
                                     'error');
                             }
                         },
                         error: function() {
                             // toastr.error('{{ helperTrans('ingaz.update_error') }}');
-                            Swal.fire('خطأ!',
+                            Swal.fire(orderTranslations.errorTitle,
                                 '{{ helperTrans('ingaz.update_error') }}', 'error'
                                 );
                         }
@@ -1489,21 +1542,21 @@
                                 dataTable.ajax.reload();
                                 // toastr.success(
                                 //     '{{ helperTrans('ingaz.order_updated') }}');
-                                Swal.fire('نجح!', response.message ||
+                                Swal.fire(orderTranslations.successTitle, response.message ||
                                     '{{ helperTrans('ingaz.order_updated') }}',
                                     'success');
                             } else {
                                 dataTable.ajax.reload();
                                 // toastr.error(
                                 //     '{{ helperTrans('ingaz.update_error') }}');
-                                Swal.fire('خطأ!', response.message ||
+                                Swal.fire(orderTranslations.errorTitle, response.message ||
                                     '{{ helperTrans('ingaz.update_error') }}',
                                     'error');
                             }
                         },
                         error: function() {
                             // toastr.error('{{ helperTrans('ingaz.update_error') }}');
-                            Swal.fire('خطأ!',
+                            Swal.fire(orderTranslations.errorTitle,
                                 '{{ helperTrans('ingaz.update_error') }}', 'error'
                                 );
                         }
@@ -1552,7 +1605,7 @@
                 $('.dropdown-item').each(function() {
                     let text = $(this).text();
                     // Remove any repeated "الإجراءات" text
-                    text = text.replace(/الإجراءات/g, '').trim();
+                    text = text.replace(@json(helperTrans('ingaz.actions')), '').trim();
                     // Remove any extra spaces
                     text = text.replace(/\s+/g, ' ').trim();
                     $(this).text(text);
@@ -1689,7 +1742,7 @@
                     window.location.href = '{{ route('RecruitmentContract.create') }}?orderId=' + orderId;
                 } else {
                     console.error('Order ID not found!');
-                    Swal.fire('خطأ!', 'لم يتم العثور على معرف الطلب', 'error');
+                    Swal.fire(orderTranslations.errorTitle, orderTranslations.orderIdNotFound, 'error');
                 }
             });
 
@@ -1702,7 +1755,7 @@
                     showChangeMaidModal(orderId);
                 } else {
                     console.error('Order ID not found!');
-                    Swal.fire('خطأ!', 'لم يتم العثور على معرف الطلب', 'error');
+                    Swal.fire(orderTranslations.errorTitle, orderTranslations.orderIdNotFound, 'error');
                 }
             });
 
@@ -1752,7 +1805,7 @@
                     <div class="modal-header">
                         <h5 class="modal-title" id="changeMaidOrderModalLabel">
                             <i class="fas fa-exchange-alt"></i>
-                            تغيير العاملة في الطلب رقم #${orderId}
+                            ${orderTranslations.changeMaidInOrderNumber.replace(':id', orderId)}
                         </h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
@@ -1765,11 +1818,11 @@
                                     <div class="form-group mb-3">
                                         <label for="maid_search_order" class="form-label">
                                             <i class="fas fa-search"></i>
-                                            البحث في العاملات
+                                            ${orderTranslations.searchAvailableMaids}
                                         </label>
                                         <div class="input-group">
                                             <input type="text" class="form-control" id="maid_search_order"
-                                                   placeholder="ابحث بالاسم أو رقم الجواز..."
+                                                   placeholder="${orderTranslations.searchByNameOrPassport}"
                                                    onkeyup="searchMaidsOrderWithDelay(this.value)"
                                                    onkeydown="handleSearchOrderKeydown(event)">
                                             <button class="btn btn-outline-secondary" type="button" onclick="clearOrderSearch()">
@@ -1777,20 +1830,20 @@
                                             </button>
                                         </div>
                                         <small class="form-text text-muted">
-                                            اكتب للبحث في العاملات المتاحات - اضغط Enter لفتح القائمة
+                                            ${orderTranslations.searchAvailableMaidsHint}
                                         </small>
                                     </div>
 
                                     <div class="form-group mb-3">
                                         <label for="new_maid_id_order" class="form-label">
                                             <i class="fas fa-user-plus"></i>
-                                            اختيار العاملة الجديدة
+                                            ${orderTranslations.selectNewMaid}
                                         </label>
                                         <select class="form-control" id="new_maid_id_order" name="new_maid_id" required>
-                                            <option value="">اختر العاملة الجديدة...</option>
+                                            <option value="">${orderTranslations.selectNewMaidPlaceholder}</option>
                                         </select>
                                         <small class="form-text text-muted">
-                                            سيتم تحميل العاملات المتاحات...
+                                            ${orderTranslations.availableMaidsLoading}
                                         </small>
                                     </div>
                                 </div>
@@ -1798,14 +1851,14 @@
                                     <div class="form-group mb-3">
                                         <label class="form-label">
                                             <i class="fas fa-user-minus"></i>
-                                            حالة العاملة السابقة
+                                            ${orderTranslations.previousMaidStatus}
                                         </label>
                                         <div class="form-check">
                                             <input class="form-check-input" type="radio" name="old_maid_status"
                                                    id="status_available_order" value="available" required>
                                             <label class="form-check-label" for="status_available_order">
                                                 <i class="fas fa-check text-success"></i>
-                                                متاحة
+                                                ${orderTranslations.available}
                                             </label>
                                         </div>
                                         <div class="form-check">
@@ -1813,7 +1866,7 @@
                                                    id="status_unavailable_order" value="backout" required>
                                             <label class="form-check-label" for="status_unavailable_order">
                                                 <i class="fas fa-ban text-danger"></i>
-                                                باك اوت
+                                                ${orderTranslations.backout}
                                             </label>
                                         </div>
                                     </div>
@@ -1823,21 +1876,21 @@
                             <div class="form-group mb-3">
                                 <label for="reason_order" class="form-label">
                                     <i class="fas fa-comment"></i>
-                                    سبب التغيير (اختياري)
+                                    ${orderTranslations.changeReasonOptional}
                                 </label>
                                 <textarea class="form-control" id="reason_order" name="reason" rows="3"
-                                          placeholder="اكتب سبب تغيير العاملة..."></textarea>
+                                          placeholder="${orderTranslations.changeReasonPlaceholder}"></textarea>
                             </div>
                         </form>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                             <i class="fas fa-times"></i>
-                            إلغاء
+                            ${orderTranslations.cancel}
                         </button>
                         <button type="button" class="btn btn-primary" onclick="submitChangeMaidOrder()">
                             <i class="fas fa-save"></i>
-                            حفظ التغيير
+                            ${orderTranslations.saveChange}
                         </button>
                     </div>
                 </div>
@@ -1877,7 +1930,7 @@
                     if (response.success && response.maids) {
                         const select = $('#new_maid_id_order');
                         select.empty();
-                        select.append('<option value="">اختر العاملة الجديدة...</option>');
+                        select.append(`<option value="">${orderTranslations.selectNewMaidPlaceholder}</option>`);
 
                         if (response.maids.length > 0) {
                             response.maids.forEach(function(maid) {
@@ -1886,18 +1939,18 @@
                                 select.append(`<option value="${maid.id}">${optionText}</option>`);
                             });
 
-                            select.siblings('.form-text').text(`تم تحميل ${response.maids.length} عاملة متاحة`);
+                            select.siblings('.form-text').text(orderTranslations.availableMaidsLoaded.replace(':count', response.maids.length));
                         } else {
-                            select.siblings('.form-text').text('لا توجد عاملات متاحة');
+                            select.siblings('.form-text').text(orderTranslations.noAvailableMaids);
                         }
                     } else {
                         console.error('Failed to load maids:', response);
-                        $('#new_maid_id_order').siblings('.form-text').text('فشل في تحميل العاملات');
+                        $('#new_maid_id_order').siblings('.form-text').text(orderTranslations.maidsLoadFailed);
                     }
                 },
                 error: function(xhr) {
                     console.error('Error loading maids:', xhr);
-                    $('#new_maid_id_order').siblings('.form-text').text('حدث خطأ أثناء تحميل العاملات');
+                    $('#new_maid_id_order').siblings('.form-text').text(orderTranslations.maidsLoadError);
                 }
             });
         }
@@ -1940,25 +1993,25 @@
 
             // التحقق من البيانات
             if (!formData.get('new_maid_id')) {
-                Swal.fire('خطأ!', 'يرجى اختيار العاملة الجديدة', 'error');
+                Swal.fire(orderTranslations.errorTitle, orderTranslations.selectNewMaidRequired, 'error');
                 return;
             }
 
             if (!formData.get('old_maid_status')) {
-                Swal.fire('خطأ!', 'يرجى اختيار حالة العاملة السابقة', 'error');
+                Swal.fire(orderTranslations.errorTitle, orderTranslations.selectPreviousMaidStatusRequired, 'error');
                 return;
             }
 
             // تأكيد العملية
             Swal.fire({
-                title: 'تأكيد تغيير العاملة',
-                text: 'هل أنت متأكد من تغيير العاملة في هذا الطلب؟',
+                title: orderTranslations.confirmChangeMaidTitle,
+                text: orderTranslations.confirmChangeMaidText,
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#28a745',
                 cancelButtonColor: '#6c757d',
-                confirmButtonText: 'نعم، غير العاملة',
-                cancelButtonText: 'إلغاء'
+                confirmButtonText: orderTranslations.yesChangeMaid,
+                cancelButtonText: orderTranslations.cancel
             }).then((result) => {
                 if (result.isConfirmed) {
                     // إرسال البيانات
@@ -1975,21 +2028,21 @@
                             console.log('Change maid response:', response);
 
                             if (response.success) {
-                                Swal.fire('نجح!', response.message || 'تم تغيير العاملة بنجاح',
+                                Swal.fire(orderTranslations.successTitle, response.message || orderTranslations.maidChangedSuccessfully,
                                     'success');
                                 $('#changeMaidOrderModal').modal('hide');
                                 dataTable.ajax.reload();
                             } else {
-                                Swal.fire('خطأ!', response.message || 'فشل في تغيير العاملة', 'error');
+                                Swal.fire(orderTranslations.errorTitle, response.message || orderTranslations.maidChangeFailed, 'error');
                             }
                         },
                         error: function(xhr) {
                             console.error('Error changing maid:', xhr);
-                            let message = 'حدث خطأ أثناء تغيير العاملة';
+                            let message = orderTranslations.maidChangeError;
                             if (xhr.responseJSON && xhr.responseJSON.message) {
                                 message = xhr.responseJSON.message;
                             }
-                            Swal.fire('خطأ!', message, 'error');
+                            Swal.fire(orderTranslations.errorTitle, message, 'error');
                         }
                     });
                 }
@@ -1998,17 +2051,17 @@
 
         function showChangeResponsibleModal(orderId) {
             // This function can be implemented similar to change maid
-            Swal.fire('قريباً!', 'هذه الميزة قيد التطوير', 'info');
+            Swal.fire(orderTranslations.comingSoon, orderTranslations.featureUnderDevelopment, 'info');
         }
 
         function refuseOrder(orderId) {
             // This function can be implemented to refuse orders
-            Swal.fire('قريباً!', 'هذه الميزة قيد التطوير', 'info');
+            Swal.fire(orderTranslations.comingSoon, orderTranslations.featureUnderDevelopment, 'info');
         }
 
         function deleteOrder(orderId) {
             // This function can be implemented to delete orders
-            Swal.fire('قريباً!', 'هذه الميزة قيد التطوير', 'info');
+            Swal.fire(orderTranslations.comingSoon, orderTranslations.featureUnderDevelopment, 'info');
         }
     </script>
 @endsection

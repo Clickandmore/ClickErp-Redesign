@@ -91,7 +91,7 @@
                         </tbody>
                     </table>
                     <div class="mt-3">
-                        {{ $smsLogs->links() }}
+                        {{ $smsLogs->onEachSide(1)->links('pagination::bootstrap-4') }}
                     </div>
                 </div>
             </div>

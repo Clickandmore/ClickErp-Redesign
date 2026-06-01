@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use Illuminate\Auth\Middleware\Authenticate as Middleware;
+use Illuminate\Support\Facades\Route;
 
 class Authenticate extends Middleware
 {
@@ -15,10 +16,17 @@ class Authenticate extends Middleware
     protected function redirectTo($request)
     {
         if (! $request->expectsJson()) {
-            if ($request->is('admin*')) {
+            $supportedLocales = array_keys(config('laravellocalization.supportedLocales', []));
+            $firstSegment = $request->segment(1);
+            $adminSegment = in_array($firstSegment, $supportedLocales, true)
+                ? $request->segment(2)
+                : $firstSegment;
+
+            if ($adminSegment === 'admin' || $adminSegment === 'dashboard') {
                 return route('admin.form.login');
             }
-            return route('login');
+
+            return Route::has('login') ? route('login') : route('admin.form.login');
         }
     }
 }

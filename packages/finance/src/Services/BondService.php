@@ -300,6 +300,7 @@ class BondService extends MainService
             $constraintId = $obj->constraint_id;
             $obj->update(['constraint_id' => null]);
             $constraint = $this->constraintService->find($constraintId);
+            $constraint->constraintDetails()->delete();
             $constraint->delete();
             $this->confirmBond($id);
         }

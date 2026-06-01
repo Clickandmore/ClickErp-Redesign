@@ -884,6 +884,7 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
     <a class="m-link
     {{ in_array(Route::currentRouteName(), [
         'finance.income-list.index',
+        'finance.profit-loss.index',
         'finance.audit-budget-supplier.index',
         'finance.trail-balance.index',
         'finance.audit-budget-monthly.index',
@@ -900,6 +901,7 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
     <ul class="sub-menu collapse
                                      {{ in_array(Route::currentRouteName(), [
                                          'finance.income-list.index',
+                                         'finance.profit-loss.index',
                                          'finance.audit-budget-supplier.index',
                                          'finance.trail-balance.index',
                                          'finance.audit-budget-monthly.index',
@@ -917,6 +919,12 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
             </a>
         </li>
         {{--        @endif --}}
+        <li>
+            <a class="m-link {{ Route::currentRouteName() == 'finance.profit-loss.index' ? 'active' : '' }}"
+                href="{{ route('finance.profit-loss.index') }}">
+                <span class="ms-2"> {{ helperTrans('finance::finance.profit_loss_statement') }} </span>
+            </a>
+        </li>
         {{--        @if (in_array('finance.trail-balance-read', $user_permission_list)) --}}
         <li>
             <a class="m-link {{ Route::currentRouteName() == 'finance.trail-balance.index' ? 'active' : '' }}"

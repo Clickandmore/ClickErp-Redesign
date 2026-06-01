@@ -54,14 +54,14 @@
     <div class="row g-3 m-2 to_hide">
         <div class="col">
             <label for="TextInput" class="form-label"> {{ __('finance::finance.From Date') }}</label>
-            <input type="date" name="from_date" value="{{ date('Y-m-d', time()) }}" class="form-control search_keys"
+            <input type="date" name="from_date" value="{{ date('Y-01-01') }}" class="form-control search_keys"
                 id="from_date">
         </div>
 
         <div class="col">
             <label for="TextInput" class="form-label"> {{ __('finance::finance.To Date') }}</label>
             <input type="date" name="to_date" value="{{ date('Y-m-d', time()) }}" class="form-control search_keys"
-                id="from_date">
+                id="to_date">
         </div>
 
         <div class="col">
@@ -77,8 +77,7 @@
 @section('js')
     <script>
         $('.select2').select2();
-        $("#search_button").on("click", function(e) {
-            e.preventDefault()
+        function loadIncomeList() {
             var emptyFields = $(".search_keys").filter(function() {
                 return $(this).val() === "";
             });
@@ -108,7 +107,13 @@
                     }
                 });
             }
+        }
 
+        $("#search_button").on("click", function(e) {
+            e.preventDefault();
+            loadIncomeList();
         });
+
+        loadIncomeList();
     </script>
 @endsection

@@ -73,13 +73,17 @@
                     <span>{{ $phone }} 966+</span>
                 </label>
 
+                @php
+                    $fixedOtpCode = $fixedOtpCode ?? null;
+                    $fixedOtpDigits = $fixedOtpCode ? str_split($fixedOtpCode) : [];
+                @endphp
                 <div class="otp">
-                    <input class="otp-input" type="text" maxlength="1"/>
-                    <input class="otp-input" type="text" maxlength="1"/>
-                    <input class="otp-input" type="text" maxlength="1"/>
-                    <input class="otp-input" type="text" maxlength="1"/>
-                    <input class="otp-input" type="text" maxlength="1"/>
-                    <input class="otp-value" type="hidden" name="code"/>
+                    <input class="otp-input" type="text" maxlength="1" value="{{ $fixedOtpDigits[0] ?? '' }}"/>
+                    <input class="otp-input" type="text" maxlength="1" value="{{ $fixedOtpDigits[1] ?? '' }}"/>
+                    <input class="otp-input" type="text" maxlength="1" value="{{ $fixedOtpDigits[2] ?? '' }}"/>
+                    <input class="otp-input" type="text" maxlength="1" value="{{ $fixedOtpDigits[3] ?? '' }}"/>
+                    <input class="otp-input" type="text" maxlength="1" value="{{ $fixedOtpDigits[4] ?? '' }}"/>
+                    <input class="otp-value" type="hidden" name="code" value="{{ $fixedOtpCode ?? '' }}"/>
                     <input type="hidden" name="phone" value="{{ $phone }}"/>
                 </div>
                 <div id="resend-container" class="d-flex align-items-center justify-content-between gap-2">

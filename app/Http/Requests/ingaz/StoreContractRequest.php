@@ -5,6 +5,7 @@ namespace App\Http\Requests\ingaz;
 use App\Http\Requests\MainRequest;
 use Illuminate\Foundation\Http\FormRequest;
 use App\Models\ingaz\Order;
+use App\Models\ingaz\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Illuminate\Contracts\Validation\Validator;
@@ -71,6 +72,21 @@ class StoreContractRequest extends MainRequest
             }
         }
 
+        if (
+            !$this->filled('client_id')
+            && !$this->filled('new_existing_client_id')
+            && $this->input('client_type') === 'new_client'
+            && ($normalizedData['client_phone'] ?? $this->filled('client_phone'))
+        ) {
+            $clientPhone = $normalizedData['client_phone'] ?? $this->input('client_phone');
+            $existingClient = $this->findClientByPhone($clientPhone);
+
+            if ($existingClient) {
+                $normalizedData['client_id'] = $existingClient->id;
+                $normalizedData['new_existing_client_id'] = $existingClient->id;
+            }
+        }
+
         if (!empty($normalizedData)) {
             $this->merge($normalizedData);
         }
@@ -89,6 +105,11 @@ class StoreContractRequest extends MainRequest
             $marketerRules[] = Rule::in([$currentAdmin->id]);
         }
 
+        $selectedClientId = $this->input('client_id') ?: $this->input('new_existing_client_id');
+        $clientPhoneRules = $selectedClientId
+            ? ['nullable']
+            : ['required_if:client_type,new_client', Rule::unique('users', 'phone')];
+
         return [
             'contract_date' => 'required',
             'msaned_number' => 'required',
@@ -100,11 +121,9 @@ class StoreContractRequest extends MainRequest
             'order_id' => 'required_if:client_type,ex_client',
             'client_type' => 'required|in:new_client,ex_client',
             'client_id' => 'nullable|exists:users,id',
+            'new_existing_client_id' => 'nullable|exists:users,id',
             'client_name' => 'required_if:client_type,new_client',
-            'client_phone' => [
-                'required_if:client_type,new_client',
-                Rule::unique('users', 'phone')->ignore($this->input('client_id')),
-            ],
+            'client_phone' => $clientPhoneRules,
             'client_nationality_id' => 'required_if:client_type,new_client',
             'client_email' => 'nullable|email',
             'new_client_national_num' => 'nullable',
@@ -222,5 +241,51 @@ class StoreContractRequest extends MainRequest
         }
 
         return $value;
+    }
+
+    private function findClientByPhone(?string $phone): ?User
+    {
+        $phoneCandidates = $this->phoneCandidates($phone);
+
+        if (empty($phoneCandidates)) {
+            return null;
+        }
+
+        return User::whereIn('phone', $phoneCandidates)->first();
+    }
+
+    private function phoneCandidates(?string $phone): array
+    {
+        $phone = trim((string) $phone);
+        $normalizedPhone = $this->normalizeSaudiPhone($phone);
+
+        return array_values(array_unique(array_filter([
+            $phone,
+            $normalizedPhone,
+            $normalizedPhone ? '0' . $normalizedPhone : null,
+            $normalizedPhone ? '966' . $normalizedPhone : null,
+            $normalizedPhone ? '+966' . $normalizedPhone : null,
+        ])));
+    }
+
+    private function normalizeSaudiPhone(string $phone): ?string
+    {
+        $digits = preg_replace('/\D+/', '', $phone);
+
+        if (!$digits) {
+            return null;
+        }
+
+        if (str_starts_with($digits, '00966')) {
+            $digits = substr($digits, 5);
+        } elseif (str_starts_with($digits, '966')) {
+            $digits = substr($digits, 3);
+        }
+
+        if (str_starts_with($digits, '05')) {
+            $digits = substr($digits, 1);
+        }
+
+        return preg_match('/^5\d{8}$/', $digits) ? $digits : null;
     }
 }

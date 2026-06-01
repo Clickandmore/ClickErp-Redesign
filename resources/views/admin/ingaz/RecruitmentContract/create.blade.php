@@ -898,7 +898,7 @@
                                 <div id="order-selection" class="col-12 mb-4">
                                     <label class="form-label">{{ helperTrans('ingaz.select_order') }}</label>
                                     <select name="order_id" id="order_id" class="form-select form-control select2"
-                                        data-placeholder="اختر طلب استقدام تحت الإجراء"
+                                        data-placeholder="اختر طلب استقدام بدون عقد"
                                         data-validation="required">
                                         <option disabled selected>{{ helperTrans('ingaz.choose') }}</option>
                                         @foreach ($orders as $order)
@@ -934,8 +934,8 @@
                                             </option>
                                         @endforeach
                                     </select>
-                                    <div class="contract-field-hint">تظهر هنا فقط طلبات الاستقدام في حالة
-                                        <strong>تحت الإجراء</strong>.
+                                    <div class="contract-field-hint">تظهر هنا فقط طلبات الاستقدام بدون عقد في حالة
+                                        <strong>تحت الإجراء</strong> أو الحالات المنتهية التي تحتاج إضافة عقد.
                                     </div>
                                 </div>
 
@@ -1090,8 +1090,33 @@
         }
 
         function select2SelectedData(selector) {
+            if (!$.fn.select2 || !$(selector).data('select2')) {
+                return {};
+            }
+
             var data = $(selector).select2('data');
             return data && data.length ? data[0] : {};
+        }
+
+        function destroySelect2IfInitialized($element) {
+            if (!$.fn.select2 || !$element.length || !$element.data('select2')) {
+                return;
+            }
+
+            $element.select2('destroy');
+        }
+
+        function refreshSelect2IfInitialized(selector) {
+            if (!$.fn.select2) {
+                return;
+            }
+
+            var $element = $(selector);
+            if (!$element.length || !$element.data('select2')) {
+                return;
+            }
+
+            $element.trigger('change.select2');
         }
 
         function optionOrAjaxData($option, ajaxData, key, attrName) {
@@ -1303,9 +1328,7 @@
             });
 
             $('.ajax-client-select').each(function() {
-                if ($(this).hasClass('select2-hidden-accessible')) {
-                    $(this).select2('destroy');
-                }
+                destroySelect2IfInitialized($(this));
 
                 $(this).select2({
                     placeholder: $(this).data('placeholder') || 'ابحث عن العميل...',
@@ -1332,9 +1355,7 @@
             });
 
             $('.ajax-maid-select').each(function() {
-                if ($(this).hasClass('select2-hidden-accessible')) {
-                    $(this).select2('destroy');
-                }
+                destroySelect2IfInitialized($(this));
 
                 $(this).select2({
                     placeholder: $(this).data('placeholder') || 'ابحث عن العاملة...',
@@ -1424,12 +1445,9 @@
                                 $('#experience_years').val(data.experience_years || '');
                                 $('#age').val(data.age || '');
 
-                                // Force update of Select2 if it exists
-                                if ($.fn.select2) {
-                                    $('#maid_nationality').select2('destroy').select2();
-                                    $('#maid_religion').select2('destroy').select2();
-                                    $('#maid_job').select2('destroy').select2();
-                                }
+                                refreshSelect2IfInitialized('#maid_nationality');
+                                refreshSelect2IfInitialized('#maid_religion');
+                                refreshSelect2IfInitialized('#maid_job');
                             },
                             error: function(error) {
                                 console.error('Error fetching maid details:', error);
@@ -1488,12 +1506,9 @@
                     $('#experience_years').val(selectedOption.data('experience'));
                     $('#age').val(selectedOption.data('age'));
 
-                    // Force update of Select2 if it exists
-                    if ($.fn.select2) {
-                        $('#maid_nationality').select2('destroy').select2();
-                        $('#maid_religion').select2('destroy').select2();
-                        $('#maid_job').select2('destroy').select2();
-                    }
+                    refreshSelect2IfInitialized('#maid_nationality');
+                    refreshSelect2IfInitialized('#maid_religion');
+                    refreshSelect2IfInitialized('#maid_job');
 
                     // Disable fields again after setting values
                     setTimeout(function() {
@@ -1583,16 +1598,9 @@
                             console.log('Setting age:', data.age);
                             $('#age').val(data.age || '');
 
-                            // Force update of Select2 if it exists
-                            if ($.fn.select2) {
-                                try {
-                                    $('#maid_nationality').select2('destroy').select2();
-                                    $('#maid_religion').select2('destroy').select2();
-                                    $('#maid_job').select2('destroy').select2();
-                                } catch (e) {
-                                    console.log('Select2 error:', e);
-                                }
-                            }
+                            refreshSelect2IfInitialized('#maid_nationality');
+                            refreshSelect2IfInitialized('#maid_religion');
+                            refreshSelect2IfInitialized('#maid_job');
 
                             // Disable fields again after setting values
                             setTimeout(function() {
@@ -2580,6 +2588,7 @@
                 formData.append('client_type', 'new_client');
                 if (clientId && /^\d+$/.test(String(clientId))) {
                     formData.append('client_id', clientId);
+                    formData.append('new_existing_client_id', clientId);
                 }
                 formData.append('maid_selection_mode', maidSelectionMode);
                 formData.append('maid_id', maidSelectionMode === 'existing' && maidId ? maidId : '');

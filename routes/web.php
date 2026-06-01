@@ -17,6 +17,8 @@ use App\Http\Controllers\Web\NotificationController;
 use App\Http\Controllers\Web\OrderController;
 use App\Http\Controllers\Web\ReturnRequestController;
 use App\Http\Controllers\Web\UserAddressController;
+use App\Services\Zoho\SalesIqClient;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
@@ -68,6 +70,29 @@ Route::get('/check-tazker-contracts', [AdminContractController::class, 'checkTaz
 Route::get('/check-warranty-contracts', [AdminContractController::class, 'checkWarrantyContracts'])->name('check.warranty.contracts');
 
 /** END NEW ROUTES */
+Route::get('/zoho/salesiq/oauth/callback', function (Request $request, SalesIqClient $salesIq) {
+    if ($request->filled('error')) {
+        return response('Zoho OAuth error: ' . $request->query('error'), 400)
+            ->header('Content-Type', 'text/plain; charset=UTF-8');
+    }
+
+    if (!$request->filled('code')) {
+        return response('Missing Zoho authorization code.', 400)
+            ->header('Content-Type', 'text/plain; charset=UTF-8');
+    }
+
+    $tokens = $salesIq->exchangeCodeForTokens((string) $request->query('code'));
+    $refreshToken = $tokens['refresh_token'] ?? null;
+
+    if (!$refreshToken) {
+        return response("Zoho did not return a refresh_token.\n\nResponse:\n" . json_encode($tokens, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE), 400)
+            ->header('Content-Type', 'text/plain; charset=UTF-8');
+    }
+
+    return response("Add this value to .env:\n\nZOHO_SALESIQ_REFRESH_TOKEN={$refreshToken}\n\nThen run:\nphp artisan config:clear\nphp artisan salesiq:visitors --limit=10", 200)
+        ->header('Content-Type', 'text/plain; charset=UTF-8');
+})->name('zoho.salesiq.oauth.callback');
+
 Route::get('apis-generate', function () {
 
 

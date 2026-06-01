@@ -195,7 +195,7 @@
             <div class="client-edit-header">
                 <div>
                     <h4>{{ helperTrans('ingaz.edit_client') }}</h4>
-                    <p>الحقول المطلوبة: اسم العميل ورقم الجوال فقط، ويمكن تعديل بقية البيانات عند الحاجة.</p>
+                    <p>{{ helperTrans('ingaz.client_edit_required_fields_hint') }}</p>
                 </div>
 
                 <a href="{{ route('clients.index') }}" class="btn btn-outline-secondary">
@@ -213,8 +213,8 @@
                     <div class="card-body">
                         <div class="section-heading">
                             <i class="fas fa-user-edit"></i>
-                            <span>البيانات الأساسية</span>
-                            <span class="required-label">مطلوب</span>
+                            <span>{{ helperTrans('ingaz.basic_information') }}</span>
+                            <span class="required-label">{{ helperTrans('ingaz.required') }}</span>
                         </div>
 
                         <div class="row g-3">
@@ -240,9 +240,9 @@
                     <div class="card-header">
                         <div class="section-heading mb-0">
                             <i class="fas fa-id-card"></i>
-                            <span>بيانات إضافية</span>
+                            <span>{{ helperTrans('ingaz.additional_information') }}</span>
                         </div>
-                        <span class="optional-label">اختياري</span>
+                        <span class="optional-label">{{ helperTrans('ingaz.optional') }}</span>
                     </div>
 
                     <div class="card-body">

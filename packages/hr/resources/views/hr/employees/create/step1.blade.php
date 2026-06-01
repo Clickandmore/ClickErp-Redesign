@@ -40,17 +40,16 @@
     </div>
 
     <div class="col-md-4 col-12">
-        <label for="country_name" class="form-label"> {{ __("hr::hr.nationality") }}   <i class="fa fa-asterisk text-danger fs-10"></i> </label>
-        <input type="search" id="country_name" class="form-control employee-country-input" list="countries_list" data-target="#country_id" placeholder="{{ __("hr::hr.Search by nationality or country") }}" data-validation="required" autocomplete="off">
-        <input type="hidden" id="country_id" name="country_id" value="">
-        <datalist id="countries_list">
-            @foreach ($countries as $country)
+        <label for="country_id" class="form-label"> {{ __("hr::hr.nationality") }}   <i class="fa fa-asterisk text-danger fs-10"></i> </label>
+        <select id="country_id" name="country_id" class="form-control employee-country-select" data-validation="required" data-placeholder="{{ __("hr::hr.Search by nationality or country") }}" style="width: 100%;">
+            <option value="">{{ __("hr::hr.Search by nationality or country") }}</option>
+            @foreach ($hrCountries as $country)
                 @php
                     $countryLabel = trim((string) ($country->name ?? '')) ?: __("hr::hr.Countries") . ' #' . $country->id;
                 @endphp
-                <option value="{{ $countryLabel }}" data-id="{{ $country->id }}"></option>
+                <option value="{{ $country->id }}" @selected((string) old('country_id') === (string) $country->id)>{{ $countryLabel }}</option>
             @endforeach
-        </datalist>
+        </select>
         <small class="text-muted d-block mt-2">{{ __("hr::hr.Nationality search hint") }}</small>
     </div>
 

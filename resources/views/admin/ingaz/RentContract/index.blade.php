@@ -5,6 +5,235 @@
 
     <!-- الملفات المحلية -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"> --}}
+    <style>
+        #dataTableObject {
+            border-collapse: separate !important;
+            border-spacing: 0;
+        }
+
+        #dataTableObject_wrapper {
+            overflow-x: auto;
+            overflow-y: visible;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 0.5rem;
+        }
+
+        #dataTableObject th:last-child,
+        #dataTableObject td:last-child {
+            position: -webkit-sticky !important;
+            position: sticky !important;
+            right: 0;
+            z-index: 6;
+            background: #fff;
+            min-width: 155px;
+            box-shadow: -8px 0 14px rgba(0, 0, 0, 0.06);
+        }
+
+        #dataTableObject thead th:last-child {
+            z-index: 8;
+            background: #f8f9fa;
+        }
+
+        html[dir="rtl"] #dataTableObject th:last-child,
+        html[dir="rtl"] #dataTableObject td:last-child {
+            right: auto;
+            left: 0;
+            box-shadow: 8px 0 14px rgba(0, 0, 0, 0.06);
+        }
+
+        #dataTableObject .actions-dropdown {
+            position: static !important;
+        }
+
+        #dataTableObject .actions-dropdown .dropdown-menu.dropdown-menu-end {
+            position: fixed !important;
+            right: auto !important;
+            bottom: auto !important;
+            transform: none !important;
+            z-index: 2147483647 !important;
+            max-height: calc(100vh - 24px);
+            overflow-y: auto;
+            will-change: top, left;
+        }
+
+        .rent-contract-actions-menu.dropdown-menu,
+        #dataTableObject .actions-dropdown .dropdown-menu.dropdown-menu-end.show {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            position: fixed !important;
+            right: auto !important;
+            bottom: auto !important;
+            transform: none !important;
+            z-index: 2147483647 !important;
+            max-height: calc(100vh - 24px);
+            overflow-y: auto;
+        }
+
+        .extend-contract-modal .modal-content {
+            border: 0;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .extend-contract-modal .modal-header {
+            background: #0f766e;
+            border-bottom: 0;
+        }
+
+        .extend-summary-band {
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 14px;
+        }
+
+        .extend-stat-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .extend-stat {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 10px;
+            min-height: 74px;
+        }
+
+        .extend-stat-label {
+            color: #64748b;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        .extend-stat-value {
+            color: #111827;
+            font-weight: 700;
+            font-size: 15px;
+            word-break: break-word;
+        }
+
+        .extend-status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border-radius: 999px;
+            padding: 7px 12px;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .extend-status-pill.is-ok {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .extend-status-pill.is-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .extend-status-pill.is-danger {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .extend-preview-box {
+            border: 1px solid #bfdbfe;
+            background: #eff6ff;
+            border-radius: 10px;
+            padding: 14px;
+        }
+
+        .close-contract-modal .modal-content {
+            border: 0;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .close-contract-modal .modal-header {
+            background: #155e75;
+            border-bottom: 0;
+        }
+
+        .close-section-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            background: #fff;
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        .close-section-card .section-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 14px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e5e7eb;
+            color: #111827;
+            font-weight: 700;
+        }
+
+        .close-section-card .section-body {
+            padding: 14px;
+        }
+
+        .close-option-card {
+            height: 100%;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 16px;
+            background: #fff;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .close-option-card:hover {
+            border-color: #94a3b8;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+        }
+
+        .close-option-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+        }
+
+        .close-option-list {
+            padding-right: 18px;
+            margin-bottom: 16px;
+            color: #475569;
+            font-size: 13px;
+            line-height: 1.8;
+            text-align: right;
+        }
+
+        .transfer-summary-box {
+            border: 1px solid #fde68a;
+            background: #fffbeb;
+            border-radius: 10px;
+            padding: 12px 14px;
+            color: #78350f;
+        }
+
+        @media (max-width: 991.98px) {
+            .extend-stat-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 575.98px) {
+            .extend-stat-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 @endsection
 
 @section('page-title')
@@ -38,6 +267,10 @@
                     <a href="{{ route('rent-contract.settings') }}" class="btn btn-info me-2">
                         <i class="fas fa-sliders-h me-2"></i>
                         إعدادات العقد
+                    </a>
+                    <a href="{{ route('form-settings.index') }}#editor-rental-contract" class="btn btn-secondary me-2">
+                        <i class="fas fa-file-signature me-2"></i>
+                        إعدادات نصوص العقد
                     </a>
                 @endif
                 @if ($canManageRentContractTerms)
@@ -197,6 +430,7 @@
                             <option value="transferred" {{ request('status') === 'transferred' ? 'selected' : '' }}>تم النقل</option>
                             <option value="cancelled" {{ request('status') === 'cancelled' ? 'selected' : '' }}>ملغي</option>
                             <option value="suspended" {{ request('status') === 'suspended' ? 'selected' : '' }}>معلق</option>
+                            <option value="frozen" {{ request('status') === 'frozen' ? 'selected' : '' }}>مجمد</option>
                         </select>
                     </div>
 
@@ -338,9 +572,9 @@
     <!-- Modal لإغلاق العقد -->
     <div class="modal fade" id="closeContractModal" tabindex="-1" aria-labelledby="closeContractModalLabel"
         aria-hidden="true">
-        <div class="modal-dialog modal-xl">
+        <div class="modal-dialog modal-xl close-contract-modal">
             <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
+                <div class="modal-header text-white">
                     <h5 class="modal-title" id="closeContractModalLabel">
                         <i class="fas fa-times-circle me-2"></i>
                         إنهاء عقد الإيجار
@@ -352,11 +586,9 @@
                     <!-- معلومات العقد -->
                     <div class="row mb-4">
                         <div class="col-12">
-                            <div class="card bg-light">
-                                <div class="card-header">
-                                    <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>معلومات العقد</h6>
-                                </div>
-                                <div class="card-body">
+                            <div class="close-section-card">
+                                <div class="section-title"><i class="fas fa-info-circle"></i>معلومات العقد</div>
+                                <div class="section-body">
                                     <div class="row" id="contractDetails">
                                         <div class="col-md-3">
                                             <strong>رقم العقد:</strong>
@@ -396,13 +628,24 @@
                         </div>
                     </div>
 
-                    <div class="row mb-4">
+                    <div class="row mb-4" id="closeContractAttachmentsRow" style="display: none;">
                         <div class="col-12">
-                            <div class="card bg-light">
-                                <div class="card-header">
-                                    <h6 class="mb-0"><i class="fas fa-file-invoice-dollar me-2"></i>البيان المالي</h6>
+                            <div class="close-section-card">
+                                <div class="section-title"><i class="fas fa-paperclip"></i>مرفقات العقد</div>
+                                <div class="section-body">
+                                    <div id="contractAttachmentsList" class="d-flex flex-wrap gap-2">
+                                        <span class="text-muted">لا توجد مرفقات مسجلة على هذا العقد.</span>
+                                    </div>
                                 </div>
-                                <div class="card-body">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mb-4" id="closeFinancialSettlementRow" style="display: none;">
+                        <div class="col-12">
+                            <div class="close-section-card">
+                                <div class="section-title"><i class="fas fa-file-invoice-dollar"></i>البيان المالي قبل الإنهاء</div>
+                                <div class="section-body">
                                     <div class="row g-3">
                                         <div class="col-md-3">
                                             <strong>التكلفة الشهرية:</strong>
@@ -467,6 +710,11 @@
                                                 <span id="finalDueAmount">0.00 ريال</span>
                                             </div>
                                         </div>
+                                        <div class="col-12">
+                                            <label class="form-label">سبب الإرجاع / الإغلاق المبكر</label>
+                                            <textarea class="form-control" id="closeReturnReason" rows="3"
+                                                placeholder="اكتب سبب إرجاع العاملة أو الإغلاق المبكر..."></textarea>
+                                        </div>
                                     </div>
                                     <div class="row g-3 mt-2 align-items-end">
                                         <div class="col-md-4">
@@ -508,12 +756,12 @@
                                                 accept=".jpg,.jpeg,.png,.pdf">
                                         </div>
                                         <div class="col-md-4">
-                                            <label class="form-label">آيبان العميل</label>
+                                            <label class="form-label">آيبان العميل <small class="text-muted">(اختياري)</small></label>
                                             <input type="text" class="form-control" id="closeClientIban" dir="ltr"
                                                 maxlength="34" placeholder="SAxxxxxxxxxxxxxxxxxxxxxx">
                                         </div>
                                         <div class="col-md-4">
-                                            <label class="form-label">مرفق آيبان العميل</label>
+                                            <label class="form-label">مرفق آيبان العميل <small class="text-muted">(اختياري)</small></label>
                                             <input type="file" class="form-control" id="closeClientIbanAttachment"
                                                 accept=".jpg,.jpeg,.png,.pdf">
                                             <div class="form-text d-none" id="closeClientIbanAttachmentCurrentWrapper">
@@ -522,47 +770,55 @@
                                             </div>
                                         </div>
                                     </div>
+                                    <div class="d-flex justify-content-end gap-2 mt-4">
+                                        <button type="button" class="btn btn-secondary" id="backToCloseOptionsBtn">
+                                            <i class="fas fa-arrow-right me-2"></i>
+                                            رجوع للخيارات
+                                        </button>
+                                        <button type="button" class="btn btn-success" id="confirmCloseAndMakeAvailableBtn">
+                                            <i class="fas fa-check me-2"></i>
+                                            تأكيد الإغلاق والإتاحة
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- خيارات الإغلاق -->
-                    <div class="row" id="closeContractOptionsRow">
+                    <div class="row g-3" id="closeContractOptionsRow">
                         <div class="col-md-6">
-                            <div class="card border-success h-100">
-                                <div class="card-header bg-success text-white">
-                                    <h6 class="mb-0">
-                                        <i class="fas fa-user-check me-2"></i>
-                                        إغلاق العقد وإرجاع العاملة متاحة
-                                    </h6>
+                            <div class="close-option-card">
+                                <div class="close-option-icon bg-success text-white">
+                                    <i class="fas fa-user-check"></i>
                                 </div>
-                                <div class="card-body text-center">
-                                    <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
-                                    <p class="mb-3">سيتم إغلاق العقد وإرجاع العاملة لتصبح متاحة للإيجار مرة أخرى</p>
-                                    <button type="button" class="btn btn-success btn-lg" id="closeAndMakeAvailableBtn">
-                                        <i class="fas fa-check me-2"></i>
-                                        إغلاق وإرجاع العاملة
-                                    </button>
-                                </div>
+                                <h6 class="fw-bold mb-2">إغلاق وإرجاع العاملة متاحة</h6>
+                                <ul class="close-option-list">
+                                    <li>يتم إنهاء عقد الإيجار الحالي.</li>
+                                    <li>تعود العاملة إلى حالة متاحة للتأجير.</li>
+                                    <li>يمكن تسجيل الاسترجاع أو تصفير المتبقي من البيان المالي أعلاه.</li>
+                                </ul>
+                                <button type="button" class="btn btn-success w-100" id="closeAndMakeAvailableBtn">
+                                    <i class="fas fa-check me-2"></i>
+                                    اختيار الإغلاق والإتاحة
+                                </button>
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <div class="card border-warning h-100">
-                                <div class="card-header bg-warning text-dark">
-                                    <h6 class="mb-0">
-                                        <i class="fas fa-exchange-alt me-2"></i>
-                                        إغلاق العقد ونقل الكفالة
-                                    </h6>
+                            <div class="close-option-card">
+                                <div class="close-option-icon bg-warning text-dark">
+                                    <i class="fas fa-exchange-alt"></i>
                                 </div>
-                                <div class="card-body text-center">
-                                    <i class="fas fa-handshake fa-3x text-warning mb-3"></i>
-                                    <p class="mb-3">سيتم إغلاق العقد ونقل كفالة العاملة لعميل آخر</p>
-                                    <button type="button" class="btn btn-warning btn-lg" id="transferSponsorshipBtn">
-                                        <i class="fas fa-exchange-alt me-2"></i>
-                                        إغلاق ونقل الكفالة
-                                    </button>
-                                </div>
+                                <h6 class="fw-bold mb-2">إغلاق ونقل الكفالة</h6>
+                                <ul class="close-option-list">
+                                    <li>يتم إنهاء عقد الإيجار الحالي بحالة تم النقل.</li>
+                                    <li>تبقى العاملة غير متاحة لأنها خرجت بنقل خدمات.</li>
+                                    <li>لا يتم إنشاء عقد جديد، وتسجل مبالغ النقل فقط.</li>
+                                </ul>
+                                <button type="button" class="btn btn-warning w-100" id="transferSponsorshipBtn">
+                                    <i class="fas fa-exchange-alt me-2"></i>
+                                    اختيار نقل الكفالة
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -603,14 +859,12 @@
                                     </div>
                                 </div>
 
-                                <form id="sponsorshipTransferForm">
+                                <form id="sponsorshipTransferForm" enctype="multipart/form-data">
                                     <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label for="transferAmount" class="form-label">قيمة العقد الجديد <span
-                                                        class="text-danger">*</span></label>
-                                                <input type="number" class="form-control" id="transferAmount"
-                                                    name="transferAmount" step="0.01" required>
+                                        <div class="col-12">
+                                            <div class="transfer-summary-box mb-3">
+                                                <i class="fas fa-info-circle me-1"></i>
+                                                نقل الكفالة لا ينشئ عقداً جديداً. أدخل المبلغ الكامل للنقل، وسيتم استخدامه في التوثيق والبنود المالية.
                                             </div>
                                         </div>
                                         <div class="col-md-6">
@@ -634,6 +888,60 @@
                                                 <label for="remainingAmount" class="form-label">المبلغ المتبقي</label>
                                                 <input type="number" class="form-control" id="remainingAmount"
                                                     name="remainingAmount" step="0.01" readonly>
+                                            </div>
+                                        </div>
+                                        <div class="col-12">
+                                            <div class="border rounded p-3 mb-3 bg-light">
+                                                <div class="d-flex align-items-center justify-content-between mb-3">
+                                                    <h6 class="mb-0">
+                                                        <i class="fas fa-credit-card text-primary me-2"></i>
+                                                        بيانات الدفع
+                                                    </h6>
+                                                    <small class="text-muted">طريقة الدفع وحالة السداد والمرفقات</small>
+                                                </div>
+                                                <div class="row g-3">
+                                                    <div class="col-md-4">
+                                                        <label for="transferPaymentType" class="form-label">طريقة الدفع <span
+                                                                class="text-danger">*</span></label>
+                                                        <select class="form-select" id="transferPaymentType" name="payment_type" required>
+                                                            <option value="">اختر الطريقة</option>
+                                                            <option value="cash">نقداً</option>
+                                                            <option value="bank_transfer">تحويل بنكي</option>
+                                                            <option value="mada">مدى</option>
+                                                            <option value="tabby">تابي</option>
+                                                            <option value="tamara">تمارا</option>
+                                                            <option value="pay_later">الدفع لاحقاً</option>
+                                                            <option value="other">أخرى</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <label for="transferPaymentStatus" class="form-label">حالة الدفع <span
+                                                                class="text-danger">*</span></label>
+                                                        <select class="form-select" id="transferPaymentStatus" name="payment_status" required>
+                                                            <option value="">اختر الحالة</option>
+                                                            <option value="paid">تم الدفع</option>
+                                                            <option value="partial">مدفوع جزئياً</option>
+                                                            <option value="pending">معلق</option>
+                                                            <option value="later">الدفع لاحقاً</option>
+                                                            <option value="bank_pending">بانتظار التحويل</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <label for="transferPaymentReceipt" class="form-label">
+                                                            إيصال الدفع <span class="text-danger d-none" id="transferReceiptRequiredMark">*</span>
+                                                        </label>
+                                                        <input type="file" class="form-control" id="transferPaymentReceipt"
+                                                            name="payment_receipt" accept=".jpg,.jpeg,.png,.pdf">
+                                                        <div class="form-text d-none" id="transferReceiptRequiredNote">
+                                                            الإيصال مطلوب عند اختيار تم الدفع أو مدفوع جزئياً.
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-12">
+                                                        <label for="transferAttachments" class="form-label">مرفقات إضافية</label>
+                                                        <input type="file" class="form-control" id="transferAttachments"
+                                                            name="attachments[]" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx" multiple>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                         <div class="col-12">
@@ -716,9 +1024,9 @@
 
     <div class="modal fade" id="extendContractModal" tabindex="-1" aria-labelledby="extendContractModalLabel"
         aria-hidden="true">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-xl extend-contract-modal">
             <div class="modal-content">
-                <div class="modal-header bg-info text-white">
+                <div class="modal-header text-white">
                     <h5 class="modal-title" id="extendContractModalLabel">
                         <i class="fas fa-calendar-plus me-2"></i>
                         تمديد عقد الإيجار
@@ -729,18 +1037,50 @@
                 <div class="modal-body">
                     <div id="extendContractErrors" class="alert alert-danger d-none"></div>
 
-                    <div class="row g-3 mb-4">
-                        <div class="col-md-4">
-                            <label class="form-label">رقم العقد</label>
-                            <div class="form-control bg-light" id="extend_contract_number">-</div>
+                    <div class="extend-summary-band mb-4">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                            <div>
+                                <div class="text-muted small">رقم العقد</div>
+                                <div class="h5 mb-0" id="extend_contract_number">-</div>
+                            </div>
+                            <div class="extend-status-pill is-ok" id="extend_contract_status_badge">
+                                <i class="fas fa-circle-check"></i>
+                                <span>ضمن المدة</span>
+                            </div>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label">نهاية العقد الحالية</label>
-                            <div class="form-control bg-light" id="extend_current_end_text">-</div>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">التكلفة الشهرية</label>
-                            <div class="form-control bg-light" id="extend_monthly_cost_text">-</div>
+                        <div class="extend-stat-grid">
+                            <div class="extend-stat">
+                                <div class="extend-stat-label">بداية العقد</div>
+                                <div class="extend-stat-value" id="extend_current_start_text">-</div>
+                            </div>
+                            <div class="extend-stat">
+                                <div class="extend-stat-label">نهاية العقد الحالية</div>
+                                <div class="extend-stat-value" id="extend_current_end_text">-</div>
+                            </div>
+                            <div class="extend-stat">
+                                <div class="extend-stat-label">مدة العقد الحالية</div>
+                                <div class="extend-stat-value" id="extend_current_duration_text">-</div>
+                            </div>
+                            <div class="extend-stat">
+                                <div class="extend-stat-label">الأيام المستخدمة</div>
+                                <div class="extend-stat-value" id="extend_used_days_text">-</div>
+                            </div>
+                            <div class="extend-stat">
+                                <div class="extend-stat-label">الأيام المتبقية / التأخير</div>
+                                <div class="extend-stat-value" id="extend_remaining_days_text">-</div>
+                            </div>
+                            <div class="extend-stat">
+                                <div class="extend-stat-label">قيمة العقد الحالية</div>
+                                <div class="extend-stat-value" id="extend_contract_value_text">-</div>
+                            </div>
+                            <div class="extend-stat">
+                                <div class="extend-stat-label">تكلفة اليوم التقريبية</div>
+                                <div class="extend-stat-value" id="extend_daily_rate_text">-</div>
+                            </div>
+                            <div class="extend-stat">
+                                <div class="extend-stat-label">عدد مرات التمديد</div>
+                                <div class="extend-stat-value" id="extend_extensions_count_text">-</div>
+                            </div>
                         </div>
                     </div>
 
@@ -748,25 +1088,46 @@
                         @csrf
                         <input type="hidden" id="extend_current_end_value">
                         <input type="hidden" id="extend_monthly_cost_value">
+                        <input type="hidden" id="extend_contract_value_value">
+                        <input type="hidden" id="extend_duration_days_value">
+                        <input type="hidden" id="extend_daily_rate_value">
 
                         <div class="row g-3">
-                            <div class="col-md-6">
-                                <label for="extend_extension_months" class="form-label">مدة التمديد بالشهور <span
-                                        class="text-danger">*</span></label>
+                            <div class="col-md-3">
+                                <label for="extend_extension_months" class="form-label">شهور التمديد</label>
                                 <input type="number" class="form-control" id="extend_extension_months"
-                                    name="extension_months" min="1" required>
+                                    name="extension_months" min="0" value="0">
                             </div>
-                            <div class="col-md-6">
-                                <label for="extend_extension_days" class="form-label">عدد أيام التمديد</label>
-                                <input type="text" class="form-control" id="extend_extension_days" readonly>
+                            <div class="col-md-3">
+                                <label for="extend_extension_extra_days" class="form-label">أيام إضافية</label>
+                                <input type="number" class="form-control" id="extend_extension_extra_days"
+                                    name="extension_days" min="0" value="0">
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-3">
+                                <label for="extend_extension_days" class="form-label">إجمالي أيام التمديد</label>
+                                <input type="text" class="form-control bg-light" id="extend_extension_days" readonly>
+                            </div>
+                            <div class="col-md-3">
                                 <label for="extend_extension_end_date" class="form-label">تاريخ النهاية الجديد</label>
-                                <input type="text" class="form-control" id="extend_extension_end_date" readonly>
+                                <input type="text" class="form-control bg-light" id="extend_extension_end_date" readonly>
                             </div>
-                            <div class="col-md-6">
-                                <label for="extend_extension_value" class="form-label">قيمة التمديد</label>
-                                <input type="text" class="form-control" id="extend_extension_value" readonly>
+                            <div class="col-12">
+                                <div class="extend-preview-box">
+                                    <div class="row g-3">
+                                        <div class="col-md-4">
+                                            <div class="text-muted small">قيمة التمديد المتوقعة</div>
+                                            <div class="fw-bold" id="extend_extension_value">-</div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="text-muted small">إجمالي مدة العقد بعد التمديد</div>
+                                            <div class="fw-bold" id="extend_new_duration_text">-</div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="text-muted small">قيمة العقد بعد التمديد</div>
+                                            <div class="fw-bold" id="extend_new_contract_value_text">-</div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <div class="col-md-6">
                                 <label for="extend_extension_payment_status" class="form-label">حالة دفع التمديد <span
@@ -802,7 +1163,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
-                    <button type="submit" class="btn btn-info" id="extendContractSubmit" form="extendContractForm">
+                    <button type="submit" class="btn btn-success" id="extendContractSubmit" form="extendContractForm">
                         <i class="fas fa-save me-2"></i>
                         حفظ التمديد
                     </button>
@@ -821,8 +1182,6 @@
 
     <!-- الملفات المحلية -->
     <!-- <script src="{{ asset('admin') }}/assets/jsbundle/dataTables.bundle.js"></script> -->
-    <script src="{{ asset('admin') }}/custom/admin-tables.js"></script>
-    <script src="{{ asset('admin') }}/custom/orders-dropdown-fix.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
@@ -843,6 +1202,8 @@
                 });
                 return;
             }
+
+            let openRentContractActionMenu = null;
 
             // Initialize DataTable with simplified settings
             let dataTable = $('#dataTableObject').DataTable({
@@ -923,9 +1284,135 @@
                         "sLast": "الأخير"
                     }
                 },
+                preDrawCallback: function() {
+                    closeRentContractActionMenu();
+                },
                 drawCallback: function() {
                     console.log('Table drawn successfully');
                     $('#loadingOverlay').hide();
+                    initializeRentContractActionDropdowns();
+                }
+            });
+
+            function setImportantStyle(element, property, value) {
+                element.style.setProperty(property, value, 'important');
+            }
+
+            function positionRentContractActionMenu(menu, toggle) {
+                if (!toggle) {
+                    toggle = menu.data('rentContractToggle');
+                }
+
+                if (!toggle) {
+                    return;
+                }
+
+                const buttonRect = toggle.getBoundingClientRect();
+                const menuElement = menu instanceof jQuery ? menu[0] : menu;
+                const menuRect = menuElement.getBoundingClientRect();
+                const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+                const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+                const spacing = 8;
+                const menuWidth = menuRect.width || 220;
+                const menuHeight = menuRect.height || 260;
+
+                let left = buttonRect.right - menuWidth;
+                let top = buttonRect.bottom + spacing;
+
+                if (top + menuHeight > viewportHeight - spacing) {
+                    top = buttonRect.top - menuHeight - spacing;
+                }
+
+                left = Math.max(spacing, Math.min(left, viewportWidth - menuWidth - spacing));
+                top = Math.max(spacing, Math.min(top, viewportHeight - menuHeight - spacing));
+
+                setImportantStyle(menuElement, 'position', 'fixed');
+                setImportantStyle(menuElement, 'left', `${Math.round(left)}px`);
+                setImportantStyle(menuElement, 'top', `${Math.round(top)}px`);
+                setImportantStyle(menuElement, 'right', 'auto');
+                setImportantStyle(menuElement, 'bottom', 'auto');
+                setImportantStyle(menuElement, 'transform', 'none');
+                setImportantStyle(menuElement, 'z-index', '2147483647');
+            }
+
+            function closeRentContractActionMenu() {
+                if (!openRentContractActionMenu) {
+                    return;
+                }
+
+                const $menu = openRentContractActionMenu;
+                const $parent = $menu.data('rentContractParent');
+                const $toggle = $($menu.data('rentContractToggle'));
+
+                $menu.removeClass('show rent-contract-actions-menu').hide().removeAttr('style');
+
+                if ($parent && $parent.length) {
+                    $menu.appendTo($parent);
+                }
+
+                $toggle.removeClass('show').attr('aria-expanded', 'false');
+                openRentContractActionMenu = null;
+            }
+
+            function initializeRentContractActionDropdowns() {
+                $('#dataTableObject .actions-dropdown .actions-btn').each(function() {
+                    $(this)
+                        .removeAttr('data-bs-toggle data-bs-display data-bs-popper')
+                        .attr('aria-expanded', 'false');
+                });
+            }
+
+            initializeRentContractActionDropdowns();
+
+            $(document).on('click', '#dataTableObject .actions-dropdown .actions-btn', function(event) {
+                event.preventDefault();
+                event.stopPropagation();
+                event.stopImmediatePropagation();
+
+                const toggle = this;
+                const $dropdown = $(toggle).closest('.actions-dropdown');
+                const $menu = $dropdown.find('.dropdown-menu').first();
+
+                if (!$menu.length) {
+                    return false;
+                }
+
+                if (openRentContractActionMenu && openRentContractActionMenu[0] === $menu[0]) {
+                    closeRentContractActionMenu();
+                    return false;
+                }
+
+                closeRentContractActionMenu();
+
+                $menu
+                    .data('rentContractParent', $dropdown)
+                    .data('rentContractToggle', toggle)
+                    .appendTo(document.body)
+                    .addClass('show rent-contract-actions-menu')
+                    .show();
+
+                $(toggle).addClass('show').attr('aria-expanded', 'true');
+                openRentContractActionMenu = $menu;
+                positionRentContractActionMenu($menu, toggle);
+
+                return false;
+            });
+
+            $(document).on('click', '.rent-contract-actions-menu', function(event) {
+                event.stopPropagation();
+            });
+
+            $(document).on('click', '.rent-contract-actions-menu .dropdown-item', function() {
+                setTimeout(closeRentContractActionMenu, 150);
+            });
+
+            $(document).on('click', function() {
+                closeRentContractActionMenu();
+            });
+
+            $(window).on('scroll resize', function() {
+                if (openRentContractActionMenu) {
+                    positionRentContractActionMenu(openRentContractActionMenu);
                 }
             });
 
@@ -975,15 +1462,75 @@
                 });
             }
 
+            function toNumber(value, fallback = 0) {
+                const number = Number(value);
+                return Number.isFinite(number) ? number : fallback;
+            }
+
+            function setExtendStatusBadge(remainingDays) {
+                const badge = $('#extend_contract_status_badge');
+                const icon = badge.find('i');
+                const text = badge.find('span');
+
+                badge.removeClass('is-ok is-warning is-danger');
+                icon.removeClass('fa-circle-check fa-triangle-exclamation fa-circle-xmark');
+
+                if (remainingDays === null || typeof remainingDays === 'undefined' || remainingDays === '') {
+                    badge.addClass('is-warning');
+                    icon.addClass('fa-triangle-exclamation');
+                    text.text('المدة غير محددة');
+                    return;
+                }
+
+                const days = parseInt(remainingDays, 10);
+                if (days < 0) {
+                    badge.addClass('is-danger');
+                    icon.addClass('fa-circle-xmark');
+                    text.text('متأخر ' + Math.abs(days) + ' يوم');
+                } else if (days === 0) {
+                    badge.addClass('is-warning');
+                    icon.addClass('fa-triangle-exclamation');
+                    text.text('ينتهي اليوم');
+                } else {
+                    badge.addClass('is-ok');
+                    icon.addClass('fa-circle-check');
+                    text.text('ضمن المدة');
+                }
+            }
+
+            function renderRemainingDays(remainingDays) {
+                if (remainingDays === null || typeof remainingDays === 'undefined' || remainingDays === '') {
+                    return '-';
+                }
+
+                const days = parseInt(remainingDays, 10);
+                if (days < 0) {
+                    return 'متأخر ' + Math.abs(days) + ' يوم';
+                }
+
+                if (days === 0) {
+                    return 'ينتهي اليوم';
+                }
+
+                return days + ' يوم متبقي';
+            }
+
             function updateExtensionPreview() {
                 const months = parseInt($('#extend_extension_months').val(), 10) || 0;
+                const extraDays = parseInt($('#extend_extension_extra_days').val(), 10) || 0;
                 const endDateStr = $('#extend_current_end_value').val();
-                const monthlyCost = parseFloat($('#extend_monthly_cost_value').val()) || 0;
+                const contractValue = toNumber($('#extend_contract_value_value').val());
+                const currentDurationDays = toNumber($('#extend_duration_days_value').val());
+                const storedDailyRate = toNumber($('#extend_daily_rate_value').val());
+                const dailyRate = storedDailyRate || (currentDurationDays > 0 && contractValue > 0 ? contractValue / currentDurationDays : 0);
+                const extensionDays = (months * 30) + extraDays;
 
-                if (!months || !endDateStr) {
+                if (!extensionDays || !endDateStr) {
                     $('#extend_extension_days').val('');
                     $('#extend_extension_end_date').val('');
-                    $('#extend_extension_value').val('');
+                    $('#extend_extension_value').text('-');
+                    $('#extend_new_duration_text').text(currentDurationDays ? (currentDurationDays + ' يوم') : '-');
+                    $('#extend_new_contract_value_text').text(contractValue ? (formatCurrency(contractValue) + ' ريال') : '-');
                     return;
                 }
 
@@ -991,16 +1538,22 @@
                 if (Number.isNaN(baseDate.getTime())) {
                     $('#extend_extension_days').val('');
                     $('#extend_extension_end_date').val('');
-                    $('#extend_extension_value').val('');
+                    $('#extend_extension_value').text('-');
+                    $('#extend_new_duration_text').text('-');
+                    $('#extend_new_contract_value_text').text('-');
                     return;
                 }
 
-                const extensionDays = months * 30;
                 const newEndDate = new Date(baseDate.getTime() + (extensionDays * 24 * 60 * 60 * 1000));
+                const extensionValue = dailyRate * extensionDays;
+                const newDurationDays = currentDurationDays + extensionDays;
+                const newContractValue = contractValue + extensionValue;
 
-                $('#extend_extension_days').val(extensionDays);
+                $('#extend_extension_days').val(extensionDays + ' يوم');
                 $('#extend_extension_end_date').val(formatDate(newEndDate));
-                $('#extend_extension_value').val(formatCurrency(monthlyCost * months) + ' ريال');
+                $('#extend_extension_value').text(formatCurrency(extensionValue) + ' ريال');
+                $('#extend_new_duration_text').text(newDurationDays + ' يوم');
+                $('#extend_new_contract_value_text').text(formatCurrency(newContractValue) + ' ريال');
             }
 
             function toggleExtendReceiptRequirement() {
@@ -1017,36 +1570,75 @@
                 $('#extendContractForm')[0].reset();
                 $('#extend_extension_days').val('');
                 $('#extend_extension_end_date').val('');
-                $('#extend_extension_value').val('');
+                $('#extend_extension_value').text('-');
+                $('#extend_new_duration_text').text('-');
+                $('#extend_new_contract_value_text').text('-');
                 $('#extend_current_end_value').val('');
                 $('#extend_monthly_cost_value').val('');
+                $('#extend_contract_value_value').val('');
+                $('#extend_duration_days_value').val('');
+                $('#extend_daily_rate_value').val('');
                 $('#extend_contract_number').text('-');
+                $('#extend_current_start_text').text('-');
                 $('#extend_current_end_text').text('-');
-                $('#extend_monthly_cost_text').text('-');
+                $('#extend_current_duration_text').text('-');
+                $('#extend_used_days_text').text('-');
+                $('#extend_remaining_days_text').text('-');
+                $('#extend_contract_value_text').text('-');
+                $('#extend_daily_rate_text').text('-');
+                $('#extend_extensions_count_text').text('-');
+                $('#extend_extension_months').val('0');
+                $('#extend_extension_extra_days').val('0');
                 $('#extend_extension_payment_receipt').prop('required', false);
                 $('#extendReceiptRequiredMark, #extendReceiptRequiredNote').addClass('d-none');
+                setExtendStatusBadge(null);
             }
 
             $(document).on('click', '.open-extend-modal', function() {
                 const button = $(this);
                 const extendUrl = button.data('extend-url');
                 const contractNumber = button.data('contract-number') || '-';
+                const ingazFrom = button.data('ingaz-from') || '';
                 const ingazTo = button.data('ingaz-to') || '';
-                const monthlyCost = button.data('monthly-cost') || 0;
+                const monthlyCost = toNumber(button.data('monthly-cost'));
+                const contractValue = toNumber(button.data('contract-value'));
+                const durationMonths = toNumber(button.data('duration-months'));
+                const durationDays = toNumber(button.data('duration-days'));
+                const remainingDays = button.data('remaining-days');
+                const usedDays = button.data('used-days');
+                const extensionsCount = toNumber(button.data('extensions-count'));
+                const dailyRate = durationDays > 0 && contractValue > 0 ? contractValue / durationDays : monthlyCost / 30;
 
                 resetExtendModal();
                 $('#extendContractForm').attr('action', extendUrl);
                 $('#extend_contract_number').text(contractNumber);
+                $('#extend_current_start_text').text(ingazFrom || 'غير محدد');
                 $('#extend_current_end_text').text(ingazTo || 'غير محدد');
-                $('#extend_monthly_cost_text').text(formatCurrency(monthlyCost) + ' ريال');
+                const durationParts = [];
+                if (durationMonths) {
+                    durationParts.push(durationMonths + ' شهر');
+                }
+                if (durationDays) {
+                    durationParts.push(durationDays + ' يوم');
+                }
+                $('#extend_current_duration_text').text(durationParts.length ? durationParts.join(' / ') : '-');
+                $('#extend_used_days_text').text(usedDays !== '' && typeof usedDays !== 'undefined' ? (usedDays + ' يوم') : '-');
+                $('#extend_remaining_days_text').text(renderRemainingDays(remainingDays));
+                $('#extend_contract_value_text').text(formatCurrency(contractValue) + ' ريال');
+                $('#extend_daily_rate_text').text(formatCurrency(dailyRate) + ' ريال');
+                $('#extend_extensions_count_text').text(extensionsCount + ' مرة');
                 $('#extend_current_end_value').val(ingazTo || '');
                 $('#extend_monthly_cost_value').val(monthlyCost || 0);
+                $('#extend_contract_value_value').val(contractValue || 0);
+                $('#extend_duration_days_value').val(durationDays || 0);
+                $('#extend_daily_rate_value').val(dailyRate || 0);
+                setExtendStatusBadge(remainingDays);
 
                 updateExtensionPreview();
                 $('#extendContractModal').modal('show');
             });
 
-            $('#extend_extension_months').on('input change', function() {
+            $('#extend_extension_months, #extend_extension_extra_days').on('input change', function() {
                 updateExtensionPreview();
             });
 
@@ -1060,11 +1652,25 @@
                 const form = $(this);
                 const submitBtn = $('#extendContractSubmit');
                 const paymentStatus = $('#extend_extension_payment_status').val();
+                const months = parseInt($('#extend_extension_months').val(), 10) || 0;
+                const extraDays = parseInt($('#extend_extension_extra_days').val(), 10) || 0;
                 const receiptInput = $('#extend_extension_payment_receipt')[0];
                 const hasReceipt = !!(receiptInput && receiptInput.files && receiptInput.files.length > 0);
 
                 $('#extendContractErrors').addClass('d-none').empty();
                 submitBtn.prop('disabled', true);
+
+                if ((months * 30) + extraDays <= 0) {
+                    const message = 'يرجى تحديد مدة التمديد بالشهور أو الأيام.';
+                    $('#extendContractErrors').removeClass('d-none').html(message);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'خطأ',
+                        text: message
+                    });
+                    submitBtn.prop('disabled', false);
+                    return;
+                }
 
                 if ((paymentStatus === 'paid' || paymentStatus === 'partial') && !hasReceipt) {
                     const message =
@@ -1153,6 +1759,7 @@
                 $('#closePaymentReceipt').val('');
                 $('#closeClientIban').val('');
                 $('#closeClientIbanAttachment').val('');
+                $('#closeReturnReason').val('');
                 $('#closeClientIbanAttachmentCurrentWrapper').addClass('d-none');
                 $('#closeClientIbanAttachmentCurrent').attr('href', '#');
                 $('#financialRemainingAmount').data('raw', 0);
@@ -1195,6 +1802,22 @@
                 $('#transfer-adjustment-rows').empty();
             }
 
+            function toggleTransferReceiptRequirement() {
+                const paymentStatus = $('#transferPaymentStatus').val();
+                const receiptRequired = paymentStatus === 'paid' || paymentStatus === 'partial';
+
+                $('#transferPaymentReceipt').prop('required', receiptRequired);
+                $('#transferReceiptRequiredMark, #transferReceiptRequiredNote').toggleClass('d-none', !receiptRequired);
+            }
+
+            function resetTransferPaymentFields() {
+                $('#transferPaymentType').val('');
+                $('#transferPaymentStatus').val('');
+                $('#transferPaymentReceipt').val('');
+                $('#transferAttachments').val('');
+                toggleTransferReceiptRequirement();
+            }
+
             function getTransferAdjustments() {
                 const items = [];
 
@@ -1220,6 +1843,10 @@
 
             $(document).on('click', '#add-transfer-adjustment', function() {
                 addTransferAdjustmentRow();
+            });
+
+            $('#transferPaymentStatus').on('change', function() {
+                toggleTransferReceiptRequirement();
             });
 
             $(document).on('click', '.remove-transfer-adjustment', function() {
@@ -1312,9 +1939,13 @@
                             const contract = response.contract;
                             resetCloseFinancialFields();
                             resetTransferAdjustments();
+                            resetTransferPaymentFields();
                             $('#transferSponsorshipForm').hide();
+                            $('#closeContractAttachmentsRow').hide();
+                            $('#closeFinancialSettlementRow').hide();
                             $('#closeContractOptionsRow').show();
                             $('#sponsorshipTransferForm')[0].reset();
+                            resetTransferPaymentFields();
 
                             // تعبئة بيانات العقد في الـ modal
                             $('#contractId').text(contract.id);
@@ -1339,8 +1970,10 @@
                             $('#financialUsedCost').text(formatCurrency(contract.used_cost || 0) + ' ريال');
                             $('#financialSuggestedRefund').text(formatCurrency(contract.calculated_refund_value || 0) + ' ريال');
                             $('#closeAdjustmentAmount').val(parseFloat(contract.refund_value || 0).toFixed(2));
+                            $('#closeReturnReason').val(contract.closure_return_reason || '');
                             $('#closePaymentStatus').val(contract.payment_status || '');
                             $('#closeClientIban').val(contract.closure_client_iban || '');
+                            renderContractAttachments(contract.attachments || []);
 
                             if (contract.closure_client_iban_attachment_url) {
                                 $('#closeClientIbanAttachmentCurrent').attr('href', contract.closure_client_iban_attachment_url);
@@ -1375,8 +2008,7 @@
                 });
             });
 
-            // إغلاق العقد وإرجاع العاملة متاحة
-            $('#closeAndMakeAvailableBtn').click(function() {
+            function executeCloseAndMakeAvailable() {
                 Swal.fire({
                     title: 'تأكيد الإغلاق',
                     text: 'هل أنت متأكد من إغلاق العقد وإرجاع العاملة متاحة؟',
@@ -1393,6 +2025,7 @@
                         formData.append('adjustment_type', $('#closeAdjustmentType').val());
                         formData.append('adjustment_amount', $('#closeAdjustmentAmount').val() || 0);
                         formData.append('clear_remaining_amount', $('#closeClearRemainingToggle').is(':checked') ? ($('#closeClearRemainingAmount').val() || 0) : 0);
+                        formData.append('closure_return_reason', $('#closeReturnReason').val());
                         formData.append('close_payment_status', $('#closePaymentStatus').val());
                         formData.append('close_client_iban', $('#closeClientIban').val());
 
@@ -1457,17 +2090,59 @@
                         });
                     }
                 });
+            }
+
+            // إظهار بيان الإغلاق بعد اختيار إرجاع العاملة متاحة
+            $('#closeAndMakeAvailableBtn').click(function() {
+                $('#transferSponsorshipForm').hide();
+                $('#closeContractOptionsRow').hide();
+                $('#closeContractAttachmentsRow').show();
+                $('#closeFinancialSettlementRow').show();
             });
+
+            $('#confirmCloseAndMakeAvailableBtn').click(function() {
+                executeCloseAndMakeAvailable();
+            });
+
+            $('#backToCloseOptionsBtn').click(function() {
+                $('#closeContractAttachmentsRow').hide();
+                $('#closeFinancialSettlementRow').hide();
+                $('#transferSponsorshipForm').hide();
+                $('#closeContractOptionsRow').show();
+            });
+
+            function renderContractAttachments(attachments) {
+                const container = $('#contractAttachmentsList');
+                container.empty();
+
+                if (!attachments.length) {
+                    container.append($('<span class="text-muted">لا توجد مرفقات مسجلة على هذا العقد.</span>'));
+                    return;
+                }
+
+                attachments.forEach(function(attachment) {
+                    const link = $('<a class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener"></a>');
+                    link.attr('href', attachment.url);
+                    link.append($('<i class="fas fa-paperclip me-1"></i>'));
+                    link.append(document.createTextNode(attachment.label || 'مرفق'));
+                    container.append(link);
+                });
+            }
 
             // إظهار نموذج نقل الكفالة
             $('#transferSponsorshipBtn').click(function() {
                 $('#transferSponsorshipForm').show();
+                $('#closeContractAttachmentsRow').hide();
+                $('#closeFinancialSettlementRow').hide();
                 $('#closeContractOptionsRow').hide();
+                $('#closeContractModal .modal-body').animate({
+                    scrollTop: $('#transferSponsorshipForm').position().top
+                }, 200);
                 if (!$('#transfer-adjustment-rows tr').length) {
                     addTransferAdjustmentRow({
                         type: 'income',
                         label: 'نقل خدمات',
-                        amount: $('#transferAmount').val() || '0.00'
+                        amount: $('#totalAmount').val() || '0.00'
                     });
                 }
             });
@@ -1475,9 +2150,12 @@
             // إلغاء نقل الكفالة
             $('#cancelTransferBtn').click(function() {
                 $('#transferSponsorshipForm').hide();
+                $('#closeContractAttachmentsRow').hide();
+                $('#closeFinancialSettlementRow').hide();
                 $('#closeContractOptionsRow').show();
                 $('#sponsorshipTransferForm')[0].reset();
                 resetTransferAdjustments();
+                resetTransferPaymentFields();
             });
 
             // حساب المبلغ المتبقي تلقائياً
@@ -1486,12 +2164,13 @@
                 const paid = parseFloat($('#paidAmount').val()) || 0;
                 const remaining = total - paid;
                 $('#remainingAmount').val(remaining.toFixed(2));
-            });
 
-            $('#transferAmount').on('input', function() {
-                const firstRowAmount = $('#transfer-adjustment-rows tr:first .transfer-adjustment-amount');
-                if (firstRowAmount.length && !firstRowAmount.val()) {
-                    firstRowAmount.val($(this).val() || '0.00');
+                const firstRow = $('#transfer-adjustment-rows tr:first');
+                const firstRowAmount = firstRow.find('.transfer-adjustment-amount');
+                const firstRowLabel = (firstRow.find('.transfer-adjustment-label').val() || '').trim();
+                const currentRowAmount = parseFloat(firstRowAmount.val() || 0);
+                if (firstRowAmount.length && firstRowLabel === 'نقل خدمات' && currentRowAmount <= 0) {
+                    firstRowAmount.val(total.toFixed(2));
                 }
             });
 
@@ -1499,22 +2178,40 @@
             $('#sponsorshipTransferForm').submit(function(e) {
                 e.preventDefault();
 
-                const formData = {
-                    contract_id: selectedContractId,
-                    transfer_amount: $('#transferAmount').val(),
-                    total_amount: $('#totalAmount').val(),
-                    paid_amount: $('#paidAmount').val(),
-                    remaining_amount: $('#remainingAmount').val(),
-                    notes: $('#transferNotes').val(),
-                    transfer_finance_items_present: 1,
-                    transfer_finance_items: getTransferAdjustments(),
-                    _token: '{{ csrf_token() }}'
-                };
+                const paymentStatus = $('#transferPaymentStatus').val();
+                const receiptInput = $('#transferPaymentReceipt')[0];
+                const hasReceipt = !!(receiptInput && receiptInput.files && receiptInput.files.length > 0);
+
+                if ((paymentStatus === 'paid' || paymentStatus === 'partial') && !hasReceipt) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'خطأ',
+                        text: 'يجب إرفاق إيصال الدفع عند تحديد حالة الدفع "تم الدفع" أو "مدفوع جزئياً".'
+                    });
+                    return;
+                }
+
+                const formData = new FormData(this);
+                formData.append('contract_id', selectedContractId);
+                formData.append('total_amount', $('#totalAmount').val());
+                formData.append('paid_amount', $('#paidAmount').val());
+                formData.append('remaining_amount', $('#remainingAmount').val());
+                formData.append('notes', $('#transferNotes').val());
+                formData.append('transfer_finance_items_present', '1');
+                formData.append('_token', '{{ csrf_token() }}');
+
+                getTransferAdjustments().forEach(function(item, index) {
+                    formData.append(`transfer_finance_items[${index}][type]`, item.type);
+                    formData.append(`transfer_finance_items[${index}][label]`, item.label);
+                    formData.append(`transfer_finance_items[${index}][amount]`, item.amount);
+                });
 
                 $.ajax({
                     url: `/admin/RentContract/${selectedContractId}/transfer-sponsorship`,
                     type: 'POST',
                     data: formData,
+                    processData: false,
+                    contentType: false,
                     success: function(response) {
                         if (response.success) {
                             Swal.fire({
@@ -1613,13 +2310,63 @@
                 });
             });
 
-            function executeWorkflowAction(contractId, action, successMessage) {
+            $(document).on('click', '.freeze-contract', function() {
+                const contractId = $(this).data('id');
+
+                Swal.fire({
+                    title: 'تجميد عقد الإيجار',
+                    input: 'textarea',
+                    inputLabel: 'سبب التجميد',
+                    inputPlaceholder: 'اكتب سبب تجميد العقد',
+                    inputAttributes: {
+                        maxlength: 1000
+                    },
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#64748b',
+                    cancelButtonColor: '#dc3545',
+                    confirmButtonText: 'تجميد العقد',
+                    cancelButtonText: 'إلغاء',
+                    inputValidator: (value) => {
+                        if (!value || !value.trim()) {
+                            return 'يرجى كتابة سبب التجميد';
+                        }
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        executeWorkflowAction(contractId, 'freeze', 'تم تجميد عقد الإيجار بنجاح', {
+                            freeze_reason: result.value
+                        });
+                    }
+                });
+            });
+
+            $(document).on('click', '.resume-contract', function() {
+                const contractId = $(this).data('id');
+
+                Swal.fire({
+                    title: 'استئناف عقد الإيجار',
+                    text: 'هل تريد استئناف هذا العقد؟',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#28a745',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'نعم، استئناف العقد',
+                    cancelButtonText: 'إلغاء'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        executeWorkflowAction(contractId, 'resume', 'تم استئناف عقد الإيجار بنجاح');
+                    }
+                });
+            });
+
+            function executeWorkflowAction(contractId, action, successMessage, extraData = {}) {
                 $.ajax({
                     url: `{{ url('/admin') }}/RentContract/${contractId}/${action}`,
                     type: 'POST',
-                    data: {
+                    data: Object.assign({
                         _token: '{{ csrf_token() }}'
-                    },
+                    }, extraData),
                     success: function(response) {
                         dataTable.ajax.reload();
 

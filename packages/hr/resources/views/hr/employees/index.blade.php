@@ -6,7 +6,7 @@
     {{ $bladeTitle ?? __('hr::hr.employees') }}
 @endsection
 @section('page-links')
-    <li class="breadcrumb-item active" aria-current="page"> {{__("finance.clients")}}</li>
+    <li class="breadcrumb-item active" aria-current="page"> {{ $bladeTitle ?? __('hr::hr.employees') }}</li>
 @endsection
 @section('content')
 
@@ -73,7 +73,7 @@
                 "ordering": true,
                 "searching": true,
                 'iDisplayLength': 10,
-                "lengthMenu": [[5, 10, 25, 50, -1], [5, 10, 25, 50, "الكل"]],
+                "lengthMenu": [[5, 10, 25, 50, -1], [5, 10, 25, 50, @json(__('hr::hr.all'))]],
                 "ajax": {
                     "url": "{{ $dataTableRoute }}",
                     "data": function (d) {

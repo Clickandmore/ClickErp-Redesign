@@ -8,9 +8,12 @@ use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\NationalityRequest;
 use App\Models\ingaz\JobTitle;
 use App\Models\ingaz\Nationality as NationalityModel;
+use App\Models\ingaz\Notification;
 use App\Models\ingaz\Order;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use Spatie\Activitylog\Models\Activity;
 use Yajra\DataTables\Facades\DataTables;
 
 class ReturnRequestController extends Controller
@@ -250,31 +253,31 @@ class ReturnRequestController extends Controller
     {
         $actions = [];
 
-        if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_VIEW) && !$order->deleted_at) {
+        if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_VIEW)) {
             $actions[] = '<li><a class="dropdown-item" href="' . route('showSingleOrder', ['orderId' => $order->id]) . '">
                             <i class="fa fa-eye"></i> ' . e(helperTrans('ingaz.show')) . '
                         </a></li>';
         }
 
-        if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT) && !$order->deleted_at) {
-            $actions[] = '<li><button class="dropdown-item edit-status" data-id="' . $order->id . '">
-                            <i class="fa fa-edit"></i> ' . e(helperTrans('ingaz.edit_order_status')) . '
+        if ((@AdminGuardHasPerm(\App\PermKeys::RETURN_REQUEST_EDIT) || @AdminGuardHasPerm(\App\PermKeys::RETURN_REQUEST_CONTROL)) && !$order->deleted_at && $this->isRefusalStatus((string) $order->status)) {
+            $actions[] = '<li><button class="dropdown-item restore-previous-status" data-id="' . $order->id . '">
+                            <i class="fa fa-undo"></i> إرجاع للحالة السابقة
                         </button></li>';
         }
 
-        if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_DELETE) && $order->deleted_at) {
+        if ((@AdminGuardHasPerm(\App\PermKeys::RETURN_REQUEST_DELETE) || @AdminGuardHasPerm(\App\PermKeys::RETURN_REQUEST_CONTROL)) && $order->deleted_at) {
             $actions[] = '<li><button class="dropdown-item restore-order" data-id="' . $order->id . '">
                             <i class="fa fa-undo"></i> ' . e(helperTrans('ingaz.restore_order')) . '
                         </button></li>';
         }
 
-        if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_DELETE)) {
+        if (@AdminGuardHasPerm(\App\PermKeys::RETURN_REQUEST_DELETE) || @AdminGuardHasPerm(\App\PermKeys::RETURN_REQUEST_CONTROL)) {
             $actions[] = '<li><hr class="dropdown-divider"></li>';
 
             if ($order->deleted_at) {
-                $actions[] = '<li><button class="dropdown-item force-delete-order text-danger" data-id="' . $order->id . '">
-                                <i class="fa fa-trash"></i> ' . e(helperTrans('ingaz.force_delete')) . '
-                            </button></li>';
+                $actions[] = '<li><span class="dropdown-item text-muted">
+                                <i class="fa fa-info-circle"></i> الطلب محذوف ويمكن استعادته
+                            </span></li>';
             } else {
                 $actions[] = '<li><button class="dropdown-item delete-order text-danger" data-id="' . $order->id . '">
                                 <i class="fa fa-trash"></i> ' . e(helperTrans('ingaz.delete_order')) . '
@@ -287,7 +290,7 @@ class ReturnRequestController extends Controller
         }
 
         return ' <div class="dropdown actions-dropdown">
-                    <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="الإجراءات المتاحة">
+                    <button class="btn btn-sm btn-primary dropdown-toggle actions-btn" type="button" aria-expanded="false" title="الإجراءات المتاحة">
                         <i class="fas fa-cogs me-1"></i> الإجراءات
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end shadow-lg top-0">'
@@ -342,15 +345,286 @@ class ReturnRequestController extends Controller
 
     public function update(Request $request, objAction $action, $id)
     {
-        $updatedData = $request->only($this->postData);
-        $data = $action->updateRequest($id, $updatedData);
-        return jsonSuccess($data);
+        try {
+            $validated = $request->validate([
+                'status' => ['required', Rule::in(array_map(fn ($case) => $case->value, OrderEnum::cases()))],
+                'refuse_reason' => ['nullable', 'string', 'max:500'],
+            ]);
+
+            $order = Order::withTrashed()->findOrFail($id);
+
+            if ($order->trashed()) {
+                return jsonError('لا يمكن تعديل حالة طلب محذوف. قم باستعادته أولاً.', 422);
+            }
+
+            $newStatus = $validated['status'];
+
+            if ($this->isReactivationStatus($newStatus) && $this->isRefusalStatus((string) $order->status)) {
+                $availabilityError = $this->validateMaidCanBeReactivated($order);
+                if ($availabilityError) {
+                    return jsonError($availabilityError, 422);
+                }
+            }
+
+            $order->status = $newStatus;
+            $order->status_changed_at = now();
+            $order->deadline_at = $order->getDeadlineHours() > 0
+                ? now()->addHours($order->getDeadlineHours())
+                : null;
+
+            if ($this->isRefusalStatus($newStatus)) {
+                $order->refuse_reason = $this->resolveRefuseReason($validated['refuse_reason'] ?? null, $newStatus);
+            } else {
+                $order->refuse_reason = null;
+            }
+
+            $order->save();
+
+            Notification::create([
+                'title' => __('ingaz.update_order_status'),
+                'description' => __('ingaz.order_status_updated', ['order_id' => $order->id]) . " " . __('ingaz.' . $order->status),
+                'order_id' => $order->id,
+                'user_id' => $order->user_id,
+                'type' => 'order_status',
+            ]);
+
+            if ($this->isRefusalStatus($newStatus)) {
+                $this->releaseMaid($order);
+            } elseif ($this->isReactivationStatus($newStatus)) {
+                $this->reserveMaid($order);
+            }
+
+            return jsonSuccess(['success' => true], __('ingaz.order_updated'), 200);
+        } catch (\Illuminate\Validation\ValidationException $validationException) {
+            $messages = collect($validationException->errors())->flatten();
+            return jsonError($messages->first() ?? $validationException->getMessage(), 422);
+        } catch (\Exception $e) {
+            \Log::error('Error updating return request order status', [
+                'order_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return jsonError(__('ingaz.update_error'), 400);
+        }
     }
 
-    public function destroy($id, objAction $action)
+    public function destroy(Request $request, $id, objAction $action)
     {
-        $data = $action->destroy($id);
-        return jsonSuccess($data);
+        $order = Order::withTrashed()->findOrFail($id);
+
+        if ($order->trashed()) {
+            return jsonError('الطلب محذوف بالفعل. استخدم الاستعادة لإرجاعه إلى حالته السابقة.', 422);
+        }
+
+        $order->delete();
+
+        return jsonSuccess(['success' => true], __("ingaz.order_deleted_successfully"), 200);
+    }
+
+    public function restore($id)
+    {
+        try {
+            $order = Order::withTrashed()->findOrFail($id);
+            $order->restore();
+
+            Notification::create([
+                'title' => __('ingaz.update_order_restored'),
+                'description' => __('ingaz.order_restored_msg', ['order_id' => $order->id]),
+                'order_id' => $order->id,
+                'user_id' => $order->user_id,
+                'type' => 'order_status',
+            ]);
+
+            return jsonSuccess(['success' => true], __('ingaz.order_restored'));
+        } catch (\Exception $e) {
+            return jsonError(__('ingaz.update_error'));
+        }
+    }
+
+    public function restorePreviousStatus($id)
+    {
+        try {
+            $order = Order::withTrashed()->findOrFail($id);
+
+            if ($order->trashed()) {
+                return jsonError('الطلب محذوف. استخدم استعادة الطلب أولاً.', 422);
+            }
+
+            if (!$this->isRefusalStatus((string) $order->status)) {
+                return jsonError('هذا الإجراء متاح فقط للطلبات المرفوضة أو المرجعة.', 422);
+            }
+
+            $previousStatus = $this->resolvePreviousOrderStatus($order);
+            $targetStatus = $previousStatus ?: OrderEnum::New->value;
+
+            if ($this->isReactivationStatus($targetStatus)) {
+                $availabilityError = $this->validateMaidCanBeReactivated($order);
+                if ($availabilityError) {
+                    return jsonError($availabilityError, 422);
+                }
+            }
+
+            $order->status = $targetStatus;
+            $order->status_changed_at = now();
+            $order->deadline_at = $order->getDeadlineHours() > 0
+                ? now()->addHours($order->getDeadlineHours())
+                : null;
+            $order->refuse_reason = null;
+            $order->save();
+
+            if ($this->isReactivationStatus($targetStatus)) {
+                $this->reserveMaid($order);
+            }
+
+            Notification::create([
+                'title' => __('ingaz.update_order_status'),
+                'description' => $previousStatus
+                    ? 'تم إرجاع الطلب #' . $order->id . ' إلى حالته السابقة: ' . getEnumValue('orders_statuses', $targetStatus)
+                    : 'تم تنشيط الطلب #' . $order->id . ' كطلب جديد لعدم وجود حالة سابقة مسجلة.',
+                'order_id' => $order->id,
+                'user_id' => $order->user_id,
+                'type' => 'order_status',
+            ]);
+
+            return jsonSuccess([
+                'success' => true,
+                'status' => $targetStatus,
+            ], $previousStatus ? 'تم إرجاع الطلب إلى حالته السابقة بنجاح' : 'تم تنشيط الطلب كطلب جديد بنجاح', 200);
+        } catch (\Exception $e) {
+            \Log::error('Error restoring return request previous status', [
+                'order_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return jsonError(__('ingaz.update_error'));
+        }
+    }
+
+    private function isRefusalStatus(string $status): bool
+    {
+        return in_array($status, [OrderEnum::Refused->value, OrderEnum::Return->value], true);
+    }
+
+    private function isReactivationStatus(string $status): bool
+    {
+        return in_array($status, [OrderEnum::New->value, OrderEnum::UnderProcess->value], true);
+    }
+
+    private function resolvePreviousOrderStatus(Order $order): ?string
+    {
+        $currentStatus = (string) $order->status;
+
+        $activities = Activity::query()
+            ->where('subject_type', Order::class)
+            ->where('subject_id', $order->id)
+            ->whereIn('event', ['updated', 'deleted'])
+            ->latest()
+            ->take(50)
+            ->get();
+
+        foreach ($activities as $activity) {
+            $oldStatus = data_get($activity, 'properties.old.status');
+            $newStatus = data_get($activity, 'properties.attributes.status');
+
+            if (!$oldStatus || $this->isRefusalStatus((string) $oldStatus)) {
+                continue;
+            }
+
+            if (!$newStatus || $newStatus === $currentStatus || $this->isRefusalStatus((string) $newStatus)) {
+                return (string) $oldStatus;
+            }
+        }
+
+        return null;
+    }
+
+    private function resolveRefuseReason(?string $reason, string $status): string
+    {
+        $trimmed = trim((string) $reason);
+        if ($trimmed !== '') {
+            return $trimmed;
+        }
+
+        return $status === OrderEnum::Return->value
+            ? __('ingaz.auto_return_reason')
+            : __('ingaz.auto_refuse_reason');
+    }
+
+    private function releaseMaid(Order $order): void
+    {
+        $order->loadMissing('maid');
+
+        if (!$order->maid) {
+            return;
+        }
+
+        $hasOtherActiveOrders = Order::where('maid_id', $order->maid->id)
+            ->where('id', '!=', $order->id)
+            ->whereNotIn('status', [
+                OrderEnum::Completed->value,
+                OrderEnum::Done->value,
+                OrderEnum::Refused->value,
+                OrderEnum::Return->value,
+            ])->exists();
+
+        if ($hasOtherActiveOrders) {
+            return;
+        }
+
+        $order->maid->update([
+            'status' => 'available',
+            'available' => true,
+            'available_at' => now(),
+        ]);
+    }
+
+    private function validateMaidCanBeReactivated(Order $order): ?string
+    {
+        $order->loadMissing('maid');
+
+        if (!$order->maid) {
+            return 'لا يمكن تنشيط الطلب لأنه غير مرتبط بعاملة.';
+        }
+
+        if (!$order->maid->available || !in_array($order->maid->status, ['available', 'completed'], true)) {
+            return 'لا يمكن تنشيط الطلب لأن العاملة لم تعد متاحة.';
+        }
+
+        if ($order->maid->available_at && now()->lt($order->maid->available_at)) {
+            return 'لا يمكن تنشيط الطلب لأن العاملة متاحة من يوم ' . $order->maid->available_at;
+        }
+
+        $hasOtherActiveOrders = Order::where('maid_id', $order->maid->id)
+            ->where('id', '!=', $order->id)
+            ->whereNull('deleted_at')
+            ->whereNotIn('status', [
+                OrderEnum::Completed->value,
+                OrderEnum::Done->value,
+                OrderEnum::Refused->value,
+                OrderEnum::Return->value,
+                OrderEnum::CanceledBySystem->value,
+            ])->exists();
+
+        if ($hasOtherActiveOrders) {
+            return 'لا يمكن تنشيط الطلب لأن العاملة مرتبطة بطلب نشط آخر.';
+        }
+
+        return null;
+    }
+
+    private function reserveMaid(Order $order): void
+    {
+        $order->loadMissing('maid');
+
+        if (!$order->maid) {
+            return;
+        }
+
+        $order->maid->update([
+            'status' => 'reserved',
+            'available' => false,
+        ]);
     }
 
     /**

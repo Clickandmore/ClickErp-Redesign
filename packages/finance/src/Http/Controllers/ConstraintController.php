@@ -377,10 +377,7 @@ class ConstraintController extends Controller
 
     private function renderRowActions(Constraint $constraint): string
     {
-        $editUrl = route('finance.add-constraint.show', [
-            'add_constraint' => $constraint->id,
-            'edit' => 1,
-        ]);
+        $editUrl = route('finance.add-constraint.edit', $constraint->id);
         $deleteUrl = route($this->mainRoute . '.destroy', $constraint->id);
         $printUrl = $this->resolveConstraintPrintUrl($constraint);
         $document = $this->resolveConstraintDocument($constraint);

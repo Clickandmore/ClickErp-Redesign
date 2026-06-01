@@ -1,0 +1,6 @@
+response = Map();
+mainOptions = {"طلب استقدام","تأجير","نقل كفالة","متابعة طلب","شكوى","اتصال","خدمة العملاء","إنهاء"};
+response.put("action","reply");
+response.put("replies",{"مرحباً بك في شركة هجر للاستقدام.\nاختر الخدمة المطلوبة:"});
+response.put("input",{"type":"select","options":mainOptions});
+return response;

@@ -41,16 +41,25 @@ class AccountService extends MainService
 
     public function storeAccount($data)
     {
-        if ($data["parent_id"] == 'without') {
-            $data["level"] = 1;
-            $data["parent_id"] = null;
-        } else {
-            $parent = $this->find($data["parent_id"]);
-            $data["level"] = $parent->level + 1;
-            $data["type"] = $data["type"] ?? $this->getChildType($parent);
-            $data["statement_type"] = $data["statement_type"] ?? $parent->statement_type;
-        }
-        return $this->store($data);
+        return DB::transaction(function () use ($data) {
+            if ($data["parent_id"] == 'without') {
+                $data["level"] = 1;
+                $data["parent_id"] = null;
+                $data["code"] = $this->nextAvailableRootCodeForUpdate();
+            } else {
+                $parent = $this->model->newQuery()
+                    ->whereKey($data["parent_id"])
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                $data["level"] = $parent->level + 1;
+                $data["code"] = $this->nextAvailableChildCodeForUpdate($parent);
+                $data["type"] = $data["type"] ?? $this->getChildType($parent);
+                $data["statement_type"] = $data["statement_type"] ?? $parent->statement_type;
+            }
+
+            return $this->store($data);
+        });
     }
 
 
@@ -66,35 +75,57 @@ class AccountService extends MainService
 
     public function updateAccount(int $id, $data, $getLevelParentById, $getLastChildByParentID)
     {
-        $obj = $this->find($id);
-        if ($data["parent_id"] == 'without') {
-            $parent = $getLevelParentById;
-            $data["level"] = $parent + 1;
-            $data["code"] = $data["level"];
-            // $data["type"] = 1;
-            $data["parent_id"] = null;
-            $data["statement_type"] = $data["statement_type"] ?? $obj->statement_type;
-        } else {
-            $parent = $this->find($data["parent_id"]);
-            $child = $getLastChildByParentID;
-            $data["level"] = $parent->level + 1;
-            //   $data["type"] = $this->getChildType($parent);
-            $data["statement_type"] = $data["statement_type"] ?? $parent->statement_type;
-        }
-        $data["type"] = $data["type"] ?? $obj->type;
-        $obj->update($data);
-        $this->updateChildrenCode($obj);
-        return true;
+        return DB::transaction(function () use ($id, $data) {
+            $obj = $this->model->newQuery()
+                ->whereKey($id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $oldParentId = $obj->parent_id;
+            $oldCode = (int) $obj->code;
+            $newParentId = $data["parent_id"] == 'without' ? null : (int) $data["parent_id"];
+
+            if ($newParentId === null) {
+                $data["level"] = 1;
+                $data["parent_id"] = null;
+                $data["statement_type"] = $data["statement_type"] ?? $obj->statement_type;
+
+                if ($oldParentId !== null) {
+                    $data["code"] = $this->nextAvailableRootCodeForUpdate($obj->id);
+                }
+            } else {
+                $parent = $this->model->newQuery()
+                    ->whereKey($newParentId)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                $data["level"] = $parent->level + 1;
+                $data["statement_type"] = $data["statement_type"] ?? $parent->statement_type;
+
+                if ((int) $oldParentId !== $newParentId) {
+                    $data["code"] = $this->nextAvailableChildCodeForUpdate($parent, $obj->id);
+                }
+            }
+
+            $data["type"] = $data["type"] ?? $obj->type;
+            $obj->update($data);
+
+            if ((int) $obj->code !== $oldCode) {
+                $this->updateChildrenCode($obj->fresh(['children']));
+            }
+
+            return true;
+        });
     }
 
     public function updateChildrenCode($account)
     {
         if ($account->children) {
-            foreach ($account->children as $child) {
-                $parentPluckCode = $this->parentPluckCode();
-                $childPluckCode = $this->childPluckCode($account->id);
-                $code = $this->getChildCode($account->id, $childPluckCode, $parentPluckCode);
-                $child->update(['code' => $code]);
+            $nextCode = ((int) $account->code) * 100;
+
+            foreach ($account->children->sortBy('code')->values() as $child) {
+                $child->update(['code' => $nextCode++]);
+                $this->updateChildrenCode($child->fresh(['children']));
             }
         }
     }
@@ -146,12 +177,14 @@ class AccountService extends MainService
     public function getConDetails()
     {
         return ConstraintDetails::query()
+            ->join('fn_constraints', 'fn_constraints.id', '=', 'fn_constraint_details.constraint_id')
+            ->whereNull('fn_constraints.deleted_at')
             ->select(
-                'account_id',
-                DB::raw('SUM(debtor_value) as debtor_value'),
-                DB::raw('SUM(creditor_value) as creditor_value')
+                'fn_constraint_details.account_id',
+                DB::raw('SUM(fn_constraint_details.debtor_value) as debtor_value'),
+                DB::raw('SUM(fn_constraint_details.creditor_value) as creditor_value')
             )
-            ->groupBy('account_id')
+            ->groupBy('fn_constraint_details.account_id')
             ->get()
             ->keyBy('account_id')
             ->map(function ($constraint) {
@@ -210,28 +243,48 @@ class AccountService extends MainService
     {
         if ($id != 'without') {
             $parent = $this->find($id);
-            $childCodes = $childPluckCode;
-
-            $start = $parent->code * 100;
-            foreach ($childCodes as $code) {
-                if ($code != $start) {
-                    return $start;
-                }
-                $start++;
-            }
-            return $start;
+            return $this->firstAvailableCode(((int) $parent->code) * 100, $childPluckCode);
         }
 
-        $parentCodes = $parentPluckCode;
+        return $this->firstAvailableCode(1, $parentPluckCode);
+    }
 
-        $start = 1;
-        foreach ($parentCodes as $code) {
-            if ($code != $start) {
+    protected function firstAvailableCode(int $start, $codes): int
+    {
+        foreach ($codes as $code) {
+            $code = (int) $code;
+            if ($code < $start) {
+                continue;
+            }
+            if ($code !== $start) {
                 return $start;
             }
             $start++;
         }
+
         return $start;
+    }
+
+    protected function nextAvailableRootCodeForUpdate(?int $excludeId = null): int
+    {
+        $query = $this->model->newQuery()
+            ->whereNull('parent_id')
+            ->when($excludeId, fn ($query) => $query->where('id', '<>', $excludeId))
+            ->orderBy('code')
+            ->lockForUpdate();
+
+        return $this->firstAvailableCode(1, $query->pluck('code'));
+    }
+
+    protected function nextAvailableChildCodeForUpdate(Account $parent, ?int $excludeId = null): int
+    {
+        $query = $this->model->newQuery()
+            ->where('parent_id', $parent->id)
+            ->when($excludeId, fn ($query) => $query->where('id', '<>', $excludeId))
+            ->orderBy('code')
+            ->lockForUpdate();
+
+        return $this->firstAvailableCode(((int) $parent->code) * 100, $query->pluck('code'));
     }
 
     public function childPluckCode($id)
@@ -374,14 +427,18 @@ class AccountService extends MainService
                 $join->on('account.id', '=', 'c_details.account_id')
                     ->whereNull('c_details.deleted_at');
             })
+            ->leftJoin('fn_constraints as constraints', function ($join) {
+                $join->on('constraints.id', '=', 'c_details.constraint_id')
+                    ->whereNull('constraints.deleted_at');
+            })
             ->select(
                 'account.id',
                 'account.code',
                 'account.status',
                 'account.name',
                 DB::raw("CASE
-            WHEN account.status = 'debtor' THEN COALESCE(SUM(c_details.debtor_value), 0) - COALESCE(SUM(c_details.creditor_value), 0)
-            ELSE COALESCE(SUM(c_details.creditor_value), 0) - COALESCE(SUM(c_details.debtor_value), 0)
+            WHEN account.status = 'debtor' THEN COALESCE(SUM(CASE WHEN constraints.id IS NOT NULL THEN c_details.debtor_value ELSE 0 END), 0) - COALESCE(SUM(CASE WHEN constraints.id IS NOT NULL THEN c_details.creditor_value ELSE 0 END), 0)
+            ELSE COALESCE(SUM(CASE WHEN constraints.id IS NOT NULL THEN c_details.creditor_value ELSE 0 END), 0) - COALESCE(SUM(CASE WHEN constraints.id IS NOT NULL THEN c_details.debtor_value ELSE 0 END), 0)
         END AS balance")
             )
             ->when(isset($search['from_date']) && $search['from_date'], function ($query) use ($search) {
@@ -406,14 +463,18 @@ class AccountService extends MainService
                 $join->on('account.id', '=', 'c_details.account_id')
                     ->whereNull('c_details.deleted_at');
             })
+            ->leftJoin('fn_constraints as constraints', function ($join) {
+                $join->on('constraints.id', '=', 'c_details.constraint_id')
+                    ->whereNull('constraints.deleted_at');
+            })
             ->select(
                 'account.id',
                 'account.code',
                 'account.status',
                 'account.name',
                 DB::raw("CASE
-            WHEN account.status = 'debtor' THEN COALESCE(SUM(c_details.debtor_value), 0) - COALESCE(SUM(c_details.creditor_value), 0)
-            ELSE COALESCE(SUM(c_details.creditor_value), 0) - COALESCE(SUM(c_details.debtor_value), 0)
+            WHEN account.status = 'debtor' THEN COALESCE(SUM(CASE WHEN constraints.id IS NOT NULL THEN c_details.debtor_value ELSE 0 END), 0) - COALESCE(SUM(CASE WHEN constraints.id IS NOT NULL THEN c_details.creditor_value ELSE 0 END), 0)
+            ELSE COALESCE(SUM(CASE WHEN constraints.id IS NOT NULL THEN c_details.creditor_value ELSE 0 END), 0) - COALESCE(SUM(CASE WHEN constraints.id IS NOT NULL THEN c_details.debtor_value ELSE 0 END), 0)
         END AS balance")
             )
             ->where('account.status', $type)
@@ -435,14 +496,18 @@ class AccountService extends MainService
     {
         return DB::table('fn_constraint_details as d')
             ->rightJoin('fn_accounts as a', 'd.account_id', '=', 'a.id')
+            ->leftJoin('fn_constraints as c', function ($join) {
+                $join->on('c.id', '=', 'd.constraint_id')
+                    ->whereNull('c.deleted_at');
+            })
             ->select(
                 'a.id',
                 'a.code',
                 'a.status',
                 'a.name',
                 DB::raw("CASE
-            WHEN a.status = 'debtor' THEN COALESCE(SUM(d.debtor_value), 0) - COALESCE(SUM(d.creditor_value), 0)
-            ELSE COALESCE(SUM(d.creditor_value), 0) - COALESCE(SUM(d.debtor_value), 0)
+            WHEN a.status = 'debtor' THEN COALESCE(SUM(CASE WHEN c.id IS NOT NULL THEN d.debtor_value ELSE 0 END), 0) - COALESCE(SUM(CASE WHEN c.id IS NOT NULL THEN d.creditor_value ELSE 0 END), 0)
+            ELSE COALESCE(SUM(CASE WHEN c.id IS NOT NULL THEN d.creditor_value ELSE 0 END), 0) - COALESCE(SUM(CASE WHEN c.id IS NOT NULL THEN d.debtor_value ELSE 0 END), 0)
         END AS balance")
             )
             ->where('a.status', $type)
@@ -483,8 +548,11 @@ class AccountService extends MainService
 
     public function getIncomeAccounts()
     {
-        return $this->model->where('type', AccountTypesEnum::GeneralOutcome)
-            ->orWhere('type', AccountTypesEnum::GeneralIncome)
+        return $this->model->whereIn('type', [
+            AccountTypesEnum::GeneralOutcome,
+            AccountTypesEnum::GeneralIncome,
+        ])
+            ->whereNull('parent_id')
             ->orderBy('type', 'asc')
             ->with(['children', 'childrenRecursive' => function ($query) {
                 $query->select('id', 'parent_id', 'type', 'status');
@@ -493,13 +561,33 @@ class AccountService extends MainService
     }
 
 
-    public function getIncomeAccountsChildrens($constraints_ids)
+    public function getIncomeReportLevels(): array
+    {
+        $roots = $this->model->whereIn('type', [
+            AccountTypesEnum::GeneralOutcome,
+            AccountTypesEnum::GeneralIncome,
+        ])
+            ->whereNull('parent_id')
+            ->with('children.children.children.children.children')
+            ->get();
+
+        $maxDepth = 1;
+
+        foreach ($roots as $root) {
+            $maxDepth = max($maxDepth, $this->getMaxChildrenDepth($root));
+        }
+
+        return range(1, $maxDepth);
+    }
+
+    public function getIncomeAccountsChildrens($constraints_ids, ?int $level = null)
     {
         // Load all accounts with their nested children in one query
         $accounts = $this->model->whereIn('type', [
             AccountTypesEnum::GeneralOutcome,
             AccountTypesEnum::GeneralIncome
         ])
+            ->whereNull('parent_id')
             ->with('children.children.children.children.children') // Adjust depth as needed
             ->get();
 
@@ -514,12 +602,9 @@ class AccountService extends MainService
 
             if ($account->children->count() > 0) {
                 foreach ($account->children as $children) {
-                    $total_price = $this->getTotalPriceOfChildrens($children, $constraints_data);
-                    $account_total_price += $total_price;
-                    $list[] = [
-                        'account' => $children,
-                        'total_price' => $total_price
-                    ];
+                    $row = $this->buildIncomeAccountRow($children, $constraints_data);
+                    $account_total_price += $row['total_price'];
+                    $list[] = $row;
                 }
             }
 
@@ -530,7 +615,77 @@ class AccountService extends MainService
             ];
         }
 
+        if ($level) {
+            $main_list = $this->filterIncomeAccountsByReportLevel($main_list, $level);
+        }
+
         return $main_list;
+    }
+
+    private function getMaxChildrenDepth($account, int $depth = 0): int
+    {
+        if (!$account->children || $account->children->isEmpty()) {
+            return $depth;
+        }
+
+        $maxDepth = $depth;
+
+        foreach ($account->children as $child) {
+            $maxDepth = max($maxDepth, $this->getMaxChildrenDepth($child, $depth + 1));
+        }
+
+        return $maxDepth;
+    }
+
+    private function filterIncomeAccountsByReportLevel(array $main_list, int $level): array
+    {
+        return array_map(function ($root) use ($level) {
+            $root['list'] = $this->keepRowsUntilReportLevel($root['list'], $level);
+
+            return $root;
+        }, $main_list);
+    }
+
+    private function keepRowsUntilReportLevel(array $rows, int $targetLevel, int $currentLevel = 1): array
+    {
+        return array_map(function ($row) use ($targetLevel, $currentLevel) {
+            if ($currentLevel >= $targetLevel) {
+                $row['children'] = [];
+
+                return $row;
+            }
+
+            $row['children'] = $this->keepRowsUntilReportLevel(
+                $row['children'] ?? [],
+                $targetLevel,
+                $currentLevel + 1
+            );
+
+            return $row;
+        }, $rows);
+    }
+
+    private function buildIncomeAccountRow($account, $constraints_data)
+    {
+        $children = [];
+        $children_total = 0;
+
+        if ($account->children->count() > 0) {
+            foreach ($account->children as $child) {
+                $child_row = $this->buildIncomeAccountRow($child, $constraints_data);
+                $children_total += $child_row['total_price'];
+                $children[] = $child_row;
+            }
+        }
+
+        $own_total = $constraints_data[$account->id] ?? 0;
+
+        return [
+            'account' => $account,
+            'total_price' => $own_total + $children_total,
+            'own_total_price' => $own_total,
+            'children' => $children,
+        ];
     }
 
     private function getTotalPriceOfChildrens($account, $constraints_data)
@@ -577,11 +732,17 @@ class AccountService extends MainService
     private function getConstraintsData($account_ids, $constraints_ids)
     {
         // Single query to get all constraint details for all accounts
-        $constraints = DB::table('fn_constraint_details') // Adjust table name as needed
-        ->whereIn('account_id', $account_ids) // Adjust column name as needed
-        ->whereIn('id', $constraints_ids)
-            ->whereNull('deleted_at')
-            ->select('account_id', 'debtor_value', 'creditor_value')
+        $constraints = DB::table('fn_constraint_details')
+            ->join('fn_accounts', 'fn_accounts.id', '=', 'fn_constraint_details.account_id')
+            ->whereIn('fn_constraint_details.account_id', $account_ids)
+            ->whereIn('fn_constraint_details.id', $constraints_ids)
+            ->whereNull('fn_constraint_details.deleted_at')
+            ->select(
+                'fn_constraint_details.account_id',
+                'fn_constraint_details.debtor_value',
+                'fn_constraint_details.creditor_value',
+                'fn_accounts.status'
+            )
             ->get();
 
         // Group by account_id and calculate totals
@@ -591,7 +752,9 @@ class AccountService extends MainService
             if (!isset($constraints_data[$account_id])) {
                 $constraints_data[$account_id] = 0;
             }
-            $constraints_data[$account_id] += ($constraint->debtor_value - $constraint->creditor_value);
+            $constraints_data[$account_id] += $constraint->status === 'creditor'
+                ? ($constraint->creditor_value - $constraint->debtor_value)
+                : ($constraint->debtor_value - $constraint->creditor_value);
         }
 
         return $constraints_data;

@@ -709,11 +709,12 @@
                                                         data-rental-type="{{ $package->rental_type ?? 'monthly' }}"
                                                         data-duration-count="{{ $package->duration_count ?: max(1, (int) ceil(($package->days_count ?: 30) / 30)) }}"
                                                         data-duration-unit="{{ $package->duration_unit ?? 'month' }}"
+                                                        data-duration-label="{{ $package->duration_label }}"
                                                         data-working-hours="{{ $package->working_hours_per_day }}"
                                                         data-original-price="{{ $package->original_price }}"
                                                         data-price="{{ $package->price_after_discount }}"
                                                         data-total="{{ $package->price_with_tax }}">
-                                                    {{ $package->title }} - {{ $package->rental_type_label }} - {{ $package->duration_count ?: max(1, (int) ceil(($package->days_count ?: 30) / 30)) }} {{ $package->duration_unit_label }} - {{ number_format((float) $package->price_with_tax, 2) }} ريال
+                                                    {{ $package->title }} - {{ $package->rental_type_label }} - {{ $package->duration_count ?: max(1, (int) ceil(($package->days_count ?: 30) / 30)) }} {{ $package->duration_unit_label }} - {{ number_format((float) $package->price_after_discount, 2) }} ريال بدون الضريبة
                                                 </option>
                                             @endforeach
                                         </select>
@@ -820,14 +821,14 @@
                                     </div>
 
                                     <div class="col-md-6">
-                                        <label class="form-label">التكلفة الشهرية <span
+                                        <label class="form-label">تكلفة الفترة <span
                                                 class="text-danger">*</span></label>
                                         <input type="number" id="monthly_cost" name="monthly_cost" class="form-control"
                                                step="0.01" data-validation="required">
                                     </div>
 
                                     <div class="col-md-6">
-                                        <label class="form-label">مدة العقد بالشهور <span
+                                        <label class="form-label">مدة العقد بالشهور للحساب <span
                                                 class="text-danger">*</span></label>
                                         <input type="number" id="contract_duration_months"
                                                name="contract_duration_months" class="form-control"
@@ -1204,15 +1205,19 @@
 
                 const days = parseInt(selectedOption.data('days'), 10) || 0;
                 const rentalType = selectedOption.data('rental-type') || '';
+                const durationUnit = selectedOption.data('duration-unit') || '';
+                const durationLabel = selectedOption.data('duration-label') || '';
                 const workingHours = parseInt(selectedOption.data('working-hours'), 10) || 0;
                 const totalPrice = parseFloat(selectedOption.data('total')) || 0;
                 const beforeTax = parseFloat(selectedOption.data('price')) || 0;
                 const months = Math.max(1, Math.ceil(days / 30));
-                const monthlyCost = months ? (totalPrice / months) : 0;
+                const monthlyCost = (rentalType === 'monthly' || durationUnit === 'month') && months
+                    ? (totalPrice / months)
+                    : totalPrice;
 
                 $('#packageSummaryTitle').text(selectedOption.data('title') || 'الباقة المختارة');
                 $('#packageSummaryHint').text('تم اعتماد بيانات الباقة تلقائياً ويمكن تعديل تفاصيل العقد عند الحاجة.');
-                $('#packageSummaryDays').text(days ? `${days} يوم` : '-');
+                $('#packageSummaryDays').text(durationLabel || (days ? `${days} يوم` : '-'));
                 $('#packageSummaryBeforeTax').text(formatCurrency(beforeTax));
                 $('#packageSummaryAfterTax').text(formatCurrency(totalPrice));
 

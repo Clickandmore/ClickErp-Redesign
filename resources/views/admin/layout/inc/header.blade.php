@@ -37,14 +37,17 @@ $quickLinks = collect([
         }
 
         .cm-brand {
-            min-height: 42px;
+            min-height: 58px;
             min-width: auto;
-            max-width: 220px;
-            gap: 0.55rem;
+            max-width: 320px;
+            gap: 0.7rem;
         }
 
         .cm-header-logo {
-            height: 34px;
+            height: 52px;
+            max-width: 150px;
+            width: auto;
+            object-fit: contain;
         }
 
         .cm-brand-text {
@@ -74,6 +77,7 @@ $quickLinks = collect([
             flex-wrap: nowrap;
             align-items: center;
             gap: 0.45rem;
+            flex: 0 0 auto;
             min-width: 0;
         }
 
@@ -264,12 +268,6 @@ $quickLinks = collect([
             }
         }
 
-        @media (max-width: 1380px) {
-            .cm-header-meta {
-                display: none;
-            }
-        }
-
         @media (max-width: 1280px) {
             .cm-header-open-site span {
                 display: none;
@@ -287,7 +285,12 @@ $quickLinks = collect([
             .cm-brand {
                 margin-inline-start: 0.65rem !important;
                 margin-inline-end: 0 !important;
-                max-width: 180px;
+                max-width: 230px;
+            }
+
+            .cm-header-logo {
+                height: 44px;
+                max-width: 125px;
             }
         }
     </style>
@@ -363,9 +366,9 @@ $quickLinks = collect([
                                 <p class="cm-header-shortcuts-label mb-0">{{ __('admin.layout.quick_links') }}</p>
                                 <div class="cm-header-shortcuts-list">
                                     @foreach ($quickLinks as $link)
-                                        <a class="cm-header-shortcut {{ $link['variant'] === 'primary' ? 'is-primary' : '' }}"
+                                        <a class="cm-header-shortcut"
                                            href="{{ $link['url'] }}" target="_blank" rel="noopener noreferrer">
-                                            <i class="fa {{ $link['icon'] }}"></i>
+                                            <i class="fa {{ $link['icon'] ?? 'fa-external-link' }}"></i>
                                             <span>{{ $link['title'] }}</span>
                                         </a>
                                     @endforeach

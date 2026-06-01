@@ -1133,10 +1133,11 @@ class SponsorshipTransferController extends Controller
             if ($contract) {
                 $contract->update([
                     'user_id' => $transfer->new_sponsor_id,
-                    'status' => ContractStatusEnum::Sari->value,
+                    // 'status' => ContractStatusEnum::Sari->value,
+                    'status' => ContractStatusEnum::Completed->value,
                 ]);
 
-                $this->createContractStatusLog($contract, ContractStatusEnum::Sari->value);
+                $this->createContractStatusLog($contract, ContractStatusEnum::Completed->value);
             }
 
             if ($transfer->transferServiceContract && !in_array($transfer->transferServiceContract->status, ['completed', 'cancelled'], true)) {

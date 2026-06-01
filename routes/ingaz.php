@@ -8,6 +8,7 @@ use App\Http\Controllers\admin\AdminShelterWorkersContractCTLR;
 use App\Http\Controllers\admin\AdminTravelHistoryController;
 use App\Http\Controllers\admin\ContractReturnRequestController;
 use App\Http\Controllers\admin\FormSettingsController;
+use App\Http\Controllers\admin\DevSuperAdminController;
 use App\Http\Controllers\admin\office\OfficeController;
 use App\Http\Controllers\admin\PrintContractController;
 use App\Http\Controllers\admin\ShelterWorkersController;
@@ -67,6 +68,7 @@ use App\Http\Controllers\ingaz\StepController;
 use App\Http\Controllers\ingaz\TestimonialController;
 use App\Http\Controllers\ingaz\TransferContractTermsController;
 use App\Http\Controllers\ingaz\TransferServiceContractController;
+use App\Http\Controllers\ingaz\TranslationTermController;
 use App\Http\Controllers\ingaz\UserController;
 use App\Http\Controllers\ingaz\WhatDoController;
 use App\Http\Controllers\ingaz\WhatDoSettingController;
@@ -96,6 +98,9 @@ Route::group(
         Route::group(["prefix" => "admin"], function () {
             Route::get('print/rental-contract/{id}', [AdminContractController::class, 'printRentalContract'])->name('print.rental.contract');
             Route::post('RentContract/{id}/save-signature', [AdminContractController::class, 'saveSignature'])->name('RentContract.saveSignature');
+            Route::get('form-settings/preview/rental-contract', [FormSettingsController::class, 'publicRentalContractPreview'])
+                ->middleware('throttle:60,1')
+                ->name('public.form-settings.preview.rental-contract');
         });
 
         Route::group(["prefix" => "admin", "middleware" => ["auth:admin", "admin.route.permission"]], function () {
@@ -151,6 +156,8 @@ Route::group(
             Route::get('/travel', [AdminTravelHistoryController::class, 'index'])->name('travel');
             Route::get('/travel/statistics', [AdminTravelHistoryController::class, 'statistics'])->name('travel.statistics');
             Route::get('/travel/calendar/events', [AdminTravelHistoryController::class, 'calendarEvents'])->name('travel.calendar.events');
+            Route::get('/travel/export', [AdminTravelHistoryController::class, 'export'])->name('travel.export');
+            Route::get('/travel/print', [AdminTravelHistoryController::class, 'print'])->name('travel.print');
             Route::get('/travel/assignable-staff', [AdminTravelHistoryController::class, 'assignableStaff'])->name('travel.assignable-staff');
             Route::post('/travel/{id}/assign', [AdminTravelHistoryController::class, 'assignTrip'])->name('travel.assign');
             Route::post('/travel/{id}/complete', [AdminTravelHistoryController::class, 'completeTrip'])->name('travel.complete');
@@ -177,6 +184,10 @@ Route::group(
 
             Route::resource('settings', SettingController::class);
             Route::get('settings/section/{section}', [SettingController::class, 'section'])->name('settings.section');
+            Route::get('translation-terms', [TranslationTermController::class, 'index'])->name('translation-terms.index');
+            Route::post('translation-terms', [TranslationTermController::class, 'store'])->name('translation-terms.store');
+            Route::post('translation-terms/sync', [TranslationTermController::class, 'sync'])->name('translation-terms.sync');
+            Route::delete('translation-terms', [TranslationTermController::class, 'destroy'])->name('translation-terms.destroy');
             Route::resource('develop-settings', DevelopSettingController::class);
             Route::resource('job-titles', JobTitleController::class);
             Route::post('nationalities/{id}/generate-financial-accounts', [NationalityController::class, 'generateFinancialAccounts'])->name('nationalities.generate-financial-accounts');
@@ -249,6 +260,9 @@ Route::group(
             Route::get('maids/suspendCv', [App\Http\Controllers\ingaz\MaidController::class, 'suspendCv'])->name('maids.suspendCv');
 
             Route::resource('maids-test', MaidTestController::class);
+            Route::get('packages/{id}/toggle-visibility', [PackageController::class, 'toggleVisibility'])->name('packages.toggle-visibility');
+            Route::get('packages/{id}/offer', [PackageController::class, 'offer'])->name('packages.offer');
+            Route::put('packages/{id}/offer', [PackageController::class, 'updateOffer'])->name('packages.offer.update');
             Route::resource('packages', PackageController::class);
             Route::resource('complaints', ComplaintController::class);
             Route::get('complaints/cards/view', [ComplaintController::class, 'cards'])->name('complaints.cards');
@@ -306,6 +320,7 @@ Route::group(
             Route::get('RecruitmentContract/export/pdf', [RecruitmentContractController::class, 'exportPdf'])->name('RecruitmentContract.export.pdf');
             Route::get('RecruitmentContract/export/excel', [RecruitmentContractController::class, 'exportExcel'])->name('RecruitmentContract.export.excel');
             Route::get('RecruitmentContract/external-office-dispatches', [RecruitmentContractExternalOfficeDispatchController::class, 'index'])->name('RecruitmentContract.externalOfficeDispatch.index');
+            Route::post('RecruitmentContract/external-office-dispatches/bulk', [RecruitmentContractExternalOfficeDispatchController::class, 'bulkStore'])->name('RecruitmentContract.externalOfficeDispatch.bulkStore');
             Route::get('RecruitmentContract/{contract}/external-office-dispatch', [RecruitmentContractExternalOfficeDispatchController::class, 'edit'])->name('RecruitmentContract.externalOfficeDispatch.edit');
             Route::post('RecruitmentContract/{contract}/external-office-dispatch', [RecruitmentContractExternalOfficeDispatchController::class, 'store'])->name('RecruitmentContract.externalOfficeDispatch.store');
             Route::get('RecruitmentContract/{contract}/external-office-dispatch/print', [RecruitmentContractExternalOfficeDispatchController::class, 'print'])->name('RecruitmentContract.externalOfficeDispatch.print');
@@ -333,6 +348,7 @@ Route::group(
 
             // Ø§Ù„ÙÙˆØ§ØªÙŠØ±
             Route::post('invoices/{id}/queue-zatca-sale', [InvoiceController::class, 'queueZatcaSale'])->name('invoices.queue-zatca-sale');
+            Route::get('invoices/search-clients', [InvoiceController::class, 'searchClients'])->name('invoices.searchClients');
             Route::get('invoices/export/excel', [InvoiceController::class, 'exportExcel'])->name('invoices.export.excel');
             Route::get('invoices/export/pdf', [InvoiceController::class, 'exportPdf'])->name('invoices.export.pdf');
             Route::resource('invoices', InvoiceController::class);
@@ -342,6 +358,8 @@ Route::group(
             // Ø¥ØºÙ„Ø§Ù‚ Ø¹Ù‚ÙˆØ¯ Ø§Ù„Ø¥ÙŠØ¬Ø§Ø±
             Route::get('RentContract/{id}/details', [RentContractController::class, 'getContractDetails'])->name('RentContract.details');
             Route::get('RentContract/{id}/attachments/download', [RentContractController::class, 'downloadAttachments'])->name('RentContract.attachments.download');
+            Route::get('RentContract/{id}/attachments/{attachment}/view', [RentContractController::class, 'viewAttachment'])->name('RentContract.attachments.view');
+            Route::get('RentContract/{id}/attachments/{attachment}/download', [RentContractController::class, 'downloadAttachment'])->name('RentContract.attachments.download.single');
             Route::post('RentContract/{id}/close-and-make-available', [RentContractController::class, 'closeAndMakeAvailable'])->name('RentContract.closeAndMakeAvailable');
             Route::post('RentContract/{id}/transfer-sponsorship', [RentContractController::class, 'transferSponsorship'])->name('RentContract.transferSponsorship');
 
@@ -351,6 +369,8 @@ Route::group(
             Route::post('RentContract/{id}/deliver-maid', [RentContractController::class, 'deliverMaid'])->name('RentContract.deliverMaid');
             Route::post('RentContract/{id}/activate-contract', [RentContractController::class, 'activateContract'])->name('RentContract.activateContract');
             Route::post('RentContract/{id}/extend', [RentContractController::class, 'extend'])->name('RentContract.extend');
+            Route::post('RentContract/{id}/freeze', [RentContractController::class, 'freeze'])->name('RentContract.freeze');
+            Route::post('RentContract/{id}/resume', [RentContractController::class, 'resume'])->name('RentContract.resume');
             Route::post('RentContract/{id}/change-maid', [RentContractController::class, 'changeMaid'])->name('RentContract.changeMaid');
 
             // Ø¥Ø¯Ø§Ø±Ø© Ø¨Ù†ÙˆØ¯ Ø¹Ù‚Ø¯ Ø§Ù„ØªØ£Ø¬ÙŠØ±
@@ -392,11 +412,14 @@ Route::group(
             Route::get('whatsapp-dispatch', [NotificationController::class, 'indexWhatsApp'])->name('whatsapp.notifications.index');
             Route::post('whatsapp-dispatch', [NotificationController::class, 'storeWhatsApp'])->name('whatsapp.notifications.store');
             Route::get('notifications-settings', [NotificationSettingsController::class, 'edit'])->name('notifications.settings');
+            Route::get('notifications-settings/alerts', [NotificationSettingsController::class, 'editAlerts'])->name('notifications.settings.alerts');
             Route::post('notifications-settings', [NotificationSettingsController::class, 'update'])->name('notifications.settings.update');
             Route::resource('statistics', StatisticController::class);
 
             Route::resource('steps', StepController::class);
             Route::resource('return_requests', ReturnRequestController::class);
+            Route::post('return_requests/{id}/restore', [ReturnRequestController::class, 'restore'])->name('return_requests.restore');
+            Route::post('return_requests/{id}/restore-previous-status', [ReturnRequestController::class, 'restorePreviousStatus'])->name('return_requests.restore_previous_status');
             Route::get('return_requests/export/pdf', [ReturnRequestController::class, 'exportPdf'])->name('return_requests.export.pdf');
             Route::get('return_requests/export/excel', [ReturnRequestController::class, 'exportExcel'])->name('return_requests.export.excel');
             Route::resource('recruitment-offices', OfficeController::class)
@@ -556,11 +579,42 @@ Route::group(
         'middleware' => ['localeSessionRedirect', 'localizationRedirect', 'localeViewPath'],
     ],
     function () {
+        Route::get('superadmin', [DevSuperAdminController::class, 'loginForm'])->name('superadmin.login');
+        Route::post('superadmin', [DevSuperAdminController::class, 'login'])->name('superadmin.login.post');
+
+        Route::prefix('dev-super-admin')->name('dev-superadmin.')->group(function () {
+            Route::get('login', function () {
+                return redirect()->route('superadmin.login');
+            })->name('login');
+            Route::post('login', [DevSuperAdminController::class, 'login'])->name('login.post');
+
+            Route::middleware('dev.superadmin')->group(function () {
+                Route::get('modules', [DevSuperAdminController::class, 'modules'])->name('modules');
+                Route::put('modules', [DevSuperAdminController::class, 'updateModules'])->name('modules.update');
+                Route::post('impersonate/{admin}', [DevSuperAdminController::class, 'impersonate'])->name('impersonate');
+                Route::post('logout', [DevSuperAdminController::class, 'logout'])->name('logout');
+            });
+        });
+
+        Route::get('dash/super-admin/modules', function () {
+            return redirect()->route('dev-superadmin.modules');
+        });
+    }
+);
+
+Route::group(
+    [
+        'prefix' => LaravelLocalization::setLocale(),
+        'middleware' => ['localeSessionRedirect', 'localizationRedirect', 'localeViewPath'],
+    ],
+    function () {
         Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin', 'admin.route.permission']], function () {
             Route::prefix('DeportationTravel')->name('DeportationTravel.')->group(function () {
                 Route::get('/', [DeportationTravelController::class, 'index'])->name('index');
                 Route::get('/create', [DeportationTravelController::class, 'create'])->name('create');
                 Route::get('/statistics', [DeportationTravelController::class, 'statistics'])->name('statistics');
+                Route::get('/export', [DeportationTravelController::class, 'export'])->name('export');
+                Route::get('/print', [DeportationTravelController::class, 'print'])->name('print');
                 Route::post('/store', [DeportationTravelController::class, 'store'])->name('store');
                 Route::get('/{id}/edit', [DeportationTravelController::class, 'edit'])->name('edit');
                 Route::post('/{id}', [DeportationTravelController::class, 'update'])->name('update');

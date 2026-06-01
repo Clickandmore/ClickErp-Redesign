@@ -14,6 +14,34 @@
         }
     }
 
+    function waitForImage(image) {
+        if (!image || image.complete) {
+            return Promise.resolve();
+        }
+
+        return new Promise(function (resolve) {
+            image.addEventListener("load", resolve, { once: true });
+            image.addEventListener("error", resolve, { once: true });
+        });
+    }
+
+    function waitForPrintableAssets() {
+        var images = Array.prototype.slice.call(document.querySelectorAll("img"));
+        var imagePromises = images.map(waitForImage);
+        var fontPromise = document.fonts && typeof document.fonts.ready === "object"
+            ? document.fonts.ready
+            : Promise.resolve();
+
+        var timeoutPromise = new Promise(function (resolve) {
+            setTimeout(resolve, 3000);
+        });
+
+        return Promise.race([
+            Promise.all(imagePromises.concat([fontPromise])),
+            timeoutPromise
+        ]);
+    }
+
     function pad(number) {
         return number < 10 ? "0" + number : String(number);
     }
@@ -63,7 +91,7 @@
 
         var query = parseQuery();
         if (query && query.get("autoprint") === "1") {
-            setTimeout(triggerPrint, 250);
+            waitForPrintableAssets().then(triggerPrint);
         }
     });
 })();

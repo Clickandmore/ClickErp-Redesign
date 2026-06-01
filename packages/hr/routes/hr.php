@@ -13,6 +13,8 @@ use Nami\Hr\Http\Controllers\Employee\VacationController;
 use Nami\Hr\Http\Controllers\EmployeeAdvanceController;
 use Nami\Hr\Http\Controllers\EmployeeAttendancesController;
 use Nami\Hr\Http\Controllers\EmployeeController;
+use Nami\Hr\Http\Controllers\EmployeeCustodyController;
+use Nami\Hr\Http\Controllers\EmployeeCustodyLocationController;
 use Nami\Hr\Http\Controllers\EmployeeExecelFileController;
 use Nami\Hr\Http\Controllers\EmployeePermissionController;
 use Nami\Hr\Http\Controllers\EmployeeRewardController;
@@ -95,5 +97,7 @@ Route::group(
         Route::resource('daily-work-reports', DailyWorkReportController::class);
         Route::resource('employee-rewards', EmployeeRewardController::class);
         Route::resource('employee-advances', EmployeeAdvanceController::class);
+        Route::resource('employee-custodies', EmployeeCustodyController::class);
+        Route::resource('employee-custody-locations', EmployeeCustodyLocationController::class);
     });
 });
