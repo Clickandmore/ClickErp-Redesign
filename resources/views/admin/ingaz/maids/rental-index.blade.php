@@ -99,6 +99,14 @@
             min-width: 118px;
         }
 
+        .rental-page .maid-name {
+            white-space: nowrap;
+        }
+
+        .rental-page .maid-name::before {
+            content: attr(data-maid-display);
+        }
+
         .dropdown-menu.dropdown-menu-end.rental-actions-floating-menu {
             position: fixed !important;
             top: var(--rental-actions-top) !important;
@@ -397,7 +405,7 @@
                         </div>
                         <div class="modal-body">
                             <div class="mb-3">
-                                <div class="fw-semibold" id="rentalFinanceItemsTitle">-</div>
+                                <div class="fw-semibold notranslate" id="rentalFinanceItemsTitle" translate="no" dir="auto">-</div>
                                 <div class="text-muted small" id="rentalFinanceItemsStats">-</div>
                             </div>
                             <div class="table-responsive">

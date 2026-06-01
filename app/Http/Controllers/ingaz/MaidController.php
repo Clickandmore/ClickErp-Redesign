@@ -594,9 +594,10 @@ class MaidController extends Controller
                     $passport = e($row->passport_num ?: '-');
                     $cvCode = $row->cv_code ? '<span class="small text-muted">' . helperTrans('ingaz.cv_code') . ': ' . e($row->cv_code) . '</span>' : '';
                     $requestType = e($row->request_type_label);
+                    $nameHtml = '<span class="fw-semibold maid-name notranslate" translate="no" dir="auto" data-maid-display="' . $name . '" aria-label="' . $name . '"></span>';
 
                     return '<div class="d-flex flex-column gap-1">'
-                        . '<a href="' . route('showMaidDetails', $row->id) . '" class="fw-semibold text-decoration-none">' . $name . '</a>'
+                        . '<a href="' . route('showMaidDetails', $row->id) . '" class="text-decoration-none notranslate" translate="no" dir="auto">' . $nameHtml . '</a>'
                         . '<span class="small text-muted">' . helperTrans('ingaz.passport') . ': ' . $passport . '</span>'
                         . $cvCode
                         . '<span class="small text-muted">' . helperTrans('ingaz.request_type') . ': ' . $requestType . '</span>'
