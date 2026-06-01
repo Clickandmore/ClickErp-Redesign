@@ -463,8 +463,7 @@ return array (
   'under_warranty' => 'Under warranty',
   'back' => 'Back',
   'shelter' => 'Shelter',
-  'contract_stages' => 
-  array (
+  'contract_stages' => [
     'pending' => 'Pending',
     'resolved' => 'Resolved',
     'quick_actions' => 'Quick Actions',
@@ -574,5 +573,6 @@ return array (
     'project_desc' => 'Over 20 years of providing highly professional recruitment services',
     'Platinum Company Services' => 'Platinum Company Services',
     'aboutUs' => 'About Us',
+    ],
 
-];
+   );
