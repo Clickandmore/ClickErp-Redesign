@@ -1067,7 +1067,7 @@
                             request()->routeIs('statistics.*') ||
                             request()->routeIs('steps.*') ||
                             request()->routeIs('partenrs.*');
-                        $isRecruitmentSettingsRoute = in_array(Route::currentRouteName(), ['job-titles.index', 'nationalities.index', 'religions.index', 'skills.index', 'countries.index', 'cities.index', 'social-statuses.index', 'recruitment-contract-stage-labels.edit', 'recruitment-contract-stage-labels.update']);
+                        $isRecruitmentSettingsRoute = in_array(Route::currentRouteName(), ['job-titles.index', 'nationalities.index', 'religions.index', 'skills.index', 'countries.index', 'cities.index', 'social-statuses.index', 'recruitment-contract-stages.edit', 'recruitment-contract-stages.update']);
                         $isRentalSettingsRoute =
                             request()->routeIs('rent-contract.settings') ||
                             request()->routeIs('rent-contract-terms.*') ||
@@ -1388,10 +1388,10 @@
 
                                         @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
                                             <li>
-                                                <a class="m-link {{ request()->routeIs('recruitment-contract-stage-labels.*') ? 'active' : '' }}"
-                                                    href="{{ route('recruitment-contract-stage-labels.edit') }}">
+                                                <a class="m-link {{ request()->routeIs('recruitment-contract-stages.*') ? 'active' : '' }}"
+                                                    href="{{ route('recruitment-contract-stages.edit') }}">
                                                     <i class="fa fa-tags"></i>
-                                                    <span class="ms-2">مسميات مراحل العقود</span>
+                                                    <span class="ms-2">{{ __('admin.recruitment_contract_stages') }}</span>
                                                 </a>
                                             </li>
                                         @endif

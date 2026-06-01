@@ -5,6 +5,7 @@ namespace App\Http\Controllers\ingaz;
 use App\Http\Controllers\Controller;
 use App\PermKeys;
 use App\Support\RecruitmentContractStageLabels;
+use App\Support\RecruitmentOrderStatusLabels;
 use Illuminate\Http\Request;
 
 class RecruitmentContractStageLabelController extends Controller
@@ -16,6 +17,8 @@ class RecruitmentContractStageLabelController extends Controller
         return view('admin.ingaz.recruitment_contract_stage_labels.edit', [
             'labels' => RecruitmentContractStageLabels::labels(),
             'defaults' => RecruitmentContractStageLabels::defaults(),
+            'orderLabels' => RecruitmentOrderStatusLabels::labels(),
+            'orderDefaults' => RecruitmentOrderStatusLabels::defaults(),
         ]);
     }
 
@@ -27,16 +30,21 @@ class RecruitmentContractStageLabelController extends Controller
             'labels' => ['required', 'array'],
             'labels.*.ar' => ['nullable', 'string', 'max:100'],
             'labels.*.en' => ['nullable', 'string', 'max:100'],
+            'order_labels' => ['required', 'array'],
+            'order_labels.*.ar' => ['nullable', 'string', 'max:100'],
+            'order_labels.*.en' => ['nullable', 'string', 'max:100'],
         ]);
 
         if ($request->boolean('reset_defaults')) {
             RecruitmentContractStageLabels::reset();
+            RecruitmentOrderStatusLabels::reset();
         } else {
             RecruitmentContractStageLabels::save($validated['labels']);
+            RecruitmentOrderStatusLabels::save($validated['order_labels']);
         }
 
         return redirect()
-            ->route('recruitment-contract-stage-labels.edit')
-            ->with('success', 'تم حفظ مسميات مراحل العقود بنجاح');
+            ->route('recruitment-contract-stages.edit')
+            ->with('success', __('admin.recruitment_contract_stages_saved'));
     }
 }

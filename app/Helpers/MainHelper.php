@@ -255,6 +255,11 @@ if (!function_exists('getEnumValue')) {
                 ?? "undefined";
         }
 
+        if ($array_name === 'orders_statuses') {
+            return \App\Support\RecruitmentOrderStatusLabels::label((string) $key, \App::currentLocale())
+                ?? "undefined";
+        }
+
         $constantArray = Constant::globalArray[$array_name];
         $locale = \App::currentLocale();
         return (isset($constantArray[$key][$locale])) ? $constantArray[$key][$locale] : "undefined";

@@ -162,22 +162,29 @@ branch_id يمكن أن يكون null أو يعبأ بالفرع الرئيسي 
 
 نحتاج إعدادا واضحا يتحكم في الميزة.
 
-اقتراح اسم الإعداد:
+القرار المعتمد:
 
 ```text
-branches_enabled
+تفعيل أو تعطيل الفروع يتم من صفحة Dev Super Admin:
+http://127.0.0.1:8000/dev-super-admin/modules
 ```
 
-مكانه المقترح:
+الموديول المقترح:
 
 ```text
-settings
+branches
 ```
 
-أو ضمن نظام الموديولات الموجود إذا كان مناسبا:
+مصدر التخزين الحالي:
 
 ```text
 system_module_settings
+```
+
+مصدر تعريف الموديولات:
+
+```text
+config/superadmin_modules.php
 ```
 
 القيم:
@@ -187,16 +194,41 @@ false = شركة بدون فروع
 true  = شركة لديها فروع
 ```
 
-الأفضل استخدام النظام الموجود لإدارة الموديولات إذا كان يدعم إظهار/إخفاء المزايا حسب الشركة، لأن المشروع لديه:
+المشروع لديه بالفعل:
 
 ```text
 App\Support\SystemModuleManager
 ```
 
-لكن حتى لو استخدمنا الموديولات، يجب أن تكون خدمة الفروع قادرة على الإجابة عن سؤال:
+لذلك لا نضيف إعدادا منفصلا في `settings` إذا كان الغرض فقط تفعيل أو تعطيل نظام الفروع.
+
+يجب أن تكون خدمة الفروع قادرة على الإجابة عن سؤال:
 
 ```php
 branchesEnabled(): bool
+```
+
+وتكون الإجابة مبنية على:
+
+```php
+SystemModuleManager::isEnabled('branches')
+```
+
+ملاحظة مهمة:
+
+النظام الحالي في `SystemModuleManager::enabledMap()` يعتبر أي موديول معرف في config مفعلا افتراضيا إذا لم يجد له قيمة في `system_module_settings`.
+
+بما أن الفروع يجب أن تكون اختيارية ولا تظهر للشركات الحالية تلقائيا، يجب تنفيذ واحد من الخيارات التالية:
+
+```text
+الخيار المفضل: دعم default_enabled داخل config/superadmin_modules.php.
+الخيار البديل: إنشاء migration/seed يضيف branches في system_module_settings بقيمة is_enabled = false.
+```
+
+التوصية:
+
+```text
+إضافة default_enabled => false لموديول branches، وتعديل SystemModuleManager ليحترم هذا الافتراض.
 ```
 
 ### 4.5 السلوك البرمجي حسب الوضع
@@ -219,10 +251,10 @@ if (! $this->branchesEnabled()) {
 عند إنشاء سجل جديد:
 
 ```text
-إذا branches_enabled = false:
+إذا موديول branches غير مفعل:
     branch_id = الفرع الرئيسي إن وجد، أو null
 
-إذا branches_enabled = true:
+إذا موديول branches مفعل:
     branch_id = فرع الموظف أو الفرع المختار حسب الصلاحية
 ```
 
@@ -239,11 +271,11 @@ if (! $this->branchesEnabled()) {
 ```text
 شركة بدون فروع:
     لديها فرع رئيسي داخلي
-    branches_enabled = false
+    موديول branches غير مفعل
 
 شركة لديها فروع:
     لديها فرع رئيسي وفروع أخرى
-    branches_enabled = true
+    موديول branches مفعل
 ```
 
 ### 4.7 التوصية المعتمدة: النسخة الموحدة هي الفرع الرئيسي
@@ -273,13 +305,13 @@ if (! $this->branchesEnabled()) {
 
 ```text
 شركة بدون فروع:
-    branches_enabled = false
+    موديول branches غير مفعل
     default_branch = الفرع الرئيسي
     الواجهة لا تعرض الفروع
     السجلات الجديدة ترتبط بالفرع الرئيسي بصمت أو تترك null حسب مرحلة التنفيذ
 
 شركة لديها فروع:
-    branches_enabled = true
+    موديول branches مفعل
     default_branch = الفرع الرئيسي
     تظهر إدارة الفروع والفلترة
     الموظفون والسجلات ترتبط بفروع محددة
@@ -442,29 +474,56 @@ deleted_at
 
 ### 6.3 إعداد تفعيل الفروع
 
-نحتاج حفظ حالة تفعيل الفروع لكل شركة.
+نستخدم نظام الموديولات الحالي بدلا من إعداد مستقل.
 
-إذا استخدمنا جدول `settings`:
-
-```text
-branches_enabled boolean default false
-```
-
-إذا استخدمنا `system_module_settings`:
+المفتاح:
 
 ```text
-module_key = branches
-enabled = true/false
+branches
 ```
 
-التوصية:
+مكان التعريف:
 
 ```text
-استخدام نظام الموديولات إذا كان الهدف التحكم في إظهار الميزة لكل شركة.
-استخدام settings إذا كان المطلوب إعدادا مباشرا وبسيطا داخل إعدادات الشركة.
+config/superadmin_modules.php
 ```
 
-الأهم أن كل أجزاء النظام تستدعي دالة واحدة لتحديد التفعيل، ولا تقرأ الإعداد مباشرة في كل Controller.
+مكان التخزين:
+
+```text
+system_module_settings
+```
+
+القيمة الافتراضية المطلوبة:
+
+```text
+is_enabled = false
+```
+
+صيغة مقترحة داخل `config/superadmin_modules.php`:
+
+```php
+'branches' => [
+    'name' => 'إدارة الفروع',
+    'description' => 'تفعيل إدارة فروع الشركة وربط الموظفين والعمليات والتقارير بالفروع.',
+    'default_enabled' => false,
+    'route_patterns' => [
+        'branches.*',
+    ],
+    'path_patterns' => [
+        'dashboard/branches*',
+    ],
+],
+```
+
+يجب تعديل `SystemModuleManager` بحيث:
+
+```text
+إذا لم توجد قيمة في system_module_settings يستخدم default_enabled من config.
+إذا لم توجد default_enabled يستخدم true للموديولات القديمة حفاظا على السلوك الحالي.
+```
+
+الأهم أن كل أجزاء النظام تستدعي دالة واحدة لتحديد التفعيل، ولا تقرأ جدول `system_module_settings` مباشرة في كل Controller.
 
 ### 6.4 ربط الموظفين بالفروع
 
@@ -598,7 +657,7 @@ public function shouldShowBranchUi(?Admin $admin): bool
 
 ### 8.1 قواعد الخدمة حسب وضع الشركة
 
-إذا كانت `branches_enabled = false`:
+إذا كان موديول `branches` غير مفعل:
 
 ```text
 canViewAllBranches = true من ناحية البيانات
@@ -608,7 +667,7 @@ shouldShowBranchUi = false إلا في صفحة الإعدادات أو لمست
 defaultBranchId = الفرع الرئيسي أو null
 ```
 
-إذا كانت `branches_enabled = true`:
+إذا كان موديول `branches` مفعل:
 
 ```text
 canViewAllBranches يعتمد على الصلاحية
@@ -617,6 +676,29 @@ assertCanAccess يمنع الوصول لفرع غير مصرح
 shouldShowBranchUi يعتمد على الصلاحية والسياق
 defaultBranchId = فرع الموظف أو الفرع الرئيسي للأدمن العام
 ```
+
+### 8.2 مصدر التفعيل الرسمي
+
+مصدر التفعيل الرسمي للفروع:
+
+```php
+SystemModuleManager::isEnabled('branches')
+```
+
+ولا يستخدم:
+
+```text
+settings.branches_enabled
+```
+
+إلا إذا تقرر لاحقا بناء نظام إعدادات منفصل عن الموديولات. القرار الحالي هو عدم استخدامه.
+
+ميزة هذا القرار:
+
+- Super Admin يتحكم في الميزة من مكان واحد.
+- صفحة `/dev-super-admin/modules` تصبح المرجع الواضح.
+- middleware الحالي يستطيع إغلاق مسارات الفروع عند تعطيل الموديول.
+- لا نكرر إعدادين يؤديان لنفس المعنى.
 
 ---
 
@@ -689,7 +771,6 @@ PUT    dashboard/branches/{branch}
 DELETE dashboard/branches/{branch}
 POST   dashboard/branches/{branch}/toggle-status
 GET    dashboard/branches/{branch}/reports
-POST   dashboard/branches/settings/toggle
 ```
 
 أسماء routes المقترحة:
@@ -703,7 +784,12 @@ branches.update
 branches.destroy
 branches.toggle-status
 branches.reports
-branches.settings.toggle
+```
+
+لا نضيف route داخل `dashboard` لتفعيل أو تعطيل موديول الفروع، لأن التفعيل يكون من:
+
+```text
+dev-super-admin/modules
 ```
 
 ### 10.2 Controller
@@ -769,7 +855,7 @@ reports.blade.php
 
 ### 10.5 واجهة شركة بدون فروع
 
-إذا كانت `branches_enabled = false`:
+إذا كان موديول `branches` غير مفعل:
 
 - لا يظهر فلتر الفروع في الداشبورد.
 - لا تظهر أعمدة الفرع في القوائم العامة إلا في شاشات الإدارة.
@@ -913,7 +999,7 @@ $branchAccess->applyToQuery($query, $request, auth('admin')->user());
 
 ### 13.4 شركة بدون فروع
 
-إذا كانت `branches_enabled = false`:
+إذا كان موديول `branches` غير مفعل:
 
 - الداشبورد يعرض نفس الإحصائيات الحالية بدون فلترة فروع.
 - لا يظهر فلتر الفروع.
@@ -1027,7 +1113,7 @@ status = active
 إذا كانت الشركة لا تملك فروع:
 
 ```text
-branches_enabled = false
+موديول branches غير مفعل
 إنشاء فرع رئيسي داخلي
 ربط الموظفين بالفرع الرئيسي اختياري
 ربط السجلات القديمة بالفرع الرئيسي اختياري
@@ -1038,7 +1124,7 @@ branches_enabled = false
 
 ```text
 أنشئ الفرع الرئيسي واربط الموظفين به.
-اترك الفلترة والواجهة مخفية طالما branches_enabled = false.
+اترك الفلترة والواجهة مخفية طالما موديول branches غير مفعل.
 ```
 
 ### 15.5 ترحيل شركة لديها فروع
@@ -1046,7 +1132,7 @@ branches_enabled = false
 إذا كانت الشركة لديها فروع:
 
 ```text
-branches_enabled = true بعد تجهيز البيانات
+تفعيل موديول branches بعد تجهيز البيانات
 إنشاء كل الفروع الفعلية
 ربط كل موظف بفرعه
 تحديد المستخدمين الذين يرون كل الفروع
@@ -1070,7 +1156,7 @@ branches_enabled = true بعد تجهيز البيانات
 قبل البرمجة يجب حسم:
 
 - هل الشركة الحالية لديها فروع أم لا؟
-- هل ستكون الفروع مفعلة افتراضيا للشركات الجديدة أم معطلة؟
+- هل سيكون موديول branches مفعلا افتراضيا للشركات الجديدة أم معطلا؟
 - هل الموظف يتبع فرعا واحدا فقط؟
 - هل السجلات القديمة تربط بالفرع الرئيسي أم تترك بدون فرع؟
 - من هم المستخدمون الذين يرون كل الفروع؟
@@ -1082,7 +1168,9 @@ branches_enabled = true بعد تجهيز البيانات
 العمل:
 
 - إنشاء جدول `branches`.
-- إضافة إعداد `branches_enabled` أو ربطه بنظام الموديولات.
+- إضافة موديول `branches` في `config/superadmin_modules.php`.
+- ضبط موديول `branches` ليكون غير مفعل افتراضيا للشركات الحالية.
+- تعديل `SystemModuleManager` ليدعم `default_enabled`.
 - إنشاء Model.
 - إنشاء Seeder للفرع الرئيسي.
 - إضافة صلاحيات الفروع.
@@ -1092,7 +1180,8 @@ branches_enabled = true بعد تجهيز البيانات
 
 - يمكن تشغيل migrations بدون خطأ.
 - يتم إنشاء الفرع الرئيسي.
-- تكون الفروع غير مفعلة افتراضيا إلا إذا قررنا عكس ذلك.
+- تظهر `إدارة الفروع` في `/dev-super-admin/modules`.
+- تكون الفروع غير مفعلة افتراضيا إلا إذا فعلها Dev Super Admin.
 - تظهر صلاحيات الفروع في شاشة الصلاحيات.
 - Administrator يحصل على الصلاحيات.
 
@@ -1106,6 +1195,7 @@ branches_enabled = true بعد تجهيز البيانات
 - إضافة routes.
 - إضافة رابط في القائمة الجانبية حسب الصلاحية.
 - إخفاء الرابط في الشركات بدون فروع إلا للمستخدم الإداري.
+- ربط مسارات الفروع بموديول `branches` عبر `route_patterns` و `path_patterns`.
 
 اختبار القبول:
 
@@ -1115,6 +1205,7 @@ branches_enabled = true بعد تجهيز البيانات
 - يمكن تعطيل فرع.
 - لا يمكن حذف فرع مرتبط بسجلات مهمة.
 - شركة بدون فروع لا ترى هذه الشاشة في الاستخدام اليومي.
+- عند تعطيل موديول الفروع من Super Admin لا يمكن الوصول لمسارات الفروع.
 
 ### المرحلة 3: ربط الموظفين
 
@@ -1216,7 +1307,7 @@ app/Http/Requests/admin/StoreBranchRequest.php
 app/Http/Requests/admin/UpdateBranchRequest.php
 app/Services/BranchAccessService.php
 database/migrations/YYYY_MM_DD_HHMMSS_create_branches_table.php
-database/migrations/YYYY_MM_DD_HHMMSS_add_branches_enabled_setting.php
+database/migrations/YYYY_MM_DD_HHMMSS_seed_branches_module_setting.php
 database/migrations/YYYY_MM_DD_HHMMSS_add_branch_id_to_admins_table.php
 database/seeders/BranchSeeder.php
 resources/views/admin/branches/index.blade.php
@@ -1229,6 +1320,7 @@ resources/views/admin/branches/_form.blade.php
 
 ```text
 routes/admin.php
+config/superadmin_modules.php
 app/Models/auth/Admin.php
 app/Http/Controllers/admin/auth/AdminController.php
 app/Http/Requests/auth/profile/StoreAdminRequest.php
@@ -1265,7 +1357,7 @@ resources/views/admin/auth/admin/*
 
 التقليل:
 
-- استخدام `branches_enabled`.
+- استخدام موديول `branches` من `SystemModuleManager`.
 - إخفاء واجهات الفروع عند تعطيل الميزة.
 - جعل `branch_id` اختياريا.
 - عدم تطبيق فلترة الفروع إذا كانت الميزة غير مفعلة.
@@ -1327,7 +1419,7 @@ php artisan optimize:clear
 - لا يتم حذف سجلات الفروع فعليا في المرحلة الأولى، فقط تعطيل.
 - لا يتم منع الدخول أو إنشاء السجلات بسبب الفرع قبل إكمال ربط الموظفين.
 - أي فلترة للفرع يجب أن تحترم صلاحية `branches_view_all`.
-- أي فلترة للفرع يجب أن تتوقف بالكامل إذا كانت `branches_enabled = false`.
+- أي فلترة للفرع يجب أن تتوقف بالكامل إذا كان موديول `branches` غير مفعل.
 - واجهات الفروع لا تظهر في الاستخدام اليومي لشركة بدون فروع.
 - يجب اختبار الأدمن العام وموظف الفرع على الأقل.
 
@@ -1361,7 +1453,7 @@ php artisan config:cache
 
 ### شركة بدون فروع
 
-- `branches_enabled = false`.
+- موديول `branches` غير مفعل.
 - لا يظهر فلتر الفروع في الداشبورد.
 - لا يظهر حقل الفرع في إنشاء الطلب أو العقد.
 - لا يفشل إنشاء سجل جديد بسبب عدم وجود فرع.
@@ -1421,15 +1513,16 @@ php artisan config:cache
 يجب اعتماد هذه النقاط قبل التنفيذ:
 
 ```text
-1. هل الفروع تكون غير مفعلة افتراضيا لكل شركة؟
-2. هل الشركة الحالية لديها فروع فعلية؟
-3. هل كل موظف يتبع فرعا واحدا فقط؟
-4. هل نربط البيانات القديمة بالفرع الرئيسي؟
-5. ما أسماء الفروع الحالية إذا وجدت؟
-6. من هو مدير كل فرع؟
-7. من هم المستخدمون الذين يرون كل الفروع؟
-8. هل الفروع مرتبطة محاسبيا بمراكز تكلفة الآن أم لاحقا؟
-9. هل نريد تقارير مقارنة الفروع من المرحلة الأولى أم مرحلة لاحقة؟
+1. اعتماد أن تفعيل الفروع يتم من /dev-super-admin/modules.
+2. اعتماد أن موديول branches غير مفعل افتراضيا للشركات الحالية.
+3. هل الشركة الحالية لديها فروع فعلية؟
+4. هل كل موظف يتبع فرعا واحدا فقط؟
+5. هل نربط البيانات القديمة بالفرع الرئيسي؟
+6. ما أسماء الفروع الحالية إذا وجدت؟
+7. من هو مدير كل فرع؟
+8. من هم المستخدمون الذين يرون كل الفروع؟
+9. هل الفروع مرتبطة محاسبيا بمراكز تكلفة الآن أم لاحقا؟
+10. هل نريد تقارير مقارنة الفروع من المرحلة الأولى أم مرحلة لاحقة؟
 ```
 
 ---
@@ -1440,13 +1533,13 @@ php artisan config:cache
 
 ```text
 1. اعتماد القرارات المطلوبة.
-2. تنفيذ إعداد branches_enabled بحيث تكون الفروع اختيارية.
+2. إضافة موديول branches إلى /dev-super-admin/modules مع default_enabled = false.
 3. تنفيذ جدول الفروع والصلاحيات.
 4. تنفيذ شاشة CRUD للفروع.
 5. ربط الموظفين بالفروع.
-6. إضافة فلتر الداشبورد مع إخفائه عند تعطيل الفروع.
+6. إضافة فلتر الداشبورد مع إخفائه عند تعطيل موديول branches.
 7. ربط الطلبات والعقود الجديدة بالفروع.
-8. عزل القوائم المهمة حسب الفرع فقط عند تفعيل الفروع.
+8. عزل القوائم المهمة حسب الفرع فقط عند تفعيل موديول branches.
 9. بناء تقارير الفروع.
 10. مراجعة شاملة قبل تفعيل العزل الكامل.
 ```

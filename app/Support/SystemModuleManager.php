@@ -19,20 +19,20 @@ class SystemModuleManager
 
     public static function enabledMap(): array
     {
-        return Cache::remember(self::CACHE_KEY, now()->addMinutes(5), function () {
-            $defaults = collect(self::modules())->mapWithKeys(fn ($module, $key) => [$key => true])->all();
+        $defaults = self::defaultEnabledMap();
 
+        $stored = Cache::remember(self::CACHE_KEY, now()->addMinutes(5), function () {
             if (! Schema::hasTable('system_module_settings')) {
-                return $defaults;
+                return [];
             }
 
-            $stored = DB::table('system_module_settings')
+            return DB::table('system_module_settings')
                 ->pluck('is_enabled', 'key')
                 ->map(fn ($value) => (bool) $value)
                 ->all();
-
-            return array_merge($defaults, $stored);
         });
+
+        return array_merge($defaults, $stored);
     }
 
     public static function isEnabled(string $key): bool
@@ -143,5 +143,19 @@ class SystemModuleManager
         }
 
         return false;
+    }
+
+    private static function defaultEnabled(array $module): bool
+    {
+        return array_key_exists('default_enabled', $module)
+            ? (bool) $module['default_enabled']
+            : true;
+    }
+
+    private static function defaultEnabledMap(): array
+    {
+        return collect(self::modules())
+            ->mapWithKeys(fn ($module, $key) => [$key => self::defaultEnabled($module)])
+            ->all();
     }
 }

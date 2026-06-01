@@ -24,7 +24,7 @@ return new class extends Migration
                 'key' => $key,
                 'name' => $module['name'] ?? $key,
                 'description' => $module['description'] ?? null,
-                'is_enabled' => true,
+                'is_enabled' => array_key_exists('default_enabled', $module) ? (bool) $module['default_enabled'] : true,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);

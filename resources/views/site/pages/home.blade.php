@@ -549,37 +549,37 @@
             [
                 'url' => $settings->twitter ?? null,
                 'icon' => 'fab fa-twitter',
-                'title' => 'twitter page',
+                'title' => 'تويتر',
                 'class' => 'twitter',
             ],
             [
                 'url' => $settings->facebook ?? null,
                 'icon' => 'fab fa-facebook-f',
-                'title' => 'facebook page',
+                'title' => 'فيسبوك',
                 'class' => 'facebook',
             ],
             [
                 'url' => $settings->instagram ?? null,
                 'icon' => 'fab fa-instagram',
-                'title' => 'instagram page',
+                'title' => 'انستجرام',
                 'class' => 'instagram',
             ],
             [
                 'url' => $settings->linkedin ?? null,
                 'icon' => 'fab fa-linkedin-in',
-                'title' => 'linkedin page',
+                'title' => 'لينكدإن',
                 'class' => 'linkedin',
             ],
             [
                 'url' => $settings->youtube ?? null,
                 'icon' => 'fab fa-youtube',
-                'title' => 'youtube page',
+                'title' => 'يوتيوب',
                 'class' => 'youtube',
             ],
             [
                 'url' => $settings->snapchat ?? null,
                 'icon' => 'fab fa-snapchat-ghost',
-                'title' => 'snapchat page',
+                'title' => 'سناب شات',
                 'class' => 'snapchat',
             ],
         ];
@@ -588,10 +588,48 @@
         if ($whatsAppNumber) {
             $cleanNumber = preg_replace('/\D+/', '', $whatsAppNumber);
             $waLink = $cleanNumber ? 'https://wa.me/' . $cleanNumber : $whatsAppNumber;
-            $socials[] = ['url' => $waLink, 'icon' => 'fab fa-whatsapp', 'title' => 'whatsapp', 'class' => 'whatsapp'];
+            $socials[] = ['url' => $waLink, 'icon' => 'fab fa-whatsapp', 'title' => 'واتساب', 'class' => 'whatsapp'];
         }
 
         $socials = array_filter($socials, fn($item) => !empty($item['url']));
+
+        $localizedModelText = function ($model, string $attribute, string $fallback = '') {
+            if (!$model) {
+                return $fallback;
+            }
+
+            $locale = app()->getLocale();
+
+            if (method_exists($model, 'translate')) {
+                $translation = $model->translate($locale, false);
+                $value = trim((string) data_get($translation, $attribute, ''));
+
+                if ($value !== '') {
+                    return $value;
+                }
+
+                if ($locale === 'ar') {
+                    return $fallback;
+                }
+            }
+
+            return trim((string) data_get($model, $attribute, $fallback));
+        };
+
+        $whatDoFallbacks = [
+            'estqdam' => [
+                'title' => 'الاستقدام',
+                'description' => 'خدمة استقدام العمالة المنزلية والمهنية من الخارج للعمل داخل المملكة.',
+            ],
+            'egar' => [
+                'title' => 'تأجير العمالة الشهري',
+                'description' => 'خدمة تأجير العمالة للشهر الواحد مع ضمان مرونة وجودة.',
+            ],
+            'transfer' => [
+                'title' => 'النقل الفوري للعمالة',
+                'description' => 'خدمة نقل العمالة لمشاريعك بسرعة وكفاءة عالية.',
+            ],
+        ];
     @endphp
     @if (!empty($socials))
         <div class="sideSocial d-md-flex snipcss-W5Bnr">
@@ -611,10 +649,10 @@
                     <div class="swiper-slide" style="background-image: url({{ showFile($slider->image) }})">
                         <div class="info">
                             <h4 class="hint">
-                                {{ $slider->title }}
+                                {{ $localizedModelText($slider, 'title', documentSetting('website_name', config('app.name'))) }}
                             </h4>
                             <h1 class="sliderTitle">
-                                {{ $slider->description }}
+                                {{ $localizedModelText($slider, 'description', __('web.project_desc')) }}
                             </h1>
                         </div>
                     </div>
@@ -771,13 +809,13 @@
                     <div class="icon {{ $color }}">
                         <i class="{{ $whatDo->icon }}"></i>
                     </div>
-                    <h4>{{ $whatDo->title }}</h4>
+                    <h4>{{ $localizedModelText($whatDo, 'title', $whatDoFallbacks[$whatDo->type]['title'] ?? '') }}</h4>
                     <p>
-                        {{ $whatDo->description }}
+                        {{ $localizedModelText($whatDo, 'description', $whatDoFallbacks[$whatDo->type]['description'] ?? '') }}
                     </p>
                     <ul>
                         @foreach ($whatDo->items as $item)
-                            <li>{{ $item->title }}</li>
+                            <li>{{ $localizedModelText($item, 'title') }}</li>
                         @endforeach
                     </ul>
                     <div class="service-actions">
@@ -888,9 +926,9 @@
     </section>
 
     @php
-        $aboutTitle = optional($abouts)->title ?? __('ingaz.about-us');
-        $aboutDescription = optional($abouts)->description ?? documentSetting('website_name', config('app.name')) . ' مرخصة من وزارة العمل والموارد البشرية لخدمات التوسط في استقدام العمالة الوافدة، وحرصاً منا على تقديم خدمات متميزة تم إطلاق منصة رقمية متكاملة لتبسيط عملية الاستقدام وجعلها أكثر كفاءة وسهولة لعملائنا بما يتوافق مع رؤية المملكة.';
-        $aboutImage = optional($abouts)->image ? showFile($abouts->image) : asset('site/assets/images/about.webp');
+        $aboutTitle = $localizedModelText($abouts ?? null, 'title', __('ingaz.about-us'));
+        $aboutDescription = $localizedModelText($abouts ?? null, 'description', documentSetting('website_name', config('app.name')) . ' مرخصة من وزارة العمل والموارد البشرية لخدمات التوسط في استقدام العمالة الوافدة، وحرصاً منا على تقديم خدمات متميزة تم إطلاق منصة رقمية متكاملة لتبسيط عملية الاستقدام وجعلها أكثر كفاءة وسهولة لعملائنا بما يتوافق مع رؤية المملكة.');
+        $aboutImage = !empty($abouts) && optional($abouts)->image ? showFile($abouts->image) : asset('site/assets/images/about.webp');
     @endphp
     <!-- about sec  -->
     <section class="about-section" id="about" data-aos="fade-up" data-aos-duration="900">
@@ -915,8 +953,8 @@
                     <div class="service">
                         <i class="{{ $feature->image }}"></i>
                         <div>
-                            <h4>{{ $feature->title }}</h4>
-                            <p>{{ $feature->description ?? '' }}</p>
+                            <h4>{{ $localizedModelText($feature, 'title') }}</h4>
+                            <p>{{ $localizedModelText($feature, 'description') }}</p>
                         </div>
                     </div>
                 @empty
@@ -989,7 +1027,7 @@
                                 </div>
                             </div>
                             <div class="cost-highlight">
-                                <span class="label title">{{ $nationalty->title }}</span>
+                                <span class="label title">{{ $localizedModelText($nationalty, 'title', app()->getLocale() === 'ar' ? 'غير محدد' : $nationalty->display_name) }}</span>
                                 <h2 class="price">{{ $formatNumber($nationalty->price) }} <small>ريال</small></h2>
                                 <span class="label">تكلفة الاستقدام شامل الضريبة</span>
                             </div>
