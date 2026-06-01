@@ -13,6 +13,15 @@ class OfficeRequest extends MainRequest
         return $this->route('office');
     }
 
+    protected function linkedAdminId(mixed $officeId): mixed
+    {
+        $officeId = is_object($officeId) && isset($officeId->id) ? $officeId->id : $officeId;
+
+        return DB::table('admin_offices')
+            ->where('office_id', $officeId)
+            ->value('admin_id');
+    }
+
     /**
      * Determine if the user is authorized to make this request.
      *
@@ -82,6 +91,8 @@ class OfficeRequest extends MainRequest
     protected function update(): array
     {
         $officeId = $this->officeId();
+        $linkedAdminId = $this->linkedAdminId($officeId);
+
         return [
             "title:ar" => "required|string",
             "title:en" => "required|string",
@@ -93,11 +104,10 @@ class OfficeRequest extends MainRequest
             "manager_email" => [
                 "nullable",
                 "email",
-                function ($attribute, $value, $fail) use ($officeId) {
-                    $admin = DB::table('admins')->where('email', $value)->first();
+                function ($attribute, $value, $fail) use ($officeId, $linkedAdminId) {
                     $existsInAdmins = DB::table('admins')
                         ->where('email', $value)
-                        ->when($admin, fn($q) => $q->where('id', '<>', $admin->id))
+                        ->when($linkedAdminId, fn($q) => $q->where('id', '<>', $linkedAdminId))
                         ->exists();
                     $existsInOffices = DB::table('recruitment_offices')
                         ->where('manager_email', $value)
@@ -112,13 +122,10 @@ class OfficeRequest extends MainRequest
             "manager_phone" => [
                 "nullable",
                 "numeric",
-                function ($attribute, $value, $fail) use ($officeId) {
-
-                    $admin = DB::table('admins')->where('phone', $value)->first();
-
+                function ($attribute, $value, $fail) use ($officeId, $linkedAdminId) {
                     $existsInAdmins = DB::table('admins')
                         ->where('phone', $value)
-                        ->when($admin, fn($q) => $q->where('id', '<>', $admin->id))
+                        ->when($linkedAdminId, fn($q) => $q->where('id', '<>', $linkedAdminId))
                         ->exists();
 
                     $existsInOffices = DB::table('recruitment_offices')

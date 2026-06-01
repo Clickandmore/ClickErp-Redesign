@@ -186,6 +186,10 @@
             ->map(fn($id) => (string) $id)
             ->all();
         $attachment = $office?->attachment;
+        $managerAccount = $office?->officeManager?->admin;
+        $managerName = $managerAccount?->name ?: $office?->manager_name;
+        $managerPhone = $managerAccount?->phone ?: $office?->manager_phone;
+        $managerEmail = $managerAccount?->email ?: $office?->manager_email;
         $statusEnum = $isEdit ? \App\Enums\Office\OfficesStatusEnum::tryFrom($office->status) : null;
         $defaultAttachment = $isEdit && filled($attachment?->file) ? showFile($attachment->file) : '';
     @endphp
@@ -318,19 +322,19 @@
                                 <div class="col-12 col-md-6 office-field">
                                     <label>{{ helperTrans('ingaz.name') }}</label>
                                     <input type="text" name="manager_name" class="form-control office-input"
-                                        value="{{ old('manager_name', $office?->manager_name) }}">
+                                        value="{{ old('manager_name', $managerName) }}">
                                 </div>
 
                                 <div class="col-12 col-md-6 office-field">
                                     <label>{{ helperTrans('ingaz.phone') }}</label>
                                     <input type="text" name="manager_phone" class="form-control office-input"
-                                        value="{{ old('manager_phone', $office?->manager_phone) }}">
+                                        value="{{ old('manager_phone', $managerPhone) }}">
                                 </div>
 
                                 <div class="col-12 col-md-6 office-field">
                                     <label>{{ helperTrans('ingaz.email') }}</label>
                                     <input type="email" name="manager_email" class="form-control office-input"
-                                        value="{{ old('manager_email', $office?->manager_email) }}">
+                                        value="{{ old('manager_email', $managerEmail) }}">
                                 </div>
 
                                 <div class="col-12 col-md-6 office-field mb-0">

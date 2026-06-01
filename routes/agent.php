@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Agent\AgentBulkImportController;
+use App\Http\Controllers\Agent\AgentRecruitmentProcedureController;
 use App\Http\Controllers\Agent\AuthController;
 use App\Http\Controllers\Agent\DashboardController;
 use Illuminate\Support\Facades\Route;
@@ -18,8 +20,26 @@ Route::group(
             Route::middleware('agent')->group(function () {
                 Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
                 Route::get('maids', [DashboardController::class, 'maids'])->name('maids.index');
+                Route::get('maids/create', [DashboardController::class, 'createMaid'])->name('maids.create');
+                Route::post('maids/store', [DashboardController::class, 'storeMaid'])->name('maids.store');
+                Route::post('maids/extract-cv', [DashboardController::class, 'extractCv'])->name('maids.extract-cv');
+                Route::get('maids/bulk-import/template', [AgentBulkImportController::class, 'template'])->name('maids.bulk-import.template');
+                Route::get('maids/bulk-import/create', [AgentBulkImportController::class, 'create'])->name('maids.bulk-import.create');
+                Route::post('maids/bulk-import', [AgentBulkImportController::class, 'store'])->name('maids.bulk-import.store');
+                Route::get('maids/bulk-import/{agentMaidBulkImport}', [AgentBulkImportController::class, 'show'])->name('maids.bulk-import.show');
+                Route::get('maids/bulk-import/{agentMaidBulkImport}/download', [AgentBulkImportController::class, 'download'])->name('maids.bulk-import.download');
+                Route::post('maids/{maid}/notes', [DashboardController::class, 'updateNotes'])->name('maids.update-notes');
+                Route::get('maids/{maid}', [DashboardController::class, 'showMaid'])->name('maids.show');
                 Route::get('contracts', [DashboardController::class, 'contracts'])->name('contracts.index');
                 Route::get('contracts/{contract}', [DashboardController::class, 'showContract'])->name('contracts.show');
+                Route::get('external-office-dispatches', [DashboardController::class, 'dispatches'])->name('dispatches.index');
+                Route::get('invoices', [DashboardController::class, 'invoices'])->name('invoices.index');
+                Route::get('philippines-tracking', [AgentRecruitmentProcedureController::class, 'index'])->name('philippines-tracking.index');
+                Route::post('philippines-tracking/{maid}/update-step', [AgentRecruitmentProcedureController::class, 'updateStep'])->name('philippines-tracking.update-step');
+                Route::post('philippines-tracking/{maid}/bulk-update', [AgentRecruitmentProcedureController::class, 'bulkUpdate'])->name('philippines-tracking.bulk-update');
+                Route::get('notifications', [DashboardController::class, 'notifications'])->name('notifications.index');
+                Route::post('notifications/mark-all-read', [DashboardController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
+                Route::post('notifications/{id}/read', [DashboardController::class, 'markAsRead'])->name('notifications.read');
                 Route::post('logout', [AuthController::class, 'logout'])->name('logout');
             });
         });

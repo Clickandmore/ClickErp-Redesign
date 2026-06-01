@@ -804,6 +804,31 @@ class AdminController extends Controller
             'login' => 'required',
             'password' => 'required'
         ]);
+      
+          $agentUser = objModel::query()
+            ->whereHas('agentOfficeLinks')
+            ->where(function ($query) use ($request) {
+                $query->where('phone', $request->login)
+                    ->orWhere('email', $request->login);
+            })
+            ->first();
+
+        if ($agentUser && $agentUser->isExternalOfficeOnlyAgent()) {
+            if (($agentUser->status ?? 'active') === 'suspended') {
+                return jsonSuccess(null, 'Ù‡Ø°Ø§ Ø§Ù„Ø­Ø³Ø§Ø¨ Ù…ÙˆÙ‚ÙˆÙ Ø­Ø§Ù„ÙŠØ§Ù‹.', 403);
+            }
+
+            if (auth()->guard("agent")->attempt(["email" => $agentUser->email, "password" => $request->password], $request->boolean('rememberme'))) {
+                $request->session()->regenerate();
+
+                return jsonSuccess([
+                    'url' => \Mcamara\LaravelLocalization\Facades\LaravelLocalization::getLocalizedURL(app()->getLocale(), route('agent.dashboard'), [], true),
+                ], app()->getLocale() === 'ar' ? 'تم تسجيل الدخول للوحة الوكيل الخارجي' : 'Agent login successful');
+            }
+
+            return jsonSuccess(null, __("auth.password"), 402);
+        } 
+      
         $login = trim((string) $request->login);
         $user = objModel::query()
             ->where('email', $login)
@@ -821,7 +846,9 @@ class AdminController extends Controller
                 if (auth()->guard("agent")->attempt(["email" => $user->email, "password" => $request->password], $request->boolean('rememberme'))) {
                     $request->session()->regenerate();
 
-                    return jsonSuccess(['url' => route('agent.dashboard')], __('admin.external_agent_logged_in'));
+                    return jsonSuccess([
+                        'url' => \Mcamara\LaravelLocalization\Facades\LaravelLocalization::getLocalizedURL(app()->getLocale(), route('agent.dashboard'), [], true),
+                    ], app()->getLocale() === 'ar' ? 'تم تسجيل الدخول للوحة الوكيل الخارجي' : 'Agent login successful');
                 }
 
                 return jsonSuccess(null, __("auth.password"), 402);

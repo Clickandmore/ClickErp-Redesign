@@ -45,7 +45,7 @@ class UserController extends Controller
     {
         if ($request->ajax()) {
             $units = objModel::query()
-                ->with(['nationality'])
+                ->with(['nationality', 'createdBy'])
                 ->withCount([
                     'orders as orders_count',
                     'orders as active_orders_count' => function ($query) {
@@ -248,6 +248,18 @@ class UserController extends Controller
                                 </div>
                             </div>';
                 })
+                ->addColumn('created_by', function ($row) {
+                    $creatorName = $row->createdBy?->name;
+
+                    if (!$creatorName) {
+                        return '<span class="text-muted">' . helperTrans('ingaz.not_specified') . '</span>';
+                    }
+
+                    return '<div class="d-flex flex-column gap-1">
+                                <span class="fw-semibold text-dark">' . e($creatorName) . '</span>
+                                <span class="text-muted small"><i class="fas fa-user-plus me-1"></i>أضيف بواسطة</span>
+                            </div>';
+                })
                 ->addColumn('actions', function ($row) {
                     $menuItems = '';
                     $hasManagementDivider = false;
@@ -332,7 +344,7 @@ class UserController extends Controller
                                 </ul>
                             </div>';
                 })
-                ->rawColumns(['bulk_select', 'name', 'actions', 'is_blocked', 'account_id', 'client_data', 'created_at', 'metrics', 'last_activity'])
+                ->rawColumns(['bulk_select', 'name', 'actions', 'is_blocked', 'account_id', 'client_data', 'created_at', 'created_by', 'metrics', 'last_activity'])
                 ->make(true);
         }
         $data["createRoute"] = route($this->mainRoute . ".create");
@@ -415,6 +427,7 @@ class UserController extends Controller
             'nationality_id' => 'nullable|exists:countries,id',
             'national_num' => 'required|string|max:50|unique:users,national_num',
             'birthdate' => 'nullable|date',
+            'marital_status' => 'required|string|in:single,married,divorced,widowed',
             'phone2' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:255',
             'city' => 'nullable|string|max:100',
@@ -425,6 +438,8 @@ class UserController extends Controller
         ], [
             'national_num.required' => __('ingaz.client_national_num_required'),
             'national_num.unique' => __('ingaz.client_national_num_already_exists'),
+            'marital_status.required' => __('ingaz.marital_status_required'),
+            'marital_status.in' => 'الحالة الاجتماعية المختارة غير صحيحة',
         ]);
 
         $normalizedPhone = $this->normalizeSaudiPhone($data['phone']);
@@ -454,6 +469,7 @@ class UserController extends Controller
         $data['password'] = bcrypt('123456');
         $data['register_from'] = 'dashboard';
         $data['is_blocked'] = 0;
+        $data['created_by'] = Auth::guard('admin')->id() ?: Auth::id();
 
         return DB::transaction(function () use ($data) {
 
@@ -568,6 +584,7 @@ class UserController extends Controller
 
         $client = objModel::with([
             'nationality',
+            'createdBy',
             'addresses.country',
             'orders' => function ($query) {
                 $query->with([
@@ -852,6 +869,7 @@ class UserController extends Controller
             'client_category_id' => 'nullable|exists:fn_client_categories,id',
             'national_num' => 'required|string|max:50|unique:users,national_num,' . $client->id,
             'birthdate' => 'nullable|date',
+            'marital_status' => 'required|string|in:single,married,divorced,widowed',
             'phone2' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:255',
             'city' => 'nullable|string|max:100',
@@ -876,6 +894,8 @@ class UserController extends Controller
             'national_num.max' => __('ingaz.client_national_num_max'),
             'national_num.required' => __('ingaz.client_national_num_required'),
             'national_num.unique' => __('ingaz.client_national_num_already_exists'),
+            'marital_status.required' => __('ingaz.marital_status_required'),
+            'marital_status.in' => 'الحالة الاجتماعية المختارة غير صحيحة',
             'birthdate.date' => __('ingaz.client_birthdate_invalid'),
             'phone2.string' => __('ingaz.client_phone2_max'),
             'phone2.max' => __('ingaz.client_phone2_max'),
