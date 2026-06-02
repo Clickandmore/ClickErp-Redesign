@@ -1,4 +1,14 @@
 @if(isset($accountsWithChildren) && count($accountsWithChildren))
+    <div class="trial-print-header" aria-hidden="true">
+        <div class="trial-print-header__date">{{ now()->format('d/m/Y, H:i') }}</div>
+        <h1 class="trial-print-header__title">{{ helperTrans('finance::finance.trail-balance') }}</h1>
+        <div class="trial-print-header__period">
+            {{ __('finance::finance.from_date') }}: {{ request('from_date') }}
+            <br>
+            {{ __('finance::finance.to_date') }}: {{ request('to_date') }}
+        </div>
+    </div>
+
     <div class="trial-table-wrap">
     <table class="table table-hover table-bordered trial-table">
         <thead>

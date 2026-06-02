@@ -627,6 +627,10 @@
                                             <p id="endDate">-</p>
                                         </div>
                                         <div class="col-md-3">
+                                            <label for="closureDate" class="fw-bold mb-1">تاريخ الإنهاء:</label>
+                                            <input type="date" class="form-control form-control-sm" id="closureDate" required>
+                                        </div>
+                                        <div class="col-md-3">
                                             <strong>المدة المتبقية:</strong>
                                             <p id="remainingDays">-</p>
                                         </div>
@@ -664,7 +668,7 @@
                                             <p id="financialMonthlyCost">-</p>
                                         </div>
                                         <div class="col-md-3">
-                                            <strong>مدة العقد (شهر):</strong>
+                                            <strong>مدة العقد:</strong>
                                             <p id="financialDurationMonths">-</p>
                                         </div>
                                         <div class="col-md-3">
@@ -1762,6 +1766,68 @@
                 $('#finalRemainingAmount').text(formatCurrency(finalRemaining) + ' ريال');
             }
 
+            function formatContractDuration(contract) {
+                if (contract.duration_label) {
+                    return contract.duration_label;
+                }
+
+                const durationDays = parseInt(contract.duration_days || 0, 10);
+                const durationMonths = parseInt(contract.duration_months || 0, 10);
+
+                if (durationDays && (!durationMonths || durationDays !== durationMonths * 30)) {
+                    if (durationDays === 7) {
+                        return 'أسبوع';
+                    }
+                    if (durationDays === 14) {
+                        return 'أسبوعين';
+                    }
+                    if (durationDays % 7 === 0) {
+                        return (durationDays / 7) + ' أسابيع';
+                    }
+                    return durationDays + ' يوم';
+                }
+
+                return durationMonths ? (durationMonths + ' شهر') : (durationDays ? durationDays + ' يوم' : '-');
+            }
+
+            function fillCloseFinancialFields(contract) {
+                $('#remainingDays').text(contract.remaining_days || '-');
+                $('#financialMonthlyCost').text(formatCurrency(contract.monthly_cost || 0) + ' ريال');
+                $('#financialDurationMonths').text(formatContractDuration(contract));
+                $('#financialDurationDays').text((contract.duration_days || 0) ? (contract.duration_days + ' يوم') : '-');
+                $('#financialContractValue').text(formatCurrency(contract.contract_value || 0) + ' ريال');
+                $('#financialPaidAmount').text(formatCurrency(contract.paid_amount || 0) + ' ريال');
+                $('#financialRemainingAmount')
+                    .text(formatCurrency(contract.remaining_amount || 0) + ' ريال')
+                    .data('raw', contract.remaining_amount || 0);
+                $('#financialUsedDays').text(contract.used_days !== null && typeof contract.used_days !== 'undefined' ? (contract.used_days + ' يوم') : '-');
+                $('#financialRemainingDays').text(contract.remaining_days_value !== null && typeof contract.remaining_days_value !== 'undefined' ? (contract.remaining_days_value + ' يوم') : '-');
+                $('#financialDailyRate').text(formatCurrency(contract.daily_rate || 0) + ' ريال');
+                $('#financialUsedCost').text(formatCurrency(contract.used_cost || 0) + ' ريال');
+                $('#financialSuggestedRefund').text(formatCurrency(contract.calculated_refund_value || 0) + ' ريال');
+                $('#closeAdjustmentAmount').val(parseFloat(contract.refund_value || 0).toFixed(2));
+                updateCloseFinancialPreview();
+            }
+
+            function reloadCloseFinancialSummary() {
+                if (!selectedContractId) {
+                    return;
+                }
+
+                $.ajax({
+                    url: `/admin/RentContract/${selectedContractId}/details`,
+                    type: 'GET',
+                    data: {
+                        closure_date: $('#closureDate').val()
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            fillCloseFinancialFields(response.contract);
+                        }
+                    }
+                });
+            }
+
             function resetCloseFinancialFields() {
                 $('#closeAdjustmentType').val('refund');
                 $('#closeAdjustmentAmount').val('0');
@@ -1772,6 +1838,7 @@
                 $('#closeClientIban').val('');
                 $('#closeClientIbanAttachment').val('');
                 $('#closeReturnReason').val('');
+                $('#closureDate').val('').removeAttr('min');
                 $('#closeClientIbanAttachmentCurrentWrapper').addClass('d-none');
                 $('#closeClientIbanAttachmentCurrent').attr('href', '#');
                 $('#financialRemainingAmount').data('raw', 0);
@@ -1780,6 +1847,10 @@
                 $('#financialSuggestedRefund').text('-');
                 updateCloseFinancialPreview();
             }
+
+            $('#closureDate').on('change', function() {
+                reloadCloseFinancialSummary();
+            });
 
             $('#closeAdjustmentAmount, #closeClearRemainingAmount').on('input change', function() {
                 updateCloseFinancialPreview();
@@ -1966,6 +2037,9 @@
                             $('#currentStatus').text(contract.status_text || '-');
                             $('#startDate').text(contract.start_date || '-');
                             $('#endDate').text(contract.end_date || '-');
+                            $('#closureDate')
+                                .attr('min', contract.start_date || null)
+                                .val(contract.closure_date || new Date().toISOString().slice(0, 10));
                             $('#remainingDays').text(contract.remaining_days || '-');
                             $('#contractValue').text((contract.amount || 0) + ' ريال');
                             $('#financialMonthlyCost').text(formatCurrency(contract.monthly_cost || 0) + ' ريال');
@@ -1982,6 +2056,7 @@
                             $('#financialUsedCost').text(formatCurrency(contract.used_cost || 0) + ' ريال');
                             $('#financialSuggestedRefund').text(formatCurrency(contract.calculated_refund_value || 0) + ' ريال');
                             $('#closeAdjustmentAmount').val(parseFloat(contract.refund_value || 0).toFixed(2));
+                            fillCloseFinancialFields(contract);
                             $('#closeReturnReason').val(contract.closure_return_reason || '');
                             $('#closePaymentStatus').val(contract.payment_status || '');
                             $('#closeClientIban').val(contract.closure_client_iban || '');
@@ -2037,6 +2112,7 @@
                         formData.append('adjustment_type', $('#closeAdjustmentType').val());
                         formData.append('adjustment_amount', $('#closeAdjustmentAmount').val() || 0);
                         formData.append('clear_remaining_amount', $('#closeClearRemainingToggle').is(':checked') ? ($('#closeClearRemainingAmount').val() || 0) : 0);
+                        formData.append('closure_date', $('#closureDate').val());
                         formData.append('closure_return_reason', $('#closeReturnReason').val());
                         formData.append('close_payment_status', $('#closePaymentStatus').val());
                         formData.append('close_client_iban', $('#closeClientIban').val());
@@ -2209,6 +2285,7 @@
                 formData.append('paid_amount', $('#paidAmount').val());
                 formData.append('remaining_amount', $('#remainingAmount').val());
                 formData.append('notes', $('#transferNotes').val());
+                formData.append('closure_date', $('#closureDate').val());
                 formData.append('transfer_finance_items_present', '1');
                 formData.append('_token', '{{ csrf_token() }}');
 

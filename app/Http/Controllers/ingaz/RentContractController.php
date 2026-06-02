@@ -1607,7 +1607,7 @@ class RentContractController extends Controller
         ]);
     }
 
-    protected function buildRentalClosureSummary(RentalContract $contract): array
+    protected function buildRentalClosureSummary(RentalContract $contract, ?Carbon $closureDate = null): array
     {
         $contract->loadMissing(['info', 'financialAdjustments', 'financeInvoice']);
 
@@ -1617,6 +1617,7 @@ class RentContractController extends Controller
         $durationDays = (int) ($info->contract_duration_days ?? ($durationMonths * 30));
         $contractValue = (float) ($info->contract_value ?? ($monthlyCost * $durationMonths));
         $paidAmount = is_numeric($info?->paid_amount) ? (float) $info->paid_amount : 0.0;
+        $closureDate = ($closureDate ?: Carbon::now())->copy()->startOfDay();
 
         if ($paidAmount <= 0 && ($info?->payment_status ?? null) === 'paid') {
             $paidAmount = $contractValue;
@@ -1630,7 +1631,6 @@ class RentContractController extends Controller
             ? (float) $info->remaining_amount
             : max(0.0, $contractValue - $paidAmount);
 
-        $today = Carbon::now()->startOfDay();
         $startDate = $info?->ingaz_from
             ? Carbon::parse($info->ingaz_from)->startOfDay()
             : ($contract->contract_date ? Carbon::parse($contract->contract_date)->startOfDay() : null);
@@ -1638,7 +1638,7 @@ class RentContractController extends Controller
 
         $remainingDaysValue = null;
         if ($endDate) {
-            $remainingDaysValue = max(0, $today->diffInDays($endDate, false));
+            $remainingDaysValue = max(0, $closureDate->diffInDays($endDate, false));
         }
 
         if ($durationDays <= 0 && $startDate && $endDate) {
@@ -1647,12 +1647,12 @@ class RentContractController extends Controller
 
         $usedDays = null;
         if ($durationDays > 0) {
-            if (!$startDate || $today->lessThan($startDate)) {
+            if (!$startDate || $closureDate->lessThan($startDate)) {
                 $usedDays = 0;
-            } elseif ($endDate && $today->greaterThanOrEqualTo($endDate)) {
+            } elseif ($endDate && $closureDate->greaterThanOrEqualTo($endDate)) {
                 $usedDays = $durationDays;
             } else {
-                $usedDays = min($durationDays, max(0, $startDate->diffInDays($today, false) + 1));
+                $usedDays = min($durationDays, max(0, $startDate->diffInDays($closureDate, false) + 1));
             }
         }
 
@@ -1671,6 +1671,8 @@ class RentContractController extends Controller
             'monthly_cost' => $monthlyCost,
             'duration_months' => $durationMonths,
             'duration_days' => $durationDays,
+            'duration_label' => $this->formatRentalDurationText($durationDays, $durationMonths),
+            'closure_date' => $closureDate->format('Y-m-d'),
             'contract_value' => $contractValue,
             'paid_amount' => $paidAmount,
             'remaining_amount' => $remainingAmount,
@@ -1687,14 +1689,77 @@ class RentContractController extends Controller
         ];
     }
 
+    private function formatRentalDurationText(int $durationDays, int $durationMonths = 0): string
+    {
+        if ($durationDays > 0 && (!$durationMonths || $durationDays !== ($durationMonths * 30))) {
+            return $this->formatArabicDaysDuration($durationDays);
+        }
+
+        if ($durationMonths > 0) {
+            return $durationMonths . ' شهر';
+        }
+
+        return $durationDays > 0 ? $this->formatArabicDaysDuration($durationDays) : '-';
+    }
+
+    private function formatArabicDaysDuration(int $days): string
+    {
+        if ($days === 7) {
+            return 'أسبوع';
+        }
+
+        if ($days === 14) {
+            return 'أسبوعين';
+        }
+
+        if ($days > 0 && $days % 7 === 0) {
+            return ($days / 7) . ' أسابيع';
+        }
+
+        if ($days === 1) {
+            return 'يوم واحد';
+        }
+
+        if ($days === 2) {
+            return 'يومين';
+        }
+
+        return $days . ' يوم';
+    }
+
+    private function closureDateFromRequest(Request $request): Carbon
+    {
+        return $request->filled('closure_date')
+            ? Carbon::parse($request->input('closure_date'))->startOfDay()
+            : Carbon::now()->startOfDay();
+    }
+
+    private function assertClosureDateIsValidForContract(RentalContract $contract, Carbon $closureDate): void
+    {
+        $startDate = $contract->info?->ingaz_from
+            ? Carbon::parse($contract->info->ingaz_from)->startOfDay()
+            : ($contract->contract_date ? Carbon::parse($contract->contract_date)->startOfDay() : null);
+
+        if ($startDate && $closureDate->lessThan($startDate)) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'closure_date' => 'تاريخ الإنهاء لا يمكن أن يكون قبل تاريخ بداية العقد.',
+            ]);
+        }
+    }
+
     /**
      * Get contract details for closing modal
      */
-    public function getContractDetails($id)
+    public function getContractDetails(Request $request, $id)
     {
         try {
+            $request->validate([
+                'closure_date' => 'nullable|date',
+            ]);
+
             $contract = RentalContract::with(['user', 'maid', 'info', 'financialAdjustments', 'financeInvoice'])->findOrFail($id);
-            $summary = $this->buildRentalClosureSummary($contract);
+            $closureDate = $this->closureDateFromRequest($request);
+            $summary = $this->buildRentalClosureSummary($contract, $closureDate);
             $remainingDays = (int) ($summary['remaining_days_value'] ?? 0);
             $attachments = collect($this->collectRentalContractAttachments($contract))
                 ->map(fn ($attachment) => [
@@ -1716,6 +1781,8 @@ class RentContractController extends Controller
                 'monthly_cost' => $summary['monthly_cost'],
                 'duration_months' => $summary['duration_months'],
                 'duration_days' => $summary['duration_days'],
+                'duration_label' => $summary['duration_label'],
+                'closure_date' => $summary['closure_date'],
                 'contract_value' => $summary['contract_value'],
                 'paid_amount' => $summary['paid_amount'],
                 'remaining_amount' => $summary['remaining_amount'],
@@ -1751,6 +1818,7 @@ class RentContractController extends Controller
     public function closeAndMakeAvailable($id, Request $request)
     {
         $validated = $request->validate([
+            'closure_date' => 'nullable|date',
             'adjustment_type' => 'nullable|in:refund',
             'adjustment_amount' => 'required|numeric|min:0',
             'clear_remaining_amount' => 'nullable|numeric|min:0',
@@ -1774,7 +1842,10 @@ class RentContractController extends Controller
                 throw new \RuntimeException('لا يمكن إنهاء العقد قبل تفعيله');
             }
 
-            $summary = $this->buildRentalClosureSummary($contract);
+            $closureDate = $this->closureDateFromRequest($request);
+            $this->assertClosureDateIsValidForContract($contract, $closureDate);
+
+            $summary = $this->buildRentalClosureSummary($contract, $closureDate);
             $adjustmentAmount = (float) ($validated['adjustment_amount'] ?? 0);
             $clearRemainingAmount = (float) ($validated['clear_remaining_amount'] ?? 0);
             $currentRemainingAmount = (float) ($summary['remaining_amount'] ?? 0);
@@ -1815,7 +1886,7 @@ class RentContractController extends Controller
 
             $contract->status = 'completed';
             $contract->closure_type = 'available';
-            $contract->closed_at = now();
+            $contract->closed_at = $closureDate;
             $contract->save();
 
             if ($adjustmentAmount > 0) {
@@ -1835,7 +1906,7 @@ class RentContractController extends Controller
             if ($contract->maid) {
                 $contract->maid->status = 'available';
                 $contract->maid->available = 1; // Set available to true
-                $contract->maid->available_at = now(); // Set availability timestamp
+                $contract->maid->available_at = $closureDate->toDateString(); // Set availability date
                 $contract->maid->save();
             }
 
@@ -1846,6 +1917,7 @@ class RentContractController extends Controller
                 'contract_id' => $contract->id,
                 'maid_id' => $contract->maid_id,
                 'closed_by' => auth()->id(),
+                'closure_date' => $closureDate->format('Y-m-d'),
                 'adjustment_amount' => $adjustmentAmount
             ]);
 
@@ -2024,6 +2096,7 @@ class RentContractController extends Controller
     public function transferSponsorship($id, Request $request)
     {
         $request->validate([
+            'closure_date' => 'nullable|date',
             'transfer_amount' => 'nullable|numeric|min:0',
             'total_amount' => 'required|numeric|min:0',
             'paid_amount' => 'required|numeric|min:0|lte:total_amount',
@@ -2067,6 +2140,9 @@ class RentContractController extends Controller
                 throw new \RuntimeException('لا يمكن إنهاء العقد أو نقل الكفالة قبل تفعيله');
             }
 
+            $closureDate = $this->closureDateFromRequest($request);
+            $this->assertClosureDateIsValidForContract($oldContract, $closureDate);
+
             $transferTotalAmount = (float) $request->total_amount;
             $transferAmount = $request->filled('transfer_amount')
                 ? (float) $request->transfer_amount
@@ -2077,11 +2153,11 @@ class RentContractController extends Controller
             // Close the old contract and set closure type to transferred
             $oldContract->status = 'completed';
             $oldContract->closure_type = 'transferred';
-            $oldContract->closed_at = now();
+            $oldContract->closed_at = $closureDate;
             $oldContract->save();
 
             // Use the existing client from the rental contract
-            $transferDetails = "تفاصيل نقل الكفالة بتاريخ " . now()->format('Y-m-d H:i') . ":\n" .
+            $transferDetails = "تفاصيل نقل الكفالة بتاريخ " . $closureDate->format('Y-m-d') . ":\n" .
                 "- مبلغ نقل الكفالة: " . number_format($transferAmount, 2) . " ريال\n" .
                 "- المبلغ الإجمالي: " . number_format($request->total_amount, 2) . " ريال\n" .
                 "- المبلغ المدفوع: " . number_format($transferPaidAmount, 2) . " ريال\n" .
@@ -2192,6 +2268,7 @@ class RentContractController extends Controller
                 'total_amount' => $request->total_amount,
                 'paid_amount' => $transferPaidAmount,
                 'remaining_amount' => $transferRemainingAmount,
+                'closure_date' => $closureDate->format('Y-m-d'),
                 'transferred_by' => auth()->id()
             ]);
 
@@ -2206,6 +2283,10 @@ class RentContractController extends Controller
                 'status' => 'transferred'
             ]);
 
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            DB::rollback();
+
+            throw $e;
         } catch (\Exception $e) {
             DB::rollback();
             \Log::error('Error transferring sponsorship', [
