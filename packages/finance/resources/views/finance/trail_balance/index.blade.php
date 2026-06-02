@@ -230,6 +230,10 @@
             background: var(--trial-soft);
         }
 
+        .trial-print-header {
+            display: none;
+        }
+
         td {
             font-size: small;
         }
@@ -256,7 +260,39 @@
             }
         }
 
+        @page {
+            size: A4 landscape;
+            margin: 8mm;
+        }
+
         @media print {
+            html,
+            body {
+                width: auto !important;
+                min-width: 0 !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: #fff !important;
+            }
+
+            .layout-1 .wrapper,
+            .layout-1 .wrapper .page-body,
+            .layout-1 .wrapper .container-fluid,
+            .layout-1 .wrapper .card,
+            .layout-1 .wrapper .card-body,
+            .trial-balance-page {
+                width: 100% !important;
+                max-width: 100% !important;
+                height: auto !important;
+                min-height: 0 !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: visible !important;
+                background: transparent !important;
+                border: 0 !important;
+                box-shadow: none !important;
+            }
+
             body * {
                 visibility: hidden;
             }
@@ -268,10 +304,99 @@
 
             #result {
                 position: absolute;
-                inset: 0;
-                width: 100%;
+                top: 0;
+                right: 0;
+                left: 0;
+                width: 100% !important;
+                max-width: 100% !important;
                 box-shadow: none;
                 border: 0;
+                overflow: visible !important;
+                min-height: 0;
+            }
+
+            .trial-print-header {
+                display: grid !important;
+                grid-template-columns: 1fr 1.5fr 1fr;
+                align-items: start;
+                gap: 8px;
+                margin-bottom: 8px;
+                padding-bottom: 6px;
+                color: #000;
+                font-size: 10.5px;
+                line-height: 1.4;
+                border-bottom: 1px solid #dce7ea;
+            }
+
+            .trial-print-header__title {
+                margin: 0;
+                font-size: 12px;
+                font-weight: 800;
+                text-align: center;
+            }
+
+            .trial-print-header__date {
+                direction: ltr;
+                text-align: left;
+                white-space: nowrap;
+            }
+
+            .trial-print-header__period {
+                text-align: right;
+            }
+
+            .trial-table-wrap {
+                width: 100% !important;
+                max-width: 100% !important;
+                overflow: visible !important;
+            }
+
+            .trial-table {
+                width: 100% !important;
+                min-width: 0 !important;
+                table-layout: fixed;
+                border-collapse: collapse !important;
+                page-break-inside: auto;
+            }
+
+            .trial-table thead {
+                display: table-header-group;
+            }
+
+            .trial-table tfoot {
+                display: table-footer-group;
+            }
+
+            .trial-table tr {
+                page-break-inside: avoid;
+                page-break-after: auto;
+            }
+
+            .trial-table thead th,
+            .trial-table tbody td,
+            .trial-total-row td {
+                position: static !important;
+                padding: 5px 4px !important;
+                font-size: 10px !important;
+                line-height: 1.25 !important;
+                white-space: normal !important;
+                word-break: break-word;
+            }
+
+            .trial-table .trial-code {
+                width: 9% !important;
+                white-space: nowrap !important;
+            }
+
+            .trial-table .trial-name {
+                width: 23% !important;
+                min-width: 0 !important;
+            }
+
+            .trial-table .trial-number {
+                min-width: 0 !important;
+                white-space: nowrap !important;
+                font-size: 9.5px !important;
             }
 
             .sidebar,
