@@ -186,13 +186,27 @@
             <div class="col-md-4">
                 <label for="role_id" class="form-label">{{ __('admin.role_id') }}</label>
                 <select name="role_id" id="role_id" class="form-select show-tick ms" data-validation="required">
-                    <option value="" disabled @selected(! old('role_id', $obj->role_id ?? null))>{{ __('admin.choose') }}</option>
+                    <option value="" disabled @if (! old('role_id', $obj->role_id ?? null)) selected @endif>{{ __('admin.choose') }}</option>
                     @forelse ($roles ?? [] as $id => $name)
-                        <option value="{{ $id }}" @selected((string) old('role_id', $obj->role_id ?? '') === (string) $id)>{{ $name }}</option>
+                        <option value="{{ $id }}" @if((string) old('role_id', $obj->role_id ?? '') === (string) $id) selected @endif>{{ $name }}</option>
                     @empty
                     @endforelse
                 </select>
             </div>
+
+            @if($branchesEnabled ?? false)
+                <div class="col-md-4">
+                    <label for="branch_id" class="form-label">{{ __('admin.branches') }}</label>
+                    <select name="branch_id" id="branch_id" class="form-select show-tick ms">
+                        <option value="">{{ __('admin.choose') }}</option>
+                        @foreach(($branches ?? collect()) as $branch)
+                            <option value="{{ $branch->id }}" @if((string) old('branch_id', $obj->branch_id ?? '') === (string) $branch->id) selected @endif>
+                                {{ $branch->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+            @endif
 
             <div class="col-md-4">
                 <label for="status" class="form-label">{{ __('admin.status') }}</label>

@@ -13,6 +13,7 @@ class Branch extends Model
 
     protected $casts = [
         'is_active' => 'boolean',
+        'is_main' => 'boolean',
         'latitude' => 'decimal:7',
         'longitude' => 'decimal:7',
         'working_hours' => 'array',

@@ -4,6 +4,7 @@ namespace App\Models\ingaz;
 
 use App\Models\auth\Admin;
 use App\Enums\ingaz\OrderEnum;
+use App\Models\Concerns\AssignsOrderBranch;
 use App\Support\AutomationSettings;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -14,7 +15,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class Order extends Model
 {
-    use HasFactory, LogsActivity, SoftDeletes;
+    use AssignsOrderBranch, HasFactory, LogsActivity, SoftDeletes;
 
     protected $guarded = [];
 
@@ -23,7 +24,8 @@ class Order extends Model
     protected $casts = [
         'expiration_time' => 'datetime',
         'status_changed_at' => 'datetime',
-        'deadline_at' => 'datetime'
+        'deadline_at' => 'datetime',
+        'branch_id' => 'integer',
     ];
 
     protected static function booted()
@@ -149,6 +151,8 @@ class Order extends Model
 
         $this->unsetRelation('details');
         $this->unsetRelation('customer');
+
+        $this->syncBranchFromResponsibleAdmin($adminId, true);
     }
 
     public function scopeWhereResponsibleAdmin(Builder $query, int $adminId): Builder

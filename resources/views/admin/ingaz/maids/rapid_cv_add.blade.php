@@ -37,14 +37,22 @@
                     enctype="multipart/form-data" id="maidForm">
                     @csrf
                     <input type="hidden" name="type_id" value="{{ $defaultTypeId }}">
-                    <!-- اسم العاملة -->
+                    <!-- اسم العامل/ة -->
                     <div class="col-12">
                         <label for="TextInput" class="form-label">
-                            {{ helperTrans('ingaz.maid_name') }} ({{ helperTrans('ingaz.en') }})
+                            اسم العامل/ة ({{ helperTrans('ingaz.en') }})
                         </label>
                         <input type="text" name="name:en" class="form-control"
                             placeholder="{{ helperTrans('ingaz.short_cv_optional_name_placeholder') }}">
                         <small class="text-muted">{{ helperTrans('ingaz.short_cv_name_optional_hint') }}</small>
+                    </div>
+
+                    <div class="col-12">
+                        <label for="gender" class="form-label">الجنس <span class="text-danger">*</span></label>
+                        <select name="gender" id="gender" class="form-control" required>
+                            <option value="female" selected>أنثى</option>
+                            <option value="male">ذكر</option>
+                        </select>
                     </div>
                     
                     <!-- الجنسية -->
@@ -64,6 +72,16 @@
                     </div>
 
                     <!-- مكتب الاستقدام -->
+                    <div class="col-12">
+                        <label for="job_id" class="form-label">المهنة <span class="text-danger">*</span></label>
+                        <select name="job_id[]" id="job_id" class="form-control" required>
+                            <option value="">اختر المهنة</option>
+                            @foreach ($jobs as $job)
+                                <option value="{{ $job->id }}">{{ $job->title }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
                     <div class="col-12 office-field">
                         <label for="TextInput" class="form-label">{{ helperTrans('ingaz.recruitment office') }} <span class="text-danger">*</span></label>
                         <select name="office_id" class="form-control">
@@ -118,6 +136,8 @@
                 officeFetchError: @json(helperTrans('ingaz.office_fetch_error')),
                 ok: @json(helperTrans('ingaz.ok')),
                 nationalityRequired: @json(helperTrans('ingaz.nationality_required')),
+                genderRequired: 'يرجى اختيار الجنس',
+                jobRequired: 'يرجى اختيار المهنة',
                 passportRequired: @json(helperTrans('ingaz.passport_required')),
                 passportDuplicateValidation: @json(helperTrans('ingaz.passport_duplicate_validation')),
                 correctErrorsPrefix: @json(helperTrans('ingaz.correct_errors_prefix')),
@@ -128,6 +148,11 @@
                 create: @json(__('ingaz.create')),
             };
             $('.dropify').dropify();
+            $('#job_id').select2({
+                width: '100%',
+                placeholder: 'اختر المهنة',
+                dir: 'rtl'
+            });
 
             // التحقق من رقم الجواز - فحص التكرار
             var passportCheckTimeout;
@@ -240,6 +265,18 @@
                 }
 
                 // التحقق من رقم الجواز
+                var genderValue = $('[name="gender"]').val();
+                if (!genderValue || genderValue.trim() === '') {
+                    errors.push(rapidCvTranslations.genderRequired);
+                    isValid = false;
+                }
+
+                var jobValue = $('#job_id').val();
+                if (!jobValue || jobValue.length === 0) {
+                    errors.push(rapidCvTranslations.jobRequired);
+                    isValid = false;
+                }
+
                 var passportNum = $('input[name="passport_num"]').val().trim();
                 if (!passportNum) {
                     errors.push(rapidCvTranslations.passportRequired);

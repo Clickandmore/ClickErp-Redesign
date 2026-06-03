@@ -19,12 +19,13 @@ class StoreAdminRequest extends MainRequest
     {
         return [
             'name' => ['required'],
-            'username' => ['nullable', 'string', 'max:255', 'alpha_dash', 'unique:admins,username'],
+            'username' => ['nullable', 'string', 'max:255', 'regex:/^[A-Za-z0-9._@-]+$/', 'unique:admins,username'],
             'phone' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:admins'],
             'password' => ['required', 'string', 'min:6'],
             'admin_type' => ['required', new Enum(AdminTypes::class)],
             'role_id' => ['required', Rule::exists('roles', 'id')->where('guard_name', 'admin')],
+            'branch_id' => ['nullable', Rule::exists('branches', 'id')],
             'whatsapp' => ['nullable', 'string', 'max:255'],
             'verification_phone' => ['nullable', 'string', 'max:255'],
             'identity_number' => ['nullable', 'string', 'max:255', 'unique:admins,identity_number'],
@@ -35,6 +36,13 @@ class StoreAdminRequest extends MainRequest
             'note' => ['nullable', 'string', 'max:1000'],
 
             //            'permissions' => 'required|min:1',
+        ];
+    }
+
+    public function messages()
+    {
+        return [
+            'username.regex' => __('validation.username_format'),
         ];
     }
 }

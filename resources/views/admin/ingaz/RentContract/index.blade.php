@@ -473,9 +473,22 @@
                         <label for="marketerFilter" class="form-label">المسوق:</label>
                         <select id="marketerFilter" class="form-select">
                             <option value="">جميع المسوقين</option>
-                            <!-- سيتم تعبئتها من الـ Controller -->
+                            @foreach(($marketers ?? collect()) as $marketer)
+                                <option value="{{ $marketer->id }}">{{ $marketer->name }}</option>
+                            @endforeach
                         </select>
                     </div>
+                    @if($branchesEnabled ?? false)
+                        <div class="col-md-3">
+                            <label for="branchFilter" class="form-label">{{ __('admin.branches') }}:</label>
+                            <select id="branchFilter" class="form-select">
+                                <option value="">{{ helperTrans('ingaz.all') }}</option>
+                                @foreach(($branches ?? collect()) as $branch)
+                                    <option value="{{ $branch->id }}">{{ $branch->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif
                     <div class="col-md-3">
                         <label for="requestTypeFilter" class="form-label">{{ helperTrans('ingaz.request_type') }}:</label>
                         <select id="requestTypeFilter" class="form-select">
@@ -566,6 +579,9 @@
                             <th>العاملة</th>
                             <th>معلومات العقد</th>
                             <th>المسوق</th>
+                            @if($branchesEnabled ?? false)
+                                <th>{{ __('admin.branches') }}</th>
+                            @endif
                             <th>الحالة</th>
                             <th>الأيام المتبقية</th>
                             <th>الإجراءات</th>
@@ -1237,6 +1253,7 @@
                         d.maid_name = $('#maidNameFilter').val();
                         d.contract_number = $('#contractNumberFilter').val();
                         d.marketer_id = $('#marketerFilter').val();
+                        d.branch_id = $('#branchFilter').length ? $('#branchFilter').val() : '';
                         d.request_type = $('#requestTypeFilter').val();
                         d.warranty_status = $('#warrantyStatusFilter').val();
                         d.extension_filter = $('#extensionFilter').val();
@@ -1269,6 +1286,12 @@
                         data: 'marketer',
                         name: 'marketer'
                     },
+                    @if($branchesEnabled ?? false)
+                    {
+                        data: 'branch',
+                        name: 'branch'
+                    },
+                    @endif
                     {
                         data: 'status',
                         name: 'status'
@@ -1440,7 +1463,7 @@
 
             // Clear Filters
             $('#clearFilters').click(function() {
-                $('#statusFilter, #marketerFilter, #requestTypeFilter, #warrantyStatusFilter, #extensionFilter, #expiryFilter')
+                $('#statusFilter, #marketerFilter, #branchFilter, #requestTypeFilter, #warrantyStatusFilter, #extensionFilter, #expiryFilter')
                     .val('');
                 $('#dateFromFilter, #dateToFilter, #clientPhoneFilter, #clientNameFilter, #maidPassportFilter, #maidNameFilter, #contractNumberFilter')
                     .val('');
@@ -1459,6 +1482,7 @@
                     maid_name: $('#maidNameFilter').val(),
                     contract_number: $('#contractNumberFilter').val(),
                     marketer_id: $('#marketerFilter').val(),
+                    branch_id: $('#branchFilter').length ? $('#branchFilter').val() : '',
                     request_type: $('#requestTypeFilter').val(),
                     warranty_status: $('#warrantyStatusFilter').val(),
                     extension_filter: $('#extensionFilter').val(),

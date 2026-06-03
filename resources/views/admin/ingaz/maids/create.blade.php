@@ -155,12 +155,21 @@
                         </div>
                     </div>
 
-                    <!-- اسم العاملة -->
+                    <!-- اسم العامل/ة -->
                     <div class="col-4">
                         <label for="TextInput" class="form-label">
-                            {{ helperTrans('ingaz.maid_name') }} ({{ helperTrans('ingaz.en') }})
+                            اسم العامل/ة ({{ helperTrans('ingaz.en') }})
                         </label>
                         <input type="text" name="name:en" class="form-control" required>
+                    </div>
+
+                    <div class="col-4">
+                        <label for="gender" class="form-label">{{ __('validation.attributes.gender') }}</label>
+                        @php $selectedGender = old('gender', 'female'); @endphp
+                        <select name="gender" id="gender" class="form-control" required>
+                            <option value="female" {{ $selectedGender === 'female' ? 'selected' : '' }}>أنثى</option>
+                            <option value="male" {{ $selectedGender === 'male' ? 'selected' : '' }}>ذكر</option>
+                        </select>
                     </div>
 
                     <!-- نوع السيرة -->
@@ -252,7 +261,7 @@
                     {{-- <div class="col-4" id="shelter_option" style="display: none;">
                         <label for="create_shelter_contract" class="form-label">تسكين للإيواء</label>
                         <select name="create_shelter_contract" id="create_shelter_contract" class="form-control">
-                            <option value="0" {{ $defaultShelterContract === '0' ? 'selected' : '' }}>لا - عاملة عادية
+                            <option value="0" {{ $defaultShelterContract === '0' ? 'selected' : '' }}>لا - عامل/ة عادي/ة
                             </option>
                             <option value="1" {{ $defaultShelterContract === '1' ? 'selected' : '' }}>نعم - تسكين
                                 للإيواء</option>
@@ -1421,7 +1430,7 @@
 
             // Function to handle fields visibility based on job type
             // هذه الدالة تتحكم في إظهار/إخفاء الحقول بناءً على نوع السيرة المختار
-            // استقدام: عاملة جديدة من الخارج
+            // استقدام: عامل/ة جديد/ة من الخارج
             // إستلام فورى: نقل عمالة موجودة من موقع إلى آخر
             // ايجار عمالة: تأجير عمالة لفترة محددة
             function toggleFields() {

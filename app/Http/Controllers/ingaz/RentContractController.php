@@ -7,6 +7,7 @@ use App\Enums\ingaz\OrderEnum;
 use App\Http\Actions\ingaz\RecruitmentOfficeAction;
 use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\StoreRentalContractRequest;
+use App\Models\Branch;
 use App\Models\auth\Admin;
 use App\Models\Contract;
 use App\Models\ContractPayment;
@@ -22,11 +23,13 @@ use App\Models\RentalContractExtension;
 use App\Models\RentalContractInfo;
 use App\Models\RentalContractTerm;
 use App\Services\ingaz\RentalContractFinanceService;
+use App\Support\SystemModuleManager;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Yajra\DataTables\Facades\DataTables;
@@ -71,8 +74,14 @@ class RentContractController extends Controller
     {
         if ($request->ajax()) {
             $status = $request->get('status', $status);
+            $branchesEnabled = $this->branchesEnabledFor('rental_contracts');
 
-            $query = RentalContract::with(['user', 'maid', 'info', 'marketer', 'financeInvoice'])
+            $relations = ['user', 'maid', 'info', 'marketer', 'financeInvoice'];
+            if ($branchesEnabled) {
+                $relations[] = 'branch';
+            }
+
+            $query = RentalContract::with($relations)
                 ->withCount('extensions');
 
             // Apply status filter with closure type consideration
@@ -95,6 +104,10 @@ class RentContractController extends Controller
 
             if ($request->filled('marketer_id')) {
                 $query->where('marketer_id', $request->marketer_id);
+            }
+
+            if ($branchesEnabled && $request->filled('branch_id')) {
+                $query->where('branch_id', $request->branch_id);
             }
 
             if ($request->filled('client_phone')) {
@@ -205,6 +218,13 @@ class RentContractController extends Controller
                 })
                 ->addColumn('marketer', function ($row) {
                     return $row->marketer ? $row->marketer->name : 'غير محدد';
+                })
+                ->addColumn('branch', function ($row) use ($branchesEnabled) {
+                    if (!$branchesEnabled) {
+                        return '-';
+                    }
+
+                    return $row->branch ? e($row->branch->name) : '-';
                 })
                 ->addColumn('remaining_days', function ($row) {
                     // Only show remaining days for active contracts
@@ -389,6 +409,11 @@ class RentContractController extends Controller
 
         $data["dataTableRoute"] = route($this->mainRoute . ".index");
         $data["modalType"] = "modal-lg";
+        $data['branchesEnabled'] = $this->branchesEnabledFor('rental_contracts');
+        $data['branches'] = $data['branchesEnabled']
+            ? Branch::query()->active()->ordered()->get(['id', 'name_ar', 'name_en'])
+            : collect();
+        $data['marketers'] = Admin::query()->whereNull('deleted_at')->orderBy('name')->get(['id', 'name']);
         return view($this->folderPath . '.index', $data);
     }
 
@@ -1249,6 +1274,9 @@ class RentContractController extends Controller
             if ($request->marketer_id) {
                 $query->where('marketer_id', $request->marketer_id);
             }
+            if ($this->branchesEnabledFor('rental_contracts') && $request->filled('branch_id')) {
+                $query->where('branch_id', $request->branch_id);
+            }
             if ($request->warranty_status) {
                 $query->where('warranty_status', $request->warranty_status);
             }
@@ -1316,6 +1344,13 @@ class RentContractController extends Controller
             Log::error('Error exporting rental contracts: ' . $e->getMessage());
             return redirect()->back()->with('error', 'حدث خطأ أثناء تصدير البيانات');
         }
+    }
+
+    private function branchesEnabledFor(string $table): bool
+    {
+        return SystemModuleManager::isEnabled('branches')
+            && Schema::hasTable($table)
+            && Schema::hasColumn($table, 'branch_id');
     }
 
     private function getStatusText($status)

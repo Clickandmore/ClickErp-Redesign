@@ -5,7 +5,8 @@ namespace App\Http\Actions\auth;
 use App\Models\auth\Admin;
 use App\Enums\auth\AdminTypes;
 use App\Http\Actions\MainAction;
-use Illuminate\Support\Facades\DB;
+use App\Support\SystemModuleManager;
+use Illuminate\Support\Facades\Schema;
 use Spatie\Permission\Models\Role;
 
 
@@ -25,8 +26,9 @@ class AdminAction extends MainAction
     public function storeAdmin($data, $request)
     {
         $role = $this->resolveAdminRole($data['role_id'] ?? null);
+        $branchId = $this->resolveBranchId($data['branch_id'] ?? null);
 
-        $admin = Admin::create([
+        $payload = [
             'name' => $data['name'],
             'username' => $data['username'] ?? null,
             'email' => $data['email'],
@@ -42,7 +44,13 @@ class AdminAction extends MainAction
             'status' => $data['status'] ?? 'active',
             'note' => $data['note'] ?? null,
             'password' => bcrypt($data['password'])
-        ]);
+        ];
+
+        if ($this->branchesFeatureAvailable()) {
+            $payload['branch_id'] = $branchId;
+        }
+
+        $admin = Admin::create($payload);
 
         if ($admin && $role) {
             $admin->syncRoles([$role]);
@@ -58,6 +66,11 @@ class AdminAction extends MainAction
         $data['whatsapp'] = !empty($data['whatsapp']) ? $data['whatsapp'] : $data['phone'];
         $data['verification_phone'] = !empty($data['verification_phone']) ? $data['verification_phone'] : $data['phone'];
         $data['role_id'] = $role?->id;
+        if ($this->branchesFeatureAvailable()) {
+            $data['branch_id'] = $this->resolveBranchId($data['branch_id'] ?? null);
+        } else {
+            unset($data['branch_id']);
+        }
         if (empty($data['password'])) {
             unset($data['password']);
         } else {
@@ -82,6 +95,21 @@ class AdminAction extends MainAction
             ->whereKey($roleId)
             ->where('guard_name', 'admin')
             ->first();
+    }
+
+    private function resolveBranchId($branchId): ?int
+    {
+        if (!$this->branchesFeatureAvailable() || empty($branchId)) {
+            return null;
+        }
+
+        return (int) $branchId;
+    }
+
+    private function branchesFeatureAvailable(): bool
+    {
+        return SystemModuleManager::isEnabled('branches')
+            && Schema::hasColumn('admins', 'branch_id');
     }
 
 }

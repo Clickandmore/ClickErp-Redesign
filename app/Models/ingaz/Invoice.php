@@ -2,6 +2,7 @@
 
 namespace App\Models\ingaz;
 
+use App\Models\Concerns\AssignsBranch;
 use App\Models\Contract;
 use App\Models\IngazDelegation;
 use App\Models\MusanedTransferItem;
@@ -12,7 +13,7 @@ use Nami\Finance\Models\Sale;
 
 class Invoice extends Model
 {
-    use HasFactory;
+    use AssignsBranch, HasFactory;
 
     protected $guarded = [];
     protected $table = 'invoices';
@@ -20,7 +21,14 @@ class Invoice extends Model
         'is_paid' => 'boolean',
         'send_to_zatca' => 'boolean',
         'paid_at' => 'datetime',
+        'branch_id' => 'integer',
     ];
+
+    protected function resolveBranchIdForCreate(): ?int
+    {
+        return $this->resolveBranchIdFromContract($this->contract_id ?? null)
+            ?: $this->resolveBranchIdFromCurrentAdmin();
+    }
 
     public function contract(){
         return $this->belongsTo(Contract::class);

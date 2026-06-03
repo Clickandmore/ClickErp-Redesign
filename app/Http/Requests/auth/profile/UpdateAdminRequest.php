@@ -20,12 +20,13 @@ class UpdateAdminRequest extends MainRequest
     {
         return [
             'name' => ['required'],
-            'username' => ['nullable', 'string', 'max:255', 'alpha_dash', Rule::unique('admins', 'username')->ignore($this->admin)],
+            'username' => ['nullable', 'string', 'max:255', 'regex:/^[A-Za-z0-9._@-]+$/', Rule::unique('admins', 'username')->ignore($this->admin)],
             'phone' => ['required', 'string', 'max:255'],
             'email' => ['required', Rule::unique('admins')->ignore($this->admin)],
             'password' => ['nullable', 'string', 'min:6'],
             'admin_type' => ['required', new Enum(AdminTypes::class)],
             'role_id' => ['required', Rule::exists('roles', 'id')->where('guard_name', 'admin')],
+            'branch_id' => ['nullable', Rule::exists('branches', 'id')],
             'whatsapp' => ['nullable', 'string', 'max:255'],
             'verification_phone' => ['nullable', 'string', 'max:255'],
             'identity_number' => ['nullable', 'string', 'max:255', Rule::unique('admins', 'identity_number')->ignore($this->admin)],
@@ -35,6 +36,13 @@ class UpdateAdminRequest extends MainRequest
             'status' => ['nullable', 'in:active,suspended'],
             'note' => ['nullable', 'string', 'max:1000'],
             //            'permissions' => 'required|min:1'
+        ];
+    }
+
+    public function messages()
+    {
+        return [
+            'username.regex' => __('validation.username_format'),
         ];
     }
 }

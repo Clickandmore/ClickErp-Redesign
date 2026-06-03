@@ -4,6 +4,8 @@
         'method' => 'put',
         'obj' => $obj,
         'roles' => $roles ?? [],
+        'branches' => $branches ?? collect(),
+        'branchesEnabled' => $branchesEnabled ?? false,
         'admin_typeis' => $admin_typeis ?? [],
         'hasInvalidCurrentRole' => $hasInvalidCurrentRole ?? false,
     ])

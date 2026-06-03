@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\ingaz;
 
 use App\Http\Controllers\admin\Controller;
+use App\Models\Branch;
 use App\Models\Contract;
 use App\Models\IngazDelegation;
 use App\Models\RentalContractInvoice;
@@ -12,6 +13,7 @@ use App\Models\ingaz\Setting;
 use App\Models\ingaz\User as ClientUser;
 use App\Services\ingaz\InvoiceCalculationService;
 use App\Support\InvoiceQrCode;
+use App\Support\SystemModuleManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -58,15 +60,40 @@ class InvoiceController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $recruitmentInvoices = Invoice::with(['contract.user', 'ingazDelegation.user', 'client', 'financeSale.zatca'])
-                ->latest()
-                ->get()
-                ->map(fn (Invoice $invoice) => $this->formatInvoiceIndexRow($invoice));
+            $invoiceBranchesEnabled = $this->branchesEnabledFor('invoices');
+            $rentalBranchesEnabled = $this->branchesEnabledFor('rental_contracts');
 
-            $rentalInvoices = RentalContractInvoice::with(['rentalContract.user', 'rentalContract.maid', 'invoiceConstraint'])
+            $invoiceRelations = ['contract.user', 'ingazDelegation.user', 'client', 'financeSale.zatca'];
+            if ($invoiceBranchesEnabled) {
+                $invoiceRelations[] = 'branch';
+            }
+
+            $recruitmentInvoicesQuery = Invoice::with($invoiceRelations);
+            if ($invoiceBranchesEnabled && $request->filled('branch_id')) {
+                $recruitmentInvoicesQuery->where('branch_id', $request->branch_id);
+            }
+
+            $recruitmentInvoices = $recruitmentInvoicesQuery
                 ->latest()
                 ->get()
-                ->map(fn (RentalContractInvoice $invoice) => $this->formatRentalInvoiceIndexRow($invoice));
+                ->map(fn (Invoice $invoice) => $this->formatInvoiceIndexRow($invoice, $invoiceBranchesEnabled));
+
+            $rentalRelations = ['rentalContract.user', 'rentalContract.maid', 'invoiceConstraint'];
+            if ($rentalBranchesEnabled) {
+                $rentalRelations[] = 'rentalContract.branch';
+            }
+
+            $rentalInvoicesQuery = RentalContractInvoice::with($rentalRelations);
+            if ($rentalBranchesEnabled && $request->filled('branch_id')) {
+                $rentalInvoicesQuery->whereHas('rentalContract', function ($query) use ($request) {
+                    $query->where('branch_id', $request->branch_id);
+                });
+            }
+
+            $rentalInvoices = $rentalInvoicesQuery
+                ->latest()
+                ->get()
+                ->map(fn (RentalContractInvoice $invoice) => $this->formatRentalInvoiceIndexRow($invoice, $rentalBranchesEnabled));
 
             $query = $recruitmentInvoices
                 ->concat($rentalInvoices)
@@ -79,10 +106,22 @@ class InvoiceController extends Controller
                 ->make(true);
         }
 
-        return view('admin.ingaz.invoices.index');
+        $branchesEnabled = $this->branchesEnabledFor('invoices') || $this->branchesEnabledFor('rental_contracts');
+        $branches = $branchesEnabled
+            ? Branch::query()->active()->ordered()->get(['id', 'name_ar', 'name_en'])
+            : collect();
+
+        return view('admin.ingaz.invoices.index', compact('branchesEnabled', 'branches'));
     }
 
-    private function formatInvoiceIndexRow(Invoice $invoice): array
+    private function branchesEnabledFor(string $table): bool
+    {
+        return SystemModuleManager::isEnabled('branches')
+            && Schema::hasTable($table)
+            && Schema::hasColumn($table, 'branch_id');
+    }
+
+    private function formatInvoiceIndexRow(Invoice $invoice, bool $branchesEnabled = false): array
     {
         $paid = (bool) $invoice->is_paid || (float) $invoice->total_due <= 0;
         $queueButton = (!$invoice->finance_sale_id)
@@ -101,6 +140,7 @@ class InvoiceController extends Controller
             'invoice_number' => '<a href="' . route('invoice.download', ['id' => $invoice->id, 'autoprint' => 1]) . '" target="_blank" rel="noopener" class="fw-bold text-decoration-none">#' . $invoice->id . '</a>',
             'invoice_source' => $this->invoiceSourceBadge($invoice),
             'client_name' => $invoice->contract?->user?->name ?: ($invoice->ingazDelegation?->user?->name ?: ($invoice->client?->name ?: '-')),
+            'branch' => $branchesEnabled ? ($invoice->branch?->name ?: '-') : '-',
             'subtotal' => number_format((float) $invoice->subtotal, 2),
             'vat_amount' => number_format((float) $invoice->vat_amount, 2),
             'discount' => number_format((float) $invoice->discount, 2),
@@ -121,7 +161,7 @@ class InvoiceController extends Controller
         ];
     }
 
-    private function formatRentalInvoiceIndexRow(RentalContractInvoice $invoice): array
+    private function formatRentalInvoiceIndexRow(RentalContractInvoice $invoice, bool $branchesEnabled = false): array
     {
         $contract = $invoice->rentalContract;
         $paid = (bool) $invoice->is_paid || (float) $invoice->total_due <= 0;
@@ -133,6 +173,7 @@ class InvoiceController extends Controller
             'invoice_number' => '<a href="' . $printUrl . '" target="_blank" rel="noopener" class="fw-bold text-decoration-none">إيجار #' . $invoice->id . '</a>',
             'invoice_source' => '<span class="badge bg-success-subtle text-success border">عقد تأجير #' . ($contract?->contract_number ?: $invoice->rental_contract_id) . '</span>',
             'client_name' => $contract?->user?->name ?: '-',
+            'branch' => $branchesEnabled ? ($contract?->branch?->name ?: '-') : '-',
             'subtotal' => number_format((float) $invoice->subtotal, 2),
             'vat_amount' => number_format((float) $invoice->vat_amount, 2),
             'discount' => number_format((float) $invoice->discount, 2),
@@ -699,9 +740,15 @@ class InvoiceController extends Controller
 
     private function exportInvoicesQuery(Request $request)
     {
-        return Invoice::query()
+        $query = Invoice::query()
             ->with(['contract.user', 'ingazDelegation.user', 'client', 'financeSale.zatca'])
             ->latest('id');
+
+        if ($this->branchesEnabledFor('invoices') && $request->filled('branch_id')) {
+            $query->where('branch_id', $request->branch_id);
+        }
+
+        return $query;
     }
 
     private function exportZatcaStatusLabel(Invoice $invoice): string
