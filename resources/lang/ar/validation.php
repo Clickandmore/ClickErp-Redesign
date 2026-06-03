@@ -96,6 +96,7 @@ return array (
   'prohibited_if' => ':attribute محظور إذا كان :other هو :value.',
   'prohibited_unless' => ':attribute محظور ما لم يكن :other ضمن :values.',
   'regex' => 'صيغة :attribute .غير صحيحة.',
+  'username_format' => 'يجب أن يحتوي اسم المستخدم على حروف، أرقام، أو الرموز التالية فقط: @ . _ -',
   'relatable' => ':attribute قد لا يكون مرتبطا بالمصدر المحدد.',
   'required' => ':attribute مطلوب.',
   'required_if' => ':attribute مطلوب في حال ما إذا كان :other يساوي :value.',

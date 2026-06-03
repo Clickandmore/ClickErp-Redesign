@@ -102,6 +102,7 @@ return array (
   'prohibited_unless' => 'The :attribute field is prohibited unless :other is in :values.',
   'prohibits' => 'The :attribute field prohibits :other from being present.',
   'regex' => 'The :attribute format is invalid.',
+  'username_format' => 'The username may only contain letters, numbers, and these symbols: @ . _ -',
   'required' => 'The :attribute field is required.',
   'required_array_keys' => 'The :attribute field must contain entries for: :values.',
   'required_if' => 'The :attribute field is required when :other is :value.',

@@ -28,6 +28,7 @@ class MaidRequest extends MainRequest
     {
         return [
             'name:en' => 'required|string|max:255',
+            'gender' => 'nullable|in:male,female',
             'cv_file' => 'nullable',
             'video' => 'nullable',
             'video_link' => 'nullable|url|max:2000',

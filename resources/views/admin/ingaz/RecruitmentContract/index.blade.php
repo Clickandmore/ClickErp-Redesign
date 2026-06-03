@@ -663,6 +663,17 @@
                                 @endif
                             </select>
                         </div>
+                        @if($branchesEnabled ?? false)
+                            <div class="col-md-3">
+                                <label for="branchFilter" class="form-label">{{ __('admin.branches') }}:</label>
+                                <select id="branchFilter" class="form-select">
+                                    <option value="">{{ helperTrans('ingaz.all') }}</option>
+                                    @foreach(($branches ?? collect()) as $branch)
+                                        <option value="{{ $branch->id }}">{{ $branch->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        @endif
 
                     </div>
                     <div class="row mt-3">
@@ -793,6 +804,9 @@
                                 <th>المدة</th>
                                 <th>{{ helperTrans('ingaz.recruitment_office') }}</th>
                                 <th>المسوق</th>
+                                @if($branchesEnabled ?? false)
+                                    <th>{{ __('admin.branches') }}</th>
+                                @endif
                                 <th>الحالة</th>
                                 <th>تحديث الحالة</th>
                                 <th>الإجراءات</th>
@@ -1524,6 +1538,13 @@
                     orderable: true,
                     searchable: true
                 },
+                @if($branchesEnabled ?? false)
+                {
+                    "data": "branch",
+                    orderable: true,
+                    searchable: true
+                },
+                @endif
                 {
                     "data": "status",
                     orderable: true,
@@ -1586,6 +1607,7 @@
                         d.request_type = $('#requestTypeFilter').val();
                         d.city = $('#cityFilter').val();
                         d.marketer_id = $('#marketerFilter').val(); // Add marketer filter
+                        d.branch_id = $('#branchFilter').length ? $('#branchFilter').val() : '';
                         d.exclude_back = urlExcludeBack ? 1 : '';
 
                         // إضافة فلتر حالة الضمان فقط إذا كانت الحالة "عقود مكتملة"
@@ -1950,7 +1972,7 @@
             });
 
             // تحديث الجدول عند تغيير فلاتر البحث
-            $('#globalSearchFilter, #clientPhoneFilter, #clientNameFilter, #maidPassportFilter, #maidNameFilter, #contractNumberFilter, #nationalityFilter, #religionFilter, #officeFilter, #requestTypeFilter, #cityFilter, #marketerFilter')
+            $('#globalSearchFilter, #clientPhoneFilter, #clientNameFilter, #maidPassportFilter, #maidNameFilter, #contractNumberFilter, #nationalityFilter, #religionFilter, #officeFilter, #requestTypeFilter, #cityFilter, #marketerFilter, #branchFilter')
                 .on('change', function() {
                     // لا تحدث الجدول تلقائياً - انتظر زر البحث
                 });
@@ -1972,7 +1994,7 @@
 
             // مسح الفلاتر
             $('#clearFilters').on('click', function() {
-                $('#globalSearchFilter, #statusFilter, #warrantyStatusFilter, #clientPhoneFilter, #clientNameFilter, #maidPassportFilter, #maidNameFilter, #contractNumberFilter, #nationalityFilter, #religionFilter, #officeFilter, #requestTypeFilter, #cityFilter, #marketerFilter')
+                $('#globalSearchFilter, #statusFilter, #warrantyStatusFilter, #clientPhoneFilter, #clientNameFilter, #maidPassportFilter, #maidNameFilter, #contractNumberFilter, #nationalityFilter, #religionFilter, #officeFilter, #requestTypeFilter, #cityFilter, #marketerFilter, #branchFilter')
                     .val('');
                 $('#dateFromFilter, #dateToFilter').val('');
                 localStorage.removeItem('contractFilters'); // مسح الفلاتر المحفوظة
@@ -1999,7 +2021,7 @@
                     $('#maidPassportFilter').val() || $('#maidNameFilter').val() ||
                     $('#contractNumberFilter').val() || $('#nationalityFilter').val() ||
                     $('#religionFilter').val() || $('#officeFilter').val() || $('#requestTypeFilter').val() || $('#cityFilter').val() ||
-                    $('#marketerFilter').val();
+                    $('#marketerFilter').val() || ($('#branchFilter').length ? $('#branchFilter').val() : '');
 
                 console.log('DataTable XHR completed:', {
                     recordsTotal: info.recordsTotal,
@@ -2065,6 +2087,7 @@
                         request_type: $('#requestTypeFilter').val(),
                         city: $('#cityFilter').val(),
                         marketer_id: $('#marketerFilter').val(),
+                        branch_id: $('#branchFilter').length ? $('#branchFilter').val() : '',
                         exclude_back: urlExcludeBack ? 1 : ''
                     },
                     success: function(response) {
@@ -2101,7 +2124,8 @@
                     city: $('#cityFilter').val(),
                     dateFrom: $('#dateFromFilter').val(),
                     dateTo: $('#dateToFilter').val(),
-                    marketer: $('#marketerFilter').val() // Save marketer filter
+                    marketer: $('#marketerFilter').val(), // Save marketer filter
+                    branch: $('#branchFilter').length ? $('#branchFilter').val() : ''
                 };
                 localStorage.setItem('contractFilters', JSON.stringify(filters));
             }
@@ -2132,6 +2156,7 @@
                     $('#dateFromFilter').val(filters.dateFrom || '');
                     $('#dateToFilter').val(filters.dateTo || '');
                     $('#marketerFilter').val(filters.marketer || ''); // Load marketer filter
+                    $('#branchFilter').val(filters.branch || '');
                 }
             }
 

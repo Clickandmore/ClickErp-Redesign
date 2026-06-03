@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ingaz\ContractStatusEnum;
+use App\Models\Concerns\AssignsBranch;
 use App\Models\ingaz\Maid;
 use App\Models\ContractReturnRequest;
 use App\Models\ingaz\User;
@@ -18,7 +19,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class Contract extends Model
 {
-    use HasFactory, LogsActivity;
+    use AssignsBranch, HasFactory, LogsActivity;
 
     protected $guarded = [];
     protected $with = ['info'];
@@ -27,7 +28,15 @@ class Contract extends Model
     protected $casts = [
         'warranty_start_date' => 'datetime',
         'warranty_end_date' => 'datetime',
+        'branch_id' => 'integer',
     ];
+
+    protected function resolveBranchIdForCreate(): ?int
+    {
+        return $this->resolveBranchIdFromOrder($this->order_id ?? null)
+            ?: $this->resolveBranchIdFromAdmin($this->marketer_id ?? null)
+            ?: $this->resolveBranchIdFromCurrentAdmin();
+    }
 
     public function getDescAttribute()
     {

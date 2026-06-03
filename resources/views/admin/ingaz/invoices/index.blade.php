@@ -57,10 +57,10 @@
                     </div>
                     <div class="invoice-index-actions">
                         @if (AdminGuardHasAnyPerm([\App\PermKeys::INVOICES_EXPORT, \App\PermKeys::INVOICES_CONTROL, \App\PermKeys::REC_CONTRACTS_EXPORT, \App\PermKeys::REC_CONTRACTS_MANAGE]))
-                            <a href="{{ route('invoices.export.excel') }}" class="btn btn-outline-success">
+                            <a href="{{ route('invoices.export.excel') }}" class="btn btn-outline-success" id="invoiceExportExcel">
                                 <i class="fas fa-file-excel me-1"></i> Excel
                             </a>
-                            <a href="{{ route('invoices.export.pdf') }}" class="btn btn-outline-danger">
+                            <a href="{{ route('invoices.export.pdf') }}" class="btn btn-outline-danger" id="invoiceExportPdf">
                                 <i class="fas fa-file-pdf me-1"></i> PDF
                             </a>
                         @endif
@@ -72,6 +72,20 @@
                     </div>
                 </div>
 
+                @if($branchesEnabled ?? false)
+                    <div class="row g-3 align-items-end mb-3">
+                        <div class="col-md-3">
+                            <label for="branchFilter" class="form-label">{{ __('admin.branches') }}</label>
+                            <select id="branchFilter" class="form-select">
+                                <option value="">{{ helperTrans('ingaz.all') }}</option>
+                                @foreach(($branches ?? collect()) as $branch)
+                                    <option value="{{ $branch->id }}">{{ $branch->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                @endif
+
                 <div class="table-responsive">
                     <table class="table table-clean" id="dataTableObject">
                         <thead>
@@ -80,6 +94,9 @@
                                 <th>رقم الفاتورة</th>
                                 <th>مرتبطة بـ</th>
                                 <th>اسم العميل</th>
+                                @if($branchesEnabled ?? false)
+                                    <th>{{ __('admin.branches') }}</th>
+                                @endif
                                 <th>الإجمالي</th>
                                 <th>الضريبة</th>
                                 <th>الخصم</th>
@@ -105,7 +122,12 @@
             $('#dataTableObject').DataTable({
                 processing: true,
                 serverSide: true,
-                ajax: "{{ route('invoices.index') }}",
+                ajax: {
+                    url: "{{ route('invoices.index') }}",
+                    data: function(d) {
+                        d.branch_id = $('#branchFilter').length ? $('#branchFilter').val() : '';
+                    }
+                },
                 columns: [{
                         data: 'DT_RowIndex',
                         name: 'DT_RowIndex',
@@ -128,6 +150,14 @@
                         orderable: false,
                         searchable: false
                     },
+                    @if($branchesEnabled ?? false)
+                    {
+                        data: 'branch',
+                        name: 'branch',
+                        orderable: false,
+                        searchable: false
+                    },
+                    @endif
                     {
                         data: 'subtotal',
                         name: 'subtotal'
@@ -170,6 +200,21 @@
                 order: [
                     [1, 'desc']
                 ]
+            });
+
+            $('#branchFilter').on('change', function() {
+                $('#dataTableObject').DataTable().ajax.reload();
+            });
+
+            $('#invoiceExportExcel, #invoiceExportPdf').on('click', function(e) {
+                if (!$('#branchFilter').length || !$('#branchFilter').val()) {
+                    return;
+                }
+
+                e.preventDefault();
+                window.location.href = this.href + '?' + $.param({
+                    branch_id: $('#branchFilter').val()
+                });
             });
 
             $(document).on('submit', '.queue-zatca-form', function(e) {

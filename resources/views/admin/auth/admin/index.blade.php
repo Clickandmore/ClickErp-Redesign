@@ -57,7 +57,7 @@
         #dataTableObject {
             border-collapse: separate !important;
             border-spacing: 0;
-            min-width: 1420px;
+            min-width: 1520px;
         }
 
         #dataTableObject thead th {
@@ -99,11 +99,12 @@
         #dataTableObject td:nth-child(7),
         #dataTableObject td:nth-child(8),
         #dataTableObject td:nth-child(9),
-        #dataTableObject td:nth-child(12) {
+        #dataTableObject td:nth-child(10),
+        #dataTableObject td:nth-child(13) {
             white-space: nowrap;
         }
 
-        #dataTableObject td:nth-child(13) {
+        #dataTableObject td:nth-child(14) {
             max-width: 240px;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -294,6 +295,17 @@
                             <option value="deleted">{{ __('ingaz.deleted') }}</option>
                         </select>
                     </div>
+                    @if($branchesEnabled ?? false)
+                        <div class="col-md-3">
+                            <label class="form-label">{{ __('admin.branches') }}</label>
+                            <select id="filter_branch_id" class="form-select">
+                                <option value="">{{ __('admin.all') }}</option>
+                                @foreach(($branches ?? collect()) as $branch)
+                                    <option value="{{ $branch->id }}">{{ $branch->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif
                     <div class="col-md-3 d-flex gap-2">
                         <button id="applyFilters" class="btn btn-primary w-50">{{ __('admin.filter') }}</button>
                         <button id="resetFilters" class="btn btn-outline-secondary w-50">{{ __('admin.reset') }}</button>
@@ -311,6 +323,9 @@
                     <th>{{ __('admin.username') }}</th>
                     <th>{{helperTrans("ingaz.admin_type")}}</th>
                     <th>{{helperTrans("ingaz.role")}}</th>
+                    @if($branchesEnabled ?? false)
+                        <th>{{ __('admin.branches') }}</th>
+                    @endif
                     <th>{{ __('admin.contact_phone') }}</th>
                     <th>{{ __('admin.whatsapp_phone') }}</th>
                     <th>{{ __('admin.verification_phone') }}</th>
@@ -349,6 +364,9 @@
                 {"data": "username", orderable: true, searchable: true},
                 {"data": "admin_type", orderable: true, searchable: true},
                 {"data": "role", orderable: true, searchable: true},
+                @if($branchesEnabled ?? false)
+                {"data": "branch", orderable: true, searchable: true},
+                @endif
                 {"data": "phone", orderable: true, searchable: true},
                 {"data": "whatsapp", orderable: true, searchable: true},
                 {"data": "verification_phone", orderable: true, searchable: true},
@@ -411,9 +429,11 @@
                 let adminType = $('#filter_admin_type').val();
                 let sexType = $('#filter_sex_type').val();
                 let status = $('#filter_status').val();
+                let branchId = $('#filter_branch_id').length ? $('#filter_branch_id').val() : '';
                 if (adminType) params.append('admin_type', adminType);
                 if (sexType !== '') params.append('sex_type', sexType);
                 if (status) params.append('status', status);
+                if (branchId) params.append('branch_id', branchId);
                 if (tableInstance) {
                     $("#dataTableObject").DataTable().clear().destroy();
                 }
@@ -430,6 +450,7 @@
                 $('#filter_admin_type').val('');
                 $('#filter_sex_type').val('');
                 $('#filter_status').val('');
+                $('#filter_branch_id').val('');
                 reloadWithFilters();
             });
 

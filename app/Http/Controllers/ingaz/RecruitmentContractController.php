@@ -14,6 +14,7 @@ use App\Enums\ingaz\OrderEnum;
 use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\StoreContractRequest;
 use App\Http\Traits\ContractSMSTrait;
+use App\Models\Branch;
 use App\Models\City;
 use App\Models\Contract;
 use App\Models\ContractInfo;
@@ -33,11 +34,13 @@ use App\Models\TravelHistory;
 use App\NewPermKeys;
 use App\Services\ingaz\RecruitmentTripAccountingService;
 use App\Services\ingaz\RecruitmentContractRefundService;
+use App\Support\SystemModuleManager;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use PDF;
@@ -516,9 +519,9 @@ class RecruitmentContractController extends Controller
         }
 
         if ($request->ajax()) {
+            $branchesEnabled = $this->branchesEnabledFor('contracts');
 
-
-            $query = Contract::with([
+            $query = Contract::with(array_filter([
                 'user', // جميع بيانات العميل
                 'user.nationality', // جنسية العميل (Country model)
                 'maid', // جميع بيانات العاملة
@@ -537,8 +540,9 @@ class RecruitmentContractController extends Controller
                 'recruitmentRefund',
                 'order', // بيانات الطلب
                 'order.details', // تفاصيل الطلب
-                'order.details.admin' // بيانات المسوق
-            ])
+                'order.details.admin',
+                $branchesEnabled ? 'branch' : null,
+            ]))
                 ->withCount(['notes', 'attachments']);
 
             // فلتر الحالة - استخدام query parameter فقط
@@ -680,6 +684,10 @@ class RecruitmentContractController extends Controller
                             $orderQuery->where('admin_id', $request->marketer_id);
                         });
                 });
+            }
+
+            if ($branchesEnabled && $request->filled('branch_id')) {
+                $query->where('branch_id', $request->branch_id);
             }
 
             $rows = $query->orderBy('id', 'desc');
@@ -1140,6 +1148,13 @@ class RecruitmentContractController extends Controller
 
                     return $marketerInfo ?: '<span class="text-muted"><i class="fas fa-user-slash me-1"></i>غير محدد</span>';
                 })
+                ->addColumn('branch', function ($row) use ($branchesEnabled) {
+                    if (!$branchesEnabled) {
+                        return '-';
+                    }
+
+                    return $row->branch ? e($row->branch->name) : '-';
+                })
                 ->addColumn('recruitment_office', function ($row) {
                     $office = $row->maid?->office ?? $row->maid?->recruitmentOffice ?? $row->info?->manualMaidOffice;
                     return $office?->title ?  '<span class="text-muted">' . $office?->title .'</span>' : '<span class="text-muted">غير محدد</span>';
@@ -1556,6 +1571,10 @@ class RecruitmentContractController extends Controller
         $data["modalType"] = "modal-lg";
         $data["status"] = $status ?? $request->get('status', null);
         $data["filterOptions"] = $filterOptions;
+        $data['branchesEnabled'] = $this->branchesEnabledFor('contracts');
+        $data['branches'] = $data['branchesEnabled']
+            ? Branch::query()->active()->ordered()->get(['id', 'name_ar', 'name_en'])
+            : collect();
         return view($this->folderPath . '.index', $data);
     }
 
@@ -2423,6 +2442,7 @@ class RecruitmentContractController extends Controller
     {
         $maidData = [
             'name' => trim((string) $request->manual_maid_name),
+            'gender' => $request->manual_maid_gender ?: 'female',
             'passport_num' => trim((string) $request->manual_maid_passport_num),
             'nationality_id' => $request->manual_maid_nationality_id,
             'office_id' => $request->manual_maid_office_id,
@@ -2455,6 +2475,9 @@ class RecruitmentContractController extends Controller
 
         $maid = Maid::create($maidData);
         $maid->jobTypes()->syncWithoutDetaching([1]);
+        if ($request->filled('manual_maid_job_title_id')) {
+            $maid->jobTitles()->syncWithoutDetaching([(int) $request->manual_maid_job_title_id]);
+        }
 
         return $maid;
     }
@@ -4626,6 +4649,10 @@ class RecruitmentContractController extends Controller
 
     private function applyContractFilters($query, Request $request, bool $ignoreStatus = false, bool $ignoreWarranty = false): void
     {
+        if ($this->branchesEnabledFor('contracts') && $request->filled('branch_id')) {
+            $query->where('branch_id', $request->branch_id);
+        }
+
         // فلتر الحالة - استخدام query parameter فقط
         if (!$ignoreStatus) {
             $statusFilter = $this->getStatusFilterForRequest($request);
@@ -4750,6 +4777,13 @@ class RecruitmentContractController extends Controller
         if ($request->filled('global_search')) {
             $this->applyGlobalSearchFilter($query, $request->global_search);
         }
+    }
+
+    private function branchesEnabledFor(string $table): bool
+    {
+        return SystemModuleManager::isEnabled('branches')
+            && Schema::hasTable($table)
+            && Schema::hasColumn($table, 'branch_id');
     }
 
     private function applyGlobalSearchFilter($query, string $search): void

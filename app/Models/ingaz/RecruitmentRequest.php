@@ -3,11 +3,14 @@
 namespace App\Models\ingaz;
 
 use App\Models\auth\Admin;
+use App\Models\Concerns\AssignsOrderBranch;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class RecruitmentRequest extends Model
 {
+    use AssignsOrderBranch;
+
     protected $table = 'orders';
 
     protected $fillable = [
@@ -17,7 +20,8 @@ class RecruitmentRequest extends Model
         'job_type_id',
         'payment_method',
         'status',
-        'customer_id'
+        'customer_id',
+        'branch_id',
     ];
 
     public function client(): BelongsTo

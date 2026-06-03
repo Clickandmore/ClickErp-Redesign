@@ -352,7 +352,7 @@
                                 </div>
                             </div>
 
-                            <!-- بيانات العميل والعاملة (تظهر بعد الاختيار) في التبويب الجديد -->
+                            <!-- بيانات العميل والعامل/ة (تظهر بعد الاختيار) في التبويب الجديد -->
                             <div class="col-md-12">
                                 <div class="form-section">
                                     <div class="section-header">
@@ -485,24 +485,24 @@
                                             <i class="fas fa-female"></i>
                                         </div>
                                         <div>
-                                            <h5 class="section-title">بيانات العاملة</h5>
+                                            <h5 class="section-title">بيانات العامل/ة</h5>
                                             <p class="section-subtitle">البيانات الشخصية والمهنية</p>
                                         </div>
                                     </div>
                                     <div class="card-body p-2" id="new-maid-section-card">
                                         <div class="row">
                                             <div class="col-12 mb-3">
-                                                <label class="form-label">طريقة إضافة العاملة <span
+                                                <label class="form-label">طريقة إضافة العامل/ة <span
                                                         class="text-danger">*</span></label>
-                                                <div class="maid-mode-options" role="group" aria-label="طريقة إضافة العاملة">
+                                                <div class="maid-mode-options" role="group" aria-label="طريقة إضافة العامل/ة">
                                                     <input type="radio" class="btn-check" name="maid_selection_mode"
                                                         id="maid_mode_existing" value="existing" checked>
-                                                    <label class="btn btn-outline-success" for="maid_mode_existing">عاملة
+                                                    <label class="btn btn-outline-success" for="maid_mode_existing">عامل/ة
                                                         موجودة</label>
 
                                                     <input type="radio" class="btn-check" name="maid_selection_mode"
                                                         id="maid_mode_manual" value="manual">
-                                                    <label class="btn btn-outline-primary" for="maid_mode_manual">عاملة
+                                                    <label class="btn btn-outline-primary" for="maid_mode_manual">عامل/ة
                                                         مختصرة</label>
 
                                                     <input type="radio" class="btn-check" name="maid_selection_mode"
@@ -510,18 +510,18 @@
                                                     <label class="btn btn-outline-warning" for="maid_mode_postponed">تأجيل
                                                         الاختيار</label>
                                                 </div>
-                                                <small class="text-muted d-block mt-2">يمكنك ربط عاملة موجودة، أو حفظ بيانات
-                                                    مختصرة مؤقتة، أو إنشاء العقد بدون عاملة حالياً.</small>
+                                                <small class="text-muted d-block mt-2">يمكنك ربط عامل/ة موجود/ة، أو حفظ بيانات
+                                                    مختصرة مؤقتة، أو إنشاء العقد بدون عامل/ة حالياً.</small>
                                             </div>
                                         </div>
 
                                         <div class="row">
                                             <div class="col-12 mb-3" id="new-existing-maid-picker">
-                                                <label for="new_new_maid_id" class="form-label">اختر عاملة</label>
+                                                <label for="new_new_maid_id" class="form-label">اختر عامل/ة</label>
                                                 <select name="new_new_maid_id" id="new_new_maid_id"
                                                     class="form-select select2 ajax-maid-select" style="width:100%"
-                                                    data-placeholder="ابحث باسم العاملة أو رقم الجواز">
-                                                    <option value="" selected>اختر عاملة...</option>
+                                                    data-placeholder="ابحث باسم العامل/ة أو رقم الجواز">
+                                                    <option value="" selected>اختر عامل/ة...</option>
                                                 </select>
                                             </div>
                                         </div>
@@ -572,11 +572,21 @@
 
                                         <div id="manual-maid-section-card" class="row g-3" style="display:none;">
                                             <div class="col-md-6">
-                                                <label for="manual_maid_name" class="form-label">اسم العاملة المختصر
+                                                <label for="manual_maid_name" class="form-label">اسم العامل/ة المختصر
                                                     <span class="text-danger">*</span></label>
                                                 <input type="text" id="manual_maid_name" name="manual_maid_name"
                                                     class="form-control" placeholder="الاسم كما هو في المرفق أو الجواز">
                                                 <div class="invalid-feedback" id="err_manual_maid_name"></div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="manual_maid_gender" class="form-label">الجنس
+                                                    <span class="text-danger">*</span></label>
+                                                <select id="manual_maid_gender" name="manual_maid_gender"
+                                                    class="form-select">
+                                                    <option value="female" selected>أنثى</option>
+                                                    <option value="male">ذكر</option>
+                                                </select>
+                                                <div class="invalid-feedback" id="err_manual_maid_gender"></div>
                                             </div>
                                             <div class="col-md-6">
                                                 <label for="manual_maid_passport_num" class="form-label">رقم الجواز
@@ -585,6 +595,18 @@
                                                     name="manual_maid_passport_num" class="form-control"
                                                     placeholder="رقم الجواز">
                                                 <div class="invalid-feedback" id="err_manual_maid_passport_num"></div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="manual_maid_job_title_id" class="form-label">المهنة
+                                                    <span class="text-danger">*</span></label>
+                                                <select id="manual_maid_job_title_id" name="manual_maid_job_title_id"
+                                                    class="form-select select2" data-placeholder="اختر المهنة">
+                                                    <option value="">اختر المهنة...</option>
+                                                    @foreach ($maidJobTitles as $jobTitle)
+                                                        <option value="{{ $jobTitle->id }}">{{ $jobTitle->title }}</option>
+                                                    @endforeach
+                                                </select>
+                                                <div class="invalid-feedback" id="err_manual_maid_job_title_id"></div>
                                             </div>
                                             <div class="col-md-6">
                                                 <label for="manual_maid_nationality_id" class="form-label">الجنسية
@@ -613,7 +635,7 @@
                                                 <div class="invalid-feedback" id="err_manual_maid_office_id"></div>
                                             </div>
                                             <div class="col-12">
-                                                <label for="manual_maid_attachment" class="form-label">مرفق العاملة
+                                                <label for="manual_maid_attachment" class="form-label">مرفق العامل/ة
                                                     <small class="text-muted">(اختياري)</small></label>
                                                 <input type="file" id="manual_maid_attachment"
                                                     name="manual_maid_attachment" class="form-control"
@@ -625,7 +647,7 @@
                                             <div class="col-12">
                                                 <div class="alert alert-info mb-0">
                                                     <i class="fas fa-circle-info me-2"></i>
-                                                    سيتم إنشاء عاملة مختصرة وربطها بالعقد مباشرة. مرفق الجواز اختياري.
+                                                    سيتم إنشاء عامل/ة مختصر/ة وربطه/ا بالعقد مباشرة. مرفق الجواز اختياري.
                                                 </div>
                                             </div>
                                         </div>
@@ -633,13 +655,13 @@
                                         <div id="new-no-maid-alert" style="display:none;">
                                             <div class="alert alert-warning mt-2">
                                                 <i class="fas fa-exclamation-triangle me-2"></i>
-                                                تم اختيار "بدون عاملة حالياً". يمكنك إضافة عاملة لاحقاً من صفحة العقود.
+                                                تم اختيار "بدون عامل/ة حالياً". يمكنك إضافة عامل/ة لاحقاً من صفحة العقود.
                                             </div>
 
                                             <div class="row mt-3">
                                                 <div class="col-md-6 mb-3">
                                                     <label for="required_maid_nationality" class="form-label">الجنسية المطلوبة
-                                                        للعاملة
+                                                        للعامل/ة
                                                         <span class="text-danger">*</span></label>
                                                     <select name="required_maid_nationality" id="required_maid_nationality"
                                                         class="form-select" data-validation="required">
@@ -654,7 +676,7 @@
 
                                                 <div class="col-md-6 mb-3">
                                                     <label for="required_maid_religion" class="form-label">الدين المطلوب
-                                                        للعاملة <span class="text-danger">*</span></label>
+                                                        للعامل/ة <span class="text-danger">*</span></label>
                                                     <select name="required_maid_religion" id="required_maid_religion"
                                                         class="form-select" data-validation="required">
                                                         <option value="">اختر الدين المطلوب...</option>
@@ -810,7 +832,7 @@
                                                         <i class="fas fa-exclamation-triangle me-2"></i>
                                                         <strong>تنبيه:</strong> الحقول المطلوبة (الجنسية، الدين، العمر،
                                                         الخبرة) إلزامية
-                                                        عند اختيار "بدون عاملة". هذه المتطلبات ضرورية للعثور على العاملة
+                                                        عند اختيار "بدون عامل/ة". هذه المتطلبات ضرورية للعثور على العامل/ة
                                                         المناسبة
                                                         لاحقاً.
                                                     </div>
@@ -820,7 +842,7 @@
 
                                         <div id="new-no-maid-message" class="alert alert-warning mt-3"
                                             style="display:none;">
-                                            <i class="fas fa-user-slash me-1"></i> لا يوجد عاملة حالياً.
+                                            <i class="fas fa-user-slash me-1"></i> لا يوجد عامل/ة حالياً.
                                         </div>
                                     </div>
                                 </div>
@@ -1224,8 +1246,8 @@
                     title: 'تم إنشاء العقد بنجاح',
                     text: response.message || 'تم إنشاء العقد بنجاح',
                     showDenyButton: true,
-                    confirmButtonText: 'اختيار العاملة الآن',
-                    denyButtonText: 'العقود بانتظار اختيار العاملة',
+                    confirmButtonText: 'اختيار العامل/ة الآن',
+                    denyButtonText: 'العقود بانتظار اختيار العامل/ة',
                     allowOutsideClick: false
                 }).then((result) => {
                     if (result.isConfirmed) {
@@ -1358,7 +1380,7 @@
                 destroySelect2IfInitialized($(this));
 
                 $(this).select2({
-                    placeholder: $(this).data('placeholder') || 'ابحث عن العاملة...',
+                    placeholder: $(this).data('placeholder') || 'ابحث عن العامل/ة...',
                     allowClear: true,
                     dir: 'rtl',
                     width: '100%',
@@ -1793,7 +1815,7 @@
                     }
                 }
             });
-            // عند اختيار عاملة في التبويب الجديد: عبئ بيانات العاملة (حقول منفصلة)
+            // عند اختيار عامل/ة في التبويب الجديد: عبئ بيانات العامل/ة (حقول منفصلة)
             $('#new_new_maid_id').on('change', function() {
                 var selectedOption = $(this).find('option:selected');
                 var selectedMaid = select2SelectedData(this);
@@ -1883,7 +1905,7 @@
             // // Initialize Select2 for maid_id with custom template
             // if ($.fn.select2) {
             //     $('#maid_id').select2({
-            //         placeholder: 'اختر العاملة',
+            //         placeholder: 'اختر العامل/ة',
             //         allowClear: true,
             //         templateResult: formatMaidOption,
             //         templateSelection: formatMaidOption
@@ -1997,7 +2019,7 @@
                         Swal.fire({
                             icon: 'error',
                             title: 'خطأ',
-                            text: 'يرجى اختيار العاملة',
+                            text: 'يرجى اختيار العامل/ة',
                             confirmButtonText: 'حسناً'
                         });
                         return false;
@@ -2287,7 +2309,7 @@
                             $('#new_new_maid_id').addClass('is-invalid');
                             if ($('#err_new_new_maid_id').length === 0) {
                                 $('#new-existing-maid-picker').append(
-                                    '<div class="invalid-feedback d-block" id="err_new_new_maid_id">يرجى اختيار العاملة أو تغيير طريقة الإضافة.</div>'
+                                    '<div class="invalid-feedback d-block" id="err_new_new_maid_id">يرجى اختيار العامل/ة أو تغيير طريقة الإضافة.</div>'
                                 );
                             }
                         } else {
@@ -2296,17 +2318,28 @@
                         }
                     } else if (maidSelectionMode === 'manual') {
                         var manualMaidName = $('#manual_maid_name').val().trim();
+                        var manualMaidGender = $('#manual_maid_gender').val();
                         var manualMaidPassport = $('#manual_maid_passport_num').val().trim();
+                        var manualMaidJobTitle = $('#manual_maid_job_title_id').val();
                         var manualMaidNationality = $('#manual_maid_nationality_id').val();
                         var manualMaidOffice = $('#manual_maid_office_id').val();
 
                         if (!manualMaidName) {
                             isValid = false;
                             $('#manual_maid_name').addClass('is-invalid');
-                            $('#err_manual_maid_name').text('يرجى إدخال اسم العاملة المختصر');
+                            $('#err_manual_maid_name').text('يرجى إدخال اسم العامل/ة المختصر');
                         } else {
                             $('#manual_maid_name').removeClass('is-invalid');
                             $('#err_manual_maid_name').text('');
+                        }
+
+                        if (!manualMaidGender) {
+                            isValid = false;
+                            $('#manual_maid_gender').addClass('is-invalid');
+                            $('#err_manual_maid_gender').text('يرجى اختيار الجنس');
+                        } else {
+                            $('#manual_maid_gender').removeClass('is-invalid');
+                            $('#err_manual_maid_gender').text('');
                         }
 
                         if (!manualMaidPassport) {
@@ -2325,6 +2358,15 @@
                             if (!$('#manual_maid_passport_num').hasClass('is-valid')) {
                                 $('#err_manual_maid_passport_num').text('');
                             }
+                        }
+
+                        if (!manualMaidJobTitle) {
+                            isValid = false;
+                            $('#manual_maid_job_title_id').addClass('is-invalid');
+                            $('#err_manual_maid_job_title_id').text('يرجى اختيار المهنة');
+                        } else {
+                            $('#manual_maid_job_title_id').removeClass('is-invalid');
+                            $('#err_manual_maid_job_title_id').text('');
                         }
 
                         if (!manualMaidNationality) {
@@ -2352,7 +2394,7 @@
                             isValid = false;
                             $('#required_maid_nationality').addClass('is-invalid');
                             $('#err_required_maid_nationality').text(
-                                'يرجى اختيار الجنسية المطلوبة للعاملة');
+                                'يرجى اختيار الجنسية المطلوبة للعامل/ة');
                             console.log('Required maid nationality validation failed: empty');
                         } else {
                             $('#required_maid_nationality').removeClass('is-invalid');
@@ -2366,7 +2408,7 @@
                         if (!requiredMaidReligion) {
                             isValid = false;
                             $('#required_maid_religion').addClass('is-invalid');
-                            $('#err_required_maid_religion').text('يرجى اختيار الدين المطلوب للعاملة');
+                            $('#err_required_maid_religion').text('يرجى اختيار الدين المطلوب للعامل/ة');
                             console.log('Required maid religion validation failed: empty');
                         } else {
                             $('#required_maid_religion').removeClass('is-invalid');
@@ -2642,11 +2684,11 @@
                         'From existing order'
                 });
 
-                // أضف بيانات العاملة حسب التبويب النشط
+                // أضف بيانات العامل/ة حسب التبويب النشط
                 if (isNewContractTab) {
                     var selectedMaidId = $('#new_new_maid_id').val();
                     if (maidSelectionMode === 'existing' && selectedMaidId) {
-                        // إذا تم اختيار عاملة
+                        // إذا تم اختيار عامل/ة
                         formData.append('maid_name', $('#new_maid_name').val());
                         formData.append('maid_passport', $('#new_maid_passport').val());
                         formData.append('maid_religion', $('#new_maid_religion').val());
@@ -2655,7 +2697,7 @@
                         formData.append('maid_salary', $('#new_maid_salary').val());
                         formData.append('maid_experience_years', $('#new_maid_experience_years').val());
                         formData.append('maid_age', $('#new_maid_age').val());
-                        formData.append('maid_selection_postponed', '0'); // تم اختيار عاملة
+                        formData.append('maid_selection_postponed', '0'); // تم اختيار عامل/ة
                     } else if (maidSelectionMode === 'manual') {
                         formData.append('maid_selection_postponed', '1');
                         formData.append('maid_name', '');
@@ -2667,7 +2709,9 @@
                         formData.append('maid_experience_years', '');
                         formData.append('maid_age', '');
                         formData.append('manual_maid_name', $('#manual_maid_name').val());
+                        formData.append('manual_maid_gender', $('#manual_maid_gender').val() || '');
                         formData.append('manual_maid_passport_num', $('#manual_maid_passport_num').val());
+                        formData.append('manual_maid_job_title_id', $('#manual_maid_job_title_id').val() || '');
                         formData.append('manual_maid_nationality_id', $('#manual_maid_nationality_id').val() || '');
                         formData.append('manual_maid_office_id', $('#manual_maid_office_id').val() || '');
 
@@ -2676,8 +2720,8 @@
                             formData.append('manual_maid_attachment', manualMaidAttachment.files[0]);
                         }
                     } else {
-                        // إذا تم تأجيل اختيار العاملة
-                        formData.append('maid_selection_postponed', '1'); // تم تأجيل اختيار العاملة
+                        // إذا تم تأجيل اختيار العامل/ة
+                        formData.append('maid_selection_postponed', '1'); // تم تأجيل اختيار العامل/ة
                         formData.append('maid_name', '');
                         formData.append('maid_passport', '');
                         formData.append('maid_religion', '');
@@ -2767,7 +2811,7 @@
                 }
                 formData.append('marketer_id', marketerId || '');
 
-                // إضافة الحقول المطلوبة للعاملة (إذا لم يتم اختيار عاملة)
+                // إضافة الحقول المطلوبة للعامل/ة (إذا لم يتم اختيار عامل/ة)
                 if ($('#new-no-maid-alert').is(':visible')) {
                     formData.append('required_maid_nationality', $('#required_maid_nationality').val() ||
                         '');

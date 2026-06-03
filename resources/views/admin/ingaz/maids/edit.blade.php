@@ -76,12 +76,21 @@
                         <input type="file" data-default-file="{{showFile($obj->cv_file)}}" name="cv_file" class="dropify">
                     </div>
 
-                    <!-- اسم العاملة -->
+                    <!-- اسم العامل/ة -->
                     <div class="col-4">
                         <label for="TextInput" class="form-label">
-                            {{helperTrans("ingaz.maid_name")}} ({{helperTrans('ingaz.en')}})
+                            اسم العامل/ة ({{helperTrans('ingaz.en')}})
                         </label>
                         <input type="text" name="name:en" class="form-control" required value="{{$obj->name ?? ''}}">
+                    </div>
+
+                    <div class="col-4">
+                        <label for="gender" class="form-label">{{ __('validation.attributes.gender') }}</label>
+                        @php($selectedGender = old('gender', $obj->gender ?? 'female'))
+                        <select name="gender" id="gender" class="form-control" required>
+                            <option value="female" {{ $selectedGender === 'female' ? 'selected' : '' }}>أنثى</option>
+                            <option value="male" {{ $selectedGender === 'male' ? 'selected' : '' }}>ذكر</option>
+                        </select>
                     </div>
 
                     <!-- أنواع الوظائف -->

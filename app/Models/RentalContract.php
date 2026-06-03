@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AssignsBranch;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\User;
 use App\Models\ingaz\Order;
@@ -13,13 +14,14 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class RentalContract extends Model
 {
-    use HasFactory, LogsActivity;
+    use AssignsBranch, HasFactory, LogsActivity;
 
     protected $fillable = [
         'user_id',
         'maid_id',
         'marketer_id',
         'order_id',
+        'branch_id',
         'status',
         'status_before_freeze',
         'freeze_reason',
@@ -54,7 +56,15 @@ class RentalContract extends Model
         'trial_started_at' => 'datetime',
         'frozen_at' => 'datetime',
         'resumed_at' => 'datetime',
+        'branch_id' => 'integer',
     ];
+
+    protected function resolveBranchIdForCreate(): ?int
+    {
+        return $this->resolveBranchIdFromOrder($this->order_id ?? null)
+            ?: $this->resolveBranchIdFromAdmin($this->marketer_id ?? null)
+            ?: $this->resolveBranchIdFromCurrentAdmin();
+    }
 
     protected $with = ['info'];
 
