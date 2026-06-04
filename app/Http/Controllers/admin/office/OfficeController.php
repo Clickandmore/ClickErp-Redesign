@@ -320,9 +320,29 @@ class OfficeController extends Controller
             abort(403);
         }
 
+        $agentUser = $office->officeManager?->admin;
+
+        if (! $agentUser) {
+            return back()->withErrors([
+                'login_as_agent' => 'لا يوجد مدير مكتب مرتبط بهذا الوكيل. يرجى إضافة البريد وكلمة المرور أولاً.',
+            ]);
+        }
+
+        if (($agentUser->status ?? 'active') === 'suspended') {
+            return back()->withErrors([
+                'login_as_agent' => 'حساب مدير المكتب موقوف حالياً.',
+            ]);
+        }
+
+        if (! $agentUser->isExternalOfficeAgent()) {
+            return back()->withErrors([
+                'login_as_agent' => 'حساب مدير المكتب غير مرتبط بلوحة الوكيل الخارجي.',
+            ]);
+        }
+
         session(['_agent_impersonate_office_id' => (int) $office->id]);
 
-        Auth::guard('agent')->login($adminUser);
+        Auth::guard('agent')->login($agentUser);
         request()->session()->regenerate();
 
         return redirect(LaravelLocalization::getLocalizedURL(app()->getLocale(), route('agent.dashboard'), [], true));
