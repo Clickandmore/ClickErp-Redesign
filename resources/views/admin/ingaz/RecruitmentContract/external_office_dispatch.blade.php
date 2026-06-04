@@ -157,9 +157,13 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">المقابل بالريال</label>
-                            <input type="text" id="office_contract_cost_sar" class="form-control"
-                                value="{{ filled($initialOfficeContractCostSar) ? $initialOfficeContractCostSar . ' ريال' : '' }}"
-                                readonly>
+                            <div class="input-group">
+                                <input type="number" id="office_contract_cost_sar" class="form-control"
+                                    value="{{ $initialOfficeContractCostSar }}"
+                                    step="0.01" min="0.01"
+                                    {{ $isEditable ? '' : 'disabled' }}>
+                                <span class="input-group-text">ريال</span>
+                            </div>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">محطة الوصول <span class="text-danger">*</span></label>
@@ -201,17 +205,45 @@
         document.addEventListener('DOMContentLoaded', function () {
             const usdInput = document.getElementById('office_contract_cost_usd');
             const sarInput = document.getElementById('office_contract_cost_sar');
-            const rate = {{ json_encode($usdToSarRate) }};
+            const rate = parseFloat({{ json_encode($usdToSarRate) }});
+            let updatingCurrency = false;
 
-            function updateSarCost() {
-                const usdValue = parseFloat(usdInput?.value || '');
-                sarInput.value = Number.isFinite(usdValue) && usdValue > 0
-                    ? `${(usdValue * rate).toFixed(2)} ريال`
+            function parseMoney(value) {
+                return parseFloat(String(value || '').replace(',', '.'));
+            }
+
+            function setConvertedValue(targetInput, value) {
+                if (!targetInput) {
+                    return;
+                }
+
+                targetInput.value = Number.isFinite(value) && value > 0
+                    ? value.toFixed(2)
                     : '';
             }
 
+            function updateSarCost() {
+                if (updatingCurrency || !Number.isFinite(rate) || rate <= 0) {
+                    return;
+                }
+
+                updatingCurrency = true;
+                setConvertedValue(sarInput, parseMoney(usdInput?.value) * rate);
+                updatingCurrency = false;
+            }
+
+            function updateUsdCost() {
+                if (updatingCurrency || !Number.isFinite(rate) || rate <= 0) {
+                    return;
+                }
+
+                updatingCurrency = true;
+                setConvertedValue(usdInput, parseMoney(sarInput?.value) / rate);
+                updatingCurrency = false;
+            }
+
             usdInput?.addEventListener('input', updateSarCost);
-            updateSarCost();
+            sarInput?.addEventListener('input', updateUsdCost);
         });
     </script>
 @endpush
