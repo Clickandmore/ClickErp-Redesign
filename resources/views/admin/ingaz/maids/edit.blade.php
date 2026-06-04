@@ -86,7 +86,9 @@
 
                     <div class="col-4">
                         <label for="gender" class="form-label">{{ __('validation.attributes.gender') }}</label>
-                        @php($selectedGender = old('gender', $obj->gender ?? 'female'))
+                        @php
+                            $selectedGender = old('gender', $obj->gender ?? 'female');
+                        @endphp
                         <select name="gender" id="gender" class="form-control" required>
                             <option value="female" {{ $selectedGender === 'female' ? 'selected' : '' }}>أنثى</option>
                             <option value="male" {{ $selectedGender === 'male' ? 'selected' : '' }}>ذكر</option>
