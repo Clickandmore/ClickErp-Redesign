@@ -112,15 +112,15 @@ class ZohoSalesIqController extends Controller
     private function normalizeVisitor(array $item): array
     {
         return [
-            'id' => $this->first($item, ['id', 'visitor_id', 'visitor.id', 'uvid', 'cuid'], '-'),
-            'name' => $this->first($item, ['name', 'visitor_name', 'visitor.name', 'display_name', 'info.name'], 'زائر غير معروف'),
-            'email' => $this->first($item, ['email', 'visitor.email', 'info.email'], '-'),
-            'phone' => $this->first($item, ['phone', 'mobile', 'visitor.phone', 'info.phone'], '-'),
-            'status' => $this->first($item, ['status', 'state', 'visitor.status'], '-'),
+            'id' => $this->text($this->first($item, ['id', 'visitor_id', 'visitor.id', 'uvid', 'cuid'], '-')),
+            'name' => $this->text($this->first($item, ['name', 'visitor_name', 'visitor.name', 'display_name', 'info.name'], 'زائر غير معروف'), 'زائر غير معروف'),
+            'email' => $this->text($this->first($item, ['email', 'visitor.email', 'info.email'], '-')),
+            'phone' => $this->text($this->first($item, ['phone', 'mobile', 'visitor.phone', 'info.phone'], '-')),
+            'status' => $this->text($this->first($item, ['status', 'state', 'visitor.status'], '-')),
             'location' => $this->location($item),
-            'ip' => $this->first($item, ['ip', 'ip_address', 'visitor.ip'], '-'),
-            'source' => $this->first($item, ['source', 'referrer', 'campaign.source', 'utm_source'], '-'),
-            'page' => $this->first($item, ['page', 'current_page', 'last_page', 'visited_page.title', 'visited_page.url'], '-'),
+            'ip' => $this->text($this->first($item, ['ip', 'ip_address', 'visitor.ip'], '-')),
+            'source' => $this->text($this->first($item, ['source', 'referrer', 'campaign.source', 'utm_source'], '-')),
+            'page' => $this->text($this->first($item, ['page', 'current_page', 'last_page', 'visited_page.title', 'visited_page.url'], '-')),
             'last_seen' => $this->dateLabel($this->first($item, ['last_seen', 'last_visit_time', 'last_active_time', 'updated_time', 'modified_time', 'time'], null)),
             'raw' => $this->json($item),
         ];
@@ -129,14 +129,14 @@ class ZohoSalesIqController extends Controller
     private function normalizeConversation(array $item): array
     {
         return [
-            'id' => $this->first($item, ['id', 'conversation_id', 'chat_id', 'conversation.id'], '-'),
-            'visitor' => $this->first($item, ['visitor.name', 'visitor_name', 'name', 'customer.name'], 'زائر غير معروف'),
-            'email' => $this->first($item, ['visitor.email', 'visitor_email', 'email', 'customer.email'], '-'),
-            'phone' => $this->first($item, ['visitor.phone', 'phone', 'customer.phone'], '-'),
-            'status' => $this->first($item, ['status', 'state', 'conversation.status'], '-'),
-            'operator' => $this->first($item, ['attender.name', 'operator.name', 'operator', 'owner.name', 'assigned_to.name'], '-'),
-            'department' => $this->first($item, ['department.name', 'department', 'department_name'], '-'),
-            'last_message' => Str::limit(strip_tags((string) $this->first($item, ['last_message', 'message', 'question', 'summary', 'subject'], '-')), 120),
+            'id' => $this->text($this->first($item, ['id', 'conversation_id', 'chat_id', 'conversation.id'], '-')),
+            'visitor' => $this->text($this->first($item, ['visitor.name', 'visitor_name', 'name', 'customer.name'], 'زائر غير معروف'), 'زائر غير معروف'),
+            'email' => $this->text($this->first($item, ['visitor.email', 'visitor_email', 'email', 'customer.email'], '-')),
+            'phone' => $this->text($this->first($item, ['visitor.phone', 'phone', 'customer.phone'], '-')),
+            'status' => $this->text($this->first($item, ['status', 'state', 'conversation.status'], '-')),
+            'operator' => $this->text($this->first($item, ['attender.name', 'operator.name', 'operator', 'owner.name', 'assigned_to.name'], '-')),
+            'department' => $this->text($this->first($item, ['department.name', 'department', 'department_name'], '-')),
+            'last_message' => Str::limit(strip_tags($this->text($this->first($item, ['last_message', 'message', 'question', 'summary', 'subject'], '-'))), 120),
             'created_at' => $this->dateLabel($this->first($item, ['created_time', 'created_at', 'start_time', 'time'], null)),
             'closed_at' => $this->dateLabel($this->first($item, ['closed_time', 'ended_time', 'end_time'], null)),
             'raw' => $this->json($item),
@@ -146,9 +146,9 @@ class ZohoSalesIqController extends Controller
     private function normalizeMessage(array $item): array
     {
         return [
-            'sender' => $this->first($item, ['sender.name', 'from.name', 'operator.name', 'visitor.name', 'sender', 'from'], '-'),
-            'type' => $this->first($item, ['sender.type', 'from.type', 'type', 'message_type'], '-'),
-            'message' => strip_tags((string) $this->first($item, ['message', 'text', 'content', 'body', 'msg'], '')),
+            'sender' => $this->text($this->first($item, ['sender.name', 'from.name', 'operator.name', 'visitor.name', 'sender', 'from'], '-')),
+            'type' => $this->text($this->first($item, ['sender.type', 'from.type', 'type', 'message_type'], '-')),
+            'message' => strip_tags($this->text($this->first($item, ['message', 'text', 'content', 'body', 'msg'], ''), '')),
             'time' => $this->dateLabel($this->first($item, ['time', 'created_time', 'created_at', 'sent_time'], null)),
             'raw' => $this->json($item),
         ];
@@ -170,12 +170,74 @@ class ZohoSalesIqController extends Controller
     private function location(array $item): string
     {
         $parts = array_filter([
-            $this->first($item, ['city', 'location.city', 'visitor.city'], null),
-            $this->first($item, ['region', 'location.region', 'state'], null),
-            $this->first($item, ['country', 'location.country', 'visitor.country'], null),
+            $this->text($this->first($item, ['city', 'location.city', 'visitor.city'], null), ''),
+            $this->text($this->first($item, ['region', 'location.region', 'state'], null), ''),
+            $this->text($this->first($item, ['country', 'location.country', 'visitor.country'], null), ''),
         ]);
 
         return $parts === [] ? '-' : implode(', ', array_unique($parts));
+    }
+
+    private function text($value, string $default = '-'): string
+    {
+        if ($value === null) {
+            return $default;
+        }
+
+        if ($value instanceof \Stringable) {
+            $value = (string) $value;
+        }
+
+        if (is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+
+        if (is_scalar($value)) {
+            $value = trim((string) $value);
+
+            return $value === '' ? $default : $value;
+        }
+
+        if (is_array($value)) {
+            foreach ([
+                'text',
+                'message',
+                'content',
+                'body',
+                'msg',
+                'value',
+                'label',
+                'name',
+                'title',
+                'id',
+                'email',
+                'phone',
+                'status',
+                'state',
+                'type',
+                'url',
+            ] as $key) {
+                $nested = data_get($value, $key);
+
+                if (filled($nested)) {
+                    $text = $this->text($nested, '');
+
+                    if ($text !== '') {
+                        return $text;
+                    }
+                }
+            }
+
+            $flattened = collect($value)
+                ->flatten()
+                ->filter(static fn ($part) => is_scalar($part) && trim((string) $part) !== '')
+                ->map(static fn ($part) => is_bool($part) ? ($part ? 'true' : 'false') : trim((string) $part))
+                ->implode(' ');
+
+            return $flattened === '' ? $default : $flattened;
+        }
+
+        return $default;
     }
 
     private function dateInput($value, Carbon $default): Carbon
@@ -193,6 +255,8 @@ class ZohoSalesIqController extends Controller
 
     private function dateLabel($value): string
     {
+        $value = $this->dateValue($value);
+
         if (blank($value)) {
             return '-';
         }
@@ -211,8 +275,37 @@ class ZohoSalesIqController extends Controller
                 ->timezone(config('app.timezone'))
                 ->format('Y-m-d H:i');
         } catch (\Throwable $exception) {
-            return (string) $value;
+            return $this->text($value);
         }
+    }
+
+    private function dateValue($value)
+    {
+        if ($value instanceof \Stringable || is_scalar($value) || $value === null) {
+            return $value;
+        }
+
+        if (is_array($value)) {
+            foreach ([
+                'timestamp',
+                'time',
+                'date',
+                'datetime',
+                'value',
+                'created_time',
+                'created_at',
+                'updated_time',
+                'sent_time',
+            ] as $key) {
+                $nested = data_get($value, $key);
+
+                if (filled($nested)) {
+                    return $this->dateValue($nested);
+                }
+            }
+        }
+
+        return null;
     }
 
     private function milliseconds(Carbon $date): int
