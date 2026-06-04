@@ -178,6 +178,11 @@
             font-weight: 700;
             color: #111827;
         }
+        .manager-badge-wrapper {
+            display: inline-block;
+            margin-top: 6px;
+            vertical-align: middle;
+        }
 
         .office-number-cell {
             display: inline-flex;
@@ -229,6 +234,22 @@
             background: #198754;
             color: #fff;
             text-decoration: none;
+        }
+
+        .dropdown-menu.dropdown-menu-end.office-actions-floating-menu {
+            position: fixed !important;
+            top: var(--office-actions-top) !important;
+            left: var(--office-actions-left) !important;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            z-index: 2147483647 !important;
+            right: auto !important;
+            transform: none !important;
+            min-width: 220px;
+            max-height: min(420px, calc(100vh - 24px));
+            overflow-y: auto;
+            text-align: right;
         }
 
         @media (max-width: 1199px) {
@@ -452,6 +473,46 @@
         }
 
         $(document).ready(function() {
+            function closeOfficeActionsDropdown() {
+                $('#officeActionsFloatingMenu').remove();
+
+                $('#dataTableObject .actions-dropdown').each(function() {
+                    $(this).removeClass('show');
+                    $(this).find('.actions-btn').attr('aria-expanded', 'false').removeClass('show');
+                    $(this).find('.dropdown-menu').removeClass('show').removeAttr('style');
+                });
+            }
+
+            function placeOfficeActionsMenu($button, $menu) {
+                const rect = $button[0].getBoundingClientRect();
+                const menuWidth = Math.max($menu.outerWidth() || 220, 220);
+                const menuHeight = Math.max($menu.outerHeight() || 240, 160);
+                const viewportPadding = 12;
+                const topSpace = rect.top - viewportPadding;
+                const bottomSpace = window.innerHeight - rect.bottom - viewportPadding;
+                const openUp = bottomSpace < menuHeight && topSpace > bottomSpace;
+                const top = openUp
+                    ? Math.max(viewportPadding, rect.top - menuHeight - 6)
+                    : Math.max(
+                        viewportPadding,
+                        Math.min(window.innerHeight - viewportPadding - menuHeight, rect.bottom + 6)
+                    );
+                const left = Math.max(
+                    viewportPadding,
+                    Math.min(window.innerWidth - viewportPadding - menuWidth, rect.right - menuWidth)
+                );
+
+                $menu.css({
+                    '--office-actions-top': top + 'px',
+                    '--office-actions-left': left + 'px',
+                    right: 'auto',
+                    transform: 'none',
+                    zIndex: 2147483647,
+                    display: 'block',
+                    minWidth: menuWidth + 'px'
+                });
+            }
+
             $.fn.dataTable.ext.search.push(function(settings, data) {
                 if (settings.nTable.id !== 'dataTableObject') {
                     return true;
@@ -513,7 +574,8 @@
                 processing: true,
                 serverSide: false,
                 ajax: "{{ route('offices.index') }}",
-                columns: [{
+                columns: [
+                    {
                         data: 'DT_RowIndex',
                         name: 'DT_RowIndex',
                         orderable: false,
@@ -526,8 +588,11 @@
                         data: 'title',
                         orderable: true,
                         searchable: true,
-                        render: function(data) {
-                            return '<span class="office-name-cell">' + (data || '') + '</span>';
+                        render: function(data, type, row) {
+                            var titleHtml = '<div class="office-name-cell">' + (data || '') + '</div>';
+                            var managerHtml = row && row.manager_status ? '<div class="manager-badge-wrapper">' + row.manager_status + '</div>' : '';
+
+                            return titleHtml + managerHtml;
                         }
                     },
                     {
@@ -576,6 +641,8 @@
                     },
                     {
                         data: 'actions',
+                        className: 'all text-nowrap',
+                        responsivePriority: 1,
                         orderable: false,
                         searchable: false
                     }
@@ -599,7 +666,47 @@
                 },
                 order: [
                     [1, 'asc']
-                ]
+                ],
+                drawCallback: function() {
+                    $('#dataTableObject .actions-btn').removeAttr('data-bs-toggle data-bs-auto-close data-bs-display');
+                    closeOfficeActionsDropdown();
+                }
+            });
+
+            $(document).on('click', '#dataTableObject .actions-btn', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+
+                const $button = $(this);
+                $button.removeAttr('data-bs-toggle data-bs-auto-close data-bs-display');
+                const $dropdown = $button.closest('.actions-dropdown');
+                const $sourceMenu = $dropdown.find('.dropdown-menu');
+                const isOpen = $button.attr('aria-expanded') === 'true';
+
+                closeOfficeActionsDropdown();
+
+                if (isOpen) {
+                    return;
+                }
+
+                const $menu = $('<ul id="officeActionsFloatingMenu" class="dropdown-menu dropdown-menu-end shadow-lg show office-actions-floating-menu"></ul>');
+                $menu.html($sourceMenu.html());
+                $('body').append($menu);
+
+                $dropdown.addClass('show');
+                $button.attr('aria-expanded', 'true').addClass('show');
+                placeOfficeActionsMenu($button, $menu);
+            });
+
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('#dataTableObject .actions-dropdown, #officeActionsFloatingMenu').length) {
+                    closeOfficeActionsDropdown();
+                }
+            });
+
+            $(document).on('click', '#officeActionsFloatingMenu a.dropdown-item, #officeActionsFloatingMenu button.dropdown-item:not([type="submit"])', function() {
+                setTimeout(closeOfficeActionsDropdown, 0);
             });
 
             $('#applyOfficeFilters').on('click', function() {

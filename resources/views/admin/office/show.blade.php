@@ -110,6 +110,30 @@
                                         <i class="fa fa-eye"></i> {{ helperTrans('ingaz.view_current_file') }}
                                     </a>
                                 @endif
+                                @if(Route::has('offices.login-as-agent'))
+                                    @php
+                                        $agentUser = $office->officeManager?->admin ?? null;
+                                        if (! $agentUser) {
+                                            $loginTooltip = 'لا يوجد مدير مكتب مرتبط بهذا الوكيل. يرجى إضافة البريد وكلمة المرور أولاً.';
+                                        } elseif (($agentUser->status ?? 'active') === 'suspended') {
+                                            $loginTooltip = 'حساب مدير المكتب موقوف حالياً.';
+                                        } elseif (! $agentUser->isExternalOfficeAgent()) {
+                                            $loginTooltip = 'حساب مدير المكتب غير مرتبط بلوحة الوكيل الخارجي.';
+                                        } else {
+                                            $loginTooltip = null;
+                                        }
+                                    @endphp
+
+                                    @if($agentUser && ($agentUser->status ?? 'active') !== 'suspended' && $agentUser->isExternalOfficeAgent())
+                                        <a href="{{ URL::signedRoute('offices.login-as-agent', ['office' => $office->id]) }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline btn-head-primary">
+                                            <i class="fa fa-sign-in-alt"></i> تسجيل كوكيل
+                                        </a>
+                                    @else
+                                        <a href="#" class="btn btn-sm btn-outline btn-head-secondary disabled" tabindex="-1" aria-disabled="true" data-bs-toggle="tooltip" title="{{ e($loginTooltip) }}">
+                                            <i class="fa fa-sign-in-alt"></i> تسجيل كوكيل
+                                        </a>
+                                    @endif
+                                @endif
                             </div>
                         </div>
 
@@ -340,4 +364,12 @@
 @endsection
 
 @section('js')
+    <script>
+        $(function () {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.forEach(function (el) {
+                try { new bootstrap.Tooltip(el); } catch (e) {}
+            });
+        });
+    </script>
 @endsection

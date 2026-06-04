@@ -50,8 +50,12 @@ class OfficeRequest extends MainRequest
             "manager_name" => "nullable|string",
             "manager_email" => [
                 "nullable",
-                "email",
                 function ($attribute, $value, $fail) {
+                    if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
+                        $fail(__('ingaz.manager_email_email'));
+                        return;
+                    }
+
                     $existsInAdmins = DB::table('admins')->where('email', $value)->exists();
                     $existsInOffices = DB::table('recruitment_offices')->where('manager_email', $value)->exists();
 
@@ -103,8 +107,12 @@ class OfficeRequest extends MainRequest
             "manager_name" => "nullable|string",
             "manager_email" => [
                 "nullable",
-                "email",
                 function ($attribute, $value, $fail) use ($officeId, $linkedAdminId) {
+                    if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
+                        $fail(__('ingaz.manager_email_email'));
+                        return;
+                    }
+
                     $existsInAdmins = DB::table('admins')
                         ->where('email', $value)
                         ->when($linkedAdminId, fn($q) => $q->where('id', '<>', $linkedAdminId))

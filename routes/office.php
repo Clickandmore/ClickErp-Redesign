@@ -28,7 +28,8 @@ Route::group(
     function () {
         Route::group(["prefix" => "admin", "middleware" => ["auth:admin", "admin.route.permission"]], function () {
 
-            Route::post('offices/{office}/login-as-agent', [OfficeController::class, 'loginAsAgent'])
+            Route::get('offices/{office}/login-as-agent', [OfficeController::class, 'loginAsAgent'])
+                ->middleware('signed')
                 ->name('offices.login-as-agent');
             Route::resource('offices', OfficeController::class);
             Route::resource('offices-status', OfficeStatusController::class);

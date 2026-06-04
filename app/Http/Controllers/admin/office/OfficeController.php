@@ -23,6 +23,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\URL;
 use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 use Spatie\Activitylog\Models\Activity;
 use Yajra\DataTables\Facades\DataTables;
@@ -88,6 +90,23 @@ class OfficeController extends Controller
 
                     return $this->renderRelatedCountBadge($count, $url, 'linked-contracts-link');
                 })
+                ->addColumn('manager_status', function ($row) {
+                    $agentUser = $row->officeManager?->admin ?? null;
+
+                    if (! $agentUser) {
+                        return '<span class="badge bg-secondary">بدون مدير</span>';
+                    }
+
+                    if (($agentUser->status ?? 'active') === 'suspended') {
+                        return '<span class="badge bg-warning text-dark">مدير موقوف</span>';
+                    }
+
+                    if (! $agentUser->isExternalOfficeAgent()) {
+                        return '<span class="badge bg-info text-dark">غير مرتبط بلوحة الوكيل</span>';
+                    }
+
+                    return '<span class="badge bg-success">لديه مدير</span>';
+                })
                 ->editColumn('cost_of_dollar', function ($row) {
                     if ($row->cost_of_dollar === null || $row->cost_of_dollar === '') {
                         return '-';
@@ -151,13 +170,33 @@ class OfficeController extends Controller
                     if (filled($row->manager_email)) {
                         $sendEmailButton = '<button class="dropdown-item sendEmailResetPassword" data-id="' . $row->id . '"data-email="' . $row->manager_email . '">' . '  <i class="fa fa-email"></i> ' . __("ingaz.send_email_reset_password") . '</button>';
                     }
+                    $assignManagerButton = '';
                     if (Route::has('offices.login-as-agent')) {
-                        $loginAsAgentButton = '<form action="' . route('offices.login-as-agent', $row->id) . '" method="POST" target="_blank" class="m-0">'
-                            . csrf_field()
-                            . '<button type="submit" class="dropdown-item">'
-                            . '<i class="fa fa-sign-in-alt"></i> تسجيل كوكيل'
-                            . '</button>'
-                            . '</form>';
+                        $agentUser = $row->officeManager?->admin ?? null;
+
+                        if ($agentUser && ($agentUser->status ?? 'active') !== 'suspended' && $agentUser->isExternalOfficeAgent()) {
+                            $loginAsAgentButton = '<a href="' . URL::signedRoute('offices.login-as-agent', ['office' => $row->id]) . '" target="_blank" rel="noopener" class="dropdown-item">'
+                                . '<i class="fa fa-sign-in-alt"></i> تسجيل كوكيل'
+                                . '</a>';
+                        } else {
+                            // Determine reason for disabling
+                            if (! $agentUser) {
+                                $tooltip = 'لا يوجد مدير مكتب مرتبط بهذا الوكيل. يرجى إضافة البريد وكلمة المرور أولاً.';
+                            } elseif (($agentUser->status ?? 'active') === 'suspended') {
+                                $tooltip = 'حساب مدير المكتب موقوف حالياً.';
+                            } else {
+                                $tooltip = 'حساب مدير المكتب غير مرتبط بلوحة الوكيل الخارجي.';
+                            }
+
+                            $loginAsAgentButton = '<a href="#" class="dropdown-item disabled" tabindex="-1" aria-disabled="true" data-bs-toggle="tooltip" data-bs-placement="left" title="' . e($tooltip) . '">' .
+                                '<i class="fa fa-sign-in-alt"></i> تسجيل كوكيل' .
+                                '</a>';
+                        }
+
+                        // Add assign manager action that links to edit page (where admin can add manager)
+                        $assignManagerButton = '<a href="' . route('offices.edit', $row->id) . '" class="dropdown-item">'
+                            . '<i class="fa fa-user-plus"></i> تعيين/تحرير مدير'
+                            . '</a>';
                     }
 
                     // Action Buttons
@@ -177,7 +216,7 @@ class OfficeController extends Controller
                                 </div>';
                     return $actions;
                 })
-                ->rawColumns(['linked_cvs', 'linked_contracts', 'actions', 'status'])->make(true);
+                ->rawColumns(['linked_cvs', 'linked_contracts', 'manager_status', 'actions', 'status'])->make(true);
         }
 
         $officeLinkedStats = objModel::query()

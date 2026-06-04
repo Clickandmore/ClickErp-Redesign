@@ -333,7 +333,7 @@
 
                                 <div class="col-12 col-md-6 office-field">
                                     <label>{{ helperTrans('ingaz.email') }}</label>
-                                    <input type="email" name="manager_email" class="form-control office-input"
+                                    <input type="text" name="manager_email" class="form-control office-input"
                                         value="{{ old('manager_email', $managerEmail) }}">
                                 </div>
 
