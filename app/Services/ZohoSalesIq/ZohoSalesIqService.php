@@ -88,6 +88,33 @@ class ZohoSalesIqService
         return $result;
     }
 
+    public function conversationDetails(string $conversationId): array
+    {
+        $result = $this->get(
+            sprintf(
+                'api/v2/%s/conversations/%s',
+                rawurlencode($this->screenName()),
+                rawurlencode($conversationId)
+            ),
+            [],
+            []
+        );
+
+        if (!$result['ok'] && in_array((int) ($result['status_code'] ?? 0), [404, 405], true)) {
+            return $this->get(
+                sprintf(
+                    'api/v1/%s/chats/%s',
+                    rawurlencode($this->screenName()),
+                    rawurlencode($conversationId)
+                ),
+                [],
+                []
+            );
+        }
+
+        return $result;
+    }
+
     public function conversationMessages(string $conversationId, array $query = []): array
     {
         return $this->get(
