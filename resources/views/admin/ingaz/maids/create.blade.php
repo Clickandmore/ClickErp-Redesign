@@ -374,7 +374,7 @@
                         <label for="TextInput" class="form-label">
                             {{ helperTrans('ingaz.salary') }}
                         </label>
-                        <input type="number" name="salary" class="form-control">
+                        <input type="number" name="salary" class="form-control" value="{{ old('salary', 0) }}">
                     </div>
 
                     <!-- البيانات الشخصية -->
@@ -1519,7 +1519,7 @@
                     // Hide fields for ايجار
                     heightWeightFields.hide();
                     maritalStatusField.hide();
-                    salaryField.hide();
+                    salaryField.show();
                     requestTypeField.hide();
                     languagesField.hide();
                     arrivalDateField.show();

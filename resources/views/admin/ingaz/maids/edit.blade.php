@@ -8,6 +8,7 @@
     $shelterCompanyHint = __('ingaz.auto_shelter_contract_hint', ['company' => $shelterCompanyName]);
     $selectedTypeId = (int) old('type_id', $obj->jobTypes->pluck('id')->first());
     $selectedTypeTitle = collect($types ?? [])->firstWhere('id', $selectedTypeId)->title ?? '';
+    $selectedRequestType = old('request_type', \App\Models\ingaz\Maid::resolveRequestType($obj->request_type));
     $normalizedSelectedTypeTitle = mb_strtolower(trim((string) $selectedTypeTitle));
     $normalizedSelectedTypeTitle = str_replace(['أ', 'إ', 'آ'], 'ا', $normalizedSelectedTypeTitle);
     $showArrivalDateField = $isRentalForm
@@ -86,7 +87,9 @@
 
                     <div class="col-4">
                         <label for="gender" class="form-label">{{ __('validation.attributes.gender') }}</label>
-                        @php($selectedGender = old('gender', $obj->gender ?? 'female'))
+                        @php
+                            $selectedGender = old('gender', $obj->gender ?? 'female');
+                        @endphp
                         <select name="gender" id="gender" class="form-control" required>
                             <option value="female" {{ $selectedGender === 'female' ? 'selected' : '' }}>أنثى</option>
                             <option value="male" {{ $selectedGender === 'male' ? 'selected' : '' }}>ذكر</option>
@@ -158,12 +161,9 @@
                     </div>
                     <div class="col-4">
                         <label for="request_type" class="form-label">{{ helperTrans('ingaz.request_type') }}</label>
-                        @php
-                            $requestType = old('request_type', \App\Models\ingaz\Maid::resolveRequestType($obj->request_type));
-                        @endphp
                         <select name="request_type" id="request_type" class="form-control">
                             @foreach (\App\Models\ingaz\Maid::getRequestTypeOptions() as $value => $label)
-                                <option value="{{ $value }}" {{ $requestType === $value ? 'selected' : '' }}>
+                                <option value="{{ $value }}" {{ $selectedRequestType === $value ? 'selected' : '' }}>
                                     {{ $label }}
                                 </option>
                             @endforeach
@@ -208,7 +208,7 @@
                         <label for="TextInput" class="form-label">
                             {{helperTrans("ingaz.salary")}}
                         </label>
-                        <input type="number" name="salary" class="form-control" value="{{$obj->salary}}">
+                        <input type="number" name="salary" class="form-control" value="{{ old('salary', $obj->salary ?? 0) }}">
                     </div>
 
                     <!-- البيانات الشخصية -->
@@ -990,7 +990,7 @@
                     // Hide fields for ايجار
                     heightWeightFields.hide();
                     maritalStatusField.hide();
-                    salaryField.hide();
+                    salaryField.show();
                     languagesField.hide();
                     priceLabel.text(maidEditTranslations.monthlyRentalCost);
 
@@ -1121,7 +1121,6 @@
 
                             // Set default price and salary based on nationality
                             var selectedOption = $('#Pnationality_id option:selected');
-                            var salary = selectedOption.data('salary');
                             var rentalCost = selectedOption.data('rental_cost');
                             var serviceTransferCost = selectedOption.data('service_transfer_cost');
 
@@ -1137,9 +1136,6 @@
                                 }
                             }
 
-                            if (salary) {
-                                $('input[name="salary"]').val(salary);
-                            }
                         },
                         error: function (xhr) {
                             Swal.fire({
@@ -1317,7 +1313,7 @@
                 } else if (typeContext.isRental) {
                     heightWeightFields.hide();
                     maritalStatusField.hide();
-                    salaryField.hide();
+                    salaryField.show();
                     languagesField.hide();
                     arrivalDateField.show();
                     priceLabel.text(maidEditTranslations.monthlyRentalCost);
