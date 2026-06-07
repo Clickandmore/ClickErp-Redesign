@@ -71,7 +71,7 @@
                                 $maidName = optional($contract->info)->manual_maid_name ?: ($contract->maid->name ?? '');
                                 $passportNumber = optional($contract->info)->manual_maid_passport_num ?: ($contract->maid->passport_num ?? '');
                                 $clientName = $contract->user->name ?? '';
-                                $clientNationalId = $contract->user->national_num ?? '';
+                                $clientNationalId = $contract->user?->documentNumber() ?? '';
                                 $arrivalDate = optional($contract->info)->arrival_date
                                     ?: optional($contract->maid)->arrival_date
                                     ?: optional($contract->travelHistory)->arrival_date
@@ -304,7 +304,7 @@
                                     <label class="form-label">رقم الهوية الوطنية</label>
                                     <input readonly type="text" name="client_national_id" id="client_national_id"
                                         class="form-control"
-                                        value="{{ old('client_national_id', optional($editingInfo)->client_national_id ?? optional(optional($editingContract)->user)->national_num) }}">
+                                        value="{{ old('client_national_id', optional($editingInfo)->client_national_id ?? optional(optional($editingContract)->user)->documentNumber()) }}">
                                 </div>
                                 <div class="col-md-6 col-lg-3">
                                     <label class="form-label">اسم العاملة</label>

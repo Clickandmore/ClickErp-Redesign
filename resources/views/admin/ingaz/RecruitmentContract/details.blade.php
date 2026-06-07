@@ -972,18 +972,20 @@
                             <span class="info-label">رقم الجوال:</span>
                             <span class="info-value">{{ $clientPhone }}</span>
                         </div>
+                        @unless($contract->user?->isCompanyClient())
                         <div class="info-row">
                             <span class="info-label">تاريخ الميلاد:</span>
                             <span
                                 class="info-value">{{ $contract->user->birthdate ? \Carbon\Carbon::parse($contract->user->birthdate)->format('Y-m-d') : 'غير محدد' }}</span>
                         </div>
+                        @endunless
                         <div class="info-row">
                             <span class="info-label">الجنسية:</span>
                             <span class="info-value">{{ $contract->user->nationality->title ?? 'غير محدد' }}</span>
                         </div>
                         <div class="info-row">
-                            <span class="info-label">رقم الهوية:</span>
-                            <span class="info-value">{{ $contract->user->national_num ?? 'غير محدد' }}</span>
+                            <span class="info-label">{{ $contract->user?->documentNumberLabel() ?? 'رقم الهوية' }}:</span>
+                            <span class="info-value">{{ $contract->user?->documentNumber() ?? 'غير محدد' }}</span>
                         </div>
                         <div class="info-row">
                             <span class="info-label">البريد الإلكتروني:</span>

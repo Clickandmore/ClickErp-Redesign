@@ -467,7 +467,11 @@
                                                     data-phone="{{$client->phone}}"
                                                     data-email="{{$client->email}}"
                                                     data-nationality="{{$client->nationality_id}}"
-                                                    data-national-num="{{$client->national_num}}"
+                                                    data-account-client-type="{{ $client->client_type ?? 'person' }}"
+                                                    data-document-label="{{ $client->documentNumberLabel() }}"
+                                                    data-tax-number="{{ $client->tax_number }}"
+                                                    data-license-number="{{ $client->license_number }}"
+                                                    data-national-num="{{ $client->documentNumber() }}"
                                                     data-birthdate="{{$client->birthdate}}"
                                                     data-phone2="{{$client->phone2}}"
                                                     data-address="{{$client->address}}"
@@ -476,7 +480,7 @@
                                                     data-family-num="{{$client->family_num}}"
                                                     data-children="{{$client->children}}"
                                                     data-job="{{$client->job}}">
-                                                {{$client->name}} - {{$client->phone}} - {{$client->national_num}}
+                                                {{$client->name}} - {{$client->phone}} - {{$client->documentNumber()}}
                                             </option>
                                         @endforeach
                                     @endif
@@ -530,6 +534,23 @@
                                 </div>
                                 <div class="card-body">
                                     <div class="row">
+                                    <div class="col-12 mb-2">
+                                        <label class="form-label d-block">{{ helperTrans('ingaz.client_type') }} <span class="text-danger">*</span></label>
+                                        <div class="d-flex flex-wrap gap-3">
+                                            <div class="form-check">
+                                                <input class="form-check-input js-rent-account-client-type" type="radio"
+                                                       name="account_client_type" id="rent_account_client_type_person"
+                                                       value="person" checked>
+                                                <label class="form-check-label" for="rent_account_client_type_person">شخص</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input js-rent-account-client-type" type="radio"
+                                                       name="account_client_type" id="rent_account_client_type_company"
+                                                       value="company">
+                                                <label class="form-check-label" for="rent_account_client_type_company">شركة</label>
+                                            </div>
+                                        </div>
+                                    </div>
                                     <div class="col-md-6 mb-2">
                                         <label class="form-label">اسم العميل <span class="text-danger">*</span></label>
                                         <input type="text" id="new_client_name" name="new_client_name"
@@ -556,11 +577,17 @@
                                         </select>
                                         <div class="invalid-feedback" id="err_client_nationality_id"></div>
                                     </div>
-                                    <div class="col-md-6 mb-2">
+                                    <div class="col-md-6 mb-2 js-rent-client-document-field">
                                         <label class="form-label">رقم الهوية <span class="text-danger">*</span></label>
                                         <input type="text" id="new_client_national_num" name="new_client_national_num"
                                                class="form-control" data-validation="required">
                                         <div class="invalid-feedback" id="err_new_client_national_num"></div>
+                                    </div>
+                                    <div class="col-md-6 mb-2 js-rent-company-field d-none">
+                                        <label class="form-label">{{ helperTrans('ingaz.license_number') }} <small
+                                                class="text-muted">(اختياري)</small></label>
+                                        <input type="text" id="new_client_license_number" name="new_client_license_number"
+                                               class="form-control">
                                     </div>
                                     <div class="col-md-6 mb-2">
                                         <label class="form-label">المدينة/العنوان <span
@@ -575,7 +602,7 @@
                                                class="form-control">
                                         <div class="invalid-feedback" id="err_new_client_email"></div>
                                     </div>
-                                    <div class="col-md-6 mb-2">
+                                    <div class="col-md-6 mb-2 js-rent-person-field">
                                         <label class="form-label">تاريخ الميلاد <small
                                                 class="text-muted">(اختياري)</small></label>
                                         <input type="date" id="new_client_birthdate" name="new_client_birthdate"
@@ -593,30 +620,30 @@
                                         <input type="text" id="new_client_address" name="new_client_address"
                                                class="form-control">
                                     </div>
-                                    <div class="col-md-6 mb-2">
+                                    <div class="col-md-6 mb-2 js-rent-person-field">
                                         <label class="form-label">عدد الغرف <small class="text-muted">(اختياري)</small></label>
                                         <input type="text" id="new_client_beds_num" name="new_client_beds_num"
                                                class="form-control">
                                     </div>
-                                    <div class="col-md-6 mb-2">
+                                    <div class="col-md-6 mb-2 js-rent-person-field">
                                         <label class="form-label">عدد أفراد الأسرة <small
                                                 class="text-muted">(اختياري)</small></label>
                                         <input type="text" id="new_client_family_num" name="new_client_family_num"
                                                class="form-control">
                                     </div>
-                                    <div class="col-md-6 mb-2">
+                                    <div class="col-md-6 mb-2 js-rent-person-field">
                                         <label class="form-label">عدد الأطفال <small class="text-muted">(اختياري - تحت
                                                 سن 12)</small></label>
                                         <input type="number" id="new_client_children" name="new_client_children"
                                                class="form-control" max="50">
                                     </div>
-                                    <div class="col-md-6 mb-2">
+                                    <div class="col-md-6 mb-2 js-rent-person-field">
                                         <label class="form-label">المهنة <small
                                                 class="text-muted">(اختياري)</small></label>
                                         <input type="text" id="new_client_job" name="new_client_job"
                                                class="form-control">
                                     </div>
-                                    <div class="col-md-6 mb-2">
+                                    <div class="col-md-6 mb-2 js-rent-person-field">
                                         <label class="form-label">الدخل الشهري <small
                                                 class="text-muted">(اختياري)</small></label>
                                         <input type="number" id="monthly_income" name="monthly_income"
@@ -1031,12 +1058,75 @@
                 $('#packageSummaryAfterTax').text('-');
             }
 
+            function isCompanyClientType(value) {
+                return String(value || '').toLowerCase() === 'company';
+            }
+
+            function selectedRentClientDocumentNumber(selectedOption) {
+                if (isCompanyClientType(selectedOption.data('account-client-type'))) {
+                    return selectedOption.data('tax-number') || selectedOption.data('national-num') || '';
+                }
+
+                return selectedOption.data('national-num') || '';
+            }
+
+            function applyRentClientDocumentMode(selectedOption) {
+                const isCompany = isCompanyClientType(selectedOption.data('account-client-type'));
+                const documentLabel = selectedOption.data('document-label') || (isCompany ? @json(helperTrans('ingaz.tax_number')) : @json(helperTrans('ingaz.national_num')));
+                const $documentInput = $('#new_client_national_num');
+                const $documentWrapper = $documentInput.closest('.js-rent-client-document-field, .col-md-6, .col-lg-6');
+                const $personFieldWrappers = $('#new_client_birthdate, #new_client_beds_num, #new_client_family_num, #new_client_children, #new_client_job, #monthly_income')
+                    .map(function () {
+                        return $(this).closest('.js-rent-person-field, .col-md-6, .col-lg-6')[0];
+                    });
+                const $companyFieldWrappers = $('#new_client_license_number')
+                    .map(function () {
+                        return $(this).closest('.js-rent-company-field, .col-md-6, .col-lg-6')[0];
+                    });
+
+                $documentWrapper.find('label').first().html(documentLabel + ' <span class="text-danger">*</span>');
+                $personFieldWrappers.toggleClass('d-none', isCompany);
+                $personFieldWrappers.find('input, select, textarea').prop('disabled', isCompany);
+                $companyFieldWrappers.toggleClass('d-none', !isCompany);
+                $companyFieldWrappers.find('input, select, textarea').prop('disabled', !isCompany);
+                $('input[name="account_client_type"][value="' + (isCompany ? 'company' : 'person') + '"]').prop('checked', true);
+                $documentInput.data('is-company-client', isCompany ? 1 : 0);
+                $('#new_client_license_number').val(selectedOption.data('license-number') || '');
+
+                if (isCompany) {
+                    $personFieldWrappers.find('input, select, textarea').val('').removeClass('is-invalid');
+                } else {
+                    $companyFieldWrappers.find('input, select, textarea').val('').removeClass('is-invalid');
+                }
+            }
+
+            function resetRentClientDocumentMode() {
+                const $documentInput = $('#new_client_national_num');
+                const $personFieldWrappers = $('#new_client_birthdate, #new_client_beds_num, #new_client_family_num, #new_client_children, #new_client_job, #monthly_income')
+                    .map(function () {
+                        return $(this).closest('.js-rent-person-field, .col-md-6, .col-lg-6')[0];
+                    });
+                const $companyFieldWrappers = $('#new_client_license_number')
+                    .map(function () {
+                        return $(this).closest('.js-rent-company-field, .col-md-6, .col-lg-6')[0];
+                    });
+
+                $documentInput.closest('.js-rent-client-document-field, .col-md-6, .col-lg-6')
+                    .find('label').first().html(@json(helperTrans('ingaz.national_num')) + ' <span class="text-danger">*</span>');
+                $personFieldWrappers.removeClass('d-none');
+                $personFieldWrappers.find('input, select, textarea').prop('disabled', false);
+                $companyFieldWrappers.addClass('d-none');
+                $companyFieldWrappers.find('input, select, textarea').prop('disabled', true).val('');
+                $('input[name="account_client_type"][value="person"]').prop('checked', true);
+                $documentInput.data('is-company-client', 0);
+            }
+
             function fillClientData(selectedOption) {
                 $('#new_client_name').val(selectedOption.data('name') || '');
                 $('#new_client_phone').val(selectedOption.data('phone') || '');
                 $('#new_client_email').val(selectedOption.data('email') || '');
                 $('#client_nationality_id').val(selectedOption.data('nationality') || '').trigger('change');
-                $('#new_client_national_num').val(selectedOption.data('national-num') || '');
+                $('#new_client_national_num').val(selectedRentClientDocumentNumber(selectedOption));
                 $('#new_client_birthdate').val(selectedOption.data('birthdate') || '');
                 $('#new_client_phone2').val(selectedOption.data('phone2') || '');
                 $('#new_client_address').val(selectedOption.data('address') || '');
@@ -1045,12 +1135,33 @@
                 $('#new_client_family_num').val(selectedOption.data('family-num') || '');
                 $('#new_client_children').val(selectedOption.data('children') || '');
                 $('#new_client_job').val(selectedOption.data('job') || '');
+                applyRentClientDocumentMode(selectedOption);
             }
 
             function clearClientData() {
-                $('#new_client_name, #new_client_phone, #new_client_email, #new_client_national_num, #new_client_birthdate, #new_client_phone2, #new_client_address, #new_client_city, #new_client_beds_num, #new_client_family_num, #new_client_children, #new_client_job').val('');
+                $('#new_client_name, #new_client_phone, #new_client_email, #new_client_national_num, #new_client_license_number, #new_client_birthdate, #new_client_phone2, #new_client_address, #new_client_city, #new_client_beds_num, #new_client_family_num, #new_client_children, #new_client_job, #monthly_income').val('');
                 $('#client_nationality_id').val('').trigger('change');
+                resetRentClientDocumentMode();
             }
+
+            $('input[name="account_client_type"]').on('change', function () {
+                const selectedClientType = $(this).val();
+                applyRentClientDocumentMode({
+                    data: function (key) {
+                        if (key === 'account-client-type') {
+                            return selectedClientType;
+                        }
+
+                        if (key === 'document-label') {
+                            return selectedClientType === 'company'
+                                ? @json(helperTrans('ingaz.tax_number'))
+                                : @json(helperTrans('ingaz.national_num'));
+                        }
+
+                        return '';
+                    }
+                });
+            });
 
             function fillMaidData(selectedOption) {
                 $('#maid_name').val(selectedOption.data('name') || '');
@@ -1320,7 +1431,8 @@
                 }
 
                 const nationalNum = $('#new_client_national_num').val();
-                if (nationalNum && !/^[12][0-9]{9}$/.test(nationalNum)) {
+                const isCompanyClient = $('#new_client_national_num').data('is-company-client') == 1;
+                if (!isCompanyClient && nationalNum && !/^[12][0-9]{9}$/.test(nationalNum)) {
                     $('#new_client_national_num').addClass('is-invalid');
                     Swal.fire('خطأ', 'رقم الهوية يجب أن يبدأ بـ 1 أو 2 ويكون 10 أرقام', 'error');
                     return;

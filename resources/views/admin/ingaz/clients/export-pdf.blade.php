@@ -55,7 +55,7 @@
                     <td>{{ $client->phone_code . $client->phone }}</td>
                     <td>{{ $client->email }}</td>
                     <td>{{ $client->nationality->title ?? '' }}</td>
-                    <td>{{ $client->national_num }}</td>
+                    <td>{{ $client->documentNumberLabel() }}: {{ $client->documentNumber() }}</td>
                     <td>{{ $client->birthdate }}</td>
                     <td>{{ $client->address }}</td>
                     <td>{{ $client->city }}</td>

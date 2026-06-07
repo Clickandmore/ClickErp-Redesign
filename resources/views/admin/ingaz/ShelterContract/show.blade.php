@@ -402,7 +402,7 @@
                     </div>
                     <div class="info-row">
                         <span class="info-label">رقم الهوية</span>
-                        <span class="info-value">{{ $contract->user->national_num ?? 'غير متوفر' }}</span>
+                        <span class="info-value">{{ $contract->user?->documentNumber() ?? 'غير متوفر' }}</span>
                     </div>
                     <div class="info-row">
                         <span class="info-label">رقم الهاتف</span>

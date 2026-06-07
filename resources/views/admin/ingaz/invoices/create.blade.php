@@ -411,7 +411,8 @@
         $currentClientPhone = $currentClientRawPhone && !str_starts_with($currentClientRawPhone, 'ingaz-delegation-')
             ? trim(($currentClient?->phone_code ?? '') . $currentClientRawPhone)
             : 'غير محدد';
-        $currentClientIdentity = $currentClient?->national_num ?? 'غير محدد';
+        $currentClientIdentityLabel = $currentClient?->documentNumberLabel() ?? helperTrans('ingaz.national_num');
+        $currentClientIdentity = $currentClient?->documentNumber() ?? 'غير محدد';
         $canCreateInvoice = true;
     @endphp
 
@@ -521,7 +522,8 @@
                                                     <option value="{{ $contract->id }}"
                                                         data-client-name="{{ e($contract->user?->name ?? 'غير محدد') }}"
                                                         data-client-phone="{{ e($contractPhone) }}"
-                                                        data-client-identity="{{ e($contract->user?->national_num ?? 'غير محدد') }}"
+                                                        data-client-identity="{{ e($contract->user?->documentNumber() ?? 'غير محدد') }}"
+                                                        data-client-identity-label="{{ e($contract->user?->documentNumberLabel() ?? helperTrans('ingaz.national_num')) }}"
                                                         data-nationality="{{ e($contractNationality) }}"
                                                         data-status="{{ e($contractStatus) }}"
                                                         data-direct-cost="{{ $contractNationalityCosts['direct_recruitment_cost'] }}"
@@ -554,7 +556,8 @@
                                                 <option value="{{ $selectedClient->id }}" selected
                                                     data-name="{{ e($selectedClient->name ?? 'غير محدد') }}"
                                                     data-phone="{{ e(trim(($selectedClient->phone_code ?? '') . ($selectedClient->phone ?? '')) ?: 'غير محدد') }}"
-                                                    data-identity="{{ e($selectedClient->national_num ?? 'غير محدد') }}">
+                                                    data-identity="{{ e($selectedClient->documentNumber() ?? 'غير محدد') }}"
+                                                    data-identity-label="{{ e($selectedClient->documentNumberLabel()) }}">
                                                     {{ $selectedClient->name }} - {{ $selectedClient->phone ?? 'بدون جوال' }}
                                                 </option>
                                             @endif
@@ -787,7 +790,7 @@
                                             id="previewContractStatus">{{ $currentContractStatus }}</strong>
                                     </div>
                                     <div class="meta-item">
-                                        <span class="meta-label">هوية العميل</span>
+                                        <span class="meta-label" id="previewClientIdentityLabel">{{ $currentClientIdentityLabel }}</span>
                                         <strong class="meta-value"
                                             id="previewClientIdentity">{{ $currentClientIdentity }}</strong>
                                     </div>
@@ -1006,6 +1009,7 @@
                 const clientName = data.name || textParts[0] || 'غير محدد';
                 const clientPhone = data.phone || textParts[1] || 'غير محدد';
                 const clientIdentity = data.national_num || data.identity || textParts[2] || 'غير محدد';
+                const clientIdentityLabel = data.identity_label || data.identityLabel || 'رقم الهوية الوطنية';
 
                 $('#contractPreview').toggleClass('is-empty', !clientId);
                 setPreviewValue('#previewReferenceLabel', 'نوع الفاتورة');
@@ -1015,6 +1019,7 @@
                 setPreviewValue('#previewNationality', 'عميل فقط');
                 setPreviewValue('#previewStatusLabel', 'الحالة');
                 setPreviewValue('#previewContractStatus', 'جاهزة للإصدار');
+                setPreviewValue('#previewClientIdentityLabel', clientIdentityLabel);
                 setPreviewValue('#previewClientIdentity', clientIdentity);
                 setPreviewValue('#previewClientPhone', clientPhone);
                 $('#nationalityCostHint')
@@ -1045,6 +1050,7 @@
                     setPreviewValue('#previewClientName', '');
                     setPreviewValue('#previewNationality', '');
                     setPreviewValue('#previewContractStatus', '');
+                    setPreviewValue('#previewClientIdentityLabel', 'رقم الهوية الوطنية');
                     setPreviewValue('#previewClientIdentity', '');
                     setPreviewValue('#previewClientPhone', '');
                     applyNationalityCosts(null);
@@ -1060,6 +1066,7 @@
                 setPreviewValue('#previewClientName', $selectedOption.data('client-name'));
                 setPreviewValue('#previewNationality', $selectedOption.data('nationality'));
                 setPreviewValue('#previewContractStatus', $selectedOption.data('status'));
+                setPreviewValue('#previewClientIdentityLabel', $selectedOption.data('client-identity-label') || 'رقم الهوية الوطنية');
                 setPreviewValue('#previewClientIdentity', $selectedOption.data('client-identity'));
                 setPreviewValue('#previewClientPhone', $selectedOption.data('client-phone'));
                 applyNationalityCosts($selectedOption);

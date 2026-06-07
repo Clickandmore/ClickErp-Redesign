@@ -535,17 +535,21 @@ class RentContractController extends Controller
             $profession = $request->filled('profession')
                 ? $request->profession
                 : $request->new_client_job;
+            $accountClientType = $request->input('account_client_type') === 'company' ? 'company' : 'person';
 
             // إنشاء أو تحديث بيانات العميل
             if ($request->new_existing_client_id) {
                 // استخدام عميل موجود وتحديث بياناته
                 $user = User::find($request->new_existing_client_id);
-                $user->update([
+                $user->client_type = $accountClientType;
+                $user->update($user->clientTypeAwarePayload([
+                    'client_type' => $accountClientType,
                     'name' => $request->new_client_name,
                     'phone' => $request->new_client_phone,
                     'nationality_id' => $request->client_nationality_id,
                     'email' => $request->new_client_email,
-                    'national_num' => $request->new_client_national_num,
+                    'license_number' => $accountClientType === 'company' ? $request->new_client_license_number : null,
+                    'tax_number' => $accountClientType === 'person' ? null : $user->tax_number,
                     'birthdate' => $request->new_client_birthdate,
                     'phone2' => $request->new_client_phone2,
                     'address' => $request->new_client_address,
@@ -556,16 +560,16 @@ class RentContractController extends Controller
                     'job' => $request->new_client_job,
                     'profession' => $profession,
                     'monthly_income' => $request->monthly_income,
-                ]);
+                ], $request->new_client_national_num));
             } else {
                 // إنشاء عميل جديد
-                $user = User::create([
+                $userPayload = [
                     'name' => $request->new_client_name,
                     'phone' => $request->new_client_phone,
                     'phone_code' => '+966',
                     'nationality_id' => $request->client_nationality_id,
                     'email' => $request->new_client_email,
-                    'national_num' => $request->new_client_national_num,
+                    'client_type' => $accountClientType,
                     'birthdate' => $request->new_client_birthdate,
                     'phone2' => $request->new_client_phone2,
                     'address' => $request->new_client_address,
@@ -578,7 +582,22 @@ class RentContractController extends Controller
                     'monthly_income' => $request->monthly_income,
                     'register_from' => 'admin',
                     'status' => 1,
-                ]);
+                ];
+
+                if ($accountClientType === 'company') {
+                    foreach (['national_num', 'birthdate', 'rooms_num', 'family_num', 'children', 'job', 'profession', 'monthly_income'] as $field) {
+                        unset($userPayload[$field]);
+                    }
+
+                    $userPayload['tax_number'] = $request->new_client_national_num;
+                    $userPayload['license_number'] = $request->new_client_license_number;
+                } else {
+                    $userPayload['national_num'] = $request->new_client_national_num;
+                    $userPayload['tax_number'] = null;
+                    $userPayload['license_number'] = null;
+                }
+
+                $user = User::create($userPayload);
             }
 
             $selectedMaid = Maid::with('nationality')->find($request->maid_id);
@@ -947,12 +966,11 @@ class RentContractController extends Controller
             $contract = RentalContract::with(['user', 'info'])->findOrFail($id);
 
             // تحديث بيانات العميل
-            $contract->user->update([
+            $contract->user->update($contract->user->clientTypeAwarePayload([
                 'name' => $request->client_name,
                 'phone' => $request->client_phone,
                 'nationality_id' => $request->client_nationality_id,
                 'email' => $request->client_email,
-                'national_num' => $request->client_national_num,
                 'birthdate' => $request->client_birthdate,
                 'address' => $request->client_address,
                 'city' => $request->client_city,
@@ -960,7 +978,7 @@ class RentContractController extends Controller
                 'children' => $request->children,
                 'profession' => $request->profession,
                 'monthly_income' => $request->monthly_income,
-            ]);
+            ], $request->client_national_num));
 
             // تحديث بيانات العقد
             $oldMaidId = $contract->maid_id;
@@ -1614,7 +1632,7 @@ class RentContractController extends Controller
     {
         $search = $request->get('search', '');
 
-        $clients = User::select('id', 'name', 'phone', 'email', 'nationality_id', 'national_num', 'birthdate', 'address', 'city', 'family_num', 'children', 'profession', 'monthly_income')
+        $clients = User::select('id', 'name', 'phone', 'email', 'nationality_id', 'national_num', 'client_type', 'tax_number', 'license_number', 'birthdate', 'address', 'city', 'family_num', 'children', 'profession', 'monthly_income')
                       ->whereNotNull('name')
                       ->where('name', '!=', '')
                       ->where('name', 'not like', '+966%')
@@ -1627,7 +1645,9 @@ class RentContractController extends Controller
             $clients->where(function($query) use ($search) {
                 $query->where('name', 'like', "%{$search}%")
                       ->orWhere('phone', 'like', "%{$search}%")
-                      ->orWhere('national_num', 'like', "%{$search}%");
+                      ->orWhere('national_num', 'like', "%{$search}%")
+                      ->orWhere('tax_number', 'like', "%{$search}%")
+                      ->orWhere('license_number', 'like', "%{$search}%");
             });
         }
 
@@ -1637,7 +1657,13 @@ class RentContractController extends Controller
 
         return response()->json([
             'success' => true,
-            'clients' => $clients,
+            'clients' => $clients->map(function ($client) {
+                $client->document_number = $client->searchableDocumentNumber();
+                $client->document_label = $client->documentNumberLabel();
+                $client->national_num = $client->document_number;
+
+                return $client;
+            })->values(),
             'count' => $clients->count()
         ]);
     }

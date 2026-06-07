@@ -2409,4 +2409,9 @@ return array (
   'contract_preview_header' => 'عقد #:id | عميلة: :client',
   'contract_preview_details' => 'العاملة: :maid | مدينة التسليم: :city | مساند: :musaned | الهوية: :national_id | التأشيرة: :visa',
   'at_least_one_contract_required' => 'يجب اختيار عقد واحد على الأقل.',
+  'person_client' => 'شخص',
+  'tax_number' => 'الرقم الضريبي',
+  'client_tax_number_required' => 'الرقم الضريبي مطلوب لعميل الشركة.',
+  'client_tax_number_already_exists' => 'الرقم الضريبي مستخدم مسبقاً لعميل آخر.',
+  'client_license_number_required' => 'رقم الترخيص مطلوب لعميل الشركة.',
 );

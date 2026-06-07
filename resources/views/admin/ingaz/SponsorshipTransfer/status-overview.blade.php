@@ -502,13 +502,13 @@
                                         <td>
                                             <div>
                                                 <strong>{{ optional($transfer->oldSponsor)->name ?? 'غير محدد' }}</strong><br>
-                                                <small class="text-muted">{{ optional($transfer->oldSponsor)->national_num ?? optional($transfer->oldSponsor)->phone ?? '' }}</small>
+                                                <small class="text-muted">{{ optional($transfer->oldSponsor)->documentNumber() ?? optional($transfer->oldSponsor)->phone ?? '' }}</small>
                                             </div>
                                         </td>
                                         <td>
                                             <div>
                                                 <strong>{{ optional($transfer->newSponsor)->name ?? 'غير محدد' }}</strong><br>
-                                                <small class="text-muted">{{ optional($transfer->newSponsor)->national_num ?? optional($transfer->newSponsor)->phone ?? '' }}</small>
+                                                <small class="text-muted">{{ optional($transfer->newSponsor)->documentNumber() ?? optional($transfer->newSponsor)->phone ?? '' }}</small>
                                             </div>
                                         </td>
                                         <td>
