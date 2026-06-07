@@ -4,6 +4,7 @@ namespace App\Http\Controllers\ingaz;
 
 use App\Http\Actions\ingaz\UserAction as objAction;
 use App\Http\Controllers\admin\Controller;
+use App\Models\Branch;
 use App\Models\City;
 use App\Models\Country;
 use App\Models\ingaz\ClientAttachment;
@@ -12,10 +13,12 @@ use App\Models\ingaz\Order;
 use App\Models\ingaz\User as objModel;
 use App\Models\RentalContract;
 use App\Models\SponsorshipTransfer;
+use App\Support\SystemModuleManager;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Str;
@@ -43,9 +46,12 @@ class UserController extends Controller
      */
     public function index(Request $request, objAction $Action)
     {
+        $branchesEnabled = $this->branchesEnabled();
+        $canViewAllBranches = $this->canViewAllClientBranches();
+
         if ($request->ajax()) {
             $units = objModel::query()
-                ->with(['nationality', 'createdBy'])
+                ->with(array_filter(['nationality', 'createdBy', $branchesEnabled ? 'branch' : null]))
                 ->withCount([
                     'orders as orders_count',
                     'orders as active_orders_count' => function ($query) {
@@ -71,6 +77,8 @@ class UserController extends Controller
                 ])
                 ->orderByDesc('id');
 
+            $this->applyBranchScope($units);
+
             if ($request->filled('status')) {
                 $status = $request->get('status');
                 if ($status === 'active') {
@@ -86,6 +94,10 @@ class UserController extends Controller
 
             if ($request->filled('city')) {
                 $units->where('city', $request->get('city'));
+            }
+
+            if ($branchesEnabled && $canViewAllBranches && $request->filled('branch_id')) {
+                $units->where('branch_id', $request->get('branch_id'));
             }
 
             if ($request->filled('has_orders')) {
@@ -260,6 +272,21 @@ class UserController extends Controller
                                 <span class="text-muted small"><i class="fas fa-user-plus me-1"></i>أضيف بواسطة</span>
                             </div>';
                 })
+                ->addColumn('branch', function ($row) use ($branchesEnabled) {
+                    if (!$branchesEnabled) {
+                        return '-';
+                    }
+
+                    $branchName = $row->branch?->name;
+
+                    if (!$branchName) {
+                        return '<span class="text-muted">' . helperTrans('ingaz.not_specified') . '</span>';
+                    }
+
+                    return '<span class="badge bg-light text-dark border">
+                        <i class="fas fa-code-branch me-1"></i>' . e($branchName) . '
+                    </span>';
+                })
                 ->addColumn('actions', function ($row) {
                     $menuItems = '';
                     $hasManagementDivider = false;
@@ -344,7 +371,7 @@ class UserController extends Controller
                                 </ul>
                             </div>';
                 })
-                ->rawColumns(['bulk_select', 'name', 'actions', 'is_blocked', 'account_id', 'client_data', 'created_at', 'created_by', 'metrics', 'last_activity'])
+                ->rawColumns(['bulk_select', 'name', 'actions', 'is_blocked', 'account_id', 'client_data', 'created_at', 'created_by', 'branch', 'metrics', 'last_activity'])
                 ->make(true);
         }
         $data["createRoute"] = route($this->mainRoute . ".create");
@@ -352,15 +379,23 @@ class UserController extends Controller
         $data["bladeTitle"] = __("auth.clients");
         $data["addButtonText"] = __("auth.clients");
         $data["modalType"] = "";
+        $statsQuery = objModel::query();
+        $this->applyBranchScope($statsQuery);
+
         $data['stats'] = [
-            'total' => objModel::count(),
-            'active' => objModel::where('is_blocked', 0)->count(),
-            'blocked' => objModel::where('is_blocked', 1)->count(),
-            'new_this_month' => objModel::whereBetween('created_at', [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()])->count(),
-            'with_orders' => objModel::has('orders')->count(),
+            'total' => (clone $statsQuery)->count(),
+            'active' => (clone $statsQuery)->where('is_blocked', 0)->count(),
+            'blocked' => (clone $statsQuery)->where('is_blocked', 1)->count(),
+            'new_this_month' => (clone $statsQuery)->whereBetween('created_at', [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()])->count(),
+            'with_orders' => (clone $statsQuery)->has('orders')->count(),
         ];
         $data['nationalities'] = Country::active()->ordered()->get(['id', 'name_ar', 'name_en']);
         $data['cities'] = City::active()->ordered()->get(['id', 'name_ar', 'name_en']);
+        $data['branchesEnabled'] = $branchesEnabled;
+        $data['canViewAllBranches'] = $canViewAllBranches;
+        $data['branches'] = $branchesEnabled
+            ? Branch::query()->active()->ordered()->get(['id', 'name_ar', 'name_en'])
+            : collect();
         return view($this->folderPath . '.index', $data);
     }
 
@@ -379,7 +414,9 @@ class UserController extends Controller
         ]);
 
         $isBlocked = $validated['status'] === 'blocked' ? 1 : 0;
-        $updated = objModel::whereIn('id', $validated['ids'])->update(['is_blocked' => $isBlocked]);
+        $query = objModel::query()->whereIn('id', $validated['ids']);
+        $this->applyBranchScope($query);
+        $updated = $query->update(['is_blocked' => $isBlocked]);
 
         return response()->json([
             'message' => __('ingaz.clients_status_updated_successfully', ['count' => $updated]),
@@ -401,7 +438,16 @@ class UserController extends Controller
         $countries = \App\Models\Country::active()->ordered()->get();
         $client_categories = ClientCategory::all();
         $cities = \App\Models\City::active()->ordered()->get();
-        return view($this->folderPath . '.create', compact('countries', 'cities', 'client_categories'));
+        $branchesEnabled = $this->branchesEnabled();
+        $canViewAllBranches = $this->canViewAllClientBranches();
+        $branches = $branchesEnabled
+            ? Branch::query()->active()->ordered()->get(['id', 'name_ar', 'name_en', 'is_main'])
+            : collect();
+        $defaultBranch = $branchesEnabled
+            ? ($branches->firstWhere('is_main', true) ?: $branches->first())
+            : null;
+
+        return view($this->folderPath . '.create', compact('countries', 'cities', 'client_categories', 'branchesEnabled', 'branches', 'defaultBranch', 'canViewAllBranches'));
     }
 
     /**
@@ -419,7 +465,7 @@ class UserController extends Controller
             ], 403);
         }
 
-        $data = $request->validate([
+        $rules = [
             'name' => 'required|string|max:255',
             'phone' => 'required|string|max:20',
             'email' => 'nullable|email|max:255|unique:users,email',
@@ -435,7 +481,13 @@ class UserController extends Controller
             'family_num' => 'nullable|integer|min:0',
             'children' => 'nullable|integer|min:0',
             'job' => 'nullable|string|max:100'
-        ], [
+        ];
+
+        if ($this->branchesEnabled()) {
+            $rules['branch_id'] = 'required|exists:branches,id';
+        }
+
+        $data = $request->validate($rules, [
             'national_num.required' => __('ingaz.client_national_num_required'),
             'national_num.unique' => __('ingaz.client_national_num_already_exists'),
             'marital_status.required' => __('ingaz.marital_status_required'),
@@ -470,6 +522,10 @@ class UserController extends Controller
         $data['register_from'] = 'dashboard';
         $data['is_blocked'] = 0;
         $data['created_by'] = Auth::guard('admin')->id() ?: Auth::id();
+
+        if ($this->branchesEnabled()) {
+            $data['branch_id'] = $this->mainBranchId() ?: ($data['branch_id'] ?? null);
+        }
 
         return DB::transaction(function () use ($data) {
 
@@ -604,7 +660,11 @@ class UserController extends Controller
                 $query->with(['maid', 'info'])->latest();
             },
             'clientAttachments.uploader',
-        ])->findOrFail($id);
+        ]);
+
+        $this->applyBranchScope($client);
+
+        $client = $client->findOrFail($id);
 
         $activities = $client->activities()->latest()->limit(15)->get()->map(function ($activity) {
             $activity->causer_name = null;
@@ -670,7 +730,7 @@ class UserController extends Controller
             abort(403);
         }
 
-        $client = objModel::findOrFail($id);
+        $client = $this->findClientForCurrentAdmin($id);
 
         $validated = $request->validate([
             'title' => ['nullable', 'string', 'max:255'],
@@ -709,7 +769,9 @@ class UserController extends Controller
             abort(403);
         }
 
-        $client = objModel::with('clientAttachments')->findOrFail($id);
+        $client = objModel::with('clientAttachments');
+        $this->applyBranchScope($client);
+        $client = $client->findOrFail($id);
         $selectedIds = collect((array) $request->input('attachments', []))
             ->filter(fn($value) => is_numeric($value))
             ->map(fn($value) => (int) $value)
@@ -758,7 +820,7 @@ class UserController extends Controller
             abort(403);
         }
 
-        objModel::findOrFail($id);
+        $this->findClientForCurrentAdmin($id);
 
         if ((int) $attachment->user_id !== (int) $id || !$attachment->existsOnDisk()) {
             abort(404);
@@ -773,7 +835,7 @@ class UserController extends Controller
             abort(403);
         }
 
-        objModel::findOrFail($id);
+        $this->findClientForCurrentAdmin($id);
 
         if ((int) $attachment->user_id !== (int) $id || !$attachment->existsOnDisk()) {
             abort(404);
@@ -793,7 +855,7 @@ class UserController extends Controller
             abort(403);
         }
 
-        objModel::findOrFail($id);
+        $this->findClientForCurrentAdmin($id);
 
         if ((int) $attachment->user_id !== (int) $id) {
             abort(404);
@@ -835,12 +897,17 @@ class UserController extends Controller
             abort(403, __('ingaz.permission_denied_edit_client'));
         }
 
-        $client = objModel::findOrFail($id);
+        $client = $this->findClientForCurrentAdmin($id);
         $countries = \App\Models\Country::active()->ordered()->get();
         $client_categories = ClientCategory::all();
         $cities = \App\Models\City::active()->ordered()->get();
+        $branchesEnabled = $this->branchesEnabled();
+        $canViewAllBranches = $this->canViewAllClientBranches();
+        $branches = $branchesEnabled
+            ? Branch::query()->active()->ordered()->get(['id', 'name_ar', 'name_en'])
+            : collect();
 
-        return view($this->folderPath . '.edit', compact('client', 'countries', 'cities', 'client_categories'));
+        return view($this->folderPath . '.edit', compact('client', 'countries', 'cities', 'client_categories', 'branchesEnabled', 'branches', 'canViewAllBranches'));
     }
 
     /**
@@ -859,9 +926,9 @@ class UserController extends Controller
             ], 403);
         }
 
-        $client = objModel::findOrFail($id);
+        $client = $this->findClientForCurrentAdmin($id);
 
-        $data = $request->validate([
+        $rules = [
             'name' => 'required|string|max:255',
             'phone' => 'required|string|max:20',
             'email' => 'nullable|email|max:255|unique:users,email,' . $client->id,
@@ -878,7 +945,15 @@ class UserController extends Controller
             'children' => 'nullable|integer|min:0',
             'job' => 'nullable|string|max:100',
             'is_blocked' => 'required|boolean'
-        ], [
+        ];
+
+        if ($this->branchesEnabled()) {
+            $rules['branch_id'] = $this->canViewAllClientBranches()
+                ? 'required|exists:branches,id'
+                : 'nullable|exists:branches,id';
+        }
+
+        $data = $request->validate($rules, [
             'name.required' => __('ingaz.client_name_required'),
             'name.string' => __('ingaz.client_name_required'),
             'name.max' => __('ingaz.client_name_max'),
@@ -940,6 +1015,10 @@ class UserController extends Controller
         $data['phone'] = $normalizedPhone;
         $data['phone_code'] = '+966';
 
+        if ($this->branchesEnabled() && !$this->canViewAllClientBranches()) {
+            $data['branch_id'] = $client->branch_id;
+        }
+
         $client->update($data);
         $clientAccount = Account::find($client->account_id);
         $clientFinance = Client::where('account_id', $client->account_id)->first();
@@ -960,6 +1039,71 @@ class UserController extends Controller
         return jsonSuccess(null, null, 201);
     }
 
+    private function branchesEnabled(): bool
+    {
+        return SystemModuleManager::isEnabled('branches')
+            && Schema::hasTable('users')
+            && Schema::hasColumn('users', 'branch_id')
+            && Schema::hasTable('branches');
+    }
+
+    private function mainBranchId(): ?int
+    {
+        if (!$this->branchesEnabled()) {
+            return null;
+        }
+
+        $branch = Branch::query()
+            ->active()
+            ->where('is_main', true)
+            ->first(['id']);
+
+        if (!$branch) {
+            $branch = Branch::query()->active()->ordered()->first(['id']);
+        }
+
+        return $branch ? (int) $branch->id : null;
+    }
+
+    private function canViewAllClientBranches(): bool
+    {
+        return !$this->branchesEnabled()
+            || @AdminGuardHasPerm(\App\PermKeys::CLIENTS_VIEW_ALL_BRANCHES)
+            || @AdminGuardHasPerm(\App\PermKeys::BRANCHES_CONTROL);
+    }
+
+    private function applyBranchScope($query): void
+    {
+        if (!$this->branchesEnabled() || $this->canViewAllClientBranches()) {
+            return;
+        }
+
+        $branchId = Auth::guard('admin')->user()?->branch_id;
+
+        if ($branchId) {
+            $query->where('branch_id', $branchId);
+            return;
+        }
+
+        $query->whereRaw('1 = 0');
+    }
+
+    private function findClientForCurrentAdmin($id): objModel
+    {
+        $query = objModel::query();
+        $this->applyBranchScope($query);
+
+        return $query->findOrFail($id);
+    }
+
+    private function clientsForCurrentAdmin()
+    {
+        $query = objModel::query();
+        $this->applyBranchScope($query);
+
+        return $query->get();
+    }
+
     /**
      * Remove the specified resource from storage.
      *
@@ -975,6 +1119,7 @@ class UserController extends Controller
             ], 403);
         }
 
+        $this->findClientForCurrentAdmin($id);
         $action->delete($id);
         return jsonSuccess();
     }
@@ -985,7 +1130,7 @@ class UserController extends Controller
             abort(403, __('ingaz.permission_denied_export_clients_pdf'));
         }
 
-        $clients = objModel::all();
+        $clients = $this->clientsForCurrentAdmin();
 
         // Create HTML content with RTL support and better styling
         $html = '<!DOCTYPE html>
@@ -1130,7 +1275,7 @@ class UserController extends Controller
 
     public function exportPdfNewWindow()
     {
-        $clients = objModel::all();
+        $clients = $this->clientsForCurrentAdmin();
 
         // Create HTML content with RTL support and better styling
         $html = '<!DOCTYPE html>
@@ -1279,7 +1424,7 @@ class UserController extends Controller
             abort(403, __('ingaz.permission_denied_export_clients_excel'));
         }
 
-        $clients = objModel::all();
+        $clients = $this->clientsForCurrentAdmin();
 
         // Create new Spreadsheet object
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();

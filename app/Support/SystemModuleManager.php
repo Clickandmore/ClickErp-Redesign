@@ -11,6 +11,7 @@ class SystemModuleManager
 {
     private const CACHE_KEY = 'superadmin.modules.enabled_map';
     private const SETTINGS_CACHE_KEY = 'superadmin.settings';
+    private const BRANCH_LIMIT_KEY = 'branches_limit';
 
     public static function modules(): array
     {
@@ -101,6 +102,39 @@ class SystemModuleManager
         );
 
         Cache::forget(self::SETTINGS_CACHE_KEY . '.default_dashboard');
+    }
+
+    public static function branchLimit(): ?int
+    {
+        if (! Schema::hasTable('dev_superadmin_settings')) {
+            return null;
+        }
+
+        $value = Cache::remember(self::SETTINGS_CACHE_KEY . '.' . self::BRANCH_LIMIT_KEY, now()->addMinutes(5), function () {
+            return DB::table('dev_superadmin_settings')
+                ->where('key', self::BRANCH_LIMIT_KEY)
+                ->value('value');
+        });
+
+        return is_numeric($value) ? max((int) $value, 0) : null;
+    }
+
+    public static function updateBranchLimit(?int $limit): void
+    {
+        if (! Schema::hasTable('dev_superadmin_settings')) {
+            return;
+        }
+
+        DB::table('dev_superadmin_settings')->updateOrInsert(
+            ['key' => self::BRANCH_LIMIT_KEY],
+            [
+                'value' => $limit === null ? null : (string) max($limit, 0),
+                'updated_at' => now(),
+                'created_at' => now(),
+            ]
+        );
+
+        Cache::forget(self::SETTINGS_CACHE_KEY . '.' . self::BRANCH_LIMIT_KEY);
     }
 
     public static function defaultDashboardUrl(): string

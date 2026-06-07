@@ -5,6 +5,12 @@
 @endsection
 
 @section('content')
+    @php
+        $branchesCount = $branchesCount ?? 0;
+        $branchLimit = $branchLimit ?? null;
+        $canCreateBranch = $canCreateBranch ?? true;
+    @endphp
+
     <div class="page-body">
         <div class="container-fluid">
             <div class="d-sm-flex align-items-center justify-content-between mb-4">
@@ -12,11 +18,21 @@
                     <i class="fas fa-code-branch text-primary me-2"></i>
                     إدارة الفروع
                 </h3>
-                @if (@AdminGuardHasAnyPerm([\App\PermKeys::BRANCHES_CREATE, \App\PermKeys::BRANCHES_CONTROL]))
+                @if (@AdminGuardHasAnyPerm([\App\PermKeys::BRANCHES_CREATE, \App\PermKeys::BRANCHES_CONTROL]) && $canCreateBranch)
                     <a href="{{ route('branches.create') }}" class="btn btn-primary btn-sm">
                         <i class="fas fa-plus"></i> إضافة فرع
                     </a>
                 @endif
+            </div>
+
+            @if (isset($errors) && $errors->any())
+                <div class="alert alert-danger">{{ $errors->first() }}</div>
+            @endif
+
+            <div class="alert {{ $canCreateBranch ? 'alert-info' : 'alert-warning' }}">
+                عدد الفروع الحالي: {{ $branchesCount }}
+                /
+                {{ $branchLimit === null ? 'غير محدود' : $branchLimit }}
             </div>
 
             <div class="card mb-4">

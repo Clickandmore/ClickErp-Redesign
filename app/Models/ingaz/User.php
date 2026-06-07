@@ -2,9 +2,13 @@
 
 namespace App\Models\ingaz;
 
+use App\Models\Branch;
+use App\Support\SystemModuleManager;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Schema;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 use Spatie\Permission\Traits\HasRoles;
@@ -25,10 +29,33 @@ class User extends Authenticatable implements JWTSubject
     protected $table = 'users';
     protected $guarded = [];
 
+    protected $casts = [
+        'branch_id' => 'integer',
+    ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (User $user) {
+            if (!$user->branchesFeatureAvailable() || !empty($user->branch_id)) {
+                return;
+            }
+
+            $branchId = $user->resolveDefaultBranchId();
+
+            if ($branchId) {
+                $user->branch_id = $branchId;
+            }
+        });
+    }
 
     public function orders()
     {
         return $this->hasMany(Order::class, 'user_id');
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class, 'branch_id');
     }
 
     public function addresses()
@@ -111,6 +138,31 @@ class User extends Authenticatable implements JWTSubject
     public function clientAttachments()
     {
         return $this->hasMany(ClientAttachment::class, 'user_id');
+    }
+
+    private function branchesFeatureAvailable(): bool
+    {
+        return SystemModuleManager::isEnabled('branches')
+            && Schema::hasTable($this->getTable())
+            && Schema::hasColumn($this->getTable(), 'branch_id');
+    }
+
+    private function resolveDefaultBranchId(): ?int
+    {
+        if (!Schema::hasTable('branches')) {
+            return null;
+        }
+
+        $branch = Branch::query()
+            ->active()
+            ->where('is_main', true)
+            ->first(['id']);
+
+        if (!$branch) {
+            $branch = Branch::query()->active()->ordered()->first(['id']);
+        }
+
+        return $branch ? (int) $branch->id : null;
     }
 
     // public function maids()

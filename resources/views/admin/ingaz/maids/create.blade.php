@@ -13,20 +13,23 @@
     $selectedTypeTitle = collect($types ?? [])->firstWhere('id', $selectedTypeId)->title ?? '';
     $normalizedSelectedTypeTitle = mb_strtolower(trim((string) $selectedTypeTitle));
     $normalizedSelectedTypeTitle = str_replace(['أ', 'إ', 'آ'], 'ا', $normalizedSelectedTypeTitle);
-    $showArrivalDateField = $isRentalForm
-        || str_contains($normalizedSelectedTypeTitle, 'ايجار')
-        || str_contains($normalizedSelectedTypeTitle, 'تاجير')
-        || str_contains($normalizedSelectedTypeTitle, 'rent');
-    $rentalFinanceItems = collect($rentalFinanceItems ?? [])->map(function ($item) {
-        return [
-            'id' => $item['id'] ?? null,
-            'account_id' => $item['account_id'] ?? null,
-            'account_code' => $item['account_code'] ?? '',
-            'type' => $item['type'] ?? 'expense',
-            'label' => $item['label'] ?? '',
-            'amount' => $item['amount'] ?? 0,
-        ];
-    })->values();
+    $showArrivalDateField =
+        $isRentalForm ||
+        str_contains($normalizedSelectedTypeTitle, 'ايجار') ||
+        str_contains($normalizedSelectedTypeTitle, 'تاجير') ||
+        str_contains($normalizedSelectedTypeTitle, 'rent');
+    $rentalFinanceItems = collect($rentalFinanceItems ?? [])
+        ->map(function ($item) {
+            return [
+                'id' => $item['id'] ?? null,
+                'account_id' => $item['account_id'] ?? null,
+                'account_code' => $item['account_code'] ?? '',
+                'type' => $item['type'] ?? 'expense',
+                'label' => $item['label'] ?? '',
+                'amount' => $item['amount'] ?? 0,
+            ];
+        })
+        ->values();
     $itemsTotalTemplate = __('ingaz.items_total', ['amount' => '__amount__']);
     $financeItemsSummaryTemplate = __('ingaz.finance_items_summary', [
         'configured' => '__configured__',
@@ -105,6 +108,84 @@
             opacity: 0;
             pointer-events: none;
         }
+
+        .maid-form-section {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            background: #fff;
+        }
+
+        .maid-form-section__title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 14px;
+            font-weight: 700;
+            color: #111827;
+        }
+
+        .maid-form-section__title i {
+            color: #0d6efd;
+        }
+
+        .maid-form-section__head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+        }
+
+        .maid-form-section__head .maid-form-section__title {
+            margin-bottom: 0;
+        }
+
+        .maid-cv-reader {
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            background: #eff6ff;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .maid-cv-reader__text {
+            color: #1f2937;
+            font-weight: 600;
+        }
+
+        .maid-cv-reader__hint {
+            color: #6b7280;
+            font-size: 12px;
+            display: block;
+            margin-top: 2px;
+        }
+
+        .maid-form-note {
+            border-radius: 8px;
+            background: #f9fafb;
+            color: #6b7280;
+            padding: 10px 12px;
+            font-size: 13px;
+        }
+
+        .rapid-cv-cta {
+            border-color: #0d6efd;
+            background: #eef5ff;
+            color: #0b5ed7;
+            font-weight: 700;
+        }
+
+        .rapid-cv-cta:hover,
+        .rapid-cv-cta:focus {
+            background: #0d6efd;
+            color: #fff;
+        }
     </style>
 @endsection
 
@@ -122,7 +203,7 @@
                         <div class="text-muted small">{{ helperTrans('ingaz.add_maid_hint') }}</div>
                     </div>
                     <div class="d-flex flex-wrap gap-2">
-                        <a href="{{ route('maids.create_rapid_cv') }}" class="btn btn-outline-primary">
+                        <a href="{{ route('maids.create_rapid_cv') }}" class="btn rapid-cv-cta">
                             <i class="fas fa-bolt me-1"></i>
                             {{ helperTrans('ingaz.short_cv') }}
                         </a>
@@ -137,55 +218,82 @@
                     @csrf
                     <!-- الملفات -->
 
-                    <div class="col-6">
-                        <label for="TextInput" class="form-label">{{ helperTrans('ingaz.personal_photo') }}</label>
-                        <input type="file" data-default-file="" name="image" id="maid_image" class="dropify" required
-                            accept="image/*">
-                    </div>
-                    <div class="col-6">
-                        <label for="TextInput" class="form-label">{{ helperTrans('ingaz.full_photo') }}</label>
-                        <input type="file" data-default-file="" name="cv_file" id="cv_file" class="dropify"
-                            accept=".pdf,image/*">
-                        <div class="d-flex align-items-center gap-2 mt-2 flex-wrap">
-                            <button type="button" class="btn btn-outline-primary btn-sm" id="extract_cv_data_btn">
-                                <i class="fas fa-file-import me-1"></i>
-                                {{ helperTrans('ingaz.read_cv_data') }}
-                            </button>
-                            <span class="small text-muted" id="cv_extract_status"></span>
-                        </div>
-                    </div>
-
-                    <!-- اسم العامل/ة -->
-                    <div class="col-4">
-                        <label for="TextInput" class="form-label">
-                            اسم العامل/ة ({{ helperTrans('ingaz.en') }})
-                        </label>
-                        <input type="text" name="name:en" class="form-control" required>
-                    </div>
-
-                    <div class="col-4">
-                        <label for="gender" class="form-label">{{ __('validation.attributes.gender') }}</label>
-                        @php $selectedGender = old('gender', 'female'); @endphp
-                        <select name="gender" id="gender" class="form-control" required>
-                            <option value="female" {{ $selectedGender === 'female' ? 'selected' : '' }}>أنثى</option>
-                            <option value="male" {{ $selectedGender === 'male' ? 'selected' : '' }}>ذكر</option>
-                        </select>
-                    </div>
-
-                    <!-- نوع السيرة -->
                     <div class="col-12">
-                        <div class="maid-type-picker">
-                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-                                <div>
-                                    <label for="type_id" class="form-label mb-1">{{ helperTrans('ingaz.job_types_2') }}</label>
-                                    <div class="text-muted small">{{ helperTrans('ingaz.cv_type_picker_hint') }}</div>
-                                </div>
+                        <div class="maid-form-section">
+                            <div class="maid-form-section__title">
+                                <i class="fas fa-route"></i>
+                                <span>اختيار مسار السيرة</span>
                             </div>
-                            <div class="row g-3" id="maid_type_picker">
+
+                            <!-- نوع السيرة -->
+                            <div class="maid-type-picker">
+                                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                                    <div>
+                                        <label for="type_id"
+                                            class="form-label mb-1">{{ helperTrans('ingaz.job_types_2') }}</label>
+                                        <div class="text-muted small">{{ helperTrans('ingaz.cv_type_picker_hint') }}</div>
+                                    </div>
+                                </div>
+                                <div class="row g-3" id="maid_type_picker">
+                                    @foreach ($types as $type)
+                                        @php
+                                            $title = $type->title ?? '';
+                                            $normalizedTitle = mb_strtolower(str_replace(['أ', 'إ', 'آ'], 'ا', $title));
+                                            $isInstantReceipt = \Illuminate\Support\Str::contains(
+                                                mb_strtolower($title),
+                                                ['استلام', 'إستلام', 'فوري', 'instant', 'immediate'],
+                                            );
+                                            $isRentalType = \Illuminate\Support\Str::contains($normalizedTitle, [
+                                                'ايجار',
+                                                'تاجير',
+                                                'rent',
+                                            ]);
+                                            $isRecruitmentType = \Illuminate\Support\Str::contains($normalizedTitle, [
+                                                'استقدام',
+                                                'recruit',
+                                            ]);
+                                            $isSelectedType = $selectedTypeId === (int) $type->id;
+                                        @endphp
+                                        @if (!$isInstantReceipt)
+                                            <div class="col-md-6 col-xl-4">
+                                                <button type="button"
+                                                    class="maid-type-option {{ $isSelectedType ? 'is-active' : '' }}"
+                                                    data-type-id="{{ $type->id }}">
+                                                    <span class="d-flex gap-3 align-items-start">
+                                                        <span class="maid-type-option__icon">
+                                                            <i
+                                                                class="fas {{ $isRentalType ? 'fa-key' : 'fa-user-plus' }}"></i>
+                                                        </span>
+                                                        <span>
+                                                            <span class="d-block fw-semibold">{{ $type->title }}</span>
+                                                            <span class="d-block text-muted small mt-1">
+                                                                @if ($isRentalType)
+                                                                    {{ helperTrans('ingaz.cv_type_rental_hint') }}
+                                                                @elseif ($isRecruitmentType)
+                                                                    {{ helperTrans('ingaz.cv_type_recruitment_hint') }}
+                                                                @else
+                                                                    {{ helperTrans('ingaz.cv_type_general_hint') }}
+                                                                @endif
+                                                            </span>
+                                                        </span>
+                                                    </span>
+                                                </button>
+                                            </div>
+                                        @endif
+                                    @endforeach
+                                </div>
+                                @if ($isRentalForm)
+                                    <small
+                                        class="text-muted d-block mt-2">{{ helperTrans('ingaz.rental_cv_fixed_hint') }}</small>
+                                @endif
+                            </div>
+                            <select name="type_id" id="type_id" class="form-control maid-type-native-select" required
+                                data-default-type="{{ $defaultTypeId }}"
+                                aria-label="{{ helperTrans('ingaz.select_cv_type') }}">
+                                <option value="">{{ helperTrans('ingaz.select_cv_type') }}</option>
                                 @foreach ($types as $type)
                                     @php
                                         $title = $type->title ?? '';
-                                        $normalizedTitle = mb_strtolower(str_replace(['أ', 'إ', 'آ'], 'ا', $title));
                                         $isInstantReceipt = \Illuminate\Support\Str::contains(mb_strtolower($title), [
                                             'استلام',
                                             'إستلام',
@@ -193,69 +301,85 @@
                                             'instant',
                                             'immediate',
                                         ]);
-                                        $isRentalType = \Illuminate\Support\Str::contains($normalizedTitle, [
-                                            'ايجار',
-                                            'تاجير',
-                                            'rent',
-                                        ]);
-                                        $isRecruitmentType = \Illuminate\Support\Str::contains($normalizedTitle, [
-                                            'استقدام',
-                                            'recruit',
-                                        ]);
-                                        $isSelectedType = $selectedTypeId === (int) $type->id;
                                     @endphp
                                     @if (!$isInstantReceipt)
-                                        <div class="col-md-6 col-xl-4">
-                                            <button type="button"
-                                                class="maid-type-option {{ $isSelectedType ? 'is-active' : '' }}"
-                                                data-type-id="{{ $type->id }}">
-                                                <span class="d-flex gap-3 align-items-start">
-                                                    <span class="maid-type-option__icon">
-                                                        <i class="fas {{ $isRentalType ? 'fa-key' : 'fa-user-plus' }}"></i>
-                                                    </span>
-                                                    <span>
-                                                        <span class="d-block fw-semibold">{{ $type->title }}</span>
-                                                        <span class="d-block text-muted small mt-1">
-                                                            @if ($isRentalType)
-                                                                {{ helperTrans('ingaz.cv_type_rental_hint') }}
-                                                            @elseif ($isRecruitmentType)
-                                                                {{ helperTrans('ingaz.cv_type_recruitment_hint') }}
-                                                            @else
-                                                                {{ helperTrans('ingaz.cv_type_general_hint') }}
-                                                            @endif
-                                                        </span>
-                                                    </span>
-                                                </span>
-                                            </button>
-                                        </div>
+                                        <option value="{{ $type->id }}"
+                                            {{ $selectedTypeId === (int) $type->id ? 'selected' : '' }}>
+                                            {{ $type->title }}
+                                        </option>
                                     @endif
                                 @endforeach
-                            </div>
-                            @if ($isRentalForm)
-                                <small class="text-muted d-block mt-2">{{ helperTrans('ingaz.rental_cv_fixed_hint') }}</small>
-                            @endif
+                            </select>
                         </div>
-                        <select name="type_id" id="type_id" class="form-control maid-type-native-select" required
-                            data-default-type="{{ $defaultTypeId }}" aria-label="{{ helperTrans('ingaz.select_cv_type') }}">
-                            <option value="">{{ helperTrans('ingaz.select_cv_type') }}</option>
-                            @foreach ($types as $type)
-                                @php
-                                    $title = $type->title ?? '';
-                                    $isInstantReceipt = \Illuminate\Support\Str::contains(mb_strtolower($title), [
-                                        'استلام',
-                                        'إستلام',
-                                        'فوري',
-                                        'instant',
-                                        'immediate',
-                                    ]);
-                                @endphp
-                                @if (!$isInstantReceipt)
-                                    <option value="{{ $type->id }}"
-                                        {{ $selectedTypeId === (int) $type->id ? 'selected' : '' }}>{{ $type->title }}
-                                    </option>
-                                @endif
-                            @endforeach
-                        </select>
+                    </div>
+
+                    <div class="col-12">
+                        <div class="maid-form-section">
+                            <div class="maid-form-section__head">
+                                <div class="maid-form-section__title">
+                                    <i class="fas fa-file-image"></i>
+                                    <span>الملفات والبيانات الأساسية</span>
+                                </div>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <div class="maid-cv-reader">
+                                        <div>
+                                            <span class="maid-cv-reader__text">قراءة بيانات السيرة تلقائياً</span>
+                                            <span class="maid-cv-reader__hint">ارفع ملف السيرة أولاً، ثم اضغط الزر لتعبئة الحقول المتاحة.</span>
+                                        </div>
+                                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                                            <button type="button" class="btn btn-primary btn-sm"
+                                                id="extract_cv_data_btn">
+                                                <i class="fas fa-file-import me-1"></i>
+                                                {{ helperTrans('ingaz.read_cv_data') }}
+                                            </button>
+                                            <span class="small text-muted" id="cv_extract_status"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="TextInput"
+                                        class="form-label">{{ helperTrans('ingaz.personal_photo') }}</label>
+                                    <input type="file" data-default-file="" name="image" id="maid_image"
+                                        class="dropify" required accept="image/*">
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="TextInput" class="form-label">{{ helperTrans('ingaz.full_photo') }}</label>
+                                    <input type="file" data-default-file="" name="cv_file" id="cv_file" class="dropify"
+                                        accept=".pdf,image/*">
+                                </div>
+
+                                <!-- اسم العامل/ة -->
+                                <div class="col-4">
+                                    <label for="TextInput" class="form-label">
+                                        اسم العامل/ة ({{ helperTrans('ingaz.en') }})
+                                    </label>
+                                    <input type="text" name="name:en" class="form-control" required>
+                                </div>
+
+                                <div class="col-4">
+                                    <label for="gender"
+                                        class="form-label">{{ __('validation.attributes.gender') }}</label>
+                                    @php $selectedGender = old('gender', 'female'); @endphp
+                                    <select name="gender" id="gender" class="form-control" required>
+                                        <option value="female" {{ $selectedGender === 'female' ? 'selected' : '' }}>أنثى
+                                        </option>
+                                        <option value="male" {{ $selectedGender === 'male' ? 'selected' : '' }}>ذكر
+                                        </option>
+                                    </select>
+                                    <small class="text-muted d-block mt-1">يتغير تلقائياً عند اختيار مهنة مثل عاملة منزلية
+                                        أو سائق خاص.</small>
+                                </div>
+                                <div class="col-4">
+                                    <label for="passport_num" class="form-label">
+                                        {{ helperTrans('ingaz.passport_num') }}
+                                    </label>
+                                    <input type="text" name="passport_num" id="passport_num" class="form-control" required>
+                                    <div id="passport_num_feedback" class="invalid-feedback"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <!-- خيار تسكين للإيواء -->
                     {{-- <div class="col-4" id="shelter_option" style="display: none;">
@@ -269,68 +393,79 @@
                         <small class="text-muted">سيتم إنشاء عقد إيواء تلقائياً باسم {{ documentSetting('document_company_name', documentSetting('website_name', config('app.name'))) }}</small>
                     </div> --}}
 
-                    <!-- خيار تسكين للإيواء -->
-                    <div class="col-4" id="shelter_option">
-                        <label for="create_shelter_contract" class="form-label shelter-question-label">{{ helperTrans('ingaz.shelter_assignment') }}</label>
-                        <select name="create_shelter_contract" id="create_shelter_contract" class="form-control shelter-question-select">
-                            <option value="0" {{ $defaultShelterContract === '0' ? 'selected' : '' }}>{{ helperTrans('ingaz.no_regular_worker') }}
-                            </option>
-                            <option value="1" {{ $defaultShelterContract === '1' ? 'selected' : '' }}>{{ helperTrans('ingaz.yes_assign_to_shelter') }}</option>
-                        </select>
-                        <div id="shelter_auto_notice" class="text-muted mt-2" style="display: none;">
-                            {{ helperTrans('ingaz.auto_shelter_notice') }}
-                        </div>
-                        <small class="text-muted">{{ $shelterCompanyHint }}</small>
-                    </div>
+                    <div class="col-12">
+                        <div class="maid-form-section">
+                            <div class="maid-form-section__title">
+                                <i class="fas fa-briefcase"></i>
+                                <span>بيانات العمل والبيانات الشخصية</span>
+                            </div>
+                            <div class="row g-3">
+                                <!-- خيار تسكين للإيواء -->
+                                <div class="col-4" id="shelter_option">
+                                    <label for="create_shelter_contract"
+                                        class="form-label shelter-question-label">{{ helperTrans('ingaz.shelter_assignment') }}</label>
+                                    <select name="create_shelter_contract" id="create_shelter_contract"
+                                        class="form-control shelter-question-select">
+                                        <option value="0" {{ $defaultShelterContract === '0' ? 'selected' : '' }}>
+                                            {{ helperTrans('ingaz.no_regular_worker') }}
+                                        </option>
+                                        <option value="1" {{ $defaultShelterContract === '1' ? 'selected' : '' }}>
+                                            {{ helperTrans('ingaz.yes_assign_to_shelter') }}</option>
+                                    </select>
+                                    <div id="shelter_auto_notice" class="text-muted mt-2" style="display: none;">
+                                        {{ helperTrans('ingaz.auto_shelter_notice') }}
+                                    </div>
+                                    <small class="text-muted">{{ $shelterCompanyHint }}</small>
+                                </div>
 
-                    <!-- الجنسية -->
-                    <div class="col-4">
-                        <label for="TextInput" class="form-label">{{ helperTrans('ingaz.nationality') }} </label>
-                        <select name="nationality_id" id="Pnationality_id" class="form-control" required>
-                            <option value="">{{ helperTrans('ingaz.choose') }}</option>
-                            @foreach ($nationalities as $nationality)
-                                <option value="{{ $nationality->id }}" data-price="{{ $nationality->price }}"
-                                    data-salary="{{ $nationality->monthly_salary }}"
-                                    data-service_transportation_cost="{{ $nationality->service_transportation_cost }}"
-                                    data-rental_cost="{{ $nationality->rental_cost }}">
-                                    {{ $nationality->sub_title }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
+                                <!-- الجنسية -->
+                                <div class="col-4">
+                                    <label for="TextInput" class="form-label">{{ helperTrans('ingaz.nationality') }} </label>
+                                    <select name="nationality_id" id="Pnationality_id" class="form-control" required>
+                                        <option value="">{{ helperTrans('ingaz.choose') }}</option>
+                                        @foreach ($nationalities as $nationality)
+                                            <option value="{{ $nationality->id }}" data-price="{{ $nationality->price }}"
+                                                data-salary="{{ $nationality->monthly_salary }}"
+                                                data-service_transportation_cost="{{ $nationality->service_transportation_cost }}"
+                                                data-rental_cost="{{ $nationality->rental_cost }}">
+                                                {{ $nationality->sub_title }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
 
-                    <!-- مكتب الاستقدام -->
-                    <div class="col-4 office-field">
-                        <label for="TextInput" class="form-label">{{ helperTrans('ingaz.recruitment office') }} </label>
-                        <select name="office_id" class="form-control">
-                            <option value="">{{ helperTrans('ingaz.choose_recruitment_office') }}</option>
-                            {!! showSelectElement($offices, 'title') !!}
-                        </select>
-                    </div>
+                                <!-- مكتب الاستقدام -->
+                                <div class="col-4 office-field">
+                                    <label for="TextInput" class="form-label">{{ helperTrans('ingaz.recruitment office') }} </label>
+                                    <select name="office_id" class="form-control">
+                                        <option value="">{{ helperTrans('ingaz.choose_recruitment_office') }}</option>
+                                        {!! showSelectElement($offices, 'title') !!}
+                                    </select>
+                                </div>
 
-                    <!-- الوظائف -->
-                    <div class="col-4">
-                        <label for="TextInput" class="form-label">{{ helperTrans('ingaz.job_2') }} </label>
-                        <select name="job_id[]" data-placeholder="{{ helperTrans('ingaz.choose') }}"
-                            class="form-control js-example-basic-multiple" multiple required>
-                            @foreach ($jobs as $job)
-                                <option value="{{ $job->id }}">{{ $job->title }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-4" id="request_type_field">
-                        <label for="request_type" class="form-label">{{ helperTrans('ingaz.request_type') }}</label>
-                        @php
-                            $requestType = old('request_type', \App\Models\ingaz\Maid::REQUEST_TYPE_CUSTOM);
-                        @endphp
-                        <select name="request_type" id="request_type" class="form-control">
-                            @foreach (\App\Models\ingaz\Maid::getRequestTypeOptions() as $value => $label)
-                                <option value="{{ $value }}" {{ $requestType === $value ? 'selected' : '' }}>
-                                    {{ $label }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
+                                <!-- الوظائف -->
+                                <div class="col-4">
+                                    <label for="TextInput" class="form-label">{{ helperTrans('ingaz.job_2') }} </label>
+                                    <select name="job_id[]" id="job_id" data-placeholder="{{ helperTrans('ingaz.choose') }}"
+                                        class="form-control js-example-basic-multiple" multiple required>
+                                        @foreach ($jobs as $job)
+                                            <option value="{{ $job->id }}">{{ $job->title }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-4" id="request_type_field">
+                                    <label for="request_type" class="form-label">{{ helperTrans('ingaz.request_type') }}</label>
+                                    @php
+                                        $requestType = old('request_type', \App\Models\ingaz\Maid::REQUEST_TYPE_CUSTOM);
+                                    @endphp
+                                    <select name="request_type" id="request_type" class="form-control">
+                                        @foreach (\App\Models\ingaz\Maid::getRequestTypeOptions() as $value => $label)
+                                            <option value="{{ $value }}" {{ $requestType === $value ? 'selected' : '' }}>
+                                                {{ $label }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
 
                     <!-- السعر والراتب -->
                     {{-- <div class="col-4">
@@ -444,29 +579,34 @@
                         <input type="text" name="duration" class="form-control"
                             value="{{ old('duration', helperTrans('ingaz.twenty_four_months')) }}">
                     </div>
-                    <div class="col-4" id="arrival_date_field" style="{{ $showArrivalDateField ? '' : 'display: none;' }}">
+                    <div class="col-4" id="arrival_date_field"
+                        style="{{ $showArrivalDateField ? '' : 'display: none;' }}">
                         <label for="arrival_date" class="form-label">{{ helperTrans('ingaz.arrival_date') }} <small
                                 class="text-muted">({{ helperTrans('ingaz.optional') }})</small></label>
                         <input type="date" name="arrival_date" id="arrival_date" class="form-control"
                             value="{{ old('arrival_date') }}">
                     </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <div class="maid-form-section">
+                            <div class="maid-form-section__title">
+                                <i class="fas fa-passport"></i>
+                                <span>بيانات الجواز والهوية</span>
+                            </div>
+                            <div class="row g-3">
 
                     <!-- رقم الجواز ورقم الهوية وتاريخ انتهاء الهوية -->
-                    <div class="col-4">
-                        <label for="TextInput" class="form-label">
-                            {{ helperTrans('ingaz.passport_num') }}
-                        </label>
-                        <input type="text" name="passport_num" id="passport_num" class="form-control" required>
-                        <div id="passport_num_feedback" class="invalid-feedback"></div>
-                    </div>
 
                     <div class="col-4 passport-extra-field">
                         <label for="border_number" class="form-label">
                             رقم الحدود
                             <small class="text-muted">({{ helperTrans('ingaz.optional') }})</small>
                         </label>
-                        <input type="text" name="border_number" id="border_number" class="form-control" maxlength="50"
-                            value="{{ old('border_number') }}">
+                        <input type="text" name="border_number" id="border_number" class="form-control"
+                            maxlength="50" value="{{ old('border_number') }}">
                     </div>
 
                     <div class="col-4 passport-extra-field">
@@ -492,8 +632,7 @@
                             {{ helperTrans('ingaz.id_number') }}
                             <small class="text-muted">({{ helperTrans('ingaz.optional_for_rental_worker') }})</small>
                         </label>
-                        <input type="text" name="id_number" id="id_number" class="form-control" maxlength="30"
-                            >
+                        <input type="text" name="id_number" id="id_number" class="form-control" maxlength="30">
                         <small class="text-muted">{{ helperTrans('ingaz.id_number_hint') }}</small>
                     </div>
 
@@ -504,6 +643,17 @@
                         </label>
                         <input type="date" name="id_expiry_date" class="form-control">
                     </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <div class="maid-form-section">
+                            <div class="maid-form-section__title">
+                                <i class="fas fa-star"></i>
+                                <span>المهارات والخبرة والملاحظات</span>
+                            </div>
+                            <div class="row g-3">
 
                     <!-- المهارات -->
                     <div class="col-4">
@@ -517,7 +667,8 @@
                     </div>
                     <div class="col-4">
                         <label for="experience_status" class="form-label">
-                            {{ helperTrans('ingaz.experience_status') }} <small class="text-muted">({{ helperTrans('ingaz.required') }})</small>
+                            {{ helperTrans('ingaz.experience_status') }} <small
+                                class="text-muted">({{ helperTrans('ingaz.required') }})</small>
                         </label>
                         <select name="experience_status" id="experience_status" class="form-control" required>
                             <option value="">{{ helperTrans('ingaz.select_experience_status') }}</option>
@@ -556,7 +707,8 @@
                                 <div class="form-check">
                                     <input class="form-check-input lang-check" type="checkbox" name="languages[arabic]"
                                         id="arabic" value="arabic">
-                                    <label class="form-check-label" for="arabic">{{ helperTrans('ingaz.arabic_language') }}</label>
+                                    <label class="form-check-label"
+                                        for="arabic">{{ helperTrans('ingaz.arabic_language') }}</label>
                                 </div>
                                 <div class="lang-extra d-none"></div>
                             </div>
@@ -565,7 +717,8 @@
                                 <div class="form-check">
                                     <input class="form-check-input lang-check" type="checkbox" name="languages[english]"
                                         id="english" value="english">
-                                    <label class="form-check-label" for="english">{{ helperTrans('ingaz.english_language') }}</label>
+                                    <label class="form-check-label"
+                                        for="english">{{ helperTrans('ingaz.english_language') }}</label>
                                 </div>
                                 <div class="lang-extra d-none"></div>
                             </div>
@@ -574,7 +727,8 @@
                                 <div class="form-check">
                                     <input class="form-check-input lang-check" type="checkbox" name="languages[amharic]"
                                         id="amharic" value="amharic">
-                                    <label class="form-check-label" for="amharic">{{ helperTrans('ingaz.amharic_language') }}</label>
+                                    <label class="form-check-label"
+                                        for="amharic">{{ helperTrans('ingaz.amharic_language') }}</label>
                                 </div>
                                 <div class="lang-extra d-none"></div>
                             </div>
@@ -583,13 +737,14 @@
                                 <div class="form-check">
                                     <input class="form-check-input lang-check" type="checkbox" name="languages[mother]"
                                         id="mother" value="mother">
-                                    <label class="form-check-label" for="mother">{{ helperTrans('ingaz.mother_language') }}</label>
+                                    <label class="form-check-label"
+                                        for="mother">{{ helperTrans('ingaz.mother_language') }}</label>
                                 </div>
                                 <div class="lang-extra d-none"></div>
                             </div>
                         </div>
                     </div>
-                    <div id="experience_section" style="display: none;">
+                    <div class="col-12" id="experience_section" style="display: none;">
                         <label for="TextInput" class="form-label">{{ helperTrans('ingaz.expertise') }} </label>
                         <table class="table table-bordered" id="experience_table">
                             <thead>
@@ -637,10 +792,12 @@
                                         </select>
                                     </td>
                                     <td class="text-center">
-                                        <button type="button" class="btn btn-link p-0 me-2 btnAdd" title="{{ helperTrans('ingaz.add') }}">
+                                        <button type="button" class="btn btn-link p-0 me-2 btnAdd"
+                                            title="{{ helperTrans('ingaz.add') }}">
                                             <i class="fa fa-plus-circle text-success fs-5"></i>
                                         </button>
-                                        <button type="button" class="btn btn-link p-0 btnRemove" title="{{ helperTrans('ingaz.delete') }}">
+                                        <button type="button" class="btn btn-link p-0 btnRemove"
+                                            title="{{ helperTrans('ingaz.delete') }}">
                                             <i class="fa fa-trash text-danger fs-5"></i>
                                         </button>
                                     </td>
@@ -648,6 +805,9 @@
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="col-12" id="rental_finance_preview" style="display: none;">
                         <input type="hidden" name="rental_finance_items_confirmed" id="rental_finance_items_confirmed"
@@ -658,7 +818,8 @@
                                 <div>
                                     <h6 class="mb-1">{{ helperTrans('ingaz.rental_finance_items') }}</h6>
                                     <p class="text-muted mb-2">{{ helperTrans('ingaz.rental_finance_hint') }}</p>
-                                    <div class="fw-semibold text-danger" id="rental_finance_status">{{ helperTrans('ingaz.rental_finance_not_confirmed') }}</div>
+                                    <div class="fw-semibold text-danger" id="rental_finance_status">
+                                        {{ helperTrans('ingaz.rental_finance_not_confirmed') }}</div>
                                     <small class="text-muted d-block mt-1" id="rental_finance_summary">
                                         {{ __('ingaz.rental_finance_loaded_hint', ['count' => $rentalFinanceItems->count()]) }}
                                     </small>
@@ -667,7 +828,8 @@
                                     @enderror
                                 </div>
                                 <div class="d-flex flex-wrap gap-2">
-                                    <button type="button" class="btn btn-outline-primary" id="open_rental_finance_modal">
+                                    <button type="button" class="btn btn-outline-primary"
+                                        id="open_rental_finance_modal">
                                         <i class="fa fa-list me-1"></i>
                                         {{ helperTrans('ingaz.manage_items') }}
                                     </button>
@@ -680,7 +842,8 @@
                         <div class="modal-dialog modal-lg modal-dialog-scrollable">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <h5 class="modal-title" id="rentalFinanceModalLabel">{{ helperTrans('ingaz.rental_finance_items') }}</h5>
+                                    <h5 class="modal-title" id="rentalFinanceModalLabel">
+                                        {{ helperTrans('ingaz.rental_finance_items') }}</h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal"
                                         aria-label="Close"></button>
                                 </div>
@@ -742,7 +905,8 @@
                                     </div>
                                 </div>
                                 <div class="modal-footer justify-content-between">
-                                    <span class="text-muted" id="rental_finance_modal_total">{{ __('ingaz.items_total', ['amount' => '0.00']) }}</span>
+                                    <span class="text-muted"
+                                        id="rental_finance_modal_total">{{ __('ingaz.items_total', ['amount' => '0.00']) }}</span>
                                     <div class="d-flex gap-2">
                                         <button type="button" class="btn btn-outline-secondary"
                                             data-bs-dismiss="modal">{{ helperTrans('ingaz.close') }}</button>
@@ -995,6 +1159,60 @@
             $('.js-example-basic-multiple').select2();
             let extractedWorkerImageFile = null;
 
+            function normalizeArabicText(text) {
+                return (text || '')
+                    .toString()
+                    .replace(/[إأآ]/g, 'ا')
+                    .replace(/\u0649/g, 'ي')
+                    .replace(/\s+/g, ' ')
+                    .trim()
+                    .toLowerCase();
+            }
+
+            function inferGenderFromJobText(text) {
+                const normalized = normalizeArabicText(text);
+
+                if (
+                    normalized.includes('سائق') ||
+                    normalized.includes('driver') ||
+                    normalized.includes('حارس') ||
+                    normalized.includes('عامل منزلي')
+                ) {
+                    return 'male';
+                }
+
+                if (
+                    normalized.includes('عاملة') ||
+                    normalized.includes('عامله') ||
+                    normalized.includes('منزلية') ||
+                    normalized.includes('منزليه') ||
+                    normalized.includes('خادمة') ||
+                    normalized.includes('خادمه') ||
+                    normalized.includes('maid') ||
+                    normalized.includes('housemaid') ||
+                    normalized.includes('domestic worker')
+                ) {
+                    return 'female';
+                }
+
+                return null;
+            }
+
+            function syncGenderFromSelectedJobs() {
+                let inferredGender = null;
+
+                $('#job_id option:selected').each(function() {
+                    inferredGender = inferredGender || inferGenderFromJobText($(this).text());
+                });
+
+                if (inferredGender) {
+                    $('#gender').val(inferredGender).trigger('change');
+                }
+            }
+
+            $('#job_id').on('change', syncGenderFromSelectedJobs);
+            syncGenderFromSelectedJobs();
+
             function setInputValue(name, value) {
                 if (value === null || typeof value === 'undefined' || value === '') {
                     return;
@@ -1076,7 +1294,8 @@
                         }
                         const $percentageInput = $('[name="percentage[' + language + ']"]');
                         if ($percentageInput.length) {
-                            $percentageInput.val(fields.percentage[language]).trigger('input').trigger('change');
+                            $percentageInput.val(fields.percentage[language]).trigger('input').trigger(
+                                'change');
                         }
                     });
                 }
@@ -1154,7 +1373,8 @@
 
             $('#extract_cv_data_btn').on('click', function() {
                 const fileInput = $('#cv_file').get(0);
-                const file = fileInput && fileInput.files && fileInput.files.length ? fileInput.files[0] : null;
+                const file = fileInput && fileInput.files && fileInput.files.length ? fileInput.files[0] :
+                    null;
                 const $button = $(this);
                 const $status = $('#cv_extract_status');
 
@@ -1173,8 +1393,10 @@
                 formData.append('_token', $('meta[name="csrf-token"]').attr('content'));
 
                 $button.prop('disabled', true).data('original-text', $button.html());
-                $button.html('<span class="spinner-border spinner-border-sm me-1"></span> ' + maidCreateTranslations.reading);
-                $status.removeClass('text-danger text-success').addClass('text-muted').text(maidCreateTranslations.cvReadingMayTakeSeconds);
+                $button.html('<span class="spinner-border spinner-border-sm me-1"></span> ' +
+                    maidCreateTranslations.reading);
+                $status.removeClass('text-danger text-success').addClass('text-muted').text(
+                    maidCreateTranslations.cvReadingMayTakeSeconds);
 
                 $.ajax({
                     url: '{{ route('maids.extract-cv-data') }}',
@@ -1186,24 +1408,31 @@
                         const payload = response.data || {};
                         const fields = payload.fields || {};
                         applyExtractedCvFields(fields);
-                        const imageApplied = applyExtractedWorkerImage(payload.worker_image || null);
+                        const imageApplied = applyExtractedWorkerImage(payload.worker_image ||
+                            null);
 
-                        const foundFields = payload.confidence ? payload.confidence.found_fields : Object.keys(fields).length;
-                        $status.removeClass('text-muted text-danger').addClass('text-success').text(
-                            maidCreateTranslations.cvFieldsFilled
+                        const foundFields = payload.confidence ? payload.confidence
+                            .found_fields : Object.keys(fields).length;
+                        $status.removeClass('text-muted text-danger').addClass('text-success')
+                            .text(
+                                maidCreateTranslations.cvFieldsFilled
                                 .replace('__count__', foundFields)
-                                .replace('__extra__', imageApplied ? maidCreateTranslations.withWorkerPhoto : '')
-                        );
+                                .replace('__extra__', imageApplied ? maidCreateTranslations
+                                    .withWorkerPhoto : '')
+                            );
                         Swal.fire({
                             icon: 'success',
                             title: maidCreateTranslations.cvReadSuccessTitle,
-                            text: response.message || maidCreateTranslations.cvReadSuccessText,
+                            text: response.message || maidCreateTranslations
+                                .cvReadSuccessText,
                             confirmButtonText: maidCreateTranslations.ok
                         });
                     },
                     error: function(xhr) {
-                        const message = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : maidCreateTranslations.cvReadFailed;
-                        $status.removeClass('text-muted text-success').addClass('text-danger').text(message);
+                        const message = xhr.responseJSON && xhr.responseJSON.message ? xhr
+                            .responseJSON.message : maidCreateTranslations.cvReadFailed;
+                        $status.removeClass('text-muted text-success').addClass('text-danger')
+                            .text(message);
                         Swal.fire({
                             icon: 'error',
                             title: maidCreateTranslations.cvExtractFailedTitle,
@@ -1299,12 +1528,14 @@
                         .replace('__total__', totalAmount.toFixed(2)));
                 }
 
-                rentalFinanceModalTotal.text(maidCreateTranslations.itemsTotal.replace('__amount__', totalAmount.toFixed(2)));
+                rentalFinanceModalTotal.text(maidCreateTranslations.itemsTotal.replace('__amount__', totalAmount
+                    .toFixed(2)));
             }
 
             function reindexRentalFinanceRows() {
                 rentalFinanceBody.find('.rental-finance-row').each(function(index) {
-                    $(this).find('.finance-account-id').attr('name', `rental_finance_items[${index}][account_id]`);
+                    $(this).find('.finance-account-id').attr('name',
+                        `rental_finance_items[${index}][account_id]`);
                     $(this).find('.finance-type').attr('name', `rental_finance_items[${index}][type]`);
                     $(this).find('.finance-label').attr('name', `rental_finance_items[${index}][label]`);
                     $(this).find('.finance-amount').attr('name', `rental_finance_items[${index}][amount]`);
@@ -1346,7 +1577,8 @@
             });
 
             $('#confirm_rental_finance_items').on('click', function() {
-                const configuredRows = getRentalFinanceRows().filter(row => row.accountId > 0 && row.label !== '');
+                const configuredRows = getRentalFinanceRows().filter(row => row.accountId > 0 && row
+                    .label !== '');
 
                 if (configuredRows.length === 0) {
                     Swal.fire({
@@ -1669,10 +1901,12 @@
                         success: function(response) {
                             if (response.exists) {
                                 $('#passport_num').addClass('is-invalid');
-                                feedback.addClass('invalid-feedback').text(maidCreateTranslations.passportRegistered);
+                                feedback.addClass('invalid-feedback').text(
+                                    maidCreateTranslations.passportRegistered);
                             } else {
                                 $('#passport_num').addClass('is-valid');
-                                feedback.addClass('valid-feedback').text(maidCreateTranslations.passportAvailable);
+                                feedback.addClass('valid-feedback').text(
+                                    maidCreateTranslations.passportAvailable);
                             }
                         },
                         error: function() {
@@ -1721,7 +1955,8 @@
                             var officeSelect = $('select[name="office_id"]');
                             officeSelect.empty();
                             officeSelect.append(
-                                '<option value="">' + maidCreateTranslations.chooseRecruitmentOffice + '</option>');
+                                '<option value="">' + maidCreateTranslations
+                                .chooseRecruitmentOffice + '</option>');
 
                             response.forEach(function(office) {
                                 officeSelect.append('<option value="' + office.id +
@@ -1763,7 +1998,8 @@
 
                 // التحقق من الملفات
                 var imageInput = $('#maid_image').get(0);
-                if (imageInput && (!imageInput.files || imageInput.files.length === 0) && extractedWorkerImageFile) {
+                if (imageInput && (!imageInput.files || imageInput.files.length === 0) &&
+                    extractedWorkerImageFile) {
                     setMaidImageInputFile(extractedWorkerImageFile);
                 }
                 var image = imageInput && imageInput.files ? imageInput.files.length : 0;
@@ -1874,7 +2110,8 @@
                 // إرسال النموذج باستخدام AJAX
                 var formData = new FormData(this);
                 if (!formData.get('image') && extractedWorkerImageFile) {
-                    formData.set('image', extractedWorkerImageFile, extractedWorkerImageFile.name || 'maid-photo.jpg');
+                    formData.set('image', extractedWorkerImageFile, extractedWorkerImageFile.name ||
+                        'maid-photo.jpg');
                 }
 
                 // إضافة قيم افتراضية للحقول الاختيارية
@@ -1925,7 +2162,9 @@
                         'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                     },
                     beforeSend: function() {
-                        $('#maidForm button[type="submit"]').html('<div class="spinner-border text-light spinner-border-sm" role="status"><span class="visually-hidden">Loading...</span></div>');
+                        $('#maidForm button[type="submit"]').html(
+                            '<div class="spinner-border text-light spinner-border-sm" role="status"><span class="visually-hidden">Loading...</span></div>'
+                            );
                     },
                     success: function(response) {
                         if (response.code == 203) {
@@ -1944,14 +2183,16 @@
                                 title: maidCreateTranslations.maidAddedTitle,
                                 text: maidCreateTranslations.maidAddedPrompt,
                                 showCancelButton: true,
-                                confirmButtonText: maidCreateTranslations.addAnotherMaid,
+                                confirmButtonText: maidCreateTranslations
+                                    .addAnotherMaid,
                                 cancelButtonText: maidCreateTranslations.goToAllCvs,
                                 reverseButtons: true,
                                 allowOutsideClick: false,
                                 allowEscapeKey: false
                             }).then((result) => {
                                 if (result.isConfirmed) {
-                                    window.location.href = '{{ route('maids.create') }}';
+                                    window.location.href =
+                                        '{{ route('maids.create') }}';
                                     return;
                                 }
                                 if (result.dismiss === Swal.DismissReason.cancel) {
@@ -1964,7 +2205,8 @@
                         Swal.fire({
                             icon: 'error',
                             title: maidCreateTranslations.errorTitle,
-                            text: response.message || maidCreateTranslations.maidAddError,
+                            text: response.message || maidCreateTranslations
+                                .maidAddError,
                             confirmButtonText: maidCreateTranslations.ok
                         });
                     },
@@ -1988,7 +2230,8 @@
                         });
                     },
                     complete: function() {
-                        $('#maidForm button[type="submit"]').html(maidCreateTranslations.create);
+                        $('#maidForm button[type="submit"]').html(maidCreateTranslations
+                        .create);
                     }
                 });
             });

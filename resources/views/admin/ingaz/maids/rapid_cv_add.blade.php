@@ -13,6 +13,40 @@
     <link rel="stylesheet" href="{{ asset('admin') }}/assets/cssbundle/dropify.min.css">
     <link rel="stylesheet" href="{{ asset('admin') }}/assets/cssbundle/select2.min.css">
     <link rel="stylesheet" href="{{ asset('admin') }}/assets/cssbundle/sweetalert2.min.css">
+    <style>
+        .rapid-cv-shell {
+            max-width: 760px;
+            margin-inline: auto;
+        }
+
+        .rapid-cv-panel {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: #fff;
+            padding: 18px;
+        }
+
+        .rapid-cv-step {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+            font-weight: 700;
+            color: #111827;
+        }
+
+        .rapid-cv-step span {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #0d6efd;
+            color: #fff;
+            flex: 0 0 30px;
+        }
+    </style>
 @endsection
 
 @section('page-title')
@@ -21,7 +55,7 @@
 
 @section('content')
     @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_CREATE))
-        <div class="card">
+        <div class="card rapid-cv-shell">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
                     <div>
@@ -37,80 +71,87 @@
                     enctype="multipart/form-data" id="maidForm">
                     @csrf
                     <input type="hidden" name="type_id" value="{{ $defaultTypeId }}">
-                    <!-- اسم العامل/ة -->
-                    <div class="col-12">
-                        <label for="TextInput" class="form-label">
-                            اسم العامل/ة ({{ helperTrans('ingaz.en') }})
-                        </label>
-                        <input type="text" name="name:en" class="form-control"
-                            placeholder="{{ helperTrans('ingaz.short_cv_optional_name_placeholder') }}">
-                        <small class="text-muted">{{ helperTrans('ingaz.short_cv_name_optional_hint') }}</small>
-                    </div>
 
                     <div class="col-12">
-                        <label for="gender" class="form-label">الجنس <span class="text-danger">*</span></label>
-                        <select name="gender" id="gender" class="form-control" required>
-                            <option value="female" selected>أنثى</option>
-                            <option value="male">ذكر</option>
-                        </select>
-                    </div>
-                    
-                    <!-- الجنسية -->
-                    <div class="col-12">
-                        <label for="TextInput" class="form-label">{{ helperTrans('ingaz.nationality') }} <span class="text-danger">*</span></label>
-                        <select name="nationality_id" id="Pnationality_id" class="form-control" required>
-                            <option value="">{{ helperTrans('ingaz.choose') }}</option>
-                            @foreach ($nationalities as $nationality)
-                                <option value="{{ $nationality->id }}" data-price="{{ $nationality->price }}"
-                                    data-salary="{{ $nationality->monthly_salary }}"
-                                    data-service_transportation_cost="{{ $nationality->service_transportation_cost }}"
-                                    data-rental_cost="{{ $nationality->rental_cost }}">
-                                    {{ $nationality->sub_title }}
-                                </option>
-                            @endforeach
-                        </select>
+                        <div class="rapid-cv-panel">
+                            <div class="rapid-cv-step"><span>1</span> بيانات السيرة المختصرة</div>
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label for="rapid_name" class="form-label">
+                                        اسم العامل/ة ({{ helperTrans('ingaz.en') }})
+                                    </label>
+                                    <input type="text" name="name:en" id="rapid_name" class="form-control"
+                                        placeholder="{{ helperTrans('ingaz.short_cv_optional_name_placeholder') }}">
+                                    <small class="text-muted">{{ helperTrans('ingaz.short_cv_name_optional_hint') }}</small>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label for="gender" class="form-label">الجنس <span class="text-danger">*</span></label>
+                                    <select name="gender" id="gender" class="form-control" required>
+                                        <option value="female" selected>أنثى</option>
+                                        <option value="male">ذكر</option>
+                                    </select>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label for="Pnationality_id" class="form-label">{{ helperTrans('ingaz.nationality') }} <span class="text-danger">*</span></label>
+                                    <select name="nationality_id" id="Pnationality_id" class="form-control" required>
+                                        <option value="">{{ helperTrans('ingaz.choose') }}</option>
+                                        @foreach ($nationalities as $nationality)
+                                            <option value="{{ $nationality->id }}" data-price="{{ $nationality->price }}"
+                                                data-salary="{{ $nationality->monthly_salary }}"
+                                                data-service_transportation_cost="{{ $nationality->service_transportation_cost }}"
+                                                data-rental_cost="{{ $nationality->rental_cost }}">
+                                                {{ $nationality->sub_title }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label for="job_id" class="form-label">المهنة <span class="text-danger">*</span></label>
+                                    <select name="job_id[]" id="job_id" class="form-control" required>
+                                        <option value="">اختر المهنة</option>
+                                        @foreach ($jobs as $job)
+                                            <option value="{{ $job->id }}">{{ $job->title }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                <div class="col-md-6 office-field">
+                                    <label for="office_id" class="form-label">{{ helperTrans('ingaz.recruitment office') }} <span class="text-danger">*</span></label>
+                                    <select name="office_id" id="office_id" class="form-control" required>
+                                        <option value="">{{ helperTrans('ingaz.choose_recruitment_office') }}</option>
+                                        @foreach ($offices as $office)
+                                            <option value="{{ $office->id }}">{{ $office->title }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                <div class="col-12">
+                                    <label for="passport_num" class="form-label">
+                                        {{ helperTrans('ingaz.passport_num') }} <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text" name="passport_num" id="passport_num" class="form-control" required
+                                        autocomplete="off">
+                                    <div id="passport_num_feedback" class="invalid-feedback"></div>
+                                </div>
+
+                                <div class="col-12">
+                                    <label for="cv_file" class="form-label">{{ helperTrans('ingaz.passport_file') }}</label>
+                                    <input type="file" data-default-file="" name="cv_file" id="cv_file" class="dropify"
+                                        accept=".pdf,.jpg,.jpeg,.png">
+                                    <small class="text-muted">{{ helperTrans('ingaz.passport_file_optional_hint') }}</small>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- مكتب الاستقدام -->
-                    <div class="col-12">
-                        <label for="job_id" class="form-label">المهنة <span class="text-danger">*</span></label>
-                        <select name="job_id[]" id="job_id" class="form-control" required>
-                            <option value="">اختر المهنة</option>
-                            @foreach ($jobs as $job)
-                                <option value="{{ $job->id }}">{{ $job->title }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div class="col-12 office-field">
-                        <label for="TextInput" class="form-label">{{ helperTrans('ingaz.recruitment office') }} <span class="text-danger">*</span></label>
-                        <select name="office_id" class="form-control">
-                            <option value="">{{ helperTrans('ingaz.choose_recruitment_office') }}</option>
-                            {{-- {!! showSelectElement($offices, 'title') !!} --}}
-                            @foreach ($offices as $office)
-                                <option value="{{ $office->id }}">{{ $office->title }} <span class="text-danger">*</span></option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <!-- رقم الجواز ورقم الهوية وتاريخ انتهاء الهوية -->
-                    <div class="col-12">
-                        <label for="TextInput" class="form-label">
-                            {{ helperTrans('ingaz.passport_num') }} <span class="text-danger">*</span>
-                        </label>
-                        <input type="text" name="passport_num" id="passport_num" class="form-control" required>
-                        <div id="passport_num_feedback" class="invalid-feedback"></div>
-                    </div>
-
-                    <div class="col-12">
-                        <label for="cv_file" class="form-label">{{ helperTrans('ingaz.passport_file') }}</label>
-                        <input type="file" data-default-file="" name="cv_file" id="cv_file" class="dropify"
-                            accept=".pdf,.jpg,.jpeg,.png">
-                        <small class="text-muted">{{ helperTrans('ingaz.passport_file_optional_hint') }}</small>
-                    </div>
-
-                    <div class="col-12">
-                        <button class="btn btn-primary" type="submit">{{ __('buttons.save') }}</button>
+                    <div class="col-12 d-flex flex-wrap gap-2">
+                        <button class="btn btn-primary" type="submit">
+                            <i class="fas fa-save me-1"></i>
+                            {{ __('buttons.save') }}
+                        </button>
                         <a href="{{ route('maids.create') }}"
                             class="btn btn-outline-secondary">{{ __('buttons.cancel') }}</a>
                     </div>
@@ -139,6 +180,7 @@
                 genderRequired: 'يرجى اختيار الجنس',
                 jobRequired: 'يرجى اختيار المهنة',
                 passportRequired: @json(helperTrans('ingaz.passport_required')),
+                officeRequired: @json(helperTrans('ingaz.external_office_required')),
                 passportDuplicateValidation: @json(helperTrans('ingaz.passport_duplicate_validation')),
                 correctErrorsPrefix: @json(helperTrans('ingaz.correct_errors_prefix')),
                 loading: @json(helperTrans('ingaz.loading_text')),
@@ -148,10 +190,47 @@
                 create: @json(__('ingaz.create')),
             };
             $('.dropify').dropify();
-            $('#job_id').select2({
+            $('#Pnationality_id, #office_id, #job_id').select2({
                 width: '100%',
-                placeholder: 'اختر المهنة',
                 dir: 'rtl'
+            });
+
+            function normalizeArabicText(text) {
+                return (text || '')
+                    .toString()
+                    .replace(/[إأآ]/g, 'ا')
+                    .replace(/\u0649/g, 'ي')
+                    .replace(/\s+/g, ' ')
+                    .trim()
+                    .toLowerCase();
+            }
+
+            function inferGenderFromJobText(text) {
+                const normalized = normalizeArabicText(text);
+
+                if (normalized.includes('سائق') || normalized.includes('driver')) {
+                    return 'male';
+                }
+
+                if (
+                    normalized.includes('عاملة') ||
+                    normalized.includes('عامله') ||
+                    normalized.includes('منزلية') ||
+                    normalized.includes('منزليه') ||
+                    normalized.includes('maid') ||
+                    normalized.includes('domestic')
+                ) {
+                    return 'female';
+                }
+
+                return null;
+            }
+
+            $('#job_id').on('change', function() {
+                const inferredGender = inferGenderFromJobText($('#job_id option:selected').text());
+                if (inferredGender) {
+                    $('#gender').val(inferredGender).trigger('change');
+                }
             });
 
             // التحقق من رقم الجواز - فحص التكرار
@@ -225,6 +304,7 @@
                                 officeSelect.append('<option value="' + office.id +
                                     '">' + office.title + '</option>');
                             });
+                            officeSelect.trigger('change');
 
                             // Set default price and salary based on nationality
                             // Keep salary as provided by the admin; do not override automatically
@@ -264,7 +344,6 @@
                     isValid = false;
                 }
 
-                // التحقق من رقم الجواز
                 var genderValue = $('[name="gender"]').val();
                 if (!genderValue || genderValue.trim() === '') {
                     errors.push(rapidCvTranslations.genderRequired);
@@ -277,6 +356,13 @@
                     isValid = false;
                 }
 
+                var officeValue = $('[name="office_id"]').val();
+                if (!officeValue || officeValue.trim() === '') {
+                    errors.push(rapidCvTranslations.officeRequired);
+                    isValid = false;
+                }
+
+                // التحقق من رقم الجواز
                 var passportNum = $('input[name="passport_num"]').val().trim();
                 if (!passportNum) {
                     errors.push(rapidCvTranslations.passportRequired);

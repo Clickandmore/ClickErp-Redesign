@@ -274,6 +274,12 @@ function AdminGuardHasPerm($perm_name)
     if (!$user) {
         return false;
     }
+
+    $branchPermission = \App\Support\BranchScopedPermissions::adminHasPermission($user, (string) $perm_name);
+    if ($branchPermission !== null) {
+        return $branchPermission;
+    }
+
     return $user->can($perm_name) ?? false;
 }
 
@@ -373,6 +379,26 @@ function AdminGuardPermissionNames(): array
 
     if (!$user) {
         return [];
+    }
+
+    if (\App\Support\BranchScopedPermissions::appliesToAdmin($user)) {
+        $roleId = (int) ($user->role_id ?? 0);
+        $branchId = (int) ($user->branch_id ?? 0);
+
+        if ($roleId > 0 && $branchId > 0) {
+            $branchPermissionNames = \App\Support\BranchScopedPermissions::permissionNamesForRoleBranch($roleId, $branchId);
+
+            if (
+                $branchPermissionNames->isNotEmpty() ||
+                \App\Support\BranchScopedPermissions::hasConfiguredBranchPermissions(collect([$roleId]), $branchId)
+            ) {
+                return $branchPermissionNames
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->all();
+            }
+        }
     }
 
     if (method_exists($user, 'getAllPermissions')) {

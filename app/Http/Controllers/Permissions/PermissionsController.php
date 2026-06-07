@@ -3,7 +3,10 @@
 namespace App\Http\Controllers\Permissions;
 
 use App\Http\Controllers\admin\Controller;
+use App\Models\Branch;
 use App\Models\Permission;
+use App\Support\BranchScopedPermissions;
+use App\Support\SystemModuleManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Validator;
@@ -21,7 +24,7 @@ class PermissionsController extends Controller
         $this->middleware('permission:permissions_delete,admin', ['only' => ['delete']]);
     }
 
-    public function setPerms($id){
+    public function setPerms(Request $request, $id){
         $role = $this->findAdminRole($id);
         if (!$role) {
             return redirect(route('dash.roles.index'))->with('error', 'لا يمكن إدارة صلاحيات دور غير تابع لحارس الإدارة.');
@@ -56,14 +59,39 @@ class PermissionsController extends Controller
             $availableRole->setAttribute('is_protected', $this->isProtectedRole($availableRole));
         });
 
-        $assignedPermissionNames = $role->permissions()->pluck('name')->all();
+        $branchesEnabled = SystemModuleManager::isEnabled('branches');
+        $branches = $branchesEnabled
+            ? Branch::query()->active()->ordered()->get(['id', 'name_ar', 'name_en'])
+            : collect();
+        $selectedBranchId = $branchesEnabled ? $this->resolveSelectedBranchId($request, $branches) : null;
+        $branchPermissionsConfigured = false;
+
+        if ($selectedBranchId) {
+            $branchPermissionNames = BranchScopedPermissions::permissionNamesForRoleBranch(
+                (int) $role->id,
+                (int) $selectedBranchId
+            );
+            $branchPermissionsConfigured = BranchScopedPermissions::hasConfiguredBranchPermissions(
+                collect([(int) $role->id]),
+                (int) $selectedBranchId
+            );
+            $assignedPermissionNames = $branchPermissionsConfigured
+                ? $branchPermissionNames->all()
+                : $role->permissions()->pluck('name')->all();
+        } else {
+            $assignedPermissionNames = $role->permissions()->pluck('name')->all();
+        }
 
         return view('admin.permissions.perm_control.control', compact(
             'role',
             'permissionMatrixSections',
             'permissionMatrixLanes',
             'availableRoles',
-            'assignedPermissionNames'
+            'assignedPermissionNames',
+            'branchesEnabled',
+            'branches',
+            'selectedBranchId',
+            'branchPermissionsConfigured'
         ));
     }
 
@@ -1703,6 +1731,48 @@ class PermissionsController extends Controller
         ];
     }
 
+    private function syncRoleBranchPermissionsWithinScope(Role $role, int $branchId, Collection $requestedPermissionNames, Collection $scopePermissionNames): array
+    {
+        $scopePermissions = $scopePermissionNames->isEmpty()
+            ? collect()
+            : Permission::query()
+                ->where('guard_name', 'admin')
+                ->whereIn('name', $scopePermissionNames)
+                ->get();
+
+        $validScopePermissionNames = $scopePermissions->pluck('name')->values();
+        $requestedPermissionNames = $requestedPermissionNames
+            ->intersect($validScopePermissionNames)
+            ->values();
+
+        $configuredPermissionNames = BranchScopedPermissions::permissionNamesForRoleBranch((int) $role->id, $branchId);
+        $assignedPermissionNames = $configuredPermissionNames->isNotEmpty()
+            ? $configuredPermissionNames
+            : $role->permissions()->where('guard_name', 'admin')->pluck('name');
+
+        $retainedPermissionNames = $assignedPermissionNames
+            ->diff($validScopePermissionNames)
+            ->values();
+
+        $finalPermissionNames = $retainedPermissionNames
+            ->merge($requestedPermissionNames)
+            ->unique()
+            ->values();
+
+        $syncedPermissionNames = BranchScopedPermissions::syncRoleBranchPermissions(
+            (int) $role->id,
+            $branchId,
+            $finalPermissionNames
+        );
+
+        return [
+            'scope_permissions' => $validScopePermissionNames,
+            'requested_permissions' => $syncedPermissionNames->intersect($requestedPermissionNames)->values(),
+            'missing_scope_permissions' => $scopePermissionNames->diff($validScopePermissionNames)->values(),
+            'missing_requested_permissions' => $requestedPermissionNames->diff($syncedPermissionNames)->values(),
+        ];
+    }
+
     public function storePerms(Request $request){
         if(isset($request->role_id)){
             $role = $this->findAdminRole($request->role_id);
@@ -1717,6 +1787,36 @@ class PermissionsController extends Controller
                 $request->input('scope_permissions_json', $request->input('scope_permissions', []))
             );
             $scopeLabel = trim((string) $request->input('scope_label', ''));
+            $branchId = $this->resolveSubmittedBranchId($request);
+
+            if ($branchId) {
+                if ($scopePermissions->isNotEmpty()) {
+                    $result = $this->syncRoleBranchPermissionsWithinScope($role, $branchId, $requestedPermissions, $scopePermissions);
+                    $missingPermissions = $result['missing_scope_permissions']->merge($result['missing_requested_permissions'])->unique()->values();
+                } else {
+                    $syncedPermissionNames = BranchScopedPermissions::syncRoleBranchPermissions(
+                        (int) $role->id,
+                        $branchId,
+                        $requestedPermissions
+                    );
+                    $missingPermissions = $requestedPermissions->diff($syncedPermissionNames)->values();
+                }
+
+                $this->forgetPermissionCache();
+
+                if ($missingPermissions->isNotEmpty()) {
+                    return redirect()->back()->with(
+                        'warning',
+                        'تم تحديث صلاحيات الفرع وتجاهل العناصر غير المتاحة: ' . $missingPermissions->implode(' , ')
+                    );
+                }
+
+                $successMessage = $scopePermissions->isNotEmpty()
+                    ? ($scopeLabel !== '' ? 'تم تحديث صلاحيات ' . $scopeLabel . ' لهذا الفرع فقط بنجاح.' : 'تم تحديث صلاحيات القائمة المحددة لهذا الفرع فقط بنجاح.')
+                    : 'تم تحديث صلاحيات هذا الفرع بنجاح.';
+
+                return redirect()->back()->with('msg', $successMessage);
+            }
 
             if ($scopePermissions->isNotEmpty()) {
                 $result = $this->syncRolePermissionsWithinScope($role, $requestedPermissions, $scopePermissions);
@@ -1869,6 +1969,36 @@ class PermissionsController extends Controller
     private function forgetPermissionCache(): void
     {
         app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
+    private function resolveSelectedBranchId(Request $request, Collection $branches): ?int
+    {
+        if ($branches->isEmpty()) {
+            return null;
+        }
+
+        $requestedBranchId = (int) $request->query('branch_id', 0);
+
+        if ($requestedBranchId > 0 && $branches->contains('id', $requestedBranchId)) {
+            return $requestedBranchId;
+        }
+
+        return (int) $branches->first()->id;
+    }
+
+    private function resolveSubmittedBranchId(Request $request): ?int
+    {
+        if (!SystemModuleManager::isEnabled('branches')) {
+            return null;
+        }
+
+        $branchId = (int) $request->input('branch_id', 0);
+
+        if ($branchId <= 0) {
+            return null;
+        }
+
+        return Branch::query()->whereKey($branchId)->exists() ? $branchId : null;
     }
 
     private function buildDeveloperPermissionsIndexData(): Collection

@@ -3,7 +3,6 @@
 namespace App\Http\Requests;
 
 use App\Http\Requests\MainRequest;
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 class StoreRapidCv extends MainRequest
 {
@@ -35,7 +34,7 @@ class StoreRapidCv extends MainRequest
             'type_id' => 'required|exists:job_types,id',
             'job_id' => 'required|array|min:1',
             'job_id.*' => 'required|exists:job_titles,id',
-            'office_id' => 'nullable|exists:recruitment_offices,id',
+            'office_id' => 'required|exists:recruitment_offices,id',
             'cv_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ];
     }
@@ -59,6 +58,7 @@ class StoreRapidCv extends MainRequest
             'job_id.min' => 'يرجى اختيار المهنة',
             'job_id.*.required' => 'يرجى اختيار المهنة',
             'job_id.*.exists' => 'المهنة المختارة غير موجودة',
+            'office_id.required' => 'مكتب الاستقدام مطلوب',
             'office_id.exists' => helperTrans('web.office_id not exist'),
             'cv_file.file' => 'ملف الجواز غير صالح',
             'cv_file.mimes' => 'صيغة ملف الجواز يجب أن تكون PDF أو JPG أو JPEG أو PNG',

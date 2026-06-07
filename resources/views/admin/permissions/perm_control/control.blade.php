@@ -45,7 +45,7 @@
 
         .permissions-toolbar-grid {
             display: grid;
-            grid-template-columns: minmax(230px, 320px) minmax(260px, 1fr);
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
             gap: 12px;
             margin-top: 18px;
         }
@@ -690,6 +690,11 @@
             $totalGroups = collect($permissionMatrixSections)->sum(fn ($section) => count($section['groups']));
             $totalPermissions = collect($permissionMatrixSections)->sum(fn ($section) => (int) ($section['permissions_count'] ?? 0));
             $assignedLookup = array_fill_keys($assignedPermissionNames ?? [], true);
+            $branchesEnabled = $branchesEnabled ?? false;
+            $branches = $branches ?? collect();
+            $selectedBranchId = $selectedBranchId ?? null;
+            $branchPermissionsConfigured = $branchPermissionsConfigured ?? false;
+            $forceAllSelected = $isSuperAdmin && !($branchesEnabled && $branchPermissionsConfigured);
         @endphp
 
         <div class="page_content permissions-page">
@@ -699,7 +704,7 @@
                     <p class="permissions-subtitle">
                         الدور الحالي:
                         <strong>{{ $role->name }}</strong>
-                        @if ($isSuperAdmin)
+                        @if ($forceAllSelected)
                             <span class="permissions-pill is-success" style="margin-right: 8px;">كل الصلاحيات محددة</span>
                         @endif
                     </p>
@@ -707,12 +712,23 @@
                     <div class="permissions-toolbar-grid">
                         <select id="roleSwitcher">
                             @foreach ($availableRoles as $singleRole)
-                                <option value="{{ route('dash.perms.setPerms', ['id' => $singleRole->id]) }}"
+                                <option value="{{ route('dash.perms.setPerms', array_filter(['id' => $singleRole->id, 'branch_id' => $selectedBranchId])) }}"
                                     {{ (int) $singleRole->id === (int) $role->id ? 'selected' : '' }}>
                                     {{ $singleRole->name }} ({{ (int) ($singleRole->permissions_count ?? 0) }} صلاحية)
                                 </option>
                             @endforeach
                         </select>
+
+                        @if ($branchesEnabled && $branches->isNotEmpty())
+                            <select id="branchSwitcher">
+                                @foreach ($branches as $branch)
+                                    <option value="{{ route('dash.perms.setPerms', ['id' => $role->id, 'branch_id' => $branch->id]) }}"
+                                        {{ (int) $selectedBranchId === (int) $branch->id ? 'selected' : '' }}>
+                                        {{ $branch->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        @endif
 
                         <input id="permissionsSearch"
                                type="search"
@@ -733,6 +749,11 @@
                         <span class="permissions-pill">الإجمالي: <span id="totalCount">{{ $totalPermissions }}</span></span>
                         <span class="permissions-pill is-success">المحدد: <span id="selectedCount">0</span></span>
                         <span class="permissions-pill is-warning">النسبة: <span id="selectionPercentage">0%</span></span>
+                        @if ($branchesEnabled && $selectedBranchId)
+                            <span class="permissions-pill {{ $branchPermissionsConfigured ? 'is-success' : 'is-warning' }}">
+                                {{ $branchPermissionsConfigured ? 'صلاحيات هذا الفرع مخصصة' : 'يعرض حالياً صلاحيات الدور العامة لهذا الفرع' }}
+                            </span>
+                        @endif
                     </div>
                 </div>
 
@@ -740,6 +761,9 @@
                     <form id="storePermForm" method="post" action="{{ route('dash.perms.storePerms') }}" enctype="multipart/form-data">
                         {{ csrf_field() }}
                         <input type="hidden" name="role_id" value="{{ $role->id }}">
+                        @if ($branchesEnabled && $selectedBranchId)
+                            <input type="hidden" name="branch_id" value="{{ $selectedBranchId }}">
+                        @endif
 
                         <div class="permissions-body">
                             <div id="permissionsGrid">
@@ -871,7 +895,7 @@
                                                                                                                type="checkbox"
                                                                                                                name="perms[]"
                                                                                                                value="{{ $extra['name'] }}"
-                                                                                                               {{ $isSuperAdmin || isset($assignedLookup[$extra['name']]) ? 'checked' : '' }}>
+                                                                                                               {{ $forceAllSelected || isset($assignedLookup[$extra['name']]) ? 'checked' : '' }}>
                                                                                                         <span>{{ $extra['extra_label'] }}</span>
                                                                                                     </label>
                                                                                                 @endforeach
@@ -894,7 +918,7 @@
                                                                                                        name="perms[]"
                                                                                                        value="{{ $columnPermission['name'] }}"
                                                                                                        title="{{ $columnPermission['display_name'] }}"
-                                                                                                       {{ $isSuperAdmin || isset($assignedLookup[$columnPermission['name']]) ? 'checked' : '' }}>
+                                                                                                       {{ $forceAllSelected || isset($assignedLookup[$columnPermission['name']]) ? 'checked' : '' }}>
                                                                                             @else
                                                                                                 <span class="permission-empty-cell">-</span>
                                                                                             @endif
@@ -1150,6 +1174,7 @@
 
             const tokenInput = baseForm.querySelector('input[name="_token"]');
             const roleInput = baseForm.querySelector('input[name="role_id"]');
+            const branchInput = baseForm.querySelector('input[name="branch_id"]');
 
             if (!tokenInput || !roleInput) {
                 return null;
@@ -1162,6 +1187,9 @@
 
             appendHiddenInput(submissionForm, '_token', tokenInput.value);
             appendHiddenInput(submissionForm, 'role_id', roleInput.value);
+            if (branchInput && branchInput.value) {
+                appendHiddenInput(submissionForm, 'branch_id', branchInput.value);
+            }
 
             if (scopeElement) {
                 const scopeCheckboxes = Array.from(scopeElement.querySelectorAll('.permission-checkbox'));
@@ -1219,6 +1247,7 @@
 
         document.addEventListener('DOMContentLoaded', function () {
             const roleSwitcher = document.getElementById('roleSwitcher');
+            const branchSwitcher = document.getElementById('branchSwitcher');
             const searchInput = document.getElementById('permissionsSearch');
             const selectVisibleButton = document.getElementById('selectVisibleButton');
             const clearVisibleButton = document.getElementById('clearVisibleButton');
@@ -1231,6 +1260,14 @@
                 roleSwitcher.addEventListener('change', function () {
                     if (roleSwitcher.value) {
                         window.location.href = roleSwitcher.value;
+                    }
+                });
+            }
+
+            if (branchSwitcher) {
+                branchSwitcher.addEventListener('change', function () {
+                    if (branchSwitcher.value) {
+                        window.location.href = branchSwitcher.value;
                     }
                 });
             }

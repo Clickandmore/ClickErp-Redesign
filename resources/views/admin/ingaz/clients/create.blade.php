@@ -245,7 +245,7 @@
                             <select name="nationality_id" id="nationalitySelect" class="form-control select2">
                                 <option value="">{{ helperTrans('ingaz.choose') }}</option>
                                 @foreach($countries as $country)
-                                    <option value="{{ $country->id }}" @selected(old('nationality_id') == $country->id)>
+                                    <option value="{{ $country->id }}" {{ old('nationality_id') == $country->id ? 'selected' : '' }}>
                                         {{ $country->title }}
                                     </option>
                                 @endforeach
@@ -271,7 +271,7 @@
                                     <div class="form-check">
                                         <input class="form-check-input" type="radio" name="marital_status"
                                                id="marital_status_{{ $value }}" value="{{ $value }}"
-                                               @checked(old('marital_status') === $value) required>
+                                               {{ old('marital_status') === $value ? 'checked' : '' }} required>
                                         <label class="form-check-label" for="marital_status_{{ $value }}">{{ $label }}</label>
                                     </div>
                                 @endforeach
@@ -291,6 +291,21 @@
                             </select>
                         </div>
 
+                        @if($branchesEnabled ?? false)
+                            <div class="col-lg-6">
+                                <label class="form-label" for="branch_id">{{ __('admin.branches') }}</label>
+                                <input type="hidden" name="branch_id" value="{{ old('branch_id', $defaultBranch?->id) }}">
+                                <select id="branch_id" class="form-select" disabled>
+                                    @if($defaultBranch)
+                                        <option value="{{ $defaultBranch->id }}" selected>{{ $defaultBranch->name }}</option>
+                                    @else
+                                        <option value="">{{ helperTrans('ingaz.not_specified') }}</option>
+                                    @endif
+                                </select>
+                                <small class="text-muted d-block mt-1">يتم تسجيل العميل على الفرع الرئيسي افتراضياً.</small>
+                            </div>
+                        @endif
+
                         <div class="col-lg-6">
                             <label class="form-label" for="address">{{ helperTrans('ingaz.address') }}</label>
                             <input type="text" id="address" name="address" class="form-control"
@@ -303,7 +318,7 @@
                                 <option value="">{{ helperTrans('ingaz.choose') }}</option>
                                 @foreach($cities as $city)
                                     <option value="{{ $city->name }}" data-country-id="{{ $city->country_id }}"
-                                            @selected(old('city') == $city->name)>
+                                            {{ old('city') == $city->name ? 'selected' : '' }}>
                                         {{ $city->name }}
                                     </option>
                                 @endforeach

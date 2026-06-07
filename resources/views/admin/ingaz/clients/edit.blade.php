@@ -304,6 +304,22 @@
                                 </select>
                             </div>
 
+                            @if(($branchesEnabled ?? false) && ($canViewAllBranches ?? false))
+                                <div class="col-lg-6">
+                                    <label for="branch_id" class="form-label">{{ __('admin.branches') }}</label>
+                                    <select name="branch_id" id="branch_id" class="form-select" required>
+                                        <option value="">{{ helperTrans('ingaz.choose') }}</option>
+                                        @foreach(($branches ?? collect()) as $branch)
+                                            <option value="{{ $branch->id }}" @selected((string) old('branch_id', $client->branch_id) === (string) $branch->id)>
+                                                {{ $branch->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            @elseif($branchesEnabled ?? false)
+                                <input type="hidden" name="branch_id" value="{{ old('branch_id', $client->branch_id) }}">
+                            @endif
+
                             <div class="col-lg-6">
                                 <label for="address" class="form-label">{{ helperTrans('ingaz.address') }}</label>
                                 <input type="text" id="address" name="address" class="form-control"
@@ -396,6 +412,14 @@
 
             if ($('#client_category_id').length) {
                 $('#client_category_id').select2({
+                    placeholder: chooseText,
+                    allowClear: true,
+                    width: '100%'
+                });
+            }
+
+            if ($('#branch_id').length) {
+                $('#branch_id').select2({
                     placeholder: chooseText,
                     allowClear: true,
                     width: '100%'

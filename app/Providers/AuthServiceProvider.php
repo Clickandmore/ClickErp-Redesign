@@ -25,6 +25,12 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
 
-        //
+        Gate::before(function ($user, string $ability) {
+            if (!method_exists($user, 'getTable') || $user->getTable() !== 'admins') {
+                return null;
+            }
+
+            return \App\Support\BranchScopedPermissions::adminHasPermission($user, $ability);
+        });
     }
 }

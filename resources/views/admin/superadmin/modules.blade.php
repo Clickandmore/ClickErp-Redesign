@@ -306,6 +306,36 @@
             font-weight: 900;
         }
 
+        .limit-row {
+            display: grid;
+            gap: 7px;
+            border-top: 1px solid var(--border);
+            padding-top: 12px;
+        }
+
+        .limit-row label {
+            color: #334155;
+            font-weight: 900;
+            font-size: .84rem;
+        }
+
+        .limit-input {
+            width: 100%;
+            min-height: 38px;
+            border: 1px solid var(--border-strong);
+            border-radius: 10px;
+            padding: 0 12px;
+            font: inherit;
+            background: #fff;
+        }
+
+        .limit-help {
+            margin: 0;
+            color: var(--muted);
+            font-size: .78rem;
+            line-height: 1.6;
+        }
+
         .switch {
             position: relative;
             width: 48px;
@@ -537,6 +567,7 @@
     $enabledMap = $enabledMap ?? [];
     $dashboards = $dashboards ?? [];
     $defaultDashboardKey = $defaultDashboardKey ?? 'recruitment';
+    $branchLimit = $branchLimit ?? null;
     $admins = $admins ?? collect();
     $enabledCount = collect($enabledMap)->filter()->count();
     $disabledCount = max(count($modules) - $enabledCount, 0);
@@ -644,6 +675,23 @@
                                         <span class="slider"></span>
                                     </label>
                                 </div>
+
+                                @if ($key === 'branches')
+                                    <div class="limit-row">
+                                        <label for="branchesLimit">عدد الفروع المسموح به</label>
+                                        <input
+                                            id="branchesLimit"
+                                            class="limit-input"
+                                            type="number"
+                                            name="branches_limit"
+                                            min="0"
+                                            step="1"
+                                            value="{{ old('branches_limit', $branchLimit) }}"
+                                            placeholder="غير محدود"
+                                        >
+                                        <p class="limit-help">اترك الحقل فارغًا للسماح بعدد غير محدود من الفروع.</p>
+                                    </div>
+                                @endif
                             </article>
                         @endforeach
                     </div>

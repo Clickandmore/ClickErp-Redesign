@@ -4,6 +4,7 @@ namespace App\Http\Controllers\admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
+use App\Support\SystemModuleManager;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -30,13 +31,25 @@ class BranchController extends Controller
         }
 
         $branches = $query->paginate(20);
+        $branchesCount = Branch::query()->count();
+        $branchLimit = SystemModuleManager::branchLimit();
+        $canCreateBranch = $branchLimit === null || $branchesCount < $branchLimit;
 
-        return view('admin.branches.index', compact('branches'));
+        return view('admin.branches.index', compact('branches', 'branchesCount', 'branchLimit', 'canCreateBranch'));
     }
 
     public function create()
     {
-        return view('admin.branches.create');
+        if (! $this->canCreateBranch()) {
+            return redirect()
+                ->route('branches.index')
+                ->withErrors(['branches_limit' => $this->branchLimitMessage()]);
+        }
+
+        return view('admin.branches.create', [
+            'branchesCount' => Branch::query()->count(),
+            'branchLimit' => SystemModuleManager::branchLimit(),
+        ]);
     }
 
     public function settings()
@@ -44,11 +57,18 @@ class BranchController extends Controller
         return view('admin.branches.settings', [
             'branchesCount' => Branch::query()->count(),
             'activeBranchesCount' => Branch::query()->where('is_active', true)->count(),
+            'branchLimit' => SystemModuleManager::branchLimit(),
         ]);
     }
 
     public function store(Request $request)
     {
+        if (! $this->canCreateBranch()) {
+            return redirect()
+                ->route('branches.index')
+                ->withErrors(['branches_limit' => $this->branchLimitMessage()]);
+        }
+
         $data = $this->validatedData($request);
         $data['code'] = $data['code'] ?: $this->generateCode();
 
@@ -128,6 +148,22 @@ class BranchController extends Controller
         } while (Branch::query()->where('code', $code)->exists());
 
         return $code;
+    }
+
+    private function canCreateBranch(): bool
+    {
+        $limit = SystemModuleManager::branchLimit();
+
+        return $limit === null || Branch::query()->count() < $limit;
+    }
+
+    private function branchLimitMessage(): string
+    {
+        $limit = SystemModuleManager::branchLimit();
+
+        return $limit === null
+            ? 'لا يمكن إضافة فرع جديد حالياً.'
+            : "لا يمكن إضافة فرع جديد لأن العدد المسموح به للفروع هو {$limit}.";
     }
 
     private function normalizeWorkingHours(array $hours): array

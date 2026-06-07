@@ -61,6 +61,7 @@ const PARTENR_CONTROL = 'partenr_control';
     const CLIENTS_SHOW = 'clients_show';
     const CLIENTS_CREATE_RECRUITMENT = 'clients_create_recruitment';
     const CLIENTS_SETTINGS = 'clients_settings';
+    const CLIENTS_VIEW_ALL_BRANCHES = 'clients_view_all_branches';
 
     // ========================================
     // إدارة السير الذاتية (CV Management)

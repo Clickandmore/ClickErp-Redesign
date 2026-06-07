@@ -160,6 +160,11 @@ class AdminRoutePermissionMatrix
             return false;
         }
 
+        $branchPermission = BranchScopedPermissions::adminHasAnyPermission($admin, $permissions);
+        if ($branchPermission !== null) {
+            return $branchPermission;
+        }
+
         if (method_exists($admin, 'hasAnyPermission') && $admin->hasAnyPermission($permissions)) {
             return true;
         }

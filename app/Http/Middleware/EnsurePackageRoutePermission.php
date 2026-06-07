@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Enums\AdminTypeisEnum;
+use App\Support\BranchScopedPermissions;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -119,6 +120,11 @@ class EnsurePackageRoutePermission
 
     private function adminHasAnyPermission($admin, array $permissions): bool
     {
+        $branchPermission = BranchScopedPermissions::adminHasAnyPermission($admin, $permissions);
+        if ($branchPermission !== null) {
+            return $branchPermission;
+        }
+
         if (method_exists($admin, 'hasAnyPermission') && $admin->hasAnyPermission($permissions)) {
             return true;
         }
