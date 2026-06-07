@@ -50,6 +50,10 @@ class Setting extends Model
         'about_us_app',
         'return_conditions',
         'offer_text',
+        'seo_article_tags',
+        'meta_title',
+        'meta_description',
+        'meta_keywords',
     ];
     protected $translationForeignKey = 'setting_id';
     public $translationModel = SettingsTranslation::class;

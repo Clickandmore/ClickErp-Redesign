@@ -13,7 +13,9 @@ class SettingResource extends JsonResource
      * @return array|\Illuminate\Contracts\Support\Arrayable|\JsonSerializable
      */
     public function toArray($request)
-        {
+    {
+        $seo = $this->seoPayload();
+
         return [
 			'id' => (int)$this->id,
 			'website_name' => (string)$this->website_name,
@@ -54,6 +56,11 @@ class SettingResource extends JsonResource
 
             'work_times' => (string)$this->work_times,
             'offer_text' => (string)$this->offer_text,
+            'seo' => $seo,
+            'seo_article_tags' => $seo['article_tags'],
+            'meta_title' => $seo['meta_title'],
+            'meta_description' => $seo['meta_description'],
+            'meta_keywords' => $seo['meta_keywords'],
 
             'privacy_policy' => (string)$this->privacy_policy,
             'terms_conditions' => (string)$this->terms_conditions,
@@ -66,5 +73,30 @@ class SettingResource extends JsonResource
             'has_offers' => (bool)$this->has_offers,
             'show_customer_service_during_booking' => (bool)$this->show_customer_service_during_booking
 		];
+    }
+
+    private function seoPayload(): array
+    {
+        $locale = $this->currentLocale();
+
+        return [
+            'locale' => $locale,
+            'article_tags' => $this->translatedValue($locale, 'seo_article_tags'),
+            'meta_title' => $this->translatedValue($locale, 'meta_title'),
+            'meta_description' => $this->translatedValue($locale, 'meta_description'),
+            'meta_keywords' => $this->translatedValue($locale, 'meta_keywords'),
+        ];
+    }
+
+    private function currentLocale(): string
+    {
+        $locale = app()->getLocale();
+
+        return in_array($locale, ['ar', 'en'], true) ? $locale : 'ar';
+    }
+
+    private function translatedValue(string $locale, string $attribute): string
+    {
+        return (string) (optional($this->translate($locale, false))->{$attribute} ?? '');
     }
 }
