@@ -94,9 +94,10 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
                 })
                 ->addColumn('client', function (Contract $contract) {
                     $name = e($contract->user?->name ?? 'غير محدد');
-                    $identity = e($contract->user?->national_num ?? '-');
+                    $identity = e($contract->user?->documentNumber() ?? '-');
+                    $identityLabel = e($contract->user?->documentNumberLabel() ?? 'هوية');
 
-                    return '<div class="fw-semibold">' . $name . '</div><small class="text-muted">هوية: ' . $identity . '</small>';
+                    return '<div class="fw-semibold">' . $name . '</div><small class="text-muted">' . $identityLabel . ': ' . $identity . '</small>';
                 })
                 ->addColumn('worker', function (Contract $contract) {
                     $workerName = e($contract->maid?->name ?? $contract->info?->manual_maid_name ?? 'غير محدد');

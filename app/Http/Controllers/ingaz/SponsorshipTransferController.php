@@ -88,7 +88,7 @@ class SponsorshipTransferController extends Controller
                     if ($transfer->oldSponsor) {
                         return '<div class="user-info">
                                     <strong>' . $transfer->oldSponsor->name . '</strong><br>
-                                    <small class="text-muted">هوية: ' . ($transfer->oldSponsor->national_num ?? 'غير محدد') . '</small><br>
+                                    <small class="text-muted">' . e($transfer->oldSponsor->documentNumberLabel()) . ': ' . e($transfer->oldSponsor->documentNumber() ?? 'غير محدد') . '</small><br>
                                     <small class="text-muted">جوال: ' . $transfer->oldSponsor->phone . '</small>
                                 </div>';
                     }
@@ -98,7 +98,7 @@ class SponsorshipTransferController extends Controller
                     if ($transfer->newSponsor) {
                         return '<div class="user-info">
                                     <strong>' . $transfer->newSponsor->name . '</strong><br>
-                                    <small class="text-muted">هوية: ' . ($transfer->newSponsor->national_num ?? 'غير محدد') . '</small><br>
+                                    <small class="text-muted">' . e($transfer->newSponsor->documentNumberLabel()) . ': ' . e($transfer->newSponsor->documentNumber() ?? 'غير محدد') . '</small><br>
                                     <small class="text-muted">جوال: ' . $transfer->newSponsor->phone . '</small>
                                 </div>';
                     }
@@ -1009,7 +1009,7 @@ class SponsorshipTransferController extends Controller
                         ->orWhere('phone', 'LIKE', "%{$search}%");
                 });
             })
-            ->select('id', 'name', 'national_num', 'phone', 'phone_code', 'city')
+            ->select('id', 'name', 'national_num', 'client_type', 'tax_number', 'license_number', 'phone', 'phone_code', 'city')
             ->latest('id')
             ->limit(10)
             ->get();
@@ -1019,7 +1019,7 @@ class SponsorshipTransferController extends Controller
 
             return [
                 'id' => $client->id,
-                'text' => $client->name . ' - ' . ($client->national_num ?: 'بدون هوية') . ' - ' . ($phone ?: 'بدون جوال')
+                'text' => $client->name . ' - ' . ($client->searchableDocumentNumber() ?: 'بدون هوية') . ' - ' . ($phone ?: 'بدون جوال')
             ];
         });
 
@@ -1062,8 +1062,8 @@ class SponsorshipTransferController extends Controller
                 $updates['register_from'] = 'dashboard';
             }
 
-            if ($nationalNum !== '' && empty($existingByPhone->national_num)) {
-                $updates['national_num'] = $nationalNum;
+            if ($nationalNum !== '' && blank($existingByPhone->documentNumber())) {
+                $updates = $existingByPhone->clientTypeAwarePayload($updates, $nationalNum);
             }
 
             if (!empty($updates)) {

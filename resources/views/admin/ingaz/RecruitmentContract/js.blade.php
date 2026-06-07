@@ -53,12 +53,16 @@
 
         function showUserData(response) {
             const userData = response;
+            const isCompanyClient = String(userData.client_type || '').toLowerCase() === 'company';
+            const clientDocumentNumber = isCompanyClient
+                ? (userData.tax_number || userData.document_number || userData.national_num || '')
+                : (userData.document_number || userData.national_num || '');
             //
             $('#client_name').val(userData.name);
             $('#client_phone').val(userData.phone);
             $('#client_nationality_id').val(userData.nationality_id);
             $('#client_email').val(userData.email);
-            $('#client_national_num').val(userData.national_num);
+            $('#client_national_num').val(clientDocumentNumber);
             $('#client_birthdate').val(userData.birthdate);
             $('#phone2').val(userData.phone2);
             $('#address').val(userData.address);
@@ -67,6 +71,22 @@
             $('#family_num').val(userData.family_num);
             $('#children').val(userData.children);
             $('#job').val(userData.job);
+
+            const $documentInput = $('#client_national_num');
+            const $personFieldWrappers = $('#client_birthdate, #beds_num, #family_num, #children, #job')
+                .map(function () {
+                    return $(this).closest('.js-client-person-field, .col-md-6, .col-lg-6')[0];
+                });
+
+            $documentInput.closest('.js-client-document-field, .col-md-6, .col-lg-6')
+                .find('label').first()
+                .html((isCompanyClient ? @json(helperTrans('ingaz.tax_number')) : @json(helperTrans('ingaz.national_num'))) + ' <span class="text-danger">*</span>');
+            $personFieldWrappers.toggleClass('d-none', isCompanyClient);
+            $personFieldWrappers.find('input, select, textarea').prop('disabled', isCompanyClient);
+
+            if (isCompanyClient) {
+                $personFieldWrappers.find('input, select, textarea').val('');
+            }
         }
 
         function showMaidData(response) {

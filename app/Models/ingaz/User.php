@@ -33,6 +33,57 @@ class User extends Authenticatable implements JWTSubject
         'branch_id' => 'integer',
     ];
 
+    public function isCompanyClient(): bool
+    {
+        return (string) $this->client_type === 'company';
+    }
+
+    public function documentNumberLabel(): string
+    {
+        return $this->isCompanyClient()
+            ? __('ingaz.tax_number')
+            : __('ingaz.national_num');
+    }
+
+    public function documentNumber(): ?string
+    {
+        $value = $this->isCompanyClient()
+            ? $this->tax_number
+            : $this->national_num;
+
+        $value = trim((string) $value);
+
+        return $value !== '' ? $value : null;
+    }
+
+    public function searchableDocumentNumber(): ?string
+    {
+        return $this->documentNumber() ?: ($this->national_num ?: $this->tax_number);
+    }
+
+    public function clientTypeAwarePayload(array $payload, $documentNumber = null): array
+    {
+        if ($this->isCompanyClient()) {
+            foreach (['national_num', 'birthdate', 'marital_status', 'rooms_num', 'family_num', 'children', 'job', 'profession', 'monthly_income'] as $field) {
+                unset($payload[$field]);
+            }
+
+            if ($documentNumber !== null && trim((string) $documentNumber) !== '') {
+                $payload['tax_number'] = trim((string) $documentNumber);
+            }
+
+            return $payload;
+        }
+
+        if ($documentNumber !== null) {
+            $payload['national_num'] = trim((string) $documentNumber) !== ''
+                ? trim((string) $documentNumber)
+                : $this->national_num;
+        }
+
+        return $payload;
+    }
+
     protected static function booted(): void
     {
         static::creating(function (User $user) {

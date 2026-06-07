@@ -88,6 +88,19 @@ class UserController extends Controller
                 }
             }
 
+            if ($request->filled('client_type')) {
+                $clientType = $request->get('client_type');
+                if ($clientType === 'company') {
+                    $units->where('client_type', 'company');
+                } elseif ($clientType === 'person') {
+                    $units->where(function ($query) {
+                        $query->where('client_type', 'person')
+                            ->orWhereNull('client_type')
+                            ->orWhere('client_type', '');
+                    });
+                }
+            }
+
             if ($request->filled('nationality_id')) {
                 $units->where('nationality_id', $request->get('nationality_id'));
             }
@@ -126,7 +139,9 @@ class UserController extends Controller
                         ->orWhere('email', 'like', '%' . $keyword . '%')
                         ->orWhere('phone', 'like', '%' . $keyword . '%')
                         ->orWhere('phone2', 'like', '%' . $keyword . '%')
-                        ->orWhere('national_num', 'like', '%' . $keyword . '%');
+                        ->orWhere('national_num', 'like', '%' . $keyword . '%')
+                        ->orWhere('tax_number', 'like', '%' . $keyword . '%')
+                        ->orWhere('license_number', 'like', '%' . $keyword . '%');
                 });
             }
 
@@ -174,7 +189,8 @@ class UserController extends Controller
                 ->editColumn('client_data', function ($row) {
                     $nationality = $row->nationality ? $row->nationality->title : helperTrans('ingaz.not_specified');
                     $city = $row->city ?: helperTrans('ingaz.not_specified');
-                    $idNumber = $row->national_num ? '<span class="badge bg-light text-dark border me-1"><i class="fas fa-id-card me-1"></i>' . e($row->national_num) . '</span>' : '';
+                    $documentNumber = $row->documentNumber();
+                    $idNumber = $documentNumber ? '<span class="badge bg-light text-dark border me-1"><i class="fas fa-id-card me-1"></i>' . e($row->documentNumberLabel()) . ': ' . e($documentNumber) . '</span>' : '';
 
                     $primary = $row->phone
                         ? '<a href="tel:' . e($row->phone_code . $row->phone) . '" class="text-decoration-none">
@@ -470,10 +486,13 @@ class UserController extends Controller
             'phone' => 'required|string|max:20',
             'email' => 'nullable|email|max:255|unique:users,email',
             'client_category_id' => 'nullable|exists:fn_client_categories,id',
+            'client_type' => 'required|string|in:person,company',
             'nationality_id' => 'nullable|exists:countries,id',
-            'national_num' => 'required|string|max:50|unique:users,national_num',
+            'national_num' => 'nullable|required_if:client_type,person|string|max:50|unique:users,national_num',
+            'tax_number' => 'nullable|required_if:client_type,company|string|max:50|unique:users,tax_number',
+            'license_number' => 'nullable|required_if:client_type,company|string|max:100',
             'birthdate' => 'nullable|date',
-            'marital_status' => 'required|string|in:single,married,divorced,widowed',
+            'marital_status' => 'nullable|required_if:client_type,person|string|in:single,married,divorced,widowed',
             'phone2' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:255',
             'city' => 'nullable|string|max:100',
@@ -489,8 +508,13 @@ class UserController extends Controller
 
         $data = $request->validate($rules, [
             'national_num.required' => __('ingaz.client_national_num_required'),
+            'national_num.required_if' => __('ingaz.client_national_num_required'),
             'national_num.unique' => __('ingaz.client_national_num_already_exists'),
+            'tax_number.required_if' => __('ingaz.client_tax_number_required'),
+            'tax_number.unique' => __('ingaz.client_tax_number_already_exists'),
+            'license_number.required_if' => __('ingaz.client_license_number_required'),
             'marital_status.required' => __('ingaz.marital_status_required'),
+            'marital_status.required_if' => __('ingaz.marital_status_required'),
             'marital_status.in' => 'الحالة الاجتماعية المختارة غير صحيحة',
         ]);
 
@@ -522,6 +546,7 @@ class UserController extends Controller
         $data['register_from'] = 'dashboard';
         $data['is_blocked'] = 0;
         $data['created_by'] = Auth::guard('admin')->id() ?: Auth::id();
+        $data = $this->normalizeClientTypeData($data);
 
         if ($this->branchesEnabled()) {
             $data['branch_id'] = $this->mainBranchId() ?: ($data['branch_id'] ?? null);
@@ -560,14 +585,14 @@ class UserController extends Controller
             $financeClientCategoryId = $this->resolveFinanceClientCategoryId($data['client_category_id'] ?? null);
 
             Client::create([
-                'is_company' => 0,
+                'is_company' => ($data['client_type'] ?? 'person') === 'company' ? 1 : 0,
                 'client_category_id' => $financeClientCategoryId,
                 'name' => $data['name'],
                 'phone' => $data['phone'],
                 'email' => $data['email'] ?? '',
                 'address' => $data['address'] ?? '',
                 'city' => $data['city'] ?? null,
-                'tax_number' => $data['national_num'] ?? null,
+                'tax_number' => $this->financeTaxNumberFromClientData($data),
                 'code' => $newAccount->code,
                 'days_credit_period' => 30,
                 'credit_limit' => 30,
@@ -934,9 +959,12 @@ class UserController extends Controller
             'email' => 'nullable|email|max:255|unique:users,email,' . $client->id,
             'nationality_id' => 'nullable|exists:countries,id',
             'client_category_id' => 'nullable|exists:fn_client_categories,id',
-            'national_num' => 'required|string|max:50|unique:users,national_num,' . $client->id,
+            'client_type' => 'required|string|in:person,company',
+            'national_num' => 'nullable|required_if:client_type,person|string|max:50|unique:users,national_num,' . $client->id,
+            'tax_number' => 'nullable|required_if:client_type,company|string|max:50|unique:users,tax_number,' . $client->id,
+            'license_number' => 'nullable|required_if:client_type,company|string|max:100',
             'birthdate' => 'nullable|date',
-            'marital_status' => 'required|string|in:single,married,divorced,widowed',
+            'marital_status' => 'nullable|required_if:client_type,person|string|in:single,married,divorced,widowed',
             'phone2' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:255',
             'city' => 'nullable|string|max:100',
@@ -968,8 +996,13 @@ class UserController extends Controller
             'national_num.string' => __('ingaz.client_national_num_max'),
             'national_num.max' => __('ingaz.client_national_num_max'),
             'national_num.required' => __('ingaz.client_national_num_required'),
+            'national_num.required_if' => __('ingaz.client_national_num_required'),
             'national_num.unique' => __('ingaz.client_national_num_already_exists'),
+            'tax_number.required_if' => __('ingaz.client_tax_number_required'),
+            'tax_number.unique' => __('ingaz.client_tax_number_already_exists'),
+            'license_number.required_if' => __('ingaz.client_license_number_required'),
             'marital_status.required' => __('ingaz.marital_status_required'),
+            'marital_status.required_if' => __('ingaz.marital_status_required'),
             'marital_status.in' => 'الحالة الاجتماعية المختارة غير صحيحة',
             'birthdate.date' => __('ingaz.client_birthdate_invalid'),
             'phone2.string' => __('ingaz.client_phone2_max'),
@@ -1019,6 +1052,8 @@ class UserController extends Controller
             $data['branch_id'] = $client->branch_id;
         }
 
+        $data = $this->normalizeClientTypeData($data);
+
         $client->update($data);
         $clientAccount = Account::find($client->account_id);
         $clientFinance = Client::where('account_id', $client->account_id)->first();
@@ -1029,7 +1064,8 @@ class UserController extends Controller
                 'email' => $data['email'] ?? '',
                 'address' => $data['address'] ?? '',
                 'city' => $data['city'] ?? null,
-                'tax_number' => $data['national_num'] ?? null,
+                'is_company' => ($data['client_type'] ?? 'person') === 'company' ? 1 : 0,
+                'tax_number' => $this->financeTaxNumberFromClientData($data),
                 'client_category_id' => $data['client_category_id'] ?? $clientFinance->client_category_id,
             ]);
         }
@@ -1037,6 +1073,35 @@ class UserController extends Controller
             $clientAccount->update(['name' => $data['name']]);
         }
         return jsonSuccess(null, null, 201);
+    }
+
+    private function normalizeClientTypeData(array $data): array
+    {
+        $data['client_type'] = ($data['client_type'] ?? 'person') === 'company' ? 'company' : 'person';
+
+        if ($data['client_type'] === 'company') {
+            foreach (['national_num', 'birthdate', 'marital_status', 'rooms_num', 'family_num', 'children', 'job'] as $field) {
+                $data[$field] = null;
+            }
+            return $data;
+        }
+
+        foreach (['tax_number', 'license_number'] as $field) {
+            $data[$field] = null;
+        }
+
+        return $data;
+    }
+
+    private function financeTaxNumberFromClientData(array $data): ?string
+    {
+        $value = ($data['client_type'] ?? 'person') === 'company'
+            ? ($data['tax_number'] ?? null)
+            : ($data['national_num'] ?? null);
+
+        $value = trim((string) $value);
+
+        return $value !== '' ? $value : null;
     }
 
     private function branchesEnabled(): bool
@@ -1235,7 +1300,8 @@ class UserController extends Controller
                         <th>' . __('ingaz.phone') . '</th>
                         <th>' . __('ingaz.email') . '</th>
                         <th>' . __('ingaz.nationality') . '</th>
-                        <th>' . __('ingaz.national_num') . '</th>
+                        <th>' . __('ingaz.client_type') . '</th>
+                        <th>' . __('ingaz.identity') . '</th>
                         <th>' . __('ingaz.birthdate') . '</th>
                         <th>' . __('ingaz.address') . '</th>
                         <th>' . __('ingaz.city') . '</th>
@@ -1254,7 +1320,8 @@ class UserController extends Controller
                 <td>' . $client->phone_code . $client->phone . '</td>
                 <td>' . $client->email . '</td>
                 <td>' . ($client->nationality->title ?? '') . '</td>
-                <td>' . $client->national_num . '</td>
+                <td>' . ($client->isCompanyClient() ? __('ingaz.company') : __('ingaz.person_client')) . '</td>
+                <td>' . $client->documentNumberLabel() . ': ' . ($client->documentNumber() ?: '') . '</td>
                 <td>' . $client->birthdate . '</td>
                 <td>' . $client->address . '</td>
                 <td>' . $client->city . '</td>
@@ -1380,7 +1447,8 @@ class UserController extends Controller
                         <th>' . __('ingaz.phone') . '</th>
                         <th>' . __('ingaz.email') . '</th>
                         <th>' . __('ingaz.nationality') . '</th>
-                        <th>' . __('ingaz.national_num') . '</th>
+                        <th>' . __('ingaz.client_type') . '</th>
+                        <th>' . __('ingaz.identity') . '</th>
                         <th>' . __('ingaz.birthdate') . '</th>
                         <th>' . __('ingaz.address') . '</th>
                         <th>' . __('ingaz.city') . '</th>
@@ -1399,7 +1467,8 @@ class UserController extends Controller
                 <td>' . $client->phone_code . $client->phone . '</td>
                 <td>' . $client->email . '</td>
                 <td>' . ($client->nationality->title ?? '') . '</td>
-                <td>' . $client->national_num . '</td>
+                <td>' . ($client->isCompanyClient() ? __('ingaz.company') : __('ingaz.person_client')) . '</td>
+                <td>' . $client->documentNumberLabel() . ': ' . ($client->documentNumber() ?: '') . '</td>
                 <td>' . $client->birthdate . '</td>
                 <td>' . $client->address . '</td>
                 <td>' . $client->city . '</td>
@@ -1440,7 +1509,8 @@ class UserController extends Controller
             __('ingaz.phone'),
             __('ingaz.email'),
             __('ingaz.nationality'),
-            __('ingaz.national_num'),
+            __('ingaz.client_type'),
+            __('ingaz.identity'),
             __('ingaz.birthdate'),
             __('ingaz.address'),
             __('ingaz.city'),
@@ -1466,7 +1536,7 @@ class UserController extends Controller
                 ],
             ],
         ];
-        $sheet->getStyle('A1:J1')->applyFromArray($headerStyle);
+        $sheet->getStyle('A1:K1')->applyFromArray($headerStyle);
 
         // Set data
         $row = 2;
@@ -1476,16 +1546,17 @@ class UserController extends Controller
             $sheet->setCellValue('C' . $row, $client->phone_code . $client->phone);
             $sheet->setCellValue('D' . $row, $client->email);
             $sheet->setCellValue('E' . $row, $client->nationality->title ?? '');
-            $sheet->setCellValue('F' . $row, $client->national_num);
-            $sheet->setCellValue('G' . $row, $client->birthdate);
-            $sheet->setCellValue('H' . $row, $client->address);
-            $sheet->setCellValue('I' . $row, $client->city);
-            $sheet->setCellValue('J' . $row, $client->is_blocked ? __('ingaz.blocked') : __('ingaz.active'));
+            $sheet->setCellValue('F' . $row, $client->isCompanyClient() ? __('ingaz.company') : __('ingaz.person_client'));
+            $sheet->setCellValue('G' . $row, $client->documentNumberLabel() . ': ' . ($client->documentNumber() ?: ''));
+            $sheet->setCellValue('H' . $row, $client->birthdate);
+            $sheet->setCellValue('I' . $row, $client->address);
+            $sheet->setCellValue('J' . $row, $client->city);
+            $sheet->setCellValue('K' . $row, $client->is_blocked ? __('ingaz.blocked') : __('ingaz.active'));
             $row++;
         }
 
         // Auto-size columns
-        foreach (range('A', 'J') as $column) {
+        foreach (range('A', 'K') as $column) {
             $sheet->getColumnDimension($column)->setAutoSize(true);
         }
 

@@ -3965,4 +3965,9 @@ return array (
   'contracted' => 'Contracted',
   'force_delete' => 'Force delete',
   'cvs-recruitment-returns' => 'Recruitment Return CVs',
+  'person_client' => 'Person',
+  'tax_number' => 'Tax Number',
+  'client_tax_number_required' => 'Tax number is required for company clients.',
+  'client_tax_number_already_exists' => 'Tax number is already used for another client.',
+  'client_license_number_required' => 'License number is required for company clients.',
 );

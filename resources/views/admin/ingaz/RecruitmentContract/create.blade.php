@@ -366,6 +366,23 @@
                                     </div>
                                     <div class="card-body p-2">
                                         <div class="row">
+                                            <div class="col-12 mb-2">
+                                                <label class="form-label d-block">{{ helperTrans('ingaz.client_type') }} <span class="text-danger">*</span></label>
+                                                <div class="d-flex flex-wrap gap-3">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input js-account-client-type" type="radio"
+                                                            name="account_client_type" id="new_account_client_type_person"
+                                                            value="person" checked>
+                                                        <label class="form-check-label" for="new_account_client_type_person">شخص</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input js-account-client-type" type="radio"
+                                                            name="account_client_type" id="new_account_client_type_company"
+                                                            value="company">
+                                                        <label class="form-check-label" for="new_account_client_type_company">شركة</label>
+                                                    </div>
+                                                </div>
+                                            </div>
                                             <div class="col-md-6 mb-2">
                                                 <label class="form-label">{{ helperTrans('ingaz.client_name') }} <span
                                                         class="text-danger">*</span></label>
@@ -402,15 +419,21 @@
                                                     class="form-control">
                                                 <div class="invalid-feedback" id="err_new_client_email"></div>
                                             </div>
-                                            <div class="col-md-6 mb-2">
-                                                <label class="form-label">{{ helperTrans('ingaz.national_num') }} <span
+                                            <div class="col-md-6 mb-2 js-client-document-field">
+                                                <label class="form-label js-client-document-label">{{ helperTrans('ingaz.national_num') }} <span
                                                         class="text-danger">*</span></label>
                                                 <input type="text" id="new_client_national_num"
                                                     name="new_client_national_num" class="form-control"
                                                     data-validation="required">
                                                 <div class="invalid-feedback" id="err_new_client_national_num"></div>
                                             </div>
-                                            <div class="col-md-6 mb-2">
+                                            <div class="col-md-6 mb-2 js-client-company-field d-none">
+                                                <label class="form-label">{{ helperTrans('ingaz.license_number') }} <small
+                                                        class="text-muted">(اختياري)</small></label>
+                                                <input type="text" id="new_client_license_number"
+                                                    name="new_client_license_number" class="form-control">
+                                            </div>
+                                            <div class="col-md-6 mb-2 js-client-birthdate-field js-client-person-field">
                                                 <label class="form-label">{{ helperTrans('ingaz.birthdate') }} <span
                                                         class="text-danger">*</span></label>
                                                 <input type="text" id="new_client_birthdate"
@@ -450,25 +473,25 @@
                                                         موجودة.</small>
                                                 </div>
                                             </div>
-                                            <div class="col-md-6 mb-2">
+                                            <div class="col-md-6 mb-2 js-client-person-field">
                                                 <label class="form-label">{{ helperTrans('ingaz.beds number') }} <small
                                                         class="text-muted">(اختياري)</small></label>
                                                 <input type="text" id="new_client_beds_num" name="new_client_beds_num"
                                                     class="form-control">
                                             </div>
-                                            <div class="col-md-6 mb-2">
+                                            <div class="col-md-6 mb-2 js-client-person-field">
                                                 <label class="form-label">{{ helperTrans('ingaz.family_number') }} <small
                                                         class="text-muted">(اختياري)</small></label>
                                                 <input type="text" id="new_client_family_num"
                                                     name="new_client_family_num" class="form-control">
                                             </div>
-                                            <div class="col-md-6 mb-2">
+                                            <div class="col-md-6 mb-2 js-client-person-field">
                                                 <label class="form-label">{{ helperTrans('ingaz.children') }} <small
                                                         class="text-muted">(اختياري - تحت سن 12)</small></label>
                                                 <input type="number" id="new_client_children" name="new_client_children"
                                                     class="form-control" max="50">
                                             </div>
-                                            <div class="col-md-6 mb-2">
+                                            <div class="col-md-6 mb-2 js-client-person-field">
                                                 <label class="form-label">{{ helperTrans('ingaz.job') }} <small
                                                         class="text-muted">(اختياري)</small></label>
                                                 <input type="text" id="new_client_job" name="new_client_job"
@@ -928,7 +951,11 @@
                                                 data-client-name="{{ $plainTextValue($order->user->name ?? '') }}"
                                                 data-client-phone="{{ $plainTextValue($order->user->phone ?? '') }}"
                                                 data-client-email="{{ $plainTextValue($order->user->email ?? '') }}"
-                                                data-client-national-num="{{ $plainTextValue($order->user->national_num ?? '') }}"
+                                                data-client-national-num="{{ $plainTextValue($order->user?->documentNumber() ?? '') }}"
+                                                data-account-client-type="{{ $order->user?->client_type ?? 'person' }}"
+                                                data-client-document-label="{{ $plainTextValue($order->user?->documentNumberLabel() ?? helperTrans('ingaz.national_num')) }}"
+                                                data-client-tax-number="{{ $plainTextValue($order->user?->tax_number ?? '') }}"
+                                                data-client-license-number="{{ $plainTextValue($order->user?->license_number ?? '') }}"
                                                 data-client-birthdate="{{ $order->user->birthdate ?? '' }}"
                                                 data-client-phone2="{{ $plainTextValue($order->user->phone2 ?? '') }}"
                                                 data-client-address="{{ $plainTextValue($order->user->address ?? '') }}"
@@ -1147,6 +1174,56 @@
             }
 
             return $option.data(attrName || key);
+        }
+
+        function isCompanyClientType(value) {
+            return String(value || '').toLowerCase() === 'company';
+        }
+
+        function selectedClientDocumentNumber(clientData) {
+            if (!clientData) {
+                return '';
+            }
+
+            return isCompanyClientType(clientData.client_type)
+                ? (clientData.tax_number || clientData.document_number || clientData.national_num || '')
+                : (clientData.document_number || clientData.national_num || '');
+        }
+
+        function applyRecruitmentClientDocumentMode(options) {
+            var isCompany = isCompanyClientType(options.clientType);
+            var label = options.documentLabel || (isCompany ? @json(helperTrans('ingaz.tax_number')) : @json(helperTrans('ingaz.national_num')));
+            var $documentInput = $(options.documentInput);
+            var $birthdateInput = $(options.birthdateInput);
+            var $documentWrapper = $documentInput.closest('.js-client-document-field, .col-md-6, .col-lg-6');
+            var $birthdateWrapper = $birthdateInput.closest('.js-client-birthdate-field, .col-md-6, .col-lg-6');
+            var $personFieldWrappers = options.personFields
+                ? $(options.personFields).map(function() {
+                    return $(this).closest('.js-client-person-field, .col-md-6, .col-lg-6')[0];
+                })
+                : $birthdateWrapper;
+            var $companyFieldWrappers = options.companyFields
+                ? $(options.companyFields).map(function() {
+                    return $(this).closest('.js-client-company-field, .col-md-6, .col-lg-6')[0];
+                })
+                : $();
+            var $accountTypeInputs = options.accountTypeInputs
+                ? $(options.accountTypeInputs)
+                : $documentWrapper.closest('form').find('input[name="account_client_type"]');
+
+            $documentWrapper.find('label').first().html(label + ' <span class="text-danger">*</span>');
+            $personFieldWrappers.toggleClass('d-none', isCompany);
+            $personFieldWrappers.find('input, select, textarea').prop('disabled', isCompany);
+            $companyFieldWrappers.toggleClass('d-none', !isCompany);
+            $companyFieldWrappers.find('input, select, textarea').prop('disabled', !isCompany);
+            $accountTypeInputs.filter('[value="' + (isCompany ? 'company' : 'person') + '"]').prop('checked', true);
+
+            if (isCompany) {
+                $personFieldWrappers.find('input, select, textarea').val('').removeClass('is-invalid');
+                $personFieldWrappers.find('.invalid-feedback').not('#err_new_client_national_num').remove();
+            } else {
+                $companyFieldWrappers.find('input, select, textarea').val('').removeClass('is-invalid');
+            }
         }
 
         function getNewMaidMode() {
@@ -1413,17 +1490,39 @@
 
                 // Fill in client data
                 if (selectedOrder.user) {
+                    var selectedOrderClientType = selectedOrder.user.client_type || 'person';
+                    var selectedOrderDocumentLabel = isCompanyClientType(selectedOrderClientType)
+                        ? @json(helperTrans('ingaz.tax_number'))
+                        : @json(helperTrans('ingaz.national_num'));
+
                     $('#client_name').val(sanitizeTextValue(selectedOrder.user.name));
                     $('#client_phone').val(sanitizePhoneValue(selectedOrder.user.phone));
                     $('#client_email').val(sanitizeTextValue(selectedOrder.user.email));
-                    $('#client_national_num').val(sanitizeTextValue(selectedOrder.user.national_num));
+                    $('#client_national_num').val(sanitizeTextValue(selectedClientDocumentNumber(selectedOrder.user)));
                     $('#client_birthdate').val(selectedOrder.user.birthdate || '');
+                    applyRecruitmentClientDocumentMode({
+                        clientType: selectedOrderClientType,
+                        documentLabel: selectedOrderDocumentLabel,
+                        documentInput: '#client_national_num',
+                        birthdateInput: '#client_birthdate',
+                        personFields: '#client_birthdate, #beds_num, #family_num, #children, #job',
+                        companyFields: '#client_license_number'
+                    });
                     $('#phone2').val(sanitizePhoneValue(selectedOrder.user.phone2));
                     $('#address').val(sanitizeTextValue(selectedOrder.user.address));
+                    $('#client_license_number').val(sanitizeTextValue(selectedOrder.user.license_number));
                     $('#beds_num').val(selectedOrder.user.beds_num || '');
                     $('#family_num').val(selectedOrder.user.family_num || '');
                     $('#children').val(selectedOrder.user.children || '');
                     $('#job').val(sanitizeTextValue(selectedOrder.user.job));
+                    applyRecruitmentClientDocumentMode({
+                        clientType: selectedOrderClientType,
+                        documentLabel: selectedOrderDocumentLabel,
+                        documentInput: '#client_national_num',
+                        birthdateInput: '#client_birthdate',
+                        personFields: '#client_birthdate, #beds_num, #family_num, #children, #job',
+                        companyFields: '#client_license_number'
+                    });
                     setSearchableSelectValue('#city', selectedOrder.user.city);
                     if (selectedOrder.user.nationality_id) {
                         $('#client_nationality_id').val(selectedOrder.user.nationality_id).trigger('change');
@@ -1555,20 +1654,47 @@
                 $('#client_name, #client_phone, #client_email, #client_national_num, #client_birthdate, #phone2, #address, #beds_num, #family_num, #children, #job, #maid_name, #maid_passport, #maid_religion, #maid_job, #maid_nationality, #maid_salary, #experience_years, #age')
                     .val('');
                 $('#client_nationality_id, #city').val('').trigger('change');
+                applyRecruitmentClientDocumentMode({
+                    clientType: 'person',
+                    documentInput: '#client_national_num',
+                    birthdateInput: '#client_birthdate',
+                    personFields: '#client_birthdate, #beds_num, #family_num, #children, #job',
+                    companyFields: '#client_license_number'
+                });
 
                 if (maidId) {
+                    var orderClientType = selectedOption.data('account-client-type') || 'person';
+                    var orderDocumentLabel = selectedOption.data('client-document-label') || (isCompanyClientType(orderClientType) ? @json(helperTrans('ingaz.tax_number')) : @json(helperTrans('ingaz.national_num')));
+
                     // Fill in the client form fields
                     $('#client_name').val(sanitizeTextValue(selectedOption.data('client-name')));
                     $('#client_phone').val(sanitizePhoneValue(selectedOption.data('client-phone')));
                     $('#client_email').val(sanitizeTextValue(selectedOption.data('client-email')));
                     $('#client_national_num').val(sanitizeTextValue(selectedOption.data('client-national-num')));
                     $('#client_birthdate').val(selectedOption.data('client-birthdate') || '');
+                    applyRecruitmentClientDocumentMode({
+                        clientType: orderClientType,
+                        documentLabel: orderDocumentLabel,
+                        documentInput: '#client_national_num',
+                        birthdateInput: '#client_birthdate',
+                        personFields: '#client_birthdate, #beds_num, #family_num, #children, #job',
+                        companyFields: '#client_license_number'
+                    });
                     $('#phone2').val(sanitizePhoneValue(selectedOption.data('client-phone2')));
                     $('#address').val(sanitizeTextValue(selectedOption.data('client-address')));
+                    $('#client_license_number').val(sanitizeTextValue(selectedOption.data('client-license-number')));
                     $('#beds_num').val(selectedOption.data('client-beds-num') || '');
                     $('#family_num').val(selectedOption.data('client-family-num') || '');
                     $('#children').val(selectedOption.data('client-children') || '');
                     $('#job').val(sanitizeTextValue(selectedOption.data('client-job')));
+                    applyRecruitmentClientDocumentMode({
+                        clientType: orderClientType,
+                        documentLabel: orderDocumentLabel,
+                        documentInput: '#client_national_num',
+                        birthdateInput: '#client_birthdate',
+                        personFields: '#client_birthdate, #beds_num, #family_num, #children, #job',
+                        companyFields: '#client_license_number'
+                    });
                     setSearchableSelectValue('#city', selectedOption.data('client-city'));
                     if (selectedOption.data('client-nationality')) {
                         $('#client_nationality_id').val(selectedOption.data('client-nationality')).trigger(
@@ -1720,6 +1846,13 @@
                 $('#new_existing_client_id').val('').trigger('change');
                 $('#new_existing_client_id').removeClass('is-invalid');
                 $('#err_new_existing_client_id').remove();
+                applyRecruitmentClientDocumentMode({
+                    clientType: 'person',
+                    documentInput: '#new_client_national_num',
+                    birthdateInput: '#new_client_birthdate',
+                    personFields: '#new_client_birthdate, #new_client_beds_num, #new_client_family_num, #new_client_children, #new_client_job',
+                    companyFields: '#new_client_license_number'
+                });
             }
 
             $('#use-direct-client-data').on('click', function() {
@@ -1727,7 +1860,23 @@
                 $('#new_client_name').trigger('focus');
             });
 
-            $('#new_client_name, #new_client_phone, #new_client_email, #new_client_national_num, #new_client_birthdate, #new_client_phone2, #new_client_address, #new_client_beds_num, #new_client_family_num, #new_client_children, #new_client_job')
+            $('input[name="account_client_type"]').on('change', function() {
+                var $form = $(this).closest('form');
+                var isNewContractForm = $form.attr('id') === 'newContractForm';
+
+                applyRecruitmentClientDocumentMode({
+                    clientType: $(this).val(),
+                    documentInput: isNewContractForm ? '#new_client_national_num' : '#client_national_num',
+                    birthdateInput: isNewContractForm ? '#new_client_birthdate' : '#client_birthdate',
+                    personFields: isNewContractForm
+                        ? '#new_client_birthdate, #new_client_beds_num, #new_client_family_num, #new_client_children, #new_client_job'
+                        : '#client_birthdate, #beds_num, #family_num, #children, #job',
+                    companyFields: isNewContractForm ? '#new_client_license_number' : '#client_license_number',
+                    accountTypeInputs: $form.find('input[name="account_client_type"]')
+                });
+            });
+
+            $('#new_client_name, #new_client_phone, #new_client_email, #new_client_national_num, #new_client_license_number, #new_client_birthdate, #new_client_phone2, #new_client_address, #new_client_beds_num, #new_client_family_num, #new_client_children, #new_client_job')
                 .on('input', function() {
                     if (!isFillingClientFromSelection && $('#new_existing_client_id').val()) {
                         clearSelectedClientForDirectEntry();
@@ -1771,8 +1920,17 @@
                     $('#new_client_email').val(sanitizeTextValue(optionOrAjaxData(selectedOption, selectedClient, 'email')));
                     $('#new_client_national_num').val(sanitizeTextValue(optionOrAjaxData(selectedOption, selectedClient, 'national_num', 'national-num')));
                     $('#new_client_birthdate').val(optionOrAjaxData(selectedOption, selectedClient, 'birthdate'));
+                    applyRecruitmentClientDocumentMode({
+                        clientType: optionOrAjaxData(selectedOption, selectedClient, 'client_type', 'account-client-type') || 'person',
+                        documentLabel: optionOrAjaxData(selectedOption, selectedClient, 'document_label', 'client-document-label'),
+                        documentInput: '#new_client_national_num',
+                        birthdateInput: '#new_client_birthdate',
+                        personFields: '#new_client_birthdate, #new_client_beds_num, #new_client_family_num, #new_client_children, #new_client_job',
+                        companyFields: '#new_client_license_number'
+                    });
                     $('#new_client_phone2').val(sanitizePhoneValue(optionOrAjaxData(selectedOption, selectedClient, 'phone2')));
                     $('#new_client_address').val(sanitizeTextValue(optionOrAjaxData(selectedOption, selectedClient, 'address')));
+                    $('#new_client_license_number').val(sanitizeTextValue(optionOrAjaxData(selectedOption, selectedClient, 'license_number', 'license-number')));
                     setSearchableSelectValue('#new_client_city', optionOrAjaxData(selectedOption, selectedClient, 'city'));
 
                     // تعبئة الحقول الاختيارية
@@ -1780,6 +1938,14 @@
                     $('#new_client_family_num').val(optionOrAjaxData(selectedOption, selectedClient, 'family_num', 'family-num'));
                     $('#new_client_children').val(optionOrAjaxData(selectedOption, selectedClient, 'children'));
                     $('#new_client_job').val(sanitizeTextValue(optionOrAjaxData(selectedOption, selectedClient, 'job')));
+                    applyRecruitmentClientDocumentMode({
+                        clientType: optionOrAjaxData(selectedOption, selectedClient, 'client_type', 'account-client-type') || 'person',
+                        documentLabel: optionOrAjaxData(selectedOption, selectedClient, 'document_label', 'client-document-label'),
+                        documentInput: '#new_client_national_num',
+                        birthdateInput: '#new_client_birthdate',
+                        personFields: '#new_client_birthdate, #new_client_beds_num, #new_client_family_num, #new_client_children, #new_client_job',
+                        companyFields: '#new_client_license_number'
+                    });
 
                     // تعبئة حقل الجنسية في dropdown
                     var selectedNationality = optionOrAjaxData(selectedOption, selectedClient, 'nationality');
@@ -1813,6 +1979,13 @@
                     if (isFillingClientFromSelection) {
                         return;
                     }
+                    applyRecruitmentClientDocumentMode({
+                        clientType: 'person',
+                        documentInput: '#new_client_national_num',
+                        birthdateInput: '#new_client_birthdate',
+                        personFields: '#new_client_birthdate, #new_client_beds_num, #new_client_family_num, #new_client_children, #new_client_job',
+                        companyFields: '#new_client_license_number'
+                    });
                 }
             });
             // عند اختيار عامل/ة في التبويب الجديد: عبئ بيانات العامل/ة (حقول منفصلة)
@@ -2645,11 +2818,13 @@
 
                 // أضف بيانات العميل حسب التبويب النشط
                 if (isNewContractTab) {
+                    formData.append('account_client_type', $('#tab-new-pane input[name="account_client_type"]:checked').val() || 'person');
                     formData.append('client_name', clientName);
                     formData.append('client_phone', clientPhone);
                     formData.append('client_email', clientEmail);
                     formData.append('client_nationality_id', $('#new_client_nationality_id').val() || '');
                     formData.append('new_client_national_num', clientNationalityNum);
+                    formData.append('new_client_license_number', $('#new_client_license_number').val() || '');
                     formData.append('new_client_birthdate', $('#new_client_birthdate').val());
                     formData.append('new_client_phone2', $('#new_client_phone2').val());
                     formData.append('new_client_address', $('#new_client_address').val());
@@ -2663,6 +2838,9 @@
                     var selectedOrder = $('#order_id').val();
                     formData.append('order_id', selectedOrder);
                     formData.append('client_type', 'ex_client');
+                    formData.append('account_client_type', $('#tab-order-pane input[name="account_client_type"]:checked').val() || 'person');
+                    formData.append('client_national_num', $('#client_national_num').val() || '');
+                    formData.append('client_license_number', $('#client_license_number').val() || '');
                 }
 
                 console.log('Client data prepared:', {

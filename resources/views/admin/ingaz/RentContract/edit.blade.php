@@ -291,10 +291,10 @@
                     <div class="form-group">
                         <label class="form-label">
                             <span class="required-star">*</span>
-                            رقم الهوية
+                            {{ $contract->user?->documentNumberLabel() ?? 'رقم الهوية' }}
                         </label>
                         <input type="text" class="form-control" id="client_national_num" name="client_national_num"
-                               value="{{ $contract->user->national_num ?? '' }}" required>
+                               value="{{ $contract->user?->documentNumber() ?? '' }}" required>
                     </div>
                 </div>
 
@@ -324,6 +324,7 @@
                     </div>
                 </div>
 
+                @unless($contract->user?->isCompanyClient())
                 <div class="col-md-6">
                     <div class="form-group">
                         <label class="form-label">تاريخ الميلاد</label>
@@ -347,6 +348,7 @@
                                value="{{ $contract->user->monthly_income ?? '' }}" min="0" step="0.01">
                     </div>
                 </div>
+                @endunless
 
                 <div class="col-md-8">
                     <div class="form-group">
@@ -367,6 +369,7 @@
                     </div>
                 </div>
 
+                @unless($contract->user?->isCompanyClient())
                 <div class="col-md-6">
                     <div class="form-group">
                         <label class="form-label">عدد أفراد الأسرة</label>
@@ -382,6 +385,7 @@
                                value="{{ $contract->user->children ?? '' }}" min="0" max="15">
                     </div>
                 </div>
+                @endunless
             </div>
         </div>
 

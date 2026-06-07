@@ -728,13 +728,14 @@
                                 <span class="value">{{ $contract->user?->email ?? 'غير محدد' }}</span>
                             </li>
                             <li>
-                                <span class="label">رقم الهوية</span>
-                                <span class="value">{{ $contract->user?->national_num ?? 'غير محدد' }}</span>
+                                <span class="label">{{ $contract->user?->documentNumberLabel() ?? 'رقم الهوية' }}</span>
+                                <span class="value">{{ $contract->user?->documentNumber() ?? 'غير محدد' }}</span>
                             </li>
                             <li>
                                 <span class="label">الجنسية</span>
                                 <span class="value">{{ $userNationality }}</span>
                             </li>
+                            @unless($contract->user?->isCompanyClient())
                             <li>
                                 <span class="label">المهنة</span>
                                 <span class="value">{{ $contract->user?->profession ?? 'غير محدد' }}</span>
@@ -743,6 +744,7 @@
                                 <span class="label">الدخل الشهري</span>
                                 <span class="value">{{ $contract->user?->monthly_income ? number_format($contract->user->monthly_income, 2) . ' ريال' : 'غير محدد' }}</span>
                             </li>
+                            @endunless
                             <li>
                                 <span class="label">المدينة</span>
                                 <span class="value">{{ $contract->user?->city ?? 'غير محدد' }}</span>
@@ -751,10 +753,12 @@
                                 <span class="label">العنوان</span>
                                 <span class="value">{{ $contract->user?->address ?? 'غير محدد' }}</span>
                             </li>
+                            @unless($contract->user?->isCompanyClient())
                             <li>
                                 <span class="label">عدد أفراد الأسرة / الأطفال</span>
                                 <span class="value">{{ $contract->user?->family_num ?? '-' }} / {{ $contract->user?->children ?? '-' }}</span>
                             </li>
+                            @endunless
                         </ul>
                     </div>
                 </div>

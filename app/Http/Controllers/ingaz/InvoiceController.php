@@ -538,12 +538,13 @@ class InvoiceController extends Controller
         $perPage = 20;
 
         $clients = ClientUser::query()
-            ->select(['id', 'name', 'phone', 'phone_code', 'national_num'])
+            ->select(['id', 'name', 'phone', 'phone_code', 'national_num', 'client_type', 'tax_number'])
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
                         ->orWhere('phone', 'like', "%{$search}%")
-                        ->orWhere('national_num', 'like', "%{$search}%");
+                        ->orWhere('national_num', 'like', "%{$search}%")
+                        ->orWhere('tax_number', 'like', "%{$search}%");
                 });
             })
             ->latest('id')
@@ -552,7 +553,8 @@ class InvoiceController extends Controller
         return response()->json([
             'results' => $clients->getCollection()->map(function ($client) {
                 $phone = trim((string) (($client->phone_code ?? '') . ($client->phone ?? '')));
-                $label = collect([$client->name, $phone, $client->national_num])
+                $documentNumber = $client->searchableDocumentNumber();
+                $label = collect([$client->name, $phone, $documentNumber])
                     ->filter()
                     ->implode(' - ');
 
@@ -561,7 +563,9 @@ class InvoiceController extends Controller
                     'text' => $label ?: ('عميل #' . $client->id),
                     'name' => $client->name,
                     'phone' => $phone,
-                    'national_num' => $client->national_num,
+                    'national_num' => $documentNumber,
+                    'identity' => $documentNumber,
+                    'identity_label' => $client->documentNumberLabel(),
                 ];
             })->values(),
             'pagination' => [
@@ -643,6 +647,11 @@ class InvoiceController extends Controller
             ->first();
 
         if ($client) {
+            $client->update([
+                'is_company' => $user->isCompanyClient() ? 1 : 0,
+                'tax_number' => $user->documentNumber() ?? $client->tax_number,
+            ]);
+
             return $client;
         }
 
@@ -665,8 +674,8 @@ class InvoiceController extends Controller
             'email' => $user->email ?? ' ',
             'city' => $user->city ?? ' ',
             'postal_zone' => $user->postal_zone ?? ' ',
-            'is_company' => 0,
-            'tax_number' => $user->tax_number ?? $user->national_num ?? ' ',
+            'is_company' => $user->isCompanyClient() ? 1 : 0,
+            'tax_number' => $user->documentNumber() ?? ' ',
             'days_credit_period' => 0,
             'credit_limit' => 0,
             'client_category_id' => $categoryId,
@@ -1506,7 +1515,8 @@ class InvoiceController extends Controller
 
         $client = $invoice->contract?->user ?: ($invoice->ingazDelegation?->user ?: $invoice->client);
         $customerName = $client?->name ?: '---';
-        $customerNationalId = $client?->national_num ?: '---';
+        $customerDocumentLabel = $client?->documentNumberLabel() ?: __('ingaz.national_num');
+        $customerNationalId = $client?->documentNumber() ?: '---';
         $customerPhone = $this->formatPhone((string) ($client?->phone_code ?? ''), (string) ($client?->phone ?? ''));
         $customerAddress = $client?->address ?: '---';
         $accountNumber = $client?->account_id ?: ($client?->id ?: ($invoice->contract_id ?: $invoice->ingaz_delegation_id));
@@ -1556,6 +1566,7 @@ class InvoiceController extends Controller
             'printedBy' => $printedBy,
             'printedAt' => $printedAt,
             'customerName' => $customerName,
+            'customerDocumentLabel' => $customerDocumentLabel,
             'customerNationalId' => $customerNationalId,
             'customerPhone' => $customerPhone,
             'customerAddress' => $customerAddress,

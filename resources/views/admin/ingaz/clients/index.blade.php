@@ -266,6 +266,14 @@
                                 </select>
                             </div>
                             <div class="col-xl-2 col-lg-3 col-md-4">
+                                <label class="form-label">{{ helperTrans('ingaz.client_type') }}</label>
+                                <select id="filter-client-type" class="form-select filter-trigger">
+                                    <option value="">{{ helperTrans('ingaz.all') }}</option>
+                                    <option value="person">{{ helperTrans('ingaz.person_client') }}</option>
+                                    <option value="company">{{ helperTrans('ingaz.company') }}</option>
+                                </select>
+                            </div>
+                            <div class="col-xl-2 col-lg-3 col-md-4">
                                 <label class="form-label">{{ helperTrans('ingaz.nationality_filter') }}</label>
                                 <select id="filter-nationality" class="form-select filter-trigger">
                                     <option value="">{{ helperTrans('ingaz.all') }}</option>
@@ -512,6 +520,7 @@
                     url: "{{ route('clients.index') }}",
                     data: function(d) {
                         d.status = $('#filter-status').val();
+                        d.client_type = $('#filter-client-type').val();
                         d.nationality_id = $('#filter-nationality').val();
                         d.city = $('#filter-city').val();
                         @if(($branchesEnabled ?? false) && ($canViewAllBranches ?? false))

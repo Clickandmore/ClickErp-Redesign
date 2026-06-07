@@ -194,7 +194,7 @@ class Contract extends Model
             'contract_number' => (string) $this->id,
             'visa_number' => trim((string) ($this->info?->visa_number ?? '')),
             'sponsor_name' => trim((string) ($this->user?->name ?? '')),
-            'sponsor_identity_number' => trim((string) ($this->user?->national_num ?? '')),
+            'sponsor_identity_number' => trim((string) ($this->user?->documentNumber() ?? '')),
             'worker_name' => trim((string) ($this->maid?->name ?? $this->info?->manual_maid_name ?? '')),
             'passport_number' => trim((string) ($this->maid?->passport_num ?? $this->info?->manual_maid_passport_num ?? '')),
             'worker_age' => $this->formatExternalOfficeDispatchAge($this->maid?->age),

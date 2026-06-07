@@ -42,9 +42,11 @@ class StoreRentalContractRequest extends FormRequest
             // معلومات العميل الأساسية
             'new_client_name' => 'required|string|max:255',
             'new_client_phone' => 'required|string|max:20',
+            'account_client_type' => 'nullable|in:person,company',
             'client_nationality_id' => 'required|exists:countries,id',
             'new_client_email' => 'nullable|email|max:255',
-            'new_client_national_num' => 'required|string|max:20',
+            'new_client_national_num' => 'required|string|max:50',
+            'new_client_license_number' => 'nullable|string|max:100',
             'new_client_birthdate' => 'nullable|date',
             'new_client_address' => 'nullable|string|max:500',
             'new_client_city' => 'required|string|max:100',
