@@ -61,6 +61,8 @@ class SettingRequest extends MainRequest
             'admin_quick_links.*.url' => 'nullable|url|max:500',
             'admin_quick_links.*.icon' => 'nullable|string|max:50',
             'admin_quick_links.*.is_visible' => 'nullable|boolean',
+            'tag_manager_head' => 'nullable|string',
+            'tag_manager_footer' => 'nullable|string',
             'location:ar' => 'nullable|string',
             'location:en' => 'nullable|string',
             'dashboard_name:ar' => 'nullable|string',

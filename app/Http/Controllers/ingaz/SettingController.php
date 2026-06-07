@@ -44,6 +44,8 @@ class SettingController extends Controller
         'live_chat_title',
         'live_chat_url',
         'admin_quick_links',
+        'tag_manager_head',
+        'tag_manager_footer',
         'there_are_offer',
         'location:ar',
         'location:en',
@@ -155,7 +157,7 @@ class SettingController extends Controller
 
     private function renderSection(string $section)
     {
-        $allowedSections = ['dashboard', 'general', 'social', 'branding', 'content', 'policies', 'translations'];
+        $allowedSections = ['dashboard', 'general', 'social', 'branding', 'content', 'policies', 'seo', 'translations'];
         if (!in_array($section, $allowedSections, true)) {
             $section = 'general';
         }

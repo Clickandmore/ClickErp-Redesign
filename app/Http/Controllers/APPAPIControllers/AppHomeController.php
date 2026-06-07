@@ -522,6 +522,8 @@ class AppHomeController extends Controller
             'meta_title' => $seo['meta_title'],
             'meta_description' => $seo['meta_description'],
             'meta_keywords' => $seo['meta_keywords'],
+            'tag_manager_head' => $seo['tag_manager_head'],
+            'tag_manager_footer' => $seo['tag_manager_footer'],
             'phone1' => $phone,
             'phone2' => $whatsapp !== '' ? $whatsapp : $otherPhone,
             'phone3' => $otherPhone,
@@ -597,6 +599,8 @@ class AppHomeController extends Controller
             'meta_title' => (string) ($translation?->meta_title ?? ''),
             'meta_description' => (string) ($translation?->meta_description ?? ''),
             'meta_keywords' => (string) ($translation?->meta_keywords ?? ''),
+            'tag_manager_head' => (string) ($setting->tag_manager_head ?? ''),
+            'tag_manager_footer' => (string) ($setting->tag_manager_footer ?? ''),
         ];
     }
 

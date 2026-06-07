@@ -100,42 +100,6 @@
         </div>
 
         <div class="col-12">
-            <h6 class="text-muted mb-2">SEO للموقع الخارجي</h6>
-            <div class="row g-3">
-                @foreach (config('translatable.locales') as $locale)
-                    <div class="col-md-6">
-                        <label class="form-label">Tags قسم المقالات {{ getFieldLanguage($locale) }}</label>
-                        <input type="text" name="seo_article_tags:{{ $locale }}"
-                               value="{{ $settings->translate($locale)->seo_article_tags ?? '' }}"
-                               class="form-control"
-                               placeholder="استقدام, عمالة منزلية, مقالات">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Meta Title {{ getFieldLanguage($locale) }}</label>
-                        <input type="text" name="meta_title:{{ $locale }}"
-                               value="{{ $settings->translate($locale)->meta_title ?? '' }}"
-                               class="form-control">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Meta Keywords {{ getFieldLanguage($locale) }}</label>
-                        <input type="text" name="meta_keywords:{{ $locale }}"
-                               value="{{ $settings->translate($locale)->meta_keywords ?? '' }}"
-                               class="form-control"
-                               placeholder="كلمات مفتاحية مفصولة بفواصل">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Meta Description {{ getFieldLanguage($locale) }}</label>
-                        <textarea name="meta_description:{{ $locale }}" class="form-control" rows="2">{{ $settings->translate($locale)->meta_description ?? '' }}</textarea>
-                    </div>
-                @endforeach
-            </div>
-        </div>
-
-        <div class="col-12">
-            <hr>
-        </div>
-
-        <div class="col-12">
             <h6 class="text-muted mb-2">{{ __('admin.settings_contact_data') }}</h6>
             <div class="row g-3">
                 <div class="col-md-6 col-xl-4">
