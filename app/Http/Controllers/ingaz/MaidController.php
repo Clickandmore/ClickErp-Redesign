@@ -1180,6 +1180,59 @@ class MaidController extends Controller
             'created_at' => $maid->created_at,
         ];
 
+        $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'];
+        $maidImages = collect([
+            [
+                'label' => helperTrans('ingaz.personal_photo'),
+                'path' => $maid->image,
+            ],
+            [
+                'label' => helperTrans('ingaz.full_photo'),
+                'path' => $maid->cv_file,
+            ],
+            [
+                'label' => helperTrans('ingaz.cv_preview'),
+                'path' => $maid->cv_preview,
+            ],
+        ])
+            ->merge(
+                $maid->attachments
+                    ->filter(function (MaidAttachment $attachment) use ($imageExtensions) {
+                        $extension = strtolower(pathinfo((string) $attachment->path, PATHINFO_EXTENSION));
+
+                        return $attachment->existsOnDisk()
+                            && (
+                                Str::startsWith((string) $attachment->mime_type, 'image/')
+                                || in_array($extension, $imageExtensions, true)
+                            );
+                    })
+                    ->map(fn (MaidAttachment $attachment) => [
+                        'label' => $attachment->title ?: $attachment->original_name,
+                        'path' => $attachment->path,
+                    ])
+            )
+            ->filter(fn ($image) => filled($image['path'] ?? null))
+            ->filter(function ($image) use ($imageExtensions) {
+                $extension = strtolower(pathinfo((string) $image['path'], PATHINFO_EXTENSION));
+                return in_array($extension, $imageExtensions, true);
+            })
+            ->map(function ($image) {
+                $url = showFile($image['path']);
+
+                if (!$url) {
+                    return null;
+                }
+
+                return [
+                    'label' => $image['label'],
+                    'path' => $image['path'],
+                    'url' => $url,
+                ];
+            })
+            ->filter()
+            ->unique('path')
+            ->values();
+
         $activities = method_exists($maid, 'activities')
             ? $this->buildActivityTimeline(
                 $maid->activities()->with('causer')->latest()->limit(12)->get(),
@@ -1227,7 +1280,8 @@ class MaidController extends Controller
             'rentalFinanceSummary',
             'isRentalMaid',
             'backToListRoute',
-            'hrEmployeeRecord'
+            'hrEmployeeRecord',
+            'maidImages'
         ));
     }
 

@@ -96,6 +96,38 @@
             color: #f59e0b;
             flex: 0 0 auto;
         }
+
+        .maid-photo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: .75rem;
+        }
+
+        .maid-photo-card {
+            display: block;
+            border: 1px solid #e8eef5;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #fff;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .maid-photo-card img {
+            width: 100%;
+            aspect-ratio: 4 / 3;
+            object-fit: cover;
+            display: block;
+            background: #f8fafc;
+        }
+
+        .maid-photo-card span {
+            display: block;
+            padding: .55rem .65rem;
+            font-size: .82rem;
+            font-weight: 700;
+            color: #243447;
+        }
     </style>
 @endsection
 
@@ -644,6 +676,26 @@
                             @else
                                 <p class="text-muted mb-0">{{ helperTrans('ingaz.no_maid_attachments') }}</p>
                             @endif
+
+                            <div class="mt-4 pt-3 border-top">
+                                <h6 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                                    <i class="fas fa-images text-primary"></i>صور العاملة
+                                </h6>
+
+                                @if (($maidImages ?? collect())->isNotEmpty())
+                                    <div class="maid-photo-grid">
+                                        @foreach ($maidImages as $image)
+                                            <a href="{{ $image['url'] }}" class="maid-photo-card" target="_blank"
+                                                rel="noopener">
+                                                <img src="{{ $image['url'] }}" alt="{{ $image['label'] }}">
+                                                <span>{{ $image['label'] }}</span>
+                                            </a>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <p class="text-muted mb-0">لا توجد صور مسجلة للعاملة.</p>
+                                @endif
+                            </div>
                         </div>
                     </div>
 
