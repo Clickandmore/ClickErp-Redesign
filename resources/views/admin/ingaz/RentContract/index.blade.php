@@ -1456,9 +1456,37 @@
                 }
             });
 
+            const filterFields = [
+                '#statusFilter',
+                '#dateFromFilter',
+                '#dateToFilter',
+                '#clientPhoneFilter',
+                '#clientNameFilter',
+                '#maidPassportFilter',
+                '#maidNameFilter',
+                '#contractNumberFilter',
+                '#marketerFilter',
+                '#branchFilter',
+                '#requestTypeFilter',
+                '#warrantyStatusFilter',
+                '#extensionFilter',
+                '#expiryFilter'
+            ].filter((selector) => $(selector).length).join(', ');
+
+            function applyRentContractFilters() {
+                dataTable.ajax.reload();
+            }
+
             // Apply Filters
             $('#applyFilters').click(function() {
-                dataTable.ajax.reload();
+                applyRentContractFilters();
+            });
+
+            $(document).on('keydown', filterFields, function(event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    applyRentContractFilters();
+                }
             });
 
             // Clear Filters
@@ -2449,6 +2477,35 @@
                     if (result.isConfirmed) {
                         executeWorkflowAction(contractId, 'freeze', 'تم تجميد عقد الإيجار بنجاح', {
                             freeze_reason: result.value
+                        });
+                    }
+                });
+            });
+
+            $(document).on('click', '.edit-freeze-date', function() {
+                const contractId = $(this).data('id');
+                const currentFrozenAt = $(this).data('frozen-at') || '';
+
+                Swal.fire({
+                    title: 'تغيير تاريخ التجميد',
+                    input: 'datetime-local',
+                    inputLabel: 'تاريخ التجميد',
+                    inputValue: currentFrozenAt,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#0d6efd',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'حفظ التاريخ',
+                    cancelButtonText: 'إلغاء',
+                    inputValidator: (value) => {
+                        if (!value) {
+                            return 'يرجى تحديد تاريخ التجميد';
+                        }
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        executeWorkflowAction(contractId, 'update-freeze-date', 'تم تحديث تاريخ التجميد بنجاح', {
+                            frozen_at: result.value
                         });
                     }
                 });

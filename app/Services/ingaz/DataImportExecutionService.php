@@ -3,6 +3,7 @@
 namespace App\Services\ingaz;
 
 use App\Enums\ingaz\ContractStatusEnum;
+use App\Enums\ingaz\OrderEnum;
 use App\Models\Contract;
 use App\Models\RentalContract;
 use App\Models\RecruitmentOffices;
@@ -252,7 +253,7 @@ class DataImportExecutionService
             );
         }
 
-        $order = $this->ensureOrder($user, $maid, $row);
+        $order = $this->ensureOrder($user, $maid, $row, OrderEnum::Completed->value);
 
         $contract = $this->findContract($row['contract_number'] ?? null, $maid?->id, $user->id);
         $payload = $this->filterColumns('contracts', [
@@ -621,7 +622,7 @@ class DataImportExecutionService
         ]));
     }
 
-    private function ensureOrder(User $user, Maid $maid, array $row): Order
+    private function ensureOrder(User $user, Maid $maid, array $row, ?string $status = null): Order
     {
         $order = Order::where('user_id', $user->id)
             ->where('maid_id', $maid->id)
@@ -644,7 +645,7 @@ class DataImportExecutionService
             'payment_method' => 'cash',
             'order_code' => $this->generateOrderCode(),
             'job_type_id' => $jobTypeId,
-            'status' => $this->normalizeContractStatus($row['status'] ?? null),
+            'status' => $status ?: $this->normalizeContractStatus($row['status'] ?? null),
         ]);
     }
 

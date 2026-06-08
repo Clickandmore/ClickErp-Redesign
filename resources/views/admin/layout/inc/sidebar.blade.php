@@ -1176,6 +1176,101 @@
                                                     <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                                                 </a>
 
+                                                <ul class="sub-menu collapse {{ $isHomeSettingsRoute ? 'show' : '' }}"
+                                                    id="home_settings">
+                                                    @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
+                                                        <li>
+                                                            <a class="m-link {{ request()->routeIs('fast-news.*') ? 'active' : '' }}"
+                                                                href="{{ route('fast-news.index') }}">
+                                                                <i class="fa fa-newspaper"></i>
+                                                                <span class="ms-2">{{ __('web.fast_news') }}</span>
+                                                            </a>
+                                                        </li>
+                                                    @endif
+
+                                                    @if (@AdminGuardHasPerm(\App\PermKeys::SLIDERS_VIEW))
+                                                        <li>
+                                                            <a class="m-link {{ request()->routeIs('sliders.*') ? 'active' : '' }}"
+                                                                href="{{ route('sliders.index') }}">
+                                                                <i class="fa fa-images"></i>
+                                                                <span class="ms-2">{{ helperTrans('ingaz.sliders') }}</span>
+                                                            </a>
+                                                        </li>
+                                                    @endif
+
+                                                    @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
+                                                        <li>
+                                                            <a class="m-link {{ request()->routeIs('what-do.*') || request()->routeIs('what-do-setting.*') ? 'active' : '' }}"
+                                                                href="{{ route('what-do.index') }}">
+                                                                <i class="fa fa-puzzle-piece"></i>
+                                                                <span class="ms-2">{{ __('web.what_do') }}</span>
+                                                            </a>
+                                                        </li>
+                                                    @endif
+
+                                                    @if (@AdminGuardHasPerm(\App\PermKeys::ABOUT_US_VIEW))
+                                                        <li>
+                                                            <a class="m-link {{ request()->routeIs('about-us.*') ? 'active' : '' }}"
+                                                                href="{{ route('about-us.index') }}">
+                                                                <i class="fa fa-circle-info"></i>
+                                                                <span class="ms-2">{{ __('web.about_us') }}</span>
+                                                            </a>
+                                                        </li>
+                                                    @endif
+
+                                                    @if (@AdminGuardHasPerm(\App\PermKeys::FAQ_VIEW))
+                                                        <li>
+                                                            <a class="m-link {{ request()->routeIs('features.*') ? 'active' : '' }}"
+                                                                href="{{ route('features.index') }}">
+                                                                <i class="fa fa-star"></i>
+                                                                <span class="ms-2">{{ helperTrans('ingaz.features') }}</span>
+                                                            </a>
+                                                        </li>
+                                                    @endif
+
+                                                    @if (@AdminGuardHasPerm(\App\PermKeys::SERVICES_VIEW))
+                                                        <li>
+                                                            <a class="m-link {{ request()->routeIs('services.*') ? 'active' : '' }}"
+                                                                href="{{ route('services.index') }}">
+                                                                <i class="fa fa-tools"></i>
+                                                                <span class="ms-2">{{ helperTrans('ingaz.services') }}</span>
+                                                            </a>
+                                                        </li>
+                                                    @endif
+
+                                                    @if (@AdminGuardHasPerm(\App\PermKeys::STATISTICS_VIEW))
+                                                        <li>
+                                                            <a class="m-link {{ request()->routeIs('statistics.*') ? 'active' : '' }}"
+                                                                href="{{ route('statistics.index') }}">
+                                                                <i class="fa fa-chart-bar"></i>
+                                                                <span class="ms-2">{{ helperTrans('ingaz.statistics') }}</span>
+                                                            </a>
+                                                        </li>
+                                                    @endif
+
+                                                    @if (@AdminGuardHasPerm(\App\PermKeys::STEPS_VIEW))
+                                                        <li>
+                                                            <a class="m-link {{ request()->routeIs('steps.*') ? 'active' : '' }}"
+                                                                href="{{ route('steps.index') }}">
+                                                                <i class="fa fa-list-ol"></i>
+                                                                <span class="ms-2">{{ helperTrans('ingaz.steps') }}</span>
+                                                            </a>
+                                                        </li>
+                                                    @endif
+
+                                                    @if (@AdminGuardHasPerm(\App\PermKeys::PARTENR_VIEW))
+                                                        <li>
+                                                            <a class="m-link {{ request()->routeIs('partenrs.*') ? 'active' : '' }}"
+                                                                href="{{ route('partenrs.index') }}">
+                                                                <i class="fa fa-handshake"></i>
+                                                                <span class="ms-2">{{ helperTrans('ingaz.partenrs') }}</span>
+                                                            </a>
+                                                        </li>
+                                                    @endif
+                                                </ul>
+                                            </li>
+                                        @endif
+
                                         @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
                                             <li>
                                                 <a class="m-link" href="{{ route('istiqdam.index') }}">
@@ -1479,7 +1574,6 @@
         {{-- @endif --}}
     </div>
     </div>
-    @endif
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
