@@ -11,6 +11,7 @@ class SystemModuleManager
 {
     private const CACHE_KEY = 'superadmin.modules.enabled_map';
     private const SETTINGS_CACHE_KEY = 'superadmin.settings';
+    private const BRANCH_LIMIT_KEY = 'branches_limit';
 
     public static function modules(): array
     {
@@ -19,20 +20,20 @@ class SystemModuleManager
 
     public static function enabledMap(): array
     {
-        return Cache::remember(self::CACHE_KEY, now()->addMinutes(5), function () {
-            $defaults = collect(self::modules())->mapWithKeys(fn ($module, $key) => [$key => true])->all();
+        $defaults = self::defaultEnabledMap();
 
+        $stored = Cache::remember(self::CACHE_KEY, now()->addMinutes(5), function () {
             if (! Schema::hasTable('system_module_settings')) {
-                return $defaults;
+                return [];
             }
 
-            $stored = DB::table('system_module_settings')
+            return DB::table('system_module_settings')
                 ->pluck('is_enabled', 'key')
                 ->map(fn ($value) => (bool) $value)
                 ->all();
-
-            return array_merge($defaults, $stored);
         });
+
+        return array_merge($defaults, $stored);
     }
 
     public static function isEnabled(string $key): bool
@@ -103,6 +104,39 @@ class SystemModuleManager
         Cache::forget(self::SETTINGS_CACHE_KEY . '.default_dashboard');
     }
 
+    public static function branchLimit(): ?int
+    {
+        if (! Schema::hasTable('dev_superadmin_settings')) {
+            return null;
+        }
+
+        $value = Cache::remember(self::SETTINGS_CACHE_KEY . '.' . self::BRANCH_LIMIT_KEY, now()->addMinutes(5), function () {
+            return DB::table('dev_superadmin_settings')
+                ->where('key', self::BRANCH_LIMIT_KEY)
+                ->value('value');
+        });
+
+        return is_numeric($value) ? max((int) $value, 0) : null;
+    }
+
+    public static function updateBranchLimit(?int $limit): void
+    {
+        if (! Schema::hasTable('dev_superadmin_settings')) {
+            return;
+        }
+
+        DB::table('dev_superadmin_settings')->updateOrInsert(
+            ['key' => self::BRANCH_LIMIT_KEY],
+            [
+                'value' => $limit === null ? null : (string) max($limit, 0),
+                'updated_at' => now(),
+                'created_at' => now(),
+            ]
+        );
+
+        Cache::forget(self::SETTINGS_CACHE_KEY . '.' . self::BRANCH_LIMIT_KEY);
+    }
+
     public static function defaultDashboardUrl(): string
     {
         $dashboard = self::dashboards()[self::defaultDashboardKey()] ?? self::dashboards()['recruitment'];
@@ -143,5 +177,19 @@ class SystemModuleManager
         }
 
         return false;
+    }
+
+    private static function defaultEnabled(array $module): bool
+    {
+        return array_key_exists('default_enabled', $module)
+            ? (bool) $module['default_enabled']
+            : true;
+    }
+
+    private static function defaultEnabledMap(): array
+    {
+        return collect(self::modules())
+            ->mapWithKeys(fn ($module, $key) => [$key => self::defaultEnabled($module)])
+            ->all();
     }
 }

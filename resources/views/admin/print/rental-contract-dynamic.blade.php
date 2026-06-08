@@ -106,17 +106,23 @@
         $workingHours = data_get($contractInfo, 'working_hours_per_day')
             ?? data_get($contractInfo, 'working_hours')
             ?? 8;
+        $client = data_get($contract, 'user');
+        $isCompanyClient = $client && method_exists($client, 'isCompanyClient') && $client->isCompanyClient();
         $clientName = data_get($contract, 'user.name', 'اسم العميل');
-        $clientIdentityNumber = data_get($contract, 'user.national_num')
-            ?? data_get($contract, 'user.iqama_number')
-            ?? '';
+        $clientIdentityLabel = $client && method_exists($client, 'documentNumberLabel')
+            ? $client->documentNumberLabel()
+            : __('ingaz.national_num');
+        $clientIdentityNumber = $client && method_exists($client, 'documentNumber')
+            ? ($client->documentNumber() ?? '')
+            : (data_get($contract, 'user.national_num') ?? data_get($contract, 'user.iqama_number') ?? '');
+        $clientLicenseNumber = data_get($contract, 'user.license_number', '');
         $clientPhone = data_get($contract, 'user.phone', '');
         $clientSecondPhone = data_get($contract, 'user.phone2', '');
         $clientEmail = data_get($contract, 'user.email', '');
         $clientAddress = data_get($contract, 'user.address', '');
         $clientCity = data_get($contract, 'user.city', $contractSettings['city'] ?? 'الرياض');
-        $clientBirthdate = data_get($contract, 'user.birthdate');
-        $clientGender = data_get($contract, 'user.gender', '______');
+        $clientBirthdate = $isCompanyClient ? null : data_get($contract, 'user.birthdate');
+        $clientGender = $isCompanyClient ? 'شركة' : data_get($contract, 'user.gender', '______');
         $clientNationality = data_get($contract, 'user.nationality.name')
             ?? data_get($contract, 'user.nationality.title')
             ?? 'السعودية';
@@ -920,7 +926,7 @@
             <div class="section-heading">{{ $partyTwoTitle }}</div>
             <table class="data-table">
                 <tr>
-                    <th>رقم الهوية الوطنية / الإقامة</th>
+                    <th>{{ $clientIdentityLabel }}</th>
                     <th colspan="3">الاسم باللغة العربية، مطابقاً للهوية الوطنية / الإقامة</th>
                 </tr>
                 <tr>
@@ -929,15 +935,15 @@
                 </tr>
                 <tr>
                     <th>الدخل الشهري</th>
-                    <th>الجنس</th>
+                    <th>{{ $isCompanyClient ? 'نوع العميل' : 'الجنس' }}</th>
                     <th>الجنسية</th>
-                    <th>تاريخ الميلاد</th>
+                    <th>{{ $isCompanyClient ? helperTrans('ingaz.license_number') : 'تاريخ الميلاد' }}</th>
                 </tr>
                 <tr>
                     <td>______</td>
                     <td>{{ $clientGender ?: '______' }}</td>
                     <td>{{ $clientNationality ?: '______' }}</td>
-                    <td>{{ $formatRentalDate($clientBirthdate) }}</td>
+                    <td>{{ $isCompanyClient ? ($clientLicenseNumber ?: '______') : $formatRentalDate($clientBirthdate) }}</td>
                 </tr>
                 <tr>
                     <th colspan="2">بيانات الاتصال</th>

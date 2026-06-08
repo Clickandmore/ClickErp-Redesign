@@ -914,7 +914,7 @@ class ShelterContractController extends Controller
                 ?? '')
             : '';
         $clientName = $contract->user->name ?? '';
-        $clientNationalId = $contract->user->national_num ?? '';
+        $clientNationalId = $contract->user?->documentNumber() ?? '';
         $arrivalDate = optional($contract->info)->arrival_date
             ?: optional($contract->maid)->arrival_date
             ?: optional($contract->travelHistory)->arrival_date;
@@ -3603,7 +3603,7 @@ class ShelterContractController extends Controller
         $contract = Contract::with(['user', 'maid.nationality', 'info'])->findOrFail($id);
         $documentBranding = documentBranding();
         $clientName = $contract->user->name ?? '';
-        $clientNationalNumber = $contract->user->national_num ?? '';
+        $clientNationalNumber = $contract->user?->documentNumber() ?? '';
 
         $maid = $contract->maid;
         $passportId = $maid->passport_num ?? '';

@@ -5,28 +5,35 @@
 
 <!-- SEO: Description, Keywords, Author, and Robots -->
 @php
-    $metaBrandName = isset($settings) ? optional($settings->translate(app()->getLocale()))->website_name : null;
+    $locale = app()->getLocale();
+    $settingsTranslation = isset($settings) ? $settings->translate($locale, false) : null;
+    $metaBrandName = $settingsTranslation->website_name ?? null;
     $metaBrandName = $metaBrandName ?: documentSetting('website_name', config('app.name'));
+    $metaTitle = trim((string) ($settingsTranslation->meta_title ?? '')) ?: $metaBrandName;
+    $metaDescription = trim((string) ($settingsTranslation->meta_description ?? ''));
+    $metaDescription = $metaDescription ?: $metaBrandName . ' تقدم خدمات استقدام العمالة المنزلية والمهنية من مختلف الجنسيات، مع ضمان الجودة والالتزام بالمعايير.';
+    $metaKeywords = trim((string) ($settingsTranslation->meta_keywords ?? ''));
+    $metaKeywords = $metaKeywords ?: trim((string) ($settingsTranslation->seo_article_tags ?? ''));
+    $metaKeywords = $metaKeywords ?: $metaBrandName . ', استقدام, استقدام عمالة, استقدام العمالة المنزلية, استقدام مهني, شركة استقدام, مكتب استقدام';
+    $metaImage = isset($settings) && !empty($settings->favicon) ? showFile($settings->favicon) : asset('assets/images/fav.svg');
 @endphp
 <meta name="description"
-    content="{{ $metaBrandName }} تقدم خدمات استقدام العمالة المنزلية والمهنية من مختلف الجنسيات، مع ضمان الجودة والالتزام بالمعايير." />
+    content="{{ $metaDescription }}" />
 <meta name="keywords"
-    content="{{ $metaBrandName }}, استقدام, استقدام عمالة, استقدام العمالة المنزلية, استقدام مهني, شركة استقدام, مكتب استقدام" />
+    content="{{ $metaKeywords }}" />
 <meta name="author" content="{{ $metaBrandName }}" />
 <meta name="robots" content="index, follow" />
 
 <!-- Open Graph Data for Social Media -->
-<meta property="og:title" content="{{ $metaBrandName }}" />
-<meta property="og:description"
-    content="شركة رائدة في مجال استقدام العمالة المنزلية والمهنية، بخدمات موثوقة تلبي احتياجات الأفراد والأعمال." />
-<meta property="og:image" content="assets/images/fav.svg" />
-<meta property="og:url" content="https://ruknedem.com" />
+<meta property="og:title" content="{{ $metaTitle }}" />
+<meta property="og:description" content="{{ $metaDescription }}" />
+<meta property="og:image" content="{{ $metaImage }}" />
+<meta property="og:url" content="{{ url()->current() }}" />
 <meta property="og:type" content="website" />
 
 <!-- Twitter Card Data -->
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="{{ $metaBrandName }}" />
-<meta name="twitter:description"
-    content="نوفّر خدمات استقدام العمالة المنزلية والمهنية بأعلى معايير الجودة والموثوقية." />
-<meta name="twitter:image" content="assets/images/fav.svg" />
+<meta name="twitter:title" content="{{ $metaTitle }}" />
+<meta name="twitter:description" content="{{ $metaDescription }}" />
+<meta name="twitter:image" content="{{ $metaImage }}" />
 <meta name="csrf-token" content="{{ csrf_token() }}">

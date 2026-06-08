@@ -27,5 +27,6 @@ class DatabaseSeeder extends Seeder
         // إضافة بيانات الدول والمدن
         $this->call(CountriesSeeder::class);
         $this->call(CitiesSeeder::class);
+        $this->call(BranchSeeder::class);
     }
 }

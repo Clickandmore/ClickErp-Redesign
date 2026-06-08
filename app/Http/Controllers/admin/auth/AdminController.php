@@ -7,11 +7,13 @@ use App\Http\Actions\auth\AdminAction as ObjAction;
 use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\auth\profile\StoreAdminRequest as StoreRequest;
 use App\Http\Requests\auth\profile\UpdateAdminRequest as UpdateRequest;
+use App\Models\Branch;
 use App\Models\auth\Admin as objModel;
 use App\Models\Contract;
 use App\Models\ingaz\Order;
 use App\Models\RentalContract;
 use App\Support\AdminRoutePermissionMatrix;
+use App\Support\SystemModuleManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\App;
@@ -32,7 +34,7 @@ use Yajra\DataTables\DataTables;
 class AdminController extends Controller
 {
     public $folderPath = "admin.auth.admin";
-    public $postData = ["name", "username", "phone", "email", 'whatsapp', 'verification_phone', 'identity_number', 'identity_expiry_date', "password", "admin_type", 'sex_type', 'role_id', 'sort', 'status', 'note'];
+    public $postData = ["name", "username", "phone", "email", 'whatsapp', 'verification_phone', 'identity_number', 'identity_expiry_date', "password", "admin_type", 'sex_type', 'role_id', 'branch_id', 'sort', 'status', 'note'];
     public $mainRoute = "admins";
     public $suspensionReasons = ['violation', 'manual_review', 'fraud_suspect', 'other'];
 
@@ -49,7 +51,8 @@ class AdminController extends Controller
     public function index(Request $request, ObjAction $action)
     {
         if ($request->ajax()) {
-            $dataTable = ObjModel::query()->with('role')->orderBy('id', 'asc');
+            $branchesEnabled = SystemModuleManager::isEnabled('branches');
+            $dataTable = ObjModel::query()->with(['role', 'branch'])->orderBy('id', 'asc');
 
             // Filters
             if ($request->filled('admin_type')) {
@@ -57,6 +60,9 @@ class AdminController extends Controller
             }
             if ($request->filled('sex_type')) {
                 $dataTable->where('sex_type', $request->sex_type);
+            }
+            if ($branchesEnabled && $request->filled('branch_id') && Schema::hasColumn('admins', 'branch_id')) {
+                $dataTable->where('branch_id', $request->branch_id);
             }
 
             $statusFilter = $request->get('status');
@@ -92,6 +98,13 @@ class AdminController extends Controller
                     }
 
                     return e($row->role->name);
+                })
+                ->addColumn('branch', function ($row) use ($branchesEnabled) {
+                    if (!$branchesEnabled) {
+                        return '-';
+                    }
+
+                    return $row->branch ? e($row->branch->name) : '-';
                 })
                 ->editColumn('phone', function ($row) {
                     return $row->contact_phone ?? '-';
@@ -263,6 +276,7 @@ class AdminController extends Controller
         $data["dataTableRoute"] = route($this->mainRoute . ".index");
         $data["bladeTitle"] = __("auth.admins");
         $data["addButtonText"] = __("auth.admin");
+        $data["branchesEnabled"] = SystemModuleManager::isEnabled('branches');
         $data["filters"] = [
             'admin_type' => Constant::globalArray['admin_typeis'],
             'sex_type' => [
@@ -275,6 +289,9 @@ class AdminController extends Controller
             ],
             'suspension' => true
         ];
+        $data["branches"] = $data["branchesEnabled"]
+            ? Branch::query()->active()->ordered()->get(['id', 'name_ar', 'name_en'])
+            : collect();
         $data["reassignmentAdmins"] = ObjModel::query()
             ->select('id', 'name')
             ->whereNull('deleted_at')
@@ -321,8 +338,12 @@ class AdminController extends Controller
     {
         if ($request->ajax()) {
             $roles = $this->adminRolesQuery()->pluck('name', 'id')->all();
+            $branchesEnabled = SystemModuleManager::isEnabled('branches');
+            $branches = $branchesEnabled
+                ? Branch::query()->active()->ordered()->get(['id', 'name_ar', 'name_en'])
+                : collect();
             $admin_typeis = $action->getAdminTypies(); // Assuming this method exists in ObjAction
-            $returnHTML = view($this->folderPath . ".create", compact('roles', 'admin_typeis'))->render();
+            $returnHTML = view($this->folderPath . ".create", compact('roles', 'branches', 'branchesEnabled', 'admin_typeis'))->render();
             return jsonSuccess(["html" => $returnHTML]);
         }
     }
@@ -347,10 +368,14 @@ class AdminController extends Controller
         if ($request->ajax()) {
             $obj = $action->find($id);
             $roles = $this->adminRolesQuery()->pluck('name', 'id')->all();
+            $branchesEnabled = SystemModuleManager::isEnabled('branches');
+            $branches = $branchesEnabled
+                ? Branch::query()->active()->ordered()->get(['id', 'name_ar', 'name_en'])
+                : collect();
             $adminRole = $obj->roles->pluck('id')->toArray();
             $admin_typeis = $action->getAdminTypies();
             $hasInvalidCurrentRole = $obj->role && $obj->role->guard_name !== 'admin';
-            $returnHTML = view($this->folderPath . ".edit", compact('obj', 'roles', 'adminRole', 'admin_typeis', 'hasInvalidCurrentRole'))->render();
+            $returnHTML = view($this->folderPath . ".edit", compact('obj', 'roles', 'branches', 'branchesEnabled', 'adminRole', 'admin_typeis', 'hasInvalidCurrentRole'))->render();
             return jsonSuccess(["html" => $returnHTML]);
         }
     }

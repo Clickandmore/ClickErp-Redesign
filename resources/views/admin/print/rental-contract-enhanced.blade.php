@@ -192,9 +192,15 @@
                         <div class="info-value">{{ $contract->user->name ?? 'غير محدد' }}</div>
                     </div>
                     <div class="info-item">
-                        <div class="info-label">رقم الهوية</div>
-                        <div class="info-value">{{ $contract->user->national_num ?? 'غير محدد' }}</div>
+                        <div class="info-label">{{ $contract->user?->documentNumberLabel() ?? 'رقم الهوية' }}</div>
+                        <div class="info-value">{{ $contract->user?->documentNumber() ?? 'غير محدد' }}</div>
                     </div>
+                    @if($contract->user?->isCompanyClient())
+                        <div class="info-item">
+                            <div class="info-label">{{ helperTrans('ingaz.license_number') }}</div>
+                            <div class="info-value">{{ $contract->user?->license_number ?? 'غير محدد' }}</div>
+                        </div>
+                    @endif
                     <div class="info-item">
                         <div class="info-label">رقم الجوال</div>
                         <div class="info-value">{{ $contract->user->phone_code ?? '' }}{{ $contract->user->phone ?? 'غير محدد' }}</div>

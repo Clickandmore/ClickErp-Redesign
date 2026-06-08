@@ -1466,6 +1466,11 @@ class DashboardController extends Controller
 
     protected function resolveOrderStatusLabel(string $status): string
     {
+        $customLabel = \App\Support\RecruitmentOrderStatusLabels::label($status, app()->getLocale());
+        if ($customLabel) {
+            return $customLabel;
+        }
+
         return match ($status) {
             OrderEnum::New->value => 'جديد',
             OrderEnum::UnderProcess->value => 'تحت الإجراء',

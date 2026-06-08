@@ -352,7 +352,7 @@
                                 </div>
                             </div>
 
-                            <!-- بيانات العميل والعاملة (تظهر بعد الاختيار) في التبويب الجديد -->
+                            <!-- بيانات العميل والعامل/ة (تظهر بعد الاختيار) في التبويب الجديد -->
                             <div class="col-md-12">
                                 <div class="form-section">
                                     <div class="section-header">
@@ -366,6 +366,23 @@
                                     </div>
                                     <div class="card-body p-2">
                                         <div class="row">
+                                            <div class="col-12 mb-2">
+                                                <label class="form-label d-block">{{ helperTrans('ingaz.client_type') }} <span class="text-danger">*</span></label>
+                                                <div class="d-flex flex-wrap gap-3">
+                                                    <div class="form-check">
+                                                        <input class="form-check-input js-account-client-type" type="radio"
+                                                            name="account_client_type" id="new_account_client_type_person"
+                                                            value="person" checked>
+                                                        <label class="form-check-label" for="new_account_client_type_person">شخص</label>
+                                                    </div>
+                                                    <div class="form-check">
+                                                        <input class="form-check-input js-account-client-type" type="radio"
+                                                            name="account_client_type" id="new_account_client_type_company"
+                                                            value="company">
+                                                        <label class="form-check-label" for="new_account_client_type_company">شركة</label>
+                                                    </div>
+                                                </div>
+                                            </div>
                                             <div class="col-md-6 mb-2">
                                                 <label class="form-label">{{ helperTrans('ingaz.client_name') }} <span
                                                         class="text-danger">*</span></label>
@@ -402,15 +419,21 @@
                                                     class="form-control">
                                                 <div class="invalid-feedback" id="err_new_client_email"></div>
                                             </div>
-                                            <div class="col-md-6 mb-2">
-                                                <label class="form-label">{{ helperTrans('ingaz.national_num') }} <span
+                                            <div class="col-md-6 mb-2 js-client-document-field">
+                                                <label class="form-label js-client-document-label">{{ helperTrans('ingaz.national_num') }} <span
                                                         class="text-danger">*</span></label>
                                                 <input type="text" id="new_client_national_num"
                                                     name="new_client_national_num" class="form-control"
                                                     data-validation="required">
                                                 <div class="invalid-feedback" id="err_new_client_national_num"></div>
                                             </div>
-                                            <div class="col-md-6 mb-2">
+                                            <div class="col-md-6 mb-2 js-client-company-field d-none">
+                                                <label class="form-label">{{ helperTrans('ingaz.license_number') }} <small
+                                                        class="text-muted">(اختياري)</small></label>
+                                                <input type="text" id="new_client_license_number"
+                                                    name="new_client_license_number" class="form-control">
+                                            </div>
+                                            <div class="col-md-6 mb-2 js-client-birthdate-field js-client-person-field">
                                                 <label class="form-label">{{ helperTrans('ingaz.birthdate') }} <span
                                                         class="text-danger">*</span></label>
                                                 <input type="text" id="new_client_birthdate"
@@ -450,25 +473,25 @@
                                                         موجودة.</small>
                                                 </div>
                                             </div>
-                                            <div class="col-md-6 mb-2">
+                                            <div class="col-md-6 mb-2 js-client-person-field">
                                                 <label class="form-label">{{ helperTrans('ingaz.beds number') }} <small
                                                         class="text-muted">(اختياري)</small></label>
                                                 <input type="text" id="new_client_beds_num" name="new_client_beds_num"
                                                     class="form-control">
                                             </div>
-                                            <div class="col-md-6 mb-2">
+                                            <div class="col-md-6 mb-2 js-client-person-field">
                                                 <label class="form-label">{{ helperTrans('ingaz.family_number') }} <small
                                                         class="text-muted">(اختياري)</small></label>
                                                 <input type="text" id="new_client_family_num"
                                                     name="new_client_family_num" class="form-control">
                                             </div>
-                                            <div class="col-md-6 mb-2">
+                                            <div class="col-md-6 mb-2 js-client-person-field">
                                                 <label class="form-label">{{ helperTrans('ingaz.children') }} <small
                                                         class="text-muted">(اختياري - تحت سن 12)</small></label>
                                                 <input type="number" id="new_client_children" name="new_client_children"
                                                     class="form-control" max="50">
                                             </div>
-                                            <div class="col-md-6 mb-2">
+                                            <div class="col-md-6 mb-2 js-client-person-field">
                                                 <label class="form-label">{{ helperTrans('ingaz.job') }} <small
                                                         class="text-muted">(اختياري)</small></label>
                                                 <input type="text" id="new_client_job" name="new_client_job"
@@ -485,24 +508,24 @@
                                             <i class="fas fa-female"></i>
                                         </div>
                                         <div>
-                                            <h5 class="section-title">بيانات العاملة</h5>
+                                            <h5 class="section-title">بيانات العامل/ة</h5>
                                             <p class="section-subtitle">البيانات الشخصية والمهنية</p>
                                         </div>
                                     </div>
                                     <div class="card-body p-2" id="new-maid-section-card">
                                         <div class="row">
                                             <div class="col-12 mb-3">
-                                                <label class="form-label">طريقة إضافة العاملة <span
+                                                <label class="form-label">طريقة إضافة العامل/ة <span
                                                         class="text-danger">*</span></label>
-                                                <div class="maid-mode-options" role="group" aria-label="طريقة إضافة العاملة">
+                                                <div class="maid-mode-options" role="group" aria-label="طريقة إضافة العامل/ة">
                                                     <input type="radio" class="btn-check" name="maid_selection_mode"
                                                         id="maid_mode_existing" value="existing" checked>
-                                                    <label class="btn btn-outline-success" for="maid_mode_existing">عاملة
+                                                    <label class="btn btn-outline-success" for="maid_mode_existing">عامل/ة
                                                         موجودة</label>
 
                                                     <input type="radio" class="btn-check" name="maid_selection_mode"
                                                         id="maid_mode_manual" value="manual">
-                                                    <label class="btn btn-outline-primary" for="maid_mode_manual">عاملة
+                                                    <label class="btn btn-outline-primary" for="maid_mode_manual">عامل/ة
                                                         مختصرة</label>
 
                                                     <input type="radio" class="btn-check" name="maid_selection_mode"
@@ -510,18 +533,18 @@
                                                     <label class="btn btn-outline-warning" for="maid_mode_postponed">تأجيل
                                                         الاختيار</label>
                                                 </div>
-                                                <small class="text-muted d-block mt-2">يمكنك ربط عاملة موجودة، أو حفظ بيانات
-                                                    مختصرة مؤقتة، أو إنشاء العقد بدون عاملة حالياً.</small>
+                                                <small class="text-muted d-block mt-2">يمكنك ربط عامل/ة موجود/ة، أو حفظ بيانات
+                                                    مختصرة مؤقتة، أو إنشاء العقد بدون عامل/ة حالياً.</small>
                                             </div>
                                         </div>
 
                                         <div class="row">
                                             <div class="col-12 mb-3" id="new-existing-maid-picker">
-                                                <label for="new_new_maid_id" class="form-label">اختر عاملة</label>
+                                                <label for="new_new_maid_id" class="form-label">اختر عامل/ة</label>
                                                 <select name="new_new_maid_id" id="new_new_maid_id"
                                                     class="form-select select2 ajax-maid-select" style="width:100%"
-                                                    data-placeholder="ابحث باسم العاملة أو رقم الجواز">
-                                                    <option value="" selected>اختر عاملة...</option>
+                                                    data-placeholder="ابحث باسم العامل/ة أو رقم الجواز">
+                                                    <option value="" selected>اختر عامل/ة...</option>
                                                 </select>
                                             </div>
                                         </div>
@@ -572,11 +595,21 @@
 
                                         <div id="manual-maid-section-card" class="row g-3" style="display:none;">
                                             <div class="col-md-6">
-                                                <label for="manual_maid_name" class="form-label">اسم العاملة المختصر
+                                                <label for="manual_maid_name" class="form-label">اسم العامل/ة المختصر
                                                     <span class="text-danger">*</span></label>
                                                 <input type="text" id="manual_maid_name" name="manual_maid_name"
                                                     class="form-control" placeholder="الاسم كما هو في المرفق أو الجواز">
                                                 <div class="invalid-feedback" id="err_manual_maid_name"></div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="manual_maid_gender" class="form-label">الجنس
+                                                    <span class="text-danger">*</span></label>
+                                                <select id="manual_maid_gender" name="manual_maid_gender"
+                                                    class="form-select">
+                                                    <option value="female" selected>أنثى</option>
+                                                    <option value="male">ذكر</option>
+                                                </select>
+                                                <div class="invalid-feedback" id="err_manual_maid_gender"></div>
                                             </div>
                                             <div class="col-md-6">
                                                 <label for="manual_maid_passport_num" class="form-label">رقم الجواز
@@ -585,6 +618,18 @@
                                                     name="manual_maid_passport_num" class="form-control"
                                                     placeholder="رقم الجواز">
                                                 <div class="invalid-feedback" id="err_manual_maid_passport_num"></div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="manual_maid_job_title_id" class="form-label">المهنة
+                                                    <span class="text-danger">*</span></label>
+                                                <select id="manual_maid_job_title_id" name="manual_maid_job_title_id"
+                                                    class="form-select select2" data-placeholder="اختر المهنة">
+                                                    <option value="">اختر المهنة...</option>
+                                                    @foreach ($maidJobTitles as $jobTitle)
+                                                        <option value="{{ $jobTitle->id }}">{{ $jobTitle->title }}</option>
+                                                    @endforeach
+                                                </select>
+                                                <div class="invalid-feedback" id="err_manual_maid_job_title_id"></div>
                                             </div>
                                             <div class="col-md-6">
                                                 <label for="manual_maid_nationality_id" class="form-label">الجنسية
@@ -613,7 +658,7 @@
                                                 <div class="invalid-feedback" id="err_manual_maid_office_id"></div>
                                             </div>
                                             <div class="col-12">
-                                                <label for="manual_maid_attachment" class="form-label">مرفق العاملة
+                                                <label for="manual_maid_attachment" class="form-label">مرفق العامل/ة
                                                     <small class="text-muted">(اختياري)</small></label>
                                                 <input type="file" id="manual_maid_attachment"
                                                     name="manual_maid_attachment" class="form-control"
@@ -625,7 +670,7 @@
                                             <div class="col-12">
                                                 <div class="alert alert-info mb-0">
                                                     <i class="fas fa-circle-info me-2"></i>
-                                                    سيتم إنشاء عاملة مختصرة وربطها بالعقد مباشرة. مرفق الجواز اختياري.
+                                                    سيتم إنشاء عامل/ة مختصر/ة وربطه/ا بالعقد مباشرة. مرفق الجواز اختياري.
                                                 </div>
                                             </div>
                                         </div>
@@ -633,13 +678,13 @@
                                         <div id="new-no-maid-alert" style="display:none;">
                                             <div class="alert alert-warning mt-2">
                                                 <i class="fas fa-exclamation-triangle me-2"></i>
-                                                تم اختيار "بدون عاملة حالياً". يمكنك إضافة عاملة لاحقاً من صفحة العقود.
+                                                تم اختيار "بدون عامل/ة حالياً". يمكنك إضافة عامل/ة لاحقاً من صفحة العقود.
                                             </div>
 
                                             <div class="row mt-3">
                                                 <div class="col-md-6 mb-3">
                                                     <label for="required_maid_nationality" class="form-label">الجنسية المطلوبة
-                                                        للعاملة
+                                                        للعامل/ة
                                                         <span class="text-danger">*</span></label>
                                                     <select name="required_maid_nationality" id="required_maid_nationality"
                                                         class="form-select" data-validation="required">
@@ -654,7 +699,7 @@
 
                                                 <div class="col-md-6 mb-3">
                                                     <label for="required_maid_religion" class="form-label">الدين المطلوب
-                                                        للعاملة <span class="text-danger">*</span></label>
+                                                        للعامل/ة <span class="text-danger">*</span></label>
                                                     <select name="required_maid_religion" id="required_maid_religion"
                                                         class="form-select" data-validation="required">
                                                         <option value="">اختر الدين المطلوب...</option>
@@ -810,7 +855,7 @@
                                                         <i class="fas fa-exclamation-triangle me-2"></i>
                                                         <strong>تنبيه:</strong> الحقول المطلوبة (الجنسية، الدين، العمر،
                                                         الخبرة) إلزامية
-                                                        عند اختيار "بدون عاملة". هذه المتطلبات ضرورية للعثور على العاملة
+                                                        عند اختيار "بدون عامل/ة". هذه المتطلبات ضرورية للعثور على العامل/ة
                                                         المناسبة
                                                         لاحقاً.
                                                     </div>
@@ -820,7 +865,7 @@
 
                                         <div id="new-no-maid-message" class="alert alert-warning mt-3"
                                             style="display:none;">
-                                            <i class="fas fa-user-slash me-1"></i> لا يوجد عاملة حالياً.
+                                            <i class="fas fa-user-slash me-1"></i> لا يوجد عامل/ة حالياً.
                                         </div>
                                     </div>
                                 </div>
@@ -906,7 +951,11 @@
                                                 data-client-name="{{ $plainTextValue($order->user->name ?? '') }}"
                                                 data-client-phone="{{ $plainTextValue($order->user->phone ?? '') }}"
                                                 data-client-email="{{ $plainTextValue($order->user->email ?? '') }}"
-                                                data-client-national-num="{{ $plainTextValue($order->user->national_num ?? '') }}"
+                                                data-client-national-num="{{ $plainTextValue($order->user?->documentNumber() ?? '') }}"
+                                                data-account-client-type="{{ $order->user?->client_type ?? 'person' }}"
+                                                data-client-document-label="{{ $plainTextValue($order->user?->documentNumberLabel() ?? helperTrans('ingaz.national_num')) }}"
+                                                data-client-tax-number="{{ $plainTextValue($order->user?->tax_number ?? '') }}"
+                                                data-client-license-number="{{ $plainTextValue($order->user?->license_number ?? '') }}"
                                                 data-client-birthdate="{{ $order->user->birthdate ?? '' }}"
                                                 data-client-phone2="{{ $plainTextValue($order->user->phone2 ?? '') }}"
                                                 data-client-address="{{ $plainTextValue($order->user->address ?? '') }}"
@@ -1127,6 +1176,56 @@
             return $option.data(attrName || key);
         }
 
+        function isCompanyClientType(value) {
+            return String(value || '').toLowerCase() === 'company';
+        }
+
+        function selectedClientDocumentNumber(clientData) {
+            if (!clientData) {
+                return '';
+            }
+
+            return isCompanyClientType(clientData.client_type)
+                ? (clientData.tax_number || clientData.document_number || clientData.national_num || '')
+                : (clientData.document_number || clientData.national_num || '');
+        }
+
+        function applyRecruitmentClientDocumentMode(options) {
+            var isCompany = isCompanyClientType(options.clientType);
+            var label = options.documentLabel || (isCompany ? @json(helperTrans('ingaz.tax_number')) : @json(helperTrans('ingaz.national_num')));
+            var $documentInput = $(options.documentInput);
+            var $birthdateInput = $(options.birthdateInput);
+            var $documentWrapper = $documentInput.closest('.js-client-document-field, .col-md-6, .col-lg-6');
+            var $birthdateWrapper = $birthdateInput.closest('.js-client-birthdate-field, .col-md-6, .col-lg-6');
+            var $personFieldWrappers = options.personFields
+                ? $(options.personFields).map(function() {
+                    return $(this).closest('.js-client-person-field, .col-md-6, .col-lg-6')[0];
+                })
+                : $birthdateWrapper;
+            var $companyFieldWrappers = options.companyFields
+                ? $(options.companyFields).map(function() {
+                    return $(this).closest('.js-client-company-field, .col-md-6, .col-lg-6')[0];
+                })
+                : $();
+            var $accountTypeInputs = options.accountTypeInputs
+                ? $(options.accountTypeInputs)
+                : $documentWrapper.closest('form').find('input[name="account_client_type"]');
+
+            $documentWrapper.find('label').first().html(label + ' <span class="text-danger">*</span>');
+            $personFieldWrappers.toggleClass('d-none', isCompany);
+            $personFieldWrappers.find('input, select, textarea').prop('disabled', isCompany);
+            $companyFieldWrappers.toggleClass('d-none', !isCompany);
+            $companyFieldWrappers.find('input, select, textarea').prop('disabled', !isCompany);
+            $accountTypeInputs.filter('[value="' + (isCompany ? 'company' : 'person') + '"]').prop('checked', true);
+
+            if (isCompany) {
+                $personFieldWrappers.find('input, select, textarea').val('').removeClass('is-invalid');
+                $personFieldWrappers.find('.invalid-feedback').not('#err_new_client_national_num').remove();
+            } else {
+                $companyFieldWrappers.find('input, select, textarea').val('').removeClass('is-invalid');
+            }
+        }
+
         function getNewMaidMode() {
             return $('input[name="maid_selection_mode"]:checked').val() || 'existing';
         }
@@ -1224,8 +1323,8 @@
                     title: 'تم إنشاء العقد بنجاح',
                     text: response.message || 'تم إنشاء العقد بنجاح',
                     showDenyButton: true,
-                    confirmButtonText: 'اختيار العاملة الآن',
-                    denyButtonText: 'العقود بانتظار اختيار العاملة',
+                    confirmButtonText: 'اختيار العامل/ة الآن',
+                    denyButtonText: 'العقود بانتظار اختيار العامل/ة',
                     allowOutsideClick: false
                 }).then((result) => {
                     if (result.isConfirmed) {
@@ -1358,7 +1457,7 @@
                 destroySelect2IfInitialized($(this));
 
                 $(this).select2({
-                    placeholder: $(this).data('placeholder') || 'ابحث عن العاملة...',
+                    placeholder: $(this).data('placeholder') || 'ابحث عن العامل/ة...',
                     allowClear: true,
                     dir: 'rtl',
                     width: '100%',
@@ -1391,17 +1490,39 @@
 
                 // Fill in client data
                 if (selectedOrder.user) {
+                    var selectedOrderClientType = selectedOrder.user.client_type || 'person';
+                    var selectedOrderDocumentLabel = isCompanyClientType(selectedOrderClientType)
+                        ? @json(helperTrans('ingaz.tax_number'))
+                        : @json(helperTrans('ingaz.national_num'));
+
                     $('#client_name').val(sanitizeTextValue(selectedOrder.user.name));
                     $('#client_phone').val(sanitizePhoneValue(selectedOrder.user.phone));
                     $('#client_email').val(sanitizeTextValue(selectedOrder.user.email));
-                    $('#client_national_num').val(sanitizeTextValue(selectedOrder.user.national_num));
+                    $('#client_national_num').val(sanitizeTextValue(selectedClientDocumentNumber(selectedOrder.user)));
                     $('#client_birthdate').val(selectedOrder.user.birthdate || '');
+                    applyRecruitmentClientDocumentMode({
+                        clientType: selectedOrderClientType,
+                        documentLabel: selectedOrderDocumentLabel,
+                        documentInput: '#client_national_num',
+                        birthdateInput: '#client_birthdate',
+                        personFields: '#client_birthdate, #beds_num, #family_num, #children, #job',
+                        companyFields: '#client_license_number'
+                    });
                     $('#phone2').val(sanitizePhoneValue(selectedOrder.user.phone2));
                     $('#address').val(sanitizeTextValue(selectedOrder.user.address));
+                    $('#client_license_number').val(sanitizeTextValue(selectedOrder.user.license_number));
                     $('#beds_num').val(selectedOrder.user.beds_num || '');
                     $('#family_num').val(selectedOrder.user.family_num || '');
                     $('#children').val(selectedOrder.user.children || '');
                     $('#job').val(sanitizeTextValue(selectedOrder.user.job));
+                    applyRecruitmentClientDocumentMode({
+                        clientType: selectedOrderClientType,
+                        documentLabel: selectedOrderDocumentLabel,
+                        documentInput: '#client_national_num',
+                        birthdateInput: '#client_birthdate',
+                        personFields: '#client_birthdate, #beds_num, #family_num, #children, #job',
+                        companyFields: '#client_license_number'
+                    });
                     setSearchableSelectValue('#city', selectedOrder.user.city);
                     if (selectedOrder.user.nationality_id) {
                         $('#client_nationality_id').val(selectedOrder.user.nationality_id).trigger('change');
@@ -1533,20 +1654,47 @@
                 $('#client_name, #client_phone, #client_email, #client_national_num, #client_birthdate, #phone2, #address, #beds_num, #family_num, #children, #job, #maid_name, #maid_passport, #maid_religion, #maid_job, #maid_nationality, #maid_salary, #experience_years, #age')
                     .val('');
                 $('#client_nationality_id, #city').val('').trigger('change');
+                applyRecruitmentClientDocumentMode({
+                    clientType: 'person',
+                    documentInput: '#client_national_num',
+                    birthdateInput: '#client_birthdate',
+                    personFields: '#client_birthdate, #beds_num, #family_num, #children, #job',
+                    companyFields: '#client_license_number'
+                });
 
                 if (maidId) {
+                    var orderClientType = selectedOption.data('account-client-type') || 'person';
+                    var orderDocumentLabel = selectedOption.data('client-document-label') || (isCompanyClientType(orderClientType) ? @json(helperTrans('ingaz.tax_number')) : @json(helperTrans('ingaz.national_num')));
+
                     // Fill in the client form fields
                     $('#client_name').val(sanitizeTextValue(selectedOption.data('client-name')));
                     $('#client_phone').val(sanitizePhoneValue(selectedOption.data('client-phone')));
                     $('#client_email').val(sanitizeTextValue(selectedOption.data('client-email')));
                     $('#client_national_num').val(sanitizeTextValue(selectedOption.data('client-national-num')));
                     $('#client_birthdate').val(selectedOption.data('client-birthdate') || '');
+                    applyRecruitmentClientDocumentMode({
+                        clientType: orderClientType,
+                        documentLabel: orderDocumentLabel,
+                        documentInput: '#client_national_num',
+                        birthdateInput: '#client_birthdate',
+                        personFields: '#client_birthdate, #beds_num, #family_num, #children, #job',
+                        companyFields: '#client_license_number'
+                    });
                     $('#phone2').val(sanitizePhoneValue(selectedOption.data('client-phone2')));
                     $('#address').val(sanitizeTextValue(selectedOption.data('client-address')));
+                    $('#client_license_number').val(sanitizeTextValue(selectedOption.data('client-license-number')));
                     $('#beds_num').val(selectedOption.data('client-beds-num') || '');
                     $('#family_num').val(selectedOption.data('client-family-num') || '');
                     $('#children').val(selectedOption.data('client-children') || '');
                     $('#job').val(sanitizeTextValue(selectedOption.data('client-job')));
+                    applyRecruitmentClientDocumentMode({
+                        clientType: orderClientType,
+                        documentLabel: orderDocumentLabel,
+                        documentInput: '#client_national_num',
+                        birthdateInput: '#client_birthdate',
+                        personFields: '#client_birthdate, #beds_num, #family_num, #children, #job',
+                        companyFields: '#client_license_number'
+                    });
                     setSearchableSelectValue('#city', selectedOption.data('client-city'));
                     if (selectedOption.data('client-nationality')) {
                         $('#client_nationality_id').val(selectedOption.data('client-nationality')).trigger(
@@ -1698,6 +1846,13 @@
                 $('#new_existing_client_id').val('').trigger('change');
                 $('#new_existing_client_id').removeClass('is-invalid');
                 $('#err_new_existing_client_id').remove();
+                applyRecruitmentClientDocumentMode({
+                    clientType: 'person',
+                    documentInput: '#new_client_national_num',
+                    birthdateInput: '#new_client_birthdate',
+                    personFields: '#new_client_birthdate, #new_client_beds_num, #new_client_family_num, #new_client_children, #new_client_job',
+                    companyFields: '#new_client_license_number'
+                });
             }
 
             $('#use-direct-client-data').on('click', function() {
@@ -1705,7 +1860,23 @@
                 $('#new_client_name').trigger('focus');
             });
 
-            $('#new_client_name, #new_client_phone, #new_client_email, #new_client_national_num, #new_client_birthdate, #new_client_phone2, #new_client_address, #new_client_beds_num, #new_client_family_num, #new_client_children, #new_client_job')
+            $('input[name="account_client_type"]').on('change', function() {
+                var $form = $(this).closest('form');
+                var isNewContractForm = $form.attr('id') === 'newContractForm';
+
+                applyRecruitmentClientDocumentMode({
+                    clientType: $(this).val(),
+                    documentInput: isNewContractForm ? '#new_client_national_num' : '#client_national_num',
+                    birthdateInput: isNewContractForm ? '#new_client_birthdate' : '#client_birthdate',
+                    personFields: isNewContractForm
+                        ? '#new_client_birthdate, #new_client_beds_num, #new_client_family_num, #new_client_children, #new_client_job'
+                        : '#client_birthdate, #beds_num, #family_num, #children, #job',
+                    companyFields: isNewContractForm ? '#new_client_license_number' : '#client_license_number',
+                    accountTypeInputs: $form.find('input[name="account_client_type"]')
+                });
+            });
+
+            $('#new_client_name, #new_client_phone, #new_client_email, #new_client_national_num, #new_client_license_number, #new_client_birthdate, #new_client_phone2, #new_client_address, #new_client_beds_num, #new_client_family_num, #new_client_children, #new_client_job')
                 .on('input', function() {
                     if (!isFillingClientFromSelection && $('#new_existing_client_id').val()) {
                         clearSelectedClientForDirectEntry();
@@ -1749,8 +1920,17 @@
                     $('#new_client_email').val(sanitizeTextValue(optionOrAjaxData(selectedOption, selectedClient, 'email')));
                     $('#new_client_national_num').val(sanitizeTextValue(optionOrAjaxData(selectedOption, selectedClient, 'national_num', 'national-num')));
                     $('#new_client_birthdate').val(optionOrAjaxData(selectedOption, selectedClient, 'birthdate'));
+                    applyRecruitmentClientDocumentMode({
+                        clientType: optionOrAjaxData(selectedOption, selectedClient, 'client_type', 'account-client-type') || 'person',
+                        documentLabel: optionOrAjaxData(selectedOption, selectedClient, 'document_label', 'client-document-label'),
+                        documentInput: '#new_client_national_num',
+                        birthdateInput: '#new_client_birthdate',
+                        personFields: '#new_client_birthdate, #new_client_beds_num, #new_client_family_num, #new_client_children, #new_client_job',
+                        companyFields: '#new_client_license_number'
+                    });
                     $('#new_client_phone2').val(sanitizePhoneValue(optionOrAjaxData(selectedOption, selectedClient, 'phone2')));
                     $('#new_client_address').val(sanitizeTextValue(optionOrAjaxData(selectedOption, selectedClient, 'address')));
+                    $('#new_client_license_number').val(sanitizeTextValue(optionOrAjaxData(selectedOption, selectedClient, 'license_number', 'license-number')));
                     setSearchableSelectValue('#new_client_city', optionOrAjaxData(selectedOption, selectedClient, 'city'));
 
                     // تعبئة الحقول الاختيارية
@@ -1758,6 +1938,14 @@
                     $('#new_client_family_num').val(optionOrAjaxData(selectedOption, selectedClient, 'family_num', 'family-num'));
                     $('#new_client_children').val(optionOrAjaxData(selectedOption, selectedClient, 'children'));
                     $('#new_client_job').val(sanitizeTextValue(optionOrAjaxData(selectedOption, selectedClient, 'job')));
+                    applyRecruitmentClientDocumentMode({
+                        clientType: optionOrAjaxData(selectedOption, selectedClient, 'client_type', 'account-client-type') || 'person',
+                        documentLabel: optionOrAjaxData(selectedOption, selectedClient, 'document_label', 'client-document-label'),
+                        documentInput: '#new_client_national_num',
+                        birthdateInput: '#new_client_birthdate',
+                        personFields: '#new_client_birthdate, #new_client_beds_num, #new_client_family_num, #new_client_children, #new_client_job',
+                        companyFields: '#new_client_license_number'
+                    });
 
                     // تعبئة حقل الجنسية في dropdown
                     var selectedNationality = optionOrAjaxData(selectedOption, selectedClient, 'nationality');
@@ -1791,9 +1979,16 @@
                     if (isFillingClientFromSelection) {
                         return;
                     }
+                    applyRecruitmentClientDocumentMode({
+                        clientType: 'person',
+                        documentInput: '#new_client_national_num',
+                        birthdateInput: '#new_client_birthdate',
+                        personFields: '#new_client_birthdate, #new_client_beds_num, #new_client_family_num, #new_client_children, #new_client_job',
+                        companyFields: '#new_client_license_number'
+                    });
                 }
             });
-            // عند اختيار عاملة في التبويب الجديد: عبئ بيانات العاملة (حقول منفصلة)
+            // عند اختيار عامل/ة في التبويب الجديد: عبئ بيانات العامل/ة (حقول منفصلة)
             $('#new_new_maid_id').on('change', function() {
                 var selectedOption = $(this).find('option:selected');
                 var selectedMaid = select2SelectedData(this);
@@ -1883,7 +2078,7 @@
             // // Initialize Select2 for maid_id with custom template
             // if ($.fn.select2) {
             //     $('#maid_id').select2({
-            //         placeholder: 'اختر العاملة',
+            //         placeholder: 'اختر العامل/ة',
             //         allowClear: true,
             //         templateResult: formatMaidOption,
             //         templateSelection: formatMaidOption
@@ -1997,7 +2192,7 @@
                         Swal.fire({
                             icon: 'error',
                             title: 'خطأ',
-                            text: 'يرجى اختيار العاملة',
+                            text: 'يرجى اختيار العامل/ة',
                             confirmButtonText: 'حسناً'
                         });
                         return false;
@@ -2287,7 +2482,7 @@
                             $('#new_new_maid_id').addClass('is-invalid');
                             if ($('#err_new_new_maid_id').length === 0) {
                                 $('#new-existing-maid-picker').append(
-                                    '<div class="invalid-feedback d-block" id="err_new_new_maid_id">يرجى اختيار العاملة أو تغيير طريقة الإضافة.</div>'
+                                    '<div class="invalid-feedback d-block" id="err_new_new_maid_id">يرجى اختيار العامل/ة أو تغيير طريقة الإضافة.</div>'
                                 );
                             }
                         } else {
@@ -2296,17 +2491,28 @@
                         }
                     } else if (maidSelectionMode === 'manual') {
                         var manualMaidName = $('#manual_maid_name').val().trim();
+                        var manualMaidGender = $('#manual_maid_gender').val();
                         var manualMaidPassport = $('#manual_maid_passport_num').val().trim();
+                        var manualMaidJobTitle = $('#manual_maid_job_title_id').val();
                         var manualMaidNationality = $('#manual_maid_nationality_id').val();
                         var manualMaidOffice = $('#manual_maid_office_id').val();
 
                         if (!manualMaidName) {
                             isValid = false;
                             $('#manual_maid_name').addClass('is-invalid');
-                            $('#err_manual_maid_name').text('يرجى إدخال اسم العاملة المختصر');
+                            $('#err_manual_maid_name').text('يرجى إدخال اسم العامل/ة المختصر');
                         } else {
                             $('#manual_maid_name').removeClass('is-invalid');
                             $('#err_manual_maid_name').text('');
+                        }
+
+                        if (!manualMaidGender) {
+                            isValid = false;
+                            $('#manual_maid_gender').addClass('is-invalid');
+                            $('#err_manual_maid_gender').text('يرجى اختيار الجنس');
+                        } else {
+                            $('#manual_maid_gender').removeClass('is-invalid');
+                            $('#err_manual_maid_gender').text('');
                         }
 
                         if (!manualMaidPassport) {
@@ -2325,6 +2531,15 @@
                             if (!$('#manual_maid_passport_num').hasClass('is-valid')) {
                                 $('#err_manual_maid_passport_num').text('');
                             }
+                        }
+
+                        if (!manualMaidJobTitle) {
+                            isValid = false;
+                            $('#manual_maid_job_title_id').addClass('is-invalid');
+                            $('#err_manual_maid_job_title_id').text('يرجى اختيار المهنة');
+                        } else {
+                            $('#manual_maid_job_title_id').removeClass('is-invalid');
+                            $('#err_manual_maid_job_title_id').text('');
                         }
 
                         if (!manualMaidNationality) {
@@ -2352,7 +2567,7 @@
                             isValid = false;
                             $('#required_maid_nationality').addClass('is-invalid');
                             $('#err_required_maid_nationality').text(
-                                'يرجى اختيار الجنسية المطلوبة للعاملة');
+                                'يرجى اختيار الجنسية المطلوبة للعامل/ة');
                             console.log('Required maid nationality validation failed: empty');
                         } else {
                             $('#required_maid_nationality').removeClass('is-invalid');
@@ -2366,7 +2581,7 @@
                         if (!requiredMaidReligion) {
                             isValid = false;
                             $('#required_maid_religion').addClass('is-invalid');
-                            $('#err_required_maid_religion').text('يرجى اختيار الدين المطلوب للعاملة');
+                            $('#err_required_maid_religion').text('يرجى اختيار الدين المطلوب للعامل/ة');
                             console.log('Required maid religion validation failed: empty');
                         } else {
                             $('#required_maid_religion').removeClass('is-invalid');
@@ -2603,11 +2818,13 @@
 
                 // أضف بيانات العميل حسب التبويب النشط
                 if (isNewContractTab) {
+                    formData.append('account_client_type', $('#tab-new-pane input[name="account_client_type"]:checked').val() || 'person');
                     formData.append('client_name', clientName);
                     formData.append('client_phone', clientPhone);
                     formData.append('client_email', clientEmail);
                     formData.append('client_nationality_id', $('#new_client_nationality_id').val() || '');
                     formData.append('new_client_national_num', clientNationalityNum);
+                    formData.append('new_client_license_number', $('#new_client_license_number').val() || '');
                     formData.append('new_client_birthdate', $('#new_client_birthdate').val());
                     formData.append('new_client_phone2', $('#new_client_phone2').val());
                     formData.append('new_client_address', $('#new_client_address').val());
@@ -2621,6 +2838,9 @@
                     var selectedOrder = $('#order_id').val();
                     formData.append('order_id', selectedOrder);
                     formData.append('client_type', 'ex_client');
+                    formData.append('account_client_type', $('#tab-order-pane input[name="account_client_type"]:checked').val() || 'person');
+                    formData.append('client_national_num', $('#client_national_num').val() || '');
+                    formData.append('client_license_number', $('#client_license_number').val() || '');
                 }
 
                 console.log('Client data prepared:', {
@@ -2642,11 +2862,11 @@
                         'From existing order'
                 });
 
-                // أضف بيانات العاملة حسب التبويب النشط
+                // أضف بيانات العامل/ة حسب التبويب النشط
                 if (isNewContractTab) {
                     var selectedMaidId = $('#new_new_maid_id').val();
                     if (maidSelectionMode === 'existing' && selectedMaidId) {
-                        // إذا تم اختيار عاملة
+                        // إذا تم اختيار عامل/ة
                         formData.append('maid_name', $('#new_maid_name').val());
                         formData.append('maid_passport', $('#new_maid_passport').val());
                         formData.append('maid_religion', $('#new_maid_religion').val());
@@ -2655,7 +2875,7 @@
                         formData.append('maid_salary', $('#new_maid_salary').val());
                         formData.append('maid_experience_years', $('#new_maid_experience_years').val());
                         formData.append('maid_age', $('#new_maid_age').val());
-                        formData.append('maid_selection_postponed', '0'); // تم اختيار عاملة
+                        formData.append('maid_selection_postponed', '0'); // تم اختيار عامل/ة
                     } else if (maidSelectionMode === 'manual') {
                         formData.append('maid_selection_postponed', '1');
                         formData.append('maid_name', '');
@@ -2667,7 +2887,9 @@
                         formData.append('maid_experience_years', '');
                         formData.append('maid_age', '');
                         formData.append('manual_maid_name', $('#manual_maid_name').val());
+                        formData.append('manual_maid_gender', $('#manual_maid_gender').val() || '');
                         formData.append('manual_maid_passport_num', $('#manual_maid_passport_num').val());
+                        formData.append('manual_maid_job_title_id', $('#manual_maid_job_title_id').val() || '');
                         formData.append('manual_maid_nationality_id', $('#manual_maid_nationality_id').val() || '');
                         formData.append('manual_maid_office_id', $('#manual_maid_office_id').val() || '');
 
@@ -2676,8 +2898,8 @@
                             formData.append('manual_maid_attachment', manualMaidAttachment.files[0]);
                         }
                     } else {
-                        // إذا تم تأجيل اختيار العاملة
-                        formData.append('maid_selection_postponed', '1'); // تم تأجيل اختيار العاملة
+                        // إذا تم تأجيل اختيار العامل/ة
+                        formData.append('maid_selection_postponed', '1'); // تم تأجيل اختيار العامل/ة
                         formData.append('maid_name', '');
                         formData.append('maid_passport', '');
                         formData.append('maid_religion', '');
@@ -2767,7 +2989,7 @@
                 }
                 formData.append('marketer_id', marketerId || '');
 
-                // إضافة الحقول المطلوبة للعاملة (إذا لم يتم اختيار عاملة)
+                // إضافة الحقول المطلوبة للعامل/ة (إذا لم يتم اختيار عامل/ة)
                 if ($('#new-no-maid-alert').is(':visible')) {
                     formData.append('required_maid_nationality', $('#required_maid_nationality').val() ||
                         '');

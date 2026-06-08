@@ -575,4 +575,17 @@ return array (
     'aboutUs' => 'About Us',
     ],
 
-   );
+  
+    'active' => 'Active',
+    'completed' => 'Completed',
+    'cancelled' => 'Cancelled',
+    'expired' => 'Expired',
+
+  'stage_active' => 'Stage active',
+  'complaint' => 'Complaint',
+  'experience_status' => 'Experience status',
+  'sponsorship_transfers' => 'Sponsorship transfers',
+  'follow_the_status_of_your_sponsorship_transfers' => 'Follow the status of your sponsorship transfers',
+  'Contract Refund Requests' => 'Contract Refund Requests',
+  'transferred' => 'Transferred',
+);

@@ -110,8 +110,8 @@
                                 </div>
                                 <div class="col-md-6">
                                     <div class="info-item mb-3">
-                                        <label class="fw-bold text-muted">رقم الهوية:</label>
-                                        <p class="mb-0">{{ $order->user->national_num ?? 'غير محدد' }}</p>
+                                        <label class="fw-bold text-muted">{{ $order->user?->documentNumberLabel() ?? 'رقم الهوية' }}:</label>
+                                        <p class="mb-0">{{ $order->user?->documentNumber() ?? 'غير محدد' }}</p>
                                     </div>
                                     <div class="info-item mb-3">
                                         <label class="fw-bold text-muted">العنوان:</label>

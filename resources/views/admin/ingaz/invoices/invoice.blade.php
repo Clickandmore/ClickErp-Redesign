@@ -180,7 +180,7 @@
             <tr>
                 <td class="info-label">اسم العميل</td>
                 <td class="info-value">{{ $customerName }}</td>
-                <td class="info-label">رقم الهوية</td>
+                <td class="info-label">{{ $customerDocumentLabel ?? 'رقم الهوية' }}</td>
                 <td class="info-value">{{ $customerNationalId }}</td>
             </tr>
             <tr>

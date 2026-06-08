@@ -15,8 +15,27 @@ class OrderDetail extends Model
     protected $guarded = [];
     protected $with = ['package', 'address'];
 
+    protected static function booted()
+    {
+        static::saved(function (OrderDetail $orderDetail) {
+            if (empty($orderDetail->admin_id)) {
+                return;
+            }
+
+            $order = Order::query()->find($orderDetail->order_id);
+
+            if ($order && method_exists($order, 'syncBranchFromResponsibleAdmin')) {
+                $order->syncBranchFromResponsibleAdmin((int) $orderDetail->admin_id, true);
+            }
+        });
+    }
 
     // relations
+    public function order()
+    {
+        return $this->belongsTo(Order::class, 'order_id');
+    }
+
     public function admin()
     {
         return $this->belongsTo(Admin::class, 'admin_id');

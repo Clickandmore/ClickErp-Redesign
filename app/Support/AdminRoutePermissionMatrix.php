@@ -100,6 +100,7 @@ class AdminRoutePermissionMatrix
             'admin.zoho-salesiq.visitors',
             'admin.zoho-salesiq.conversations.index',
             'settings.section',
+            'recruitment-contract-stages.edit',
             'sliders.index',
             'about-us.index',
             'questions.index',
@@ -114,6 +115,8 @@ class AdminRoutePermissionMatrix
             'social-statuses.index',
             'countries.index',
             'cities.index',
+            'branches.index',
+            'branches.settings',
             'packages.index',
             'offices.index',
             'dash.settings',
@@ -155,6 +158,11 @@ class AdminRoutePermissionMatrix
     {
         if (!$admin) {
             return false;
+        }
+
+        $branchPermission = BranchScopedPermissions::adminHasAnyPermission($admin, $permissions);
+        if ($branchPermission !== null) {
+            return $branchPermission;
         }
 
         if (method_exists($admin, 'hasAnyPermission') && $admin->hasAnyPermission($permissions)) {
@@ -590,6 +598,8 @@ class AdminRoutePermissionMatrix
             'settings.section' => [PermKeys::SETTINGS_VIEW],
             'settings.store' => [PermKeys::SETTINGS_CONTROL],
             'settings.update' => [PermKeys::SETTINGS_CONTROL],
+            'recruitment-contract-stages.edit' => [PermKeys::SETTINGS_VIEW],
+            'recruitment-contract-stages.update' => [PermKeys::SETTINGS_CONTROL],
             'admin.ingaz.settings.index' => [PermKeys::SETTINGS_VIEW],
             'admin.ingaz.settings.update' => [PermKeys::SETTINGS_CONTROL],
         ];
@@ -704,6 +714,8 @@ class AdminRoutePermissionMatrix
             ]),
             [
                 'offices.login-as-agent' => [PermKeys::OFFICE_CONTROL],
+                'offices.users.index' => [PermKeys::OFFICE_VIEW, PermKeys::OFFICE_CONTROL],
+                'offices.files.index' => [PermKeys::OFFICE_VIEW, PermKeys::OFFICE_CONTROL],
             ],
             [
                 'countries.index' => [PermKeys::COUNTRIES_VIEW, PermKeys::COUNTRIES_CONTROL],
@@ -721,6 +733,13 @@ class AdminRoutePermissionMatrix
                 'cities.edit' => [PermKeys::COUNTRIES_EDIT, PermKeys::COUNTRIES_CONTROL],
                 'cities.update' => [PermKeys::COUNTRIES_EDIT, PermKeys::COUNTRIES_CONTROL],
                 'cities.destroy' => [PermKeys::COUNTRIES_DELETE, PermKeys::COUNTRIES_CONTROL],
+                'branches.index' => [PermKeys::BRANCHES_VIEW, PermKeys::BRANCHES_CONTROL],
+                'branches.settings' => [PermKeys::BRANCHES_VIEW, PermKeys::BRANCHES_CONTROL],
+                'branches.create' => [PermKeys::BRANCHES_CREATE, PermKeys::BRANCHES_CONTROL],
+                'branches.store' => [PermKeys::BRANCHES_CREATE, PermKeys::BRANCHES_CONTROL],
+                'branches.edit' => [PermKeys::BRANCHES_EDIT, PermKeys::BRANCHES_CONTROL],
+                'branches.update' => [PermKeys::BRANCHES_EDIT, PermKeys::BRANCHES_CONTROL],
+                'branches.destroy' => [PermKeys::BRANCHES_DELETE, PermKeys::BRANCHES_CONTROL],
             ]
         );
     }

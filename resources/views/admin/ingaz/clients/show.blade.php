@@ -183,7 +183,7 @@
                         </span>
                     </div>
                     <div class="d-flex flex-wrap align-items-center gap-3 text-muted small">
-                        <span><i class="fas fa-id-card me-1"></i>{{ $client->national_num ?? helperTrans('ingaz.not_specified') }}</span>
+                        <span><i class="fas fa-id-card me-1"></i>{{ $client->documentNumberLabel() }}: {{ $client->documentNumber() ?? helperTrans('ingaz.not_specified') }}</span>
                         <span><i class="fas fa-flag me-1"></i>{{ $client->nationality->title ?? helperTrans('ingaz.not_specified') }}</span>
                         <span><i class="fas fa-calendar-plus me-1"></i>{{ $client->created_at?->format('Y-m-d') ?? '-' }}</span>
                         <span><i class="fas fa-user-plus me-1"></i>أضيف بواسطة: {{ $client->createdBy?->name ?? helperTrans('ingaz.not_specified') }}</span>
@@ -309,6 +309,20 @@
                         @endphp
                         <div class="info-grid">
                             <div class="info-item">
+                                <div class="label">{{ helperTrans('ingaz.client_type') }}</div>
+                                <div class="value">{{ $client->isCompanyClient() ? helperTrans('ingaz.company') : helperTrans('ingaz.person_client') }}</div>
+                            </div>
+                            <div class="info-item">
+                                <div class="label">{{ $client->documentNumberLabel() }}</div>
+                                <div class="value">{{ $client->documentNumber() ?? helperTrans('ingaz.not_specified') }}</div>
+                            </div>
+                            @if($client->isCompanyClient())
+                                <div class="info-item">
+                                    <div class="label">{{ helperTrans('ingaz.license_number') }}</div>
+                                    <div class="value">{{ $client->license_number ?? helperTrans('ingaz.not_specified') }}</div>
+                                </div>
+                            @endif
+                            <div class="info-item">
                                 <div class="label">{{ helperTrans('ingaz.client_name') }}</div>
                                 <div class="value">{{ $client->name ?? helperTrans('ingaz.not_specified') }}</div>
                             </div>
@@ -348,34 +362,38 @@
                                 <div class="label">{{ helperTrans('ingaz.city') }}</div>
                                 <div class="value">{{ $client->city ?? helperTrans('ingaz.not_specified') }}</div>
                             </div>
-                            <div class="info-item">
-                                <div class="label">{{ helperTrans('ingaz.birth_date') }}</div>
-                                <div class="value">{{ $client->birthdate ? \Carbon\Carbon::parse($client->birthdate)->format('Y-m-d') : helperTrans('ingaz.not_specified') }}</div>
-                            </div>
-                            <div class="info-item">
-                                <div class="label">{{ helperTrans('ingaz.marital_status') }}</div>
-                                <div class="value">{{ $maritalStatuses[$client->marital_status] ?? helperTrans('ingaz.not_specified') }}</div>
-                            </div>
+                            @unless($client->isCompanyClient())
+                                <div class="info-item">
+                                    <div class="label">{{ helperTrans('ingaz.birth_date') }}</div>
+                                    <div class="value">{{ $client->birthdate ? \Carbon\Carbon::parse($client->birthdate)->format('Y-m-d') : helperTrans('ingaz.not_specified') }}</div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="label">{{ helperTrans('ingaz.marital_status') }}</div>
+                                    <div class="value">{{ $maritalStatuses[$client->marital_status] ?? helperTrans('ingaz.not_specified') }}</div>
+                                </div>
+                            @endunless
                             <div class="info-item">
                                 <div class="label">أضيف بواسطة</div>
                                 <div class="value">{{ $client->createdBy?->name ?? helperTrans('ingaz.not_specified') }}</div>
                             </div>
-                            <div class="info-item">
-                                <div class="label">{{ helperTrans('ingaz.family_num') }}</div>
-                                <div class="value">{{ $client->family_num ?? helperTrans('ingaz.not_specified') }}</div>
-                            </div>
-                            <div class="info-item">
-                                <div class="label">{{ helperTrans('ingaz.rooms_num') }}</div>
-                                <div class="value">{{ $client->rooms_num ?? helperTrans('ingaz.not_specified') }}</div>
-                            </div>
-                            <div class="info-item">
-                                <div class="label">{{ helperTrans('ingaz.children') }}</div>
-                                <div class="value">{{ $client->children ?? helperTrans('ingaz.not_specified') }}</div>
-                            </div>
-                            <div class="info-item">
-                                <div class="label">{{ helperTrans('ingaz.job') }}</div>
-                                <div class="value">{{ $client->job ?? helperTrans('ingaz.not_specified') }}</div>
-                            </div>
+                            @unless($client->isCompanyClient())
+                                <div class="info-item">
+                                    <div class="label">{{ helperTrans('ingaz.family_num') }}</div>
+                                    <div class="value">{{ $client->family_num ?? helperTrans('ingaz.not_specified') }}</div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="label">{{ helperTrans('ingaz.rooms_num') }}</div>
+                                    <div class="value">{{ $client->rooms_num ?? helperTrans('ingaz.not_specified') }}</div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="label">{{ helperTrans('ingaz.children') }}</div>
+                                    <div class="value">{{ $client->children ?? helperTrans('ingaz.not_specified') }}</div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="label">{{ helperTrans('ingaz.job') }}</div>
+                                    <div class="value">{{ $client->job ?? helperTrans('ingaz.not_specified') }}</div>
+                                </div>
+                            @endunless
                             <div class="info-item">
                                 <div class="label">{{ helperTrans('ingaz.address') }}</div>
                                 <div class="value">{{ $client->address ?? helperTrans('ingaz.not_specified') }}</div>

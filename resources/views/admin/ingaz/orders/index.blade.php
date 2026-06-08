@@ -377,6 +377,17 @@
                                             @endif
                                         </select>
                                     </div>
+                                    @if($branchesEnabled ?? false)
+                                        <div class="col-md-2">
+                                            <label class="form-label">{{ __('admin.branches') }}</label>
+                                            <select class="form-select" name="branch_id" id="branch_id">
+                                                <option value="">{{ helperTrans('ingaz.all') }}</option>
+                                                @foreach(($branches ?? collect()) as $branch)
+                                                    <option value="{{ $branch->id }}">{{ $branch->name }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                    @endif
                                     <div class="col-md-2">
                                         <label class="form-label">{{ helperTrans('ingaz.timer_status') }}</label>
                                         <select class="form-select" name="timer_status" id="timer_status">
@@ -450,6 +461,9 @@
                                         <th>{{ helperTrans('ingaz.contract_status') }}</th>
                                         <th>{{ helperTrans('ingaz.order_date') }}</th>
                                         <th>{{ helperTrans('ingaz.responsible_employee') }}</th>
+                                        @if($branchesEnabled ?? false)
+                                            <th>{{ __('admin.branches') }}</th>
+                                        @endif
                                         <th class="text-center">{{ helperTrans('ingaz.actions') }}</th>
                                     </tr>
                                 </thead>
@@ -625,6 +639,13 @@
                     orderable: true,
                     searchable: true
                 },
+                @if($branchesEnabled ?? false)
+                {
+                    "data": "branch",
+                    orderable: true,
+                    searchable: true
+                },
+                @endif
                 {
                     "data": "actions",
                     orderable: false,
@@ -734,7 +755,7 @@
                 ],
                 columnDefs: [{
                         responsivePriority: 1,
-                        targets: [0, 2, 7, 10, 12]
+                        targets: @if($branchesEnabled ?? false) [0, 2, 7, 10, 13] @else [0, 2, 7, 10, 12] @endif
                     },
                     {
                         responsivePriority: 2,
@@ -752,6 +773,7 @@
                         d.nationality_id = $('#nationality_id').val();
                         d.request_type = $('#request_type').val();
                         d.admin_id = $('#admin_id').val() || getUrlParameter('admin_id');
+                        d.branch_id = $('#branch_id').length ? $('#branch_id').val() : '';
                         d.timer_status = $('#timer_status').val();
                         d.client_name = $('#client_name').val();
                         d.phone = $('#phone').val();
@@ -1695,7 +1717,7 @@
 
             // Clear filters
             $('#clearFilters').on('click', function() {
-                $('#from_date, #to_date, #status, #job_type, #admin_id, #timer_status, #client_name, #phone, #passport_num, #office_name')
+                $('#from_date, #to_date, #status, #job_type, #admin_id, #branch_id, #timer_status, #client_name, #phone, #passport_num, #office_name')
                     .val('');
                 dataTable.ajax.reload();
             });
@@ -1709,6 +1731,7 @@
                     job_type: $('#job_type').val(),
                     nationality_id: $('#nationality_id').val(),
                     admin_id: $('#admin_id').val(),
+                    branch_id: $('#branch_id').length ? $('#branch_id').val() : '',
                     timer_status: $('#timer_status').val(),
                     client_name: $('#client_name').val(),
                     phone: $('#phone').val(),
@@ -1725,6 +1748,7 @@
                     job_type: $('#job_type').val(),
                     nationality_id: $('#nationality_id').val(),
                     admin_id: $('#admin_id').val(),
+                    branch_id: $('#branch_id').length ? $('#branch_id').val() : '',
                     timer_status: $('#timer_status').val(),
                     client_name: $('#client_name').val(),
                     phone: $('#phone').val(),

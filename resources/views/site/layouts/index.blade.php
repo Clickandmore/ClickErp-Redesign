@@ -33,6 +33,9 @@
 
         gtag('config', 'AW-923324756');
     </script>
+    @if (isset($settings) && !empty($settings->tag_manager_head))
+        {!! $settings->tag_manager_head !!}
+    @endif
 
 </head>
 
@@ -91,6 +94,9 @@
     <script id="zsiqscript"
         src="https://salesiq.zohopublic.sa/widget?wc=e8345d69f3cb2a0945e374d8901771ae6b79f887aa0dd1ef960b4169df0f9cae"
         defer></script>
+    @if (isset($settings) && !empty($settings->tag_manager_footer))
+        {!! $settings->tag_manager_footer !!}
+    @endif
 
 
 </body>

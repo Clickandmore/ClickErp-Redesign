@@ -28,4 +28,9 @@ enum OrderEnum: string
     // //** NEW ADDED D18M7Y24 => IS */
     // case Delivered = 'delivered';
 
+    public function lang(): string
+    {
+        return \App\Support\RecruitmentOrderStatusLabels::label($this->value, app()->getLocale())
+            ?? $this->value;
+    }
 }

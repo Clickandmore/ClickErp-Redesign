@@ -34,6 +34,19 @@ return [
         ],
     ],
 
+    'branches' => [
+        'name' => 'إدارة الفروع',
+        'description' => 'تفعيل إدارة فروع الشركة وربط الموظفين والعمليات والتقارير بالفروع.',
+        'default_enabled' => false,
+        'route_patterns' => [
+            'branches.*',
+        ],
+        'path_patterns' => [
+            'admin/branches*',
+            'admin/ingaz/branches*',
+        ],
+    ],
+
     'website' => [
         'name' => 'الموقع الخارجي',
         'description' => 'إعدادات وبيانات واجهة العميل والمحتوى العام.',

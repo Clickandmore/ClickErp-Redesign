@@ -46,6 +46,7 @@ class Maid extends Model
 
     protected $fillable = [
         'name',
+        'gender',
         'nationality_id',
         'religion_id',
         'passport_num',

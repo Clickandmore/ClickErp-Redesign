@@ -14,6 +14,7 @@ use App\Enums\ingaz\OrderEnum;
 use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\StoreContractRequest;
 use App\Http\Traits\ContractSMSTrait;
+use App\Models\Branch;
 use App\Models\City;
 use App\Models\Contract;
 use App\Models\ContractInfo;
@@ -33,11 +34,13 @@ use App\Models\TravelHistory;
 use App\NewPermKeys;
 use App\Services\ingaz\RecruitmentTripAccountingService;
 use App\Services\ingaz\RecruitmentContractRefundService;
+use App\Support\SystemModuleManager;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use PDF;
@@ -516,9 +519,9 @@ class RecruitmentContractController extends Controller
         }
 
         if ($request->ajax()) {
+            $branchesEnabled = $this->branchesEnabledFor('contracts');
 
-
-            $query = Contract::with([
+            $query = Contract::with(array_filter([
                 'user', // جميع بيانات العميل
                 'user.nationality', // جنسية العميل (Country model)
                 'maid', // جميع بيانات العاملة
@@ -537,8 +540,9 @@ class RecruitmentContractController extends Controller
                 'recruitmentRefund',
                 'order', // بيانات الطلب
                 'order.details', // تفاصيل الطلب
-                'order.details.admin' // بيانات المسوق
-            ])
+                'order.details.admin',
+                $branchesEnabled ? 'branch' : null,
+            ]))
                 ->withCount(['notes', 'attachments']);
 
             // فلتر الحالة - استخدام query parameter فقط
@@ -682,6 +686,10 @@ class RecruitmentContractController extends Controller
                 });
             }
 
+            if ($branchesEnabled && $request->filled('branch_id')) {
+                $query->where('branch_id', $request->branch_id);
+            }
+
             $rows = $query->orderBy('id', 'desc');
 
             logger()->info('Query prepared for DataTables', [
@@ -806,11 +814,11 @@ class RecruitmentContractController extends Controller
                                 . '</div>';
                         }
 
-                        // National ID
-                        if ($row->user->national_num) {
+                        // Client document number
+                        if ($row->user->documentNumber()) {
                             $phoneInfo .= '<div class="text-muted small d-flex align-items-center gap-2">'
                                 . '<i class="fas fa-id-card text-secondary"></i>'
-                                . '<span><span class="text-secondary">رقم الهوية: </span>' . $row->user->national_num . '</span>'
+                                . '<span><span class="text-secondary">' . e($row->user->documentNumberLabel()) . ': </span>' . e($row->user->documentNumber()) . '</span>'
                                 . '</div>';
                         }
 
@@ -1139,6 +1147,13 @@ class RecruitmentContractController extends Controller
                     }
 
                     return $marketerInfo ?: '<span class="text-muted"><i class="fas fa-user-slash me-1"></i>غير محدد</span>';
+                })
+                ->addColumn('branch', function ($row) use ($branchesEnabled) {
+                    if (!$branchesEnabled) {
+                        return '-';
+                    }
+
+                    return $row->branch ? e($row->branch->name) : '-';
                 })
                 ->addColumn('recruitment_office', function ($row) {
                     $office = $row->maid?->office ?? $row->maid?->recruitmentOffice ?? $row->info?->manualMaidOffice;
@@ -1556,6 +1571,10 @@ class RecruitmentContractController extends Controller
         $data["modalType"] = "modal-lg";
         $data["status"] = $status ?? $request->get('status', null);
         $data["filterOptions"] = $filterOptions;
+        $data['branchesEnabled'] = $this->branchesEnabledFor('contracts');
+        $data['branches'] = $data['branchesEnabled']
+            ? Branch::query()->active()->ordered()->get(['id', 'name_ar', 'name_en'])
+            : collect();
         return view($this->folderPath . '.index', $data);
     }
 
@@ -2363,7 +2382,7 @@ class RecruitmentContractController extends Controller
         $eligibleOrdersQuery = Order::query()
             ->select(['id', 'user_id', 'maid_id', 'job_type_id', 'status', 'created_at'])
             ->with([
-                'user:id,name,phone,email,national_num,birthdate,phone2,address,city,nationality_id,rooms_num,family_num,children,job',
+                'user:id,name,phone,email,national_num,client_type,tax_number,license_number,birthdate,phone2,address,city,nationality_id,rooms_num,family_num,children,job',
                 'maid:id,name,passport_num,nationality_id,religion_id,salary,experience_years,age',
                 'jobType:id',
                 'jobType.translations',
@@ -2423,6 +2442,7 @@ class RecruitmentContractController extends Controller
     {
         $maidData = [
             'name' => trim((string) $request->manual_maid_name),
+            'gender' => $request->manual_maid_gender ?: 'female',
             'passport_num' => trim((string) $request->manual_maid_passport_num),
             'nationality_id' => $request->manual_maid_nationality_id,
             'office_id' => $request->manual_maid_office_id,
@@ -2455,6 +2475,9 @@ class RecruitmentContractController extends Controller
 
         $maid = Maid::create($maidData);
         $maid->jobTypes()->syncWithoutDetaching([1]);
+        if ($request->filled('manual_maid_job_title_id')) {
+            $maid->jobTitles()->syncWithoutDetaching([(int) $request->manual_maid_job_title_id]);
+        }
 
         return $maid;
     }
@@ -2539,6 +2562,8 @@ class RecruitmentContractController extends Controller
                 $contractStatus = ContractStatusEnum::PendingMaidSelection->value;
             }
 
+            $accountClientType = $request->input('account_client_type') === 'company' ? 'company' : 'person';
+
             $contractData = [
                 'status' => $contractStatus,
                 'maid_id' => $shouldCreateWithoutAssignedMaid ? null : $maidId,
@@ -2565,6 +2590,10 @@ class RecruitmentContractController extends Controller
                 // تحديث بيانات المستخدم من الطلب المسبق
                 $user = $order->user;
                 if ($user) {
+                    if ($request->filled('account_client_type')) {
+                        $user->client_type = $accountClientType;
+                    }
+
                     logger()->info('Updating user from order - Request data:', [
                         'new_client_national_num' => $request->new_client_national_num,
                         'client_national_num' => $request->client_national_num,
@@ -2579,8 +2608,10 @@ class RecruitmentContractController extends Controller
                         'user_current_national_num' => $user->national_num
                     ]);
 
-                    $user->update([
-                        'national_num' => $request->new_client_national_num ?? $request->client_national_num ?? $user->national_num,
+                    $documentNumber = $request->new_client_national_num ?? $request->client_national_num ?? null;
+                    $user->update($user->clientTypeAwarePayload([
+                        'client_type' => $user->client_type ?: $accountClientType,
+                        'license_number' => $request->new_client_license_number ?? $request->client_license_number ?? $user->license_number,
                         'birthdate' => $request->new_client_birthdate ?? $request->client_birthdate ?? $user->birthdate,
                         'address' => $request->new_client_address ?? $request->address ?? $user->address,
                         'phone2' => $request->new_client_phone2 ?? $request->phone2 ?? $user->phone2,
@@ -2589,7 +2620,7 @@ class RecruitmentContractController extends Controller
                         'family_num' => $request->new_client_family_num ?? $request->family_num ?? $user->family_num,
                         'children' => $request->new_client_children ?? $request->children ?? $user->children,
                         'job' => $request->new_client_job ?? $request->job ?? $user->job,
-                    ]);
+                    ], $documentNumber));
                     logger()->info('Updated user from order:', ['user' => $user->toArray()]);
                 }
 
@@ -2627,13 +2658,14 @@ class RecruitmentContractController extends Controller
                 }
 
                 if (!$user) {
-                    $user = User::create([
+                    $documentNumber = $request->new_client_national_num ?? $request->client_national_num;
+                    $userPayload = [
                         'name' => $request->client_name,
                         'phone_code' => '+966',
                         'phone' => $request->client_phone,
                         'password' => bcrypt('123456'), // Default password
                         'nationality_id' => $request->client_nationality_id,
-                        'national_num' => $request->new_client_national_num ?? $request->client_national_num,
+                        'client_type' => $accountClientType,
                         'email' => $request->new_client_email ?? $request->client_email,
                         'phone2' => $request->new_client_phone2 ?? $request->client_phone2,
                         'city' => $request->new_client_city ?? $request->client_city,
@@ -2643,15 +2675,34 @@ class RecruitmentContractController extends Controller
                         'job' => $request->new_client_job ?? $request->client_job,
                         'address' => $request->new_client_address ?? $request->client_address,
                         'birthdate' => $request->new_client_birthdate ?? $request->client_birthdate,
-                    ]);
+                    ];
+
+                    if ($accountClientType === 'company') {
+                        foreach (['national_num', 'birthdate', 'rooms_num', 'family_num', 'children', 'job'] as $field) {
+                            unset($userPayload[$field]);
+                        }
+
+                        $userPayload['tax_number'] = $documentNumber;
+                        $userPayload['license_number'] = $request->new_client_license_number ?? $request->client_license_number;
+                    } else {
+                        $userPayload['national_num'] = $documentNumber;
+                        $userPayload['tax_number'] = null;
+                        $userPayload['license_number'] = null;
+                    }
+
+                    $user = User::create($userPayload);
                     logger()->info('Created new user:', ['user' => $user->toArray()]);
                 } else {
                     // Update existing user with new data
-                    $user->update([
+                    $documentNumber = $request->new_client_national_num ?? $request->client_national_num;
+                    $user->client_type = $accountClientType;
+                    $user->update($user->clientTypeAwarePayload([
+                        'client_type' => $accountClientType,
                         'name' => $request->client_name,
                         'phone_code' => '+966',
                         'nationality_id' => $request->client_nationality_id,
-                        'national_num' => $request->new_client_national_num ?? $request->client_national_num,
+                        'license_number' => $accountClientType === 'company' ? ($request->new_client_license_number ?? $request->client_license_number) : null,
+                        'tax_number' => $accountClientType === 'person' ? null : $user->tax_number,
                         'email' => $request->new_client_email ?? $request->client_email,
                         'phone2' => $request->new_client_phone2 ?? $request->client_phone2,
                         'city' => $request->new_client_city ?? $request->client_city,
@@ -2662,7 +2713,7 @@ class RecruitmentContractController extends Controller
                         'address' => $request->new_client_address ?? $request->client_address,
                         'birthdate' => $request->new_client_birthdate ?? $request->client_birthdate,
                         'password' => bcrypt('123456'), // Update password
-                    ]);
+                    ], $documentNumber));
                     logger()->info('Updated existing user:', ['user' => $user->toArray()]);
                 }
                 $contractData['user_id'] = $user->id;
@@ -3137,14 +3188,13 @@ class RecruitmentContractController extends Controller
         try {
             // تحديث بيانات العميل
             if ($contract->user) {
-                $contract->user->update([
+                $contract->user->update($contract->user->clientTypeAwarePayload([
                     'name' => $request->client_name,
                     'phone' => $request->client_phone,
                     'email' => $request->client_email,
                     'nationality_id' => $request->client_nationality_id,
-                    'national_num' => $request->client_national_num,
                     'address' => $request->client_address,
-                ]);
+                ], $request->client_national_num));
             }
 
             // تحديث بيانات العاملة
@@ -3339,6 +3389,9 @@ class RecruitmentContractController extends Controller
                 'email',
                 'nationality_id',
                 'national_num',
+                'client_type',
+                'tax_number',
+                'license_number',
                 'birthdate',
                 'phone2',
                 'address',
@@ -3352,7 +3405,9 @@ class RecruitmentContractController extends Controller
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
                         ->orWhere('phone', 'like', "%{$search}%")
-                        ->orWhere('national_num', 'like', "%{$search}%");
+                        ->orWhere('national_num', 'like', "%{$search}%")
+                        ->orWhere('tax_number', 'like', "%{$search}%")
+                        ->orWhere('license_number', 'like', "%{$search}%");
                 });
             })
             ->orderByDesc('id')
@@ -3360,7 +3415,8 @@ class RecruitmentContractController extends Controller
 
         return response()->json([
             'results' => $clients->getCollection()->map(function ($client) {
-                $label = collect([$client->name, $client->phone, $client->national_num])
+                $documentNumber = $client->searchableDocumentNumber();
+                $label = collect([$client->name, $client->phone, $documentNumber])
                     ->filter()
                     ->implode(' - ');
 
@@ -3371,7 +3427,12 @@ class RecruitmentContractController extends Controller
                     'phone' => $client->phone,
                     'email' => $client->email,
                     'nationality' => $client->nationality_id,
-                    'national_num' => $client->national_num,
+                    'national_num' => $documentNumber,
+                    'document_number' => $documentNumber,
+                    'document_label' => $client->documentNumberLabel(),
+                    'client_type' => $client->client_type,
+                    'tax_number' => $client->tax_number,
+                    'license_number' => $client->license_number,
                     'birthdate' => $client->birthdate,
                     'phone2' => $client->phone2,
                     'address' => $client->address,
@@ -4626,6 +4687,10 @@ class RecruitmentContractController extends Controller
 
     private function applyContractFilters($query, Request $request, bool $ignoreStatus = false, bool $ignoreWarranty = false): void
     {
+        if ($this->branchesEnabledFor('contracts') && $request->filled('branch_id')) {
+            $query->where('branch_id', $request->branch_id);
+        }
+
         // فلتر الحالة - استخدام query parameter فقط
         if (!$ignoreStatus) {
             $statusFilter = $this->getStatusFilterForRequest($request);
@@ -4750,6 +4815,13 @@ class RecruitmentContractController extends Controller
         if ($request->filled('global_search')) {
             $this->applyGlobalSearchFilter($query, $request->global_search);
         }
+    }
+
+    private function branchesEnabledFor(string $table): bool
+    {
+        return SystemModuleManager::isEnabled('branches')
+            && Schema::hasTable($table)
+            && Schema::hasColumn($table, 'branch_id');
     }
 
     private function applyGlobalSearchFilter($query, string $search): void

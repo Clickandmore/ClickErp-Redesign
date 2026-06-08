@@ -74,11 +74,11 @@
                                                     </select>
                                                 </div>
                                                 <div class="col-md-6 mb-3">
-                                                    <label class="form-label">{{ helperTrans('ingaz.national_num') }} <span
+                                                    <label class="form-label">{{ $contract->user?->documentNumberLabel() ?? helperTrans('ingaz.national_num') }} <span
                                                             class="text-danger">*</span></label>
                                                     <input type="text" name="client_national_num"
                                                         id="client_national_num" class="form-control"
-                                                        value="{{ $contract->user ? $contract->user->national_num : '' }}"
+                                                        value="{{ $contract->user ? $contract->user->documentNumber() : '' }}"
                                                         required>
                                                 </div>
                                                 <div class="col-md-6 mb-3">

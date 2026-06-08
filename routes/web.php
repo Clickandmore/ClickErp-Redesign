@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\admin\AdminContractController;
+use App\Http\Controllers\admin\BranchController;
 use App\Http\Controllers\admin\CountryController;
 use App\Http\Controllers\admin\IngazDelegationController;
 use App\Http\Controllers\ingaz\MaidController as IngazMaidController;
@@ -392,6 +393,9 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin', 'admin.route.p
         Route::get('cities/{city}/edit', [CountryController::class, 'editCity'])->name('cities.edit');
         Route::put('cities/{city}', [CountryController::class, 'updateCity'])->name('cities.update');
         Route::delete('cities/{city}', [CountryController::class, 'destroyCity'])->name('cities.destroy');
+
+        Route::get('branches/settings', [BranchController::class, 'settings'])->name('branches.settings');
+        Route::resource('branches', BranchController::class)->except(['show']);
 
         // API routes للدول والمدن
         Route::get('api/countries', [CountryController::class, 'getCountries'])->name('api.countries');

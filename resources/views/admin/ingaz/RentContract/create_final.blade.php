@@ -47,7 +47,10 @@
                                                 data-phone="{{$client->phone}}"
                                                 data-email="{{$client->email}}"
                                                 data-nationality="{{$client->nationality_id}}"
-                                                data-national-num="{{$client->national_num}}"
+                                                data-account-client-type="{{ $client->client_type ?? 'person' }}"
+                                                data-document-label="{{ $client->documentNumberLabel() }}"
+                                                data-tax-number="{{ $client->tax_number }}"
+                                                data-national-num="{{ $client->documentNumber() }}"
                                                 data-birthdate="{{$client->birthdate}}"
                                                 data-phone2="{{$client->phone2}}"
                                                 data-address="{{$client->address}}"
@@ -56,7 +59,7 @@
                                                 data-family-num="{{$client->family_num}}"
                                                 data-children="{{$client->children}}"
                                                 data-job="{{$client->job}}">
-                                                {{$client->name}} - {{$client->phone}} - {{$client->national_num}}
+                                                {{$client->name}} - {{$client->phone}} - {{$client->documentNumber()}}
                                             </option>
                                         @endforeach
                                     @endif
@@ -87,7 +90,7 @@
                             </div>
                         </div>
 
-                        <div class="col-md-6">
+                        <div class="col-md-6 js-rent-final-client-document-field">
                             <div class="form-group">
                                 <label class="form-label">
                                     <span class="required-star">*</span>
@@ -121,7 +124,7 @@
                             </div>
                         </div>
 
-                        <div class="col-md-6">
+                        <div class="col-md-6 js-rent-final-person-field">
                             <div class="form-group">
                                 <label class="form-label">
                                     <span class="required-star">*</span>
@@ -131,7 +134,7 @@
                             </div>
                         </div>
 
-                        <div class="col-md-6">
+                        <div class="col-md-6 js-rent-final-person-field">
                             <div class="form-group">
                                 <label class="form-label">
                                     <span class="required-star">*</span>
@@ -141,7 +144,7 @@
                             </div>
                         </div>
 
-                        <div class="col-md-6">
+                        <div class="col-md-6 js-rent-final-person-field">
                             <div class="form-group">
                                 <label class="form-label">الدخل الشهري</label>
                                 <input type="number" class="form-control" id="monthly_income" name="monthly_income" step="0.01">
@@ -162,14 +165,14 @@
                             </div>
                         </div>
 
-                        <div class="col-md-6">
+                        <div class="col-md-6 js-rent-final-person-field">
                             <div class="form-group">
                                 <label class="form-label">عدد أفراد الأسرة</label>
                                 <input type="number" class="form-control" id="family_num" name="family_num">
                             </div>
                         </div>
 
-                        <div class="col-md-6">
+                        <div class="col-md-6 js-rent-final-person-field">
                             <div class="form-group">
                                 <label class="form-label">عدد الأطفال</label>
                                 <input type="number" class="form-control" id="children" name="children">
@@ -361,6 +364,52 @@ $(document).ready(function() {
         }
     });
 
+    function isCompanyClientType(value) {
+        return String(value || '').toLowerCase() === 'company';
+    }
+
+    function selectedRentFinalClientDocumentNumber(selectedOption) {
+        if (isCompanyClientType(selectedOption.data('account-client-type'))) {
+            return selectedOption.data('tax-number') || selectedOption.data('national-num') || '';
+        }
+
+        return selectedOption.data('national-num') || '';
+    }
+
+    function applyRentFinalClientDocumentMode(selectedOption) {
+        var isCompany = isCompanyClientType(selectedOption.data('account-client-type'));
+        var documentLabel = selectedOption.data('document-label') || (isCompany ? @json(helperTrans('ingaz.tax_number')) : @json(helperTrans('ingaz.national_num')));
+        var $documentInput = $('#client_national_num');
+        var $personFieldWrappers = $('#client_birthdate, #family_num, #children, #profession, #monthly_income')
+            .map(function () {
+                return $(this).closest('.js-rent-final-person-field, .col-md-6, .col-lg-6')[0];
+            });
+
+        $documentInput.closest('.js-rent-final-client-document-field, .col-md-6, .col-lg-6')
+            .find('label').first().html('<span class="required-star">*</span> ' + documentLabel);
+        $personFieldWrappers.toggleClass('d-none', isCompany);
+        $personFieldWrappers.find('input, select, textarea').prop('disabled', isCompany);
+
+        $('#client_birthdate, #profession').prop('required', !isCompany);
+        if (isCompany) {
+            $personFieldWrappers.find('input, select, textarea').val('').removeClass('is-invalid');
+        }
+    }
+
+    function resetRentFinalClientDocumentMode() {
+        var $documentInput = $('#client_national_num');
+        var $personFieldWrappers = $('#client_birthdate, #family_num, #children, #profession, #monthly_income')
+            .map(function () {
+                return $(this).closest('.js-rent-final-person-field, .col-md-6, .col-lg-6')[0];
+            });
+
+        $documentInput.closest('.js-rent-final-client-document-field, .col-md-6, .col-lg-6')
+            .find('label').first().html('<span class="required-star">*</span> ' + @json(helperTrans('ingaz.national_num')));
+        $personFieldWrappers.removeClass('d-none');
+        $personFieldWrappers.find('input, select, textarea').prop('disabled', false);
+        $('#client_birthdate, #profession').prop('required', true);
+    }
+
     // معالج تغيير العميل
     $('#new_existing_client_id').on('change', function() {
         var selectedOption = $(this).find('option:selected');
@@ -369,13 +418,14 @@ $(document).ready(function() {
             $('#client_name').val(selectedOption.data('name') || '');
             $('#client_phone').val(selectedOption.data('phone') || '');
             $('#client_email').val(selectedOption.data('email') || '');
-            $('#client_national_num').val(selectedOption.data('national-num') || '');
+            $('#client_national_num').val(selectedRentFinalClientDocumentNumber(selectedOption));
             $('#client_birthdate').val(selectedOption.data('birthdate') || '');
             $('#client_address').val(selectedOption.data('address') || '');
             $('#client_city').val(selectedOption.data('city') || '');
             $('#family_num').val(selectedOption.data('family-num') || '');
             $('#children').val(selectedOption.data('children') || '');
             $('#profession').val(selectedOption.data('job') || '');
+            applyRentFinalClientDocumentMode(selectedOption);
 
             var nationalityId = selectedOption.data('nationality');
             if (nationalityId) {
@@ -383,8 +433,9 @@ $(document).ready(function() {
             }
         } else {
             // مسح البيانات
-            $('#client_name, #client_phone, #client_email, #client_national_num, #client_birthdate, #client_address, #client_city, #family_num, #children, #profession').val('');
+            $('#client_name, #client_phone, #client_email, #client_national_num, #client_birthdate, #client_address, #client_city, #family_num, #children, #profession, #monthly_income').val('');
             $('#client_nationality_id').val('').trigger('change');
+            resetRentFinalClientDocumentMode();
         }
     });
 

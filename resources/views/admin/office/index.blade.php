@@ -174,6 +174,73 @@
             vertical-align: middle;
         }
 
+        .office-index-page .office-table-card,
+        .office-index-page .office-table-body,
+        .office-index-page .dataTables_wrapper,
+        .office-index-page .table-responsive {
+            overflow: visible;
+        }
+
+        #dataTableObject th:last-child,
+        #dataTableObject td:last-child {
+            min-width: 160px;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        #dataTableObject .actions-dropdown {
+            position: relative;
+            display: inline-flex;
+            justify-content: center;
+        }
+
+        #dataTableObject .actions-dropdown .actions-btn {
+            min-width: 128px;
+            border-radius: .65rem;
+            font-weight: 700;
+        }
+
+        #dataTableObject .office-actions-template {
+            display: none !important;
+        }
+
+        .office-actions-menu {
+            position: fixed;
+            width: 240px;
+            max-width: calc(100vw - 24px);
+            max-height: min(430px, calc(100vh - 24px));
+            overflow-y: auto;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: .75rem;
+            box-shadow: 0 18px 40px rgba(15, 23, 42, .18);
+            padding: .45rem;
+            margin: 0;
+            list-style: none;
+            z-index: 12000;
+        }
+
+        .office-actions-menu .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: .55rem;
+            width: 100%;
+            padding: .65rem .8rem;
+            border: 0;
+            border-radius: .55rem;
+            background: transparent;
+            color: #1f2937;
+            font-weight: 700;
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        .office-actions-menu .dropdown-item:hover,
+        .office-actions-menu .dropdown-item:focus {
+            background: #f3f6fb;
+            color: #0d6efd;
+        }
+
         .office-name-cell {
             font-weight: 700;
             color: #111827;
@@ -472,6 +539,11 @@
             return $('<div>').html(value || '').text().trim().toLowerCase();
         }
 
+        function closeOfficeActionsMenu() {
+            $('#officeActionsMenu').remove();
+            $('#dataTableObject .office-actions-btn').attr('aria-expanded', 'false');
+        }
+
         $(document).ready(function() {
             function closeOfficeActionsDropdown() {
                 $('#officeActionsFloatingMenu').remove();
@@ -664,6 +736,9 @@
                         sLast: "{{ trans('dataTable.sLast') }}"
                     }
                 },
+                drawCallback: function() {
+                    closeOfficeActionsMenu();
+                },
                 order: [
                     [1, 'asc']
                 ],
@@ -739,6 +814,76 @@
                 $(this).attr('aria-expanded', String(!isCollapsed));
                 $('#toggleOfficeFiltersText').text(isCollapsed ? "{{ helperTrans('ingaz.expand_filters') }}" : "{{ helperTrans('ingaz.collapse_filters') }}");
             });
+        });
+
+        $(document).on('click', '#dataTableObject .office-actions-btn', function(event) {
+            event.preventDefault();
+            event.stopPropagation();
+
+            const $button = $(this);
+            const $dropdown = $button.closest('.office-actions-dropdown');
+            const $sourceMenu = $dropdown.find('.office-actions-template').first();
+            const sourceId = $button.closest('tr').index();
+            const existingMenu = $('#officeActionsMenu');
+
+            if (existingMenu.length && Number(existingMenu.data('source-id')) === Number(sourceId)) {
+                closeOfficeActionsMenu();
+                return;
+            }
+
+            closeOfficeActionsMenu();
+
+            const menu = $('<ul id="officeActionsMenu" class="office-actions-menu"></ul>').html($sourceMenu.html());
+            menu.data('source-id', sourceId);
+            $('body').append(menu);
+
+            const rect = $button[0].getBoundingClientRect();
+            const menuWidth = menu.outerWidth();
+            const menuHeight = menu.outerHeight();
+            const margin = 12;
+            const isRtl = $('html').attr('dir') === 'rtl' || $('body').css('direction') === 'rtl';
+            let top = rect.bottom + 8;
+            let left = isRtl ? rect.left : rect.right - menuWidth;
+
+            if (top + menuHeight > window.innerHeight - margin) {
+                top = rect.top - menuHeight - 8;
+            }
+
+            if (top < margin) {
+                top = margin;
+            }
+
+            if (left + menuWidth > window.innerWidth - margin) {
+                left = window.innerWidth - menuWidth - margin;
+            }
+
+            if (left < margin) {
+                left = margin;
+            }
+
+            menu.css({
+                top: top + 'px',
+                left: left + 'px'
+            });
+            $button.attr('aria-expanded', 'true');
+        });
+
+        $(document).on('click', function(event) {
+            if (!$(event.target).closest('#officeActionsMenu, #dataTableObject .office-actions-dropdown').length) {
+                closeOfficeActionsMenu();
+            }
+        });
+
+        $(document).on('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeOfficeActionsMenu();
+            }
+        });
+
+        $(window).on('resize scroll', closeOfficeActionsMenu);
+
+        $(document).on('click', '#officeActionsMenu .dropdown-item', function() {
+            setTimeout(closeOfficeActionsMenu, 120);
         });
 
         $(document).on('click', '.toggle-status', function() {

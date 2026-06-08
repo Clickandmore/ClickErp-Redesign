@@ -43,6 +43,7 @@ use App\Http\Controllers\ingaz\ProfessionalApplicationController;
 use App\Http\Controllers\ingaz\QuestionController;
 use App\Http\Controllers\ingaz\RecruitmentContractController;
 use App\Http\Controllers\ingaz\RecruitmentContractExternalOfficeDispatchController;
+use App\Http\Controllers\ingaz\RecruitmentContractStageLabelController;
 use App\Http\Controllers\ingaz\RecruitmentRequestController;
 use App\Http\Controllers\ingaz\ReligionController;
 use App\Http\Controllers\ingaz\RenewContractController;
@@ -184,6 +185,10 @@ Route::group(
 
             Route::resource('settings', SettingController::class);
             Route::get('settings/section/{section}', [SettingController::class, 'section'])->name('settings.section');
+            Route::get('recruitment-contract-stages', [RecruitmentContractStageLabelController::class, 'edit'])->name('recruitment-contract-stages.edit');
+            Route::put('recruitment-contract-stages', [RecruitmentContractStageLabelController::class, 'update'])->name('recruitment-contract-stages.update');
+            Route::get('recruitment-contract-stage-labels', fn() => redirect()->route('recruitment-contract-stages.edit'));
+            Route::put('recruitment-contract-stage-labels', [RecruitmentContractStageLabelController::class, 'update']);
             Route::get('translation-terms', [TranslationTermController::class, 'index'])->name('translation-terms.index');
             Route::post('translation-terms', [TranslationTermController::class, 'store'])->name('translation-terms.store');
             Route::post('translation-terms/sync', [TranslationTermController::class, 'sync'])->name('translation-terms.sync');

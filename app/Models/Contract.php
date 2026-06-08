@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ingaz\ContractStatusEnum;
+use App\Models\Concerns\AssignsBranch;
 use App\Models\ingaz\Maid;
 use App\Models\ContractReturnRequest;
 use App\Models\ingaz\User;
@@ -18,7 +19,7 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class Contract extends Model
 {
-    use HasFactory, LogsActivity;
+    use AssignsBranch, HasFactory, LogsActivity;
 
     protected $guarded = [];
     protected $with = ['info'];
@@ -27,7 +28,15 @@ class Contract extends Model
     protected $casts = [
         'warranty_start_date' => 'datetime',
         'warranty_end_date' => 'datetime',
+        'branch_id' => 'integer',
     ];
+
+    protected function resolveBranchIdForCreate(): ?int
+    {
+        return $this->resolveBranchIdFromOrder($this->order_id ?? null)
+            ?: $this->resolveBranchIdFromAdmin($this->marketer_id ?? null)
+            ?: $this->resolveBranchIdFromCurrentAdmin();
+    }
 
     public function getDescAttribute()
     {
@@ -185,7 +194,7 @@ class Contract extends Model
             'contract_number' => (string) $this->id,
             'visa_number' => trim((string) ($this->info?->visa_number ?? '')),
             'sponsor_name' => trim((string) ($this->user?->name ?? '')),
-            'sponsor_identity_number' => trim((string) ($this->user?->national_num ?? '')),
+            'sponsor_identity_number' => trim((string) ($this->user?->documentNumber() ?? '')),
             'worker_name' => trim((string) ($this->maid?->name ?? $this->info?->manual_maid_name ?? '')),
             'passport_number' => trim((string) ($this->maid?->passport_num ?? $this->info?->manual_maid_passport_num ?? '')),
             'worker_age' => $this->formatExternalOfficeDispatchAge($this->maid?->age),

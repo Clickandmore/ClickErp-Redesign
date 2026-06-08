@@ -506,6 +506,7 @@ class AppHomeController extends Controller
         $whatsapp = (string) ($setting->whatsapp ?? '');
         $location = (string) ($setting->location ?? '');
         $websiteName = (string) ($setting->website_name ?? '');
+        $seo = $this->settingsSeoPayload($setting);
         $sliderIds = Slider::query()->orderBy('id')->pluck('id')->map(fn ($id) => (string) $id)->values();
 
         return [
@@ -516,6 +517,13 @@ class AppHomeController extends Controller
             'about_us_app' => (string) ($setting->about_us_app ?? ''),
             'title' => $websiteName,
             'footer_desc' => (string) ($setting->footer_text ?? ''),
+            'seo' => $seo,
+            'seo_article_tags' => $seo['article_tags'],
+            'meta_title' => $seo['meta_title'],
+            'meta_description' => $seo['meta_description'],
+            'meta_keywords' => $seo['meta_keywords'],
+            'tag_manager_head' => $seo['tag_manager_head'],
+            'tag_manager_footer' => $seo['tag_manager_footer'],
             'phone1' => $phone,
             'phone2' => $whatsapp !== '' ? $whatsapp : $otherPhone,
             'phone3' => $otherPhone,
@@ -576,6 +584,23 @@ class AppHomeController extends Controller
             'default_theme' => '',
             'offer_muted' => '',
             'offer_notification' => (string) ($setting->offer_text ?? ''),
+        ];
+    }
+
+    private function settingsSeoPayload(Setting $setting): array
+    {
+        $locale = app()->getLocale();
+        $locale = in_array($locale, ['ar', 'en'], true) ? $locale : 'ar';
+        $translation = $setting->translate($locale, false);
+
+        return [
+            'locale' => $locale,
+            'article_tags' => (string) ($translation?->seo_article_tags ?? ''),
+            'meta_title' => (string) ($translation?->meta_title ?? ''),
+            'meta_description' => (string) ($translation?->meta_description ?? ''),
+            'meta_keywords' => (string) ($translation?->meta_keywords ?? ''),
+            'tag_manager_head' => (string) ($setting->tag_manager_head ?? ''),
+            'tag_manager_footer' => (string) ($setting->tag_manager_footer ?? ''),
         ];
     }
 

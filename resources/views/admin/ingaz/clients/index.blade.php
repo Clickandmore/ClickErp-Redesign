@@ -266,6 +266,14 @@
                                 </select>
                             </div>
                             <div class="col-xl-2 col-lg-3 col-md-4">
+                                <label class="form-label">{{ helperTrans('ingaz.client_type') }}</label>
+                                <select id="filter-client-type" class="form-select filter-trigger">
+                                    <option value="">{{ helperTrans('ingaz.all') }}</option>
+                                    <option value="person">{{ helperTrans('ingaz.person_client') }}</option>
+                                    <option value="company">{{ helperTrans('ingaz.company') }}</option>
+                                </select>
+                            </div>
+                            <div class="col-xl-2 col-lg-3 col-md-4">
                                 <label class="form-label">{{ helperTrans('ingaz.nationality_filter') }}</label>
                                 <select id="filter-nationality" class="form-select filter-trigger">
                                     <option value="">{{ helperTrans('ingaz.all') }}</option>
@@ -286,6 +294,17 @@
                                     @endforeach
                                 </select>
                             </div>
+                            @if(($branchesEnabled ?? false) && ($canViewAllBranches ?? false))
+                                <div class="col-xl-2 col-lg-3 col-md-4">
+                                    <label class="form-label">{{ __('admin.branches') }}</label>
+                                    <select id="filter-branch" class="form-select filter-trigger">
+                                        <option value="">{{ helperTrans('ingaz.all') }}</option>
+                                        @foreach(($branches ?? collect()) as $branch)
+                                            <option value="{{ $branch->id }}">{{ $branch->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            @endif
                             <div class="col-xl-2 col-lg-3 col-md-4">
                                 <label class="form-label">{{ helperTrans('ingaz.has_orders_filter') }}</label>
                                 <select id="filter-orders" class="form-select filter-trigger">
@@ -376,6 +395,9 @@
                                         <th>{{ helperTrans('ingaz.status') }}</th>
                                         <th>{{ helperTrans('ingaz.have_account') }}</th>
                                         <th>أضيف بواسطة</th>
+                                        @if($branchesEnabled ?? false)
+                                            <th>{{ __('admin.branches') }}</th>
+                                        @endif
                                         <th>{{ helperTrans('ingaz.created_at') }}</th>
                                         <th>{{ helperTrans('ingaz.actions') }}</th>
                                     </tr>
@@ -498,8 +520,12 @@
                     url: "{{ route('clients.index') }}",
                     data: function(d) {
                         d.status = $('#filter-status').val();
+                        d.client_type = $('#filter-client-type').val();
                         d.nationality_id = $('#filter-nationality').val();
                         d.city = $('#filter-city').val();
+                        @if(($branchesEnabled ?? false) && ($canViewAllBranches ?? false))
+                            d.branch_id = $('#filter-branch').val();
+                        @endif
                         d.has_orders = $('#filter-orders').val();
                         d.date_from = $('#filter-date-from').val();
                         d.date_to = $('#filter-date-to').val();
@@ -559,6 +585,14 @@
                         orderable: false,
                         searchable: false
                     },
+                    @if($branchesEnabled ?? false)
+                    {
+                        data: 'branch',
+                        name: 'branch',
+                        orderable: false,
+                        searchable: false
+                    },
+                    @endif
                     {
                         data: 'created_at',
                         name: 'created_at'
@@ -571,7 +605,7 @@
                     }
                 ],
                 order: [
-                    [8, 'desc']
+                    [@if($branchesEnabled ?? false) 10 @else 9 @endif, 'desc']
                 ],
                 language: {
                     url: "{{ asset('admin/assets/js/datatable-ar.json') }}"

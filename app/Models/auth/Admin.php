@@ -3,6 +3,7 @@
 namespace App\Models\auth;
 
 use App\Models\ingaz\ComplaintComment;
+use App\Models\Branch;
 use App\Models\office\AdminOffice;
 use App\Models\office\Office;
 use Spatie\Permission\Models\Role;
@@ -20,6 +21,7 @@ class Admin extends Authenticatable
     protected $guarded = [];
     protected $guard_name = 'admin';
     protected $casts = [
+        'branch_id' => 'integer',
         'last_login_at' => 'datetime',
         'last_activity_at' => 'datetime',
     ];
@@ -28,6 +30,11 @@ class Admin extends Authenticatable
     public function role()
     {
         return $this->belongsTo(Role::class, 'role_id');
+    }
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class, 'branch_id');
     }
 
     public function agentOfficeLink()

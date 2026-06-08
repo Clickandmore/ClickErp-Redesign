@@ -19,10 +19,13 @@ use App\Models\ingaz\OrderTransfers;
 use App\Models\ingaz\Religion;
 use App\Models\ingaz\User;
 use App\Models\ingaz\UserAddress;
+use App\Models\Branch;
 use App\Models\Contract;
 use App\Models\MaidUnavailableRecord;
 use App\Support\AutomationSettings;
+use App\Support\SystemModuleManager;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -44,6 +47,9 @@ class OrderController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
+            $branchesEnabled = SystemModuleManager::isEnabled('branches')
+                && Schema::hasColumn('orders', 'branch_id');
+
             \Log::info('Orders AJAX request received', [
                 'request_data' => $request->all(),
                 'user_id' => auth('admin')->id()
@@ -59,6 +65,7 @@ class OrderController extends Controller
                 'jobType',
                 'details.admin',
                 'customer',
+                'branch',
                 'contracts'
             ]);
 
@@ -90,6 +97,10 @@ class OrderController extends Controller
             // Apply admin filter
             if ($request->filled('admin_id')) {
                 $query->whereResponsibleAdmin((int) $request->admin_id);
+            }
+
+            if ($branchesEnabled && $request->filled('branch_id')) {
+                $query->where('branch_id', $request->branch_id);
             }
 
             // Apply client name search
@@ -235,6 +246,13 @@ class OrderController extends Controller
                 ->editColumn('admin_name', function ($row) {
                     return '<span class="text-info">' . ($row->resolveResponsibleAdmin()?->name ?? '-') . '</span>';
                 })
+                ->addColumn('branch', function ($row) use ($branchesEnabled) {
+                    if (!$branchesEnabled) {
+                        return '-';
+                    }
+
+                    return $row->branch ? e($row->branch->name) : '-';
+                })
                 ->addColumn('actions', function ($row) {
                     $isCompletedOrder = $this->isCompletedOrder($row);
 
@@ -308,6 +326,11 @@ class OrderController extends Controller
         // Preload data for the main page to avoid multiple queries
         $data["dataTableRoute"] = route($this->mainRoute . ".index");
         $data["modalType"] = "modal-lg";
+        $data['branchesEnabled'] = SystemModuleManager::isEnabled('branches')
+            && Schema::hasColumn('orders', 'branch_id');
+        $data['branches'] = $data['branchesEnabled']
+            ? Branch::query()->active()->ordered()->get(['id', 'name_ar', 'name_en'])
+            : collect();
 
         // Cache filter data for 5 minutes to avoid repeated queries
         $data['jobTypes'] = \Cache::remember('job_types_list', 300, function () {

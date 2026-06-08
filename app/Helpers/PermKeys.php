@@ -61,6 +61,7 @@ const PARTENR_CONTROL = 'partenr_control';
     const CLIENTS_SHOW = 'clients_show';
     const CLIENTS_CREATE_RECRUITMENT = 'clients_create_recruitment';
     const CLIENTS_SETTINGS = 'clients_settings';
+    const CLIENTS_VIEW_ALL_BRANCHES = 'clients_view_all_branches';
 
     // ========================================
     // إدارة السير الذاتية (CV Management)
@@ -252,6 +253,12 @@ const PARTENR_CONTROL = 'partenr_control';
     const COUNTRIES_EDIT = 'countries_edit';
     const COUNTRIES_DELETE = 'countries_delete';
     const COUNTRIES_CONTROL = 'countries_control';
+
+    const BRANCHES_VIEW = 'branches_view';
+    const BRANCHES_CREATE = 'branches_create';
+    const BRANCHES_EDIT = 'branches_edit';
+    const BRANCHES_DELETE = 'branches_delete';
+    const BRANCHES_CONTROL = 'branches_control';
 
     // ========================================
     // إدارة المستخدمين

@@ -69,8 +69,8 @@
                                         <td>{{ $transfer->newSponsor->name ?? 'غير محدد' }}</td>
                                     </tr>
                                     <tr>
-                                        <td><strong>رقم الهوية:</strong></td>
-                                        <td>{{ $transfer->newSponsor->identity ?? 'غير محدد' }}</td>
+                                        <td><strong>{{ $transfer->newSponsor?->documentNumberLabel() ?? 'رقم الهوية' }}:</strong></td>
+                                        <td>{{ $transfer->newSponsor?->documentNumber() ?? 'غير محدد' }}</td>
                                     </tr>
                                     <tr>
                                         <td><strong>الهاتف:</strong></td>

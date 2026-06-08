@@ -67,21 +67,27 @@ class DevSuperAdminController extends Controller
             'enabledMap' => SystemModuleManager::enabledMap(),
             'dashboards' => SystemModuleManager::dashboards(),
             'defaultDashboardKey' => SystemModuleManager::defaultDashboardKey(),
+            'branchLimit' => SystemModuleManager::branchLimit(),
             'admins' => $admins,
         ]);
     }
 
     public function updateModules(Request $request)
     {
+        $data = $request->validate([
+            'branches_limit' => ['nullable', 'integer', 'min:0'],
+        ]);
+
         SystemModuleManager::update(
             array_keys((array) $request->input('modules', [])),
             null
         );
         SystemModuleManager::updateDefaultDashboard((string) $request->input('default_dashboard', 'recruitment'));
+        SystemModuleManager::updateBranchLimit($data['branches_limit'] ?? null);
 
         return redirect()
             ->route('dev-superadmin.modules')
-            ->with('success', 'تم تحديث حالة الموديلات بنجاح.');
+            ->with('success', 'تم تحديث حالة الموديلات وإعداداتها بنجاح.');
     }
 
     public function impersonate(Request $request, int $admin)

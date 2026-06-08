@@ -39,7 +39,9 @@ class ContractController extends Controller
                 ->when($search, function($query) use ($search, $phoneSearchTerms) {
                     $query->where(function($q) use ($search, $phoneSearchTerms) {
                         $q->where('name', 'like', "%{$search}%")
-                          ->orWhere('national_num', 'like', "%{$search}%");
+                          ->orWhere('national_num', 'like', "%{$search}%")
+                          ->orWhere('tax_number', 'like', "%{$search}%")
+                          ->orWhere('license_number', 'like', "%{$search}%");
 
                         foreach ($phoneSearchTerms as $phoneSearchTerm) {
                             $q->orWhere('phone', 'like', "%{$phoneSearchTerm}%")
@@ -51,13 +53,15 @@ class ContractController extends Controller
 
             $clients = (clone $clientsQuery)
                 ->forPage($page, $perPage)
-                ->get(['id', 'name', 'phone', 'phone2', 'national_num', 'birthdate']);
+                ->get(['id', 'name', 'phone', 'phone2', 'national_num', 'client_type', 'tax_number', 'license_number', 'birthdate']);
 
             $results = $clients->map(function($client) {
                 return [
                     'id' => $client->id,
                     'text' => $client->name . ' - ' . $client->phone,
-                    'national_num' => $client->national_num,
+                    'national_num' => $client->searchableDocumentNumber(),
+                    'document_number' => $client->searchableDocumentNumber(),
+                    'document_label' => $client->documentNumberLabel(),
                     'birthdate' => $client->birthdate
                 ];
             });
@@ -162,7 +166,6 @@ class ContractController extends Controller
             'name' => 'client_name',
             'email' => 'client_email',
             'nationality_id' => 'client_nationality_id',
-            'national_num' => 'client_national_num',
             'birthdate' => 'client_birthdate',
             'city' => 'city',
             'address' => 'address',
@@ -170,6 +173,10 @@ class ContractController extends Controller
             if (blank($client->{$column}) && filled($clientData[$inputKey] ?? null)) {
                 $updates[$column] = $clientData[$inputKey];
             }
+        }
+
+        if (blank($client->documentNumber()) && filled($clientData['client_national_num'] ?? null)) {
+            $updates = $client->clientTypeAwarePayload($updates, $clientData['client_national_num']);
         }
 
         if (!empty($updates)) {
@@ -436,10 +443,9 @@ class ContractController extends Controller
             // Update client information if provided
             $client = User::find($clientId);
             if ($client) {
-                $client->update([
-                    'national_num' => $contractData['client_national_num'] ?? $client->national_num,
+                $client->update($client->clientTypeAwarePayload([
                     'birthdate' => $contractData['client_birthdate'] ?? $client->birthdate,
-                ]);
+                ], $contractData['client_national_num'] ?? null));
             }
 
             // Create completed contract
@@ -501,7 +507,7 @@ class ContractController extends Controller
         $documentBranding = documentBranding();
 
         $clientName = $contract->user->name ?? '';
-        $clientNationalNumber = $contract->user->national_num ?? '';
+        $clientNationalNumber = $contract->user?->documentNumber() ?? '';
         $clientPhone = trim(preg_replace('/\s+/', ' ', trim(($contract->user->phone_code ?? '') . ' ' . ($contract->user->phone ?? ''))));
         $clientAddress = $contract->user->address ?? '';
 

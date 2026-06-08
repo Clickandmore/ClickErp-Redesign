@@ -520,8 +520,8 @@
                             <span class="info-value">{{ $transfer->oldSponsor->name }}</span>
                         </div>
                         <div class="info-row">
-                            <span class="info-label">رقم الهوية:</span>
-                            <span class="info-value">{{ $transfer->oldSponsor->national_num ?? 'غير محدد' }}</span>
+                            <span class="info-label">{{ $transfer->oldSponsor?->documentNumberLabel() ?? 'رقم الهوية' }}:</span>
+                            <span class="info-value">{{ $transfer->oldSponsor?->documentNumber() ?? 'غير محدد' }}</span>
                         </div>
                         <div class="info-row">
                             <span class="info-label">رقم الجوال:</span>
@@ -559,8 +559,8 @@
                             <span class="info-value">{{ $transfer->newSponsor->name }}</span>
                         </div>
                         <div class="info-row">
-                            <span class="info-label">رقم الهوية:</span>
-                            <span class="info-value">{{ $transfer->newSponsor->national_num ?? 'غير محدد' }}</span>
+                            <span class="info-label">{{ $transfer->newSponsor?->documentNumberLabel() ?? 'رقم الهوية' }}:</span>
+                            <span class="info-value">{{ $transfer->newSponsor?->documentNumber() ?? 'غير محدد' }}</span>
                         </div>
                         <div class="info-row">
                             <span class="info-label">رقم الجوال:</span>

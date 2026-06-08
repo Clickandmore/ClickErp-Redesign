@@ -287,6 +287,8 @@
                 'sari',
             ]);
             $showCompletedStatsInitially = !$requestedStatus || in_array($requestedStatus, ['completed_stage', 'completed', 'arrival', 'shelter']);
+            $contractStageLabels = \App\Support\RecruitmentContractStageLabels::labels();
+            $contractStageLabel = fn($status) => $contractStageLabels[$status][app()->getLocale() === 'en' ? 'en' : 'ar'] ?? $status;
         @endphp
 
         <!-- Header Section -->
@@ -349,7 +351,7 @@
                                             <i class="fas fa-user-clock"></i>
                                         </div>
                                         <div class="stat-body">
-                                            <div class="stat-title">انتظار اختيار العاملة</div>
+                                            <div class="stat-title">{{ $contractStageLabel('pending_maid_selection') }}</div>
                                             <div class="stat-value" data-stat-key="stage_pending_maid_selection">0</div>
                                         </div>
                                     </button>
@@ -360,7 +362,7 @@
                                             <i class="fas fa-file"></i>
                                         </div>
                                         <div class="stat-body">
-                                            <div class="stat-title">جديد</div>
+                                            <div class="stat-title">{{ $contractStageLabel('new') }}</div>
                                             <div class="stat-value" data-stat-key="stage_new">0</div>
                                         </div>
                                     </button>
@@ -372,7 +374,7 @@
                                             <i class="fas fa-handshake"></i>
                                         </div>
                                         <div class="stat-body">
-                                            <div class="stat-title">مساند</div>
+                                            <div class="stat-title">{{ $contractStageLabel('msaned') }}</div>
                                             <div class="stat-value" data-stat-key="stage_msaned">0</div>
                                         </div>
                                     </button>
@@ -384,7 +386,7 @@
                                             <i class="fas fa-file-signature"></i>
                                         </div>
                                         <div class="stat-body">
-                                            <div class="stat-title">تفويض</div>
+                                            <div class="stat-title">{{ $contractStageLabel('tafwed') }}</div>
                                             <div class="stat-value" data-stat-key="stage_tafwed">0</div>
                                         </div>
                                     </button>
@@ -396,7 +398,7 @@
                                             <i class="fas fa-passport"></i>
                                         </div>
                                         <div class="stat-body">
-                                            <div class="stat-title">التفييز</div>
+                                            <div class="stat-title">{{ $contractStageLabel('taffez') }}</div>
                                             <div class="stat-value" data-stat-key="stage_taffez">0</div>
                                         </div>
                                     </button>
@@ -408,7 +410,7 @@
                                             <i class="fas fa-ticket"></i>
                                         </div>
                                         <div class="stat-body">
-                                            <div class="stat-title">التذاكر</div>
+                                            <div class="stat-title">{{ $contractStageLabel('tazker') }}</div>
                                             <div class="stat-value" data-stat-key="stage_tazker">0</div>
                                         </div>
                                     </button>
@@ -442,7 +444,7 @@
                                             <i class="fas fa-shield"></i>
                                         </div>
                                         <div class="stat-body">
-                                            <div class="stat-title">وصول داخل الضمان</div>
+                                            <div class="stat-title">{{ $contractStageLabel('arrival') }} داخل الضمان</div>
                                             <div class="stat-value" data-stat-key="warranty_active">0</div>
                                         </div>
                                     </button>
@@ -454,7 +456,7 @@
                                             <i class="fas fa-times-circle"></i>
                                         </div>
                                         <div class="stat-body">
-                                            <div class="stat-title">مكتمل منتهي الضمان</div>
+                                            <div class="stat-title">{{ $contractStageLabel('completed') }} منتهي الضمان</div>
                                             <div class="stat-value" data-stat-key="warranty_expired">0</div>
                                         </div>
                                     </button>
@@ -466,7 +468,7 @@
                                             <i class="fas fa-house-user"></i>
                                         </div>
                                         <div class="stat-body">
-                                            <div class="stat-title">عقود الإيواء</div>
+                                            <div class="stat-title">{{ $contractStageLabel('shelter') }}</div>
                                             <div class="stat-value" data-stat-key="stage_shelter">0</div>
                                         </div>
                                     </button>
@@ -486,7 +488,7 @@
                                             <i class="fas fa-undo"></i>
                                         </div>
                                         <div class="stat-body">
-                                            <div class="stat-title">غير مكتملة (مرتجع)</div>
+                                            <div class="stat-title">غير مكتملة ({{ $contractStageLabel('back') }})</div>
                                             <div class="stat-value" data-stat-key="stage_back">0</div>
                                         </div>
                                     </button>
@@ -532,19 +534,19 @@
                                 <option value="delayed_arrival">تجاوزت 60 يوماً بدون تذاكر</option>
                                 <option value="expired_over_2y">أقدم من عامين</option>
 
-                                <option value="new">جديد</option>
-                                <option value="msaned">مساند</option>
-                                <option value="tafwed">تفويض</option>
-                                <option value="taffez">التفييز</option>
-                                <option value="tazker">التذاكر</option>
+                                <option value="new">{{ $contractStageLabel('new') }}</option>
+                                <option value="msaned">{{ $contractStageLabel('msaned') }}</option>
+                                <option value="tafwed">{{ $contractStageLabel('tafwed') }}</option>
+                                <option value="taffez">{{ $contractStageLabel('taffez') }}</option>
+                                <option value="tazker">{{ $contractStageLabel('tazker') }}</option>
                                 <option value="completed_stage">المكتملة (إجمالي)</option>
-                                <option value="arrival">وصول</option>
-                                <option value="sari">ساري</option>
-                                <option value="completed">مكتمل</option>
-                                <option value="back">مرتجع</option>
-                                <option value="shelter">الايواء</option>
-                                <option value="pending_maid_selection">انتظار اختيار العاملة</option>
-                                <option value="accreditation_contracts">اعتماد العقود</option>
+                                <option value="arrival">{{ $contractStageLabel('arrival') }}</option>
+                                <option value="sari">{{ $contractStageLabel('sari') }}</option>
+                                <option value="completed">{{ $contractStageLabel('completed') }}</option>
+                                <option value="back">{{ $contractStageLabel('back') }}</option>
+                                <option value="shelter">{{ $contractStageLabel('shelter') }}</option>
+                                <option value="pending_maid_selection">{{ $contractStageLabel('pending_maid_selection') }}</option>
+                                <option value="accreditation_contracts">{{ $contractStageLabel('accreditation_contracts') }}</option>
                             </select>
                         </div>
 
@@ -661,6 +663,17 @@
                                 @endif
                             </select>
                         </div>
+                        @if($branchesEnabled ?? false)
+                            <div class="col-md-3">
+                                <label for="branchFilter" class="form-label">{{ __('admin.branches') }}:</label>
+                                <select id="branchFilter" class="form-select">
+                                    <option value="">{{ helperTrans('ingaz.all') }}</option>
+                                    @foreach(($branches ?? collect()) as $branch)
+                                        <option value="{{ $branch->id }}">{{ $branch->name }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        @endif
 
                     </div>
                     <div class="row mt-3">
@@ -791,6 +804,9 @@
                                 <th>المدة</th>
                                 <th>{{ helperTrans('ingaz.recruitment_office') }}</th>
                                 <th>المسوق</th>
+                                @if($branchesEnabled ?? false)
+                                    <th>{{ __('admin.branches') }}</th>
+                                @endif
                                 <th>الحالة</th>
                                 <th>تحديث الحالة</th>
                                 <th>الإجراءات</th>
@@ -1522,6 +1538,13 @@
                     orderable: true,
                     searchable: true
                 },
+                @if($branchesEnabled ?? false)
+                {
+                    "data": "branch",
+                    orderable: true,
+                    searchable: true
+                },
+                @endif
                 {
                     "data": "status",
                     orderable: true,
@@ -1584,6 +1607,7 @@
                         d.request_type = $('#requestTypeFilter').val();
                         d.city = $('#cityFilter').val();
                         d.marketer_id = $('#marketerFilter').val(); // Add marketer filter
+                        d.branch_id = $('#branchFilter').length ? $('#branchFilter').val() : '';
                         d.exclude_back = urlExcludeBack ? 1 : '';
 
                         // إضافة فلتر حالة الضمان فقط إذا كانت الحالة "عقود مكتملة"
@@ -1948,7 +1972,7 @@
             });
 
             // تحديث الجدول عند تغيير فلاتر البحث
-            $('#globalSearchFilter, #clientPhoneFilter, #clientNameFilter, #maidPassportFilter, #maidNameFilter, #contractNumberFilter, #nationalityFilter, #religionFilter, #officeFilter, #requestTypeFilter, #cityFilter, #marketerFilter')
+            $('#globalSearchFilter, #clientPhoneFilter, #clientNameFilter, #maidPassportFilter, #maidNameFilter, #contractNumberFilter, #nationalityFilter, #religionFilter, #officeFilter, #requestTypeFilter, #cityFilter, #marketerFilter, #branchFilter')
                 .on('change', function() {
                     // لا تحدث الجدول تلقائياً - انتظر زر البحث
                 });
@@ -1970,7 +1994,7 @@
 
             // مسح الفلاتر
             $('#clearFilters').on('click', function() {
-                $('#globalSearchFilter, #statusFilter, #warrantyStatusFilter, #clientPhoneFilter, #clientNameFilter, #maidPassportFilter, #maidNameFilter, #contractNumberFilter, #nationalityFilter, #religionFilter, #officeFilter, #requestTypeFilter, #cityFilter, #marketerFilter')
+                $('#globalSearchFilter, #statusFilter, #warrantyStatusFilter, #clientPhoneFilter, #clientNameFilter, #maidPassportFilter, #maidNameFilter, #contractNumberFilter, #nationalityFilter, #religionFilter, #officeFilter, #requestTypeFilter, #cityFilter, #marketerFilter, #branchFilter')
                     .val('');
                 $('#dateFromFilter, #dateToFilter').val('');
                 localStorage.removeItem('contractFilters'); // مسح الفلاتر المحفوظة
@@ -1997,7 +2021,7 @@
                     $('#maidPassportFilter').val() || $('#maidNameFilter').val() ||
                     $('#contractNumberFilter').val() || $('#nationalityFilter').val() ||
                     $('#religionFilter').val() || $('#officeFilter').val() || $('#requestTypeFilter').val() || $('#cityFilter').val() ||
-                    $('#marketerFilter').val();
+                    $('#marketerFilter').val() || ($('#branchFilter').length ? $('#branchFilter').val() : '');
 
                 console.log('DataTable XHR completed:', {
                     recordsTotal: info.recordsTotal,
@@ -2063,6 +2087,7 @@
                         request_type: $('#requestTypeFilter').val(),
                         city: $('#cityFilter').val(),
                         marketer_id: $('#marketerFilter').val(),
+                        branch_id: $('#branchFilter').length ? $('#branchFilter').val() : '',
                         exclude_back: urlExcludeBack ? 1 : ''
                     },
                     success: function(response) {
@@ -2099,7 +2124,8 @@
                     city: $('#cityFilter').val(),
                     dateFrom: $('#dateFromFilter').val(),
                     dateTo: $('#dateToFilter').val(),
-                    marketer: $('#marketerFilter').val() // Save marketer filter
+                    marketer: $('#marketerFilter').val(), // Save marketer filter
+                    branch: $('#branchFilter').length ? $('#branchFilter').val() : ''
                 };
                 localStorage.setItem('contractFilters', JSON.stringify(filters));
             }
@@ -2130,6 +2156,7 @@
                     $('#dateFromFilter').val(filters.dateFrom || '');
                     $('#dateToFilter').val(filters.dateTo || '');
                     $('#marketerFilter').val(filters.marketer || ''); // Load marketer filter
+                    $('#branchFilter').val(filters.branch || '');
                 }
             }
 
@@ -2399,22 +2426,11 @@
 
             // دالة للحصول على نص الحالة
             function getContractStatusText(status) {
-                var statusMap = {
-                    'new': 'عقد جديد',
-                    'msaned': 'عقود مساند',
-                    'tafwed': 'تفويض',
-                    'taffez': 'التفييز',
-                    'tazker': 'تذكرة',
-                    'completed': 'عقد مكتمل',
-                    'under_warranty': 'تحت الضمان',
-                    'back': 'مرتجع',
-                    'arrival': 'مرحلة الوصول',
-                    'sari': 'عقد ساري',
-                    'closed': 'عقد مغلق',
-                    'shelter': 'عقد إيواء',
-                    'pending_maid_selection': 'بانتظار اختيار العاملة',
-                    'accreditation_contracts': 'اعتماد العقود'
-                };
+                var statusLabels = @json($contractStageLabels, JSON_UNESCAPED_UNICODE);
+                var statusMap = {};
+                Object.keys(statusLabels).forEach(function(key) {
+                    statusMap[key] = statusLabels[key]['{{ app()->getLocale() === 'en' ? 'en' : 'ar' }}'] || key;
+                });
                 return statusMap[status] || status;
             }
 

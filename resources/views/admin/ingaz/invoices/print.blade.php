@@ -438,7 +438,7 @@
                     <td class="info-value">{{ $supplierPhone }}</td>
                 </tr>
                 <tr>
-                    <td class="info-label">رقم الهوية</td>
+                    <td class="info-label">{{ $customerDocumentLabel ?? 'رقم الهوية' }}</td>
                     <td class="info-value">{{ $customerNationalId }}</td>
                     <td class="info-label">العنوان</td>
                     <td class="info-value">{{ $supplierAddress }}</td>

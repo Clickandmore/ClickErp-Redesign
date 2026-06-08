@@ -50,13 +50,13 @@
                                             <td>
                                                 <div>
                                                     <strong>{{ $transfer->oldSponsor->name ?? 'غير محدد' }}</strong><br>
-                                                    <small class="text-muted">{{ $transfer->oldSponsor->national_num ?? '' }}</small>
+                                                    <small class="text-muted">{{ $transfer->oldSponsor?->documentNumber() ?? '' }}</small>
                                                 </div>
                                             </td>
                                             <td>
                                                 <div>
                                                     <strong>{{ $transfer->newSponsor->name ?? 'غير محدد' }}</strong><br>
-                                                    <small class="text-muted">{{ $transfer->newSponsor->national_num ?? '' }}</small>
+                                                    <small class="text-muted">{{ $transfer->newSponsor?->documentNumber() ?? '' }}</small>
                                                 </div>
                                             </td>
                                             <td>

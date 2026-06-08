@@ -54,7 +54,7 @@
                                         data-maid-passport="{{ $contract->maid ? $contract->maid->passport_num : 'غير محدد' }}"
                                         data-maid-nationality="{{ $contract->maid && $contract->maid->nationality ? ($contract->maid->nationality->translations->where('locale', app()->getLocale())->first()->sub_title ?? $contract->maid->nationality->translations->first()->sub_title) : 'غير محدد' }}"
                                         data-sponsor-name="{{ $contract->user ? $contract->user->name : 'غير محدد' }}"
-                                        data-sponsor-id="{{ $contract->user ? ($contract->user->national_num ?: 'غير محدد') : 'غير محدد' }}"
+                                        data-sponsor-id="{{ $contract->user ? ($contract->user->documentNumber() ?: 'غير محدد') : 'غير محدد' }}"
                                         data-sponsor-phone="{{ $contract->user ? $contract->user->phone : 'غير محدد' }}"
                                         data-sponsor-city="{{ $contract->user ? $contract->user->city : 'غير محدد' }}"
                                         {{ $selectedContractId == $contract->id ? 'selected' : '' }}>

@@ -220,6 +220,22 @@
                                        value="{{ old('phone') }}" required>
                             </div>
                         </div>
+
+                        <div class="col-lg-6">
+                            <label class="form-label d-block">{{ helperTrans('ingaz.client_type') }}</label>
+                            <div class="d-flex flex-wrap gap-3">
+                                <div class="form-check">
+                                    <input class="form-check-input client-type-radio" type="radio" name="client_type"
+                                           id="client_type_person" value="person" @checked(old('client_type', 'person') === 'person')>
+                                    <label class="form-check-label" for="client_type_person">{{ helperTrans('ingaz.person_client') }}</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input client-type-radio" type="radio" name="client_type"
+                                           id="client_type_company" value="company" @checked(old('client_type') === 'company')>
+                                    <label class="form-check-label" for="client_type_company">{{ helperTrans('ingaz.company') }}</label>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -245,33 +261,45 @@
                             <select name="nationality_id" id="nationalitySelect" class="form-control select2">
                                 <option value="">{{ helperTrans('ingaz.choose') }}</option>
                                 @foreach($countries as $country)
-                                    <option value="{{ $country->id }}" @selected(old('nationality_id') == $country->id)>
+                                    <option value="{{ $country->id }}" {{ old('nationality_id') == $country->id ? 'selected' : '' }}>
                                         {{ $country->title }}
                                     </option>
                                 @endforeach
                             </select>
                         </div>
 
-                        <div class="col-lg-6">
+                        <div class="col-lg-6 person-client-field">
                             <label class="form-label" for="national_num">{{ helperTrans('ingaz.national_num') }}</label>
                             <input type="text" id="national_num" name="national_num" class="form-control"
                                    value="{{ old('national_num') }}" required>
                         </div>
 
-                        <div class="col-lg-6">
+                        <div class="col-lg-6 company-client-field d-none">
+                            <label class="form-label" for="tax_number">{{ helperTrans('ingaz.tax_number') }}</label>
+                            <input type="text" id="tax_number" name="tax_number" class="form-control"
+                                   value="{{ old('tax_number') }}">
+                        </div>
+
+                        <div class="col-lg-6 company-client-field d-none">
+                            <label class="form-label" for="license_number">{{ helperTrans('ingaz.license_number') }}</label>
+                            <input type="text" id="license_number" name="license_number" class="form-control"
+                                   value="{{ old('license_number') }}">
+                        </div>
+
+                        <div class="col-lg-6 person-client-field">
                             <label class="form-label" for="birthdate">{{ helperTrans('ingaz.birthdate') }}</label>
                             <input type="date" id="birthdate" name="birthdate" class="form-control"
                                    value="{{ old('birthdate') }}">
                         </div>
 
-                        <div class="col-lg-6">
+                        <div class="col-lg-6 person-client-field">
                             <label class="form-label d-block">{{ helperTrans('ingaz.marital_status') ?: 'الحالة الاجتماعية' }}</label>
                             <div class="d-flex flex-wrap gap-3">
                                 @foreach(['single' => 'أعزب', 'married' => 'متزوج', 'divorced' => 'مطلق', 'widowed' => 'أرمل'] as $value => $label)
                                     <div class="form-check">
                                         <input class="form-check-input" type="radio" name="marital_status"
                                                id="marital_status_{{ $value }}" value="{{ $value }}"
-                                               @checked(old('marital_status') === $value) required>
+                                               {{ old('marital_status') === $value ? 'checked' : '' }} required>
                                         <label class="form-check-label" for="marital_status_{{ $value }}">{{ $label }}</label>
                                     </div>
                                 @endforeach
@@ -291,6 +319,21 @@
                             </select>
                         </div>
 
+                        @if($branchesEnabled ?? false)
+                            <div class="col-lg-6">
+                                <label class="form-label" for="branch_id">{{ __('admin.branches') }}</label>
+                                <input type="hidden" name="branch_id" value="{{ old('branch_id', $defaultBranch?->id) }}">
+                                <select id="branch_id" class="form-select" disabled>
+                                    @if($defaultBranch)
+                                        <option value="{{ $defaultBranch->id }}" selected>{{ $defaultBranch->name }}</option>
+                                    @else
+                                        <option value="">{{ helperTrans('ingaz.not_specified') }}</option>
+                                    @endif
+                                </select>
+                                <small class="text-muted d-block mt-1">يتم تسجيل العميل على الفرع الرئيسي افتراضياً.</small>
+                            </div>
+                        @endif
+
                         <div class="col-lg-6">
                             <label class="form-label" for="address">{{ helperTrans('ingaz.address') }}</label>
                             <input type="text" id="address" name="address" class="form-control"
@@ -303,32 +346,32 @@
                                 <option value="">{{ helperTrans('ingaz.choose') }}</option>
                                 @foreach($cities as $city)
                                     <option value="{{ $city->name }}" data-country-id="{{ $city->country_id }}"
-                                            @selected(old('city') == $city->name)>
+                                            {{ old('city') == $city->name ? 'selected' : '' }}>
                                         {{ $city->name }}
                                     </option>
                                 @endforeach
                             </select>
                         </div>
 
-                        <div class="col-lg-3 col-md-6">
+                        <div class="col-lg-3 col-md-6 person-client-field">
                             <label class="form-label" for="rooms_num">{{ helperTrans('ingaz.rooms_num') }}</label>
                             <input type="number" id="rooms_num" name="rooms_num" class="form-control" min="0"
                                    value="{{ old('rooms_num') }}">
                         </div>
 
-                        <div class="col-lg-3 col-md-6">
+                        <div class="col-lg-3 col-md-6 person-client-field">
                             <label class="form-label" for="family_num">{{ helperTrans('ingaz.family_num') }}</label>
                             <input type="number" id="family_num" name="family_num" class="form-control" min="0"
                                    value="{{ old('family_num') }}">
                         </div>
 
-                        <div class="col-lg-3 col-md-6">
+                        <div class="col-lg-3 col-md-6 person-client-field">
                             <label class="form-label" for="children">{{ helperTrans('ingaz.children') }}</label>
                             <input type="number" id="children" name="children" class="form-control" min="0"
                                    value="{{ old('children') }}">
                         </div>
 
-                        <div class="col-lg-3 col-md-6">
+                        <div class="col-lg-3 col-md-6 person-client-field">
                             <label class="form-label" for="job">{{ helperTrans('ingaz.job') }}</label>
                             <input type="text" id="job" name="job" class="form-control" value="{{ old('job') }}">
                         </div>
@@ -372,6 +415,24 @@
                     width: '100%'
                 });
             }
+
+            function toggleClientTypeFields() {
+                const type = $('input[name="client_type"]:checked').val() || 'person';
+                const isCompany = type === 'company';
+
+                $('.person-client-field').toggleClass('d-none', isCompany)
+                    .find('input, select, textarea').prop('disabled', isCompany);
+
+                $('.company-client-field').toggleClass('d-none', !isCompany)
+                    .find('input, select, textarea').prop('disabled', !isCompany);
+
+                $('#national_num').prop('required', !isCompany);
+                $('input[name="marital_status"]').prop('required', !isCompany);
+                $('#tax_number, #license_number').prop('required', isCompany);
+            }
+
+            $('.client-type-radio').on('change', toggleClientTypeFields);
+            toggleClientTypeFields();
 
             if ($citySelect.length) {
                 const citiesData = $citySelect.find('option').not('[value=""]').map(function () {

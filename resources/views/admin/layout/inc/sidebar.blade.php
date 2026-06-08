@@ -104,6 +104,7 @@
                 $canViewComplaints = @AdminGuardHasPerm(\App\PermKeys::COMPLAINT_VIEW);
                 $canViewSponsorshipTransfer = @AdminGuardHasAnyPerm([\App\PermKeys::SPONSOR_TRANSFER_VIEW, \App\PermKeys::SPONSOR_TRANSFER_WEB_REQUESTS_VIEW, \App\PermKeys::SPONSOR_TRANSFER_CREATE, \App\PermKeys::SPONSOR_TRANSFER_EDIT, \App\PermKeys::SPONSOR_TRANSFER_DELETE]);
                 $canViewReports = @AdminGuardHasAnyPerm([\App\PermKeys::MAIDS_EXPORT, \App\PermKeys::MAIDS_EXPORT_PDF, \App\PermKeys::MAIDS_EXPORT_EXCEL, \App\PermKeys::ORDERS_EXPORT, \App\PermKeys::REC_CONTRACTS_EXPORT, \App\PermKeys::RENT_CONTRACT_VIEW, \App\PermKeys::SHELTER_CONTRACT_VIEW, \App\NewPermKeys::REC_CONTRACTS_EXPORT, \App\NewPermKeys::REPORTS_EXPORT]);
+                $canViewOfficeManagement = @AdminGuardHasPerm(\App\PermKeys::OFFICE_VIEW);
 
                 $canViewOperations =
                     $canViewCv ||
@@ -114,7 +115,8 @@
                     $canViewLogistics ||
                     $canViewComplaints ||
                     $canViewSponsorshipTransfer ||
-                    $canViewContactRequests;
+                    $canViewContactRequests ||
+                    $canViewOfficeManagement;
 
                 $canViewZohoSalesIq = @AdminGuardHasAnyPerm([\App\PermKeys::CRM_MODULE, \App\PermKeys::NOTIFICATIONS_CONTROL, \App\PermKeys::SETTINGS_VIEW]);
                 $canViewSms = @AdminGuardHasAnyPerm([\App\PermKeys::NOTIFICATIONS_CONTROL, \App\PermKeys::NOTIFICATIONS_VIEW]) || $canViewZohoSalesIq;
@@ -123,11 +125,12 @@
 
                 $canViewHomeSettings = @AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_VIEW, \App\PermKeys::SLIDERS_VIEW, \App\PermKeys::ABOUT_US_VIEW, \App\PermKeys::FAQ_VIEW, \App\PermKeys::STATISTICS_VIEW, \App\PermKeys::STEPS_VIEW, \App\PermKeys::SERVICES_VIEW, \App\PermKeys::PARTENR_VIEW]);
 
-                $canViewMaidsData = @AdminGuardHasAnyPerm([\App\PermKeys::NATIONALITIES_VIEW, \App\PermKeys::REC_OFFICES_VIEW, \App\PermKeys::JOB_TITLES_VIEW, \App\PermKeys::RELIGIONS_VIEW, \App\PermKeys::SKILLS_VIEW, \App\PermKeys::COUNTRIES_VIEW, \App\PermKeys::SOCIAL_STATUS_VIEW, \App\PermKeys::OFFICE_VIEW, \App\PermKeys::USERS_VIEW, \App\PermKeys::MAIDS_VIEW]);
+                $canViewBranches = @SystemModuleEnabled('branches') && @AdminGuardHasAnyPerm([\App\PermKeys::BRANCHES_VIEW, \App\PermKeys::BRANCHES_CREATE, \App\PermKeys::BRANCHES_EDIT, \App\PermKeys::BRANCHES_DELETE, \App\PermKeys::BRANCHES_CONTROL]);
+                $canViewMaidsData = @AdminGuardHasAnyPerm([\App\PermKeys::NATIONALITIES_VIEW, \App\PermKeys::REC_OFFICES_VIEW, \App\PermKeys::JOB_TITLES_VIEW, \App\PermKeys::RELIGIONS_VIEW, \App\PermKeys::SKILLS_VIEW, \App\PermKeys::COUNTRIES_VIEW, \App\PermKeys::SOCIAL_STATUS_VIEW, \App\PermKeys::USERS_VIEW, \App\PermKeys::MAIDS_VIEW]);
 
                 $canViewOperations = @SystemModuleEnabled('operations') && $canViewOperations;
                 $canViewSettingsOperation =
-                    $canViewWebsiteManagement || $canViewHomeSettings || $canViewMaidsData || @AdminGuardHasAnyPerm([\App\PermKeys::PACKAGES_VIEW, \App\PermKeys::OFFICE_VIEW]);
+                    $canViewWebsiteManagement || $canViewHomeSettings || $canViewMaidsData || @AdminGuardHasPerm(\App\PermKeys::PACKAGES_VIEW);
             @endphp
             <ul class="menu-list">
                 <!-- Dashboard Section -->
@@ -153,6 +156,11 @@
                     $isZatcka = $moduleSegment === 'zatca';
                     $isCrm = $moduleSegment === 'crm';
                     $isDashboardHome = Route::currentRouteName() === 'dashboard.index';
+                    $isOfficeManagementRoute =
+                        request()->routeIs('offices.*') ||
+                        request()->routeIs('offices-file.*') ||
+                        request()->routeIs('admin.agent-imports.*');
+                    $isOperationsManagementOpen = $isDashboardHome || $isOfficeManagementRoute;
                 @endphp
 
                 @if ($canViewCrm)
@@ -185,15 +193,15 @@
                     </li>
                 @endif
                 @if ($canViewOperations)
-                    <li class="sidebar-module sidebar-module--operations {{ $isDashboardHome ? '' : 'collapsed' }}">
+                    <li class="sidebar-module sidebar-module--operations {{ $isOperationsManagementOpen ? '' : 'collapsed' }}">
                         <a class="m-link" data-bs-toggle="collapse" data-bs-target="#Operations_Management"
                             href="#">
                             <i class="fa fa-tasks me-2"></i>
                             <span class="ms-2">{{ helperTrans('ingaz.Operations_Management') }}</span>
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
-                        <ul class="sub-menu collapse {{ $isDashboardHome ? 'show' : '' }}"
-                            id="Operations_Management" data-default-open="{{ $isDashboardHome ? 'true' : 'false' }}">
+                        <ul class="sub-menu collapse {{ $isOperationsManagementOpen ? 'show' : '' }}"
+                            id="Operations_Management" data-default-open="{{ $isOperationsManagementOpen ? 'true' : 'false' }}">
                             <!-- CV Management Section -->
                             @if ($canViewCv)
                                 <li class="collapsed">
@@ -801,6 +809,8 @@
                                 </li>
                             @endif
 
+                            @include('admin.layout.inc.sidebar_sponsorship_transfer_menu')
+
                             <!-- Logistics Services Section -->
                             @if ($canViewLogistics)
                                 <li class="collapsed">
@@ -876,6 +886,7 @@
                                     </ul>
                                 </li>
                             @endif
+                            @include('admin.layout.inc.sidebar_external_agents_menu')
                             <!-- طلبات استرجاع العقود -->
                             {{--                        <li class="collapsed"> --}}
                             {{--                            <a class="m-link" data-bs-toggle="collapse" data-bs-target="#returnRequestsMenu" href="#"> --}}
@@ -888,91 +899,6 @@
                             {{--                                --}}
                             {{--                            </ul> --}}
                             {{--                        </li> --}}
-                            <!-- Additional Services Section -->
-                            @if ($canViewSponsorshipTransfer)
-                                <li class="collapsed">
-                                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#sponsorshipTransfer"
-                                        href="#">
-                                        <i class="icon-directions"></i>
-                                        <span class="ms-2">{{ helperTrans('ingaz.sponsorship_transfer') }}</span>
-                                        <span class="arrow fa fa-angle-left ms-auto text-end"></span>
-                                    </a>
-                                    <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['SponsorshipTransfer.create', 'SponsorshipTransfer.index', 'SponsorshipTransfer.webRequests', 'ShelterContract.availableForTransfer', 'SponsorshipTransfer.trial', 'SponsorshipTransfer.failed', 'SponsorshipTransfer.transferred', 'transfer-contract-terms.index', 'transfer-contract-terms.create', 'transfer-contract-terms.edit']) ? 'show' : '' }}"
-                                        id="sponsorshipTransfer">
-                                        @if (@AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_VIEW))
-                                            <li>
-                                                <a class="m-link {{ Route::currentRouteName() == 'SponsorshipTransfer.index' ? 'active' : '' }}"
-                                                    href="{{ route('SponsorshipTransfer.index') }}">
-                                                    <i class="fa fa-list"></i>
-                                                    <span
-                                                        class="ms-2">{{ helperTrans('ingaz.sponsorship_transfer_requests') }}</span>
-                                                </a>
-                                            </li>
-                                        @endif
-                                        @if (@AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_WEB_REQUESTS_VIEW))
-                                            <li>
-                                                <a class="m-link {{ Route::currentRouteName() == 'SponsorshipTransfer.webRequests' ? 'active' : '' }}"
-                                                    href="{{ route('SponsorshipTransfer.webRequests') }}">
-                                                    <i class="fa fa-globe"></i>
-                                                    <span class="ms-2">{{ __('admin.sidebar.website_requests') }}</span>
-                                                </a>
-                                            </li>
-                                        @endif
-                                        @if (@AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_CREATE))
-                                            <li>
-                                                <a class="m-link {{ Route::currentRouteName() == 'SponsorshipTransfer.create' ? 'active' : '' }}"
-                                                    href="{{ route('SponsorshipTransfer.create') }}">
-                                                    <i class="fa fa-plus"></i>
-                                                    <span
-                                                        class="ms-2">{{ helperTrans('ingaz.add_transfer_request') }}</span>
-                                                </a>
-                                            </li>
-                                        @endif
-                                        @if (@AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_VIEW))
-                                            <li>
-                                                <a class="m-link {{ Route::currentRouteName() == 'ShelterContract.availableForTransfer' ? 'active' : '' }}"
-                                                    href="{{ route('ShelterContract.availableForTransfer') }}">
-                                                    <i class="fa fa-check-circle"></i>
-                                                    <span
-                                                        class="ms-2">{{ helperTrans('ingaz.available_for_transfer') }}</span>
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="m-link {{ Route::currentRouteName() == 'SponsorshipTransfer.trial' ? 'active' : '' }}"
-                                                    href="{{ route('SponsorshipTransfer.trial') }}">
-                                                    <i class="fa fa-clock-o"></i>
-                                                    <span
-                                                        class="ms-2">{{ helperTrans('ingaz.trial_period') }}</span>
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="m-link {{ Route::currentRouteName() == 'SponsorshipTransfer.failed' ? 'active' : '' }}"
-                                                    href="{{ route('SponsorshipTransfer.failed') }}">
-                                                    <i class="fa fa-times-circle"></i>
-                                                    <span
-                                                        class="ms-2">{{ helperTrans('ingaz.trial_failed') }}</span>
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="m-link {{ Route::currentRouteName() == 'SponsorshipTransfer.transferred' ? 'active' : '' }}"
-                                                    href="{{ route('SponsorshipTransfer.transferred') }}">
-                                                    <i class="fa fa-check"></i>
-                                                    <span
-                                                        class="ms-2">{{ helperTrans('ingaz.transferred') }}</span>
-                                                </a>
-                                            </li>
-                                            <li>
-                                                <a class="m-link {{ in_array(Route::currentRouteName(), ['transfer-contract-terms.index', 'transfer-contract-terms.create', 'transfer-contract-terms.edit']) ? 'active' : '' }}"
-                                                    href="{{ route('transfer-contract-terms.index') }}">
-                                                    <i class="fa fa-file-text"></i>
-                                                    <span class="ms-2">{{ __('admin.sidebar.transfer_contract_terms') }}</span>
-                                                </a>
-                                            </li>
-                                        @endif
-
-                                    </ul>
-                                </li>
-                            @endif
                             @if ($canViewReports)
                                 <li>
                                     <a class="m-link {{ request()->routeIs('reports.*') ? 'active' : '' }}"
@@ -1109,6 +1035,49 @@
                     </li>
                 @endif
 
+                @if ($canViewBranches)
+                    @php
+                        $branchesManagementOpen = request()->routeIs('branches.*');
+                    @endphp
+                    <li class="sidebar-module sidebar-module--branches {{ $branchesManagementOpen ? '' : 'collapsed' }}">
+                        <a class="m-link" data-bs-toggle="collapse" data-bs-target="#branchesManagement"
+                            href="#">
+                            <i class="fa fa-code-branch fa-lg"></i>
+                            <span class="ms-2">{{ __('admin.sidebar.branches_management') }}</span>
+                            <span class="arrow fa fa-angle-left ms-auto text-end"></span>
+                        </a>
+                        <ul class="sub-menu collapse {{ $branchesManagementOpen ? 'show' : '' }}" id="branchesManagement">
+                            @if (@AdminGuardHasAnyPerm([\App\PermKeys::BRANCHES_VIEW, \App\PermKeys::BRANCHES_CONTROL]))
+                                <li>
+                                    <a class="m-link {{ request()->routeIs('branches.index') ? 'active' : '' }}"
+                                        href="{{ route('branches.index') }}">
+                                        <i class="fa fa-list"></i>
+                                        <span class="ms-2">{{ __('admin.sidebar.branches_list') }}</span>
+                                    </a>
+                                </li>
+                            @endif
+                            @if (@AdminGuardHasAnyPerm([\App\PermKeys::BRANCHES_CREATE, \App\PermKeys::BRANCHES_CONTROL]))
+                                <li>
+                                    <a class="m-link {{ request()->routeIs('branches.create') ? 'active' : '' }}"
+                                        href="{{ route('branches.create') }}">
+                                        <i class="fa fa-plus"></i>
+                                        <span class="ms-2">{{ __('admin.sidebar.branch_create') }}</span>
+                                    </a>
+                                </li>
+                            @endif
+                            @if (@AdminGuardHasAnyPerm([\App\PermKeys::BRANCHES_VIEW, \App\PermKeys::BRANCHES_CONTROL]))
+                                <li>
+                                    <a class="m-link {{ request()->routeIs('branches.settings') ? 'active' : '' }}"
+                                        href="{{ route('branches.settings') }}">
+                                        <i class="fa fa-sliders"></i>
+                                        <span class="ms-2">{{ __('admin.sidebar.branch_settings') }}</span>
+                                    </a>
+                                </li>
+                            @endif
+                        </ul>
+                    </li>
+                @endif
+
                 @if ($canViewSettingsOperation)
                     @php
                         $activeSettingsSection = request()->route('section');
@@ -1132,7 +1101,7 @@
                             request()->routeIs('statistics.*') ||
                             request()->routeIs('steps.*') ||
                             request()->routeIs('partenrs.*');
-                        $isRecruitmentSettingsRoute = in_array(Route::currentRouteName(), ['job-titles.index', 'nationalities.index', 'religions.index', 'skills.index', 'countries.index', 'cities.index', 'social-statuses.index', 'offices.index', 'offices.create', 'offices.edit', 'offices.show', 'recruitment-offices.index', 'recruitment-offices.create', 'recruitment-offices.edit', 'recruitment-offices.show']);
+                        $isRecruitmentSettingsRoute = in_array(Route::currentRouteName(), ['job-titles.index', 'nationalities.index', 'religions.index', 'skills.index', 'countries.index', 'cities.index', 'social-statuses.index', 'recruitment-contract-stages.edit', 'recruitment-contract-stages.update']);
                         $isRentalSettingsRoute =
                             request()->routeIs('rent-contract.settings') ||
                             request()->routeIs('rent-contract-terms.*') ||
@@ -1377,6 +1346,16 @@
                                             </li>
                                         @endif
 
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
+                                            <li>
+                                                <a class="m-link {{ request()->routeIs('recruitment-contract-stages.*') ? 'active' : '' }}"
+                                                    href="{{ route('recruitment-contract-stages.edit') }}">
+                                                    <i class="fa fa-tags"></i>
+                                                    <span class="ms-2">{{ __('admin.recruitment_contract_stages') }}</span>
+                                                </a>
+                                            </li>
+                                        @endif
+
                                         @if (@AdminGuardHasPerm(\App\PermKeys::JOB_TITLES_VIEW))
                                             <li>
                                                 <a class="m-link" href="{{ route('job-titles.index') }}">
@@ -1432,15 +1411,6 @@
                                                     <i class="fa fa-heart"></i>
                                                     <span class="ms-2">{{ __('admin.sidebar.social_statuses') }}</span>
 
-                                                </a>
-                                            </li>
-                                        @endif
-                                        @if (@AdminGuardHasPerm(\App\PermKeys::OFFICE_VIEW))
-                                            <li>
-                                                <a class="m-link {{ in_array(Route::currentRouteName(), ['offices.index', 'offices.create', 'offices.edit', 'offices.show', 'recruitment-offices.index', 'recruitment-offices.create', 'recruitment-offices.edit', 'recruitment-offices.show']) ? 'active' : '' }}"
-                                                    href="{{ route('offices.index') }}">
-                                                    <i class="fa fa-envelope"></i>
-                                                    <span class="ms-2"> {{ helperTrans('ingaz.offices') }}</span>
                                                 </a>
                                             </li>
                                         @endif

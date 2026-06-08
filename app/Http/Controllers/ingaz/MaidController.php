@@ -35,7 +35,7 @@ class MaidController extends Controller
 {
 
     public $folderPath = "admin.ingaz.maids";
-    public $postData = ["nationality_id", "expertises", 'experience_status', 'image', 'video', 'childrens_count', 'duration', 'additional_notes', 'video_link', 'cv_file', 'marital_status:ar', 'marital_status:en', 'languages', 'percentage', 'experience_years', 'cv_preview', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'office_id', 'name:en', 'type_id', 'job_id', 'skills', 'birth_date', 'height', 'weight', 'id_number', 'id_expiry_date', 'border_number', 'passport_issue_date', 'passport_expiry_date', 'arrival_date', 'create_shelter_contract', 'request_type'];
+    public $postData = ["nationality_id", "expertises", 'experience_status', 'image', 'video', 'childrens_count', 'duration', 'additional_notes', 'video_link', 'cv_file', 'marital_status:ar', 'marital_status:en', 'languages', 'percentage', 'experience_years', 'cv_preview', 'religion_id', 'passport_num', 'price', 'salary', 'age', 'office_id', 'name:en', 'gender', 'type_id', 'job_id', 'skills', 'birth_date', 'height', 'weight', 'id_number', 'id_expiry_date', 'border_number', 'passport_issue_date', 'passport_expiry_date', 'arrival_date', 'create_shelter_contract', 'request_type'];
     public $mainRoute = "maids";
 
     public function __construct()
@@ -594,9 +594,10 @@ class MaidController extends Controller
                     $passport = e($row->passport_num ?: '-');
                     $cvCode = $row->cv_code ? '<span class="small text-muted">' . helperTrans('ingaz.cv_code') . ': ' . e($row->cv_code) . '</span>' : '';
                     $requestType = e($row->request_type_label);
+                    $nameHtml = '<span class="fw-semibold maid-name notranslate" translate="no" dir="auto" data-maid-display="' . $name . '" aria-label="' . $name . '"></span>';
 
                     return '<div class="d-flex flex-column gap-1">'
-                        . '<a href="' . route('showMaidDetails', $row->id) . '" class="fw-semibold text-decoration-none">' . $name . '</a>'
+                        . '<a href="' . route('showMaidDetails', $row->id) . '" class="text-decoration-none notranslate" translate="no" dir="auto">' . $nameHtml . '</a>'
                         . '<span class="small text-muted">' . helperTrans('ingaz.passport') . ': ' . $passport . '</span>'
                         . $cvCode
                         . '<span class="small text-muted">' . helperTrans('ingaz.request_type') . ': ' . $requestType . '</span>'
@@ -1502,11 +1503,12 @@ class MaidController extends Controller
         );
     }
 
-    public function create_rapid_cv(NationalityAction $act, RecruitmentOfficeAction $officeAct, JobTypeAction $jobTypesAction, Request $request)
+    public function create_rapid_cv(NationalityAction $act, RecruitmentOfficeAction $officeAct, JobTitleAction $jobTitleAction, JobTypeAction $jobTypesAction, Request $request)
     {
         // Handle direct request
         $nationalities = $act->getNationalities();
         $offices = $officeAct->getAllOffices();
+        $jobs = $jobTitleAction->getJobsTitles();
         [, $defaultTypeId] = $this->prepareJobTypesForForm($jobTypesAction->getJobsTypes());
 
         return view(
@@ -1514,6 +1516,7 @@ class MaidController extends Controller
             compact(
                 'nationalities',
                 'offices',
+                'jobs',
                 'defaultTypeId',
             )
         );

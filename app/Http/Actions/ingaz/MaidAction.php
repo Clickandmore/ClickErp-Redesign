@@ -129,6 +129,7 @@ class MaidAction extends MainAction
         // Ensure these fields are properly set as integers and included in data
         $data['nationality_id'] = (int)$data['nationality_id'];
         $data['religion_id'] = (int)$data['religion_id'];
+        $data['gender'] = in_array($data['gender'] ?? null, ['male', 'female'], true) ? $data['gender'] : 'female';
 
         // Ensure these required fields are always included
         $data['passport_num'] = $data['passport_num'] ?? '';
@@ -274,6 +275,7 @@ class MaidAction extends MainAction
         $borderNumberColumnExists = Schema::hasColumn('maids', 'border_number');
         $passportIssueColumnExists = Schema::hasColumn('maids', 'passport_issue_date');
         $passportExpiryColumnExists = Schema::hasColumn('maids', 'passport_expiry_date');
+        $genderColumnExists = Schema::hasColumn('maids', 'gender');
 
         // Ensure all required fields are present in the data array
         $createData = [
@@ -310,6 +312,10 @@ class MaidAction extends MainAction
             'is_show' => $data['is_show'],
             'name' => $data['name'],
         ];
+
+        if ($genderColumnExists) {
+            $createData['gender'] = $data['gender'];
+        }
 
         
         if ($requestTypeColumnExists) {
@@ -525,10 +531,18 @@ class MaidAction extends MainAction
         $createData['arrival_date'] = $createData['arrival_date'] ?? now()->toDateString();
         $createData['image'] = $createData['image'] ?? '';
         $createData['request_type'] = Maid::resolveRequestType($createData['request_type'] ?? null);
+        $createData['gender'] = in_array($createData['gender'] ?? null, ['male', 'female'], true) ? $createData['gender'] : 'female';
+
+        if (!Schema::hasColumn('maids', 'gender')) {
+            unset($createData['gender']);
+        }
 
         $maid = $this->createMaidRecord($createData);
         $maid->jobTypes()->attach(1); // استقدام
         $maid->jobTypes()->sync($this->resolveRequiredJobTypeIds($request, $maid));
+        if ($request->job_id) {
+            $maid->jobTitles()->sync((array) $request->job_id);
+        }
         return $maid;
     }
 
@@ -1183,6 +1197,7 @@ class MaidAction extends MainAction
         $borderNumberColumnExists = Schema::hasColumn('maids', 'border_number');
         $passportIssueColumnExists = Schema::hasColumn('maids', 'passport_issue_date');
         $passportExpiryColumnExists = Schema::hasColumn('maids', 'passport_expiry_date');
+        $genderColumnExists = Schema::hasColumn('maids', 'gender');
 
         $experienceStatusValue = $data['experience_status']  ?? 'no_experience';
         // unset($data['duration'], $data['additional_notes'], $data['id']);
@@ -1354,6 +1369,11 @@ class MaidAction extends MainAction
         }
         if (!$passportExpiryColumnExists) {
             unset($data['passport_expiry_date']);
+        }
+        if ($genderColumnExists) {
+            $data['gender'] = in_array($data['gender'] ?? null, ['male', 'female'], true) ? $data['gender'] : ($maid->gender ?? 'female');
+        } else {
+            unset($data['gender']);
         }
 
 

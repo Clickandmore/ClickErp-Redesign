@@ -473,9 +473,22 @@
                         <label for="marketerFilter" class="form-label">المسوق:</label>
                         <select id="marketerFilter" class="form-select">
                             <option value="">جميع المسوقين</option>
-                            <!-- سيتم تعبئتها من الـ Controller -->
+                            @foreach(($marketers ?? collect()) as $marketer)
+                                <option value="{{ $marketer->id }}">{{ $marketer->name }}</option>
+                            @endforeach
                         </select>
                     </div>
+                    @if($branchesEnabled ?? false)
+                        <div class="col-md-3">
+                            <label for="branchFilter" class="form-label">{{ __('admin.branches') }}:</label>
+                            <select id="branchFilter" class="form-select">
+                                <option value="">{{ helperTrans('ingaz.all') }}</option>
+                                @foreach(($branches ?? collect()) as $branch)
+                                    <option value="{{ $branch->id }}">{{ $branch->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif
                     <div class="col-md-3">
                         <label for="requestTypeFilter" class="form-label">{{ helperTrans('ingaz.request_type') }}:</label>
                         <select id="requestTypeFilter" class="form-select">
@@ -566,6 +579,9 @@
                             <th>العاملة</th>
                             <th>معلومات العقد</th>
                             <th>المسوق</th>
+                            @if($branchesEnabled ?? false)
+                                <th>{{ __('admin.branches') }}</th>
+                            @endif
                             <th>الحالة</th>
                             <th>الأيام المتبقية</th>
                             <th>الإجراءات</th>
@@ -627,6 +643,10 @@
                                             <p id="endDate">-</p>
                                         </div>
                                         <div class="col-md-3">
+                                            <label for="closureDate" class="fw-bold mb-1">تاريخ الإنهاء:</label>
+                                            <input type="date" class="form-control form-control-sm" id="closureDate" required>
+                                        </div>
+                                        <div class="col-md-3">
                                             <strong>المدة المتبقية:</strong>
                                             <p id="remainingDays">-</p>
                                         </div>
@@ -664,7 +684,7 @@
                                             <p id="financialMonthlyCost">-</p>
                                         </div>
                                         <div class="col-md-3">
-                                            <strong>مدة العقد (شهر):</strong>
+                                            <strong>مدة العقد:</strong>
                                             <p id="financialDurationMonths">-</p>
                                         </div>
                                         <div class="col-md-3">
@@ -1131,11 +1151,11 @@
                                             <div class="fw-bold" id="extend_extension_value">-</div>
                                         </div>
                                         <div class="col-md-4">
-                                            <div class="text-muted small">إجمالي مدة العقد بعد التمديد</div>
+                                            <div class="text-muted small">مدة التمديد المحفوظة</div>
                                             <div class="fw-bold" id="extend_new_duration_text">-</div>
                                         </div>
                                         <div class="col-md-4">
-                                            <div class="text-muted small">قيمة العقد بعد التمديد</div>
+                                            <div class="text-muted small">قيمة التمديد المحفوظة</div>
                                             <div class="fw-bold" id="extend_new_contract_value_text">-</div>
                                         </div>
                                     </div>
@@ -1233,6 +1253,7 @@
                         d.maid_name = $('#maidNameFilter').val();
                         d.contract_number = $('#contractNumberFilter').val();
                         d.marketer_id = $('#marketerFilter').val();
+                        d.branch_id = $('#branchFilter').length ? $('#branchFilter').val() : '';
                         d.request_type = $('#requestTypeFilter').val();
                         d.warranty_status = $('#warrantyStatusFilter').val();
                         d.extension_filter = $('#extensionFilter').val();
@@ -1265,6 +1286,12 @@
                         data: 'marketer',
                         name: 'marketer'
                     },
+                    @if($branchesEnabled ?? false)
+                    {
+                        data: 'branch',
+                        name: 'branch'
+                    },
+                    @endif
                     {
                         data: 'status',
                         name: 'status'
@@ -1436,7 +1463,7 @@
 
             // Clear Filters
             $('#clearFilters').click(function() {
-                $('#statusFilter, #marketerFilter, #requestTypeFilter, #warrantyStatusFilter, #extensionFilter, #expiryFilter')
+                $('#statusFilter, #marketerFilter, #branchFilter, #requestTypeFilter, #warrantyStatusFilter, #extensionFilter, #expiryFilter')
                     .val('');
                 $('#dateFromFilter, #dateToFilter, #clientPhoneFilter, #clientNameFilter, #maidPassportFilter, #maidNameFilter, #contractNumberFilter')
                     .val('');
@@ -1455,6 +1482,7 @@
                     maid_name: $('#maidNameFilter').val(),
                     contract_number: $('#contractNumberFilter').val(),
                     marketer_id: $('#marketerFilter').val(),
+                    branch_id: $('#branchFilter').length ? $('#branchFilter').val() : '',
                     request_type: $('#requestTypeFilter').val(),
                     warranty_status: $('#warrantyStatusFilter').val(),
                     extension_filter: $('#extensionFilter').val(),
@@ -1543,8 +1571,8 @@
                     $('#extend_extension_days').val('');
                     $('#extend_extension_end_date').val('');
                     $('#extend_extension_value').text('-');
-                    $('#extend_new_duration_text').text(currentDurationDays ? (currentDurationDays + ' يوم') : '-');
-                    $('#extend_new_contract_value_text').text(contractValue ? (formatCurrency(contractValue) + ' ريال') : '-');
+                    $('#extend_new_duration_text').text('-');
+                    $('#extend_new_contract_value_text').text('-');
                     return;
                 }
 
@@ -1560,14 +1588,12 @@
 
                 const newEndDate = new Date(baseDate.getTime() + (extensionDays * 24 * 60 * 60 * 1000));
                 const extensionValue = dailyRate * extensionDays;
-                const newDurationDays = currentDurationDays + extensionDays;
-                const newContractValue = contractValue + extensionValue;
 
                 $('#extend_extension_days').val(extensionDays + ' يوم');
                 $('#extend_extension_end_date').val(formatDate(newEndDate));
                 $('#extend_extension_value').text(formatCurrency(extensionValue) + ' ريال');
-                $('#extend_new_duration_text').text(newDurationDays + ' يوم');
-                $('#extend_new_contract_value_text').text(formatCurrency(newContractValue) + ' ريال');
+                $('#extend_new_duration_text').text(extensionDays + ' يوم');
+                $('#extend_new_contract_value_text').text(formatCurrency(extensionValue) + ' ريال');
             }
 
             function toggleExtendReceiptRequirement() {
@@ -1764,6 +1790,68 @@
                 $('#finalRemainingAmount').text(formatCurrency(finalRemaining) + ' ريال');
             }
 
+            function formatContractDuration(contract) {
+                if (contract.duration_label) {
+                    return contract.duration_label;
+                }
+
+                const durationDays = parseInt(contract.duration_days || 0, 10);
+                const durationMonths = parseInt(contract.duration_months || 0, 10);
+
+                if (durationDays && (!durationMonths || durationDays !== durationMonths * 30)) {
+                    if (durationDays === 7) {
+                        return 'أسبوع';
+                    }
+                    if (durationDays === 14) {
+                        return 'أسبوعين';
+                    }
+                    if (durationDays % 7 === 0) {
+                        return (durationDays / 7) + ' أسابيع';
+                    }
+                    return durationDays + ' يوم';
+                }
+
+                return durationMonths ? (durationMonths + ' شهر') : (durationDays ? durationDays + ' يوم' : '-');
+            }
+
+            function fillCloseFinancialFields(contract) {
+                $('#remainingDays').text(contract.remaining_days || '-');
+                $('#financialMonthlyCost').text(formatCurrency(contract.monthly_cost || 0) + ' ريال');
+                $('#financialDurationMonths').text(formatContractDuration(contract));
+                $('#financialDurationDays').text((contract.duration_days || 0) ? (contract.duration_days + ' يوم') : '-');
+                $('#financialContractValue').text(formatCurrency(contract.contract_value || 0) + ' ريال');
+                $('#financialPaidAmount').text(formatCurrency(contract.paid_amount || 0) + ' ريال');
+                $('#financialRemainingAmount')
+                    .text(formatCurrency(contract.remaining_amount || 0) + ' ريال')
+                    .data('raw', contract.remaining_amount || 0);
+                $('#financialUsedDays').text(contract.used_days !== null && typeof contract.used_days !== 'undefined' ? (contract.used_days + ' يوم') : '-');
+                $('#financialRemainingDays').text(contract.remaining_days_value !== null && typeof contract.remaining_days_value !== 'undefined' ? (contract.remaining_days_value + ' يوم') : '-');
+                $('#financialDailyRate').text(formatCurrency(contract.daily_rate || 0) + ' ريال');
+                $('#financialUsedCost').text(formatCurrency(contract.used_cost || 0) + ' ريال');
+                $('#financialSuggestedRefund').text(formatCurrency(contract.calculated_refund_value || 0) + ' ريال');
+                $('#closeAdjustmentAmount').val(parseFloat(contract.refund_value || 0).toFixed(2));
+                updateCloseFinancialPreview();
+            }
+
+            function reloadCloseFinancialSummary() {
+                if (!selectedContractId) {
+                    return;
+                }
+
+                $.ajax({
+                    url: `/admin/RentContract/${selectedContractId}/details`,
+                    type: 'GET',
+                    data: {
+                        closure_date: $('#closureDate').val()
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            fillCloseFinancialFields(response.contract);
+                        }
+                    }
+                });
+            }
+
             function resetCloseFinancialFields() {
                 $('#closeAdjustmentType').val('refund');
                 $('#closeAdjustmentAmount').val('0');
@@ -1774,6 +1862,7 @@
                 $('#closeClientIban').val('');
                 $('#closeClientIbanAttachment').val('');
                 $('#closeReturnReason').val('');
+                $('#closureDate').val('').removeAttr('min');
                 $('#closeClientIbanAttachmentCurrentWrapper').addClass('d-none');
                 $('#closeClientIbanAttachmentCurrent').attr('href', '#');
                 $('#financialRemainingAmount').data('raw', 0);
@@ -1782,6 +1871,10 @@
                 $('#financialSuggestedRefund').text('-');
                 updateCloseFinancialPreview();
             }
+
+            $('#closureDate').on('change', function() {
+                reloadCloseFinancialSummary();
+            });
 
             $('#closeAdjustmentAmount, #closeClearRemainingAmount').on('input change', function() {
                 updateCloseFinancialPreview();
@@ -1968,6 +2061,9 @@
                             $('#currentStatus').text(contract.status_text || '-');
                             $('#startDate').text(contract.start_date || '-');
                             $('#endDate').text(contract.end_date || '-');
+                            $('#closureDate')
+                                .attr('min', contract.start_date || null)
+                                .val(contract.closure_date || new Date().toISOString().slice(0, 10));
                             $('#remainingDays').text(contract.remaining_days || '-');
                             $('#contractValue').text((contract.amount || 0) + ' ريال');
                             $('#financialMonthlyCost').text(formatCurrency(contract.monthly_cost || 0) + ' ريال');
@@ -1984,6 +2080,7 @@
                             $('#financialUsedCost').text(formatCurrency(contract.used_cost || 0) + ' ريال');
                             $('#financialSuggestedRefund').text(formatCurrency(contract.calculated_refund_value || 0) + ' ريال');
                             $('#closeAdjustmentAmount').val(parseFloat(contract.refund_value || 0).toFixed(2));
+                            fillCloseFinancialFields(contract);
                             $('#closeReturnReason').val(contract.closure_return_reason || '');
                             $('#closePaymentStatus').val(contract.payment_status || '');
                             $('#closeClientIban').val(contract.closure_client_iban || '');
@@ -2039,6 +2136,7 @@
                         formData.append('adjustment_type', $('#closeAdjustmentType').val());
                         formData.append('adjustment_amount', $('#closeAdjustmentAmount').val() || 0);
                         formData.append('clear_remaining_amount', $('#closeClearRemainingToggle').is(':checked') ? ($('#closeClearRemainingAmount').val() || 0) : 0);
+                        formData.append('closure_date', $('#closureDate').val());
                         formData.append('closure_return_reason', $('#closeReturnReason').val());
                         formData.append('close_payment_status', $('#closePaymentStatus').val());
                         formData.append('close_client_iban', $('#closeClientIban').val());
@@ -2211,6 +2309,7 @@
                 formData.append('paid_amount', $('#paidAmount').val());
                 formData.append('remaining_amount', $('#remainingAmount').val());
                 formData.append('notes', $('#transferNotes').val());
+                formData.append('closure_date', $('#closureDate').val());
                 formData.append('transfer_finance_items_present', '1');
                 formData.append('_token', '{{ csrf_token() }}');
 
