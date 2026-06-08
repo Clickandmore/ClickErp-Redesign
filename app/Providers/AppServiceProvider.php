@@ -14,6 +14,7 @@ use App\Models\ingaz\Setting;
 use App\Models\ingaz\DevelopSetting;
 use App\Models\ingaz\FastNew;
 use App\Support\CommunicationSettings;
+use App\Support\ZohoSalesIqSettings;
 use App\Validation\CustomValidator;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\RateLimiter;
@@ -73,6 +74,7 @@ class AppServiceProvider extends ServiceProvider
             $setting['popup_image'] = $new_settings->getSetting('popup_image');
         }
         View::share('setting', $setting);
+        View::share('zohoSalesIqWidgetUrl', ZohoSalesIqSettings::publicWidgetUrl());
 
 
         View::composer('*', function ($view) {

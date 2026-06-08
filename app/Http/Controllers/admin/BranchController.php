@@ -5,6 +5,7 @@ namespace App\Http\Controllers\admin;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Support\SystemModuleManager;
+use App\Support\ZohoSalesIqSettings;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -130,11 +131,24 @@ class BranchController extends Controller
             'working_hours.*.is_closed' => ['nullable', 'boolean'],
             'working_hours.*.from' => ['nullable', 'date_format:H:i'],
             'working_hours.*.to' => ['nullable', 'date_format:H:i'],
+            'zoho_salesiq_settings' => ['nullable', 'array'],
+            'zoho_salesiq_settings.salesiq_base_url' => ['nullable', 'url', 'max:500'],
+            'zoho_salesiq_settings.accounts_base_url' => ['nullable', 'url', 'max:500'],
+            'zoho_salesiq_settings.screen_name' => ['nullable', 'string', 'max:255'],
+            'zoho_salesiq_settings.client_id' => ['nullable', 'string', 'max:255'],
+            'zoho_salesiq_settings.client_secret' => ['nullable', 'string', 'max:1000'],
+            'zoho_salesiq_settings.refresh_token' => ['nullable', 'string', 'max:1000'],
+            'zoho_salesiq_settings.widget_url' => ['nullable', 'url', 'max:1000'],
+            'zoho_salesiq_settings.timeout' => ['nullable', 'integer', 'min:5', 'max:120'],
             'is_active' => ['nullable', 'boolean'],
             'sort_order' => ['nullable', 'integer', 'min:0'],
         ]);
 
         $data['working_hours'] = $this->normalizeWorkingHours($data['working_hours'] ?? []);
+        $data['zoho_salesiq_settings'] = ZohoSalesIqSettings::normalizeForStorage(
+            $data['zoho_salesiq_settings'] ?? [],
+            $branch?->zoho_salesiq_settings ?? []
+        );
 
         return $data;
     }

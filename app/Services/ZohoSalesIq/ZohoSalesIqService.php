@@ -2,6 +2,8 @@
 
 namespace App\Services\ZohoSalesIq;
 
+use App\Models\Branch;
+use App\Support\ZohoSalesIqSettings;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -9,6 +11,18 @@ use Throwable;
 
 class ZohoSalesIqService
 {
+    private ?Branch $branch = null;
+    private ?array $settings = null;
+
+    public function forBranch(?Branch $branch): self
+    {
+        $clone = clone $this;
+        $clone->branch = $branch;
+        $clone->settings = null;
+
+        return $clone;
+    }
+
     public function isConfigured(): bool
     {
         return $this->clientId() !== ''
@@ -24,25 +38,22 @@ class ZohoSalesIqService
 
     public function missingConfigKeys(): array
     {
-        $missing = [];
+        return ZohoSalesIqSettings::missingKeys($this->branch);
+    }
 
-        if ($this->clientId() === '') {
-            $missing[] = 'ZOHO_SALESIQ_CLIENT_ID';
-        }
+    public function connectionInfo(): array
+    {
+        $settings = $this->settings();
 
-        if ($this->clientSecret() === '') {
-            $missing[] = 'ZOHO_SALESIQ_CLIENT_SECRET';
-        }
-
-        if ($this->refreshToken() === '') {
-            $missing[] = 'ZOHO_SALESIQ_REFRESH_TOKEN';
-        }
-
-        if ($this->screenName() === '') {
-            $missing[] = 'ZOHO_SALESIQ_SCREEN_NAME';
-        }
-
-        return $missing;
+        return [
+            'branch' => $this->branch,
+            'source' => $this->branch ? $this->branch->name : 'Global settings',
+            'salesiq_base_url' => $settings['salesiq_base_url'] ?? '',
+            'accounts_base_url' => $settings['accounts_base_url'] ?? '',
+            'screen_name' => $settings['screen_name'] ?? '',
+            'client_id' => $settings['client_id'] ?? '',
+            'widget_url' => $settings['widget_url'] ?? '',
+        ];
     }
 
     public function visitors(array $query = []): array
@@ -198,7 +209,12 @@ class ZohoSalesIqService
 
     private function accessToken(): string
     {
-        $cacheKey = 'zoho_salesiq_access_token_' . md5($this->clientId() . '|' . $this->screenName());
+        $cacheKey = 'zoho_salesiq_access_token_' . md5(implode('|', [
+            $this->branch?->id ?: 'global',
+            $this->clientId(),
+            $this->screenName(),
+            $this->refreshToken(),
+        ]));
 
         return Cache::remember($cacheKey, now()->addMinutes(50), function () {
             $response = Http::asForm()
@@ -297,36 +313,41 @@ class ZohoSalesIqService
 
     private function salesIqBaseUrl(): string
     {
-        return rtrim((string) config('services.zoho_salesiq.salesiq_base_url', 'https://salesiq.zoho.sa'), '/');
+        return rtrim((string) ($this->settings()['salesiq_base_url'] ?? 'https://salesiq.zoho.sa'), '/');
     }
 
     private function accountsBaseUrl(): string
     {
-        return rtrim((string) config('services.zoho_salesiq.accounts_base_url', 'https://accounts.zoho.sa'), '/');
+        return rtrim((string) ($this->settings()['accounts_base_url'] ?? 'https://accounts.zoho.sa'), '/');
     }
 
     private function clientId(): string
     {
-        return trim((string) config('services.zoho_salesiq.client_id', ''));
+        return trim((string) ($this->settings()['client_id'] ?? ''));
     }
 
     private function clientSecret(): string
     {
-        return trim((string) config('services.zoho_salesiq.client_secret', ''));
+        return trim((string) ($this->settings()['client_secret'] ?? ''));
     }
 
     private function refreshToken(): string
     {
-        return trim((string) config('services.zoho_salesiq.refresh_token', ''));
+        return trim((string) ($this->settings()['refresh_token'] ?? ''));
     }
 
     private function screenName(): string
     {
-        return trim((string) config('services.zoho_salesiq.screen_name', ''));
+        return trim((string) ($this->settings()['screen_name'] ?? ''));
     }
 
     private function timeoutSeconds(): int
     {
-        return max(5, (int) config('services.zoho_salesiq.timeout', 20));
+        return max(5, (int) ($this->settings()['timeout'] ?? 20));
+    }
+
+    private function settings(): array
+    {
+        return $this->settings ??= ZohoSalesIqSettings::forBranch($this->branch);
     }
 }

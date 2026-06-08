@@ -312,7 +312,7 @@
                 </div>
 
                 <div class="d-flex gap-2 flex-wrap">
-                    <a class="btn btn-outline-secondary" href="{{ route('admin.zoho-salesiq.conversations.index') }}">
+                    <a class="btn btn-outline-secondary" href="{{ route('admin.zoho-salesiq.conversations.index', $branchQuery ?? []) }}">
                         <i class="fa fa-arrow-right me-1"></i> الرجوع
                     </a>
                     <a class="btn btn-outline-primary" href="{{ request()->fullUrl() }}">
@@ -321,17 +321,19 @@
                     <button type="button" class="btn btn-outline-secondary" data-copy-conversation="{{ $conversationId }}">
                         <i class="fa fa-copy me-1"></i> نسخ
                     </button>
-                    <a class="btn btn-outline-primary" href="{{ route('admin.zoho-salesiq.visitors') }}">
+                    <a class="btn btn-outline-primary" href="{{ route('admin.zoho-salesiq.visitors', $branchQuery ?? []) }}">
                         <i class="fa fa-eye me-1"></i> الزوار
                     </a>
                 </div>
             </div>
         </div>
 
+        @include('admin.zoho_salesiq._branch_selector')
+
         @if (!$isConfigured)
             <div class="alert alert-warning">
                 <strong>بيانات الربط غير مكتملة.</strong>
-                أضف المتغيرات التالية في ملف <code>.env</code> ثم نفذ <code>php artisan config:clear</code>:
+                أكمل إعدادات Zoho SalesIQ للشركة/الفرع الحالي من شاشة الفروع، أو أضف القيم العامة كاحتياطي:
                 <div class="mt-2">
                     @foreach ($missingConfig as $key)
                         <code class="me-2">{{ $key }}</code>

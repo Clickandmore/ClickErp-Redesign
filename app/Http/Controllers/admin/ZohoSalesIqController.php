@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\admin;
 
+use App\Models\Branch;
 use App\Services\ZohoSalesIq\ZohoSalesIqService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -11,6 +12,7 @@ class ZohoSalesIqController extends Controller
 {
     public function visitors(Request $request, ZohoSalesIqService $salesIq)
     {
+        $salesIq = $this->salesIqForRequest($request, $salesIq);
         $filters = $this->visitorFilters($request);
         $result = $salesIq->visitors($filters['api_query']);
 
@@ -18,21 +20,21 @@ class ZohoSalesIqController extends Controller
             ->map(fn (array $item) => $this->normalizeVisitor($item))
             ->values();
 
-        return view('admin.zoho_salesiq.visitors', [
+        return view('admin.zoho_salesiq.visitors', array_merge([
             'filters' => $filters,
             'result' => $result,
             'visitors' => $visitors,
-            'missingConfig' => $salesIq->missingConfigKeys(),
-            'isConfigured' => $salesIq->isConfigured(),
-        ]);
+        ], $this->zohoViewData($request, $salesIq)));
     }
 
     public function conversations(Request $request, ZohoSalesIqService $salesIq)
     {
+        $salesIq = $this->salesIqForRequest($request, $salesIq);
+
         // Check for scope errors
         $testResult = $salesIq->conversations(['limit' => 1]);
         if (!$testResult['ok'] && str_contains(($testResult['error'] ?? ''), 'Invalid OAuthScope')) {
-            return view('admin.zoho_salesiq.no_access');
+            return view('admin.zoho_salesiq.no_access', $this->zohoViewData($request, $salesIq));
         }
 
         $filters = $this->conversationFilters($request);
@@ -42,17 +44,16 @@ class ZohoSalesIqController extends Controller
             ->map(fn (array $item) => $this->normalizeConversation($item))
             ->values();
 
-        return view('admin.zoho_salesiq.conversations', [
+        return view('admin.zoho_salesiq.conversations', array_merge([
             'filters' => $filters,
             'result' => $result,
             'conversations' => $conversations,
-            'missingConfig' => $salesIq->missingConfigKeys(),
-            'isConfigured' => $salesIq->isConfigured(),
-        ]);
+        ], $this->zohoViewData($request, $salesIq)));
     }
 
     public function conversation(Request $request, ZohoSalesIqService $salesIq, string $conversationId)
     {
+        $salesIq = $this->salesIqForRequest($request, $salesIq);
         $detailResult = $salesIq->conversationDetails($conversationId);
 
         $result = $salesIq->conversationMessages($conversationId, [
@@ -67,14 +68,71 @@ class ZohoSalesIqController extends Controller
             $detailResult = $this->conversationFromRecentList($salesIq, $conversationId, $detailResult);
         }
 
-        return view('admin.zoho_salesiq.conversation', [
+        return view('admin.zoho_salesiq.conversation', array_merge([
             'conversationId' => $conversationId,
             'conversation' => $this->conversationOverview($conversationId, $detailResult, $result, $messages),
             'messages' => $messages,
             'result' => $result,
+        ], $this->zohoViewData($request, $salesIq)));
+    }
+
+    private function salesIqForRequest(Request $request, ZohoSalesIqService $salesIq): ZohoSalesIqService
+    {
+        return $salesIq->forBranch($this->resolveBranch($request));
+    }
+
+    private function zohoViewData(Request $request, ZohoSalesIqService $salesIq): array
+    {
+        $connection = $salesIq->connectionInfo();
+        $branch = $connection['branch'] ?? null;
+
+        return [
             'missingConfig' => $salesIq->missingConfigKeys(),
             'isConfigured' => $salesIq->isConfigured(),
-        ]);
+            'zohoConnection' => $connection,
+            'currentBranch' => $branch,
+            'branches' => $this->availableBranches($request),
+            'branchQuery' => $branch ? ['branch_id' => $branch->id] : [],
+        ];
+    }
+
+    private function resolveBranch(Request $request): ?Branch
+    {
+        $admin = auth('admin')->user();
+
+        if ($admin?->branch_id) {
+            return Branch::query()->find($admin->branch_id);
+        }
+
+        $requestedBranchId = (int) $request->query('branch_id', 0);
+        if ($requestedBranchId > 0) {
+            $branch = Branch::query()->find($requestedBranchId);
+
+            if ($branch) {
+                return $branch;
+            }
+        }
+
+        return Branch::query()
+            ->where('is_main', true)
+            ->first()
+            ?: Branch::query()->active()->ordered()->first();
+    }
+
+    private function availableBranches(Request $request)
+    {
+        $admin = auth('admin')->user();
+
+        if ($admin?->branch_id) {
+            return Branch::query()
+                ->whereKey($admin->branch_id)
+                ->get(['id', 'name_ar', 'name_en']);
+        }
+
+        return Branch::query()
+            ->active()
+            ->ordered()
+            ->get(['id', 'name_ar', 'name_en']);
     }
 
     private function visitorFilters(Request $request): array

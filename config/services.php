@@ -69,6 +69,7 @@ return [
         'client_id' => env('ZOHO_SALESIQ_CLIENT_ID', ''),
         'client_secret' => env('ZOHO_SALESIQ_CLIENT_SECRET', ''),
         'refresh_token' => env('ZOHO_SALESIQ_REFRESH_TOKEN', ''),
+        'widget_url' => env('ZOHO_SALESIQ_WIDGET_URL', 'https://salesiq.zohopublic.sa/widget?wc=e8345d69f3cb2a0945e374d8901771ae6b79f887aa0dd1ef960b4169df0f9cae'),
         'timeout' => (int) env('ZOHO_SALESIQ_TIMEOUT', 20),
     ],
 

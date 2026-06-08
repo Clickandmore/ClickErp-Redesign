@@ -12,6 +12,7 @@
     $hours = old('working_hours', $branch->working_hours ?? []);
     $defaultLatitude = old('latitude', $branch->latitude ?? '24.7135517');
     $defaultLongitude = old('longitude', $branch->longitude ?? '46.6752957');
+    $zohoSettings = $branch->zoho_salesiq_settings ?? [];
 @endphp
 
 <div class="row">
@@ -196,6 +197,115 @@
             </div>
         </div>
     @endforeach
+
+    <div class="col-12 mt-3">
+        <h5 class="mb-1">إعدادات Zoho SalesIQ</h5>
+        <small class="text-muted d-block mb-3">
+            اترك الحقول فارغة لاستخدام الإعداد العام. في التعديل، الحقول السرية الفارغة تحتفظ بالقيمة المحفوظة.
+        </small>
+    </div>
+
+    <div class="col-md-4">
+        <div class="form-group">
+            <label for="zoho_screen_name">Portal / Screen Name</label>
+            <input type="text" class="form-control @error('zoho_salesiq_settings.screen_name') is-invalid @enderror"
+                   id="zoho_screen_name" name="zoho_salesiq_settings[screen_name]"
+                   value="{{ old('zoho_salesiq_settings.screen_name', data_get($zohoSettings, 'screen_name', '')) }}">
+            @error('zoho_salesiq_settings.screen_name')
+                <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="form-group">
+            <label for="zoho_salesiq_base_url">SalesIQ Base URL</label>
+            <input type="url" class="form-control @error('zoho_salesiq_settings.salesiq_base_url') is-invalid @enderror"
+                   id="zoho_salesiq_base_url" name="zoho_salesiq_settings[salesiq_base_url]"
+                   value="{{ old('zoho_salesiq_settings.salesiq_base_url', data_get($zohoSettings, 'salesiq_base_url', '')) }}"
+                   placeholder="https://salesiq.zoho.sa">
+            @error('zoho_salesiq_settings.salesiq_base_url')
+                <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="form-group">
+            <label for="zoho_accounts_base_url">Accounts Base URL</label>
+            <input type="url" class="form-control @error('zoho_salesiq_settings.accounts_base_url') is-invalid @enderror"
+                   id="zoho_accounts_base_url" name="zoho_salesiq_settings[accounts_base_url]"
+                   value="{{ old('zoho_salesiq_settings.accounts_base_url', data_get($zohoSettings, 'accounts_base_url', '')) }}"
+                   placeholder="https://accounts.zoho.sa">
+            @error('zoho_salesiq_settings.accounts_base_url')
+                <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="form-group">
+            <label for="zoho_client_id">Client ID</label>
+            <input type="text" class="form-control @error('zoho_salesiq_settings.client_id') is-invalid @enderror"
+                   id="zoho_client_id" name="zoho_salesiq_settings[client_id]"
+                   value="{{ old('zoho_salesiq_settings.client_id', data_get($zohoSettings, 'client_id', '')) }}">
+            @error('zoho_salesiq_settings.client_id')
+                <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="form-group">
+            <label for="zoho_client_secret">Client Secret</label>
+            <input type="password" class="form-control @error('zoho_salesiq_settings.client_secret') is-invalid @enderror"
+                   id="zoho_client_secret" name="zoho_salesiq_settings[client_secret]"
+                   value="{{ old('zoho_salesiq_settings.client_secret') }}"
+                   placeholder="{{ data_get($zohoSettings, 'client_secret') ? 'محفوظ - اتركه فارغا للإبقاء عليه' : '' }}">
+            @error('zoho_salesiq_settings.client_secret')
+                <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="form-group">
+            <label for="zoho_refresh_token">Refresh Token</label>
+            <input type="password" class="form-control @error('zoho_salesiq_settings.refresh_token') is-invalid @enderror"
+                   id="zoho_refresh_token" name="zoho_salesiq_settings[refresh_token]"
+                   value="{{ old('zoho_salesiq_settings.refresh_token') }}"
+                   placeholder="{{ data_get($zohoSettings, 'refresh_token') ? 'محفوظ - اتركه فارغا للإبقاء عليه' : '' }}">
+            @error('zoho_salesiq_settings.refresh_token')
+                <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="form-group">
+            <label for="zoho_widget_url">Widget URL</label>
+            <input type="url" class="form-control @error('zoho_salesiq_settings.widget_url') is-invalid @enderror"
+                   id="zoho_widget_url" name="zoho_salesiq_settings[widget_url]"
+                   value="{{ old('zoho_salesiq_settings.widget_url', data_get($zohoSettings, 'widget_url', '')) }}"
+                   placeholder="https://salesiq.zohopublic.sa/widget?wc=...">
+            @error('zoho_salesiq_settings.widget_url')
+                <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="form-group">
+            <label for="zoho_timeout">Timeout (seconds)</label>
+            <input type="number" min="5" max="120" class="form-control @error('zoho_salesiq_settings.timeout') is-invalid @enderror"
+                   id="zoho_timeout" name="zoho_salesiq_settings[timeout]"
+                   value="{{ old('zoho_salesiq_settings.timeout', data_get($zohoSettings, 'timeout', '')) }}"
+                   placeholder="20">
+            @error('zoho_salesiq_settings.timeout')
+                <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+        </div>
+    </div>
 
     <div class="col-12 mt-3">
         <h5 class="mb-3">تفاصيل إضافية</h5>

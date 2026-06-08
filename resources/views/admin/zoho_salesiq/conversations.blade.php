@@ -43,19 +43,21 @@
                 <div class="text-muted">قائمة المحادثات التي تم سحبها من SalesIQ حسب الفترة المحددة.</div>
             </div>
             <div class="zoho-tabs d-flex gap-2">
-                <a class="btn btn-outline-primary" href="{{ route('admin.zoho-salesiq.visitors') }}">
+                <a class="btn btn-outline-primary" href="{{ route('admin.zoho-salesiq.visitors', $branchQuery ?? []) }}">
                     <i class="fa fa-eye me-1"></i> الزوار
                 </a>
-                <a class="btn btn-primary" href="{{ route('admin.zoho-salesiq.conversations.index') }}">
+                <a class="btn btn-primary" href="{{ route('admin.zoho-salesiq.conversations.index', $branchQuery ?? []) }}">
                     <i class="fa fa-comments me-1"></i> المحادثات
                 </a>
             </div>
         </div>
 
+        @include('admin.zoho_salesiq._branch_selector')
+
         @if (!$isConfigured)
             <div class="alert alert-warning zoho-panel">
                 <strong>بيانات الربط غير مكتملة.</strong>
-                أضف المتغيرات التالية في ملف <code>.env</code> ثم نفذ <code>php artisan config:clear</code>:
+                أكمل إعدادات Zoho SalesIQ للشركة/الفرع الحالي من شاشة الفروع، أو أضف القيم العامة كاحتياطي:
                 <div class="mt-2">
                     @foreach ($missingConfig as $key)
                         <code class="me-2">{{ $key }}</code>
@@ -101,7 +103,7 @@
             <div class="col-md-4">
                 <div class="zoho-kpi p-3">
                     <small class="text-muted d-block mb-1">Portal</small>
-                    <h5 class="mb-0">{{ config('services.zoho_salesiq.screen_name') ?: '-' }}</h5>
+                    <h5 class="mb-0">{{ ($zohoConnection['screen_name'] ?? '') ?: '-' }}</h5>
                 </div>
             </div>
             <div class="col-md-4">
@@ -115,6 +117,9 @@
         <div class="card zoho-panel mb-4">
             <div class="card-body">
                 <form method="get" action="{{ route('admin.zoho-salesiq.conversations.index') }}" class="row g-3 align-items-end">
+                    @if (!empty($branchQuery['branch_id']))
+                        <input type="hidden" name="branch_id" value="{{ $branchQuery['branch_id'] }}">
+                    @endif
                     <div class="col-md-3">
                         <label class="form-label">من</label>
                         <input type="datetime-local" name="from" class="form-control" value="{{ $filters['from'] }}">
@@ -131,7 +136,7 @@
                         <button type="submit" class="btn btn-primary flex-fill">
                             <i class="fa fa-filter me-1"></i> عرض
                         </button>
-                        <a href="{{ route('admin.zoho-salesiq.conversations.index') }}" class="btn btn-outline-secondary">
+                        <a href="{{ route('admin.zoho-salesiq.conversations.index', $branchQuery ?? []) }}" class="btn btn-outline-secondary">
                             <i class="fa fa-refresh"></i>
                         </a>
                     </div>
@@ -178,7 +183,7 @@
                                         <div class="d-flex gap-2 flex-wrap">
                                             @if ($conversation['id'] !== '-')
                                                 <a class="btn btn-sm btn-outline-primary"
-                                                    href="{{ route('admin.zoho-salesiq.conversations.show', $conversation['id']) }}">
+                                                    href="{{ route('admin.zoho-salesiq.conversations.show', array_merge(['conversationId' => $conversation['id']], $branchQuery ?? [])) }}">
                                                     فتح
                                                 </a>
                                             @endif

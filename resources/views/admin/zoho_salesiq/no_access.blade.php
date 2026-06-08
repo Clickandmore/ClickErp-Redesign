@@ -17,6 +17,8 @@
             </ul>
         </div>
 
+        @include('admin.zoho_salesiq._branch_selector')
+
         <div class="card">
             <div class="card-header">
                 <h5 class="mb-0">الحل:</h5>
@@ -57,16 +59,20 @@
             <h5>معلومات الاتصال الحالية:</h5>
             <table class="table table-sm">
                 <tr>
+                    <td><strong>الشركة / الفرع:</strong></td>
+                    <td>{{ $currentBranch?->name ?: '-' }}</td>
+                </tr>
+                <tr>
                     <td><strong>Screen Name:</strong></td>
-                    <td>{{ config('services.zoho_salesiq.screen_name') }}</td>
+                    <td>{{ ($zohoConnection['screen_name'] ?? '') ?: '-' }}</td>
                 </tr>
                 <tr>
                     <td><strong>Base URL:</strong></td>
-                    <td>{{ config('services.zoho_salesiq.salesiq_base_url') }}</td>
+                    <td>{{ ($zohoConnection['salesiq_base_url'] ?? '') ?: '-' }}</td>
                 </tr>
                 <tr>
                     <td><strong>Client ID:</strong></td>
-                    <td><code>{{ substr(config('services.zoho_salesiq.client_id'), 0, 20) }}...</code></td>
+                    <td><code>{{ substr((string) ($zohoConnection['client_id'] ?? ''), 0, 20) }}...</code></td>
                 </tr>
             </table>
         </div>

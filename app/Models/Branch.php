@@ -17,6 +17,7 @@ class Branch extends Model
         'latitude' => 'decimal:7',
         'longitude' => 'decimal:7',
         'working_hours' => 'array',
+        'zoho_salesiq_settings' => 'array',
     ];
 
     public function getNameAttribute(): string
