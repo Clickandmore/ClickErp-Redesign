@@ -375,6 +375,7 @@ Route::group(
             Route::post('RentContract/{id}/activate-contract', [RentContractController::class, 'activateContract'])->name('RentContract.activateContract');
             Route::post('RentContract/{id}/extend', [RentContractController::class, 'extend'])->name('RentContract.extend');
             Route::post('RentContract/{id}/freeze', [RentContractController::class, 'freeze'])->name('RentContract.freeze');
+            Route::post('RentContract/{id}/update-freeze-date', [RentContractController::class, 'updateFreezeDate'])->name('RentContract.updateFreezeDate');
             Route::post('RentContract/{id}/resume', [RentContractController::class, 'resume'])->name('RentContract.resume');
             Route::post('RentContract/{id}/change-maid', [RentContractController::class, 'changeMaid'])->name('RentContract.changeMaid');
 

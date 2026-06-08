@@ -64,6 +64,7 @@ class RentContractController extends Controller
                 'activateContract',
                 'extend',
                 'freeze',
+                'updateFreezeDate',
                 'resume',
                 'saveSignature',
             ],
@@ -170,7 +171,7 @@ class RentContractController extends Controller
             return DataTables::eloquent($contracts)
                 ->addIndexColumn()
                 ->editColumn('status', function ($row) {
-                    return $this->getStatusBadge($row->status, $row->closure_type);
+                    return $this->getStatusBadge($row->status, $row->closure_type, $row);
                 })
                 ->editColumn('user_id', function ($row) {
                     return $row->user ? $row->user->name : 'غير محدد';
@@ -1191,7 +1192,15 @@ class RentContractController extends Controller
                 'warranty_end_date' => now()->addMonths(3), // 3 أشهر ضمان افتراضي
             ]);
 
+            $this->completeLinkedRentalOrder($contract);
             $this->returnShelterContractInsideForRental($contract);
+
+            if ($contract->maid_id) {
+                $maid = Maid::query()->lockForUpdate()->find($contract->maid_id);
+                if ($maid) {
+                    $this->syncMaidBookingState($maid);
+                }
+            }
 
             DB::commit();
 
@@ -1212,7 +1221,7 @@ class RentContractController extends Controller
         }
     }
 
-    private function getStatusBadge($status, $closureType = null)
+    private function getStatusBadge($status, $closureType = null, ?RentalContract $contract = null)
     {
         if ($status === 'completed') {
             if ($closureType === 'transferred') {
@@ -1224,6 +1233,23 @@ class RentContractController extends Controller
             }
         }
 
+        $frozenBadge = '<span class="badge bg-dark">مجمد</span>';
+        if (
+            $contract
+            && @AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CONTROL)
+        ) {
+            $frozenAt = optional($contract->frozen_at)->format('Y-m-d\TH:i') ?: '';
+            $frozenBadge = '<span class="d-inline-flex align-items-center gap-1">'
+                . '<span class="badge bg-dark">مجمد</span>'
+                . '<button type="button" class="btn btn-sm btn-outline-secondary edit-freeze-date"'
+                . ' data-id="' . $contract->id . '"'
+                . ' data-frozen-at="' . e($frozenAt) . '"'
+                . ' title="تغيير تاريخ التجميد">'
+                . '<i class="fas fa-calendar-alt"></i>'
+                . '</button>'
+                . '</span>';
+        }
+
         $badges = [
             'new' => '<span class="badge bg-primary">جديد</span>',
             'waiting_contract_send' => '<span class="badge bg-warning">بانتظار التوقيع</span>',
@@ -1233,7 +1259,7 @@ class RentContractController extends Controller
             'active' => '<span class="badge bg-success">نشط</span>',
             'cancelled' => '<span class="badge bg-danger">ملغي</span>',
             'suspended' => '<span class="badge bg-warning">معلق</span>',
-            'frozen' => '<span class="badge bg-dark">مجمد</span>',
+            'frozen' => $frozenBadge,
         ];
 
         return $badges[$status] ?? '<span class="badge bg-secondary">' . $status . '</span>';
@@ -1558,6 +1584,24 @@ class RentContractController extends Controller
             ContractStatusEnum::DelegateSelected->value,
             ContractStatusEnum::UnderWarranty->value,
         ];
+    }
+
+    private function completeLinkedRentalOrder(RentalContract $contract): void
+    {
+        if (!$contract->order_id) {
+            return;
+        }
+
+        $order = Order::query()->lockForUpdate()->find($contract->order_id);
+
+        if (!$order) {
+            return;
+        }
+
+        $order->update([
+            'status' => OrderEnum::Completed->value,
+            'status_changed_at' => now(),
+        ]);
     }
 
     private function syncMaidBookingState(Maid $maid): void
@@ -1950,6 +1994,8 @@ class RentContractController extends Controller
             $contract->closed_at = $closureDate;
             $contract->save();
 
+            $this->completeLinkedRentalOrder($contract);
+
             if ($adjustmentAmount > 0) {
                 $contract->financialAdjustments()->create([
                     'maid_id' => $contract->maid_id,
@@ -1963,12 +2009,10 @@ class RentContractController extends Controller
                 ]);
             }
 
-            // Make maid available
             if ($contract->maid) {
-                $contract->maid->status = 'available';
-                $contract->maid->available = 1; // Set available to true
-                $contract->maid->available_at = $closureDate->toDateString(); // Set availability date
+                $contract->maid->available_at = $closureDate->toDateString();
                 $contract->maid->save();
+                $this->syncMaidBookingState($contract->maid);
             }
 
             $this->returnShelterContractInsideForRental($contract);
@@ -2643,6 +2687,50 @@ class RentContractController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'حدث خطأ أثناء تجميد عقد الإيجار: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function updateFreezeDate(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'frozen_at' => 'required|date',
+        ], [
+            'frozen_at.required' => 'يرجى تحديد تاريخ التجميد',
+            'frozen_at.date' => 'تاريخ التجميد غير صحيح',
+        ]);
+
+        try {
+            DB::transaction(function () use ($id, $validated) {
+                $contract = RentalContract::lockForUpdate()->findOrFail($id);
+
+                if (!$contract->canResume()) {
+                    throw new \RuntimeException('يمكن تعديل تاريخ التجميد للعقود المجمدة فقط');
+                }
+
+                $contract->update([
+                    'frozen_at' => Carbon::parse($validated['frozen_at']),
+                ]);
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم تحديث تاريخ التجميد بنجاح',
+            ]);
+        } catch (\RuntimeException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
+        } catch (\Throwable $e) {
+            Log::error('Error updating rental contract freeze date', [
+                'contract_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء تحديث تاريخ التجميد: ' . $e->getMessage(),
             ], 500);
         }
     }
