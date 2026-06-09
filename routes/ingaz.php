@@ -549,6 +549,8 @@ Route::group(
             //** SETTINGS **//
             Route::get('/settings', [AdminSettingsController::class, 'index'])->name('settings');
             Route::get('/settings/announcements', [AdminSettingsController::class, 'announcements'])->name('settings.announcements');
+            Route::get('/settings/zoho', [AdminSettingsController::class, 'zoho'])->name('settings.zoho');
+            Route::post('/settings/zoho', [AdminSettingsController::class, 'updateZoho'])->name('settings.zoho.update');
             Route::post('/settings/store', [AdminSettingsController::class, 'store'])->name('settings.store');
 
             //** ROLES **//

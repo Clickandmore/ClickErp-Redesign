@@ -257,6 +257,8 @@ class AdminRoutePermissionMatrix
         return [
             'dash.settings' => [PermKeys::SETTINGS_VIEW],
             'dash.settings.announcements' => [PermKeys::SETTINGS_VIEW],
+            'dash.settings.zoho' => [PermKeys::SETTINGS_VIEW],
+            'dash.settings.zoho.update' => [PermKeys::SETTINGS_CONTROL],
             'dash.settings.store' => [PermKeys::SETTINGS_CONTROL],
             'dash.roles.index' => [PermKeys::ROLES_VIEW],
             'dash.roles.store' => static fn (?Request $request) => filled($request?->input('edit_id'))

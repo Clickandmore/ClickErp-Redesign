@@ -1085,6 +1085,7 @@
                         $isTranslationSettingsRoute =
                             request()->routeIs('translation-terms.*') ||
                             (request()->routeIs('settings.section') && $activeSettingsSection === 'translations');
+                        $isZohoSettingsRoute = request()->routeIs('dash.settings.zoho*');
                         $isWebsiteSettingsRoute =
                             request()->routeIs('settings.index') ||
                             (request()->routeIs('settings.section') && !$isDashboardSettings && !$isTranslationSettingsRoute) ||
@@ -1158,7 +1159,7 @@
                                         id="websiteManagement">
                                         @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
                                             <li>
-                                                <a class="m-link {{ $isWebsiteSettingsRoute || request()->routeIs('dash.settings*') ? 'active' : '' }}"
+                                                <a class="m-link {{ $isWebsiteSettingsRoute ? 'active' : '' }}"
                                                     href="{{ route('settings.section', 'general') }}">
                                                     <i class="fa fa-cogs"></i>
                                                     <span
@@ -1264,6 +1265,16 @@
                                                     href="{{ route('form-settings.index') }}">
                                                     <i class="fa fa-file-lines"></i>
                                                     <span class="ms-2">{{ __('admin.form_settings') }}</span>
+                                                </a>
+                                            </li>
+                                        @endif
+
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
+                                            <li>
+                                                <a class="m-link {{ $isZohoSettingsRoute ? 'active' : '' }}"
+                                                    href="{{ route('dash.settings.zoho') }}">
+                                                    <i class="fa fa-comments"></i>
+                                                    <span class="ms-2">إعدادات Zoho SalesIQ</span>
                                                 </a>
                                             </li>
                                         @endif

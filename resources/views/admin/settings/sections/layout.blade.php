@@ -93,6 +93,9 @@
                     <a class="nav-link {{ $activeSection === 'seo' ? 'active' : '' }}" href="{{ route('settings.section', 'seo') }}">
                         <span class="fw-semibold">{{ __('admin.settings_section_seo') }}</span>
                     </a>
+                    <a class="nav-link {{ $activeSection === 'zoho' ? 'active' : '' }}" href="{{ route('dash.settings.zoho') }}">
+                        <span class="fw-semibold">إعدادات Zoho SalesIQ</span>
+                    </a>
                     <a class="nav-link {{ $activeSection === 'operations' ? 'active' : '' }}" href="{{ route('dash.settings') }}">
                         <span class="fw-semibold">{{ __('admin.settings_section_additional') }}</span>
                     </a>
