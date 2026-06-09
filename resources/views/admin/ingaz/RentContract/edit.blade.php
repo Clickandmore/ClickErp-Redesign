@@ -544,10 +544,23 @@
                             <div class="col-md-4">
                                 <label for="payment_receipt" class="form-label">إيصال الدفع</label>
                                 <input type="file" id="payment_receipt" name="payment_receipt" class="form-control" accept=".jpg,.jpeg,.png,.pdf">
-                                @if($contract->info->payment_receipt_path && \Illuminate\Support\Facades\Storage::disk('public')->exists($contract->info->payment_receipt_path))
-                                    <a href="{{ route('RentContract.attachments.view', [$contract->id, 'payment-receipt-0']) }}" target="_blank" class="small d-inline-block mt-2">
-                                        عرض الإيصال الحالي
-                                    </a>
+                                @if(!empty($paymentReceipts))
+                                    <div id="paymentReceiptsList" class="mt-2">
+                                        @foreach($paymentReceipts as $receipt)
+                                            <div class="payment-receipt-item d-flex align-items-center justify-content-between gap-2 border rounded p-2 mb-2">
+                                                <a href="{{ route('RentContract.attachments.view', [$contract->id, $receipt['key']]) }}" target="_blank" class="small">
+                                                    {{ $receipt['label'] }}
+                                                </a>
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-sm btn-outline-danger delete-payment-receipt"
+                                                    data-delete-url="{{ route('RentContract.paymentReceipts.delete', [$contract->id, $receipt['key']]) }}"
+                                                >
+                                                    حذف
+                                                </button>
+                                            </div>
+                                        @endforeach
+                                    </div>
                                 @endif
                             </div>
 
@@ -1012,6 +1025,60 @@ $(document).ready(function() {
 
         return isValid;
     }
+
+    $(document).on('click', '.delete-payment-receipt', function() {
+        const button = $(this);
+
+        Swal.fire({
+            icon: 'warning',
+            title: 'حذف الإيصال',
+            text: 'هل تريد حذف هذا الإيصال؟',
+            showCancelButton: true,
+            confirmButtonText: 'نعم، حذف',
+            cancelButtonText: 'إلغاء'
+        }).then((result) => {
+            if (!result.isConfirmed) {
+                return;
+            }
+
+            button.prop('disabled', true);
+
+            $.ajax({
+                url: button.data('delete-url'),
+                method: 'POST',
+                data: {
+                    _token: '{{ csrf_token() }}',
+                    _method: 'DELETE'
+                },
+                success: function(response) {
+                    button.closest('.payment-receipt-item').remove();
+
+                    if (!$('#paymentReceiptsList .payment-receipt-item').length) {
+                        $('#paymentReceiptsList').remove();
+                    }
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'تم الحذف',
+                        text: response.message || 'تم حذف الإيصال بنجاح'
+                    });
+                },
+                error: function(xhr) {
+                    const message = xhr.responseJSON && xhr.responseJSON.message
+                        ? xhr.responseJSON.message
+                        : 'حدث خطأ أثناء حذف الإيصال';
+
+                    button.prop('disabled', false);
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'خطأ',
+                        text: message
+                    });
+                }
+            });
+        });
+    });
 
     function submitForm() {
         const submitBtn = $('#submit-btn');

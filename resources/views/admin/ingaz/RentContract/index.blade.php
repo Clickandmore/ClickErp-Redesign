@@ -712,6 +712,10 @@
                                             <p id="financialRemainingDays">-</p>
                                         </div>
                                         <div class="col-md-3">
+                                            <strong>أيام بعد انتهاء العقد:</strong>
+                                            <p id="financialOverdueDays">-</p>
+                                        </div>
+                                        <div class="col-md-3">
                                             <strong>تكلفة اليوم:</strong>
                                             <p id="financialDailyRate">-</p>
                                         </div>
@@ -723,16 +727,21 @@
                                             <strong>الاسترجاع المقترح:</strong>
                                             <p id="financialSuggestedRefund">-</p>
                                         </div>
+                                        <div class="col-md-3">
+                                            <strong>مستحق الشركة:</strong>
+                                            <p id="financialCompanyDue">-</p>
+                                        </div>
                                     </div>
                                     <div class="row g-3 mt-2 align-items-end">
                                         <div class="col-md-4">
-                                            <label class="form-label">نوع الاسترجاع</label>
+                                            <label class="form-label">نوع التسوية</label>
                                             <select class="form-select" id="closeAdjustmentType">
                                                 <option value="refund">استرجاع للعميل</option>
+                                                <option value="company_due">مستحق للشركة</option>
                                             </select>
                                         </div>
                                         <div class="col-md-4">
-                                            <label class="form-label">مبلغ الاسترجاع</label>
+                                            <label class="form-label" id="closeAdjustmentAmountLabel">مبلغ الاسترجاع</label>
                                             <input type="number" class="form-control" id="closeAdjustmentAmount"
                                                 min="0" step="0.01" value="0">
                                         </div>
@@ -799,6 +808,15 @@
                                             <div class="form-text d-none" id="closeClientIbanAttachmentCurrentWrapper">
                                                 <a href="#" target="_blank"
                                                     id="closeClientIbanAttachmentCurrent">عرض المرفق الحالي</a>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-check mt-4">
+                                                <input class="form-check-input" type="checkbox"
+                                                    id="sendClosureMessageToggle">
+                                                <label class="form-check-label" for="sendClosureMessageToggle">
+                                                    إرسال رسالة إنهاء العقد للعميل
+                                                </label>
                                             </div>
                                         </div>
                                     </div>
@@ -981,6 +999,15 @@
                                                 <label for="transferNotes" class="form-label">ملاحظات</label>
                                                 <textarea class="form-control" id="transferNotes" name="transferNotes" rows="3"
                                                     placeholder="ملاحظات إضافية حول عملية نقل الكفالة..."></textarea>
+                                            </div>
+                                        </div>
+                                        <div class="col-12">
+                                            <div class="form-check mb-3">
+                                                <input class="form-check-input" type="checkbox"
+                                                    id="sendTransferClosureMessageToggle">
+                                                <label class="form-check-label" for="sendTransferClosureMessageToggle">
+                                                    إرسال رسالة إغلاق ونقل كفالة للعميل
+                                                </label>
                                             </div>
                                         </div>
                                         <div class="col-12">
@@ -1804,8 +1831,11 @@
             function updateCloseFinancialPreview() {
                 const remainingAmount = parseFloat($('#financialRemainingAmount').data('raw') || 0);
                 const adjustmentAmount = parseFloat($('#closeAdjustmentAmount').val() || 0);
+                const adjustmentType = $('#closeAdjustmentType').val() || 'refund';
                 const clearRemainingEnabled = $('#closeClearRemainingToggle').is(':checked');
                 let clearRemainingAmount = clearRemainingEnabled ? parseFloat($('#closeClearRemainingAmount').val() || 0) : 0;
+
+                $('#closeAdjustmentAmountLabel').text(adjustmentType === 'company_due' ? 'مبلغ مستحق الشركة' : 'مبلغ الاسترجاع');
 
                 if (clearRemainingAmount > remainingAmount) {
                     clearRemainingAmount = remainingAmount;
@@ -1816,6 +1846,16 @@
 
                 $('#finalDueAmount').text(formatCurrency(adjustmentAmount) + ' ريال');
                 $('#finalRemainingAmount').text(formatCurrency(finalRemaining) + ' ريال');
+            }
+
+            function formatCloseRemainingDaysText(contract) {
+                const overdueDays = parseInt(contract.overdue_days || 0, 10);
+
+                if (overdueDays > 0) {
+                    return 'منتهي منذ ' + overdueDays + ' يوم';
+                }
+
+                return contract.remaining_days || '-';
             }
 
             function formatContractDuration(contract) {
@@ -1843,7 +1883,7 @@
             }
 
             function fillCloseFinancialFields(contract) {
-                $('#remainingDays').text(contract.remaining_days || '-');
+                $('#remainingDays').text(formatCloseRemainingDaysText(contract));
                 $('#financialMonthlyCost').text(formatCurrency(contract.monthly_cost || 0) + ' ريال');
                 $('#financialDurationMonths').text(formatContractDuration(contract));
                 $('#financialDurationDays').text((contract.duration_days || 0) ? (contract.duration_days + ' يوم') : '-');
@@ -1854,10 +1894,16 @@
                     .data('raw', contract.remaining_amount || 0);
                 $('#financialUsedDays').text(contract.used_days !== null && typeof contract.used_days !== 'undefined' ? (contract.used_days + ' يوم') : '-');
                 $('#financialRemainingDays').text(contract.remaining_days_value !== null && typeof contract.remaining_days_value !== 'undefined' ? (contract.remaining_days_value + ' يوم') : '-');
+                $('#financialOverdueDays').text(contract.overdue_days !== null && typeof contract.overdue_days !== 'undefined' ? (contract.overdue_days + ' يوم') : '-');
                 $('#financialDailyRate').text(formatCurrency(contract.daily_rate || 0) + ' ريال');
                 $('#financialUsedCost').text(formatCurrency(contract.used_cost || 0) + ' ريال');
                 $('#financialSuggestedRefund').text(formatCurrency(contract.calculated_refund_value || 0) + ' ريال');
-                $('#closeAdjustmentAmount').val(parseFloat(contract.refund_value || 0).toFixed(2));
+                $('#financialCompanyDue').text(formatCurrency(contract.calculated_company_due_value || 0) + ' ريال');
+                $('#closeAdjustmentType')
+                    .data('refund-value', contract.refund_value || 0)
+                    .data('company-due-value', contract.company_due_value || 0)
+                    .val(contract.settlement_type || 'refund');
+                $('#closeAdjustmentAmount').val(parseFloat(contract.settlement_value || 0).toFixed(2));
                 updateCloseFinancialPreview();
             }
 
@@ -1889,19 +1935,33 @@
                 $('#closePaymentReceipt').val('');
                 $('#closeClientIban').val('');
                 $('#closeClientIbanAttachment').val('');
+                $('#sendClosureMessageToggle').prop('checked', false);
                 $('#closeReturnReason').val('');
                 $('#closureDate').val('').removeAttr('min');
                 $('#closeClientIbanAttachmentCurrentWrapper').addClass('d-none');
                 $('#closeClientIbanAttachmentCurrent').attr('href', '#');
+                $('#closeAdjustmentType').data('refund-value', 0).data('company-due-value', 0);
                 $('#financialRemainingAmount').data('raw', 0);
                 $('#financialDailyRate').text('-');
                 $('#financialUsedCost').text('-');
                 $('#financialSuggestedRefund').text('-');
+                $('#financialOverdueDays').text('-');
+                $('#financialCompanyDue').text('-');
                 updateCloseFinancialPreview();
             }
 
             $('#closureDate').on('change', function() {
                 reloadCloseFinancialSummary();
+            });
+
+            $('#closeAdjustmentType').on('change', function() {
+                const selectedType = $(this).val() || 'refund';
+                const defaultAmount = selectedType === 'company_due'
+                    ? $(this).data('company-due-value')
+                    : $(this).data('refund-value');
+
+                $('#closeAdjustmentAmount').val(parseFloat(defaultAmount || 0).toFixed(2));
+                updateCloseFinancialPreview();
             });
 
             $('#closeAdjustmentAmount, #closeClearRemainingAmount').on('input change', function() {
@@ -1950,6 +2010,7 @@
                 $('#transferPaymentStatus').val('');
                 $('#transferPaymentReceipt').val('');
                 $('#transferAttachments').val('');
+                $('#sendTransferClosureMessageToggle').prop('checked', false);
                 toggleTransferReceiptRequirement();
             }
 
@@ -2168,6 +2229,7 @@
                         formData.append('closure_return_reason', $('#closeReturnReason').val());
                         formData.append('close_payment_status', $('#closePaymentStatus').val());
                         formData.append('close_client_iban', $('#closeClientIban').val());
+                        formData.append('send_closure_message', $('#sendClosureMessageToggle').is(':checked') ? 1 : 0);
 
                         const closePaymentReceipt = $('#closePaymentReceipt')[0];
                         if (closePaymentReceipt && closePaymentReceipt.files && closePaymentReceipt.files[0]) {
@@ -2339,6 +2401,7 @@
                 formData.append('notes', $('#transferNotes').val());
                 formData.append('closure_date', $('#closureDate').val());
                 formData.append('transfer_finance_items_present', '1');
+                formData.append('send_closure_message', $('#sendTransferClosureMessageToggle').is(':checked') ? 1 : 0);
                 formData.append('_token', '{{ csrf_token() }}');
 
                 getTransferAdjustments().forEach(function(item, index) {

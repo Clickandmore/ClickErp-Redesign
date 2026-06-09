@@ -583,6 +583,9 @@
             $maidNationality = optional($currentMaid?->nationality)->title ?? optional($currentMaid?->nationality)->name ?? 'غير محدد';
             $maidReligion = optional($currentMaid?->religion)->title ?? optional($currentMaid?->religion)->name ?? 'غير محدد';
             $additionalTerms = collect($contract->info?->additional_terms)->filter(fn($term) => filled($term))->values();
+            $closureCompanyDue = (float) ($closureSummary['company_due_value'] ?? $closureSummary['calculated_company_due_value'] ?? 0);
+            $closureClientRefund = (float) ($closureSummary['refund_value'] ?? $closureSummary['calculated_refund_value'] ?? 0);
+            $showClosureSettlement = $closureCompanyDue > 0 || $closureClientRefund > 0;
 
             $workflowSteps = [
                 [
@@ -943,6 +946,41 @@
                                 المستندات المالية
                             </h3>
                         </div>
+
+                        @if ($showClosureSettlement)
+                            <ul class="detail-list mb-4">
+                                <li>
+                                    <span class="label">نوع تسوية الإنهاء</span>
+                                    <span class="value highlight">
+                                        {{ $closureCompanyDue > 0 ? 'مستحق للشركة' : 'استرجاع للعميل' }}
+                                    </span>
+                                </li>
+                                @if ($closureCompanyDue > 0)
+                                    <li>
+                                        <span class="label">مستحق الشركة</span>
+                                        <span class="value">{{ number_format($closureCompanyDue, 2) }} ريال</span>
+                                    </li>
+                                    <li>
+                                        <span class="label">أيام بعد انتهاء العقد</span>
+                                        <span class="value">{{ (int) ($closureSummary['overdue_days'] ?? 0) }} يوم</span>
+                                    </li>
+                                @endif
+                                @if ($closureClientRefund > 0)
+                                    <li>
+                                        <span class="label">باقي للعميل / استرجاع مقترح</span>
+                                        <span class="value">{{ number_format($closureClientRefund, 2) }} ريال</span>
+                                    </li>
+                                    <li>
+                                        <span class="label">الأيام المتبقية</span>
+                                        <span class="value">{{ (int) ($closureSummary['remaining_days_value'] ?? 0) }} يوم</span>
+                                    </li>
+                                @endif
+                                <li>
+                                    <span class="label">تكلفة اليوم</span>
+                                    <span class="value">{{ number_format((float) ($closureSummary['daily_rate'] ?? 0), 2) }} ريال</span>
+                                </li>
+                            </ul>
+                        @endif
 
                         @if ($contract->financeInvoice)
                             <ul class="detail-list">
@@ -1369,7 +1407,11 @@
             $(document).on('click', '.btn-complete', function() {
                 Swal.fire({
                     title: 'تأكيد إنهاء العقد',
-                    text: 'هل أنت متأكد من إنهاء هذا العقد؟',
+                    html: '<div class="text-end">هل أنت متأكد من إنهاء هذا العقد؟</div>' +
+                        '<div class="form-check mt-3 text-end">' +
+                        '<input class="form-check-input" type="checkbox" id="sendClosureMessageFromShow">' +
+                        '<label class="form-check-label" for="sendClosureMessageFromShow">إرسال رسالة إنهاء العقد للعميل</label>' +
+                        '</div>',
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#22c55e',
@@ -1382,7 +1424,8 @@
                             url: "{{ route('RentContract.complete', $contract->id) }}",
                             method: 'POST',
                             data: {
-                                _token: '{{ csrf_token() }}'
+                                _token: '{{ csrf_token() }}',
+                                send_closure_message: $('#sendClosureMessageFromShow').is(':checked') ? 1 : 0
                             },
                             success: function(response) {
                                 if (response.success) {
