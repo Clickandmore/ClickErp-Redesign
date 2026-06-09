@@ -59,6 +59,16 @@ class MaidBulkImportService
         'no_experience' => ['no_experience', 'لم يسبق لها العمل', 'بدون خبرة', 'لا توجد خبرة'],
     ];
 
+    private const MAID_STATUS_ALIASES = [
+        'available' => ['available', 'المتاحة', 'متاحة', 'متاح'],
+        'reserved' => ['reserved', 'المحجوزة', 'محجوزة', 'محجوز'],
+        'contracted' => ['contracted', 'تم التعاقد', 'متعاقدة', 'متعاقد'],
+        'in_accommodation' => ['in_accommodation', 'داخل الايواء', 'داخل الإيواء', 'إيواء', 'ايواء'],
+        'backout' => ['backout', 'باك اوت', 'باك أوت'],
+        'unavailable' => ['unavailable', 'غير متاحة', 'غير متاح', 'not available'],
+        'completed' => ['completed', 'مكتملة', 'مكتمل'],
+    ];
+
     private const MARITAL_STATUS_MAP = [
         'عازبة' => 'single',
         'أعزب' => 'single',
@@ -102,6 +112,8 @@ class MaidBulkImportService
             ['key' => 'create_shelter_contract', 'label' => 'إنشاء عقد إيواء', 'required' => false],
             ['key' => 'is_show', 'label' => 'إظهار في الموقع', 'required' => false],
             ['key' => 'video_link', 'label' => 'رابط فيديو', 'required' => false],
+            ['key' => 'available', 'label' => 'available', 'required' => false],
+            ['key' => 'status', 'label' => 'الحالة', 'required' => false],
         ];
     }
 
@@ -188,6 +200,8 @@ class MaidBulkImportService
             'create_shelter_contract' => 'لا',
             'is_show' => 'نعم',
             'video_link' => '',
+            'available' => 'نعم',
+            'status' => 'متاحة',
         ];
     }
 
@@ -266,7 +280,8 @@ class MaidBulkImportService
 
                 DB::transaction(function () use ($maidAction, $payload, $request, $row, &$importedCount, $adminId) {
                     $data = $payload;
-                    $data['status'] = 'available';
+                    $data['status'] = $data['status'] ?? 'available';
+                    $data['available'] = $data['available'] ?? ($data['status'] === 'available' || $data['status'] === 'completed' ? '1' : '0');
                     $data['added_by'] = $adminId;
                     $data['preserve_null_arrival_date'] = true;
 
@@ -330,6 +345,7 @@ class MaidBulkImportService
             'I' => ['title' => 'الحالة الاجتماعية', 'values' => array_keys(self::MARITAL_STATUS_MAP)],
             'J' => ['title' => 'قيم نعم/لا', 'values' => ['نعم', 'لا']],
             'K' => ['title' => 'اللغات المعتمدة', 'values' => ['arabic', 'english', 'amharic', 'mother']],
+            'L' => ['title' => 'حالات السير الذاتية', 'values' => $this->maidStatusLabels()],
         ];
 
         foreach ($columns as $column => $meta) {
@@ -403,6 +419,8 @@ class MaidBulkImportService
             'V' => $this->rangeFormula('G', count(Maid::getRequestTypeOptions())),
             'AA' => $this->rangeFormula('J', 2),
             'AB' => $this->rangeFormula('J', 2),
+            'AD' => $this->rangeFormula('J', 2),
+            'AE' => $this->rangeFormula('L', count($this->maidStatusLabels())),
         ];
 
         foreach ($validations as $column => $formula) {
@@ -413,6 +431,8 @@ class MaidBulkImportService
         $sheet->getComment('W1')->getText()->createTextRun('يمكن إدخال أكثر من مهارة مفصولة بعلامة |');
         $sheet->getComment('X1')->getText()->createTextRun('القيم المعتمدة: arabic | english | amharic | mother');
         $sheet->getComment('Y1')->getText()->createTextRun('مثال: arabic:90|english:70');
+        $sheet->getComment('AD1')->getText()->createTextRun('اختياري. اتركه فارغاً ليتم اعتباره نعم.');
+        $sheet->getComment('AE1')->getText()->createTextRun('اختياري. اتركه فارغاً ليتم اعتباره متاحة.');
     }
 
     private function rangeFormula(string $column, int $count): string
@@ -461,15 +481,27 @@ class MaidBulkImportService
         ];
     }
 
+    private function maidStatusLabels(): array
+    {
+        return [
+            'متاحة',
+            'محجوزة',
+            'تم التعاقد',
+            'داخل الإيواء',
+            'باك أوت',
+            'غير متاحة',
+            'مكتملة',
+        ];
+    }
+
     private function parseUploadedFile(string $path): array
     {
         $spreadsheet = IOFactory::load($path);
         $sheet = $spreadsheet->getSheetByName(self::DATA_SHEET_NAME) ?: $spreadsheet->getSheet(0);
 
         $headers = $this->extractHeaders($sheet);
-        $expectedKeys = collect($this->templateColumns())->pluck('key')->all();
 
-        if ($headers !== $expectedKeys) {
+        if (!$this->headersMatchTemplate($headers)) {
             throw ValidationException::withMessages([
                 'file' => ['هيكل التمبلت غير مطابق. يرجى تحميل التمبلت الجديد من النظام وإعادة تعبئته.'],
             ]);
@@ -586,6 +618,20 @@ class MaidBulkImportService
         return $headers;
     }
 
+    private function headersMatchTemplate(array $headers): bool
+    {
+        $expectedKeys = collect($this->templateColumns())->pluck('key')->all();
+
+        if ($headers === $expectedKeys) {
+            return true;
+        }
+
+        $legacyExpectedKeys = array_values(array_diff($expectedKeys, ['available', 'status']));
+        $legacyHeaders = array_values(array_filter($headers, fn ($header) => $header !== null));
+
+        return $legacyHeaders === $legacyExpectedKeys;
+    }
+
     private function cellValue($value): ?string
     {
         if ($value === null) {
@@ -636,6 +682,21 @@ class MaidBulkImportService
         $data['arrival_date'] = $this->normalizeDate($rawRow['arrival_date'] ?? null);
         $data['additional_notes'] = $this->trimmed($rawRow['additional_notes'] ?? null);
         $data['video_link'] = $this->trimmed($rawRow['video_link'] ?? null);
+
+        [$data['status'], $statusError] = $this->resolveMappedValue(
+            $rawRow['status'] ?? null,
+            self::MAID_STATUS_ALIASES,
+            'available'
+        );
+        if ($statusError) {
+            $errors[] = 'الحالة: ' . $statusError;
+        }
+
+        [$availableValue, $availableError] = $this->normalizeOptionalBooleanField($rawRow['available'] ?? null);
+        if ($availableError) {
+            $errors[] = 'available: ' . $availableError;
+        }
+        $data['available'] = $availableValue ?? (in_array($data['status'], ['available', 'completed'], true) ? '1' : '0');
 
         if (!$data['age'] && $data['birth_date']) {
             $data['age'] = (string) Carbon::parse($data['birth_date'])->age;
@@ -771,6 +832,8 @@ class MaidBulkImportService
             'request_type' => 'nullable|in:known,specific,custom_spec',
             'is_show' => 'nullable|in:0,1',
             'create_shelter_contract' => 'nullable|in:0,1',
+            'available' => 'nullable|in:0,1',
+            'status' => 'nullable|in:' . implode(',', array_keys(self::MAID_STATUS_ALIASES)),
         ], [
             'passport_num.unique' => 'رقم الجواز موجود مسبقاً في النظام.',
             'video_link.url' => 'رابط الفيديو غير صالح.',
@@ -1088,6 +1151,16 @@ class MaidBulkImportService
         }
 
         return [$default, 'القيمة يجب أن تكون نعم أو لا.'];
+    }
+
+    private function normalizeOptionalBooleanField($value): array
+    {
+        $value = $this->trimmed($value);
+        if ($value === null) {
+            return [null, null];
+        }
+
+        return $this->normalizeBooleanField($value, '1');
     }
 
     private function trimmed($value): ?string

@@ -3,6 +3,7 @@
 namespace App\Services\ingaz;
 
 use App\Enums\ingaz\ContractStatusEnum;
+use App\Enums\ingaz\OrderEnum;
 use App\Models\Contract;
 use App\Models\RentalContract;
 use App\Models\RecruitmentOffices;
@@ -33,12 +34,17 @@ use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 
 class DataImportExecutionService
 {
+    private ?string $importPasswordHash = null;
+
     public function __construct(private DataImportTemplateService $templates)
     {
     }
 
     public function import(string $type, UploadedFile $file, ?int $adminId): array
     {
+        @set_time_limit(0);
+        $this->importPasswordHash = null;
+
         $storedPath = $this->templates->storeUploadedFile($type, $file, $adminId);
         $rows = $this->readRows(Storage::path($storedPath), $this->templates->template($type)['columns'] ?? []);
 
@@ -172,7 +178,6 @@ class DataImportExecutionService
             'family_num' => $row['family_num'] ?? null,
             'children' => $row['children'] ?? null,
             'job' => $row['job'] ?? null,
-            'password' => Hash::make(Str::random(16)),
             'register_from' => 'data_import',
             'is_blocked' => $this->normalizeStatus($row['status'] ?? null) === 'blocked' ? 1 : 0,
             'created_by' => $createdBy,
@@ -180,9 +185,12 @@ class DataImportExecutionService
 
         if ($user) {
             unset($payload['id']);
-            unset($payload['password']);
             $user->update(array_filter($payload, fn ($value) => $value !== null && $value !== ''));
             return 'updated';
+        }
+
+        if (Schema::hasColumn('users', 'password')) {
+            $payload['password'] = $this->defaultImportPasswordHash();
         }
 
         User::create($payload);
@@ -245,7 +253,7 @@ class DataImportExecutionService
             );
         }
 
-        $order = $this->ensureOrder($user, $maid, $row);
+        $order = $this->ensureOrder($user, $maid, $row, OrderEnum::Completed->value);
 
         $contract = $this->findContract($row['contract_number'] ?? null, $maid?->id, $user->id);
         $payload = $this->filterColumns('contracts', [
@@ -445,7 +453,7 @@ class DataImportExecutionService
             'phone_code' => '+966',
             'phone' => $phone,
             'national_num' => $idNumber ?: null,
-            'password' => Hash::make(Str::random(16)),
+            'password' => $this->defaultImportPasswordHash(),
             'register_from' => 'data_import',
             'is_blocked' => 0,
         ]));
@@ -614,7 +622,7 @@ class DataImportExecutionService
         ]));
     }
 
-    private function ensureOrder(User $user, Maid $maid, array $row): Order
+    private function ensureOrder(User $user, Maid $maid, array $row, ?string $status = null): Order
     {
         $order = Order::where('user_id', $user->id)
             ->where('maid_id', $maid->id)
@@ -637,7 +645,7 @@ class DataImportExecutionService
             'payment_method' => 'cash',
             'order_code' => $this->generateOrderCode(),
             'job_type_id' => $jobTypeId,
-            'status' => $this->normalizeContractStatus($row['status'] ?? null),
+            'status' => $status ?: $this->normalizeContractStatus($row['status'] ?? null),
         ]);
     }
 
@@ -1227,6 +1235,15 @@ class DataImportExecutionService
     private function normalizeHeader(string $value): string
     {
         return preg_replace('/\s+/u', '', mb_strtolower(trim($value)));
+    }
+
+    private function defaultImportPasswordHash(): string
+    {
+        if ($this->importPasswordHash === null) {
+            $this->importPasswordHash = Hash::make(Str::random(32));
+        }
+
+        return $this->importPasswordHash;
     }
 
     private function filterColumns(string $table, array $payload): array

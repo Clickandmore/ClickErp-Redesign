@@ -246,6 +246,7 @@ Route::group(
                 Route::get('/{agentMaidBulkImport}/download', [AgentMaidImportAdminController::class, 'download'])->name('download');
             });
             // Limit maid parameter to numeric IDs to avoid catching custom pages like create_rapid_cv
+            Route::post('maids/extract-cv-data', [MaidController::class, 'extractCvData'])->name('maids.extract-cv-data');
             Route::resource('maids', MaidController::class)->whereNumber('maid');
             Route::get('maids/create_rapid_cv', [MaidController::class, 'create_rapid_cv'])->name('maids.create_rapid_cv');
             Route::post('maids/store_rapid_cv', [MaidController::class, 'store_rapid_cv'])->name('maids.store_rapid_cv');
@@ -375,6 +376,7 @@ Route::group(
             Route::post('RentContract/{id}/activate-contract', [RentContractController::class, 'activateContract'])->name('RentContract.activateContract');
             Route::post('RentContract/{id}/extend', [RentContractController::class, 'extend'])->name('RentContract.extend');
             Route::post('RentContract/{id}/freeze', [RentContractController::class, 'freeze'])->name('RentContract.freeze');
+            Route::post('RentContract/{id}/update-freeze-date', [RentContractController::class, 'updateFreezeDate'])->name('RentContract.updateFreezeDate');
             Route::post('RentContract/{id}/resume', [RentContractController::class, 'resume'])->name('RentContract.resume');
             Route::post('RentContract/{id}/change-maid', [RentContractController::class, 'changeMaid'])->name('RentContract.changeMaid');
 
