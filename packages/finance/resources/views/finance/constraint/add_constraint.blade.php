@@ -219,6 +219,26 @@
             object-fit: cover;
         }
 
+        .constraint-create-page .constraint-file-preview {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: .35rem;
+            color: #334155;
+            text-decoration: none;
+            font-size: .75rem;
+            text-align: center;
+            padding: .5rem;
+        }
+
+        .constraint-create-page .constraint-file-preview i {
+            font-size: 1.8rem;
+            color: #0f766e;
+        }
+
         .constraint-create-page .constraint-attachment-grid .uploadedImage .delete {
             top: 6px;
             right: 6px;

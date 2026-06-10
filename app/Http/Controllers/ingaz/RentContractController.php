@@ -1764,6 +1764,16 @@ class RentContractController extends Controller
         ]);
     }
 
+    private function markRentalMaidAsAvailable(Maid $maid, Carbon $availableAt): void
+    {
+        $maid->forceFill([
+            'available' => 1,
+            'status' => 'available',
+            'is_show' => 1,
+            'available_at' => $availableAt->toDateString(),
+        ])->save();
+    }
+
     private function getRentalJobTypeId(): int
     {
         $jobType = JobType::with('translations')->get()->first(function ($type) {
@@ -2270,9 +2280,12 @@ class RentContractController extends Controller
             }
 
             if ($contract->maid) {
-                $contract->maid->available_at = $closureDate->toDateString();
-                $contract->maid->save();
-                $this->syncMaidBookingState($contract->maid);
+                $maid = Maid::query()->lockForUpdate()->find($contract->maid_id);
+
+                if ($maid) {
+                    $this->syncMaidBookingState($maid);
+                    $this->markRentalMaidAsAvailable($maid, $closureDate);
+                }
             }
 
             $this->returnShelterContractInsideForRental($contract);
