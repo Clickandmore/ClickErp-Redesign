@@ -9,6 +9,9 @@
     $selectedTypeId = (int) old('type_id', $obj->jobTypes->pluck('id')->first());
     $selectedTypeTitle = collect($types ?? [])->firstWhere('id', $selectedTypeId)->title ?? '';
     $selectedRequestType = old('request_type', \App\Models\ingaz\Maid::resolveRequestType($obj->request_type));
+    $birthDateValue = $obj->birth_date
+        ? \Carbon\Carbon::parse($obj->birth_date)->format('Y-m-d')
+        : '';
     $normalizedSelectedTypeTitle = mb_strtolower(trim((string) $selectedTypeTitle));
     $normalizedSelectedTypeTitle = str_replace(['أ', 'إ', 'آ'], 'ا', $normalizedSelectedTypeTitle);
     $showArrivalDateField = $isRentalForm
@@ -71,6 +74,12 @@
                     <div class="col-6">
                         <label for="TextInput" class="form-label">{{ helperTrans('ingaz.personal_photo') }}</label>
                         <input type="file" data-default-file="{{showFile($obj->image)}}" name="image" class="dropify" >
+                        @if (!empty($obj->image))
+                            <a href="{{ showFile($obj->image) }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm mt-2">
+                                <i class="fas fa-eye me-1"></i>
+                                عرض صورة العاملة
+                            </a>
+                        @endif
                     </div>
                     <div class="col-6">
                         <label for="TextInput" class="form-label">{{ helperTrans('ingaz.full_photo') }}</label>
@@ -217,7 +226,7 @@
                             {{ helperTrans('ingaz.birth_date') }}
                         </label>
                         <input type="date" name="birth_date" id="birth_date" class="form-control"
-                               value="{{$obj->birth_date}}">
+                               value="{{ old('birth_date', $birthDateValue) }}">
                     </div>
 
                     <div class="col-4">
