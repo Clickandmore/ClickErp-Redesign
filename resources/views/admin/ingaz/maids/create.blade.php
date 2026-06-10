@@ -55,19 +55,19 @@
         .maid-type-picker {
             border: 1px solid #e5e7eb;
             border-radius: 8px;
-            padding: 14px;
-            background: #f8fafc;
+            padding: 8px;
+            background: #fff;
         }
 
         .maid-type-option {
             width: 100%;
-            min-height: 92px;
+            min-height: 44px;
             border: 1px solid #d7dde5;
             border-radius: 8px;
             background: #fff;
             color: #1f2937;
             text-align: start;
-            padding: 14px 16px;
+            padding: 8px 10px;
             transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease;
         }
 
@@ -85,15 +85,15 @@
         }
 
         .maid-type-option__icon {
-            width: 38px;
-            height: 38px;
+            width: 28px;
+            height: 28px;
             border-radius: 8px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             background: #e9eef5;
             color: #0d6efd;
-            flex: 0 0 38px;
+            flex: 0 0 28px;
         }
 
         .maid-type-option.is-active .maid-type-option__icon {
@@ -112,8 +112,12 @@
         .maid-form-section {
             border: 1px solid #e5e7eb;
             border-radius: 8px;
-            padding: 16px;
+            padding: 14px;
             background: #fff;
+        }
+
+        .maid-form-section--compact {
+            padding: 10px 12px;
         }
 
         .maid-form-section__title {
@@ -142,30 +146,6 @@
             margin-bottom: 0;
         }
 
-        .maid-cv-reader {
-            border: 1px solid #bfdbfe;
-            border-radius: 8px;
-            background: #eff6ff;
-            padding: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
-        .maid-cv-reader__text {
-            color: #1f2937;
-            font-weight: 600;
-        }
-
-        .maid-cv-reader__hint {
-            color: #6b7280;
-            font-size: 12px;
-            display: block;
-            margin-top: 2px;
-        }
-
         .maid-form-note {
             border-radius: 8px;
             background: #f9fafb;
@@ -186,6 +166,34 @@
             background: #0d6efd;
             color: #fff;
         }
+
+        .maid-page-toolbar {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: #f9fafb;
+            padding: 8px;
+        }
+
+        .maid-create-actions .btn {
+            min-height: 34px;
+        }
+
+        .maid-create-actions #cv_extract_status {
+            max-width: 260px;
+        }
+
+        .maid-route-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+
+        .maid-route-header .maid-form-section__title {
+            margin-bottom: 0;
+        }
     </style>
 @endsection
 
@@ -197,20 +205,24 @@
     @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_CREATE))
         <div class="card">
             <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 maid-page-toolbar">
                     <div>
                         <h5 class="mb-1">{{ helperTrans('ingaz.add_new_maid') }}</h5>
-                        <div class="text-muted small">{{ helperTrans('ingaz.add_maid_hint') }}</div>
                     </div>
-                    <div class="d-flex flex-wrap gap-2">
-                        <a href="{{ route('maids.create_rapid_cv') }}" class="btn rapid-cv-cta">
+                    <div class="d-flex flex-wrap align-items-center gap-2 maid-create-actions ms-auto">
+                        <a href="{{ route('maids.create_rapid_cv') }}" class="btn btn-sm rapid-cv-cta">
                             <i class="fas fa-bolt me-1"></i>
                             {{ helperTrans('ingaz.short_cv') }}
                         </a>
-                        <a href="{{ route('maids.bulk-import.create') }}" class="btn btn-outline-success">
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="extract_cv_data_btn">
+                            <i class="fas fa-file-import me-1"></i>
+                            {{ helperTrans('ingaz.read_cv_data') }}
+                        </button>
+                        <a href="{{ route('maids.bulk-import.create') }}" class="btn btn-sm btn-outline-success">
                             <i class="fas fa-file-excel me-1"></i>
-                            {{ helperTrans('ingaz.bulk_import_from_excel') }}
+                            استيراد
                         </a>
+                        <span class="small text-muted align-self-center" id="cv_extract_status"></span>
                     </div>
                 </div>
                 <form class="row g-3 from-submit-global-maid" method="post" action="{{ route('maids.store') }}"
@@ -219,22 +231,18 @@
                     <!-- الملفات -->
 
                     <div class="col-12">
-                        <div class="maid-form-section">
-                            <div class="maid-form-section__title">
-                                <i class="fas fa-route"></i>
-                                <span>اختيار مسار السيرة</span>
+                        <div class="maid-form-section maid-form-section--compact">
+                            <div class="maid-route-header">
+                                <div class="maid-form-section__title">
+                                    <i class="fas fa-route"></i>
+                                    <span>مسار السيرة</span>
+                                </div>
+                                <span class="text-muted small">{{ helperTrans('ingaz.cv_type_picker_hint') }}</span>
                             </div>
 
                             <!-- نوع السيرة -->
                             <div class="maid-type-picker">
-                                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-                                    <div>
-                                        <label for="type_id"
-                                            class="form-label mb-1">{{ helperTrans('ingaz.job_types_2') }}</label>
-                                        <div class="text-muted small">{{ helperTrans('ingaz.cv_type_picker_hint') }}</div>
-                                    </div>
-                                </div>
-                                <div class="row g-3" id="maid_type_picker">
+                                <div class="row g-2" id="maid_type_picker">
                                     @foreach ($types as $type)
                                         @php
                                             $title = $type->title ?? '';
@@ -264,17 +272,8 @@
                                                             <i
                                                                 class="fas {{ $isRentalType ? 'fa-key' : 'fa-user-plus' }}"></i>
                                                         </span>
-                                                        <span>
+                                                        <span class="d-flex align-items-center">
                                                             <span class="d-block fw-semibold">{{ $type->title }}</span>
-                                                            <span class="d-block text-muted small mt-1">
-                                                                @if ($isRentalType)
-                                                                    {{ helperTrans('ingaz.cv_type_rental_hint') }}
-                                                                @elseif ($isRecruitmentType)
-                                                                    {{ helperTrans('ingaz.cv_type_recruitment_hint') }}
-                                                                @else
-                                                                    {{ helperTrans('ingaz.cv_type_general_hint') }}
-                                                                @endif
-                                                            </span>
                                                         </span>
                                                     </span>
                                                 </button>
@@ -322,22 +321,6 @@
                                 </div>
                             </div>
                             <div class="row g-3">
-                                <div class="col-12">
-                                    <div class="maid-cv-reader">
-                                        <div>
-                                            <span class="maid-cv-reader__text">قراءة بيانات السيرة تلقائياً</span>
-                                            <span class="maid-cv-reader__hint">ارفع ملف السيرة أولاً، ثم اضغط الزر لتعبئة الحقول المتاحة.</span>
-                                        </div>
-                                        <div class="d-flex align-items-center gap-2 flex-wrap">
-                                            <button type="button" class="btn btn-primary btn-sm"
-                                                id="extract_cv_data_btn">
-                                                <i class="fas fa-file-import me-1"></i>
-                                                {{ helperTrans('ingaz.read_cv_data') }}
-                                            </button>
-                                            <span class="small text-muted" id="cv_extract_status"></span>
-                                        </div>
-                                    </div>
-                                </div>
                                 <div class="col-md-6">
                                     <label for="TextInput"
                                         class="form-label">{{ helperTrans('ingaz.personal_photo') }}</label>
@@ -348,35 +331,6 @@
                                     <label for="TextInput" class="form-label">{{ helperTrans('ingaz.full_photo') }}</label>
                                     <input type="file" data-default-file="" name="cv_file" id="cv_file" class="dropify"
                                         accept=".pdf,image/*">
-                                </div>
-
-                                <!-- اسم العامل/ة -->
-                                <div class="col-4">
-                                    <label for="TextInput" class="form-label">
-                                        اسم العامل/ة ({{ helperTrans('ingaz.en') }})
-                                    </label>
-                                    <input type="text" name="name:en" class="form-control" required>
-                                </div>
-
-                                <div class="col-4">
-                                    <label for="gender"
-                                        class="form-label">{{ __('validation.attributes.gender') }}</label>
-                                    @php $selectedGender = old('gender', 'female'); @endphp
-                                    <select name="gender" id="gender" class="form-control" required>
-                                        <option value="female" {{ $selectedGender === 'female' ? 'selected' : '' }}>أنثى
-                                        </option>
-                                        <option value="male" {{ $selectedGender === 'male' ? 'selected' : '' }}>ذكر
-                                        </option>
-                                    </select>
-                                    <small class="text-muted d-block mt-1">يتغير تلقائياً عند اختيار مهنة مثل عاملة منزلية
-                                        أو سائق خاص.</small>
-                                </div>
-                                <div class="col-4">
-                                    <label for="passport_num" class="form-label">
-                                        {{ helperTrans('ingaz.passport_num') }}
-                                    </label>
-                                    <input type="text" name="passport_num" id="passport_num" class="form-control" required>
-                                    <div id="passport_num_feedback" class="invalid-feedback"></div>
                                 </div>
                             </div>
                         </div>
@@ -397,9 +351,15 @@
                         <div class="maid-form-section">
                             <div class="maid-form-section__title">
                                 <i class="fas fa-briefcase"></i>
-                                <span>بيانات العمل والبيانات الشخصية</span>
+                                <span>بيانات العمل والاستقدام</span>
                             </div>
                             <div class="row g-3">
+                                <div class="col-4">
+                                    <label for="TextInput" class="form-label">
+                                        اسم العامل/ة ({{ helperTrans('ingaz.en') }})
+                                    </label>
+                                    <input type="text" name="name:en" class="form-control" required>
+                                </div>
                                 <!-- خيار تسكين للإيواء -->
                                 <div class="col-4" id="shelter_option">
                                     <label for="create_shelter_contract"
@@ -566,6 +526,18 @@
                     </div>
 
                     <div class="col-4">
+                        <label for="gender"
+                            class="form-label">{{ __('validation.attributes.gender') }}</label>
+                        @php $selectedGender = old('gender', 'female'); @endphp
+                        <select name="gender" id="gender" class="form-control" required>
+                            <option value="female" {{ $selectedGender === 'female' ? 'selected' : '' }}>أنثى
+                            </option>
+                            <option value="male" {{ $selectedGender === 'male' ? 'selected' : '' }}>ذكر
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="col-4">
                         <label for="TextInput" class="form-label">
                             {{ helperTrans('ingaz.childrens_count') }}
                         </label>
@@ -599,6 +571,14 @@
                             <div class="row g-3">
 
                     <!-- رقم الجواز ورقم الهوية وتاريخ انتهاء الهوية -->
+
+                    <div class="col-4">
+                        <label for="passport_num" class="form-label">
+                            رقم جواز العاملة <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" name="passport_num" id="passport_num" class="form-control" required>
+                        <div id="passport_num_feedback" class="invalid-feedback"></div>
+                    </div>
 
                     <div class="col-4 passport-extra-field">
                         <label for="border_number" class="form-label">

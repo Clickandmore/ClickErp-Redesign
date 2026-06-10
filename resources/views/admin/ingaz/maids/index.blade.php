@@ -602,6 +602,7 @@
             const table = $('#dataTableObject').DataTable({
                 processing: true,
                 serverSide: true,
+                searching: false,
                 ajax: {
                     url: "{{ route('maids.index') }}",
                     data: function(d) {

@@ -829,11 +829,18 @@ class AdminController extends Controller
             'login' => 'required',
             'password' => 'required'
         ]);
+        $login = trim((string) $request->login);
+        $usernameColumnExists = Schema::hasColumn('admins', 'username');
+
         $agentUser = objModel::query()
             ->whereHas('agentOfficeLinks')
-            ->where(function ($query) use ($request) {
-                $query->where('phone', $request->login)
-                    ->orWhere('email', $request->login);
+            ->where(function ($query) use ($login, $usernameColumnExists) {
+                $query->where('phone', $login)
+                    ->orWhere('email', $login);
+
+                if ($usernameColumnExists) {
+                    $query->orWhere('username', $login);
+                }
             })
             ->first();
 
@@ -853,9 +860,17 @@ class AdminController extends Controller
             return jsonSuccess(null, __("auth.password"), 402);
         }
 
-        $user = objModel::where('phone', $request->login)
-            ->orWhere('email', $request->login)->first();
-        if (isset($user->email)) {
+        $user = objModel::query()
+            ->where(function ($query) use ($login, $usernameColumnExists) {
+                $query->where('phone', $login)
+                    ->orWhere('email', $login);
+
+                if ($usernameColumnExists) {
+                    $query->orWhere('username', $login);
+                }
+            })
+            ->first();
+        if ($user) {
             if ($user->isExternalOfficeOnlyAgent()) {
                 if (($user->status ?? 'active') === 'suspended') {
                     return jsonSuccess(null, __('admin.account_suspended_now'), 403);
