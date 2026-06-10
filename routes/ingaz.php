@@ -366,6 +366,7 @@ Route::group(
             Route::get('RentContract/{id}/attachments/download', [RentContractController::class, 'downloadAttachments'])->name('RentContract.attachments.download');
             Route::get('RentContract/{id}/attachments/{attachment}/view', [RentContractController::class, 'viewAttachment'])->name('RentContract.attachments.view');
             Route::get('RentContract/{id}/attachments/{attachment}/download', [RentContractController::class, 'downloadAttachment'])->name('RentContract.attachments.download.single');
+            Route::delete('RentContract/{id}/payment-receipts/{receipt}', [RentContractController::class, 'deletePaymentReceipt'])->name('RentContract.paymentReceipts.delete');
             Route::post('RentContract/{id}/close-and-make-available', [RentContractController::class, 'closeAndMakeAvailable'])->name('RentContract.closeAndMakeAvailable');
             Route::post('RentContract/{id}/transfer-sponsorship', [RentContractController::class, 'transferSponsorship'])->name('RentContract.transferSponsorship');
 
