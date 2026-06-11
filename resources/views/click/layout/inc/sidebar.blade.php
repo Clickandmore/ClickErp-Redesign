@@ -167,49 +167,6 @@
                             </ul>
                         </li>
 
-                        @if ($canViewFinancialRequests)
-                            <li class="collapsed">
-                                <a class="m-link" data-bs-toggle="collapse" data-bs-target="#financial_requests_menu_click" href="#">
-                                    <i class="fa fa-money-bill-wave"></i>
-                                    <span class="ms-2">إدارة الطلبات المالية</span>
-                                    <span class="arrow fa fa-angle-left ms-auto text-end"></span>
-                                </a>
-                                <ul class="sub-menu collapse {{ request()->routeIs('financial-requests.*') ? 'show' : '' }}"
-                                    id="financial_requests_menu_click">
-                                    <li>
-                                        <a class="m-link {{ request()->routeIs('financial-requests.index') && !request('scope') ? 'active' : '' }}"
-                                            href="{{ route('financial-requests.index') }}">
-                                            <i class="fa fa-arrow-left"></i>
-                                            <span class="ms-2">كل الطلبات المالية</span>
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="m-link {{ request()->routeIs('financial-requests.index') && request('scope') === 'incomplete' ? 'active' : '' }}"
-                                            href="{{ route('financial-requests.index', ['scope' => 'incomplete']) }}">
-                                            <i class="fa fa-arrow-left"></i>
-                                            <span class="ms-2">غير مكتملة</span>
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="m-link {{ request()->routeIs('financial-requests.index') && request('scope') === 'paid' ? 'active' : '' }}"
-                                            href="{{ route('financial-requests.index', ['scope' => 'paid']) }}">
-                                            <i class="fa fa-arrow-left"></i>
-                                            <span class="ms-2">مكتملة / تم سدادها</span>
-                                        </a>
-                                    </li>
-                                    @if (@AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_CREATE, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]))
-                                        <li>
-                                            <a class="m-link {{ request()->routeIs('financial-requests.create') ? 'active' : '' }}"
-                                                href="{{ route('financial-requests.create') }}">
-                                                <i class="fa fa-plus"></i>
-                                                <span class="ms-2">طلب مالي جديد</span>
-                                            </a>
-                                        </li>
-                                    @endif
-                                </ul>
-                            </li>
-                        @endif
-
                         <!-- Orders Section -->
                         <li class="collapsed">
                             <a class="m-link" data-bs-toggle="collapse" data-bs-target="#my_dashboard2" href="#">
@@ -721,6 +678,48 @@
                             </li>
                         @endif
                         @include('admin.layout.inc.sidebar_external_agents_menu')
+                        @if ($canViewFinancialRequests)
+                            <li class="collapsed">
+                                <a class="m-link" data-bs-toggle="collapse" data-bs-target="#financial_requests_menu_click" href="#">
+                                    <i class="fa fa-money-bill-wave"></i>
+                                    <span class="ms-2">إدارة الطلبات المالية</span>
+                                    <span class="arrow fa fa-angle-left ms-auto text-end"></span>
+                                </a>
+                                <ul class="sub-menu collapse {{ request()->routeIs('financial-requests.*') ? 'show' : '' }}"
+                                    id="financial_requests_menu_click">
+                                    <li>
+                                        <a class="m-link {{ request()->routeIs('financial-requests.index') && !request('scope') ? 'active' : '' }}"
+                                            href="{{ route('financial-requests.index') }}">
+                                            <i class="fa fa-arrow-left"></i>
+                                            <span class="ms-2">كل الطلبات المالية</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="m-link {{ request()->routeIs('financial-requests.index') && request('scope') === 'incomplete' ? 'active' : '' }}"
+                                            href="{{ route('financial-requests.index', ['scope' => 'incomplete']) }}">
+                                            <i class="fa fa-arrow-left"></i>
+                                            <span class="ms-2">غير مكتملة</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="m-link {{ request()->routeIs('financial-requests.index') && request('scope') === 'paid' ? 'active' : '' }}"
+                                            href="{{ route('financial-requests.index', ['scope' => 'paid']) }}">
+                                            <i class="fa fa-arrow-left"></i>
+                                            <span class="ms-2">مكتملة / تم سدادها</span>
+                                        </a>
+                                    </li>
+                                    @if (@AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_CREATE, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]))
+                                        <li>
+                                            <a class="m-link {{ request()->routeIs('financial-requests.create') ? 'active' : '' }}"
+                                                href="{{ route('financial-requests.create') }}">
+                                                <i class="fa fa-plus"></i>
+                                                <span class="ms-2">طلب مالي جديد</span>
+                                            </a>
+                                        </li>
+                                    @endif
+                                </ul>
+                            </li>
+                        @endif
                         <!-- طلبات استرجاع العقود -->
                         {{--                        <li class="collapsed"> --}}
                         {{--                            <a class="m-link" data-bs-toggle="collapse" data-bs-target="#returnRequestsMenu" href="#"> --}}

@@ -367,10 +367,6 @@ class FinancialRequestController extends Controller
         });
 
         foreach (['type', 'status', 'priority', 'created_by_id'] as $field) {
-            if ($field === 'status' && in_array($request->input('scope'), ['incomplete', 'paid'], true)) {
-                continue;
-            }
-
             $query->when($request->filled($field), fn ($query) => $query->where($field, $request->input($field)));
         }
 

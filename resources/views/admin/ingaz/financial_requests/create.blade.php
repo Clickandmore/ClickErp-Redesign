@@ -27,6 +27,7 @@
                                 <div class="col-md-4">
                                     <label class="form-label">نوع الطلب</label>
                                     <select name="type" id="requestType" class="form-select" required>
+                                        <option value="" disabled @selected(!old('type', $requestItem->type ?? null))>اختر نوع الطلب</option>
                                         @foreach ($types as $key => $label)
                                             <option value="{{ $key }}" @selected(old('type', $requestItem->type ?? '') === $key)>{{ $label }}</option>
                                         @endforeach
@@ -91,15 +92,21 @@
                         <div class="card-header fw-bold">الربط</div>
                         <div class="card-body">
                             <label class="form-label">العميل</label>
-                            <input type="text" id="clientSearch" class="form-control mb-2" list="clientSuggestions" placeholder="رقم الهوية أو اسم العميل" value="{{ old('client_name', $requestItem->client_name ?? '') }}">
-                            <datalist id="clientSuggestions"></datalist>
+                            <div class="input-group mb-2">
+                                <input type="text" id="clientSearch" class="form-control" placeholder="ابحث باسم العميل أو رقم الهوية" value="{{ old('client_name', $requestItem->client_name ?? '') }}">
+                                <button class="btn btn-outline-secondary" type="button" id="searchClientBtn">بحث</button>
+                            </div>
+                            <div id="clientResults" class="list-group small mb-2"></div>
                             <input type="hidden" name="client_id" id="clientId" value="{{ old('client_id', $requestItem->client_id ?? '') }}">
                             <input type="text" name="client_name" id="clientName" class="form-control mb-2" placeholder="اسم العميل" value="{{ old('client_name', $requestItem->client_name ?? '') }}">
                             <input type="text" name="client_identity" id="clientIdentity" class="form-control mb-3" placeholder="رقم الهوية" value="{{ old('client_identity', $requestItem->client_identity ?? '') }}">
 
                             <label class="form-label">العاملة</label>
-                            <input type="text" id="maidSearch" class="form-control mb-2" list="maidSuggestions" placeholder="رقم الجواز أو اسم العاملة" value="{{ old('maid_name', $requestItem->maid_name ?? '') }}">
-                            <datalist id="maidSuggestions"></datalist>
+                            <div class="input-group mb-2">
+                                <input type="text" id="maidSearch" class="form-control" placeholder="ابحث باسم العاملة أو رقم الجواز" value="{{ old('maid_name', $requestItem->maid_name ?? '') }}">
+                                <button class="btn btn-outline-secondary" type="button" id="searchMaidBtn">بحث</button>
+                            </div>
+                            <div id="maidResults" class="list-group small mb-2"></div>
                             <input type="hidden" name="maid_id" id="maidId" value="{{ old('maid_id', $requestItem->maid_id ?? '') }}">
                             <input type="text" name="maid_name" id="maidName" class="form-control mb-2" placeholder="اسم العاملة" value="{{ old('maid_name', $requestItem->maid_name ?? '') }}">
                             <input type="text" name="maid_passport" id="maidPassport" class="form-control mb-3" placeholder="رقم الجواز" value="{{ old('maid_passport', $requestItem->maid_passport ?? '') }}">
@@ -118,9 +125,14 @@
                             <input type="number" step="0.01" name="contract_cost" id="contractCost" class="form-control mb-2" placeholder="تكلفة العقد" value="{{ old('contract_cost', $requestItem->contract_cost ?? '') }}">
                             <input type="number" step="0.01" name="contract_salary" id="contractSalary" class="form-control" placeholder="الراتب" value="{{ old('contract_salary', $requestItem->contract_salary ?? '') }}">
 
-                            <button type="button" class="btn btn-outline-success w-100 mt-3" data-bs-toggle="modal" data-bs-target="#musanedModal">
-                                <i class="fa fa-search"></i> جلب من مساند
-                            </button>
+                            <div class="d-grid gap-2 mt-3">
+                                <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#musanedModal">
+                                    <i class="fa fa-search"></i> جلب من مساند
+                                </button>
+                                <a class="btn btn-success" href="https://musaned.com.sa" target="_blank" rel="noopener">
+                                    <i class="fa fa-external-link-alt"></i> فتح مساند مباشرة
+                                </a>
+                            </div>
                         </div>
                     </div>
 
@@ -151,6 +163,16 @@
         const typeFields = @json($typeFields);
         const payload = @json($payload);
 
+        function escapeHtml(value) {
+            return String(value || '').replace(/[&<>"']/g, char => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            }[char]));
+        }
+
         function renderDynamicFields() {
             const type = document.getElementById('requestType').value;
             const wrapper = document.getElementById('dynamicFields');
@@ -163,20 +185,49 @@
             });
         }
 
-        async function fillDatalist(url, term, listId, map) {
-            if (!term || term.length < 2) return;
+        async function searchRows(url, term) {
+            if (!term || term.length < 2) return [];
             const response = await fetch(url + '?q=' + encodeURIComponent(term), {headers: {'Accept': 'application/json'}});
-            if (!response.ok) return;
-            const rows = await response.json();
-            const list = document.getElementById(listId);
-            list.innerHTML = '';
+            if (!response.ok) return [];
+
+            return response.json();
+        }
+
+        function renderResults(containerId, rows, emptyText, onSelect) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+
+            if (!rows.length) {
+                container.innerHTML = `<div class="text-muted border rounded p-2">${emptyText}</div>`;
+                return;
+            }
+
             rows.forEach(row => {
-                const option = document.createElement('option');
-                option.value = row.text;
-                option.dataset.row = JSON.stringify(row);
-                list.appendChild(option);
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'list-group-item list-group-item-action';
+                button.innerHTML = `<strong>${escapeHtml(row.name || '-')}</strong><br><span class="text-muted">${escapeHtml(row.text || '')}</span>`;
+                button.addEventListener('click', () => {
+                    onSelect(row);
+                    container.innerHTML = '';
+                });
+                container.appendChild(button);
             });
-            map(rows);
+        }
+
+        function selectClient(row) {
+            clientId.value = row.id || '';
+            clientName.value = row.name || '';
+            clientIdentity.value = row.identity || '';
+            clientSearch.value = row.text || row.name || '';
+        }
+
+        function selectMaid(row) {
+            maidId.value = row.id || '';
+            maidName.value = row.name || '';
+            maidPassport.value = row.passport || '';
+            maidSearch.value = row.text || row.name || '';
+            contractSalary.value = row.salary || contractSalary.value;
         }
 
         let clients = [];
@@ -184,19 +235,28 @@
         document.getElementById('requestType').addEventListener('change', renderDynamicFields);
         renderDynamicFields();
 
-        document.getElementById('clientSearch').addEventListener('input', e => {
-            fillDatalist('{{ route('financial-requests.search-clients') }}', e.target.value, 'clientSuggestions', rows => clients = rows);
-            const row = clients.find(item => item.text === e.target.value);
-            if (row) {
-                clientId.value = row.id; clientName.value = row.name || ''; clientIdentity.value = row.identity || '';
+        async function searchClients() {
+            clients = await searchRows('{{ route('financial-requests.search-clients') }}', clientSearch.value);
+            renderResults('clientResults', clients, 'لا توجد نتائج. يمكنك إدخال بيانات العميل يدوياً.', selectClient);
+        }
+
+        async function searchMaids() {
+            maids = await searchRows('{{ route('financial-requests.search-maids') }}', maidSearch.value);
+            renderResults('maidResults', maids, 'لا توجد نتائج. يمكنك إدخال بيانات العاملة يدوياً.', selectMaid);
+        }
+
+        document.getElementById('searchClientBtn').addEventListener('click', searchClients);
+        document.getElementById('searchMaidBtn').addEventListener('click', searchMaids);
+        document.getElementById('clientSearch').addEventListener('keydown', e => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                searchClients();
             }
         });
-
-        document.getElementById('maidSearch').addEventListener('input', e => {
-            fillDatalist('{{ route('financial-requests.search-maids') }}', e.target.value, 'maidSuggestions', rows => maids = rows);
-            const row = maids.find(item => item.text === e.target.value);
-            if (row) {
-                maidId.value = row.id; maidName.value = row.name || ''; maidPassport.value = row.passport || ''; contractSalary.value = row.salary || contractSalary.value;
+        document.getElementById('maidSearch').addEventListener('keydown', e => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                searchMaids();
             }
         });
 
@@ -210,12 +270,8 @@
             contractNumber.value = data.contract_number || contractNumber.value;
             contractCost.value = data.contract_cost || '';
             contractSalary.value = data.contract_salary || '';
-            clientId.value = data.client_id || '';
-            clientName.value = data.client_name || '';
-            clientIdentity.value = data.client_identity || '';
-            maidId.value = data.maid_id || '';
-            maidName.value = data.maid_name || '';
-            maidPassport.value = data.maid_passport || '';
+            selectClient({id: data.client_id, name: data.client_name, identity: data.client_identity, text: data.client_name || data.client_identity || ''});
+            selectMaid({id: data.maid_id, name: data.maid_name, passport: data.maid_passport, text: data.maid_name || data.maid_passport || ''});
         });
     </script>
 @endsection
