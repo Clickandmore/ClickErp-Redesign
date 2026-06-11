@@ -314,6 +314,14 @@ class MaidAction extends MainAction
             'name' => $data['name'],
         ];
 
+        if (!empty($data['id'])) {
+            $createData['id'] = $data['id'];
+        }
+
+        if (!empty($data['created_at'])) {
+            $createData['created_at'] = $data['created_at'];
+        }
+
         if ($genderColumnExists) {
             $createData['gender'] = $data['gender'];
         }

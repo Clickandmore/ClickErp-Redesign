@@ -45,6 +45,7 @@ class Maid extends Model
     ];
 
     protected $fillable = [
+        'id',
         'name',
         'gender',
         'nationality_id',
@@ -91,6 +92,7 @@ class Maid extends Model
         'offer_expires_at',
         'deleted_by',
         'arrival_date',
+        'created_at',
     ];
 
     protected $casts = [

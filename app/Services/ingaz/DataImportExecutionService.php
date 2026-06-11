@@ -29,6 +29,11 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Nami\Finance\Models\ClientCategory;
 use Nami\Finance\Models\Account;
+use Nami\Hr\Models\Department as HrDepartment;
+use Nami\Hr\Models\Employee as HrEmployee;
+use Nami\Hr\Models\EmployeeShift as HrEmployeeShift;
+use Nami\Hr\Models\Job as HrJob;
+use Nami\Hr\Models\Shift as HrShift;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 
@@ -64,6 +69,8 @@ class DataImportExecutionService
                 DB::transaction(function () use ($type, $row, $adminId, &$result) {
                     $outcome = match ($type) {
                         'clients' => $this->importClient($row, $adminId),
+                        'recruitment_offices' => $this->importRecruitmentOffice($row),
+                        'employees' => $this->importEmployee($row),
                         'rental_maids' => $this->importRentalMaid($row, $adminId),
                         'recruitment_contracts' => $this->importRecruitmentContract($row, $adminId),
                         'recruitment_contracts_clients_maids' => $this->importRecruitmentBundle($row, $adminId),
@@ -198,6 +205,129 @@ class DataImportExecutionService
         User::create($payload);
 
         return 'created';
+    }
+
+    private function importRecruitmentOffice(array $row): string
+    {
+        $titleAr = trim((string) ($row['title_ar'] ?? $row['title'] ?? ''));
+        $titleEn = trim((string) ($row['title_en'] ?? ''));
+        $nationalityId = $this->resolveNationalityId($row['nationality'] ?? null);
+        $databaseId = $this->optionalInteger($row['id'] ?? null);
+
+        if ($titleAr === '') {
+            throw new \InvalidArgumentException('اسم المكتب بالعربية مطلوب.');
+        }
+
+        if (!$nationalityId) {
+            throw new \InvalidArgumentException('الجنسية مطلوبة أو غير موجودة في النظام.');
+        }
+
+        $office = $databaseId ? RecruitmentOffices::query()->whereKey($databaseId)->first() : null;
+        $office = $office ?: $this->findRecruitmentOfficeByTitle($titleAr, $titleEn, $nationalityId);
+
+        $payload = $this->filterColumns('recruitment_offices', [
+            'id' => $databaseId,
+            'nationality_id' => $nationalityId,
+            'status' => $this->normalizeOfficeStatus($row['status'] ?? null),
+            'is_show' => $this->truthy($row['is_show'] ?? null, false) ? 1 : 0,
+            'phone_office' => $row['phone_office'] ?? null,
+            'license_number' => $row['license_number'] ?? null,
+            'street' => $row['street'] ?? null,
+            'manager_name' => $row['manager_name'] ?? null,
+            'manager_phone' => $row['manager_phone'] ?? null,
+            'manager_email' => $row['manager_email'] ?? null,
+            'bank_address' => $row['bank_address'] ?? null,
+            'bank_name' => $row['bank_name'] ?? null,
+            'bank_account_name' => $row['bank_account_name'] ?? null,
+            'bank_swift_code' => $row['bank_swift_code'] ?? null,
+            'bank_iban' => $row['bank_iban'] ?? null,
+            'bank_account' => $row['bank_account'] ?? null,
+            'cost_of_dollar' => $row['cost_of_dollar'] ?? null,
+            'cost_of_other' => $row['cost_of_other'] ?? null,
+        ]);
+
+        $created = false;
+        if ($office) {
+            unset($payload['id']);
+            $office->update(array_filter($payload, fn ($value) => $value !== null && $value !== ''));
+        } else {
+            $office = RecruitmentOffices::create($payload);
+            $created = true;
+        }
+
+        $office->translateOrNew('ar')->title = $titleAr;
+        $office->translateOrNew('en')->title = $titleEn !== '' ? $titleEn : $titleAr;
+        $office->save();
+
+        return $created ? 'created' : 'updated';
+    }
+
+    private function importEmployee(array $row): string
+    {
+        if (!Schema::hasTable('hr_employee')) {
+            throw new \InvalidArgumentException('جدول الموظفين غير موجود.');
+        }
+
+        $name = trim((string) ($row['name'] ?? ''));
+        $databaseId = $this->optionalInteger($row['id'] ?? null);
+        $code = trim((string) ($row['code'] ?? ''));
+        $phone = trim((string) ($row['phone'] ?? ''));
+        $email = trim((string) ($row['email'] ?? ''));
+        $nationalNumber = $this->normalizeIdNumber($row['national_num'] ?? $row['id_number'] ?? null);
+        $departmentId = $this->resolveHrDepartmentId($row['department'] ?? $row['department_id'] ?? $row['deparment_id'] ?? null);
+        $jobId = $this->resolveHrJobId($row['job'] ?? $row['job_id'] ?? null);
+        $countryId = $this->resolveCountryId($row['country'] ?? $row['nationality'] ?? $row['country_id'] ?? null);
+        $shiftId = $this->resolveHrShiftId($row['shift'] ?? $row['shift_id'] ?? null);
+
+        if ($name === '') {
+            throw new \InvalidArgumentException('اسم الموظف مطلوب.');
+        }
+
+        $employee = $this->findEmployee($databaseId, $code, $nationalNumber, $email);
+        $creating = !$employee;
+
+        if ($creating) {
+            $this->assertEmployeeCreateData($row, $phone, $email, $nationalNumber, $departmentId, $jobId, $countryId, $shiftId);
+        }
+
+        $salary = $this->decimal($row['salary'] ?? null);
+        $payload = $this->filterColumns('hr_employee', [
+            'id' => $databaseId,
+            'name' => $name,
+            'admin_id' => $this->resolveAdminId($row['admin_id'] ?? $row['admin'] ?? null),
+            'code' => $code !== '' ? $code : null,
+            'phone' => $phone !== '' ? $phone : null,
+            'birthday' => $this->parseDate($row['birthday'] ?? $row['birthdate'] ?? null),
+            'email' => $email !== '' ? $email : null,
+            'national_num' => $nationalNumber !== '' ? $nationalNumber : null,
+            'identity_expiry_date' => $this->parseDate($row['identity_expiry_date'] ?? null),
+            'address' => $row['address'] ?? null,
+            'hired_date' => $this->parseDate($row['hired_date'] ?? null),
+            'contract_end_date' => $this->parseDate($row['contract_end_date'] ?? null),
+            'salary' => $salary,
+            'net_salary' => $this->decimal($row['net_salary'] ?? null) ?? $salary,
+            'status' => $this->normalizeEmployeeStatus($row['status'] ?? null),
+            'employee_category' => HrEmployee::CATEGORY_EMPLOYEE,
+            'deparment_id' => $departmentId,
+            'job_id' => $jobId,
+            'country_id' => $countryId,
+            'maid_id' => $this->resolveMaidId($row['maid_id'] ?? $row['maid_passport'] ?? null),
+        ]);
+
+        if ($employee) {
+            unset($payload['id']);
+            $employee->update(array_filter($payload, fn ($value) => $value !== null && $value !== ''));
+            $outcome = 'updated';
+        } else {
+            $employee = HrEmployee::create($payload);
+            $outcome = 'created';
+        }
+
+        if ($shiftId) {
+            $this->syncEmployeeShift($employee, $shiftId);
+        }
+
+        return $outcome;
     }
 
     private function importRentalMaid(array $row, ?int $adminId): string
@@ -911,6 +1041,160 @@ class DataImportExecutionService
             ->value('id');
     }
 
+    private function findEmployee(?int $databaseId, string $code, string $nationalNumber, string $email): ?HrEmployee
+    {
+        if ($databaseId) {
+            $employee = HrEmployee::query()->whereKey($databaseId)->first();
+
+            if ($employee) {
+                return $employee;
+            }
+        }
+
+        if ($code !== '' && Schema::hasColumn('hr_employee', 'code')) {
+            $employee = HrEmployee::query()->where('code', $code)->first();
+
+            if ($employee) {
+                return $employee;
+            }
+        }
+
+        if ($nationalNumber !== '' && Schema::hasColumn('hr_employee', 'national_num')) {
+            $employee = HrEmployee::query()->where('national_num', $nationalNumber)->first();
+
+            if ($employee) {
+                return $employee;
+            }
+        }
+
+        if ($email !== '' && Schema::hasColumn('hr_employee', 'email')) {
+            return HrEmployee::query()->where('email', $email)->first();
+        }
+
+        return null;
+    }
+
+    private function assertEmployeeCreateData(
+        array $row,
+        string $phone,
+        string $email,
+        string $nationalNumber,
+        ?int $departmentId,
+        ?int $jobId,
+        ?int $countryId,
+        ?int $shiftId
+    ): void {
+        $missing = [];
+
+        if ($phone === '') {
+            $missing[] = 'رقم الجوال';
+        }
+
+        if (!$this->parseDate($row['birthday'] ?? $row['birthdate'] ?? null)) {
+            $missing[] = 'تاريخ الميلاد';
+        }
+
+        if ($email === '') {
+            $missing[] = 'البريد الإلكتروني';
+        }
+
+        if ($nationalNumber === '') {
+            $missing[] = 'رقم الهوية/الإقامة';
+        }
+
+        if (!$this->parseDate($row['hired_date'] ?? null)) {
+            $missing[] = 'تاريخ التعيين';
+        }
+
+        if (!$this->parseDate($row['contract_end_date'] ?? null)) {
+            $missing[] = 'تاريخ نهاية العقد';
+        }
+
+        if ($this->decimal($row['salary'] ?? null) === null) {
+            $missing[] = 'الراتب';
+        }
+
+        if (!$departmentId) {
+            $missing[] = 'القسم';
+        }
+
+        if (!$jobId) {
+            $missing[] = 'الوظيفة';
+        }
+
+        if (!$countryId) {
+            $missing[] = 'الجنسية';
+        }
+
+        if (!$shiftId && Schema::hasTable('hr_employee_shift')) {
+            $missing[] = 'الوردية';
+        }
+
+        if ($missing !== []) {
+            throw new \InvalidArgumentException('بيانات إنشاء الموظف ناقصة أو غير موجودة في النظام: ' . implode('، ', $missing) . '.');
+        }
+    }
+
+    private function resolveHrDepartmentId($value): ?int
+    {
+        return $this->resolveHrLookupId(HrDepartment::class, 'hr_department', 'title', $value);
+    }
+
+    private function resolveHrJobId($value): ?int
+    {
+        return $this->resolveHrLookupId(HrJob::class, 'hr_jobs', 'title', $value);
+    }
+
+    private function resolveHrShiftId($value): ?int
+    {
+        return $this->resolveHrLookupId(HrShift::class, 'hr_shifts', 'name', $value);
+    }
+
+    private function resolveHrLookupId(string $modelClass, string $table, string $column, $value): ?int
+    {
+        $value = trim((string) $value);
+        if ($value === '' || !class_exists($modelClass) || !Schema::hasTable($table)) {
+            return null;
+        }
+
+        if (is_numeric($value) && $modelClass::query()->whereKey((int) $value)->exists()) {
+            return (int) $value;
+        }
+
+        return $modelClass::query()
+            ->where($column, $value)
+            ->orWhere($column, 'LIKE', "%{$value}%")
+            ->value('id');
+    }
+
+    private function resolveMaidId($value): ?int
+    {
+        $value = trim((string) $value);
+        if ($value === '') {
+            return null;
+        }
+
+        if (is_numeric($value) && Maid::query()->whereKey((int) $value)->exists()) {
+            return (int) $value;
+        }
+
+        return Maid::query()
+            ->where('passport_num', $value)
+            ->value('id');
+    }
+
+    private function syncEmployeeShift(HrEmployee $employee, int $shiftId): void
+    {
+        if (!Schema::hasTable('hr_employee_shift')) {
+            return;
+        }
+
+        HrEmployeeShift::query()->updateOrCreate(
+            ['employee_id' => $employee->id],
+            ['shift_id' => $shiftId]
+        );
+    }
+
     private function normalizeClientMaritalStatus($value): ?string
     {
         $normalized = $this->normalizeArabicText($value);
@@ -990,6 +1274,22 @@ class DataImportExecutionService
         return $modelClass::query()
             ->whereTranslationLike('title', $value)
             ->value('id');
+    }
+
+    private function findRecruitmentOfficeByTitle(string $titleAr, ?string $titleEn, int $nationalityId): ?RecruitmentOffices
+    {
+        $titles = array_values(array_filter(array_unique([$titleAr, trim((string) $titleEn)])));
+
+        if ($titles === []) {
+            return null;
+        }
+
+        return RecruitmentOffices::query()
+            ->where('nationality_id', $nationalityId)
+            ->whereHas('translations', function ($query) use ($titles) {
+                $query->whereIn('title', $titles);
+            })
+            ->first();
     }
 
     private function resolveTranslatableIds(string $modelClass, ?string $value): array
@@ -1341,6 +1641,22 @@ class DataImportExecutionService
     private function normalizeStatus(?string $status): string
     {
         return in_array(trim((string) $status), ['محظور', 'موقوف', 'blocked'], true) ? 'blocked' : 'active';
+    }
+
+    private function normalizeEmployeeStatus($status): int
+    {
+        $normalized = $this->normalizeArabicText($status);
+
+        return in_array($normalized, ['0', 'inactive', 'disabled', 'غير نشط', 'غيرنشط', 'موقوف'], true) ? 0 : 1;
+    }
+
+    private function normalizeOfficeStatus($status): string
+    {
+        $normalized = $this->normalizeArabicText($status);
+
+        return in_array($normalized, ['غير نشط', 'غيرنشط', 'inactive', 'disabled', 'موقوف'], true)
+            ? 'inactive'
+            : 'active';
     }
 
     private function parseDate($value): ?string
