@@ -562,6 +562,7 @@ class AppHomeController extends Controller
             'linkedin' => $this->blankToNull($setting->linkedin),
             'telegram' => '',
             'youtube' => $this->blankToNull($setting->youtube),
+            'tiktok' => $this->blankToNull($setting->tiktok),
             'google_plus' => '',
             'snapchat_ghost' => $this->blankToNull($setting->snapchat) ?? '',
             'about_app' => (string) ($setting->about_us_app ?? ''),

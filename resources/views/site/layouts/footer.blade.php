@@ -104,6 +104,9 @@
                 @if (isset($settings) && $settings->snapchat)
                     <li><a href="{{ $settings->snapchat }}"><i class="fab fa-snapchat-ghost"></i></a></li>
                 @endif
+                @if (isset($settings) && $settings->tiktok)
+                    <li><a href="{{ $settings->tiktok }}"><i class="fab fa-tiktok"></i></a></li>
+                @endif
                 @if (isset($settings) && $settings->whatsapp)
                     <li>
                         <a href="https://wa.me/{{ ltrim($settings->whatsapp, '+') }}" target="_blank" rel="noopener">
