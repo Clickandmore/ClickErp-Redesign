@@ -83,7 +83,8 @@ class MaidAction extends MainAction
             }));
         }
 
-        $preserveNullArrivalDate = (bool)($data['preserve_null_arrival_date'] ?? false);
+        $preserveNullArrivalDate = (bool)($data['preserve_null_arrival_date'] ?? false)
+            || ($this->isRentalTypeRequest($request) && $request->input('rental_kingdom_status') === 'outside');
         unset($data['preserve_null_arrival_date']);
 
         // Set default values for required fields if they're empty
@@ -423,6 +424,11 @@ class MaidAction extends MainAction
 
                 if ($this->isRentalTypeRequest($request)) {
                     $this->rentalMaidAccountingService->recordCreationEntries($maid);
+                }
+
+                if ($this->shouldCreateRentalRecruitmentContract($maid, $request)) {
+                    $this->createCompanyRecruitmentContractForRentalMaid($maid, $request);
+                    $request->merge(['create_shelter_contract' => '0']);
                 }
 
                 if (($request->create_shelter_contract ?? '0') === '1') {
@@ -1496,72 +1502,79 @@ class MaidAction extends MainAction
             ]);
             return;
         }
+    }
 
+    private function shouldCreateRentalRecruitmentContract(Maid $maid, $request): bool
+    {
+        return $this->isRentalTypeRequest($request)
+            && $request->input('rental_kingdom_status') === 'outside'
+            && !$this->hasActiveRecruitmentContract($maid);
+    }
+
+    private function hasActiveRecruitmentContract(Maid $maid): bool
+    {
+        return Contract::query()
+            ->where('maid_id', $maid->id)
+            ->whereIn('status', [
+                ContractStatusEnum::PendingMaidSelection->value,
+                ContractStatusEnum::New->value,
+                ContractStatusEnum::Msaned->value,
+                ContractStatusEnum::Tafwed->value,
+                ContractStatusEnum::Taffez->value,
+                ContractStatusEnum::Tazker->value,
+                ContractStatusEnum::Arrival->value,
+            ])
+            ->exists();
+    }
+
+    private function createCompanyRecruitmentContractForRentalMaid(Maid $maid, $request): ?Contract
+    {
         try {
-            DB::beginTransaction();
+            $companyClient = $this->resolveShelterCompanyClient();
 
-            // Check if maid already has a shelter contract
-            $existingShelterContract = Contract::where('maid_id', $maid->id)
-                ->where('shelter_id', '!=', null)
-                ->first();
-
-            if ($existingShelterContract) {
-                \Log::info('Maid already has a shelter contract', ['maid_id' => $maid->id]);
-                return;
-            }
-
-            // Find or create the company client
-            $companyName = documentSetting('document_company_name', documentSetting('website_name', config('app.name')));
-            $companyPhone = documentSetting('phone', '0112345678');
-            $companyEmail = documentSetting('email', 'company@example.test');
-
-            $companyClient = ClientUser::where('name', $companyName)
-                ->orWhere('phone', $companyPhone)
-                ->first();
-
-            if (!$companyClient) {
-                $companyClient = ClientUser::create([
-                    'name' => $companyName,
-                    'phone' => $companyPhone,
-                    'email' => $companyEmail,
-                    'nationality_id' => 1, // Saudi Arabia
-                    'password' => bcrypt('password123'),
-                    'status' => 'active'
-                ]);
-            }
-
-            // Create shelter contract
-            $contractData = [
+            $contract = Contract::create([
                 'user_id' => $companyClient->id,
                 'maid_id' => $maid->id,
-                'status' => ContractStatusEnum::MSANED->value,
-                'type' => 'shelter',
-                'shelter_id' => 1, // Default shelter
-                'wants_to_work' => 1,
-                'created_at' => now(),
-                'updated_at' => now()
-            ];
+                'status' => ContractStatusEnum::New->value,
+                'contract_date' => now()->toDateString(),
+                'marketer_id' => auth('admin')->id() ?? auth()->id(),
+            ]);
 
-            $contract = Contract::create($contractData);
-
-            // Create contract info
             ContractInfo::create([
                 'contract_id' => $contract->id,
-                'receipt_source' => 'company',
-                'created_at' => now(),
-                'updated_at' => now()
+                'contract_date' => now()->toDateString(),
+                'msaned_number' => '',
+                'tafwed_number' => '',
+                'visa_number' => '',
+                'contract_duration' => $request->input('duration'),
             ]);
 
-            DB::commit();
-            \Log::info('Shelter contract created successfully', ['contract_id' => $contract->id, 'maid_id' => $maid->id]);
+            $contract->contract_status_logs()->create([
+                'status' => ContractStatusEnum::New->value,
+            ]);
 
-        } catch (\Exception $e) {
-            DB::rollback();
-            \Log::error('Failed to create shelter contract', [
+            $maid->update([
+                'status' => 'reserved',
+                'available' => 0,
+                'available_at' => null,
+                'maid_accommodation_type' => null,
+            ]);
+
+            \Log::info('Company recruitment contract created for not-arrived rental maid', [
+                'contract_id' => $contract->id,
                 'maid_id' => $maid->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'company_client_id' => $companyClient->id,
             ]);
+
+            return $contract;
+        } catch (\Throwable $exception) {
+            \Log::error('Failed to create company recruitment contract for rental maid', [
+                'maid_id' => $maid->id,
+                'error' => $exception->getMessage(),
+                'trace' => $exception->getTraceAsString(),
+            ]);
+
+            throw $exception;
         }
     }
 

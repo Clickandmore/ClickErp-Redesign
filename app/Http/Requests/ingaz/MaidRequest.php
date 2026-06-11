@@ -95,7 +95,16 @@ class MaidRequest extends MainRequest
             'offer_description' => 'nullable|string',
             'offer_starts_at' => 'nullable|date',
             'offer_expires_at' => 'nullable|date|after_or_equal:offer_starts_at',
-            'arrival_date' => 'nullable|date',
+            'rental_kingdom_status' => [
+                Rule::requiredIf(fn () => $this->isSelectedRentalType()),
+                'nullable',
+                'in:inside,outside',
+            ],
+            'arrival_date' => [
+                Rule::requiredIf(fn () => $this->isSelectedRentalType() && $this->input('rental_kingdom_status') === 'inside'),
+                'nullable',
+                'date',
+            ],
         ];
     }
 
@@ -108,9 +117,16 @@ class MaidRequest extends MainRequest
         if ($this->isSelectedRentalType()) {
             $data = array_merge($data, [
                 'request_type' => Maid::REQUEST_TYPE_CUSTOM,
+                'rental_kingdom_status' => $this->input('rental_kingdom_status'),
+                'rental_finance_items_confirmed' => true,
             ]);
+
+            if (($data['rental_kingdom_status'] ?? null) === 'outside') {
+                $data['arrival_date'] = null;
+            }
         } else {
             $data = array_merge($data, [
+                'rental_kingdom_status' => null,
                 'arrival_date' => null,
             ]);
         }
@@ -174,6 +190,9 @@ class MaidRequest extends MainRequest
             'offer_price.min' => helperTrans('web.price_must_be_numeric'),
             'offer_expires_at.after_or_equal' => 'تاريخ انتهاء العرض يجب أن يكون بعد أو مساوي لتاريخ بداية العرض',
             'offer_duration.max' => 'مدة العرض يجب ألا تتجاوز 255 حرفاً',
+            'rental_kingdom_status.required' => 'يرجى تحديد هل العاملة داخل المملكة أو خارج المملكة',
+            'rental_kingdom_status.in' => 'حالة وجود العاملة داخل/خارج المملكة غير صحيحة',
+            'arrival_date.required' => 'تاريخ الوصول مطلوب عند اختيار أن العاملة داخل المملكة',
             'arrival_date.date' => 'تاريخ وصول العاملة يجب أن يكون تاريخاً صالحاً',
         ];
     }

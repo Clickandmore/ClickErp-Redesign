@@ -89,6 +89,7 @@
                 $canViewContactRequests = @AdminGuardHasAnyPerm([\App\PermKeys::CONTACT_VIEW, \App\PermKeys::CONTACT_CREATE, \App\PermKeys::CONTACT_EDIT, \App\PermKeys::CONTACT_DELETE, \App\PermKeys::CONTACT_CONTROL]);
 
                 $canViewOrders = @AdminGuardHasAnyPerm([\App\PermKeys::ORDERS_VIEW, \App\PermKeys::ORDERS_CREATE, \App\PermKeys::ORDERS_EDIT, \App\PermKeys::ORDERS_DELETE, \App\PermKeys::ORDERS_EXPORT, \App\PermKeys::RETURN_REQUEST_VIEW, \App\PermKeys::RETURN_REQUEST_CREATE, \App\PermKeys::RETURN_REQUEST_EDIT, \App\PermKeys::RETURN_REQUEST_DELETE, \App\PermKeys::PROFESSIONAL_APPLICATION_VIEW, \App\PermKeys::RECRUITMENT_REQUESTS_VIEW, \App\PermKeys::RENEW_CONTRACTS_VIEW]) || $canViewContactRequests;
+                $canViewFinancialRequests = @AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_VIEW, \App\PermKeys::FINANCIAL_REQUESTS_CREATE, \App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, \App\PermKeys::FINANCIAL_REQUESTS_APPROVE, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]);
 
                 $canViewRecruitmentContracts = @AdminGuardHasAnyPerm([\App\NewPermKeys::REC_CONTRACTS_VIEW, \App\NewPermKeys::REC_CONTRACTS_CREATE, \App\NewPermKeys::REC_CONTRACTS_UPDATE, \App\NewPermKeys::REC_CONTRACTS_EDIT, \App\NewPermKeys::REC_CONTRACTS_DELETE, \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED, \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFWED, \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFFEZ, \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAZKER, \App\NewPermKeys::REC_CONTRACTS_RETURN, \App\NewPermKeys::REC_CONTRACTS_RETURN_VIEW]);
                 $canViewIngazDelegations = @AdminGuardHasAnyPerm([\App\PermKeys::INGAZ_DELEGATIONS_VIEW, \App\PermKeys::INGAZ_DELEGATIONS_CREATE, \App\PermKeys::INGAZ_DELEGATIONS_EDIT, \App\PermKeys::INGAZ_DELEGATIONS_DELETE, \App\PermKeys::INGAZ_DELEGATIONS_PRINT, \App\PermKeys::INGAZ_DELEGATIONS_CHANGE_STATUS, \App\PermKeys::INGAZ_DELEGATIONS_CONTROL, \App\PermKeys::REC_CONTRACTS_VIEW, \App\PermKeys::REC_CONTRACTS_CREATE, \App\PermKeys::REC_CONTRACTS_EDIT, \App\PermKeys::REC_CONTRACTS_DELETE, \App\PermKeys::REC_CONTRACTS_PRINT, \App\PermKeys::REC_CONTRACTS_MANAGE]);
@@ -109,6 +110,7 @@
                 $canViewOperations =
                     $canViewCv ||
                     $canViewOrders ||
+                    $canViewFinancialRequests ||
                     $canViewRecruitmentContracts ||
                     $canViewRentContracts ||
                     $canViewShelterContracts ||
@@ -257,6 +259,50 @@
                                                     href="{{ route('maids.deleted_cvs') }}">
                                                     <i class="fa fa-trash"></i>
                                                     <span class="ms-2">{{ helperTrans('ingaz.deleted_cvs') }}</span>
+                                                </a>
+                                            </li>
+                                        @endif
+                                    </ul>
+                                </li>
+                            @endif
+
+                            @if ($canViewFinancialRequests)
+                                <li class="collapsed">
+                                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#financial_requests_menu_admin"
+                                        href="#">
+                                        <i class="fa fa-money-bill-wave"></i>
+                                        <span class="ms-2">إدارة الطلبات المالية</span>
+                                        <span class="arrow fa fa-angle-left ms-auto text-end"></span>
+                                    </a>
+                                    <ul class="sub-menu collapse {{ request()->routeIs('financial-requests.*') ? 'show' : '' }}"
+                                        id="financial_requests_menu_admin">
+                                        <li>
+                                            <a class="m-link {{ request()->routeIs('financial-requests.index') && !request('scope') ? 'active' : '' }}"
+                                                href="{{ route('financial-requests.index') }}">
+                                                <i class="fa fa-arrow-left"></i>
+                                                <span class="ms-2">كل الطلبات المالية</span>
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="m-link {{ request()->routeIs('financial-requests.index') && request('scope') === 'incomplete' ? 'active' : '' }}"
+                                                href="{{ route('financial-requests.index', ['scope' => 'incomplete']) }}">
+                                                <i class="fa fa-arrow-left"></i>
+                                                <span class="ms-2">غير مكتملة</span>
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="m-link {{ request()->routeIs('financial-requests.index') && request('scope') === 'paid' ? 'active' : '' }}"
+                                                href="{{ route('financial-requests.index', ['scope' => 'paid']) }}">
+                                                <i class="fa fa-arrow-left"></i>
+                                                <span class="ms-2">مكتملة / تم سدادها</span>
+                                            </a>
+                                        </li>
+                                        @if (@AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_CREATE, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]))
+                                            <li>
+                                                <a class="m-link {{ request()->routeIs('financial-requests.create') ? 'active' : '' }}"
+                                                    href="{{ route('financial-requests.create') }}">
+                                                    <i class="fa fa-plus"></i>
+                                                    <span class="ms-2">طلب مالي جديد</span>
                                                 </a>
                                             </li>
                                         @endif
