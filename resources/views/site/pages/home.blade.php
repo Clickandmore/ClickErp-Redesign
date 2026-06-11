@@ -577,6 +577,12 @@
                 'class' => 'youtube',
             ],
             [
+                'url' => $settings->tiktok ?? null,
+                'icon' => 'fab fa-tiktok',
+                'title' => 'تيكتوك',
+                'class' => 'tiktok',
+            ],
+            [
                 'url' => $settings->snapchat ?? null,
                 'icon' => 'fab fa-snapchat-ghost',
                 'title' => 'سناب شات',

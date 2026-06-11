@@ -1669,6 +1669,7 @@ return array (
   'settings_snapchat_url' => 'رابط سناب شات',
   'settings_linkedin_url' => 'رابط لينكدان',
   'settings_youtube_url' => 'رابط يوتيوب',
+  'settings_tiktok_url' => 'رابط تيكتوك',
   'settings_whatsapp_number' => 'رقم واتساب',
   'settings_logos' => 'الشعارات',
   'settings_header_logo' => 'لوجو الهيدر',

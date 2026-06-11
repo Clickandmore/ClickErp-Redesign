@@ -166,6 +166,16 @@
                 </fieldset>
             </div>
             <div class="col-3">
+                <label for="TextInput" class="form-label">رابط تيكتوك </label>
+                <fieldset class="form-icon-group right-icon position-relative">
+                    <div class="form-icon position-absolute">
+                        <i class="fab fa-tiktok"></i>
+                    </div>
+                    <input type="text" name="tiktok" class="form-control"
+                           value="{{ $settings->tiktok ?? '' }}">
+                </fieldset>
+            </div>
+            <div class="col-3">
                 <label for="TextInput" class="form-label">رقم واتساب </label>
                 <fieldset class="form-icon-group right-icon position-relative">
                     <div class="form-icon position-absolute">

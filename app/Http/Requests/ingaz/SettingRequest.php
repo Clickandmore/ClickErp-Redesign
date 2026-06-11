@@ -44,6 +44,7 @@ class SettingRequest extends MainRequest
             'snapchat' => 'nullable',
             'linkedin' => 'nullable',
             'youtube' => 'nullable',
+            'tiktok' => 'nullable',
             'whatsapp' => 'nullable',
             'email' => 'nullable|email',
             'phone' => 'nullable',
