@@ -203,6 +203,7 @@ class NotificationSettingsController extends Controller
             'section' => 'required|in:sms',
             'sms' => 'required|array',
             'sms.provider' => 'required|in:msegat,taqnyat',
+            'sms.gateway_status' => 'required|in:on,off',
             'sms.url' => 'nullable|url|max:255',
             'sms.username' => 'nullable|string|max:255',
             'sms.api_key' => 'nullable|string|max:1000',

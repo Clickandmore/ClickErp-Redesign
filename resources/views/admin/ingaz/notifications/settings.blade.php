@@ -201,6 +201,7 @@
                     <div class="fw-semibold mb-2">الإعدادات الحالية</div>
                     <div class="row g-3 small">
                         <div class="col-md-2"><strong>البوابة:</strong> {{ $currentSmsProvider === 'taqnyat' ? 'تقنيات' : 'Msegat' }}</div>
+                        <div class="col-md-2"><strong>حالة بوابة SMS:</strong> {{ data_get($currentSettings, 'sms.gateway_status', 'on') === 'off' ? 'متوقفة' : 'مفعلة' }}</div>
                         @if ($currentSmsProvider === 'taqnyat')
                             <div class="col-md-4"><strong>Base URL:</strong> {{ $currentTaqnyatBaseUrl }}</div>
                             <div class="col-md-3"><strong>مسار الإرسال:</strong> POST {{ $currentTaqnyatBaseUrl }}/v1/messages</div>
@@ -232,6 +233,17 @@
                             <option value="msegat" {{ data_get($smsData, 'provider', 'msegat') === 'msegat' ? 'selected' : '' }}>Msegat</option>
                             <option value="taqnyat" {{ data_get($smsData, 'provider') === 'taqnyat' ? 'selected' : '' }}>تقنيات Taqnyat</option>
                         </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <div class="form-check">
+                            <input type="hidden" name="sms[gateway_status]" value="on">
+                            <input class="form-check-input" type="checkbox" name="sms[gateway_status]" id="smsGatewayDisabled" value="off"
+                                {{ data_get($smsData, 'gateway_status', 'on') === 'off' ? 'checked' : '' }}>
+                            <label class="form-check-label" for="smsGatewayDisabled">
+                                إلغاء بوابة الرسائل النصية SMS
+                            </label>
+                            <div class="form-text">عند التفعيل يتم حفظ حالة البوابة بقيمة off.</div>
+                        </div>
                     </div>
                     <div class="col-md-6 d-flex align-items-end">
                         <div class="form-check">
