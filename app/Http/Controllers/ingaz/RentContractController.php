@@ -106,6 +106,30 @@ class RentContractController extends Controller
                 $query->whereDate('contract_date', '<=', $request->date_to);
             }
 
+            if ($request->filled('start_date_from')) {
+                $query->whereHas('info', function ($infoQuery) use ($request) {
+                    $infoQuery->whereDate('ingaz_from', '>=', $request->start_date_from);
+                });
+            }
+
+            if ($request->filled('start_date_to')) {
+                $query->whereHas('info', function ($infoQuery) use ($request) {
+                    $infoQuery->whereDate('ingaz_from', '<=', $request->start_date_to);
+                });
+            }
+
+            if ($request->filled('end_date_from')) {
+                $query->whereHas('info', function ($infoQuery) use ($request) {
+                    $infoQuery->whereDate('ingaz_to', '>=', $request->end_date_from);
+                });
+            }
+
+            if ($request->filled('end_date_to')) {
+                $query->whereHas('info', function ($infoQuery) use ($request) {
+                    $infoQuery->whereDate('ingaz_to', '<=', $request->end_date_to);
+                });
+            }
+
             if ($request->filled('marketer_id')) {
                 $query->where('marketer_id', $request->marketer_id);
             }
@@ -177,7 +201,32 @@ class RentContractController extends Controller
                     return $this->getStatusBadge($row->status, $row->closure_type, $row);
                 })
                 ->editColumn('user_id', function ($row) {
-                    return $row->user ? $row->user->name : 'غير محدد';
+                    if (!$row->user) {
+                        return '<span class="text-muted">غير محدد</span>';
+                    }
+
+                    $fullPhone = trim(($row->user->phone_code ?? '') . ($row->user->phone ?? ''));
+                    $phoneHtml = $fullPhone
+                        ? '<a href="tel:' . e($fullPhone) . '"><i class="fas fa-phone-alt me-1"></i>' . e($fullPhone) . '</a>'
+                        : '<span class="text-muted">لا يوجد جوال</span>';
+                    $documentLabel = method_exists($row->user, 'documentNumberLabel')
+                        ? $row->user->documentNumberLabel()
+                        : 'رقم الهوية';
+                    $documentNumber = method_exists($row->user, 'searchableDocumentNumber')
+                        ? $row->user->searchableDocumentNumber()
+                        : ($row->user->national_num ?? null);
+                    $documentHtml = $documentNumber
+                        ? '<span><i class="fas fa-id-card me-1"></i>' . e($documentLabel) . ': ' . e($documentNumber) . '</span>'
+                        : '<span class="text-muted"><i class="fas fa-id-card me-1"></i>الهوية غير محددة</span>';
+
+                    return '<div class="rent-person-cell">
+                                <div class="rent-person-avatar"><i class="fas fa-user"></i></div>
+                                <div class="rent-person-main">
+                                    <div class="rent-person-name">' . e($row->user->name) . '</div>
+                                    <div class="rent-person-meta">' . $phoneHtml . '</div>
+                                    <div class="rent-person-meta">' . $documentHtml . '</div>
+                                </div>
+                            </div>';
                 })
                 ->addColumn('phone', function ($row) {
                     if ($row->user && $row->user->phone) {
@@ -190,12 +239,14 @@ class RentContractController extends Controller
                 })
                 ->editColumn('maid_id', function ($row) {
                     if ($row->maid) {
-                        return '<div class="d-flex align-items-center">
-                                    <img src="' . $row->maid->photo_url . '" class="rounded-circle me-2" width="40" height="40">
-                                    <div>
-                                        <div class="fw-bold">' . $row->maid->name . '</div>
-                                        <small class="text-muted d-block">' . $row->maid->passport_num . '</small>
-                                        <small class="text-muted d-block">' . helperTrans('ingaz.request_type') . ': ' . e($row->maid->request_type_label) . '</small>
+                        return '<div class="rent-person-cell">
+                                    <div class="rent-person-avatar">
+                                        <img src="' . e($row->maid->photo_url) . '" alt="' . e($row->maid->name) . '">
+                                    </div>
+                                    <div class="rent-person-main">
+                                        <div class="rent-person-name">' . e($row->maid->name) . '</div>
+                                        <div class="rent-person-meta"><i class="fas fa-passport me-1"></i>' . e($row->maid->passport_num ?: 'بدون جواز') . '</div>
+                                        <div class="rent-person-meta">' . helperTrans('ingaz.request_type') . ': ' . e($row->maid->request_type_label) . '</div>
                                     </div>
                                 </div>';
                     }
@@ -205,17 +256,34 @@ class RentContractController extends Controller
                     if ($row->info) {
                         $extensionBadge = ($row->extensions_count ?? 0) > 0
                             ? '<span class="badge bg-info">ممدد</span>'
-                            : '<span class="badge bg-secondary">غير ممدد</span>';
+                            : '';
                         $durationMonths = $row->info->contract_duration_months ?? null;
                         $durationDays = $row->info->contract_duration_days ?? null;
-                        $durationText = $durationMonths ? $durationMonths . ' شهر' : 'غير محدد';
-                        if ($durationDays) {
-                            $durationText .= ' / ' . $durationDays . ' يوم';
+                        $durationText = [];
+                        if ($durationMonths) {
+                            $durationText[] = $durationMonths . ' شهر';
                         }
-                        return '<div class="small">
-                                    <div><strong>المدة:</strong> ' . $durationText . '</div>
-                                    <div><strong>التكلفة الشهرية:</strong> ' . number_format($row->info->monthly_cost ?? 0, 2) . ' ريال</div>
-                                    <div><strong>قيمة العقد:</strong> ' . number_format($row->info->contract_value ?? 0, 2) . ' ريال</div>
+                        if ($durationDays) {
+                            $durationText[] = $durationDays . ' يوم';
+                        }
+                        $durationText = count($durationText) ? implode(' / ', $durationText) : 'غير محدد';
+
+                        $startDate = optional($row->info->ingaz_from)->format('Y-m-d') ?: 'غير محدد';
+                        $endDate = optional($row->info->ingaz_to)->format('Y-m-d') ?: 'غير محدد';
+
+                        $extensionBadgeHtml = $extensionBadge
+                            ? '<div class="d-flex justify-content-between align-items-center mb-1">' . $extensionBadge . '</div>'
+                            : '';
+
+                        return '<div class="rent-period-box small">
+                                    ' . $extensionBadgeHtml . '
+                                    <div class="rent-period-row"><strong>بداية العقد</strong><span>' . e($startDate) . '</span></div>
+                                    <div class="rent-period-row"><strong>نهاية العقد</strong><span>' . e($endDate) . '</span></div>
+                                    <div class="rent-period-row"><strong>المدة</strong><span>' . e($durationText) . '</span></div>
+                                    <div class="rent-period-money">
+                                        <div><strong>التكلفة الشهرية:</strong> ' . number_format($row->info->monthly_cost ?? 0, 2) . ' ريال</div>
+                                        <div><strong>قيمة العقد:</strong> ' . number_format($row->info->contract_value ?? 0, 2) . ' ريال</div>
+                                    </div>
                                 </div>';
                     }
                     return 'غير محدد';
@@ -232,9 +300,14 @@ class RentContractController extends Controller
                 })
                 ->addColumn('remaining_days', function ($row) {
                     if ($row->status === 'cancelled') {
-                        $remainingDays = $row->calculateRemainingDays();
+                        $remainingDays = null;
+                        if ($row->closed_at && $row->info?->ingaz_to) {
+                            $remainingDays = Carbon::parse($row->closed_at)->startOfDay()
+                                ->diffInDays(Carbon::parse($row->info->ingaz_to)->startOfDay(), false);
+                        }
+
                         $remainingText = $remainingDays !== null && $remainingDays > 0
-                            ? '<small class="d-block text-muted">قبل نهاية العقد بـ ' . $remainingDays . ' يوم</small>'
+                            ? '<small class="d-block text-danger fw-bold">ألغي قبل نهاية العقد بـ ' . $remainingDays . ' يوم</small>'
                             : '';
 
                         return '<span class="badge bg-danger">ملغي قبل اكتمال المدة</span>' . $remainingText;
@@ -416,7 +489,7 @@ class RentContractController extends Controller
 
                     return $actions;
                 })
-                ->rawColumns(['phone', 'maid_id', 'contract_info', 'remaining_days', 'actions', 'status'])
+                ->rawColumns(['user_id', 'phone', 'maid_id', 'contract_info', 'remaining_days', 'actions', 'status'])
                 ->make(true);
         }
 
@@ -1409,21 +1482,22 @@ class RentContractController extends Controller
         return $badges[$status] ?? '<span class="badge bg-secondary">' . $status . '</span>';
     }
 
-    public function statistics()
+    public function statistics(Request $request)
     {
         try {
-            $total = RentalContract::count();
-            $active = RentalContract::whereNotIn('status', ['completed', 'cancelled', 'frozen'])->count();
-            $completed = RentalContract::where('status', 'completed')->count();
-            $cancelled = RentalContract::where('status', 'cancelled')->count();
-            $available = RentalContract::where('status', 'completed')->where('closure_type', 'available')->count();
-            $transferred = RentalContract::where('closure_type', 'transferred')->count();
+            $baseQuery = RentalContract::query();
+            $this->applyRentalContractIndexFilters($baseQuery, $request);
 
-            $totalValue = RentalContract::with('info')
-                                      ->get()
-                                      ->sum(function($contract) {
-                                          return $contract->info ? $contract->info->contract_value : 0;
-                                      });
+            $total = (clone $baseQuery)->count();
+            $active = (clone $baseQuery)->whereNotIn('status', ['completed', 'cancelled', 'frozen'])->count();
+            $completed = (clone $baseQuery)->where('status', 'completed')->count();
+            $cancelled = (clone $baseQuery)->where('status', 'cancelled')->count();
+            $available = (clone $baseQuery)->where('status', 'completed')->where('closure_type', 'available')->count();
+            $transferred = (clone $baseQuery)->where('closure_type', 'transferred')->count();
+
+            $totalValue = (clone $baseQuery)
+                ->join('rental_contract_infos', 'rental_contract_infos.rental_contract_id', '=', 'rental_contracts.id')
+                ->sum('rental_contract_infos.contract_value');
 
             return response()->json([
                 'total' => $total,
@@ -1454,7 +1528,7 @@ class RentContractController extends Controller
 
             // Apply filters
             if ($request->status) {
-                $query->where('status', $request->status);
+                $this->applyRentalContractStatusFilter($query, $request->status);
             }
             if ($request->date_from) {
                 $query->whereDate('contract_date', '>=', $request->date_from);
@@ -1462,14 +1536,74 @@ class RentContractController extends Controller
             if ($request->date_to) {
                 $query->whereDate('contract_date', '<=', $request->date_to);
             }
+            if ($request->start_date_from) {
+                $query->whereHas('info', function ($infoQuery) use ($request) {
+                    $infoQuery->whereDate('ingaz_from', '>=', $request->start_date_from);
+                });
+            }
+            if ($request->start_date_to) {
+                $query->whereHas('info', function ($infoQuery) use ($request) {
+                    $infoQuery->whereDate('ingaz_from', '<=', $request->start_date_to);
+                });
+            }
+            if ($request->end_date_from) {
+                $query->whereHas('info', function ($infoQuery) use ($request) {
+                    $infoQuery->whereDate('ingaz_to', '>=', $request->end_date_from);
+                });
+            }
+            if ($request->end_date_to) {
+                $query->whereHas('info', function ($infoQuery) use ($request) {
+                    $infoQuery->whereDate('ingaz_to', '<=', $request->end_date_to);
+                });
+            }
             if ($request->marketer_id) {
                 $query->where('marketer_id', $request->marketer_id);
             }
             if ($this->branchesEnabledFor('rental_contracts') && $request->filled('branch_id')) {
                 $query->where('branch_id', $request->branch_id);
             }
+            if ($request->client_phone) {
+                $phone = $request->client_phone;
+                $query->whereHas('user', function ($userQuery) use ($phone) {
+                    $userQuery->where('phone', 'like', "%{$phone}%")
+                        ->orWhereRaw("CONCAT(phone_code, phone) LIKE ?", ["%{$phone}%"]);
+                });
+            }
+            if ($request->client_name) {
+                $name = $request->client_name;
+                $query->whereHas('user', function ($userQuery) use ($name) {
+                    $userQuery->where('name', 'like', "%{$name}%");
+                });
+            }
+            if ($request->maid_passport) {
+                $passport = $request->maid_passport;
+                $query->whereHas('maid', function ($maidQuery) use ($passport) {
+                    $maidQuery->where('passport_num', 'like', "%{$passport}%");
+                });
+            }
+            if ($request->maid_name) {
+                $maidName = $request->maid_name;
+                $query->whereHas('maid', function ($maidQuery) use ($maidName) {
+                    $maidQuery->where('name', 'like', "%{$maidName}%");
+                });
+            }
+            if ($request->contract_number) {
+                $query->where('contract_number', 'like', '%' . $request->contract_number . '%');
+            }
+            if ($request->request_type) {
+                $query->whereHas('maid', function ($maidQuery) use ($request) {
+                    $maidQuery->ofRequestType($request->request_type);
+                });
+            }
             if ($request->warranty_status) {
                 $query->where('warranty_status', $request->warranty_status);
+            }
+            if ($request->extension_filter) {
+                if ($request->extension_filter === 'extended') {
+                    $query->whereHas('extensions');
+                } elseif ($request->extension_filter === 'not_extended') {
+                    $query->whereDoesntHave('extensions');
+                }
             }
             if ($request->expiry_filter) {
                 $this->applyRentalContractExpiryFilter($query, $request->expiry_filter);
@@ -1542,6 +1676,108 @@ class RentContractController extends Controller
         return SystemModuleManager::isEnabled('branches')
             && Schema::hasTable($table)
             && Schema::hasColumn($table, 'branch_id');
+    }
+
+    private function applyRentalContractIndexFilters($query, Request $request, bool $includeStatus = true): void
+    {
+        if ($includeStatus && $request->filled('status_filter')) {
+            $this->applyRentalContractStatusFilter($query, $request->status_filter);
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('contract_date', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('contract_date', '<=', $request->date_to);
+        }
+
+        if ($request->filled('start_date_from')) {
+            $query->whereHas('info', function ($infoQuery) use ($request) {
+                $infoQuery->whereDate('ingaz_from', '>=', $request->start_date_from);
+            });
+        }
+
+        if ($request->filled('start_date_to')) {
+            $query->whereHas('info', function ($infoQuery) use ($request) {
+                $infoQuery->whereDate('ingaz_from', '<=', $request->start_date_to);
+            });
+        }
+
+        if ($request->filled('end_date_from')) {
+            $query->whereHas('info', function ($infoQuery) use ($request) {
+                $infoQuery->whereDate('ingaz_to', '>=', $request->end_date_from);
+            });
+        }
+
+        if ($request->filled('end_date_to')) {
+            $query->whereHas('info', function ($infoQuery) use ($request) {
+                $infoQuery->whereDate('ingaz_to', '<=', $request->end_date_to);
+            });
+        }
+
+        if ($request->filled('marketer_id')) {
+            $query->where('marketer_id', $request->marketer_id);
+        }
+
+        if ($this->branchesEnabledFor('rental_contracts') && $request->filled('branch_id')) {
+            $query->where('branch_id', $request->branch_id);
+        }
+
+        if ($request->filled('client_phone')) {
+            $phone = $request->client_phone;
+            $query->whereHas('user', function ($userQuery) use ($phone) {
+                $userQuery->where('phone', 'like', "%{$phone}%")
+                    ->orWhereRaw("CONCAT(phone_code, phone) LIKE ?", ["%{$phone}%"]);
+            });
+        }
+
+        if ($request->filled('client_name')) {
+            $name = $request->client_name;
+            $query->whereHas('user', function ($userQuery) use ($name) {
+                $userQuery->where('name', 'like', "%{$name}%");
+            });
+        }
+
+        if ($request->filled('maid_passport')) {
+            $passport = $request->maid_passport;
+            $query->whereHas('maid', function ($maidQuery) use ($passport) {
+                $maidQuery->where('passport_num', 'like', "%{$passport}%");
+            });
+        }
+
+        if ($request->filled('maid_name')) {
+            $maidName = $request->maid_name;
+            $query->whereHas('maid', function ($maidQuery) use ($maidName) {
+                $maidQuery->where('name', 'like', "%{$maidName}%");
+            });
+        }
+
+        if ($request->filled('contract_number')) {
+            $query->where('contract_number', 'like', '%' . $request->contract_number . '%');
+        }
+
+        if ($request->filled('request_type')) {
+            $query->whereHas('maid', function ($maidQuery) use ($request) {
+                $maidQuery->ofRequestType($request->request_type);
+            });
+        }
+
+        if ($request->filled('warranty_status')) {
+            $query->where('warranty_status', $request->warranty_status);
+        }
+
+        if ($request->filled('extension_filter')) {
+            if ($request->extension_filter === 'extended') {
+                $query->whereHas('extensions');
+            } elseif ($request->extension_filter === 'not_extended') {
+                $query->whereDoesntHave('extensions');
+            }
+        }
+
+        if ($request->filled('expiry_filter')) {
+            $this->applyRentalContractExpiryFilter($query, $request->expiry_filter);
+        }
     }
 
     private function getStatusText($status)

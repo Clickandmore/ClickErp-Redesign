@@ -212,6 +212,16 @@
                 </div>
             </div>
         </div>
+        <div class="row g-3 mt-1">
+            <div class="col-xl-3 col-md-6">
+                <div class="finance-stat">
+                    <span class="stat-icon" style="background: var(--finance-blue);"><i class="fa-solid fa-file-contract"></i></span>
+                    <small>{{ __('finance::finance.rental_contracts_total_value') }}</small>
+                    <h4>{{ $money($rental_contracts_total_value ?? 0) }}</h4>
+                    <div class="finance-muted mt-2">{{ __('finance::finance.rental_contracts_value_hint') }}</div>
+                </div>
+            </div>
+        </div>
 
         <div class="row g-3 mt-1">
             <div class="col-xl-8">

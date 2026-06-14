@@ -147,6 +147,182 @@
             padding: 14px;
         }
 
+        .rent-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(150px, 1fr));
+            gap: 14px;
+            margin-bottom: 1.5rem;
+        }
+
+        .rent-stat-card {
+            border: 1px solid #e5e7eb;
+            border-right: 4px solid var(--rent-stat-color, #2563eb);
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+            padding: 16px;
+            min-height: 116px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .rent-stat-label {
+            color: #64748b;
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .rent-stat-value {
+            color: #111827;
+            font-size: 24px;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .rent-stat-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 8px;
+            background: #eff6ff;
+            background: color-mix(in srgb, var(--rent-stat-color, #2563eb) 12%, #fff);
+            color: var(--rent-stat-color, #2563eb);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+        }
+
+        .rent-stat-primary { --rent-stat-color: #2563eb; }
+        .rent-stat-success { --rent-stat-color: #16a34a; }
+        .rent-stat-info { --rent-stat-color: #0891b2; }
+        .rent-stat-warning { --rent-stat-color: #d97706; }
+        .rent-stat-danger { --rent-stat-color: #dc2626; }
+        .rent-stat-muted { --rent-stat-color: #475569; }
+
+        .filter-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .filter-section-title {
+            color: #334155;
+            font-size: 13px;
+            font-weight: 800;
+            margin: 14px 0 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .rent-period-box {
+            min-width: 210px;
+            display: grid;
+            gap: 6px;
+        }
+
+        .rent-period-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            color: #334155;
+        }
+
+        .rent-period-row strong {
+            color: #64748b;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .rent-period-row span {
+            color: #111827;
+            font-weight: 700;
+            direction: ltr;
+            text-align: left;
+        }
+
+        .rent-period-money {
+            margin-top: 4px;
+            padding-top: 6px;
+            border-top: 1px dashed #e5e7eb;
+        }
+
+        #dataTableObject th,
+        #dataTableObject td {
+            vertical-align: middle;
+        }
+
+        #dataTableObject thead th {
+            white-space: nowrap;
+            color: #334155;
+            font-size: 12px;
+            font-weight: 800;
+            background: #f8fafc;
+        }
+
+        .rent-person-cell {
+            min-width: 220px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .rent-person-avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 8px;
+            background: #eff6ff;
+            color: #2563eb;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+            overflow: hidden;
+        }
+
+        .rent-person-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .rent-person-main {
+            min-width: 0;
+        }
+
+        .rent-person-name {
+            color: #111827;
+            font-weight: 800;
+            margin-bottom: 3px;
+        }
+
+        .rent-person-meta {
+            color: #64748b;
+            font-size: 12px;
+            line-height: 1.55;
+        }
+
+        .rent-person-meta a {
+            color: #2563eb;
+            text-decoration: none;
+        }
+
+        #dataTableObject th:first-child,
+        #dataTableObject td:first-child {
+            width: 54px;
+            text-align: center;
+            color: #64748b;
+            font-weight: 800;
+        }
+
+        #dataTableObject td:nth-last-child(2),
+        #dataTableObject td:nth-last-child(3) {
+            white-space: nowrap;
+        }
+
         .close-contract-modal .modal-content {
             border: 0;
             border-radius: 12px;
@@ -223,12 +399,20 @@
         }
 
         @media (max-width: 991.98px) {
+            .rent-stats-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+
             .extend-stat-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
         }
 
         @media (max-width: 575.98px) {
+            .rent-stats-grid {
+                grid-template-columns: 1fr;
+            }
+
             .extend-stat-grid {
                 grid-template-columns: 1fr;
             }
@@ -289,124 +473,64 @@
         </div>
 
         <!-- Statistics Cards -->
-        <div class="row mb-4">
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card border-left-primary shadow h-100 py-2">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                    إجمالي عقود التأجير</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800" id="totalContracts">0</div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-file-contract fa-2x text-gray-300"></i>
-                            </div>
-                        </div>
-                    </div>
+        <div class="rent-stats-grid">
+            <div class="rent-stat-card rent-stat-primary">
+                <div>
+                    <div class="rent-stat-label">إجمالي عقود التأجير</div>
+                    <div class="rent-stat-value" id="totalContracts">0</div>
+                </div>
+                <div class="rent-stat-icon">
+                    <i class="fas fa-file-contract"></i>
                 </div>
             </div>
 
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card border-left-success shadow h-100 py-2">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                    العقود النشطة</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800" id="activeContracts">0</div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-check-circle fa-2x text-gray-300"></i>
-                            </div>
-                        </div>
-                    </div>
+            <div class="rent-stat-card rent-stat-success">
+                <div>
+                    <div class="rent-stat-label">العقود النشطة</div>
+                    <div class="rent-stat-value" id="activeContracts">0</div>
+                </div>
+                <div class="rent-stat-icon">
+                    <i class="fas fa-check-circle"></i>
                 </div>
             </div>
 
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card border-left-info shadow h-100 py-2">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-info text-uppercase mb-1">العقود المكتملة</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800" id="completedContracts">0</div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-flag-checkered fa-2x text-gray-300"></i>
-                            </div>
-                        </div>
-                    </div>
+            <div class="rent-stat-card rent-stat-info">
+                <div>
+                    <div class="rent-stat-label">العقود المكتملة</div>
+                    <div class="rent-stat-value" id="completedContracts">0</div>
+                </div>
+                <div class="rent-stat-icon">
+                    <i class="fas fa-flag-checkered"></i>
                 </div>
             </div>
 
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card border-left-success shadow h-100 py-2">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                    مغلقة - متاحة</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800" id="availableContracts">0</div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-user-check fa-2x text-gray-300"></i>
-                            </div>
-                        </div>
-                    </div>
+            <div class="rent-stat-card rent-stat-muted">
+                <div>
+                    <div class="rent-stat-label">مغلقة - متاحة</div>
+                    <div class="rent-stat-value" id="availableContracts">0</div>
                 </div>
-            </div>
-        </div>
-
-        <div class="row">
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card border-left-warning shadow h-100 py-2">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                    تم النقل</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800" id="transferredContracts">0</div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-exchange-alt fa-2x text-gray-300"></i>
-                            </div>
-                        </div>
-                    </div>
+                <div class="rent-stat-icon">
+                    <i class="fas fa-user-check"></i>
                 </div>
             </div>
 
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card border-left-secondary shadow h-100 py-2">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-secondary text-uppercase mb-1">
-                                    قيمة العقود الإجمالية</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800" id="totalValue">0 ريال</div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
-                            </div>
-                        </div>
-                    </div>
+            <div class="rent-stat-card rent-stat-warning">
+                <div>
+                    <div class="rent-stat-label">تم النقل</div>
+                    <div class="rent-stat-value" id="transferredContracts">0</div>
+                </div>
+                <div class="rent-stat-icon">
+                    <i class="fas fa-exchange-alt"></i>
                 </div>
             </div>
 
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card border-left-danger shadow h-100 py-2">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
-                                    عقود ملغية قبل اكتمال المدة</div>
-                                <div class="h5 mb-0 font-weight-bold text-gray-800" id="cancelledContracts">0</div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-times-circle fa-2x text-gray-300"></i>
-                            </div>
-                        </div>
-                    </div>
+            <div class="rent-stat-card rent-stat-danger">
+                <div>
+                    <div class="rent-stat-label">ملغية قبل اكتمال المدة</div>
+                    <div class="rent-stat-value" id="cancelledContracts">0</div>
+                </div>
+                <div class="rent-stat-icon">
+                    <i class="fas fa-times-circle"></i>
                 </div>
             </div>
         </div>
@@ -426,6 +550,7 @@
                 </button>
             </div>
             <div class="card-body collapse" id="filtersCollapse">
+                <div class="filter-section-title">حالة العقد وتاريخ الإنشاء</div>
                 <div class="row">
                     <div class="col-md-3">
                         <label for="statusFilter" class="form-label">حالة العقد:</label>
@@ -452,13 +577,49 @@
                     </div>
 
                     <div class="col-md-3">
-                        <label for="dateFromFilter" class="form-label">تاريخ من:</label>
+                        <label for="dateFromFilter" class="form-label">تاريخ إنشاء العقد من:</label>
                         <input type="date" id="dateFromFilter" class="form-control">
                     </div>
                     <div class="col-md-3">
-                        <label for="dateToFilter" class="form-label">تاريخ إلى:</label>
+                        <label for="dateToFilter" class="form-label">تاريخ إنشاء العقد إلى:</label>
                         <input type="date" id="dateToFilter" class="form-control">
                     </div>
+                    <div class="col-md-3">
+                        <label for="expiryFilter" class="form-label">حالة انتهاء العقد:</label>
+                        <select id="expiryFilter" class="form-select">
+                            <option value="" {{ request('expiry_filter') ? '' : 'selected' }}>جميع العقود</option>
+                            <option value="expired" {{ request('expiry_filter') === 'expired' ? 'selected' : '' }}>
+                                العقود المنتهية
+                            </option>
+                            <option value="not_expired" {{ request('expiry_filter') === 'not_expired' ? 'selected' : '' }}>
+                                العقود غير المنتهية
+                            </option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="filter-section-title">تواريخ مدة العقد</div>
+                <div class="row">
+                    <div class="col-md-3">
+                        <label for="startDateFromFilter" class="form-label">بداية العقد من:</label>
+                        <input type="date" id="startDateFromFilter" class="form-control">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="startDateToFilter" class="form-label">بداية العقد إلى:</label>
+                        <input type="date" id="startDateToFilter" class="form-control">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="endDateFromFilter" class="form-label">نهاية العقد من:</label>
+                        <input type="date" id="endDateFromFilter" class="form-control">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="endDateToFilter" class="form-label">نهاية العقد إلى:</label>
+                        <input type="date" id="endDateToFilter" class="form-control">
+                    </div>
+                </div>
+
+                <div class="filter-section-title">بيانات العميل والعاملة</div>
+                <div class="row mt-3">
                     <div class="col-md-3">
                         <label for="clientPhoneFilter" class="form-label">رقم جوال العميل:</label>
                         <input type="text" id="clientPhoneFilter" class="form-control"
@@ -485,6 +646,7 @@
                             placeholder="ابحث برقم العقد">
                     </div>
                 </div>
+                <div class="filter-section-title">التصنيف والمتابعة</div>
                 <div class="row mt-3">
                     <div class="col-md-3">
                         <label for="marketerFilter" class="form-label">المسوق:</label>
@@ -507,41 +669,11 @@
                         </div>
                     @endif
                     <div class="col-md-3">
-                        <label for="requestTypeFilter" class="form-label">{{ helperTrans('ingaz.request_type') }}:</label>
-                        <select id="requestTypeFilter" class="form-select">
-                            <option value="">{{ helperTrans('ingaz.all') }}</option>
-                            @foreach (\App\Models\ingaz\Maid::getRequestTypeOptions() as $value => $label)
-                                <option value="{{ $value }}">{{ $label }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="warrantyStatusFilter" class="form-label">حالة الضمان:</label>
-                        <select id="warrantyStatusFilter" class="form-select">
-                            <option value="">جميع حالات الضمان</option>
-                            <option value="not_applicable">غير قابل للتطبيق</option>
-                            <option value="active">نشط</option>
-                            <option value="expired">منتهي</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
                         <label for="extensionFilter" class="form-label">حالة التمديد:</label>
                         <select id="extensionFilter" class="form-select">
                             <option value="">جميع العقود</option>
                             <option value="extended">عقود ممددة</option>
                             <option value="not_extended">غير ممددة</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3 mt-3">
-                        <label for="expiryFilter" class="form-label">حالة انتهاء العقد:</label>
-                        <select id="expiryFilter" class="form-select">
-                            <option value="" {{ request('expiry_filter') ? '' : 'selected' }}>جميع العقود</option>
-                            <option value="expired" {{ request('expiry_filter') === 'expired' ? 'selected' : '' }}>
-                                العقود المنتهية
-                            </option>
-                            <option value="not_expired" {{ request('expiry_filter') === 'not_expired' ? 'selected' : '' }}>
-                                العقود غير المنتهية
-                            </option>
                         </select>
                     </div>
                 </div>
@@ -591,8 +723,7 @@
                     <thead>
                         <tr>
                             <th>#</th>
-                            <th>العميل</th>
-                            <th>رقم الجوال</th>
+                            <th>بيانات العميل</th>
                             <th>العاملة</th>
                             <th>معلومات العقد</th>
                             <th>المسوق</th>
@@ -1295,6 +1426,10 @@
                         d.status_filter = $('#statusFilter').val();
                         d.date_from = $('#dateFromFilter').val();
                         d.date_to = $('#dateToFilter').val();
+                        d.start_date_from = $('#startDateFromFilter').val();
+                        d.start_date_to = $('#startDateToFilter').val();
+                        d.end_date_from = $('#endDateFromFilter').val();
+                        d.end_date_to = $('#endDateToFilter').val();
                         d.client_phone = $('#clientPhoneFilter').val();
                         d.client_name = $('#clientNameFilter').val();
                         d.maid_passport = $('#maidPassportFilter').val();
@@ -1302,8 +1437,6 @@
                         d.contract_number = $('#contractNumberFilter').val();
                         d.marketer_id = $('#marketerFilter').val();
                         d.branch_id = $('#branchFilter').length ? $('#branchFilter').val() : '';
-                        d.request_type = $('#requestTypeFilter').val();
-                        d.warranty_status = $('#warrantyStatusFilter').val();
                         d.extension_filter = $('#extensionFilter').val();
                         d.expiry_filter = $('#expiryFilter').val();
                     }
@@ -1317,10 +1450,6 @@
                     {
                         data: 'user_id',
                         name: 'user_id'
-                    },
-                    {
-                        data: 'phone',
-                        name: 'phone'
                     },
                     {
                         data: 'maid_id',
@@ -1508,6 +1637,10 @@
                 '#statusFilter',
                 '#dateFromFilter',
                 '#dateToFilter',
+                '#startDateFromFilter',
+                '#startDateToFilter',
+                '#endDateFromFilter',
+                '#endDateToFilter',
                 '#clientPhoneFilter',
                 '#clientNameFilter',
                 '#maidPassportFilter',
@@ -1515,13 +1648,12 @@
                 '#contractNumberFilter',
                 '#marketerFilter',
                 '#branchFilter',
-                '#requestTypeFilter',
-                '#warrantyStatusFilter',
                 '#extensionFilter',
                 '#expiryFilter'
             ].filter((selector) => $(selector).length).join(', ');
 
             function applyRentContractFilters() {
+                updateStatistics();
                 dataTable.ajax.reload();
             }
 
@@ -1539,10 +1671,11 @@
 
             // Clear Filters
             $('#clearFilters').click(function() {
-                $('#statusFilter, #marketerFilter, #branchFilter, #requestTypeFilter, #warrantyStatusFilter, #extensionFilter, #expiryFilter')
+                $('#statusFilter, #marketerFilter, #branchFilter, #extensionFilter, #expiryFilter')
                     .val('');
-                $('#dateFromFilter, #dateToFilter, #clientPhoneFilter, #clientNameFilter, #maidPassportFilter, #maidNameFilter, #contractNumberFilter')
+                $('#dateFromFilter, #dateToFilter, #startDateFromFilter, #startDateToFilter, #endDateFromFilter, #endDateToFilter, #clientPhoneFilter, #clientNameFilter, #maidPassportFilter, #maidNameFilter, #contractNumberFilter')
                     .val('');
+                updateStatistics();
                 dataTable.ajax.reload();
             });
 
@@ -1552,6 +1685,10 @@
                     status: $('#statusFilter').val(),
                     date_from: $('#dateFromFilter').val(),
                     date_to: $('#dateToFilter').val(),
+                    start_date_from: $('#startDateFromFilter').val(),
+                    start_date_to: $('#startDateToFilter').val(),
+                    end_date_from: $('#endDateFromFilter').val(),
+                    end_date_to: $('#endDateToFilter').val(),
                     client_phone: $('#clientPhoneFilter').val(),
                     client_name: $('#clientNameFilter').val(),
                     maid_passport: $('#maidPassportFilter').val(),
@@ -1559,8 +1696,6 @@
                     contract_number: $('#contractNumberFilter').val(),
                     marketer_id: $('#marketerFilter').val(),
                     branch_id: $('#branchFilter').length ? $('#branchFilter').val() : '',
-                    request_type: $('#requestTypeFilter').val(),
-                    warranty_status: $('#warrantyStatusFilter').val(),
                     extension_filter: $('#extensionFilter').val(),
                     expiry_filter: $('#expiryFilter').val()
                 });
@@ -2117,6 +2252,24 @@
                 $.ajax({
                     url: "{{ route('RentContract.statistics') }}",
                     method: 'GET',
+                    data: {
+                        status_filter: $('#statusFilter').val(),
+                        date_from: $('#dateFromFilter').val(),
+                        date_to: $('#dateToFilter').val(),
+                        start_date_from: $('#startDateFromFilter').val(),
+                        start_date_to: $('#startDateToFilter').val(),
+                        end_date_from: $('#endDateFromFilter').val(),
+                        end_date_to: $('#endDateToFilter').val(),
+                        client_phone: $('#clientPhoneFilter').val(),
+                        client_name: $('#clientNameFilter').val(),
+                        maid_passport: $('#maidPassportFilter').val(),
+                        maid_name: $('#maidNameFilter').val(),
+                        contract_number: $('#contractNumberFilter').val(),
+                        marketer_id: $('#marketerFilter').val(),
+                        branch_id: $('#branchFilter').length ? $('#branchFilter').val() : '',
+                        extension_filter: $('#extensionFilter').val(),
+                        expiry_filter: $('#expiryFilter').val()
+                    },
                     success: function(data) {
                         $('#totalContracts').text(data.total || 0);
                         $('#activeContracts').text(data.active || 0);
@@ -2124,9 +2277,6 @@
                         $('#cancelledContracts').text(data.cancelled || 0);
                         $('#availableContracts').text(data.available || 0);
                         $('#transferredContracts').text(data.transferred || 0);
-                        $('#totalValue').text((data.totalValue || 0).toLocaleString() + ' ريال');
-
-                        dataTable.ajax.reload();
                     },
                     error: function() {
                         console.log('Error loading statistics');

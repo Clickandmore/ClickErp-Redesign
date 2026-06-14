@@ -587,6 +587,18 @@
             $closureClientRefund = (float) ($closureSummary['refund_value'] ?? $closureSummary['calculated_refund_value'] ?? 0);
             $showClosureSettlement = $closureCompanyDue > 0 || $closureClientRefund > 0;
             $isEarlyClosure = (bool) ($closureSummary['is_early_closure'] ?? false);
+            $cancelledRemainingDays = (int) ($closureSummary['remaining_days_value'] ?? 0);
+            $remainingMetricLabel = 'الأيام المتبقية';
+            $remainingMetricValue = $remainingDays !== null ? $remainingDays : 0;
+            $remainingMetricSubValue = $remainingDays !== null && $remainingDays > 0 ? 'يوم متبقٍ' : 'تم الوصول لنهاية المدة أو لم تحدد';
+
+            if ($contract->status === 'cancelled' && $isEarlyClosure) {
+                $remainingMetricLabel = 'حالة مدة العقد';
+                $remainingMetricValue = $cancelledRemainingDays;
+                $remainingMetricSubValue = $cancelledRemainingDays > 0
+                    ? 'ألغي قبل نهاية مدته الأساسية'
+                    : 'ألغي قبل اكتمال مدة العقد';
+            }
 
             $workflowSteps = [
                 [
@@ -707,9 +719,9 @@
                     <div class="sub-value">إجمالي قيمة العقد</div>
                 </div>
                 <div class="metric-card">
-                    <div class="label">الأيام المتبقية</div>
-                    <div class="value">{{ $remainingDays !== null ? $remainingDays : 0 }}</div>
-                    <div class="sub-value">{{ $remainingDays !== null && $remainingDays > 0 ? 'يوم متبقٍ' : 'تم الوصول لنهاية المدة أو لم تحدد' }}</div>
+                    <div class="label">{{ $remainingMetricLabel }}</div>
+                    <div class="value">{{ $remainingMetricValue }}</div>
+                    <div class="sub-value">{{ $remainingMetricSubValue }}</div>
                 </div>
             </div>
 
