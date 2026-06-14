@@ -9,6 +9,15 @@ class SmsGateway
     public static function send($phone, string $message, $code = null, $senderType = null): ?string
     {
         $smsSettings = CommunicationSettings::sms();
+        if ((string) ($smsSettings['gateway_status'] ?? 'on') === 'off') {
+            logger()->info('SMS gateway disabled; message was not sent.', [
+                'phone' => $phone,
+                'sender_type' => $senderType,
+            ]);
+
+            return null;
+        }
+
         $provider = strtolower((string) ($smsSettings['provider'] ?? 'msegat'));
 
         logger()->info('SMS provider: ', [

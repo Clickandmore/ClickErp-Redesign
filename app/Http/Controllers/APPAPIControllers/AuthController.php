@@ -14,6 +14,7 @@ use App\Http\Requests\APPAPI\Auth\UpdateProfileRequest;
 use App\Http\Resources\Api\UserResource;
 use App\Models\ingaz\User;
 use App\Models\ingaz\UserFirebaseToken;
+use App\Support\CommunicationSettings;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
@@ -240,6 +241,7 @@ class AuthController extends Controller
             'name' => (string) ($user->name ?? ''),
             'phone' => (string) ($user->phone ?? ''),
             'token' => $token,
+            'sms_gateway_status' => CommunicationSettings::smsGatewayStatus(),
         ];
     }
 
