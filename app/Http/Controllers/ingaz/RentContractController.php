@@ -231,6 +231,15 @@ class RentContractController extends Controller
                     return $row->branch ? e($row->branch->name) : '-';
                 })
                 ->addColumn('remaining_days', function ($row) {
+                    if ($row->status === 'cancelled') {
+                        $remainingDays = $row->calculateRemainingDays();
+                        $remainingText = $remainingDays !== null && $remainingDays > 0
+                            ? '<small class="d-block text-muted">قبل نهاية العقد بـ ' . $remainingDays . ' يوم</small>'
+                            : '';
+
+                        return '<span class="badge bg-danger">ملغي قبل اكتمال المدة</span>' . $remainingText;
+                    }
+
                     // Only show remaining days for active contracts
                     if ($row->status !== 'completed') {
                         $remainingDays = $row->calculateRemainingDays();
@@ -1208,12 +1217,16 @@ class RentContractController extends Controller
                 ], 400);
             }
 
-            $contract->update([
-                'status' => 'completed',
-                'warranty_status' => 'active',
-                'warranty_start_date' => now(),
-                'warranty_end_date' => now()->addMonths(3), // 3 أشهر ضمان افتراضي
-            ]);
+            $closureDate = Carbon::now()->startOfDay();
+            $isEarlyClosure = $this->isRentalContractEarlyClosure($contract, $closureDate);
+
+            $contract->status = $isEarlyClosure ? 'cancelled' : 'completed';
+            $contract->closure_type = 'available';
+            $contract->closed_at = $closureDate;
+            $contract->warranty_status = $isEarlyClosure ? 'not_applicable' : 'active';
+            $contract->warranty_start_date = $isEarlyClosure ? null : now();
+            $contract->warranty_end_date = $isEarlyClosure ? null : now()->addMonths(3); // 3 أشهر ضمان افتراضي
+            $contract->save();
 
             $this->completeLinkedRentalOrder($contract);
             $this->returnShelterContractInsideForRental($contract);
@@ -1233,7 +1246,10 @@ class RentContractController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم إنهاء العقد بنجاح' . $this->formatClosureMessageResultText($messageResult)
+                'message' => ($isEarlyClosure
+                    ? 'تم إلغاء العقد لأنه أُنهي قبل اكتمال مدة العقد'
+                    : 'تم إنهاء العقد بنجاح')
+                    . $this->formatClosureMessageResultText($messageResult)
             ]);
 
         } catch (\Exception $e) {
@@ -1353,6 +1369,14 @@ class RentContractController extends Controller
             }
         }
 
+        if ($status === 'cancelled') {
+            $label = $closureType === 'transferred'
+                ? 'ملغي - نقل قبل اكتمال المدة'
+                : 'ملغي قبل اكتمال المدة';
+
+            return '<span class="badge bg-danger">' . $label . '</span>';
+        }
+
         $frozenBadge = '<span class="badge bg-dark">مجمد</span>';
         if (
             $contract
@@ -1391,8 +1415,9 @@ class RentContractController extends Controller
             $total = RentalContract::count();
             $active = RentalContract::whereNotIn('status', ['completed', 'cancelled', 'frozen'])->count();
             $completed = RentalContract::where('status', 'completed')->count();
+            $cancelled = RentalContract::where('status', 'cancelled')->count();
             $available = RentalContract::where('status', 'completed')->where('closure_type', 'available')->count();
-            $transferred = RentalContract::where('status', 'completed')->where('closure_type', 'transferred')->count();
+            $transferred = RentalContract::where('closure_type', 'transferred')->count();
 
             $totalValue = RentalContract::with('info')
                                       ->get()
@@ -1404,6 +1429,7 @@ class RentContractController extends Controller
                 'total' => $total,
                 'active' => $active,
                 'completed' => $completed,
+                'cancelled' => $cancelled,
                 'available' => $available,
                 'transferred' => $transferred,
                 'totalValue' => $totalValue
@@ -1413,6 +1439,7 @@ class RentContractController extends Controller
                 'total' => 0,
                 'active' => 0,
                 'completed' => 0,
+                'cancelled' => 0,
                 'available' => 0,
                 'transferred' => 0,
                 'totalValue' => 0
@@ -1575,7 +1602,7 @@ class RentContractController extends Controller
         }
 
         if ($status === 'transferred') {
-            $query->where('status', 'completed')->where('closure_type', 'transferred');
+            $query->where('closure_type', 'transferred');
             return;
         }
 
@@ -1994,6 +2021,7 @@ class RentContractController extends Controller
             ->sum('amount');
         $companyDueValue = $storedCompanyDueValue > 0 ? $storedCompanyDueValue : $calculatedCompanyDueValue;
         $settlementType = $companyDueValue > 0 ? 'company_due' : 'refund';
+        $isEarlyClosure = $this->isRentalContractEarlyClosure($contract, $closureDate);
 
         return [
             'monthly_cost' => $monthlyCost,
@@ -2019,7 +2047,24 @@ class RentContractController extends Controller
             'closure_client_iban' => $info?->closure_client_iban,
             'closure_client_iban_attachment_url' => $info?->closure_client_iban_attachment_url,
             'closure_return_reason' => $info?->closure_return_reason,
+            'is_early_closure' => $isEarlyClosure,
+            'closure_status' => $isEarlyClosure ? 'cancelled' : 'completed',
+            'closure_status_text' => $isEarlyClosure ? 'ملغي قبل اكتمال مدة العقد' : 'مكتمل',
         ];
+    }
+
+    private function isRentalContractEarlyClosure(RentalContract $contract, ?Carbon $closureDate = null): bool
+    {
+        $contract->loadMissing('info');
+
+        if (!$contract->info?->ingaz_to) {
+            return false;
+        }
+
+        $closureDate = ($closureDate ?: Carbon::now())->copy()->startOfDay();
+        $endDate = Carbon::parse($contract->info->ingaz_to)->startOfDay();
+
+        return $closureDate->lessThan($endDate);
     }
 
     private function resolveRentalClosurePackage(RentalContract $contract, int $durationDays): ?Package
@@ -2152,6 +2197,9 @@ class RentContractController extends Controller
                 'closure_client_iban' => $summary['closure_client_iban'],
                 'closure_client_iban_attachment_url' => $summary['closure_client_iban_attachment_url'],
                 'closure_return_reason' => $summary['closure_return_reason'],
+                'is_early_closure' => $summary['is_early_closure'],
+                'closure_status' => $summary['closure_status'],
+                'closure_status_text' => $summary['closure_status_text'],
                 'attachments' => $attachments,
             ];
 
@@ -2248,9 +2296,14 @@ class RentContractController extends Controller
                 $contract->info->update($infoUpdates);
             }
 
-            $contract->status = 'completed';
+            $isEarlyClosure = $this->isRentalContractEarlyClosure($contract, $closureDate);
+
+            $contract->status = $isEarlyClosure ? 'cancelled' : 'completed';
             $contract->closure_type = 'available';
             $contract->closed_at = $closureDate;
+            $contract->warranty_status = $isEarlyClosure ? 'not_applicable' : 'active';
+            $contract->warranty_start_date = $isEarlyClosure ? null : $closureDate;
+            $contract->warranty_end_date = $isEarlyClosure ? null : $closureDate->copy()->addMonths(3);
             $contract->save();
 
             $this->completeLinkedRentalOrder($contract);
@@ -2310,7 +2363,10 @@ class RentContractController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم إغلاق العقد وإرجاع العاملة متاحة بنجاح' . $this->formatClosureMessageResultText($messageResult)
+                'message' => ($isEarlyClosure
+                    ? 'تم إلغاء العقد لأنه أُنهي قبل اكتمال مدة العقد، وتم إرجاع العاملة متاحة'
+                    : 'تم إغلاق العقد وإرجاع العاملة متاحة بنجاح')
+                    . $this->formatClosureMessageResultText($messageResult)
             ]);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -2675,10 +2731,15 @@ class RentContractController extends Controller
             $transferPaidAmount = min((float) $request->paid_amount, $transferTotalAmount);
             $transferRemainingAmount = max(0.0, $transferTotalAmount - $transferPaidAmount);
 
+            $isEarlyClosure = $this->isRentalContractEarlyClosure($oldContract, $closureDate);
+
             // Close the old contract and set closure type to transferred
-            $oldContract->status = 'completed';
+            $oldContract->status = $isEarlyClosure ? 'cancelled' : 'completed';
             $oldContract->closure_type = 'transferred';
             $oldContract->closed_at = $closureDate;
+            $oldContract->warranty_status = $isEarlyClosure ? 'not_applicable' : 'active';
+            $oldContract->warranty_start_date = $isEarlyClosure ? null : $closureDate;
+            $oldContract->warranty_end_date = $isEarlyClosure ? null : $closureDate->copy()->addMonths(3);
             $oldContract->save();
 
             // Use the existing client from the rental contract
@@ -2803,7 +2864,9 @@ class RentContractController extends Controller
                 $messageResult = $this->sendRentalClosureMessageToClient($oldContract);
             }
 
-            $message = 'تم إغلاق عقد الإيجار وتوثيق نقل الكفالة بنجاح.';
+            $message = $isEarlyClosure
+                ? 'تم إلغاء عقد الإيجار لأنه أُنهي قبل اكتمال مدته، وتم توثيق نقل الكفالة بنجاح.'
+                : 'تم إغلاق عقد الإيجار وتوثيق نقل الكفالة بنجاح.';
 
             return response()->json([
                 'success' => true,

@@ -392,6 +392,23 @@
                     </div>
                 </div>
             </div>
+
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card border-left-danger shadow h-100 py-2">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                    عقود ملغية قبل اكتمال المدة</div>
+                                <div class="h5 mb-0 font-weight-bold text-gray-800" id="cancelledContracts">0</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-times-circle fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Filters Section -->
@@ -654,6 +671,10 @@
                                             <strong>قيمة العقد:</strong>
                                             <p id="contractValue">-</p>
                                         </div>
+                                    </div>
+                                    <div class="alert alert-danger mb-0 d-none" id="earlyClosureNotice">
+                                        <i class="fas fa-exclamation-triangle me-1"></i>
+                                        سيتم تسجيل هذا العقد كعقد ملغي لأن تاريخ الإنهاء قبل تاريخ نهاية العقد، وسيظهر ذلك في التفاصيل والإحصائيات.
                                     </div>
                                 </div>
                             </div>
@@ -1899,6 +1920,10 @@
                 $('#financialUsedCost').text(formatCurrency(contract.used_cost || 0) + ' ريال');
                 $('#financialSuggestedRefund').text(formatCurrency(contract.calculated_refund_value || 0) + ' ريال');
                 $('#financialCompanyDue').text(formatCurrency(contract.calculated_company_due_value || 0) + ' ريال');
+                $('#earlyClosureNotice').toggleClass('d-none', !contract.is_early_closure);
+                if (contract.closure_status_text) {
+                    $('#currentStatus').text((contract.status_text || '-') + ' / بعد الإنهاء: ' + contract.closure_status_text);
+                }
                 $('#closeAdjustmentType')
                     .data('refund-value', contract.refund_value || 0)
                     .data('company-due-value', contract.company_due_value || 0)
@@ -2096,6 +2121,7 @@
                         $('#totalContracts').text(data.total || 0);
                         $('#activeContracts').text(data.active || 0);
                         $('#completedContracts').text(data.completed || 0);
+                        $('#cancelledContracts').text(data.cancelled || 0);
                         $('#availableContracts').text(data.available || 0);
                         $('#transferredContracts').text(data.transferred || 0);
                         $('#totalValue').text((data.totalValue || 0).toLocaleString() + ' ريال');

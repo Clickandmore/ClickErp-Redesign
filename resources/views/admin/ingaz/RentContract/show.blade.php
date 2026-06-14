@@ -586,6 +586,7 @@
             $closureCompanyDue = (float) ($closureSummary['company_due_value'] ?? $closureSummary['calculated_company_due_value'] ?? 0);
             $closureClientRefund = (float) ($closureSummary['refund_value'] ?? $closureSummary['calculated_refund_value'] ?? 0);
             $showClosureSettlement = $closureCompanyDue > 0 || $closureClientRefund > 0;
+            $isEarlyClosure = (bool) ($closureSummary['is_early_closure'] ?? false);
 
             $workflowSteps = [
                 [
@@ -654,6 +655,11 @@
                             <span class="status-pill is-success">
                                 <i class="fas fa-user-check"></i>
                                 أُغلِق العقد وأصبحت العاملة متاحة
+                            </span>
+                        @elseif($contract->status === 'cancelled' && $isEarlyClosure)
+                            <span class="status-pill is-danger">
+                                <i class="fas fa-times-circle"></i>
+                                ملغي لأنه لم يكمل مدة العقد
                             </span>
                         @elseif($contract->status === 'frozen')
                             <span class="status-pill is-warning">
@@ -946,6 +952,23 @@
                                 المستندات المالية
                             </h3>
                         </div>
+
+                        @if ($contract->status === 'cancelled' && $isEarlyClosure)
+                            <ul class="detail-list mb-4">
+                                <li>
+                                    <span class="label">سبب حالة العقد</span>
+                                    <span class="value highlight">أُلغي العقد قبل اكتمال مدة العقد</span>
+                                </li>
+                                <li>
+                                    <span class="label">تاريخ الإنهاء</span>
+                                    <span class="value">{{ $closureSummary['closure_date'] ?? '-' }}</span>
+                                </li>
+                                <li>
+                                    <span class="label">الأيام المتبقية عند الإنهاء</span>
+                                    <span class="value">{{ (int) ($closureSummary['remaining_days_value'] ?? 0) }} يوم</span>
+                                </li>
+                            </ul>
+                        @endif
 
                         @if ($showClosureSettlement)
                             <ul class="detail-list mb-4">

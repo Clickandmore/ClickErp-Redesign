@@ -135,7 +135,6 @@
         $maidGender = data_get($contract, 'maid.gender', 'أنثى');
         $maidExperience = data_get($contract, 'maid.experience', '-');
         $paymentDueDate = $formatRentalDate($contractStartDate);
-        $salaryAmount = data_get($contractInfo, 'monthly_salary');
         $taxAmount = $serviceTaxValue;
         $partyOneText = replaceDocumentPlaceholders($partyOneTextTemplate, [
             'اسم_الشركة' => $documentCompanyName,
@@ -1093,12 +1092,6 @@
                             <th>القيمة</th>
                             <th>ضريبة القيمة المضافة</th>
                             <th>القيمة الإجمالية</th>
-                        </tr>
-                        <tr>
-                            <td>أجر العامل/العاملة</td>
-                            <td>{{ $formatRentalMoney($salaryAmount, '0') }} ريال</td>
-                            <td>0 ريال</td>
-                            <td>{{ $formatRentalMoney($salaryAmount, '0') }} ريال</td>
                         </tr>
                         @if(($packageDiscountValue ?? 0) > 0)
                             <tr>

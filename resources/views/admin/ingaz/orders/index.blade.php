@@ -980,6 +980,30 @@
                 toggleRefuseReasonField($(this).val());
             });
 
+            function hideAndRemoveModal(modalSelector) {
+                const modalElement = document.querySelector(modalSelector);
+
+                if (!modalElement) {
+                    $('.modal-backdrop').remove();
+                    $('body').removeClass('modal-open').css('padding-right', '');
+                    return;
+                }
+
+                $(modalElement).one('hidden.bs.modal', function() {
+                    $(this).remove();
+                    $('.modal-backdrop').remove();
+                    $('body').removeClass('modal-open').css('padding-right', '');
+                });
+
+                if (window.bootstrap && bootstrap.Modal) {
+                    const bsModal = bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement);
+                    bsModal.hide();
+                    return;
+                }
+
+                $(modalElement).modal('hide');
+            }
+
             // Handle edit status
             $(document).on('click', '.edit-status', function() {
                 const orderId = $(this).data('id');
@@ -1068,39 +1092,17 @@
                                     success: function(response) {
                                         console.log('Update response:',
                                             response);
-                                        dataTable.ajax.reload();
-                                        if (response.success) {
-                                            const modalElement = document
-                                                .getElementById(
-                                                    'editStatusModal');
-                                            if (window.bootstrap &&
-                                                bootstrap.Modal &&
-                                                modalElement) {
-                                                const bsModal = bootstrap
-                                                    .Modal.getInstance(
-                                                        modalElement);
-                                                if (bsModal) {
-                                                    bsModal.hide();
-                                                }
-                                            } else {
-                                                $('#editStatusModal').modal(
-                                                    'hide');
-                                            }
+                                        const updateSucceeded = response.success === true ||
+                                            (response.data && response.data.success === true) ||
+                                            response.code === 200;
 
-                                            setTimeout(function() {
-                                                $('#editStatusModal')
-                                                    .remove();
-                                                $('.modal-backdrop')
-                                                    .remove();
-                                                $('body')
-                                                    .removeClass(
-                                                        'modal-open'
-                                                    );
-                                            }, 200);
+                                        if (updateSucceeded) {
+                                            hideAndRemoveModal('#editStatusModal');
 
                                             if (typeof toastr !==
                                                 'undefined') {
                                                 toastr.success(
+                                                    response.message ||
                                                     '{{ helperTrans('ingaz.status_updated') }}'
                                                 );
                                             }
@@ -1129,7 +1131,6 @@
                                         }
 
                                         $('#loadingModal').remove();
-                                        $('#editStatusModal').remove();
                                     },
                                     error: function(xhr) {
                                         console.log('Update error:', xhr);
@@ -1152,15 +1153,14 @@
                             // Handle modal close button
                             $('#editStatusModal .btn-close, #editStatusModal [data-bs-dismiss="modal"]')
                                 .on('click', function() {
-                                    $('#editStatusModal').modal('hide');
-                                    $('.modal-backdrop').remove();
-                                    $('body').removeClass('modal-open');
+                                    hideAndRemoveModal('#editStatusModal');
                                 });
 
                             // Handle modal hidden event
                             $('#editStatusModal').on('hidden.bs.modal', function() {
+                                $(this).remove();
                                 $('.modal-backdrop').remove();
-                                $('body').removeClass('modal-open');
+                                $('body').removeClass('modal-open').css('padding-right', '');
                             });
                         } else {
                             console.log('Response not successful:', response);

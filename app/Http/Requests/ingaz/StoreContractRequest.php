@@ -43,6 +43,10 @@ class StoreContractRequest extends MainRequest
             }
         }
 
+        if ($this->filled('order_id')) {
+            $normalizedData['client_type'] = 'ex_client';
+        }
+
         if (
             !isset($normalizedData['new_existing_client_id'])
             && $this->filled('new_existing_client_id')
@@ -106,9 +110,12 @@ class StoreContractRequest extends MainRequest
         }
 
         $selectedClientId = $this->input('client_id') ?: $this->input('new_existing_client_id');
-        $clientPhoneRules = $selectedClientId
-            ? ['nullable']
-            : ['required_if:client_type,new_client', Rule::unique('users', 'phone')];
+        $isCreatingNewClient = $this->input('client_type') === 'new_client'
+            && !$this->filled('order_id')
+            && !$selectedClientId;
+        $clientPhoneRules = $isCreatingNewClient
+            ? ['required', Rule::unique('users', 'phone')]
+            : ['nullable'];
 
         return [
             'contract_date' => 'required',
