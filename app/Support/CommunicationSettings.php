@@ -32,6 +32,16 @@ class CommunicationSettings
         return (bool) (self::sms()['disable_phone_verification'] ?? false);
     }
 
+    public static function smsGatewayStatus(): string
+    {
+        return self::smsGatewayIsEnabled() ? 'on' : 'off';
+    }
+
+    public static function smsGatewayIsEnabled(): bool
+    {
+        return (string) (self::sms()['gateway_status'] ?? 'on') !== 'off';
+    }
+
     public static function phoneVerificationBypassCode(): string
     {
         return self::PHONE_VERIFICATION_BYPASS_CODE;
@@ -45,6 +55,11 @@ class CommunicationSettings
     public static function smsIsConfigured(?array $settings = null): bool
     {
         $settings ??= self::sms();
+
+        if ((string) ($settings['gateway_status'] ?? 'on') === 'off') {
+            return false;
+        }
+
         $provider = strtolower((string) ($settings['provider'] ?? 'msegat'));
 
         if ($provider === 'taqnyat') {
@@ -108,6 +123,7 @@ class CommunicationSettings
                 'msegat.bulk_send_limit' => (int) $settings['sms']['bulk_send_limit'],
                 'msegat.bulk_confirmation_keyword' => $settings['sms']['bulk_confirmation_keyword'],
                 'msegat.disable_phone_verification' => (bool) $settings['sms']['disable_phone_verification'],
+                'msegat.gateway_status' => $settings['sms']['gateway_status'],
                 'services.taqnyat.sms.base_url' => $settings['sms']['taqnyat']['base_url'],
                 'services.taqnyat.sms.bearer_token' => $settings['sms']['taqnyat']['bearer_token'],
 
@@ -213,6 +229,9 @@ class CommunicationSettings
         $data['sms']['provider'] = in_array((string) ($data['sms']['provider'] ?? ''), ['msegat', 'taqnyat'], true)
             ? (string) $data['sms']['provider']
             : $defaults['sms']['provider'];
+        $data['sms']['gateway_status'] = (string) ($data['sms']['gateway_status'] ?? $defaults['sms']['gateway_status']) === 'off'
+            ? 'off'
+            : 'on';
         $data['sms']['url'] = self::trimString($data['sms']['url'] ?? '');
         $data['sms']['username'] = self::trimString($data['sms']['username'] ?? '');
         $data['sms']['api_key'] = self::preserveSecret(
@@ -429,6 +448,7 @@ class CommunicationSettings
                 'bulk_send_limit' => 200,
                 'bulk_confirmation_keyword' => 'SEND_ALL_SMS',
                 'disable_phone_verification' => false,
+                'gateway_status' => 'on',
                 'taqnyat' => [
                     'base_url' => 'https://api.taqnyat.sa',
                     'bearer_token' => '',

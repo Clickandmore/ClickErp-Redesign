@@ -114,6 +114,10 @@ class MaidBulkImportService
             ['key' => 'video_link', 'label' => 'رابط فيديو', 'required' => false],
             ['key' => 'available', 'label' => 'available', 'required' => false],
             ['key' => 'status', 'label' => 'الحالة', 'required' => false],
+            ['key' => 'id', 'label' => 'ID', 'required' => false],
+            ['key' => 'added_by', 'label' => 'أضيفت بواسطة', 'required' => false],
+            ['key' => 'created_at', 'label' => 'أنشئ بتاريخ', 'required' => false],
+            ['key' => 'gender', 'label' => 'الجنس', 'required' => false],
         ];
     }
 
@@ -202,6 +206,10 @@ class MaidBulkImportService
             'video_link' => '',
             'available' => 'نعم',
             'status' => 'متاحة',
+            'id' => '',
+            'added_by' => '',
+            'created_at' => '',
+            'gender' => 'أنثى',
         ];
     }
 
@@ -282,7 +290,7 @@ class MaidBulkImportService
                     $data = $payload;
                     $data['status'] = $data['status'] ?? 'available';
                     $data['available'] = $data['available'] ?? ($data['status'] === 'available' || $data['status'] === 'completed' ? '1' : '0');
-                    $data['added_by'] = $adminId;
+                    $data['added_by'] = $data['added_by'] ?? $adminId;
                     $data['preserve_null_arrival_date'] = true;
 
                     $maid = $maidAction->storeMaid($data, $request);
@@ -626,10 +634,26 @@ class MaidBulkImportService
             return true;
         }
 
-        $legacyExpectedKeys = array_values(array_diff($expectedKeys, ['available', 'status']));
         $legacyHeaders = array_values(array_filter($headers, fn ($header) => $header !== null));
 
-        return $legacyHeaders === $legacyExpectedKeys;
+        $optionalNewKeys = ['id', 'added_by', 'created_at', 'gender'];
+
+        $acceptedKeySets = [
+            $expectedKeys,
+            array_values(array_diff($expectedKeys, ['gender'])),
+            array_values(array_diff($expectedKeys, $optionalNewKeys)),
+            array_values(array_diff($expectedKeys, ['available', 'status'])),
+            array_values(array_diff($expectedKeys, ['available', 'status', 'gender'])),
+            array_values(array_diff($expectedKeys, array_merge(['available', 'status'], $optionalNewKeys))),
+        ];
+
+        foreach ($acceptedKeySets as $acceptedKeySet) {
+            if ($legacyHeaders === $acceptedKeySet) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function cellValue($value): ?string
@@ -682,6 +706,10 @@ class MaidBulkImportService
         $data['arrival_date'] = $this->normalizeDate($rawRow['arrival_date'] ?? null);
         $data['additional_notes'] = $this->trimmed($rawRow['additional_notes'] ?? null);
         $data['video_link'] = $this->trimmed($rawRow['video_link'] ?? null);
+        $data['id'] = $this->normalizeInteger($rawRow['id'] ?? null);
+        $data['added_by'] = $this->resolveAddedByValue($rawRow['added_by'] ?? null);
+        $data['created_at'] = $this->normalizeDateTime($rawRow['created_at'] ?? null);
+        $data['gender'] = $this->normalizeGender($rawRow['gender'] ?? null);
 
         [$data['status'], $statusError] = $this->resolveMappedValue(
             $rawRow['status'] ?? null,
@@ -834,9 +862,14 @@ class MaidBulkImportService
             'create_shelter_contract' => 'nullable|in:0,1',
             'available' => 'nullable|in:0,1',
             'status' => 'nullable|in:' . implode(',', array_keys(self::MAID_STATUS_ALIASES)),
+            'id' => 'nullable|integer|min:1|unique:maids,id',
+            'added_by' => 'nullable|integer|min:1',
+            'created_at' => 'nullable|date',
+            'gender' => 'nullable|in:male,female',
         ], [
             'passport_num.unique' => 'رقم الجواز موجود مسبقاً في النظام.',
             'video_link.url' => 'رابط الفيديو غير صالح.',
+            'id.unique' => 'ID موجود مسبقاً في النظام.',
         ]);
 
         if (($data['experience_status'] ?? null) === 'has_experience' && ($data['experience_years'] === null || $data['experience_years'] === '')) {
@@ -1101,6 +1134,24 @@ class MaidBulkImportService
         }
     }
 
+    private function normalizeDateTime($value): ?string
+    {
+        $value = $this->trimmed($value);
+        if ($value === null) {
+            return null;
+        }
+
+        try {
+            if (is_numeric($value)) {
+                return ExcelDate::excelToDateTimeObject((float) $value)->format('Y-m-d H:i:s');
+            }
+
+            return Carbon::parse($value)->format('Y-m-d H:i:s');
+        } catch (\Throwable $exception) {
+            return $value;
+        }
+    }
+
     private function normalizeDecimal($value, bool $formatWithTwoDecimals = true): ?string
     {
         $value = $this->trimmed($value);
@@ -1129,6 +1180,45 @@ class MaidBulkImportService
         }
 
         return (string) (int) $value;
+    }
+
+    private function normalizeGender($value): ?string
+    {
+        $value = $this->trimmed($value);
+        if ($value === null) {
+            return null;
+        }
+
+        $normalized = $this->normalizeText($value);
+
+        return match ($normalized) {
+            'male', 'ذكر', 'رجل', 'سائق' => 'male',
+            'female', 'انثي', 'انثى', 'امراه', 'امراة', 'عامله' => 'female',
+            default => $value,
+        };
+    }
+
+    private function resolveAddedByValue($value): ?string
+    {
+        $value = $this->trimmed($value);
+        if ($value === null) {
+            return null;
+        }
+
+        if (is_numeric($value)) {
+            return (string) (int) $value;
+        }
+
+        try {
+            $adminId = DB::table('admins')
+                ->where('name', $value)
+                ->orWhere('email', $value)
+                ->value('id');
+
+            return $adminId ? (string) $adminId : null;
+        } catch (\Throwable $exception) {
+            return null;
+        }
     }
 
     private function normalizeBooleanField($value, string $default): array

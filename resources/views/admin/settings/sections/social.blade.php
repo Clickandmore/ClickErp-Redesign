@@ -78,6 +78,17 @@
                 </div>
 
                 <div class="col-md-6 col-xl-4">
+                    <label class="form-label">{{ __('admin.settings_tiktok_url') }}</label>
+                    <fieldset class="form-icon-group right-icon position-relative">
+                        <div class="form-icon position-absolute">
+                            <i class="fab fa-tiktok"></i>
+                        </div>
+                        <input type="text" name="tiktok" class="form-control"
+                               value="{{ $settings->tiktok ?? '' }}">
+                    </fieldset>
+                </div>
+
+                <div class="col-md-6 col-xl-4">
                     <label class="form-label">{{ __('admin.settings_whatsapp_number') }}</label>
                     <fieldset class="form-icon-group right-icon position-relative">
                         <div class="form-icon position-absolute">

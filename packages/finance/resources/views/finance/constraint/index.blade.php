@@ -375,11 +375,11 @@
 
             var table = $('#dataTableObject').DataTable({
                 "lengthMenu": [
-                    [10, 25, 50, -1],
-                    [10, 25, 50, "الكل"]
+                    [10, 25, 50, 100],
+                    [10, 25, 50, 100]
                 ],
                 "processing": true,
-                "serverSide": false,
+                "serverSide": true,
                 "searching": true,
                 "sort": false,
                 "autoWidth": false,
@@ -394,33 +394,37 @@
                 },
                 "columns": [{
                         "data": "code_link",
+                        "name": "fn_constraints.code",
                         orderable: false,
                         searchable: true
                     },
                     {
                         "data": "statement_preview",
+                        "name": "fn_constraints.statement",
                         orderable: false,
                         searchable: true
                     },
                     {
                         "data": "value",
+                        "name": "fn_constraints.value",
                         orderable: false,
                         searchable: true
                     },
                     {
                         "data": "date",
+                        "name": "fn_constraints.date",
                         orderable: false,
                         searchable: true
                     },
                     {
                         "data": "debitors_total",
                         orderable: false,
-                        searchable: true
+                        searchable: false
                     },
                     {
                         "data": "creditors_total",
                         orderable: false,
-                        searchable: true
+                        searchable: false
                     },
                     {
                         "data": "actions",

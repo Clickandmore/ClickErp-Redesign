@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string $snapchat
  * @property string $linkedin
  * @property string $youtube
+ * @property string $tiktok
  * @property string $whatsapp
  * @property string $email
  * @property string $phone
@@ -35,7 +36,7 @@ class Setting extends Model
     public $translationModel = SettingsTranslation::class;
 
 
-    protected $fillable = ['logo_header', 'logo_footer', 'favicon', 'twitter', 'facebook', 'instagram', 'snapchat', 'linkedin', 'youtube', 'whatsapp', 'email', 'phone', 'other_phone', 'map_link', 'created_at', 'updated_at'];
+    protected $fillable = ['logo_header', 'logo_footer', 'favicon', 'twitter', 'facebook', 'instagram', 'snapchat', 'linkedin', 'youtube', 'tiktok', 'whatsapp', 'email', 'phone', 'other_phone', 'map_link', 'created_at', 'updated_at'];
 
     public $translatedAttributes = ['location', 'privacy', 'rights_maids', 'rights_users', 'copyright', 'website_name',
         'about_us_sub_title', 'footer_text','terms_conditions', 'work_times', 'about_us_app'];

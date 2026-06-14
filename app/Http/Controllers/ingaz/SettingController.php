@@ -32,6 +32,7 @@ class SettingController extends Controller
         'snapchat',
         'linkedin',
         'youtube',
+        'tiktok',
         'whatsapp',
         'email',
         'phone',
