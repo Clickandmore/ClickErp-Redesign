@@ -543,6 +543,7 @@ class AdminRoutePermissionMatrix
         return [
             'DeportationTravel.index' => [PermKeys::TRAVEL_VIEW, PermKeys::TRAVEL_CONTROL],
             'travel' => [PermKeys::TRAVEL_VIEW, PermKeys::TRAVEL_CONTROL],
+            'travel.calendar.events' => [PermKeys::TRAVEL_VIEW, PermKeys::DASHBOARD_CALENDAR_EVENTS],
         ];
     }
 

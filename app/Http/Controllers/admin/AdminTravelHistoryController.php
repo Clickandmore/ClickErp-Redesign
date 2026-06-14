@@ -29,7 +29,8 @@ class AdminTravelHistoryController extends Controller
 
     public function __construct()
     {
-        $this->middleware('permission:travel_view,admin', ['only' => ['index', 'statistics', 'calendarEvents', 'downloadFile', 'export', 'print']]);
+        $this->middleware('permission:travel_view,admin', ['only' => ['index', 'statistics', 'downloadFile', 'export', 'print']]);
+        $this->middleware('permission:travel_view|dashboard_calendar_events,admin', ['only' => ['calendarEvents']]);
         $this->middleware('permission:travel_control,admin', ['only' => ['assignableStaff', 'assignTrip', 'completeTrip']]);
         $this->middleware('permission:travel_delete,admin', ['only' => ['destroy', 'deleteFile']]);
         $this->middleware('permission:travel_create,admin', ['only' => ['storeTravelHistory']]);
