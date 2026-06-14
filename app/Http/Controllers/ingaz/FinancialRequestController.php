@@ -86,7 +86,9 @@ class FinancialRequestController extends Controller
             'types' => FinancialRequest::types(),
             'statuses' => FinancialRequest::statuses(),
             'priorities' => FinancialRequest::priorities(),
-            'accounts' => $this->leafAccounts(),
+            'contractTypes' => FinancialRequest::contractTypes(),
+            'bondTypes' => $this->bondTypes(),
+            'paymentTypes' => $this->paymentTypes(),
         ]);
     }
 
@@ -126,8 +128,6 @@ class FinancialRequestController extends Controller
 
     public function updateStatus(Request $request, FinancialRequest $financialRequest, BondService $bondService, YearService $yearService)
     {
-        abort_unless($this->canChangeStatus($request->input('status')), 403);
-
         $data = $request->validate([
             'status' => ['required', Rule::in(array_keys(FinancialRequest::statuses()))],
             'priority' => ['nullable', Rule::in(array_keys(FinancialRequest::priorities()))],
@@ -136,6 +136,8 @@ class FinancialRequestController extends Controller
             'credit_account_id' => ['nullable', 'exists:fn_accounts,id'],
             'payment_type' => ['nullable', 'integer', Rule::in(array_map(fn (BondPaymentTypes $type) => $type->value, BondPaymentTypes::cases()))],
         ]);
+
+        abort_unless($this->canUpdateStatus($financialRequest, $data), 403);
 
         DB::transaction(function () use ($financialRequest, $data, $bondService, $yearService) {
             $payload = [
@@ -201,6 +203,32 @@ class FinancialRequestController extends Controller
                 'passport' => $maid->passport_num,
                 'salary' => $maid->salary,
             ]);
+    }
+
+    public function searchAccounts(Request $request)
+    {
+        abort_unless(AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, \App\PermKeys::FINANCIAL_REQUESTS_APPROVE, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]), 403);
+
+        $term = trim((string) $request->input('q'));
+
+        $accounts = Account::query()
+            ->whereDoesntHave('children')
+            ->when($term !== '', function ($query) use ($term) {
+                $query->where(function ($nested) use ($term) {
+                    $nested->where('code', 'like', "%{$term}%")
+                        ->orWhere('name', 'like', "%{$term}%");
+                });
+            })
+            ->orderBy('code')
+            ->limit(20)
+            ->get(['id', 'code', 'name']);
+
+        return response()->json([
+            'results' => $accounts->map(fn (Account $account) => [
+                'id' => $account->id,
+                'text' => trim($account->code . ' - ' . $account->name),
+            ])->values(),
+        ]);
     }
 
     public function contractDetails(Request $request)
@@ -342,6 +370,7 @@ class FinancialRequestController extends Controller
             'types' => FinancialRequest::types(),
             'typeFields' => FinancialRequest::typeFields(),
             'priorities' => FinancialRequest::priorities(),
+            'contractTypes' => FinancialRequest::contractTypes(),
         ];
     }
 
@@ -487,9 +516,19 @@ class FinancialRequestController extends Controller
         return 'FR-' . now()->format('Ymd') . '-' . str_pad((string) $next, 5, '0', STR_PAD_LEFT);
     }
 
-    private function leafAccounts()
+    private function bondTypes(): array
     {
-        return Account::query()->whereDoesntHave('children')->orderBy('code')->get(['id', 'code', 'name']);
+        return [
+            BondTypes::Qabd->value => 'سند قبض',
+            BondTypes::Sarf->value => 'سند صرف',
+        ];
+    }
+
+    private function paymentTypes(): array
+    {
+        return collect(BondPaymentTypes::cases())
+            ->mapWithKeys(fn (BondPaymentTypes $type) => [$type->value => $type->lang()])
+            ->all();
     }
 
     private function canView(): bool
@@ -519,12 +558,23 @@ class FinancialRequestController extends Controller
             || (AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_VIEW, \App\PermKeys::FINANCIAL_REQUESTS_CREATE]) && (int) $financialRequest->created_by_id === (int) auth('admin')->id());
     }
 
-    private function canChangeStatus(?string $status): bool
+    private function canUpdateStatus(FinancialRequest $financialRequest, array $data): bool
     {
-        if ($status === FinancialRequest::STATUS_PAID) {
+        $nextStatus = $data['status'] ?? $financialRequest->status;
+        $nextPriority = $data['priority'] ?? $financialRequest->priority;
+
+        if ($nextStatus === FinancialRequest::STATUS_PAID && $financialRequest->status !== FinancialRequest::STATUS_PAID) {
             return AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_APPROVE, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]);
         }
 
-        return AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]);
+        if ($nextStatus !== $financialRequest->status) {
+            return AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]);
+        }
+
+        if ($nextPriority !== $financialRequest->priority) {
+            return AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_ESCALATE, \App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]);
+        }
+
+        return AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, \App\PermKeys::FINANCIAL_REQUESTS_ESCALATE, \App\PermKeys::FINANCIAL_REQUESTS_APPROVE, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]);
     }
 }

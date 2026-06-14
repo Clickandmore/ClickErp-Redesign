@@ -64,6 +64,28 @@ class FinancialRequest extends Model
         ];
     }
 
+    public static function typeFieldLabels(?string $type): array
+    {
+        if (! $type) {
+            return [];
+        }
+
+        return self::typeFields()[$type] ?? [];
+    }
+
+    public static function labelForPayloadField(?string $type, string $field): string
+    {
+        return self::typeFieldLabels($type)[$field] ?? str_replace('_', ' ', $field);
+    }
+
+    public static function contractTypes(): array
+    {
+        return [
+            'recruitment' => 'استقدام',
+            'rental' => 'تأجير',
+        ];
+    }
+
     public static function statuses(): array
     {
         return [
@@ -82,6 +104,39 @@ class FinancialRequest extends Model
             self::PRIORITY_IMPORTANT => 'هام',
             self::PRIORITY_CRITICAL => 'شديد الأهمية',
         ];
+    }
+
+    public static function labelFromMap(array $labels, ?string $value): string
+    {
+        $value = trim((string) $value);
+
+        if ($value === '') {
+            return '-';
+        }
+
+        return $labels[$value]
+            ?? $labels[strtolower($value)]
+            ?? str_replace('_', ' ', $value);
+    }
+
+    public function getTypeLabelAttribute(): string
+    {
+        return self::labelFromMap(self::types(), $this->type);
+    }
+
+    public function getStatusLabelAttribute(): string
+    {
+        return self::labelFromMap(self::statuses(), $this->status);
+    }
+
+    public function getPriorityLabelAttribute(): string
+    {
+        return self::labelFromMap(self::priorities(), $this->priority);
+    }
+
+    public function getContractTypeLabelAttribute(): string
+    {
+        return self::labelFromMap(self::contractTypes(), $this->contract_type);
     }
 
     public function client()

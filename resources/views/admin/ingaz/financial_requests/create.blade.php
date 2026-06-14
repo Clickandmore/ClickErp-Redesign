@@ -3,6 +3,22 @@
 @php
     $isEdit = isset($requestItem);
     $payload = old('payload', $isEdit ? ($requestItem->payload ?? []) : []);
+
+    $optionText = static function ($label, $key) {
+        $label = trim((string) $label);
+        $key = trim((string) $key);
+
+        if ($label === '' || $label === $key) {
+            return '';
+        }
+
+        return trim(str_replace([
+            $key . ' - ',
+            $key . ': ',
+            '(' . $key . ')',
+            '[' . $key . ']',
+        ], '', $label));
+    };
 @endphp
 
 @section('content')
@@ -29,7 +45,7 @@
                                     <select name="type" id="requestType" class="form-select" required>
                                         <option value="" disabled @selected(!old('type', $requestItem->type ?? null))>اختر نوع الطلب</option>
                                         @foreach ($types as $key => $label)
-                                            <option value="{{ $key }}" @selected(old('type', $requestItem->type ?? '') === $key)>{{ $label }}</option>
+                                            <option value="{{ $key }}" label="{{ $optionText($label, $key) }}" @selected(old('type', $requestItem->type ?? '') === $key)>{{ $optionText($label, $key) }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -37,7 +53,7 @@
                                     <label class="form-label">التصعيد</label>
                                     <select name="priority" class="form-select" required>
                                         @foreach ($priorities as $key => $label)
-                                            <option value="{{ $key }}" @selected(old('priority', $requestItem->priority ?? 'normal') === $key)>{{ $label }}</option>
+                                            <option value="{{ $key }}" label="{{ $optionText($label, $key) }}" @selected(old('priority', $requestItem->priority ?? 'normal') === $key)>{{ $optionText($label, $key) }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -115,8 +131,9 @@
                             <div class="input-group mb-2">
                                 <select name="contract_type" id="contractType" class="form-select" style="max-width: 140px">
                                     <option value="">تلقائي</option>
-                                    <option value="recruitment" @selected(old('contract_type', $requestItem->contract_type ?? '') === 'recruitment')>استقدام</option>
-                                    <option value="rental" @selected(old('contract_type', $requestItem->contract_type ?? '') === 'rental')>تأجير</option>
+                                    @foreach ($contractTypes as $key => $label)
+                                        <option value="{{ $key }}" @selected(old('contract_type', $requestItem->contract_type ?? '') === $key)>{{ $label }}</option>
+                                    @endforeach
                                 </select>
                                 <input type="text" name="contract_number" id="contractNumber" class="form-control" value="{{ old('contract_number', $requestItem->contract_number ?? '') }}" placeholder="رقم العقد">
                                 <button class="btn btn-outline-primary" type="button" id="fetchContract">سحب</button>
@@ -162,6 +179,25 @@
     <script>
         const typeFields = @json($typeFields);
         const payload = @json($payload);
+        const fieldFallbackLabels = {
+            musaned_request_no: 'رقم طلب مساند',
+            musaned_invoice_no: 'رقم فاتورة مساند',
+            visa_number: 'رقم التأشيرة',
+            government_reference: 'رقم المرجع الحكومي',
+            enjaz_number: 'رقم إنجاز',
+            authorization_no: 'رقم التفويض',
+            iqama_number: 'رقم الإقامة',
+            period: 'المدة',
+            permit_number: 'رقم رخصة العمل',
+            policy_number: 'رقم الوثيقة',
+            insurance_company: 'شركة التأمين',
+            salary_month: 'شهر الراتب',
+            salary_days: 'عدد الأيام',
+            refund_reason: 'سبب الاسترداد',
+            iban: 'آيبان العميل',
+            subject: 'موضوع الطلب',
+            reference_no: 'رقم مرجعي'
+        };
 
         function escapeHtml(value) {
             return String(value || '').replace(/[&<>"']/g, char => ({
@@ -180,7 +216,18 @@
             Object.entries(typeFields[type] || {}).forEach(([key, label]) => {
                 const col = document.createElement('div');
                 col.className = 'col-md-6';
-                col.innerHTML = `<label class="form-label">${label}</label><input type="text" class="form-control" name="payload[${key}]" value="${payload[key] || ''}">`;
+                const fieldLabel = document.createElement('label');
+                fieldLabel.className = 'form-label';
+                fieldLabel.textContent = label || fieldFallbackLabels[key] || key.replaceAll('_', ' ');
+
+                const field = document.createElement('input');
+                field.type = 'text';
+                field.className = 'form-control';
+                field.name = `payload[${key}]`;
+                field.value = payload[key] || '';
+
+                col.appendChild(fieldLabel);
+                col.appendChild(field);
                 wrapper.appendChild(col);
             });
         }

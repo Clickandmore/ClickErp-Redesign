@@ -369,11 +369,12 @@ class AdminRoutePermissionMatrix
                 'financial-requests.edit' => [PermKeys::FINANCIAL_REQUESTS_EDIT, PermKeys::FINANCIAL_REQUESTS_CONTROL],
                 'financial-requests.update' => [PermKeys::FINANCIAL_REQUESTS_EDIT, PermKeys::FINANCIAL_REQUESTS_CONTROL],
                 'financial-requests.destroy' => [PermKeys::FINANCIAL_REQUESTS_DELETE, PermKeys::FINANCIAL_REQUESTS_CONTROL],
-                'financial-requests.status' => [PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, PermKeys::FINANCIAL_REQUESTS_APPROVE, PermKeys::FINANCIAL_REQUESTS_CONTROL],
+                'financial-requests.status' => [PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, PermKeys::FINANCIAL_REQUESTS_ESCALATE, PermKeys::FINANCIAL_REQUESTS_APPROVE, PermKeys::FINANCIAL_REQUESTS_CONTROL],
                 'financial-requests.export' => [PermKeys::FINANCIAL_REQUESTS_EXPORT, PermKeys::FINANCIAL_REQUESTS_CONTROL],
                 'financial-requests.print' => [PermKeys::FINANCIAL_REQUESTS_EXPORT, PermKeys::FINANCIAL_REQUESTS_CONTROL],
                 'financial-requests.search-clients' => [PermKeys::FINANCIAL_REQUESTS_CREATE, PermKeys::FINANCIAL_REQUESTS_EDIT, PermKeys::FINANCIAL_REQUESTS_CONTROL],
                 'financial-requests.search-maids' => [PermKeys::FINANCIAL_REQUESTS_CREATE, PermKeys::FINANCIAL_REQUESTS_EDIT, PermKeys::FINANCIAL_REQUESTS_CONTROL],
+                'financial-requests.search-accounts' => [PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, PermKeys::FINANCIAL_REQUESTS_APPROVE, PermKeys::FINANCIAL_REQUESTS_CONTROL],
                 'financial-requests.contract-details' => [PermKeys::FINANCIAL_REQUESTS_CREATE, PermKeys::FINANCIAL_REQUESTS_EDIT, PermKeys::FINANCIAL_REQUESTS_CONTROL],
             ]
         );

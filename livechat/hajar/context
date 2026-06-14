@@ -3,9 +3,10 @@ info answers;
 companyName = "شركة هجر للاستقدام";
 webUrl = "https://hajar.sa";
 apiUrl = "https://hajar.sa/api";
-mainOptions = {"طلب استقدام","تأجير","نقل كفالة","متابعة طلب","شكوى","اتصال","خدمة العملاء","إنهاء"};
-afterOptions = {"القائمة الرئيسية","متابعة طلب","خدمة العملاء","إنهاء"};
+mainOptions = {"طلب استقدام","تأجير","نقل كفالة","متابعة طلب","شكوى","اتصال","إنهاء"};
+afterOptions = {"القائمة الرئيسية","متابعة طلب","إنهاء"};
 branchOptions = {"فرع الرياض","فرع الأحساء","القائمة الرئيسية","إنهاء"};
+welcomeText = "حياكم وبياكم في موقع شركة هجر للاستقدام ✨\nنفرح بزيارتكم، ونسعد بخدمتكم على أكمل وجه.\n\nوش حاب تسوّي اليوم؟\nحدد الخيار اللي يناسبك خلنا نخدمك بأفضل شكل 😊";
 nationalities = Map();
 nationalities_keys = Collection();
 nationalities_values = Collection();
@@ -42,8 +43,20 @@ if(context_id.equals("service_estqdam"))
 	if(branchName.containsIgnoreCase("الرئيسية") || branchName.containsIgnoreCase("القائمة الرئيسية"))
 	{
 		response.put("action","reply");
-		response.put("replies",{"اختر الخدمة المطلوبة:"});
+		response.put("replies",{welcomeText});
 		response.put("input",{"type":"select","options":mainOptions});
+		return response;
+	}
+	if(branchName.containsIgnoreCase("فرع الرياض"))
+	{
+		response.put("action","forward");
+		response.put("replies",{"جاري تحويلك إلى المختص بقسم فرع الرياض."});
+		return response;
+	}
+	if(branchName.containsIgnoreCase("فرع الأحساء") || branchName.containsIgnoreCase("فرع الاحساء"))
+	{
+		response.put("action","forward");
+		response.put("replies",{"جاري تحويلك إلى المختص بقسم فرع الأحساء."});
 		return response;
 	}
 	if(!answers.containsKey("new_request"))
@@ -101,7 +114,7 @@ if(context_id.equals("service_estqdam"))
 	if(new_request.containsIgnoreCase("الرئيسية") || new_request.containsIgnoreCase("القائمة الرئيسية"))
 	{
 		response.put("action","reply");
-		response.put("replies",{"اختر الخدمة المطلوبة:"});
+		response.put("replies",{welcomeText});
 		response.put("input",{"type":"select","options":mainOptions});
 		return response;
 	}
@@ -120,7 +133,7 @@ if(context_id.equals("service_estqdam"))
 		if(id_nationality == null || id_nationality == "")
 		{
 			response.put("action","reply");
-			response.put("replies",{"تعذر تحميل الجنسيات حالياً. حاول مرة أخرى أو تواصل مع خدمة العملاء."});
+			response.put("replies",{"تعذر تحميل الجنسيات حالياً. حاول مرة أخرى أو ارجع للقائمة الرئيسية."});
 			response.put("input",{"type":"select","options":afterOptions});
 			return response;
 		}
@@ -144,8 +157,20 @@ else if(context_id.equals("service_rent") || context_id.equals("service_transfer
 	if(branchName.containsIgnoreCase("الرئيسية") || branchName.containsIgnoreCase("القائمة الرئيسية"))
 	{
 		response.put("action","reply");
-		response.put("replies",{"اختر الخدمة المطلوبة:"});
+		response.put("replies",{welcomeText});
 		response.put("input",{"type":"select","options":mainOptions});
+		return response;
+	}
+	if(branchName.containsIgnoreCase("فرع الرياض"))
+	{
+		response.put("action","forward");
+		response.put("replies",{"جاري تحويلك إلى المختص بقسم فرع الرياض."});
+		return response;
+	}
+	if(branchName.containsIgnoreCase("فرع الأحساء") || branchName.containsIgnoreCase("فرع الاحساء"))
+	{
+		response.put("action","forward");
+		response.put("replies",{"جاري تحويلك إلى المختص بقسم فرع الأحساء."});
 		return response;
 	}
 	branchCode = "riyadh";
@@ -185,7 +210,7 @@ else if(context_id.equals("help"))
 	if(contract_reference != null && (contract_reference.containsIgnoreCase("الرئيسية") || contract_reference.containsIgnoreCase("القائمة الرئيسية")))
 	{
 		response.put("action","reply");
-		response.put("replies",{"اختر الخدمة المطلوبة:"});
+		response.put("replies",{welcomeText});
 		response.put("input",{"type":"select","options":mainOptions});
 		return response;
 	}
@@ -268,7 +293,7 @@ else if(context_id.equals("call_request"))
 			return response;
 		}
 		response.put("action","reply");
-		response.put("replies",{"تعذر تسجيل طلب الاتصال حالياً. يمكنك اختيار خدمة العملاء للتواصل المباشر."});
+		response.put("replies",{"تعذر تسجيل طلب الاتصال حالياً. حاول مرة أخرى لاحقاً أو ارجع للقائمة الرئيسية."});
 		response.put("input",{"type":"select","options":afterOptions});
 		return response;
 	}
@@ -321,7 +346,7 @@ else if(context_id.equals("complaints"))
 			return response;
 		}
 		response.put("action","reply");
-		response.put("replies",{"تعذر تسجيل الشكوى حالياً. حاول مرة أخرى لاحقاً أو اختر خدمة العملاء للتواصل المباشر."});
+		response.put("replies",{"تعذر تسجيل الشكوى حالياً. حاول مرة أخرى لاحقاً أو ارجع للقائمة الرئيسية."});
 		response.put("input",{"type":"select","options":afterOptions});
 		return response;
 	}
@@ -329,7 +354,7 @@ else if(context_id.equals("complaints"))
 else
 {
 	response.put("action","reply");
-	response.put("replies",{"اختر الخدمة المطلوبة:"});
+	response.put("replies",{welcomeText});
 	response.put("input",{"type":"select","options":mainOptions});
 	return response;
 }

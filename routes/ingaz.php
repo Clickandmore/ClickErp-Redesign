@@ -312,6 +312,7 @@ Route::group(
             Route::get('orders/export/excel', [OrderController::class, 'exportExcel'])->name('orders.export.excel');
             Route::get('financial-requests/search-clients', [FinancialRequestController::class, 'searchClients'])->name('financial-requests.search-clients');
             Route::get('financial-requests/search-maids', [FinancialRequestController::class, 'searchMaids'])->name('financial-requests.search-maids');
+            Route::get('financial-requests/search-accounts', [FinancialRequestController::class, 'searchAccounts'])->name('financial-requests.search-accounts');
             Route::get('financial-requests/contract-details', [FinancialRequestController::class, 'contractDetails'])->name('financial-requests.contract-details');
             Route::get('financial-requests/export', [FinancialRequestController::class, 'export'])->name('financial-requests.export');
             Route::get('financial-requests/print', [FinancialRequestController::class, 'print'])->name('financial-requests.print');

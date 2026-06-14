@@ -3,6 +3,59 @@
     font-family: "Baloo Bhaijaan 2", sans-serif;
     font-weight: 500;
 }
+.layout-1 .sidebar {
+    font-size: 16px;
+}
+.layout-1 .sidebar .menu-list {
+    padding: 6px 10px;
+}
+.layout-1 .sidebar .menu-list .m-link,
+.layout-1 .sidebar .menu-list .ms-link {
+    border-radius: 8px;
+    color: #263238;
+    font-weight: 700;
+    line-height: 1.55;
+    min-height: 38px;
+}
+.layout-1 .sidebar .menu-list .m-link {
+    gap: 8px;
+    padding: 9px 10px;
+}
+.layout-1 .sidebar .menu-list .sub-menu {
+    padding-inline-start: 18px;
+}
+.layout-1.rtl_mode .sidebar .menu-list .sub-menu,
+body.rtl_mode .layout-1 .sidebar .menu-list .sub-menu {
+    padding-inline-start: 0;
+    padding-inline-end: 18px;
+}
+.layout-1 .sidebar .menu-list .sub-menu .m-link {
+    font-size: 15px;
+    font-weight: 650;
+    min-height: 34px;
+    padding-top: 7px;
+    padding-bottom: 7px;
+}
+.layout-1 .sidebar .menu-list .m-link > i {
+    flex: 0 0 24px;
+    margin: 0;
+}
+.layout-1 .sidebar .menu-list .m-link span:not(.arrow):not(.badge) {
+    overflow-wrap: anywhere;
+}
+.layout-1 .sidebar .menu-list .divider .small,
+.layout-1 .sidebar .menu-list .divider small {
+    color: #5f6b76;
+    font-size: 13px;
+    font-weight: 800;
+}
+.layout-1 .sidebar .menu-list .m-link.active,
+.layout-1 .sidebar .menu-list .m-link:hover,
+.layout-1 .sidebar .menu-list .ms-link.active,
+.layout-1 .sidebar .menu-list .ms-link:hover {
+    background: rgba(78, 115, 223, 0.08);
+    color: #1f4fd6;
+}
 .apexcharts-canvas * {
     font-family: "Baloo Bhaijaan 2", sans-serif !important;
 }
