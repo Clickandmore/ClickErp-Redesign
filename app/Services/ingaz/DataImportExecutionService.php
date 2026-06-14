@@ -421,6 +421,7 @@ class DataImportExecutionService
             'marketer_id' => $adminId,
             'status' => $status,
             'contract_number' => $row['contract_number'] ?? null,
+            'visa_number' => $row['visa_number'] ?? null,
             'contract_date' => $this->parseDate($row['contract_date'] ?? null),
             'type' => 'recruitment',
         ]);
@@ -435,6 +436,7 @@ class DataImportExecutionService
 
         $this->upsertContractInfo($contract, [
             'contract_date' => $this->parseDate($row['contract_date'] ?? null),
+            'visa_number' => $row['visa_number'] ?? null,
             'arrival_date' => $this->parseDate($row['arrival_date'] ?? null),
             'contract_value' => $this->decimal($row['amount'] ?? null),
             'notes' => $row['notes'] ?? null,
@@ -648,6 +650,7 @@ class DataImportExecutionService
     {
         return array_merge($row, [
             'contract_number' => $row['contract_number'] ?? null,
+            'visa_number' => $row['visa_number'] ?? null,
             'client_phone' => $row['client_phone'] ?? $row['phone'] ?? null,
             'client_id_number' => $row['client_id_number'] ?? $row['id_number'] ?? null,
             'client_name' => $row['client_name'] ?? $row['name'] ?? null,
@@ -1706,7 +1709,10 @@ class DataImportExecutionService
 
     private function normalizeHeader(string $value): string
     {
-        return preg_replace('/\s+/u', '', mb_strtolower(trim($value)));
+        $value = mb_strtolower(trim($value));
+        $value = str_replace(['أ', 'إ', 'آ', 'ى', 'ة', 'ـ'], ['ا', 'ا', 'ا', 'ي', 'ه', ''], $value);
+
+        return preg_replace('/\s+/u', '', $value);
     }
 
     private function defaultImportPasswordHash(): string

@@ -163,6 +163,7 @@ class DataImportTemplateService
                 'filename' => 'recruitment-contracts-import-template.xlsx',
                 'columns' => [
                     ['key' => 'contract_number', 'label' => 'رقم العقد', 'required' => false, 'example' => 'RC-0001'],
+                    ['key' => 'visa_number', 'label' => 'رقم التأشيرة', 'required' => false, 'example' => 'VS-000001'],
                     ['key' => 'client_phone', 'label' => 'جوال العميل', 'required' => true, 'example' => '0500000000'],
                     ['key' => 'client_id_number', 'label' => 'رقم هوية العميل', 'required' => true, 'example' => '1000000000'],
                     ['key' => 'client_name', 'label' => 'اسم العميل', 'required' => false, 'example' => 'محمد أحمد'],
@@ -268,6 +269,7 @@ class DataImportTemplateService
             $this->maidBundleColumns(false),
             [
                 ['key' => 'contract_number', 'label' => 'رقم عقد الاستقدام', 'required' => false, 'example' => 'RC-0001'],
+                ['key' => 'visa_number', 'label' => 'رقم التأشيرة', 'required' => false, 'example' => 'VS-000001'],
                 ['key' => 'contract_date', 'label' => 'تاريخ عقد الاستقدام', 'required' => true, 'example' => now()->format('Y-m-d')],
                 ['key' => 'recruitment_contract_status', 'label' => 'حالة عقد الاستقدام', 'required' => true, 'example' => 'عقود مساند', 'valid_values' => $this->recruitmentContractStatusLabels()],
                 ['key' => 'contract_amount', 'label' => 'قيمة عقد الاستقدام', 'required' => false, 'example' => '12000'],
