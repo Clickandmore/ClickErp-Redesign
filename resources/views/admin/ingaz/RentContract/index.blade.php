@@ -195,12 +195,29 @@
             flex: 0 0 auto;
         }
 
-        .rent-stat-primary { --rent-stat-color: #2563eb; }
-        .rent-stat-success { --rent-stat-color: #16a34a; }
-        .rent-stat-info { --rent-stat-color: #0891b2; }
-        .rent-stat-warning { --rent-stat-color: #d97706; }
-        .rent-stat-danger { --rent-stat-color: #dc2626; }
-        .rent-stat-muted { --rent-stat-color: #475569; }
+        .rent-stat-primary {
+            --rent-stat-color: #2563eb;
+        }
+
+        .rent-stat-success {
+            --rent-stat-color: #16a34a;
+        }
+
+        .rent-stat-info {
+            --rent-stat-color: #0891b2;
+        }
+
+        .rent-stat-warning {
+            --rent-stat-color: #d97706;
+        }
+
+        .rent-stat-danger {
+            --rent-stat-color: #dc2626;
+        }
+
+        .rent-stat-muted {
+            --rent-stat-color: #475569;
+        }
 
         .filter-card {
             border: 1px solid #e5e7eb;
@@ -427,18 +444,7 @@
 @section('content')
     @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_VIEW))
         @php
-            $canManageRentContractTerms = @AdminGuardHasAnyPerm([
-                \App\PermKeys::RENT_CONTRACT_TERMS_VIEW,
-                \App\PermKeys::RENT_CONTRACT_TERMS_CREATE,
-                \App\PermKeys::RENT_CONTRACT_TERMS_EDIT,
-                \App\PermKeys::RENT_CONTRACT_TERMS_DELETE,
-                \App\PermKeys::RENT_CONTRACT_VIEW,
-                \App\PermKeys::RENT_CONTRACT_CREATE,
-                \App\PermKeys::RENT_CONTRACT_EDIT,
-                \App\PermKeys::RENT_CONTRACT_DELETE,
-                \App\PermKeys::RENT_CONTRACT_CONTROL,
-                \App\PermKeys::CONTRACT_SETTINGS,
-            ]);
+            $canManageRentContractTerms = @AdminGuardHasAnyPerm([\App\PermKeys::RENT_CONTRACT_TERMS_VIEW, \App\PermKeys::RENT_CONTRACT_TERMS_CREATE, \App\PermKeys::RENT_CONTRACT_TERMS_EDIT, \App\PermKeys::RENT_CONTRACT_TERMS_DELETE, \App\PermKeys::RENT_CONTRACT_VIEW, \App\PermKeys::RENT_CONTRACT_CREATE, \App\PermKeys::RENT_CONTRACT_EDIT, \App\PermKeys::RENT_CONTRACT_DELETE, \App\PermKeys::RENT_CONTRACT_CONTROL, \App\PermKeys::CONTRACT_SETTINGS]);
         @endphp
         <!-- Header Section -->
         <div class="d-sm-flex align-items-center justify-content-between mb-4">
@@ -558,20 +564,26 @@
                             <option value="" {{ request('status') ? '' : 'selected' }}>جميع الحالات</option>
                             <option value="new" {{ request('status') === 'new' ? 'selected' : '' }}>جديد</option>
                             <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>نشط</option>
-                            <option value="contract_sent" {{ in_array(request('status'), ['contract_sent', 'waiting_contract_send'], true) ? 'selected' : '' }}>
+                            <option value="contract_sent"
+                                {{ in_array(request('status'), ['contract_sent', 'waiting_contract_send'], true) ? 'selected' : '' }}>
                                 بانتظار التوقيع
                             </option>
-                            <option value="contract_signed" {{ request('status') === 'contract_signed' ? 'selected' : '' }}>
+                            <option value="contract_signed"
+                                {{ request('status') === 'contract_signed' ? 'selected' : '' }}>
                                 تم توقيع العقد
                             </option>
                             <option value="maid_delivered" {{ request('status') === 'maid_delivered' ? 'selected' : '' }}>
-                               تم تسليم العاملة
+                                تم تسليم العاملة
                             </option>
-                            <option value="completed" {{ request('status') === 'completed' ? 'selected' : '' }}>مكتمل</option>
+                            <option value="completed" {{ request('status') === 'completed' ? 'selected' : '' }}>مكتمل
+                            </option>
                             {{-- <option value="available">مغلق - متاحة</option> --}}
-                            <option value="transferred" {{ request('status') === 'transferred' ? 'selected' : '' }}>تم النقل</option>
-                            <option value="cancelled" {{ request('status') === 'cancelled' ? 'selected' : '' }}>ملغي</option>
-                            <option value="suspended" {{ request('status') === 'suspended' ? 'selected' : '' }}>معلق</option>
+                            <option value="transferred" {{ request('status') === 'transferred' ? 'selected' : '' }}>تم
+                                النقل</option>
+                            <option value="cancelled" {{ request('status') === 'cancelled' ? 'selected' : '' }}>ملغي
+                            </option>
+                            <option value="suspended" {{ request('status') === 'suspended' ? 'selected' : '' }}>معلق
+                            </option>
                             <option value="frozen" {{ request('status') === 'frozen' ? 'selected' : '' }}>مجمد</option>
                         </select>
                     </div>
@@ -591,7 +603,8 @@
                             <option value="expired" {{ request('expiry_filter') === 'expired' ? 'selected' : '' }}>
                                 العقود المنتهية
                             </option>
-                            <option value="not_expired" {{ request('expiry_filter') === 'not_expired' ? 'selected' : '' }}>
+                            <option value="not_expired"
+                                {{ request('expiry_filter') === 'not_expired' ? 'selected' : '' }}>
                                 العقود غير المنتهية
                             </option>
                         </select>
@@ -652,17 +665,17 @@
                         <label for="marketerFilter" class="form-label">المسوق:</label>
                         <select id="marketerFilter" class="form-select">
                             <option value="">جميع المسوقين</option>
-                            @foreach(($marketers ?? collect()) as $marketer)
+                            @foreach ($marketers ?? collect() as $marketer)
                                 <option value="{{ $marketer->id }}">{{ $marketer->name }}</option>
                             @endforeach
                         </select>
                     </div>
-                    @if($branchesEnabled ?? false)
+                    @if ($branchesEnabled ?? false)
                         <div class="col-md-3">
                             <label for="branchFilter" class="form-label">{{ __('admin.branches') }}:</label>
                             <select id="branchFilter" class="form-select">
                                 <option value="">{{ helperTrans('ingaz.all') }}</option>
-                                @foreach(($branches ?? collect()) as $branch)
+                                @foreach ($branches ?? collect() as $branch)
                                     <option value="{{ $branch->id }}">{{ $branch->name }}</option>
                                 @endforeach
                             </select>
@@ -727,7 +740,7 @@
                             <th>العاملة</th>
                             <th>معلومات العقد</th>
                             <th>المسوق</th>
-                            @if($branchesEnabled ?? false)
+                            @if ($branchesEnabled ?? false)
                                 <th>{{ __('admin.branches') }}</th>
                             @endif
                             <th>الحالة</th>
@@ -792,7 +805,8 @@
                                         </div>
                                         <div class="col-md-3">
                                             <label for="closureDate" class="fw-bold mb-1">تاريخ الإنهاء:</label>
-                                            <input type="date" class="form-control form-control-sm" id="closureDate" required>
+                                            <input type="date" class="form-control form-control-sm" id="closureDate"
+                                                required>
                                         </div>
                                         <div class="col-md-3">
                                             <strong>المدة المتبقية:</strong>
@@ -805,7 +819,8 @@
                                     </div>
                                     <div class="alert alert-danger mb-0 d-none" id="earlyClosureNotice">
                                         <i class="fas fa-exclamation-triangle me-1"></i>
-                                        سيتم تسجيل هذا العقد كعقد ملغي لأن تاريخ الإنهاء قبل تاريخ نهاية العقد، وسيظهر ذلك في التفاصيل والإحصائيات.
+                                        سيتم تسجيل هذا العقد كعقد ملغي لأن تاريخ الإنهاء قبل تاريخ نهاية العقد، وسيظهر ذلك
+                                        في التفاصيل والإحصائيات.
                                     </div>
                                 </div>
                             </div>
@@ -828,7 +843,8 @@
                     <div class="row mb-4" id="closeFinancialSettlementRow" style="display: none;">
                         <div class="col-12">
                             <div class="close-section-card">
-                                <div class="section-title"><i class="fas fa-file-invoice-dollar"></i>البيان المالي قبل الإنهاء</div>
+                                <div class="section-title"><i class="fas fa-file-invoice-dollar"></i>البيان المالي قبل
+                                    الإنهاء</div>
                                 <div class="section-body">
                                     <div class="row g-3">
                                         <div class="col-md-3">
@@ -893,7 +909,8 @@
                                             </select>
                                         </div>
                                         <div class="col-md-4">
-                                            <label class="form-label" id="closeAdjustmentAmountLabel">مبلغ الاسترجاع</label>
+                                            <label class="form-label" id="closeAdjustmentAmountLabel">مبلغ
+                                                الاسترجاع</label>
                                             <input type="number" class="form-control" id="closeAdjustmentAmount"
                                                 min="0" step="0.01" value="0">
                                         </div>
@@ -949,12 +966,14 @@
                                                 accept=".jpg,.jpeg,.png,.pdf">
                                         </div>
                                         <div class="col-md-4">
-                                            <label class="form-label">آيبان العميل <small class="text-muted">(اختياري)</small></label>
-                                            <input type="text" class="form-control" id="closeClientIban" dir="ltr"
-                                                maxlength="34" placeholder="SAxxxxxxxxxxxxxxxxxxxxxx">
+                                            <label class="form-label">آيبان العميل <small
+                                                    class="text-muted">(اختياري)</small></label>
+                                            <input type="text" class="form-control" id="closeClientIban"
+                                                dir="ltr" maxlength="34" placeholder="SAxxxxxxxxxxxxxxxxxxxxxx">
                                         </div>
                                         <div class="col-md-4">
-                                            <label class="form-label">مرفق آيبان العميل <small class="text-muted">(اختياري)</small></label>
+                                            <label class="form-label">مرفق آيبان العميل <small
+                                                    class="text-muted">(اختياري)</small></label>
                                             <input type="file" class="form-control" id="closeClientIbanAttachment"
                                                 accept=".jpg,.jpeg,.png,.pdf">
                                             <div class="form-text d-none" id="closeClientIbanAttachmentCurrentWrapper">
@@ -977,7 +996,8 @@
                                             <i class="fas fa-arrow-right me-2"></i>
                                             رجوع للخيارات
                                         </button>
-                                        <button type="button" class="btn btn-success" id="confirmCloseAndMakeAvailableBtn">
+                                        <button type="button" class="btn btn-success"
+                                            id="confirmCloseAndMakeAvailableBtn">
                                             <i class="fas fa-check me-2"></i>
                                             تأكيد الإغلاق والإتاحة
                                         </button>
@@ -1043,7 +1063,9 @@
                                                 <small class="text-muted">الكفيل القديم</small>
                                             </div>
                                             <div class="card-body">
-                                                <h6 class="mb-1">{{ documentSetting('document_company_name', documentSetting('website_name', config('app.name'))) }}</h6>
+                                                <h6 class="mb-1">
+                                                    {{ documentSetting('document_company_name', documentSetting('website_name', config('app.name'))) }}
+                                                </h6>
                                                 <small class="text-muted">عقد إيجار</small>
                                             </div>
                                         </div>
@@ -1066,7 +1088,8 @@
                                         <div class="col-12">
                                             <div class="transfer-summary-box mb-3">
                                                 <i class="fas fa-info-circle me-1"></i>
-                                                نقل الكفالة لا ينشئ عقداً جديداً. أدخل المبلغ الكامل للنقل، وسيتم استخدامه في التوثيق والبنود المالية.
+                                                نقل الكفالة لا ينشئ عقداً جديداً. أدخل المبلغ الكامل للنقل، وسيتم استخدامه
+                                                في التوثيق والبنود المالية.
                                             </div>
                                         </div>
                                         <div class="col-md-6">
@@ -1103,9 +1126,10 @@
                                                 </div>
                                                 <div class="row g-3">
                                                     <div class="col-md-4">
-                                                        <label for="transferPaymentType" class="form-label">طريقة الدفع <span
-                                                                class="text-danger">*</span></label>
-                                                        <select class="form-select" id="transferPaymentType" name="payment_type" required>
+                                                        <label for="transferPaymentType" class="form-label">طريقة الدفع
+                                                            <span class="text-danger">*</span></label>
+                                                        <select class="form-select" id="transferPaymentType"
+                                                            name="payment_type" required>
                                                             <option value="">اختر الطريقة</option>
                                                             <option value="cash">نقداً</option>
                                                             <option value="bank_transfer">تحويل بنكي</option>
@@ -1117,9 +1141,10 @@
                                                         </select>
                                                     </div>
                                                     <div class="col-md-4">
-                                                        <label for="transferPaymentStatus" class="form-label">حالة الدفع <span
-                                                                class="text-danger">*</span></label>
-                                                        <select class="form-select" id="transferPaymentStatus" name="payment_status" required>
+                                                        <label for="transferPaymentStatus" class="form-label">حالة الدفع
+                                                            <span class="text-danger">*</span></label>
+                                                        <select class="form-select" id="transferPaymentStatus"
+                                                            name="payment_status" required>
                                                             <option value="">اختر الحالة</option>
                                                             <option value="paid">تم الدفع</option>
                                                             <option value="partial">مدفوع جزئياً</option>
@@ -1130,18 +1155,22 @@
                                                     </div>
                                                     <div class="col-md-4">
                                                         <label for="transferPaymentReceipt" class="form-label">
-                                                            إيصال الدفع <span class="text-danger d-none" id="transferReceiptRequiredMark">*</span>
+                                                            إيصال الدفع <span class="text-danger d-none"
+                                                                id="transferReceiptRequiredMark">*</span>
                                                         </label>
-                                                        <input type="file" class="form-control" id="transferPaymentReceipt"
-                                                            name="payment_receipt" accept=".jpg,.jpeg,.png,.pdf">
+                                                        <input type="file" class="form-control"
+                                                            id="transferPaymentReceipt" name="payment_receipt"
+                                                            accept=".jpg,.jpeg,.png,.pdf">
                                                         <div class="form-text d-none" id="transferReceiptRequiredNote">
                                                             الإيصال مطلوب عند اختيار تم الدفع أو مدفوع جزئياً.
                                                         </div>
                                                     </div>
                                                     <div class="col-12">
-                                                        <label for="transferAttachments" class="form-label">مرفقات إضافية</label>
-                                                        <input type="file" class="form-control" id="transferAttachments"
-                                                            name="attachments[]" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx" multiple>
+                                                        <label for="transferAttachments" class="form-label">مرفقات
+                                                            إضافية</label>
+                                                        <input type="file" class="form-control"
+                                                            id="transferAttachments" name="attachments[]"
+                                                            accept=".jpg,.jpeg,.png,.pdf,.doc,.docx" multiple>
                                                     </div>
                                                 </div>
                                             </div>
@@ -1320,7 +1349,8 @@
                             </div>
                             <div class="col-md-3">
                                 <label for="extend_extension_end_date" class="form-label">تاريخ النهاية الجديد</label>
-                                <input type="text" class="form-control bg-light" id="extend_extension_end_date" readonly>
+                                <input type="text" class="form-control bg-light" id="extend_extension_end_date"
+                                    readonly>
                             </div>
                             <div class="col-12">
                                 <div class="extend-preview-box">
@@ -1463,13 +1493,12 @@
                         data: 'marketer',
                         name: 'marketer'
                     },
-                    @if($branchesEnabled ?? false)
-                    {
-                        data: 'branch',
-                        name: 'branch'
-                    },
-                    @endif
-                    {
+                    @if ($branchesEnabled ?? false)
+                        {
+                            data: 'branch',
+                            name: 'branch'
+                        },
+                    @endif {
                         data: 'status',
                         name: 'status'
                     },
@@ -1775,7 +1804,8 @@
                 const contractValue = toNumber($('#extend_contract_value_value').val());
                 const currentDurationDays = toNumber($('#extend_duration_days_value').val());
                 const storedDailyRate = toNumber($('#extend_daily_rate_value').val());
-                const dailyRate = storedDailyRate || (currentDurationDays > 0 && contractValue > 0 ? contractValue / currentDurationDays : 0);
+                const dailyRate = storedDailyRate || (currentDurationDays > 0 && contractValue > 0 ? contractValue /
+                    currentDurationDays : 0);
                 const extensionDays = (months * 30) + extraDays;
 
                 if (!extensionDays || !endDateStr) {
@@ -1858,7 +1888,8 @@
                 const remainingDays = button.data('remaining-days');
                 const usedDays = button.data('used-days');
                 const extensionsCount = toNumber(button.data('extensions-count'));
-                const dailyRate = durationDays > 0 && contractValue > 0 ? contractValue / durationDays : monthlyCost / 30;
+                const dailyRate = durationDays > 0 && contractValue > 0 ? contractValue / durationDays :
+                    monthlyCost / 30;
 
                 resetExtendModal();
                 $('#extendContractForm').attr('action', extendUrl);
@@ -1872,8 +1903,10 @@
                 if (durationDays) {
                     durationParts.push(durationDays + ' يوم');
                 }
-                $('#extend_current_duration_text').text(durationParts.length ? durationParts.join(' / ') : '-');
-                $('#extend_used_days_text').text(usedDays !== '' && typeof usedDays !== 'undefined' ? (usedDays + ' يوم') : '-');
+                $('#extend_current_duration_text').text(durationParts.length ? durationParts.join(' / ') :
+                    '-');
+                $('#extend_used_days_text').text(usedDays !== '' && typeof usedDays !== 'undefined' ? (
+                    usedDays + ' يوم') : '-');
                 $('#extend_remaining_days_text').text(renderRemainingDays(remainingDays));
                 $('#extend_contract_value_text').text(formatCurrency(contractValue) + ' ريال');
                 $('#extend_daily_rate_text').text(formatCurrency(dailyRate) + ' ريال');
@@ -1965,7 +1998,8 @@
                             });
 
                             if (messages.length) {
-                                $('#extendContractErrors').removeClass('d-none').html(messages.join('<br>'));
+                                $('#extendContractErrors').removeClass('d-none').html(messages
+                                    .join('<br>'));
                                 errorMessage = messages[0];
                             }
                         } else if (xhr.responseJSON && xhr.responseJSON.message) {
@@ -1989,9 +2023,11 @@
                 const adjustmentAmount = parseFloat($('#closeAdjustmentAmount').val() || 0);
                 const adjustmentType = $('#closeAdjustmentType').val() || 'refund';
                 const clearRemainingEnabled = $('#closeClearRemainingToggle').is(':checked');
-                let clearRemainingAmount = clearRemainingEnabled ? parseFloat($('#closeClearRemainingAmount').val() || 0) : 0;
+                let clearRemainingAmount = clearRemainingEnabled ? parseFloat($('#closeClearRemainingAmount')
+                .val() || 0) : 0;
 
-                $('#closeAdjustmentAmountLabel').text(adjustmentType === 'company_due' ? 'مبلغ مستحق الشركة' : 'مبلغ الاسترجاع');
+                $('#closeAdjustmentAmountLabel').text(adjustmentType === 'company_due' ? 'مبلغ مستحق الشركة' :
+                    'مبلغ الاسترجاع');
 
                 if (clearRemainingAmount > remainingAmount) {
                     clearRemainingAmount = remainingAmount;
@@ -2042,22 +2078,29 @@
                 $('#remainingDays').text(formatCloseRemainingDaysText(contract));
                 $('#financialMonthlyCost').text(formatCurrency(contract.monthly_cost || 0) + ' ريال');
                 $('#financialDurationMonths').text(formatContractDuration(contract));
-                $('#financialDurationDays').text((contract.duration_days || 0) ? (contract.duration_days + ' يوم') : '-');
+                $('#financialDurationDays').text((contract.duration_days || 0) ? (contract.duration_days + ' يوم') :
+                    '-');
                 $('#financialContractValue').text(formatCurrency(contract.contract_value || 0) + ' ريال');
                 $('#financialPaidAmount').text(formatCurrency(contract.paid_amount || 0) + ' ريال');
                 $('#financialRemainingAmount')
                     .text(formatCurrency(contract.remaining_amount || 0) + ' ريال')
                     .data('raw', contract.remaining_amount || 0);
-                $('#financialUsedDays').text(contract.used_days !== null && typeof contract.used_days !== 'undefined' ? (contract.used_days + ' يوم') : '-');
-                $('#financialRemainingDays').text(contract.remaining_days_value !== null && typeof contract.remaining_days_value !== 'undefined' ? (contract.remaining_days_value + ' يوم') : '-');
-                $('#financialOverdueDays').text(contract.overdue_days !== null && typeof contract.overdue_days !== 'undefined' ? (contract.overdue_days + ' يوم') : '-');
+                $('#financialUsedDays').text(contract.used_days !== null && typeof contract.used_days !==
+                    'undefined' ? (contract.used_days + ' يوم') : '-');
+                $('#financialRemainingDays').text(contract.remaining_days_value !== null && typeof contract
+                    .remaining_days_value !== 'undefined' ? (contract.remaining_days_value + ' يوم') : '-');
+                $('#financialOverdueDays').text(contract.overdue_days !== null && typeof contract.overdue_days !==
+                    'undefined' ? (contract.overdue_days + ' يوم') : '-');
                 $('#financialDailyRate').text(formatCurrency(contract.daily_rate || 0) + ' ريال');
                 $('#financialUsedCost').text(formatCurrency(contract.used_cost || 0) + ' ريال');
-                $('#financialSuggestedRefund').text(formatCurrency(contract.calculated_refund_value || 0) + ' ريال');
-                $('#financialCompanyDue').text(formatCurrency(contract.calculated_company_due_value || 0) + ' ريال');
+                $('#financialSuggestedRefund').text(formatCurrency(contract.calculated_refund_value || 0) +
+                ' ريال');
+                $('#financialCompanyDue').text(formatCurrency(contract.calculated_company_due_value || 0) +
+                ' ريال');
                 $('#earlyClosureNotice').toggleClass('d-none', !contract.is_early_closure);
                 if (contract.closure_status_text) {
-                    $('#currentStatus').text((contract.status_text || '-') + ' / بعد الإنهاء: ' + contract.closure_status_text);
+                    $('#currentStatus').text((contract.status_text || '-') + ' / بعد الإنهاء: ' + contract
+                        .closure_status_text);
                 }
                 $('#closeAdjustmentType')
                     .data('refund-value', contract.refund_value || 0)
@@ -2116,9 +2159,9 @@
 
             $('#closeAdjustmentType').on('change', function() {
                 const selectedType = $(this).val() || 'refund';
-                const defaultAmount = selectedType === 'company_due'
-                    ? $(this).data('company-due-value')
-                    : $(this).data('refund-value');
+                const defaultAmount = selectedType === 'company_due' ?
+                    $(this).data('company-due-value') :
+                    $(this).data('refund-value');
 
                 $('#closeAdjustmentAmount').val(parseFloat(defaultAmount || 0).toFixed(2));
                 updateCloseFinancialPreview();
@@ -2162,7 +2205,8 @@
                 const receiptRequired = paymentStatus === 'paid' || paymentStatus === 'partial';
 
                 $('#transferPaymentReceipt').prop('required', receiptRequired);
-                $('#transferReceiptRequiredMark, #transferReceiptRequiredNote').toggleClass('d-none', !receiptRequired);
+                $('#transferReceiptRequiredMark, #transferReceiptRequiredNote').toggleClass('d-none', !
+                    receiptRequired);
             }
 
             function resetTransferPaymentFields() {
@@ -2328,23 +2372,38 @@
                             $('#endDate').text(contract.end_date || '-');
                             $('#closureDate')
                                 .attr('min', contract.start_date || null)
-                                .val(contract.closure_date || new Date().toISOString().slice(0, 10));
+                                .val(contract.closure_date || new Date().toISOString().slice(0,
+                                    10));
                             $('#remainingDays').text(contract.remaining_days || '-');
                             $('#contractValue').text((contract.amount || 0) + ' ريال');
-                            $('#financialMonthlyCost').text(formatCurrency(contract.monthly_cost || 0) + ' ريال');
-                            $('#financialDurationMonths').text((contract.duration_months || 0) ? (contract.duration_months + ' شهر') : '-');
-                            $('#financialDurationDays').text((contract.duration_days || 0) ? (contract.duration_days + ' يوم') : '-');
-                            $('#financialContractValue').text(formatCurrency(contract.contract_value || 0) + ' ريال');
-                            $('#financialPaidAmount').text(formatCurrency(contract.paid_amount || 0) + ' ريال');
+                            $('#financialMonthlyCost').text(formatCurrency(contract
+                                .monthly_cost || 0) + ' ريال');
+                            $('#financialDurationMonths').text((contract.duration_months || 0) ?
+                                (contract.duration_months + ' شهر') : '-');
+                            $('#financialDurationDays').text((contract.duration_days || 0) ? (
+                                contract.duration_days + ' يوم') : '-');
+                            $('#financialContractValue').text(formatCurrency(contract
+                                .contract_value || 0) + ' ريال');
+                            $('#financialPaidAmount').text(formatCurrency(contract
+                                .paid_amount || 0) + ' ريال');
                             $('#financialRemainingAmount')
                                 .text(formatCurrency(contract.remaining_amount || 0) + ' ريال')
                                 .data('raw', contract.remaining_amount || 0);
-                            $('#financialUsedDays').text(contract.used_days !== null && typeof contract.used_days !== 'undefined' ? (contract.used_days + ' يوم') : '-');
-                            $('#financialRemainingDays').text(contract.remaining_days_value !== null && typeof contract.remaining_days_value !== 'undefined' ? (contract.remaining_days_value + ' يوم') : '-');
-                            $('#financialDailyRate').text(formatCurrency(contract.daily_rate || 0) + ' ريال');
-                            $('#financialUsedCost').text(formatCurrency(contract.used_cost || 0) + ' ريال');
-                            $('#financialSuggestedRefund').text(formatCurrency(contract.calculated_refund_value || 0) + ' ريال');
-                            $('#closeAdjustmentAmount').val(parseFloat(contract.refund_value || 0).toFixed(2));
+                            $('#financialUsedDays').text(contract.used_days !== null &&
+                                typeof contract.used_days !== 'undefined' ? (contract
+                                    .used_days + ' يوم') : '-');
+                            $('#financialRemainingDays').text(contract.remaining_days_value !==
+                                null && typeof contract.remaining_days_value !==
+                                'undefined' ? (contract.remaining_days_value + ' يوم') : '-'
+                                );
+                            $('#financialDailyRate').text(formatCurrency(contract.daily_rate ||
+                                0) + ' ريال');
+                            $('#financialUsedCost').text(formatCurrency(contract.used_cost ||
+                                0) + ' ريال');
+                            $('#financialSuggestedRefund').text(formatCurrency(contract
+                                .calculated_refund_value || 0) + ' ريال');
+                            $('#closeAdjustmentAmount').val(parseFloat(contract.refund_value ||
+                                0).toFixed(2));
                             fillCloseFinancialFields(contract);
                             $('#closeReturnReason').val(contract.closure_return_reason || '');
                             $('#closePaymentStatus').val(contract.payment_status || '');
@@ -2352,8 +2411,10 @@
                             renderContractAttachments(contract.attachments || []);
 
                             if (contract.closure_client_iban_attachment_url) {
-                                $('#closeClientIbanAttachmentCurrent').attr('href', contract.closure_client_iban_attachment_url);
-                                $('#closeClientIbanAttachmentCurrentWrapper').removeClass('d-none');
+                                $('#closeClientIbanAttachmentCurrent').attr('href', contract
+                                    .closure_client_iban_attachment_url);
+                                $('#closeClientIbanAttachmentCurrentWrapper').removeClass(
+                                    'd-none');
                             }
 
                             updateCloseFinancialPreview();
@@ -2400,21 +2461,26 @@
                         formData.append('_token', '{{ csrf_token() }}');
                         formData.append('adjustment_type', $('#closeAdjustmentType').val());
                         formData.append('adjustment_amount', $('#closeAdjustmentAmount').val() || 0);
-                        formData.append('clear_remaining_amount', $('#closeClearRemainingToggle').is(':checked') ? ($('#closeClearRemainingAmount').val() || 0) : 0);
+                        formData.append('clear_remaining_amount', $('#closeClearRemainingToggle').is(
+                            ':checked') ? ($('#closeClearRemainingAmount').val() || 0) : 0);
                         formData.append('closure_date', $('#closureDate').val());
                         formData.append('closure_return_reason', $('#closeReturnReason').val());
                         formData.append('close_payment_status', $('#closePaymentStatus').val());
                         formData.append('close_client_iban', $('#closeClientIban').val());
-                        formData.append('send_closure_message', $('#sendClosureMessageToggle').is(':checked') ? 1 : 0);
+                        formData.append('send_closure_message', $('#sendClosureMessageToggle').is(
+                            ':checked') ? 1 : 0);
 
                         const closePaymentReceipt = $('#closePaymentReceipt')[0];
-                        if (closePaymentReceipt && closePaymentReceipt.files && closePaymentReceipt.files[0]) {
+                        if (closePaymentReceipt && closePaymentReceipt.files && closePaymentReceipt.files[
+                            0]) {
                             formData.append('close_payment_receipt', closePaymentReceipt.files[0]);
                         }
 
                         const closeClientIbanAttachment = $('#closeClientIbanAttachment')[0];
-                        if (closeClientIbanAttachment && closeClientIbanAttachment.files && closeClientIbanAttachment.files[0]) {
-                            formData.append('close_client_iban_attachment', closeClientIbanAttachment.files[0]);
+                        if (closeClientIbanAttachment && closeClientIbanAttachment.files &&
+                            closeClientIbanAttachment.files[0]) {
+                            formData.append('close_client_iban_attachment', closeClientIbanAttachment.files[
+                                0]);
                         }
 
                         $.ajax({
@@ -2499,7 +2565,8 @@
                 }
 
                 attachments.forEach(function(attachment) {
-                    const link = $('<a class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener"></a>');
+                    const link = $(
+                        '<a class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener"></a>');
                     link.attr('href', attachment.url);
                     link.append($('<i class="fas fa-paperclip me-1"></i>'));
                     link.append(document.createTextNode(attachment.label || 'مرفق'));
@@ -2577,7 +2644,8 @@
                 formData.append('notes', $('#transferNotes').val());
                 formData.append('closure_date', $('#closureDate').val());
                 formData.append('transfer_finance_items_present', '1');
-                formData.append('send_closure_message', $('#sendTransferClosureMessageToggle').is(':checked') ? 1 : 0);
+                formData.append('send_closure_message', $('#sendTransferClosureMessageToggle').is(
+                    ':checked') ? 1 : 0);
                 formData.append('_token', '{{ csrf_token() }}');
 
                 getTransferAdjustments().forEach(function(item, index) {
@@ -2743,9 +2811,10 @@
                     }
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        executeWorkflowAction(contractId, 'update-freeze-date', 'تم تحديث تاريخ التجميد بنجاح', {
-                            frozen_at: result.value
-                        });
+                        executeWorkflowAction(contractId, 'update-freeze-date',
+                            'تم تحديث تاريخ التجميد بنجاح', {
+                                frozen_at: result.value
+                            });
                     }
                 });
             });
