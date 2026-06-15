@@ -62,7 +62,7 @@
 
                 <div class="col-4">
                     <label for="TextInput" class="form-label">{{ helperTrans('ingaz.contracts') }}</label>
-                    <select name="contract_id" id="contract_id" class="form-select form-control"
+                    <select name="contract_id" id="contract_id" class="form-select form-control select2"
                         data-validation="required" style="flex: 1;">
                         <option disabled {{ !$selectedContractId ? 'selected' : '' }}>{{ helperTrans('ingaz.choose') }}
                         </option>
@@ -555,7 +555,7 @@
 @endsection
 @section('js')
     <script>
-        $('.select2').not('#contract_id').select2({
+        $('.select2').select2({
             placeholder: 'Search for an order...',
             allowClear: true
         });
@@ -564,105 +564,6 @@
     <script>
         var indexRoute = "{{ route('ShelterContract.index') }}";
         var isEditMode = @json($isEditMode);
-        var contractSearchRoute = "{{ route('search.contracts.by.passport') }}";
-
-        function initContractSelect2() {
-            const $select = $('#contract_id');
-
-            if ($select.hasClass('select2-hidden-accessible')) {
-                $select.select2('destroy');
-            }
-
-            $select.select2({
-                placeholder: 'اختر من آخر 25 عقد أو اكتب للبحث',
-                allowClear: true,
-                minimumInputLength: 0,
-                ajax: {
-                    url: contractSearchRoute,
-                    dataType: 'json',
-                    delay: 300,
-                    data: function(params) {
-                        return {
-                            search: params.term || '',
-                            page: params.page || 1
-                        };
-                    },
-                    processResults: function(response) {
-                        return {
-                            results: (response.contracts || []).map(function(contract) {
-                                let optionText = contract.desc || '';
-                                if (contract.passport_number && optionText.indexOf(contract.passport_number) === -1) {
-                                    optionText += ' - ' + contract.passport_number;
-                                }
-
-                                return {
-                                    id: contract.id,
-                                    text: optionText,
-                                    contract: contract
-                                };
-                            }),
-                            pagination: {
-                                more: response.pagination ? response.pagination.more : false
-                            }
-                        };
-                    },
-                    cache: true
-                },
-                language: {
-                    searching: function() {
-                        return '{{ helperTrans('ingaz.searching') }}';
-                    },
-                    noResults: function() {
-                        return '{{ helperTrans('ingaz.no_contracts_found') }}';
-                    }
-                },
-                templateSelection: function(item) {
-                    return item.text || item.desc || '{{ helperTrans('ingaz.choose') }}';
-                }
-            });
-
-            $select.off('select2:select.shelterContract').on('select2:select.shelterContract', function(e) {
-                const contract = e.params.data.contract;
-                if (!contract) {
-                    return;
-                }
-
-                let $option = $(this).find('option[value="' + contract.id + '"]');
-                if (!$option.length) {
-                    $option = new Option(e.params.data.text, contract.id, true, true);
-                    $(this).append($option);
-                    $option = $(this).find('option[value="' + contract.id + '"]');
-                }
-
-                applyContractDataToOption($option, contract);
-                $select.trigger('change');
-            });
-        }
-
-        function applyContractDataToOption($option, contract) {
-            $option.attr({
-                'data-passport': contract.passport_number || '',
-                'data-passport-snapshot': contract.passport_snapshot || contract.passport_number || '',
-                'data-maid-name': contract.maid_name || '',
-                'data-maid-name-snapshot': contract.maid_name_snapshot || contract.maid_name || '',
-                'data-maid-nationality': contract.maid_nationality_snapshot || '',
-                'data-client-name': contract.client_name || '',
-                'data-client-national-id': contract.client_national_id || '',
-                'data-sponsorship-price': contract.sponsorship_price || '',
-                'data-receipt-date': contract.receipt_date || '',
-                'data-receipt-text': contract.receipt_text || '',
-                'data-has-residency': contract.has_residency || '',
-                'data-medical-exam': contract.medical_exam || '',
-                'data-service-type': contract.service_type || '',
-                'data-arrival-date': contract.arrival_date || '',
-                'data-status': contract.status || ''
-            });
-            $option.removeData();
-        }
-
-        $(document).ready(function() {
-            initContractSelect2();
-        });
     </script>
 
     <script>
@@ -683,7 +584,7 @@
             // Clear search button click handler
             $('#clear_search_btn').on('click', function() {
                 $('#passport_search').val('');
-                updateContractDropdown([]);
+                loadAllContracts();
             });
 
             // Function to search contracts by passport
@@ -691,7 +592,7 @@
                 let passportNumber = $('#passport_search').val().trim();
 
                 if (!passportNumber) {
-                    $('#contract_id').select2('open');
+                    loadAllContracts();
                     return;
                 }
 
@@ -760,7 +661,29 @@
                     });
                 }
 
-                initContractSelect2();
+                // Reinitialize Select2
+                $select.select2('destroy').select2({
+                    placeholder: '{{ helperTrans('ingaz.choose') }}',
+                    allowClear: true
+                });
+            }
+
+            // Function to load all contracts (clear search)
+            function loadAllContracts() {
+                $.ajax({
+                    url: "{{ route('ShelterContract.create') }}",
+                    type: 'GET',
+                    success: function(response) {
+                        // Extract the contracts from the response
+                        // This is a simplified approach - in a real implementation,
+                        // you might want to create a separate endpoint for getting all contracts
+                        location.reload();
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error loading contracts:', error);
+                        location.reload();
+                    }
+                });
             }
         });
     </script>
@@ -771,11 +694,12 @@
             console.log('=== Document Ready - ShelterContract Create ===');
 
             // تهيئة Select2
-            $('.select2').not('#contract_id').select2({
+            $('.select2').select2({
                 placeholder: '{{ helperTrans('ingaz.choose') }}',
                 allowClear: true
             });
 
+            // عند اختيار العقد، املأ تاريخ الوصول
             $('#contract_id').on('change', function() {
                 let contractId = $(this).val();
                 console.log('تم اختيار العقد:', contractId);
@@ -788,10 +712,28 @@
                         calculateDurationFromArrivalDate(selectedArrivalDate);
                     }
 
-                    if (!selectedArrivalDate) {
-                        $('#arrival_date').val('');
-                        $('input[name="duration_from_enter"]').val('');
-                    }
+                    // البحث عن العقد في البيانات المتاحة
+                    @foreach ($contracts as $contract)
+                        if (!selectedArrivalDate && {{ $contract->id }} == contractId) {
+                            @if ($contract->info && $contract->info->arrival_date)
+                                $('#arrival_date').val('{{ $contract->info->arrival_date }}');
+                                console.log('تم ملء تاريخ الوصول: {{ $contract->info->arrival_date }}');
+                                // حساب المدة من تاريخ الوصول
+                                calculateDurationFromArrivalDate('{{ $contract->info->arrival_date }}');
+                            @elseif ($contract->maid && $contract->maid->arrival_date)
+                                $('#arrival_date').val('{{ $contract->maid->arrival_date }}');
+                                console.log(
+                                    'تم ملء تاريخ الوصول من العاملة: {{ $contract->maid->arrival_date }}'
+                                    );
+                                // حساب المدة من تاريخ الوصول
+                                calculateDurationFromArrivalDate('{{ $contract->maid->arrival_date }}');
+                            @else
+                                $('#arrival_date').val('');
+                                console.log('لا يوجد تاريخ وصول للعقد');
+                                $('input[name="duration_from_enter"]').val('');
+                            @endif
+                        }
+                    @endforeach
                 }
 
                 const selectedOption = $(this).find('option:selected');
@@ -1029,7 +971,7 @@
         // إنشاء عقد جديد
         $(document).ready(function() {
             // تهيئة Select2 العادية للحقول الأخرى
-            $('.select2').not('#contract_id').select2({
+            $('.select2').select2({
                 placeholder: '{{ helperTrans('ingaz.choose') }}',
                 allowClear: true
             });
@@ -1047,7 +989,23 @@
                         return;
                     }
 
-                    $('#arrival_date').val('');
+                    // البحث عن العقد في البيانات المتاحة
+                    @foreach ($contracts as $contract)
+                        if ({{ $contract->id }} == contractId) {
+                            @if ($contract->info && $contract->info->arrival_date)
+                                $('#arrival_date').val('{{ $contract->info->arrival_date }}');
+                                console.log('تم ملء تاريخ الوصول: {{ $contract->info->arrival_date }}');
+                            @elseif ($contract->maid && $contract->maid->arrival_date)
+                                $('#arrival_date').val('{{ $contract->maid->arrival_date }}');
+                                console.log(
+                                    'تم ملء تاريخ الوصول من العاملة: {{ $contract->maid->arrival_date }}'
+                                    );
+                            @else
+                                $('#arrival_date').val('');
+                                console.log('لا يوجد تاريخ وصول للعقد');
+                            @endif
+                        }
+                    @endforeach
                 }
             });
 

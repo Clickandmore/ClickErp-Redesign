@@ -963,22 +963,13 @@ class ShelterContractController extends Controller
     {
         $shelters = \App\Models\ShelterPlaces::latest()->get();
 
-        $selectedContractId = old('contract_id', request('contract_id'));
-        $contracts = collect();
+        $contracts = $this->shelterSelectableContractsQuery()->get();
 
-        if ($selectedContractId) {
-            $selectedContract = $this->shelterSelectableContractsQuery()
-                ->whereKey($selectedContractId)
-                ->first();
+        // Debug: Log contracts data
 
-            if ($selectedContract) {
-                $contracts = collect([$selectedContract]);
-            }
-        } else {
-            $contracts = $this->shelterSelectableContractsQuery()
-                ->limit(25)
-                ->get();
-        }
+
+        // إذا تم تمرير contract_id في الطلب، نختار العقد المحدد
+        $selectedContractId = request('contract_id');
 
         $nationalities = $this->shelterContractNationalities();
         $quickTagSuggestions = $this->getQuickTagSuggestions();
@@ -992,18 +983,17 @@ class ShelterContractController extends Controller
     public function searchByPassport(Request $request)
     {
         $searchTerm = trim((string) ($request->input('passport_number') ?: $request->input('search')));
-        $perPage = 25;
-        $page = max(1, (int) $request->input('page', 1));
 
-        $query = $this->shelterSelectableContractsQuery();
+        if ($searchTerm === '') {
+            return response()->json(['contracts' => []]);
+        }
 
-        if ($searchTerm !== '') {
-            $query->where(function ($query) use ($searchTerm) {
+        $contracts = $this->shelterSelectableContractsQuery()
+            ->where(function ($query) use ($searchTerm) {
                 $query->where('id', 'like', '%' . $searchTerm . '%')
                     ->orWhereHas('user', function ($userQuery) use ($searchTerm) {
                         $userQuery->where('name', 'like', '%' . $searchTerm . '%')
                             ->orWhere('national_num', 'like', '%' . $searchTerm . '%')
-                            ->orWhere('tax_number', 'like', '%' . $searchTerm . '%')
                             ->orWhere('phone', 'like', '%' . $searchTerm . '%');
                     })
                     ->orWhereHas('maid', function ($maidQuery) use ($searchTerm) {
@@ -1017,25 +1007,12 @@ class ShelterContractController extends Controller
                             ->orWhere('msaned_number', 'like', '%' . $searchTerm . '%')
                             ->orWhere('tafwed_number', 'like', '%' . $searchTerm . '%');
                     });
-            });
-        }
-
-        $contracts = $query
-            ->forPage($page, $perPage + 1)
+            })
+            ->limit(50)
             ->get()
-            ->values();
-
-        $hasMore = $contracts->count() > $perPage;
-        $contracts = $contracts
-            ->take($perPage)
             ->map(fn ($contract) => $this->formatShelterSelectableContract($contract));
 
-        return response()->json([
-            'contracts' => $contracts,
-            'pagination' => [
-                'more' => $hasMore,
-            ],
-        ]);
+        return response()->json(['contracts' => $contracts]);
     }
 
     public function store(ShelterContactStore $request)
