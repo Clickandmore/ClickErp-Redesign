@@ -112,6 +112,17 @@ const PARTENR_CONTROL = 'partenr_control';
     // صلاحيات الإدارة
     const ORDERS_CONTROL = 'orders_control';
 
+    // إدارة الطلبات المالية
+    const FINANCIAL_REQUESTS_VIEW = 'financial_requests_view';
+    const FINANCIAL_REQUESTS_CREATE = 'financial_requests_create';
+    const FINANCIAL_REQUESTS_EDIT = 'financial_requests_edit';
+    const FINANCIAL_REQUESTS_DELETE = 'financial_requests_delete';
+    const FINANCIAL_REQUESTS_CHANGE_STATUS = 'financial_requests_change_status';
+    const FINANCIAL_REQUESTS_ESCALATE = 'financial_requests_escalate';
+    const FINANCIAL_REQUESTS_APPROVE = 'financial_requests_approve';
+    const FINANCIAL_REQUESTS_EXPORT = 'financial_requests_export';
+    const FINANCIAL_REQUESTS_CONTROL = 'financial_requests_control';
+
     // صلاحيات قوائم الطلبات الفرعية في السايدبار
     const PROFESSIONAL_APPLICATION_VIEW = 'professional_application_view';
     const RECRUITMENT_REQUESTS_VIEW = 'recruitment_requests_view';

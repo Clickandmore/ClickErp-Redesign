@@ -1042,7 +1042,7 @@ class MaidController extends Controller
             'religion',
             'jobTypes',
             'jobTitles',
-            'office',
+            'recruitmentOffice',
             'addedBy',
             'contracts.info',
             'contracts.user',
@@ -1059,15 +1059,15 @@ class MaidController extends Controller
 
         $action->syncRentalMaidToHrRecord($maid);
 
-        $skills = [];
+        $maidSkills = [];
         $skillsRaw = $maid->skills;
         $decodedSkills = is_string($skillsRaw) ? json_decode($skillsRaw, true) : $skillsRaw;
 
         if (json_last_error() === JSON_ERROR_NONE && is_array($decodedSkills) && collect($decodedSkills)->every(fn($item) => is_numeric($item) || (is_string($item) && is_numeric($item)))) {
             $ids = collect($decodedSkills)->map(fn($item) => (int) $item)->values();
-            $skills = Skill::whereIn('id', $ids)->get()->map(fn($skill) => $skill->title)->toArray();
+            $maidSkills = Skill::whereIn('id', $ids)->get()->map(fn($skill) => $skill->title)->toArray();
         } else {
-            $skills = collect($decodedSkills ?: [])
+            $maidSkills = collect($decodedSkills ?: [])
                 ->filter()
                 ->map(function ($value) {
                     if (is_string($value)) {
@@ -1126,6 +1126,7 @@ class MaidController extends Controller
             $percentagesRaw = json_decode($percentagesRaw, true);
         }
         $languagePercentages = collect($percentagesRaw ?? [])->filter()->toArray();
+        $externalOffice = $maid->recruitmentOffice;
 
         $orders = $maid->orders->sortByDesc('created_at');
         $contracts = $maid->contracts->sortByDesc('created_at');
@@ -1270,9 +1271,10 @@ class MaidController extends Controller
             'maid',
             'orders',
             'contracts',
-            'skills',
+            'maidSkills',
             'languages',
             'languagePercentages',
+            'externalOffice',
             'stats',
             'availability',
             'activities',

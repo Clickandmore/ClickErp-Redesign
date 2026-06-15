@@ -2217,6 +2217,7 @@
 
                 // If all validations pass, submit the form via AJAX
                 let formData = new FormData(this);
+                formData.set('client_type', 'ex_client');
 
                 // Debug: طباعة البيانات المرسلة
                 console.log('Form data being sent:');
@@ -2800,7 +2801,6 @@
                 console.log('CSRF Token:', csrfToken);
                 formData.append('_token', csrfToken);
                 formData.append('contract_type', contractType);
-                formData.append('client_type', 'new_client');
                 if (clientId && /^\d+$/.test(String(clientId))) {
                     formData.append('client_id', clientId);
                     formData.append('new_existing_client_id', clientId);
@@ -2810,7 +2810,7 @@
 
                 console.log('Basic form data prepared:', {
                     contract_type: contractType,
-                    client_type: 'new_client',
+                    client_type: isNewContractTab ? 'new_client' : 'ex_client',
                     client_id: clientId,
                     maid_id: maidSelectionMode === 'existing' ? maidId : '',
                     maid_selection_mode: maidSelectionMode
@@ -2818,6 +2818,7 @@
 
                 // أضف بيانات العميل حسب التبويب النشط
                 if (isNewContractTab) {
+                    formData.append('client_type', 'new_client');
                     formData.append('account_client_type', $('#tab-new-pane input[name="account_client_type"]:checked').val() || 'person');
                     formData.append('client_name', clientName);
                     formData.append('client_phone', clientPhone);

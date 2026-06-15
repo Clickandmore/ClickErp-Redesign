@@ -69,6 +69,7 @@
                 $canViewRentContracts = @AdminGuardHasAnyPerm([\App\PermKeys::RENT_CONTRACT_VIEW, \App\PermKeys::RENT_CONTRACT_CREATE, \App\PermKeys::RENT_CONTRACT_EDIT, \App\PermKeys::RENT_CONTRACT_DELETE, \App\PermKeys::RENT_CONTRACT_CONTROL, \App\PermKeys::RENT_CONTRACT_TERMS_VIEW, \App\PermKeys::RENT_CONTRACT_TERMS_CREATE, \App\PermKeys::RENT_CONTRACT_TERMS_EDIT, \App\PermKeys::RENT_CONTRACT_TERMS_DELETE, \App\PermKeys::CONTRACT_SETTINGS, \App\PermKeys::RENTAL_ORDERS_VIEW]);
                 $canViewShelterContracts = @AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_VIEW, \App\PermKeys::SHELTER_CONTRACT_CREATE, \App\PermKeys::SHELTER_CONTRACT_CONTROL, \App\PermKeys::SHELTER_CONTRACT_ADDITION_CREATE, \App\PermKeys::SHELTER_CONTRACT_INSIDE_VIEW, \App\PermKeys::SHELTER_CONTRACT_AVAILABLE_FOR_TRANSFER_VIEW, \App\PermKeys::SHELTER_CONTRACT_DEPORTATION_STAGE_VIEW, \App\PermKeys::SHELTER_CONTRACT_DEPORTED_VIEW, \App\PermKeys::SHELTER_PLACES_VIEW, \App\PermKeys::SHELTER_PLACES_CREATE, \App\PermKeys::SHELTER_PLACES_EDIT, \App\PermKeys::SHELTER_PLACES_DELETE, \App\PermKeys::SHELTER_PLACES_CONTROL]);
                 $canViewLogistics = @AdminGuardHasAnyPerm([\App\PermKeys::TRAVEL_VIEW, \App\PermKeys::TRAVEL_CREATE, \App\PermKeys::TRAVEL_EDIT, \App\PermKeys::TRAVEL_DELETE, \App\PermKeys::TRAVEL_CONTROL]);
+                $canViewFinancialRequests = @AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_VIEW, \App\PermKeys::FINANCIAL_REQUESTS_CREATE, \App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, \App\PermKeys::FINANCIAL_REQUESTS_APPROVE, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]);
             @endphp
             <ul class="menu-list">
                 <!-- Dashboard Section -->
@@ -677,6 +678,48 @@
                             </li>
                         @endif
                         @include('admin.layout.inc.sidebar_external_agents_menu')
+                        @if ($canViewFinancialRequests)
+                            <li class="collapsed">
+                                <a class="m-link" data-bs-toggle="collapse" data-bs-target="#financial_requests_menu_click" href="#">
+                                    <i class="fa fa-money-bill-wave"></i>
+                                    <span class="ms-2">إدارة الطلبات المالية</span>
+                                    <span class="arrow fa fa-angle-left ms-auto text-end"></span>
+                                </a>
+                                <ul class="sub-menu collapse {{ request()->routeIs('financial-requests.*') ? 'show' : '' }}"
+                                    id="financial_requests_menu_click">
+                                    <li>
+                                        <a class="m-link {{ request()->routeIs('financial-requests.index') && !request('scope') ? 'active' : '' }}"
+                                            href="{{ route('financial-requests.index') }}">
+                                            <i class="fa fa-arrow-left"></i>
+                                            <span class="ms-2">كل الطلبات المالية</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="m-link {{ request()->routeIs('financial-requests.index') && request('scope') === 'incomplete' ? 'active' : '' }}"
+                                            href="{{ route('financial-requests.index', ['scope' => 'incomplete']) }}">
+                                            <i class="fa fa-arrow-left"></i>
+                                            <span class="ms-2">غير مكتملة</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="m-link {{ request()->routeIs('financial-requests.index') && request('scope') === 'paid' ? 'active' : '' }}"
+                                            href="{{ route('financial-requests.index', ['scope' => 'paid']) }}">
+                                            <i class="fa fa-arrow-left"></i>
+                                            <span class="ms-2">مكتملة / تم سدادها</span>
+                                        </a>
+                                    </li>
+                                    @if (@AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_CREATE, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]))
+                                        <li>
+                                            <a class="m-link {{ request()->routeIs('financial-requests.create') ? 'active' : '' }}"
+                                                href="{{ route('financial-requests.create') }}">
+                                                <i class="fa fa-plus"></i>
+                                                <span class="ms-2">طلب مالي جديد</span>
+                                            </a>
+                                        </li>
+                                    @endif
+                                </ul>
+                            </li>
+                        @endif
                         <!-- طلبات استرجاع العقود -->
                         {{--                        <li class="collapsed"> --}}
                         {{--                            <a class="m-link" data-bs-toggle="collapse" data-bs-target="#returnRequestsMenu" href="#"> --}}

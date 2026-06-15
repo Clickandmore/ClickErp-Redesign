@@ -193,6 +193,11 @@ class ConstraintController extends Controller
 
     private function constraintDataTable($query, Request $request, bool $pending = false)
     {
+        $requestedLength = (int) $request->input('length', 10);
+        if ($requestedLength < 1 || $requestedLength > 100) {
+            $request->merge(['length' => 100]);
+        }
+
         $dataTable = DataTables::of($query)
             ->addColumn('code_link', function ($row) {
                 return $this->renderConstraintCodeLink($row);
@@ -223,13 +228,26 @@ class ConstraintController extends Controller
             })
             ->filter(function ($instance) use ($request) {
                 if ($request->get('from_date')) {
-                    $instance->where('date','>=', $request->get('from_date'));
+                    $instance->where('fn_constraints.date','>=', $request->get('from_date'));
                 }
                 if ($request->get('to_date')) {
-                    $instance->where('date','<=', $request->get('to_date'));
+                    $instance->where('fn_constraints.date','<=', $request->get('to_date'));
                 }
                 if ($request->get('type_filter')) {
                     $instance->where('fn_constraints.type', $request->get('type_filter'));
+                }
+
+                $search = trim((string) $request->input('search.value', ''));
+                if ($search !== '') {
+                    $instance->where(function ($query) use ($search) {
+                        $query->where('fn_constraints.code', 'like', '%' . $search . '%')
+                            ->orWhere('fn_constraints.statement', 'like', '%' . $search . '%')
+                            ->orWhere('fn_constraints.value', 'like', '%' . $search . '%')
+                            ->orWhere('fn_constraints.date', 'like', '%' . $search . '%')
+                            ->orWhereHas('constraintDetails.account', function ($accountQuery) use ($search) {
+                                $accountQuery->where('fn_accounts.name', 'like', '%' . $search . '%');
+                            });
+                    });
                 }
             });
 
@@ -458,11 +476,25 @@ class ConstraintController extends Controller
 
     private function resolveConstraintType(Constraint $constraint): ?ConstraintTypiesEnum
     {
-        if ($constraint->type instanceof ConstraintTypiesEnum) {
-            return $constraint->type;
+        $rawType = $constraint->getRawOriginal('type');
+
+        if ($rawType instanceof ConstraintTypiesEnum) {
+            return $rawType;
         }
 
-        return ConstraintTypiesEnum::tryFrom((int) $constraint->type);
+        if ($rawType === null) {
+            $rawType = $constraint->getAttributes()['type'] ?? null;
+        }
+
+        if ($rawType instanceof ConstraintTypiesEnum) {
+            return $rawType;
+        }
+
+        if (!is_numeric($rawType)) {
+            return null;
+        }
+
+        return ConstraintTypiesEnum::tryFrom((int) $rawType);
     }
 
     private function filteredExportQuery(Request $request, ObjService $service)

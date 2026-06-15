@@ -1599,6 +1599,8 @@ return array (
   'this_month' => 'This Month',
   'net_movement' => 'Net Movement',
   'month_net' => 'This Month Net',
+  'rental_contracts_total_value' => 'Total Rental Contract Value',
+  'rental_contracts_value_hint' => 'Value of rental contract portfolio recorded in the system.',
   'accounting_entries' => 'Accounting Entries',
   'awaiting_approval' => 'Awaiting Approval',
   'revenue_expense_movement' => 'Revenue and Expense Movement',

@@ -59,6 +59,8 @@ class AdminRoutePermissionMatrix
             'noneAvailableMaids',
             'maids.deleted_cvs',
             'orders.index',
+            'financial-requests.index',
+            'financial-requests.create',
             'return_requests.index',
             'professional_application.index',
             'recruitment_requests.index',
@@ -362,6 +364,20 @@ class AdminRoutePermissionMatrix
                 'known-service-requests.update' => [PermKeys::ORDERS_EDIT],
                 'known-service-requests.destroy' => [PermKeys::ORDERS_DELETE],
                 'contact.index' => [PermKeys::CONTACT_VIEW],
+                'financial-requests.index' => [PermKeys::FINANCIAL_REQUESTS_VIEW, PermKeys::FINANCIAL_REQUESTS_CREATE, PermKeys::FINANCIAL_REQUESTS_CONTROL],
+                'financial-requests.create' => [PermKeys::FINANCIAL_REQUESTS_CREATE, PermKeys::FINANCIAL_REQUESTS_CONTROL],
+                'financial-requests.store' => [PermKeys::FINANCIAL_REQUESTS_CREATE, PermKeys::FINANCIAL_REQUESTS_CONTROL],
+                'financial-requests.show' => [PermKeys::FINANCIAL_REQUESTS_VIEW, PermKeys::FINANCIAL_REQUESTS_CREATE, PermKeys::FINANCIAL_REQUESTS_CONTROL],
+                'financial-requests.edit' => [PermKeys::FINANCIAL_REQUESTS_EDIT, PermKeys::FINANCIAL_REQUESTS_CONTROL],
+                'financial-requests.update' => [PermKeys::FINANCIAL_REQUESTS_EDIT, PermKeys::FINANCIAL_REQUESTS_CONTROL],
+                'financial-requests.destroy' => [PermKeys::FINANCIAL_REQUESTS_DELETE, PermKeys::FINANCIAL_REQUESTS_CONTROL],
+                'financial-requests.status' => [PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, PermKeys::FINANCIAL_REQUESTS_ESCALATE, PermKeys::FINANCIAL_REQUESTS_APPROVE, PermKeys::FINANCIAL_REQUESTS_CONTROL],
+                'financial-requests.export' => [PermKeys::FINANCIAL_REQUESTS_EXPORT, PermKeys::FINANCIAL_REQUESTS_CONTROL],
+                'financial-requests.print' => [PermKeys::FINANCIAL_REQUESTS_EXPORT, PermKeys::FINANCIAL_REQUESTS_CONTROL],
+                'financial-requests.search-clients' => [PermKeys::FINANCIAL_REQUESTS_CREATE, PermKeys::FINANCIAL_REQUESTS_EDIT, PermKeys::FINANCIAL_REQUESTS_CONTROL],
+                'financial-requests.search-maids' => [PermKeys::FINANCIAL_REQUESTS_CREATE, PermKeys::FINANCIAL_REQUESTS_EDIT, PermKeys::FINANCIAL_REQUESTS_CONTROL],
+                'financial-requests.search-accounts' => [PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, PermKeys::FINANCIAL_REQUESTS_APPROVE, PermKeys::FINANCIAL_REQUESTS_CONTROL],
+                'financial-requests.contract-details' => [PermKeys::FINANCIAL_REQUESTS_CREATE, PermKeys::FINANCIAL_REQUESTS_EDIT, PermKeys::FINANCIAL_REQUESTS_CONTROL],
             ]
         );
     }
@@ -529,6 +545,7 @@ class AdminRoutePermissionMatrix
         return [
             'DeportationTravel.index' => [PermKeys::TRAVEL_VIEW, PermKeys::TRAVEL_CONTROL],
             'travel' => [PermKeys::TRAVEL_VIEW, PermKeys::TRAVEL_CONTROL],
+            'travel.calendar.events' => [PermKeys::TRAVEL_VIEW, PermKeys::DASHBOARD_CALENDAR_EVENTS],
         ];
     }
 

@@ -82,8 +82,19 @@
         <div class="work_samples_grid">
             @if ($obj->files->count() > 0)
                 @foreach ($obj->files as $file)
+                    @php
+                        $extension = strtolower(pathinfo($file->file, PATHINFO_EXTENSION));
+                        $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'], true);
+                    @endphp
                     <div class="uploadedImage">
-                        <img src="{{ showFile($file->file) }}" alt="">
+                        @if ($isImage)
+                            <img src="{{ showFile($file->file) }}" alt="">
+                        @else
+                            <a href="{{ showFile($file->file) }}" target="_blank" class="constraint-file-preview" title="{{ basename($file->file) }}">
+                                <i class="fa fa-file-text-o"></i>
+                                <span>{{ strtoupper($extension ?: 'FILE') }}</span>
+                            </a>
+                        @endif
                     </div>
                 @endforeach
             @endif

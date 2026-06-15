@@ -33,6 +33,7 @@ class IstiqdasmContract extends Model
         'remaining_amount',
         'commitments',
         'work_permit_number',
+        'work_permits',
         'assigned_maid_id',
         'maid_assigned_at',
         'special_specification',
@@ -53,6 +54,7 @@ class IstiqdasmContract extends Model
         'address_details' => 'array',
         'payment_details' => 'array',
         'commitments' => 'array',
+        'work_permits' => 'array',
         'maid_assigned_at' => 'datetime',
         'last_api_response' => 'array',
         'last_synced_at' => 'datetime',
@@ -226,6 +228,11 @@ class IstiqdasmContract extends Model
         $this->attributes['commitments'] = is_array($value) ? json_encode($value) : $value;
     }
 
+    public function setWorkPermitsAttribute($value)
+    {
+        $this->attributes['work_permits'] = is_array($value) ? json_encode($value) : $value;
+    }
+
     public function setLastApiResponseAttribute($value)
     {
         $this->attributes['last_api_response'] = is_array($value) ? json_encode($value) : $value;
@@ -299,11 +306,11 @@ class IstiqdasmContract extends Model
     public static function createFromIstiqdam($istiqdasmData, $localData = [])
     {
         $contractData = array_merge([
-            'istiqdam_contract_id' => $istiqdasmData['id'] ?? null,
+            'istiqdam_contract_id' => $istiqdasmData['number'] ?? ($istiqdasmData['id'] ?? null),
             'package_id' => $istiqdasmData['packageId'] ?? null,
             'beneficiary_id' => $istiqdasmData['beneficiary']['id'] ?? null,
             'beneficiary_birthdate' => $istiqdasmData['beneficiary']['birthdate'] ?? null,
-            'start_date' => $istiqdasmData['startDate'] ?? null,
+            'start_date' => $istiqdasmData['startAt'] ?? ($istiqdasmData['startDate'] ?? null),
             'status' => self::mapIstiqdasmStatus($istiqdasmData['status'] ?? 'draft'),
             'package_details' => $istiqdasmData['package'] ?? null,
             'contact_details' => $istiqdasmData['details']['beneficiary']['contact'] ?? null,

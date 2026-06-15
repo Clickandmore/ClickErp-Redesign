@@ -8,6 +8,7 @@
     $formRedirectRoute = $formRedirectRoute ?? route('maids.index');
     $requireIdFields = $requireIdFields ?? true;
     $selectedTypeId = (int) old('type_id', $defaultTypeId ?? 0);
+    $selectedRentalKingdomStatus = old('rental_kingdom_status', '');
     $shelterCompanyName = documentSetting('document_company_name', documentSetting('website_name', config('app.name')));
     $shelterCompanyHint = __('ingaz.auto_shelter_contract_hint', ['company' => $shelterCompanyName]);
     $selectedTypeTitle = collect($types ?? [])->firstWhere('id', $selectedTypeId)->title ?? '';
@@ -55,19 +56,19 @@
         .maid-type-picker {
             border: 1px solid #e5e7eb;
             border-radius: 8px;
-            padding: 14px;
-            background: #f8fafc;
+            padding: 8px;
+            background: #fff;
         }
 
         .maid-type-option {
             width: 100%;
-            min-height: 92px;
+            min-height: 44px;
             border: 1px solid #d7dde5;
             border-radius: 8px;
             background: #fff;
             color: #1f2937;
             text-align: start;
-            padding: 14px 16px;
+            padding: 8px 10px;
             transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease;
         }
 
@@ -85,20 +86,42 @@
         }
 
         .maid-type-option__icon {
-            width: 38px;
-            height: 38px;
+            width: 28px;
+            height: 28px;
             border-radius: 8px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             background: #e9eef5;
             color: #0d6efd;
-            flex: 0 0 38px;
+            flex: 0 0 28px;
         }
 
         .maid-type-option.is-active .maid-type-option__icon {
             background: #0d6efd;
             color: #fff;
+        }
+
+        .rental-kingdom-status-choice {
+            display: none;
+        }
+
+        .rental-kingdom-status-choice.is-visible {
+            display: block;
+        }
+
+        .rental-kingdom-status-option {
+            min-height: 64px;
+        }
+
+        .rental-kingdom-status-note {
+            display: none;
+            border: 1px solid #dbeafe;
+            border-radius: 8px;
+            background: #f8fbff;
+            color: #475569;
+            padding: 8px 10px;
+            font-size: 13px;
         }
 
         .maid-type-native-select {
@@ -112,8 +135,12 @@
         .maid-form-section {
             border: 1px solid #e5e7eb;
             border-radius: 8px;
-            padding: 16px;
+            padding: 14px;
             background: #fff;
+        }
+
+        .maid-form-section--compact {
+            padding: 10px 12px;
         }
 
         .maid-form-section__title {
@@ -142,30 +169,6 @@
             margin-bottom: 0;
         }
 
-        .maid-cv-reader {
-            border: 1px solid #bfdbfe;
-            border-radius: 8px;
-            background: #eff6ff;
-            padding: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
-        .maid-cv-reader__text {
-            color: #1f2937;
-            font-weight: 600;
-        }
-
-        .maid-cv-reader__hint {
-            color: #6b7280;
-            font-size: 12px;
-            display: block;
-            margin-top: 2px;
-        }
-
         .maid-form-note {
             border-radius: 8px;
             background: #f9fafb;
@@ -186,6 +189,34 @@
             background: #0d6efd;
             color: #fff;
         }
+
+        .maid-page-toolbar {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: #f9fafb;
+            padding: 8px;
+        }
+
+        .maid-create-actions .btn {
+            min-height: 34px;
+        }
+
+        .maid-create-actions #cv_extract_status {
+            max-width: 260px;
+        }
+
+        .maid-route-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+
+        .maid-route-header .maid-form-section__title {
+            margin-bottom: 0;
+        }
     </style>
 @endsection
 
@@ -197,20 +228,24 @@
     @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_CREATE))
         <div class="card">
             <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 maid-page-toolbar">
                     <div>
                         <h5 class="mb-1">{{ helperTrans('ingaz.add_new_maid') }}</h5>
-                        <div class="text-muted small">{{ helperTrans('ingaz.add_maid_hint') }}</div>
                     </div>
-                    <div class="d-flex flex-wrap gap-2">
-                        <a href="{{ route('maids.create_rapid_cv') }}" class="btn rapid-cv-cta">
+                    <div class="d-flex flex-wrap align-items-center gap-2 maid-create-actions ms-auto">
+                        <a href="{{ route('maids.create_rapid_cv') }}" class="btn btn-sm rapid-cv-cta">
                             <i class="fas fa-bolt me-1"></i>
                             {{ helperTrans('ingaz.short_cv') }}
                         </a>
-                        <a href="{{ route('maids.bulk-import.create') }}" class="btn btn-outline-success">
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="extract_cv_data_btn">
+                            <i class="fas fa-file-import me-1"></i>
+                            {{ helperTrans('ingaz.read_cv_data') }}
+                        </button>
+                        <a href="{{ route('maids.bulk-import.create') }}" class="btn btn-sm btn-outline-success">
                             <i class="fas fa-file-excel me-1"></i>
-                            {{ helperTrans('ingaz.bulk_import_from_excel') }}
+                            استيراد
                         </a>
+                        <span class="small text-muted align-self-center" id="cv_extract_status"></span>
                     </div>
                 </div>
                 <form class="row g-3 from-submit-global-maid" method="post" action="{{ route('maids.store') }}"
@@ -219,22 +254,18 @@
                     <!-- الملفات -->
 
                     <div class="col-12">
-                        <div class="maid-form-section">
-                            <div class="maid-form-section__title">
-                                <i class="fas fa-route"></i>
-                                <span>اختيار مسار السيرة</span>
+                        <div class="maid-form-section maid-form-section--compact">
+                            <div class="maid-route-header">
+                                <div class="maid-form-section__title">
+                                    <i class="fas fa-route"></i>
+                                    <span>مسار السيرة</span>
+                                </div>
+                                <span class="text-muted small">{{ helperTrans('ingaz.cv_type_picker_hint') }}</span>
                             </div>
 
                             <!-- نوع السيرة -->
                             <div class="maid-type-picker">
-                                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-                                    <div>
-                                        <label for="type_id"
-                                            class="form-label mb-1">{{ helperTrans('ingaz.job_types_2') }}</label>
-                                        <div class="text-muted small">{{ helperTrans('ingaz.cv_type_picker_hint') }}</div>
-                                    </div>
-                                </div>
-                                <div class="row g-3" id="maid_type_picker">
+                                <div class="row g-2" id="maid_type_picker">
                                     @foreach ($types as $type)
                                         @php
                                             $title = $type->title ?? '';
@@ -264,24 +295,48 @@
                                                             <i
                                                                 class="fas {{ $isRentalType ? 'fa-key' : 'fa-user-plus' }}"></i>
                                                         </span>
-                                                        <span>
+                                                        <span class="d-flex align-items-center">
                                                             <span class="d-block fw-semibold">{{ $type->title }}</span>
-                                                            <span class="d-block text-muted small mt-1">
-                                                                @if ($isRentalType)
-                                                                    {{ helperTrans('ingaz.cv_type_rental_hint') }}
-                                                                @elseif ($isRecruitmentType)
-                                                                    {{ helperTrans('ingaz.cv_type_recruitment_hint') }}
-                                                                @else
-                                                                    {{ helperTrans('ingaz.cv_type_general_hint') }}
-                                                                @endif
-                                                            </span>
                                                         </span>
                                                     </span>
                                                 </button>
                                             </div>
                                         @endif
                                     @endforeach
+                                    <div class="col-md-6 col-xl-3 rental-kingdom-status-choice">
+                                        <button type="button"
+                                            class="maid-type-option rental-kingdom-status-option {{ $selectedRentalKingdomStatus === 'outside' ? 'is-active' : '' }}"
+                                            data-rental-status="outside">
+                                            <span class="d-flex gap-3 align-items-start">
+                                                <span class="maid-type-option__icon">
+                                                    <i class="fas fa-plane-departure"></i>
+                                                </span>
+                                                <span class="d-block">
+                                                    <span class="d-block fw-semibold">خارج المملكة</span>
+                                                    <small class="text-muted">مسار استقدام للشركة</small>
+                                                </span>
+                                            </span>
+                                        </button>
+                                    </div>
+                                    <div class="col-md-6 col-xl-3 rental-kingdom-status-choice">
+                                        <button type="button"
+                                            class="maid-type-option rental-kingdom-status-option {{ $selectedRentalKingdomStatus === 'inside' ? 'is-active' : '' }}"
+                                            data-rental-status="inside">
+                                            <span class="d-flex gap-3 align-items-start">
+                                                <span class="maid-type-option__icon">
+                                                    <i class="fas fa-warehouse"></i>
+                                                </span>
+                                                <span class="d-block">
+                                                    <span class="d-block fw-semibold">داخل المملكة</span>
+                                                    <small class="text-muted">تاريخ وصول ثم إيواء</small>
+                                                </span>
+                                            </span>
+                                        </button>
+                                    </div>
                                 </div>
+                                <input type="hidden" name="rental_kingdom_status" id="rental_kingdom_status"
+                                    value="{{ $selectedRentalKingdomStatus }}">
+                                <div class="rental-kingdom-status-note mt-2" id="rental_kingdom_status_note"></div>
                                 @if ($isRentalForm)
                                     <small
                                         class="text-muted d-block mt-2">{{ helperTrans('ingaz.rental_cv_fixed_hint') }}</small>
@@ -322,22 +377,6 @@
                                 </div>
                             </div>
                             <div class="row g-3">
-                                <div class="col-12">
-                                    <div class="maid-cv-reader">
-                                        <div>
-                                            <span class="maid-cv-reader__text">قراءة بيانات السيرة تلقائياً</span>
-                                            <span class="maid-cv-reader__hint">ارفع ملف السيرة أولاً، ثم اضغط الزر لتعبئة الحقول المتاحة.</span>
-                                        </div>
-                                        <div class="d-flex align-items-center gap-2 flex-wrap">
-                                            <button type="button" class="btn btn-primary btn-sm"
-                                                id="extract_cv_data_btn">
-                                                <i class="fas fa-file-import me-1"></i>
-                                                {{ helperTrans('ingaz.read_cv_data') }}
-                                            </button>
-                                            <span class="small text-muted" id="cv_extract_status"></span>
-                                        </div>
-                                    </div>
-                                </div>
                                 <div class="col-md-6">
                                     <label for="TextInput"
                                         class="form-label">{{ helperTrans('ingaz.personal_photo') }}</label>
@@ -349,57 +388,22 @@
                                     <input type="file" data-default-file="" name="cv_file" id="cv_file" class="dropify"
                                         accept=".pdf,image/*">
                                 </div>
-
-                                <!-- اسم العامل/ة -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="maid-form-section">
+                            <div class="maid-form-section__title">
+                                <i class="fas fa-briefcase"></i>
+                                <span>بيانات العمل والاستقدام</span>
+                            </div>
+                            <div class="row g-3">
                                 <div class="col-4">
                                     <label for="TextInput" class="form-label">
                                         اسم العامل/ة ({{ helperTrans('ingaz.en') }})
                                     </label>
                                     <input type="text" name="name:en" class="form-control" required>
                                 </div>
-
-                                <div class="col-4">
-                                    <label for="gender"
-                                        class="form-label">{{ __('validation.attributes.gender') }}</label>
-                                    @php $selectedGender = old('gender', 'female'); @endphp
-                                    <select name="gender" id="gender" class="form-control" required>
-                                        <option value="female" {{ $selectedGender === 'female' ? 'selected' : '' }}>أنثى
-                                        </option>
-                                        <option value="male" {{ $selectedGender === 'male' ? 'selected' : '' }}>ذكر
-                                        </option>
-                                    </select>
-                                    <small class="text-muted d-block mt-1">يتغير تلقائياً عند اختيار مهنة مثل عاملة منزلية
-                                        أو سائق خاص.</small>
-                                </div>
-                                <div class="col-4">
-                                    <label for="passport_num" class="form-label">
-                                        {{ helperTrans('ingaz.passport_num') }}
-                                    </label>
-                                    <input type="text" name="passport_num" id="passport_num" class="form-control" required>
-                                    <div id="passport_num_feedback" class="invalid-feedback"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- خيار تسكين للإيواء -->
-                    {{-- <div class="col-4" id="shelter_option" style="display: none;">
-                        <label for="create_shelter_contract" class="form-label">تسكين للإيواء</label>
-                        <select name="create_shelter_contract" id="create_shelter_contract" class="form-control">
-                            <option value="0" {{ $defaultShelterContract === '0' ? 'selected' : '' }}>لا - عامل/ة عادي/ة
-                            </option>
-                            <option value="1" {{ $defaultShelterContract === '1' ? 'selected' : '' }}>نعم - تسكين
-                                للإيواء</option>
-                        </select>
-                        <small class="text-muted">سيتم إنشاء عقد إيواء تلقائياً باسم {{ documentSetting('document_company_name', documentSetting('website_name', config('app.name'))) }}</small>
-                    </div> --}}
-
-                    <div class="col-12">
-                        <div class="maid-form-section">
-                            <div class="maid-form-section__title">
-                                <i class="fas fa-briefcase"></i>
-                                <span>بيانات العمل والبيانات الشخصية</span>
-                            </div>
-                            <div class="row g-3">
                                 <!-- خيار تسكين للإيواء -->
                                 <div class="col-4" id="shelter_option">
                                     <label for="create_shelter_contract"
@@ -566,6 +570,18 @@
                     </div>
 
                     <div class="col-4">
+                        <label for="gender"
+                            class="form-label">{{ __('validation.attributes.gender') }}</label>
+                        @php $selectedGender = old('gender', 'female'); @endphp
+                        <select name="gender" id="gender" class="form-control" required>
+                            <option value="female" {{ $selectedGender === 'female' ? 'selected' : '' }}>أنثى
+                            </option>
+                            <option value="male" {{ $selectedGender === 'male' ? 'selected' : '' }}>ذكر
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="col-4">
                         <label for="TextInput" class="form-label">
                             {{ helperTrans('ingaz.childrens_count') }}
                         </label>
@@ -580,9 +596,8 @@
                             value="{{ old('duration', helperTrans('ingaz.twenty_four_months')) }}">
                     </div>
                     <div class="col-4" id="arrival_date_field"
-                        style="{{ $showArrivalDateField ? '' : 'display: none;' }}">
-                        <label for="arrival_date" class="form-label">{{ helperTrans('ingaz.arrival_date') }} <small
-                                class="text-muted">({{ helperTrans('ingaz.optional') }})</small></label>
+                        style="{{ $showArrivalDateField && $selectedRentalKingdomStatus === 'inside' ? '' : 'display: none;' }}">
+                        <label for="arrival_date" class="form-label">{{ helperTrans('ingaz.arrival_date') }}</label>
                         <input type="date" name="arrival_date" id="arrival_date" class="form-control"
                             value="{{ old('arrival_date') }}">
                     </div>
@@ -599,6 +614,14 @@
                             <div class="row g-3">
 
                     <!-- رقم الجواز ورقم الهوية وتاريخ انتهاء الهوية -->
+
+                    <div class="col-4">
+                        <label for="passport_num" class="form-label">
+                            رقم جواز العاملة <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" name="passport_num" id="passport_num" class="form-control" required>
+                        <div id="passport_num_feedback" class="invalid-feedback"></div>
+                    </div>
 
                     <div class="col-4 passport-extra-field">
                         <label for="border_number" class="form-label">
@@ -1450,6 +1473,11 @@
             const defaultShelterContract = @json($defaultShelterContract);
             const isRentalForm = {{ $isRentalForm ? 'true' : 'false' }};
             const requestTypeCustom = @json(\App\Models\ingaz\Maid::REQUEST_TYPE_CUSTOM);
+            const rentalKingdomStatusNotes = {
+                '': 'اختر حالة العاملة لتحديد مسارها بعد حفظ السيرة.',
+                outside: 'خارج المملكة: تحفظ السيرة كعاملة تأجير، وينشأ لها مسار استقدام باسم الشركة حتى تكتمل مراحل الوصول.',
+                inside: 'داخل المملكة: يظهر تاريخ الوصول، وبعد الحفظ تدخل في مسار الإيواء وتجهيزها للتأجير.'
+            };
             if (defaultShelterContract !== '') {
                 $('#create_shelter_contract').val(defaultShelterContract);
             }
@@ -1481,7 +1509,6 @@
             const rentalFinanceStatus = $('#rental_finance_status');
             const rentalFinanceSummary = $('#rental_finance_summary');
             const rentalFinanceModalTotal = $('#rental_finance_modal_total');
-            let hasShownRentalFinanceModal = false;
 
             function getRentalFinanceRows() {
                 return rentalFinanceBody.find('.rental-finance-row').map(function() {
@@ -1553,18 +1580,8 @@
                     return true;
                 }
 
-                if (rentalFinanceConfirmedInput.val() === '1') {
-                    return true;
-                }
-
-                rentalFinanceModal.modal('show');
-                Swal.fire({
-                    icon: 'info',
-                    title: maidCreateTranslations.confirmRentalItemsTitle,
-                    text: maidCreateTranslations.confirmRentalItemsText,
-                    confirmButtonText: maidCreateTranslations.ok
-                });
-                return false;
+                rentalFinanceConfirmedInput.val('1');
+                return true;
             }
 
             $('#open_rental_finance_modal').on('click', function() {
@@ -1670,8 +1687,6 @@
                 var selectedType = typeContext.original;
                 var normalizedArabicLower = typeContext.normalizedArabicLower;
                 var selectedTypeLower = typeContext.selectedTypeLower;
-                console.log('Selected type:', selectedType);
-
                 // Get all fields that need to be toggled
                 var idFields = $('input[name="id_number"], input[name="id_expiry_date"]').closest('.col-4');
                 var heightWeightFields = $('input[name="height"], input[name="weight"]').closest('.col-4');
@@ -1684,6 +1699,8 @@
                 var passportExtraFields = $('.passport-extra-field');
                 var priceLabel = $('.price-label');
                 var rentalFinanceSection = $('#rental_finance_preview');
+                var rentalKingdomStatusField = $('.rental-kingdom-status-choice, #rental_kingdom_status_note');
+                var rentalKingdomStatusSelect = $('#rental_kingdom_status');
                 var idInputs = $('input[name="id_number"], input[name="id_expiry_date"]');
                 var heightWeightInputs = $('input[name="height"], input[name="weight"]');
                 var maritalStatusSelect = $('select[name="marital_status:ar"]');
@@ -1705,6 +1722,7 @@
                 requestTypeField.show();
                 languagesField.show();
                 passportExtraFields.show();
+                rentalKingdomStatusField.hide();
                 arrivalDateField.hide();
                 priceLabel.text('{{ helperTrans('ingaz.price') }}');
                 idInputs.attr('required', 'required');
@@ -1714,6 +1732,7 @@
                 salaryInput.attr('required', 'required');
                 jobSelect.attr('required', 'required');
                 requestTypeSelect.prop('disabled', false);
+                rentalKingdomStatusSelect.prop('disabled', true);
                 arrivalDateInput.prop('required', false);
 
                 // Set price to 0 in all cases
@@ -1727,7 +1746,6 @@
                     arrivalDateInput.val('');
                     rentalFinanceSection.hide();
                 } else if (typeContext.isInstantTransfer) {
-                    console.log('Hiding fields for إستلام فورى');
                     // إستلام فورى: خدمة نقل العمالة من موقع إلى آخر بدون استقدام جديد
                     // يتم إخفاء الحقول غير المطلوبة لهذا النوع من الخدمة
                     idFields.hide();
@@ -1747,14 +1765,14 @@
                     arrivalDateInput.val('');
                     rentalFinanceSection.hide();
                 } else if (typeContext.isRental) {
-                    console.log('Hiding fields for ايجار/تأجير');
                     // Hide fields for ايجار
                     heightWeightFields.hide();
                     maritalStatusField.hide();
                     salaryField.show();
                     requestTypeField.hide();
                     languagesField.hide();
-                    arrivalDateField.show();
+                    rentalKingdomStatusField.show();
+                    rentalKingdomStatusSelect.prop('disabled', false);
                     priceLabel.text(@json(helperTrans('ingaz.monthly_rental_cost')));
                     requestTypeSelect.val(requestTypeCustom);
                     maritalStatusEnField.val('');
@@ -1766,20 +1784,15 @@
                     salaryInput.removeAttr('required');
                     requestTypeSelect.prop('disabled', false);
                     if (isRentalForm || typeContext.isRental) {
+                        rentalFinanceConfirmedInput.val('1');
                         rentalFinanceSection.show();
-                        updateRentalFinanceSummary();
-
-                        if (!hasShownRentalFinanceModal) {
-                            setTimeout(function() {
-                                rentalFinanceModal.modal('show');
-                            }, 150);
-                            hasShownRentalFinanceModal = true;
-                        }
                     }
                 } else {
                     arrivalDateInput.val('');
                     rentalFinanceSection.hide();
                 }
+
+                syncRentalKingdomPath();
 
                 if (shouldUpdateMaritalTranslation) {
                     updateMaritalStatusTranslation();
@@ -1806,7 +1819,6 @@
 
             // Call when type changes
             $('select[name="type_id"]').change(function() {
-                console.log('Type changed');
                 syncMaidTypePicker();
                 toggleFields();
                 toggleShelterOption();
@@ -1844,12 +1856,14 @@
                 var isRentalType = isRentalForm || getTypeContext().isRental;
 
                 if (isRentalType) {
-                    shelterOption.show();
-                    shelterSelect.val('1');
+                    var rentalKingdomStatus = $('#rental_kingdom_status').val();
+                    var isInsideKingdom = rentalKingdomStatus === 'inside';
+                    shelterOption.hide();
+                    shelterSelect.val(isInsideKingdom ? '1' : '0');
                     shelterSelect.prop('disabled', false);
                     shelterLabel.hide();
                     shelterSelectField.hide();
-                    shelterNotice.show();
+                    shelterNotice.hide();
                 } else {
                     shelterOption.hide();
                     shelterSelect.val('0');
@@ -1860,8 +1874,62 @@
                 }
             }
 
+            function setRentalKingdomStatus(status) {
+                $('#rental_kingdom_status').val(status || '');
+                $('.rental-kingdom-status-option').removeClass('is-active');
+
+                if (status) {
+                    $('.rental-kingdom-status-option[data-rental-status="' + status + '"]').addClass('is-active');
+                }
+            }
+
+            function syncRentalKingdomPath() {
+                var isRentalType = isRentalForm || getTypeContext().isRental;
+                var rentalKingdomStatus = $('#rental_kingdom_status').val();
+                var isInsideKingdom = rentalKingdomStatus === 'inside';
+                var arrivalDateField = $('#arrival_date_field');
+                var arrivalDateInput = $('#arrival_date');
+                var rentalStatusNote = $('#rental_kingdom_status_note');
+
+                if (!isRentalType) {
+                    $('.rental-kingdom-status-choice').removeClass('is-visible');
+                    $('#rental_kingdom_status').prop('disabled', true);
+                    rentalStatusNote.hide().text('');
+                    arrivalDateField.hide();
+                    arrivalDateInput.prop('required', false).val('');
+                    return;
+                }
+
+                $('.rental-kingdom-status-choice').addClass('is-visible');
+                $('#rental_kingdom_status').prop('disabled', false);
+                rentalStatusNote.text(rentalKingdomStatusNotes[rentalKingdomStatus] || rentalKingdomStatusNotes['']).show();
+                setRentalKingdomStatus(rentalKingdomStatus);
+
+                if (isInsideKingdom) {
+                    arrivalDateField.show();
+                    arrivalDateInput.prop('required', true);
+                } else {
+                    arrivalDateField.hide();
+                    arrivalDateInput.prop('required', false).val('');
+                }
+            }
+
             // Call on page load
+            syncRentalKingdomPath();
             toggleShelterOption();
+
+            $('.rental-kingdom-status-option').on('click', function(event) {
+                event.preventDefault();
+                event.stopPropagation();
+                setRentalKingdomStatus($(this).data('rental-status'));
+                syncRentalKingdomPath();
+                toggleShelterOption();
+            });
+
+            $('#rental_kingdom_status, #arrival_date').on('change input', function() {
+                syncRentalKingdomPath();
+                toggleShelterOption();
+            });
 
             // التحقق من رقم الهوية
             $('#id_number').on('input', function() {

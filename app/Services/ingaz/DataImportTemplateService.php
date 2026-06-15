@@ -14,7 +14,7 @@ class DataImportTemplateService
 {
     public function templates(): array
     {
-        return [
+        $templates = [
             'clients' => [
                 'label' => 'العملاء',
                 'route_hint' => '/admin/clients',
@@ -52,6 +52,64 @@ class DataImportTemplateService
                 'external_template_route' => 'maids.bulk-import.template',
                 'external_upload_route' => 'maids.bulk-import.store',
                 'columns' => [],
+            ],
+            'recruitment_offices' => [
+                'label' => 'مكاتب الاستقدام',
+                'route_hint' => '/admin/recruitment-offices',
+                'icon' => 'fas fa-building',
+                'description' => 'إدخال أو تحديث مكاتب الاستقدام وربطها بالجنسية وبيانات التواصل والبنك.',
+                'filename' => 'recruitment-offices-import-template.xlsx',
+                'columns' => [
+                    ['key' => 'id', 'label' => 'ID', 'required' => false, 'example' => '15'],
+                    ['key' => 'title_ar', 'label' => 'اسم المكتب بالعربية', 'required' => true, 'example' => 'مكتب خارجي'],
+                    ['key' => 'title_en', 'label' => 'اسم المكتب بالإنجليزية', 'required' => false, 'example' => 'External Office'],
+                    ['key' => 'nationality', 'label' => 'الجنسية', 'required' => true, 'example' => 'الفلبين'],
+                    ['key' => 'status', 'label' => 'الحالة', 'required' => false, 'example' => 'نشط', 'valid_values' => ['نشط', 'غير نشط', 'active', 'inactive']],
+                    ['key' => 'is_show', 'label' => 'إظهار في الموقع', 'required' => false, 'example' => 'لا', 'valid_values' => ['نعم', 'لا']],
+                    ['key' => 'phone_office', 'label' => 'هاتف المكتب', 'required' => false, 'example' => '+639000000000'],
+                    ['key' => 'license_number', 'label' => 'رقم الترخيص', 'required' => false, 'example' => 'LIC-001'],
+                    ['key' => 'street', 'label' => 'العنوان/الشارع', 'required' => false, 'example' => 'Manila'],
+                    ['key' => 'manager_name', 'label' => 'اسم المدير', 'required' => false, 'example' => 'Ahmed Ali'],
+                    ['key' => 'manager_phone', 'label' => 'جوال المدير', 'required' => false, 'example' => '+639111111111'],
+                    ['key' => 'manager_email', 'label' => 'بريد المدير', 'required' => false, 'example' => 'manager@example.com'],
+                    ['key' => 'bank_address', 'label' => 'عنوان البنك', 'required' => false, 'example' => 'Bank address'],
+                    ['key' => 'bank_name', 'label' => 'اسم البنك', 'required' => false, 'example' => 'Bank name'],
+                    ['key' => 'bank_account_name', 'label' => 'اسم صاحب الحساب', 'required' => false, 'example' => 'External Office'],
+                    ['key' => 'bank_swift_code', 'label' => 'Swift Code', 'required' => false, 'example' => 'ABCDEFXX'],
+                    ['key' => 'bank_iban', 'label' => 'IBAN', 'required' => false, 'example' => 'SA0000000000000000000000'],
+                    ['key' => 'bank_account', 'label' => 'رقم الحساب البنكي', 'required' => false, 'example' => '1234567890'],
+                    ['key' => 'cost_of_dollar', 'label' => 'تكلفة الدولار', 'required' => false, 'example' => '3.75'],
+                    ['key' => 'cost_of_other', 'label' => 'تكلفة أخرى', 'required' => false, 'example' => '0'],
+                ],
+            ],
+            'employees' => [
+                'label' => 'الموظفين',
+                'route_hint' => '/admin/employees',
+                'icon' => 'fas fa-user-tie',
+                'description' => 'إدخال أو تحديث بيانات موظفي الموارد البشرية. يمكن الربط بالقسم والوظيفة والجنسية والوردية باستخدام ID أو الاسم.',
+                'filename' => 'employees-import-template.xlsx',
+                'columns' => [
+                    ['key' => 'id', 'label' => 'ID', 'required' => false, 'example' => '10'],
+                    ['key' => 'name', 'label' => 'اسم الموظف', 'required' => true, 'example' => 'أحمد محمد علي'],
+                    ['key' => 'code', 'label' => 'كود الموظف', 'required' => false, 'example' => 'EMP-001'],
+                    ['key' => 'phone', 'label' => 'رقم الجوال', 'required' => true, 'example' => '0500000000'],
+                    ['key' => 'email', 'label' => 'البريد الإلكتروني', 'required' => true, 'example' => 'employee@example.com'],
+                    ['key' => 'national_num', 'label' => 'رقم الهوية/الإقامة', 'required' => true, 'example' => '1000000000'],
+                    ['key' => 'identity_expiry_date', 'label' => 'تاريخ انتهاء الهوية', 'required' => false, 'example' => now()->addYear()->format('Y-m-d')],
+                    ['key' => 'birthday', 'label' => 'تاريخ الميلاد', 'required' => true, 'example' => '1990-01-01'],
+                    ['key' => 'nationality', 'label' => 'الجنسية', 'required' => true, 'example' => 'السعودية'],
+                    ['key' => 'address', 'label' => 'العنوان', 'required' => false, 'example' => 'الرياض'],
+                    ['key' => 'department', 'label' => 'القسم', 'required' => true, 'example' => 'الإدارة'],
+                    ['key' => 'job', 'label' => 'الوظيفة', 'required' => true, 'example' => 'محاسب'],
+                    ['key' => 'shift', 'label' => 'الوردية', 'required' => true, 'example' => 'دوام صباحي'],
+                    ['key' => 'hired_date', 'label' => 'تاريخ التعيين', 'required' => true, 'example' => now()->format('Y-m-d')],
+                    ['key' => 'contract_end_date', 'label' => 'تاريخ نهاية العقد', 'required' => true, 'example' => now()->addYear()->format('Y-m-d')],
+                    ['key' => 'salary', 'label' => 'الراتب', 'required' => true, 'example' => '5000'],
+                    ['key' => 'net_salary', 'label' => 'صافي الراتب', 'required' => false, 'example' => '5000'],
+                    ['key' => 'status', 'label' => 'الحالة', 'required' => false, 'example' => 'نشط', 'valid_values' => ['نشط', 'غير نشط', 'active', 'inactive']],
+                    ['key' => 'admin_id', 'label' => 'حساب المستخدم/الإدارة', 'required' => false, 'example' => '1'],
+                    ['key' => 'maid_id', 'label' => 'ID السيرة المرتبطة', 'required' => false, 'example' => ''],
+                ],
             ],
             'rental_maids' => [
                 'label' => 'سير الإيجار',
@@ -105,6 +163,7 @@ class DataImportTemplateService
                 'filename' => 'recruitment-contracts-import-template.xlsx',
                 'columns' => [
                     ['key' => 'contract_number', 'label' => 'رقم العقد', 'required' => false, 'example' => 'RC-0001'],
+                    ['key' => 'visa_number', 'label' => 'رقم التأشيرة', 'required' => false, 'example' => 'VS-000001'],
                     ['key' => 'client_phone', 'label' => 'جوال العميل', 'required' => true, 'example' => '0500000000'],
                     ['key' => 'client_id_number', 'label' => 'رقم هوية العميل', 'required' => true, 'example' => '1000000000'],
                     ['key' => 'client_name', 'label' => 'اسم العميل', 'required' => false, 'example' => 'محمد أحمد'],
@@ -176,11 +235,137 @@ class DataImportTemplateService
                 ],
             ],
         ];
+
+        $templates['recruitment_contracts_clients_maids'] = [
+            'label' => 'عقود استقدام-عملاء-عاملات',
+            'route_hint' => '/admin/RecruitmentContract',
+            'icon' => 'fas fa-file-contract',
+            'description' => 'قالب واحد لإنشاء أو تحديث بيانات العميل والعاملة وعقد الاستقدام من نفس الصف مع الحفاظ على القوالب القديمة.',
+            'filename' => 'recruitment-contracts-clients-maids-import-template.xlsx',
+            'columns' => $this->recruitmentBundleColumns(),
+        ];
+
+        $templates['rent_contracts_clients_rental_maids'] = [
+            'label' => 'عقود ايجار-عملاء-سير ايجار',
+            'route_hint' => '/admin/RentContract',
+            'icon' => 'fas fa-file-invoice-dollar',
+            'description' => 'قالب واحد لإنشاء أو تحديث بيانات العميل وسيرة الإيجار وعقد الإيجار من نفس الصف مع الحفاظ على القوالب القديمة.',
+            'filename' => 'rent-contracts-clients-rental-maids-import-template.xlsx',
+            'columns' => $this->rentBundleColumns(),
+        ];
+
+        return $templates;
     }
 
     public function template(string $type): ?array
     {
         return $this->templates()[$type] ?? null;
+    }
+
+    private function recruitmentBundleColumns(): array
+    {
+        return array_merge(
+            $this->clientBundleColumns(),
+            $this->maidBundleColumns(false),
+            [
+                ['key' => 'contract_number', 'label' => 'رقم عقد الاستقدام', 'required' => false, 'example' => 'RC-0001'],
+                ['key' => 'visa_number', 'label' => 'رقم التأشيرة', 'required' => false, 'example' => 'VS-000001'],
+                ['key' => 'contract_date', 'label' => 'تاريخ عقد الاستقدام', 'required' => true, 'example' => now()->format('Y-m-d')],
+                ['key' => 'recruitment_contract_status', 'label' => 'حالة عقد الاستقدام', 'required' => true, 'example' => 'عقود مساند', 'valid_values' => $this->recruitmentContractStatusLabels()],
+                ['key' => 'contract_amount', 'label' => 'قيمة عقد الاستقدام', 'required' => false, 'example' => '12000'],
+                ['key' => 'contract_paid_amount', 'label' => 'المدفوع من عقد الاستقدام', 'required' => false, 'example' => '5000'],
+                ['key' => 'contract_notes', 'label' => 'ملاحظات عقد الاستقدام', 'required' => false, 'example' => 'عقد مستورد من القالب المجمع'],
+            ]
+        );
+    }
+
+    private function rentBundleColumns(): array
+    {
+        return array_merge(
+            $this->clientBundleColumns(),
+            $this->maidBundleColumns(true),
+            [
+                ['key' => 'rent_contract_number', 'label' => 'رقم عقد الإيجار', 'required' => false, 'example' => 'RN-0001'],
+                ['key' => 'rent_start_date', 'label' => 'تاريخ بداية الإيجار', 'required' => true, 'example' => now()->format('Y-m-d')],
+                ['key' => 'rent_end_date', 'label' => 'تاريخ نهاية الإيجار', 'required' => false, 'example' => now()->addMonth()->format('Y-m-d')],
+                ['key' => 'rent_duration_months', 'label' => 'مدة الإيجار بالأشهر', 'required' => false, 'example' => '1'],
+                ['key' => 'rent_monthly_amount', 'label' => 'المبلغ الشهري للإيجار', 'required' => false, 'example' => '2500'],
+                ['key' => 'rent_contract_status', 'label' => 'حالة عقد الإيجار', 'required' => true, 'example' => 'نشط', 'valid_values' => $this->rentalContractStatusLabels()],
+                ['key' => 'rent_contract_notes', 'label' => 'ملاحظات عقد الإيجار', 'required' => false, 'example' => 'عقد إيجار مستورد من القالب المجمع'],
+            ]
+        );
+    }
+
+    private function clientBundleColumns(): array
+    {
+        return [
+            ['key' => 'client_id', 'label' => 'ID العميل', 'required' => false, 'example' => '172'],
+            ['key' => 'client_name', 'label' => 'اسم العميل', 'required' => true, 'example' => 'محمد أحمد علي'],
+            ['key' => 'client_phone', 'label' => 'رقم جوال العميل', 'required' => true, 'example' => '0500000000'],
+            ['key' => 'client_id_number', 'label' => 'رقم هوية/إقامة العميل', 'required' => true, 'example' => '1000000000'],
+            ['key' => 'client_email', 'label' => 'بريد العميل الإلكتروني', 'required' => false, 'example' => 'client@example.com'],
+            ['key' => 'client_nationality', 'label' => 'جنسية العميل', 'required' => false, 'example' => 'سعودي'],
+            ['key' => 'client_birthdate', 'label' => 'تاريخ ميلاد العميل', 'required' => false, 'example' => '1990-01-01'],
+            ['key' => 'client_marital_status', 'label' => 'الحالة الاجتماعية للعميل', 'required' => false, 'example' => 'متزوج', 'valid_values' => ['أعزب', 'متزوج', 'مطلق', 'أرمل', 'single', 'married', 'divorced', 'widowed']],
+            ['key' => 'client_phone2', 'label' => 'جوال إضافي للعميل', 'required' => false, 'example' => '0550000000'],
+            ['key' => 'client_category', 'label' => 'تصنيف العميل', 'required' => false, 'example' => 'أفراد'],
+            ['key' => 'client_account_id', 'label' => 'Account ID العميل', 'required' => false, 'example' => '1001'],
+            ['key' => 'client_city', 'label' => 'مدينة العميل', 'required' => false, 'example' => 'الرياض'],
+            ['key' => 'client_address', 'label' => 'عنوان العميل', 'required' => false, 'example' => 'حي الياسمين'],
+            ['key' => 'client_rooms_num', 'label' => 'عدد غرف العميل', 'required' => false, 'example' => '4'],
+            ['key' => 'client_family_num', 'label' => 'عدد أفراد أسرة العميل', 'required' => false, 'example' => '5'],
+            ['key' => 'client_children', 'label' => 'عدد أطفال العميل', 'required' => false, 'example' => '2'],
+            ['key' => 'client_job', 'label' => 'وظيفة العميل', 'required' => false, 'example' => 'موظف'],
+            ['key' => 'client_status', 'label' => 'حالة العميل', 'required' => false, 'example' => 'نشط'],
+            ['key' => 'client_created_by', 'label' => 'أضيف العميل بواسطة', 'required' => false, 'example' => '1'],
+            ['key' => 'client_notes', 'label' => 'ملاحظات العميل', 'required' => false, 'example' => 'عميل مستورد من القالب المجمع'],
+        ];
+    }
+
+    private function maidBundleColumns(bool $rental): array
+    {
+        $columns = [
+            ['key' => 'maid_code', 'label' => 'رقم السيرة', 'required' => false, 'example' => $rental ? 'RNT-001' : 'CV-001'],
+            ['key' => 'maid_name_en', 'label' => 'اسم العاملة بالإنجليزية', 'required' => true, 'example' => 'EDIT_ME_NAME'],
+            ['key' => 'maid_passport', 'label' => 'رقم جواز العاملة', 'required' => true, 'example' => 'P0000001'],
+            ['key' => 'maid_nationality', 'label' => 'جنسية العاملة', 'required' => true, 'example' => $rental ? 'أوغندا' : 'الفلبين'],
+            ['key' => 'maid_office', 'label' => 'مكتب الاستقدام', 'required' => $rental, 'example' => 'مكتب خارجي'],
+            ['key' => 'maid_type', 'label' => 'نوع السيرة', 'required' => true, 'example' => $rental ? 'إيجار' : 'استقدام'],
+            ['key' => 'maid_job_titles', 'label' => 'مهنة العاملة', 'required' => true, 'example' => 'عاملة منزلية'],
+            ['key' => 'maid_religion', 'label' => 'ديانة العاملة', 'required' => false, 'example' => 'مسلمة'],
+            ['key' => 'maid_request_type', 'label' => 'نوع طلب السيرة', 'required' => false, 'example' => 'حسب المواصفات'],
+            ['key' => 'maid_salary', 'label' => 'راتب العاملة', 'required' => false, 'example' => '1500'],
+            ['key' => 'maid_price', 'label' => 'تكلفة/سعر السيرة', 'required' => false, 'example' => $rental ? '2500' : '12000'],
+            ['key' => 'maid_birth_date', 'label' => 'تاريخ ميلاد العاملة', 'required' => false, 'example' => '1998-01-01'],
+            ['key' => 'maid_age', 'label' => 'عمر العاملة', 'required' => false, 'example' => '27'],
+            ['key' => 'maid_height', 'label' => 'طول العاملة', 'required' => false, 'example' => '160'],
+            ['key' => 'maid_weight', 'label' => 'وزن العاملة', 'required' => false, 'example' => '60'],
+            ['key' => 'maid_id_number', 'label' => 'رقم هوية العاملة', 'required' => false, 'example' => 'EDIT-ID-001'],
+            ['key' => 'maid_id_expiry_date', 'label' => 'تاريخ انتهاء هوية العاملة', 'required' => false, 'example' => now()->addYear()->format('Y-m-d')],
+            ['key' => 'maid_marital_status', 'label' => 'الحالة الاجتماعية للعاملة', 'required' => false, 'example' => 'عازبة'],
+            ['key' => 'maid_childrens_count', 'label' => 'عدد أطفال العاملة', 'required' => false, 'example' => '0'],
+            ['key' => 'maid_duration', 'label' => 'مدة عقد العاملة', 'required' => false, 'example' => '24 شهر'],
+            ['key' => 'maid_experience_status', 'label' => 'حالة خبرة العاملة', 'required' => true, 'example' => 'سبق لها العمل'],
+            ['key' => 'maid_experience_years', 'label' => 'سنوات خبرة العاملة', 'required' => false, 'example' => '2'],
+            ['key' => 'maid_skills', 'label' => 'مهارات العاملة', 'required' => false, 'example' => 'طبخ|تنظيف'],
+            ['key' => 'maid_languages', 'label' => 'لغات العاملة', 'required' => false, 'example' => 'arabic|english'],
+            ['key' => 'maid_language_percentages', 'label' => 'نسب لغات العاملة', 'required' => false, 'example' => 'arabic:90|english:70'],
+            ['key' => 'maid_status', 'label' => 'حالة توفر العاملة', 'required' => false, 'example' => 'متاحة'],
+            ['key' => 'maid_available_at', 'label' => 'متاحة من', 'required' => false, 'example' => now()->format('Y-m-d')],
+            ['key' => 'maid_arrival_date', 'label' => 'تاريخ وصول العاملة', 'required' => false, 'example' => now()->format('Y-m-d')],
+            ['key' => 'maid_create_shelter_contract', 'label' => 'إنشاء عقد إيواء للعاملة', 'required' => false, 'example' => 'لا'],
+            ['key' => 'maid_is_show', 'label' => 'إظهار السيرة في الموقع', 'required' => false, 'example' => 'نعم'],
+            ['key' => 'maid_is_pinned', 'label' => 'تثبيت السيرة', 'required' => false, 'example' => 'لا'],
+            ['key' => 'maid_video_link', 'label' => 'رابط فيديو العاملة', 'required' => false, 'example' => 'https://example.com/video'],
+            ['key' => 'maid_notes', 'label' => 'ملاحظات العاملة', 'required' => false, 'example' => 'سيرة مستوردة من القالب المجمع'],
+        ];
+
+        if ($rental) {
+            $columns[] = ['key' => 'maid_finance_income', 'label' => 'إيرادات تأجير العاملة', 'required' => false, 'example' => '0'];
+            $columns[] = ['key' => 'maid_finance_expense', 'label' => 'مصروفات تأجير العاملة', 'required' => false, 'example' => '0'];
+        }
+
+        return $columns;
     }
 
     private function recruitmentContractStatusLabels(): array

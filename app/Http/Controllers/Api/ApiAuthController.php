@@ -14,6 +14,7 @@ use App\Http\Requests\ingaz\auth\RegisterRequest;
 use App\Http\Requests\ingaz\auth\UpdateProfileRequest;
 use App\Http\Resources\Api\UserResource;
 use App\Models\ingaz\UserFirebaseToken;
+use App\Support\CommunicationSettings;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
@@ -72,7 +73,8 @@ class ApiAuthController extends Controller
         $data = [
             'phone'           => $data['phone'],
             'encrypted_phone' => $encryptedPhone,
-            'next_step'       => 'verify_otp'
+            'next_step'       => 'verify_otp',
+            'sms_gateway_status' => CommunicationSettings::smsGatewayStatus(),
         ];
         return apiResponse(true,  __('ingaz.register_successfully'), $data, 201);
 

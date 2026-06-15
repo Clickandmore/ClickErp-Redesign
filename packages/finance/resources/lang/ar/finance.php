@@ -1613,6 +1613,8 @@ return array (
   'this_month' => 'هذا الشهر',
   'net_movement' => 'صافي الحركة',
   'month_net' => 'صافي هذا الشهر',
+  'rental_contracts_total_value' => 'قيمة عقود التأجير الإجمالية',
+  'rental_contracts_value_hint' => 'إجمالي قيمة عقود التأجير المسجلة في النظام.',
   'accounting_entries' => 'القيود المحاسبية',
   'awaiting_approval' => 'بانتظار الاعتماد',
   'revenue_expense_movement' => 'حركة الإيرادات والمصروفات',

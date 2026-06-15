@@ -248,7 +248,7 @@
 
         <div class="work_samples_grid constraint-attachment-grid">
             <label class="img_upload">
-                <input type="file" accept="image/*" multiple name="file[]" id="img-upload"
+                <input type="file" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.csv,image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" multiple name="file[]" id="img-upload"
                     onchange="handleFileSelect(event)">
                 <div class="img justify-content-center">
                     <img loading="lazy" src="{{ asset('admin') }}/assets/img/plus.svg" alt="plus"

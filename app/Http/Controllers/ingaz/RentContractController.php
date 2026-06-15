@@ -7,6 +7,7 @@ use App\Enums\ingaz\OrderEnum;
 use App\Http\Actions\ingaz\RecruitmentOfficeAction;
 use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\StoreRentalContractRequest;
+use App\Http\Traits\SendSMSTrait;
 use App\Models\Branch;
 use App\Models\auth\Admin;
 use App\Models\Contract;
@@ -36,6 +37,8 @@ use Yajra\DataTables\Facades\DataTables;
 
 class RentContractController extends Controller
 {
+    use SendSMSTrait;
+
     public $folderPath = "admin.ingaz.RentContract";
     public $mainRoute = "RentContract";
 
@@ -48,7 +51,7 @@ class RentContractController extends Controller
             'only' => ['create', 'store', 'getExistingClients'],
         ]);
         $this->middleware('permission:' . \App\PermKeys::RENT_CONTRACT_EDIT . ',admin', [
-            'only' => ['edit', 'update', 'changeMaid'],
+            'only' => ['edit', 'update', 'changeMaid', 'deletePaymentReceipt'],
         ]);
         $this->middleware('permission:' . \App\PermKeys::RENT_CONTRACT_DELETE . ',admin', [
             'only' => ['destroy'],
@@ -101,6 +104,30 @@ class RentContractController extends Controller
 
             if ($request->filled('date_to')) {
                 $query->whereDate('contract_date', '<=', $request->date_to);
+            }
+
+            if ($request->filled('start_date_from')) {
+                $query->whereHas('info', function ($infoQuery) use ($request) {
+                    $infoQuery->whereDate('ingaz_from', '>=', $request->start_date_from);
+                });
+            }
+
+            if ($request->filled('start_date_to')) {
+                $query->whereHas('info', function ($infoQuery) use ($request) {
+                    $infoQuery->whereDate('ingaz_from', '<=', $request->start_date_to);
+                });
+            }
+
+            if ($request->filled('end_date_from')) {
+                $query->whereHas('info', function ($infoQuery) use ($request) {
+                    $infoQuery->whereDate('ingaz_to', '>=', $request->end_date_from);
+                });
+            }
+
+            if ($request->filled('end_date_to')) {
+                $query->whereHas('info', function ($infoQuery) use ($request) {
+                    $infoQuery->whereDate('ingaz_to', '<=', $request->end_date_to);
+                });
             }
 
             if ($request->filled('marketer_id')) {
@@ -174,7 +201,32 @@ class RentContractController extends Controller
                     return $this->getStatusBadge($row->status, $row->closure_type, $row);
                 })
                 ->editColumn('user_id', function ($row) {
-                    return $row->user ? $row->user->name : 'غير محدد';
+                    if (!$row->user) {
+                        return '<span class="text-muted">غير محدد</span>';
+                    }
+
+                    $fullPhone = trim(($row->user->phone_code ?? '') . ($row->user->phone ?? ''));
+                    $phoneHtml = $fullPhone
+                        ? '<a href="tel:' . e($fullPhone) . '"><i class="fas fa-phone-alt me-1"></i>' . e($fullPhone) . '</a>'
+                        : '<span class="text-muted">لا يوجد جوال</span>';
+                    $documentLabel = method_exists($row->user, 'documentNumberLabel')
+                        ? $row->user->documentNumberLabel()
+                        : 'رقم الهوية';
+                    $documentNumber = method_exists($row->user, 'searchableDocumentNumber')
+                        ? $row->user->searchableDocumentNumber()
+                        : ($row->user->national_num ?? null);
+                    $documentHtml = $documentNumber
+                        ? '<span><i class="fas fa-id-card me-1"></i>' . e($documentLabel) . ': ' . e($documentNumber) . '</span>'
+                        : '<span class="text-muted"><i class="fas fa-id-card me-1"></i>الهوية غير محددة</span>';
+
+                    return '<div class="rent-person-cell">
+                                <div class="rent-person-avatar"><i class="fas fa-user"></i></div>
+                                <div class="rent-person-main">
+                                    <div class="rent-person-name">' . e($row->user->name) . '</div>
+                                    <div class="rent-person-meta">' . $phoneHtml . '</div>
+                                    <div class="rent-person-meta">' . $documentHtml . '</div>
+                                </div>
+                            </div>';
                 })
                 ->addColumn('phone', function ($row) {
                     if ($row->user && $row->user->phone) {
@@ -187,12 +239,14 @@ class RentContractController extends Controller
                 })
                 ->editColumn('maid_id', function ($row) {
                     if ($row->maid) {
-                        return '<div class="d-flex align-items-center">
-                                    <img src="' . $row->maid->photo_url . '" class="rounded-circle me-2" width="40" height="40">
-                                    <div>
-                                        <div class="fw-bold">' . $row->maid->name . '</div>
-                                        <small class="text-muted d-block">' . $row->maid->passport_num . '</small>
-                                        <small class="text-muted d-block">' . helperTrans('ingaz.request_type') . ': ' . e($row->maid->request_type_label) . '</small>
+                        return '<div class="rent-person-cell">
+                                    <div class="rent-person-avatar">
+                                        <img src="' . e($row->maid->photo_url) . '" alt="' . e($row->maid->name) . '">
+                                    </div>
+                                    <div class="rent-person-main">
+                                        <div class="rent-person-name">' . e($row->maid->name) . '</div>
+                                        <div class="rent-person-meta"><i class="fas fa-passport me-1"></i>' . e($row->maid->passport_num ?: 'بدون جواز') . '</div>
+                                        <div class="rent-person-meta">' . helperTrans('ingaz.request_type') . ': ' . e($row->maid->request_type_label) . '</div>
                                     </div>
                                 </div>';
                     }
@@ -202,17 +256,34 @@ class RentContractController extends Controller
                     if ($row->info) {
                         $extensionBadge = ($row->extensions_count ?? 0) > 0
                             ? '<span class="badge bg-info">ممدد</span>'
-                            : '<span class="badge bg-secondary">غير ممدد</span>';
+                            : '';
                         $durationMonths = $row->info->contract_duration_months ?? null;
                         $durationDays = $row->info->contract_duration_days ?? null;
-                        $durationText = $durationMonths ? $durationMonths . ' شهر' : 'غير محدد';
-                        if ($durationDays) {
-                            $durationText .= ' / ' . $durationDays . ' يوم';
+                        $durationText = [];
+                        if ($durationMonths) {
+                            $durationText[] = $durationMonths . ' شهر';
                         }
-                        return '<div class="small">
-                                    <div><strong>المدة:</strong> ' . $durationText . '</div>
-                                    <div><strong>التكلفة الشهرية:</strong> ' . number_format($row->info->monthly_cost ?? 0, 2) . ' ريال</div>
-                                    <div><strong>قيمة العقد:</strong> ' . number_format($row->info->contract_value ?? 0, 2) . ' ريال</div>
+                        if ($durationDays) {
+                            $durationText[] = $durationDays . ' يوم';
+                        }
+                        $durationText = count($durationText) ? implode(' / ', $durationText) : 'غير محدد';
+
+                        $startDate = optional($row->info->ingaz_from)->format('Y-m-d') ?: 'غير محدد';
+                        $endDate = optional($row->info->ingaz_to)->format('Y-m-d') ?: 'غير محدد';
+
+                        $extensionBadgeHtml = $extensionBadge
+                            ? '<div class="d-flex justify-content-between align-items-center mb-1">' . $extensionBadge . '</div>'
+                            : '';
+
+                        return '<div class="rent-period-box small">
+                                    ' . $extensionBadgeHtml . '
+                                    <div class="rent-period-row"><strong>بداية العقد</strong><span>' . e($startDate) . '</span></div>
+                                    <div class="rent-period-row"><strong>نهاية العقد</strong><span>' . e($endDate) . '</span></div>
+                                    <div class="rent-period-row"><strong>المدة</strong><span>' . e($durationText) . '</span></div>
+                                    <div class="rent-period-money">
+                                        <div><strong>التكلفة الشهرية:</strong> ' . number_format($row->info->monthly_cost ?? 0, 2) . ' ريال</div>
+                                        <div><strong>قيمة العقد:</strong> ' . number_format($row->info->contract_value ?? 0, 2) . ' ريال</div>
+                                    </div>
                                 </div>';
                     }
                     return 'غير محدد';
@@ -228,6 +299,20 @@ class RentContractController extends Controller
                     return $row->branch ? e($row->branch->name) : '-';
                 })
                 ->addColumn('remaining_days', function ($row) {
+                    if ($row->status === 'cancelled') {
+                        $remainingDays = null;
+                        if ($row->closed_at && $row->info?->ingaz_to) {
+                            $remainingDays = Carbon::parse($row->closed_at)->startOfDay()
+                                ->diffInDays(Carbon::parse($row->info->ingaz_to)->startOfDay(), false);
+                        }
+
+                        $remainingText = $remainingDays !== null && $remainingDays > 0
+                            ? '<small class="d-block text-danger fw-bold">ألغي قبل نهاية العقد بـ ' . $remainingDays . ' يوم</small>'
+                            : '';
+
+                        return '<span class="badge bg-danger">ملغي قبل اكتمال المدة</span>' . $remainingText;
+                    }
+
                     // Only show remaining days for active contracts
                     if ($row->status !== 'completed') {
                         $remainingDays = $row->calculateRemainingDays();
@@ -404,7 +489,7 @@ class RentContractController extends Controller
 
                     return $actions;
                 })
-                ->rawColumns(['phone', 'maid_id', 'contract_info', 'remaining_days', 'actions', 'status'])
+                ->rawColumns(['user_id', 'phone', 'maid_id', 'contract_info', 'remaining_days', 'actions', 'status'])
                 ->make(true);
         }
 
@@ -643,7 +728,7 @@ class RentContractController extends Controller
                 : null;
 
             // إنشاء معلومات العقد
-            RentalContractInfo::create([
+            $contractInfoPayload = [
                 'rental_contract_id' => $rentalContract->id,
                 'package_id' => $packageId,
                 'package_original_price' => $packagePriceSnapshot['package_original_price'],
@@ -670,7 +755,16 @@ class RentContractController extends Controller
                 'ingaz_from' => $request->ingaz_from,
                 'ingaz_to' => $ingazTo,
                 'notes' => $request->notes,
-            ]);
+            ];
+
+            if ($paymentReceiptPath && $this->paymentReceiptsColumnExists()) {
+                $contractInfoPayload['payment_receipts'] = [[
+                    'path' => $paymentReceiptPath,
+                    'uploaded_at' => now()->toDateTimeString(),
+                ]];
+            }
+
+            RentalContractInfo::create($contractInfoPayload);
 
             $rentalContract->loadMissing(['user', 'maid.nationality', 'info']);
             $financeResult = $rentalContractFinanceService->createForContract($rentalContract, $selectedPackage);
@@ -752,7 +846,7 @@ class RentContractController extends Controller
             'marketer',
             'frozenBy',
             'resumedBy',
-            'order',
+            'order.details.package',
             'financeInvoice.receiptAccount',
             'extensions',
             'financialAdjustments',
@@ -805,13 +899,16 @@ class RentContractController extends Controller
             });
 
         $contractAttachments = $this->collectRentalContractAttachments($contract);
+        $closureSummaryDate = $contract->closed_at ? Carbon::parse($contract->closed_at) : Carbon::now();
+        $closureSummary = $this->buildRentalClosureSummary($contract, $closureSummaryDate);
 
         return view($this->folderPath . '.show', compact(
             'contract',
             'availableReplacementMaids',
             'activities',
             'maidChangeHistory',
-            'contractAttachments'
+            'contractAttachments',
+            'closureSummary'
         ));
     }
 
@@ -948,6 +1045,7 @@ class RentContractController extends Controller
         $marketers = Admin::whereNull('deleted_at')->orderBy('name')->get();
         $nationalities = Nationality::with('translations')->get();
         $countries = Country::active()->ordered()->get();
+        $paymentReceipts = $this->rentalPaymentReceiptItems($contract->info);
 
         return view($this->folderPath . '.edit', compact(
             'contract',
@@ -955,7 +1053,8 @@ class RentContractController extends Controller
             'packages',
             'marketers',
             'nationalities',
-            'countries'
+            'countries',
+            'paymentReceipts'
         ));
     }
 
@@ -1026,15 +1125,8 @@ class RentContractController extends Controller
             }
 
             $remainingAmount = max(0, $contractValue - $paidAmount);
-            $paymentReceiptPath = $contract->info?->payment_receipt_path;
-
-            if ($request->hasFile('payment_receipt')) {
-                $paymentReceiptPath = $request->file('payment_receipt')
-                    ->store('rental-contracts/edit/receipts', 'public');
-            }
-
             // تحديث معلومات العقد
-            $contract->info->update([
+            $contractInfoUpdates = [
                 'package_id' => $packageId,
                 'package_original_price' => $packagePriceSnapshot['package_original_price'],
                 'package_discount_amount' => $packagePriceSnapshot['package_discount_amount'],
@@ -1043,7 +1135,6 @@ class RentContractController extends Controller
                 'package_total_with_tax' => $packagePriceSnapshot['package_total_with_tax'],
                 'payment_type' => $request->payment_type,
                 'payment_status' => $request->payment_status,
-                'payment_receipt_path' => $paymentReceiptPath,
                 'payment_confirmed_at' => $paidAmount > 0
                     ? ($contract->info->payment_confirmed_at ?: now())
                     : null,
@@ -1066,7 +1157,18 @@ class RentContractController extends Controller
                 'ingaz_to' => $request->ingaz_to ?: \Carbon\Carbon::parse($request->ingaz_from)->addDays($contractDurationDays),
                 'notes' => $request->notes,
                 'additional_terms' => $request->additional_terms,
-            ]);
+            ];
+
+            if ($request->hasFile('payment_receipt')) {
+                $newPaymentReceiptPath = $request->file('payment_receipt')
+                    ->store('rental-contracts/edit/receipts', 'public');
+                $contractInfoUpdates = array_merge(
+                    $contractInfoUpdates,
+                    $this->buildPaymentReceiptUpdatePayload($contract->info, $newPaymentReceiptPath)
+                );
+            }
+
+            $contract->info->update($contractInfoUpdates);
 
             $contract->loadMissing(['user', 'maid.nationality', 'info', 'financeInvoice']);
             $financeResult = $rentalContractFinanceService->syncPaymentForContract($contract, $selectedPackage);
@@ -1171,10 +1273,13 @@ class RentContractController extends Controller
 
     public function completeContract(Request $request, $id)
     {
+        $sendClosureMessage = $request->boolean('send_closure_message');
+        $messageResult = null;
+
         try {
             DB::beginTransaction();
 
-            $contract = RentalContract::lockForUpdate()->findOrFail($id);
+            $contract = RentalContract::with(['user', 'maid', 'info'])->lockForUpdate()->findOrFail($id);
 
             if (!$contract->canCloseOrExtend()) {
                 DB::rollBack();
@@ -1185,12 +1290,16 @@ class RentContractController extends Controller
                 ], 400);
             }
 
-            $contract->update([
-                'status' => 'completed',
-                'warranty_status' => 'active',
-                'warranty_start_date' => now(),
-                'warranty_end_date' => now()->addMonths(3), // 3 أشهر ضمان افتراضي
-            ]);
+            $closureDate = Carbon::now()->startOfDay();
+            $isEarlyClosure = $this->isRentalContractEarlyClosure($contract, $closureDate);
+
+            $contract->status = $isEarlyClosure ? 'cancelled' : 'completed';
+            $contract->closure_type = 'available';
+            $contract->closed_at = $closureDate;
+            $contract->warranty_status = $isEarlyClosure ? 'not_applicable' : 'active';
+            $contract->warranty_start_date = $isEarlyClosure ? null : now();
+            $contract->warranty_end_date = $isEarlyClosure ? null : now()->addMonths(3); // 3 أشهر ضمان افتراضي
+            $contract->save();
 
             $this->completeLinkedRentalOrder($contract);
             $this->returnShelterContractInsideForRental($contract);
@@ -1204,9 +1313,16 @@ class RentContractController extends Controller
 
             DB::commit();
 
+            if ($sendClosureMessage) {
+                $messageResult = $this->sendRentalClosureMessageToClient($contract);
+            }
+
             return response()->json([
                 'success' => true,
-                'message' => 'تم إنهاء العقد بنجاح'
+                'message' => ($isEarlyClosure
+                    ? 'تم إلغاء العقد لأنه أُنهي قبل اكتمال مدة العقد'
+                    : 'تم إنهاء العقد بنجاح')
+                    . $this->formatClosureMessageResultText($messageResult)
             ]);
 
         } catch (\Exception $e) {
@@ -1221,6 +1337,99 @@ class RentContractController extends Controller
         }
     }
 
+    private function sendRentalClosureMessageToClient(RentalContract $contract): array
+    {
+        $contract->loadMissing(['user', 'maid', 'info']);
+
+        $phone = trim((string) ($contract->user?->phone_code ?? '') . (string) ($contract->user?->phone ?? ''));
+
+        if ($phone === '') {
+            return [
+                'success' => false,
+                'error' => 'missing_phone',
+            ];
+        }
+
+        $message = $this->buildRentalClosureClientMessage($contract);
+        $response = $this->sendSMS(formatSaudiPhone($phone), $message);
+        $result = $this->normalizeRentalClosureSmsResult($response);
+
+        Log::info('Rental contract closure message attempted', [
+            'contract_id' => $contract->id,
+            'client_id' => $contract->user_id,
+            'channel' => 'sms',
+            'success' => (bool) ($result['success'] ?? false),
+            'error' => $result['error'] ?? null,
+            'response' => $result['response'] ?? null,
+        ]);
+
+        return $result;
+    }
+
+    private function normalizeRentalClosureSmsResult($response): array
+    {
+        if ($response === null || $response === false || trim((string) $response) === '') {
+            return [
+                'success' => false,
+                'error' => 'empty_response',
+                'response' => $response,
+            ];
+        }
+
+        $decoded = json_decode((string) $response, true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded) && array_key_exists('code', $decoded)) {
+            return [
+                'success' => (string) $decoded['code'] === '1',
+                'error' => (string) $decoded['code'] === '1' ? null : 'provider_rejected',
+                'response' => $decoded,
+            ];
+        }
+
+        return [
+            'success' => true,
+            'error' => null,
+            'response' => $response,
+        ];
+    }
+
+    private function buildRentalClosureClientMessage(RentalContract $contract): string
+    {
+        $contractNumber = $contract->contract_number ?: $contract->id;
+        $clientName = $contract->user?->name ?: 'عميلنا العزيز';
+        $maidName = $contract->maid?->name;
+        $closedDate = $contract->closed_at
+            ? Carbon::parse($contract->closed_at)->format('Y-m-d')
+            : Carbon::now()->format('Y-m-d');
+
+        $lines = [
+            'عميلنا ' . $clientName . '،',
+            $contract->closure_type === 'transferred'
+                ? 'تم إغلاق عقد الإيجار رقم ' . $contractNumber . ' وتوثيق نقل الكفالة بتاريخ ' . $closedDate . '.'
+                : 'تم إنهاء عقد الإيجار رقم ' . $contractNumber . ' بتاريخ ' . $closedDate . '.',
+        ];
+
+        if ($maidName) {
+            $lines[] = 'العاملة: ' . $maidName . '.';
+        }
+
+        $lines[] = 'شكرا لتعاملكم معنا.';
+
+        return implode("\n", $lines);
+    }
+
+    private function formatClosureMessageResultText(?array $messageResult): string
+    {
+        if ($messageResult === null) {
+            return '';
+        }
+
+        if ((bool) ($messageResult['success'] ?? false)) {
+            return '، وتم إرسال رسالة إنهاء العقد للعميل.';
+        }
+
+        return '، لكن تعذر إرسال رسالة إنهاء العقد للعميل.';
+    }
+
     private function getStatusBadge($status, $closureType = null, ?RentalContract $contract = null)
     {
         if ($status === 'completed') {
@@ -1231,6 +1440,14 @@ class RentContractController extends Controller
             } else {
                 return '<span class="badge bg-info">مكتمل</span>';
             }
+        }
+
+        if ($status === 'cancelled') {
+            $label = $closureType === 'transferred'
+                ? 'ملغي - نقل قبل اكتمال المدة'
+                : 'ملغي قبل اكتمال المدة';
+
+            return '<span class="badge bg-danger">' . $label . '</span>';
         }
 
         $frozenBadge = '<span class="badge bg-dark">مجمد</span>';
@@ -1265,25 +1482,28 @@ class RentContractController extends Controller
         return $badges[$status] ?? '<span class="badge bg-secondary">' . $status . '</span>';
     }
 
-    public function statistics()
+    public function statistics(Request $request)
     {
         try {
-            $total = RentalContract::count();
-            $active = RentalContract::whereNotIn('status', ['completed', 'cancelled', 'frozen'])->count();
-            $completed = RentalContract::where('status', 'completed')->count();
-            $available = RentalContract::where('status', 'completed')->where('closure_type', 'available')->count();
-            $transferred = RentalContract::where('status', 'completed')->where('closure_type', 'transferred')->count();
+            $baseQuery = RentalContract::query();
+            $this->applyRentalContractIndexFilters($baseQuery, $request);
 
-            $totalValue = RentalContract::with('info')
-                                      ->get()
-                                      ->sum(function($contract) {
-                                          return $contract->info ? $contract->info->contract_value : 0;
-                                      });
+            $total = (clone $baseQuery)->count();
+            $active = (clone $baseQuery)->whereNotIn('status', ['completed', 'cancelled', 'frozen'])->count();
+            $completed = (clone $baseQuery)->where('status', 'completed')->count();
+            $cancelled = (clone $baseQuery)->where('status', 'cancelled')->count();
+            $available = (clone $baseQuery)->where('status', 'completed')->where('closure_type', 'available')->count();
+            $transferred = (clone $baseQuery)->where('closure_type', 'transferred')->count();
+
+            $totalValue = (clone $baseQuery)
+                ->join('rental_contract_infos', 'rental_contract_infos.rental_contract_id', '=', 'rental_contracts.id')
+                ->sum('rental_contract_infos.contract_value');
 
             return response()->json([
                 'total' => $total,
                 'active' => $active,
                 'completed' => $completed,
+                'cancelled' => $cancelled,
                 'available' => $available,
                 'transferred' => $transferred,
                 'totalValue' => $totalValue
@@ -1293,6 +1513,7 @@ class RentContractController extends Controller
                 'total' => 0,
                 'active' => 0,
                 'completed' => 0,
+                'cancelled' => 0,
                 'available' => 0,
                 'transferred' => 0,
                 'totalValue' => 0
@@ -1307,7 +1528,7 @@ class RentContractController extends Controller
 
             // Apply filters
             if ($request->status) {
-                $query->where('status', $request->status);
+                $this->applyRentalContractStatusFilter($query, $request->status);
             }
             if ($request->date_from) {
                 $query->whereDate('contract_date', '>=', $request->date_from);
@@ -1315,14 +1536,74 @@ class RentContractController extends Controller
             if ($request->date_to) {
                 $query->whereDate('contract_date', '<=', $request->date_to);
             }
+            if ($request->start_date_from) {
+                $query->whereHas('info', function ($infoQuery) use ($request) {
+                    $infoQuery->whereDate('ingaz_from', '>=', $request->start_date_from);
+                });
+            }
+            if ($request->start_date_to) {
+                $query->whereHas('info', function ($infoQuery) use ($request) {
+                    $infoQuery->whereDate('ingaz_from', '<=', $request->start_date_to);
+                });
+            }
+            if ($request->end_date_from) {
+                $query->whereHas('info', function ($infoQuery) use ($request) {
+                    $infoQuery->whereDate('ingaz_to', '>=', $request->end_date_from);
+                });
+            }
+            if ($request->end_date_to) {
+                $query->whereHas('info', function ($infoQuery) use ($request) {
+                    $infoQuery->whereDate('ingaz_to', '<=', $request->end_date_to);
+                });
+            }
             if ($request->marketer_id) {
                 $query->where('marketer_id', $request->marketer_id);
             }
             if ($this->branchesEnabledFor('rental_contracts') && $request->filled('branch_id')) {
                 $query->where('branch_id', $request->branch_id);
             }
+            if ($request->client_phone) {
+                $phone = $request->client_phone;
+                $query->whereHas('user', function ($userQuery) use ($phone) {
+                    $userQuery->where('phone', 'like', "%{$phone}%")
+                        ->orWhereRaw("CONCAT(phone_code, phone) LIKE ?", ["%{$phone}%"]);
+                });
+            }
+            if ($request->client_name) {
+                $name = $request->client_name;
+                $query->whereHas('user', function ($userQuery) use ($name) {
+                    $userQuery->where('name', 'like', "%{$name}%");
+                });
+            }
+            if ($request->maid_passport) {
+                $passport = $request->maid_passport;
+                $query->whereHas('maid', function ($maidQuery) use ($passport) {
+                    $maidQuery->where('passport_num', 'like', "%{$passport}%");
+                });
+            }
+            if ($request->maid_name) {
+                $maidName = $request->maid_name;
+                $query->whereHas('maid', function ($maidQuery) use ($maidName) {
+                    $maidQuery->where('name', 'like', "%{$maidName}%");
+                });
+            }
+            if ($request->contract_number) {
+                $query->where('contract_number', 'like', '%' . $request->contract_number . '%');
+            }
+            if ($request->request_type) {
+                $query->whereHas('maid', function ($maidQuery) use ($request) {
+                    $maidQuery->ofRequestType($request->request_type);
+                });
+            }
             if ($request->warranty_status) {
                 $query->where('warranty_status', $request->warranty_status);
+            }
+            if ($request->extension_filter) {
+                if ($request->extension_filter === 'extended') {
+                    $query->whereHas('extensions');
+                } elseif ($request->extension_filter === 'not_extended') {
+                    $query->whereDoesntHave('extensions');
+                }
             }
             if ($request->expiry_filter) {
                 $this->applyRentalContractExpiryFilter($query, $request->expiry_filter);
@@ -1397,6 +1678,108 @@ class RentContractController extends Controller
             && Schema::hasColumn($table, 'branch_id');
     }
 
+    private function applyRentalContractIndexFilters($query, Request $request, bool $includeStatus = true): void
+    {
+        if ($includeStatus && $request->filled('status_filter')) {
+            $this->applyRentalContractStatusFilter($query, $request->status_filter);
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('contract_date', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('contract_date', '<=', $request->date_to);
+        }
+
+        if ($request->filled('start_date_from')) {
+            $query->whereHas('info', function ($infoQuery) use ($request) {
+                $infoQuery->whereDate('ingaz_from', '>=', $request->start_date_from);
+            });
+        }
+
+        if ($request->filled('start_date_to')) {
+            $query->whereHas('info', function ($infoQuery) use ($request) {
+                $infoQuery->whereDate('ingaz_from', '<=', $request->start_date_to);
+            });
+        }
+
+        if ($request->filled('end_date_from')) {
+            $query->whereHas('info', function ($infoQuery) use ($request) {
+                $infoQuery->whereDate('ingaz_to', '>=', $request->end_date_from);
+            });
+        }
+
+        if ($request->filled('end_date_to')) {
+            $query->whereHas('info', function ($infoQuery) use ($request) {
+                $infoQuery->whereDate('ingaz_to', '<=', $request->end_date_to);
+            });
+        }
+
+        if ($request->filled('marketer_id')) {
+            $query->where('marketer_id', $request->marketer_id);
+        }
+
+        if ($this->branchesEnabledFor('rental_contracts') && $request->filled('branch_id')) {
+            $query->where('branch_id', $request->branch_id);
+        }
+
+        if ($request->filled('client_phone')) {
+            $phone = $request->client_phone;
+            $query->whereHas('user', function ($userQuery) use ($phone) {
+                $userQuery->where('phone', 'like', "%{$phone}%")
+                    ->orWhereRaw("CONCAT(phone_code, phone) LIKE ?", ["%{$phone}%"]);
+            });
+        }
+
+        if ($request->filled('client_name')) {
+            $name = $request->client_name;
+            $query->whereHas('user', function ($userQuery) use ($name) {
+                $userQuery->where('name', 'like', "%{$name}%");
+            });
+        }
+
+        if ($request->filled('maid_passport')) {
+            $passport = $request->maid_passport;
+            $query->whereHas('maid', function ($maidQuery) use ($passport) {
+                $maidQuery->where('passport_num', 'like', "%{$passport}%");
+            });
+        }
+
+        if ($request->filled('maid_name')) {
+            $maidName = $request->maid_name;
+            $query->whereHas('maid', function ($maidQuery) use ($maidName) {
+                $maidQuery->where('name', 'like', "%{$maidName}%");
+            });
+        }
+
+        if ($request->filled('contract_number')) {
+            $query->where('contract_number', 'like', '%' . $request->contract_number . '%');
+        }
+
+        if ($request->filled('request_type')) {
+            $query->whereHas('maid', function ($maidQuery) use ($request) {
+                $maidQuery->ofRequestType($request->request_type);
+            });
+        }
+
+        if ($request->filled('warranty_status')) {
+            $query->where('warranty_status', $request->warranty_status);
+        }
+
+        if ($request->filled('extension_filter')) {
+            if ($request->extension_filter === 'extended') {
+                $query->whereHas('extensions');
+            } elseif ($request->extension_filter === 'not_extended') {
+                $query->whereDoesntHave('extensions');
+            }
+        }
+
+        if ($request->filled('expiry_filter')) {
+            $this->applyRentalContractExpiryFilter($query, $request->expiry_filter);
+        }
+    }
+
     private function getStatusText($status)
     {
         $statuses = [
@@ -1455,7 +1838,7 @@ class RentContractController extends Controller
         }
 
         if ($status === 'transferred') {
-            $query->where('status', 'completed')->where('closure_type', 'transferred');
+            $query->where('closure_type', 'transferred');
             return;
         }
 
@@ -1644,6 +2027,16 @@ class RentContractController extends Controller
         ]);
     }
 
+    private function markRentalMaidAsAvailable(Maid $maid, Carbon $availableAt): void
+    {
+        $maid->forceFill([
+            'available' => 1,
+            'status' => 'available',
+            'is_show' => 1,
+            'available_at' => $availableAt->toDateString(),
+        ])->save();
+    }
+
     private function getRentalJobTypeId(): int
     {
         $jobType = JobType::with('translations')->get()->first(function ($type) {
@@ -1714,13 +2107,40 @@ class RentContractController extends Controller
 
     protected function buildRentalClosureSummary(RentalContract $contract, ?Carbon $closureDate = null): array
     {
-        $contract->loadMissing(['info', 'financialAdjustments', 'financeInvoice']);
+        $contract->loadMissing(['info.package', 'order.details.package', 'maid', 'financialAdjustments', 'financeInvoice']);
 
         $info = $contract->info;
+        $package = $info?->package ?: $contract->order?->details?->package;
+        $packageId = (int) ($info?->package_id ?: $contract->order?->details?->package_id ?: 0);
+        $hasExplicitPackage = $packageId > 0;
+        if (!$package && $packageId > 0) {
+            $package = Package::find($packageId);
+        }
         $monthlyCost = (float) ($info->monthly_cost ?? 0);
         $durationMonths = (int) ($info->contract_duration_months ?? 0);
         $durationDays = (int) ($info->contract_duration_days ?? ($durationMonths * 30));
-        $contractValue = (float) ($info->contract_value ?? ($monthlyCost * $durationMonths));
+        $packageTotal = (float) ($info?->package_total_with_tax ?? 0);
+
+        if ($packageTotal <= 0 && $package) {
+            $packageTotal = (float) ($package->price_with_tax ?? 0);
+        }
+
+        if ($durationDays <= 0 && $package && (int) ($package->days_count ?? 0) > 0) {
+            $durationDays = (int) $package->days_count;
+        }
+
+        if ($durationMonths <= 0 && $durationDays > 0) {
+            $durationMonths = max(1, (int) ceil($durationDays / 30));
+        }
+
+        if ($monthlyCost <= 0 && $package && $durationMonths > 0) {
+            $monthlyCost = $this->resolvePackagePeriodCost($package, $durationMonths);
+        }
+
+        $contractValue = (float) ($info->contract_value ?? 0);
+        if ($contractValue <= 0) {
+            $contractValue = $packageTotal > 0 ? $packageTotal : ($monthlyCost * $durationMonths);
+        }
         $paidAmount = is_numeric($info?->paid_amount) ? (float) $info->paid_amount : 0.0;
         $closureDate = ($closureDate ?: Carbon::now())->copy()->startOfDay();
 
@@ -1740,15 +2160,67 @@ class RentContractController extends Controller
             ? Carbon::parse($info->ingaz_from)->startOfDay()
             : ($contract->contract_date ? Carbon::parse($contract->contract_date)->startOfDay() : null);
         $endDate = $info?->ingaz_to ? Carbon::parse($info->ingaz_to)->startOfDay() : null;
+        $dateDurationDays = ($startDate && $endDate)
+            ? max(1, $startDate->diffInDays($endDate, false))
+            : 0;
 
         $remainingDaysValue = null;
+        $overdueDays = 0;
         if ($endDate) {
             $remainingDaysValue = max(0, $closureDate->diffInDays($endDate, false));
+            $overdueDays = max(0, $endDate->diffInDays($closureDate, false));
         }
 
         if ($durationDays <= 0 && $startDate && $endDate) {
-            $durationDays = max(1, $startDate->diffInDays($endDate, false));
+            $durationDays = $dateDurationDays;
         }
+
+        if (!$hasExplicitPackage && $dateDurationDays > $durationDays) {
+            $durationDays = $dateDurationDays;
+            $durationMonths = 0;
+        }
+
+        if (!$package) {
+            $package = $this->resolveRentalClosurePackage($contract, $durationDays);
+        }
+
+        if ($packageTotal <= 0 && $package) {
+            $packageTotal = (float) ($package->price_with_tax ?? 0);
+        }
+
+        if ($package && (int) ($package->days_count ?? 0) > 0) {
+            $packageDays = (int) $package->days_count;
+
+            if ($durationDays <= 0 || (!$hasExplicitPackage && $dateDurationDays > 0 && abs($packageDays - $dateDurationDays) <= 7)) {
+                $durationDays = $packageDays;
+                $durationMonths = 0;
+            }
+        }
+
+        if ($durationMonths <= 0 && $durationDays > 0) {
+            $durationMonths = max(1, (int) ceil($durationDays / 30));
+        }
+
+        if ($monthlyCost <= 0 && $package && $durationMonths > 0) {
+            $monthlyCost = $this->resolvePackagePeriodCost($package, $durationMonths);
+        }
+
+        if ($contractValue <= 0) {
+            $contractValue = $packageTotal > 0 ? $packageTotal : ($monthlyCost * $durationMonths);
+        }
+
+        if ($paidAmount <= 0 && ($info?->payment_status ?? null) === 'paid') {
+            $paidAmount = $contractValue;
+        }
+
+        if ($contract->financeInvoice && is_numeric($contract->financeInvoice->paid_amount)) {
+            $paidAmount = max($paidAmount, (float) $contract->financeInvoice->paid_amount);
+        }
+
+        $storedRemainingAmount = is_numeric($info?->remaining_amount) ? (float) $info->remaining_amount : null;
+        $remainingAmount = $storedRemainingAmount !== null && $storedRemainingAmount > 0
+            ? $storedRemainingAmount
+            : max(0.0, $contractValue - $paidAmount);
 
         $usedDays = null;
         if ($durationDays > 0) {
@@ -1761,9 +2233,16 @@ class RentContractController extends Controller
             }
         }
 
-        $dailyRate = $durationDays > 0 ? round($contractValue / $durationDays, 2) : 0.0;
-        $usedCost = $usedDays !== null ? round($dailyRate * $usedDays, 2) : 0.0;
-        $calculatedRefundValue = max(0.0, round($paidAmount - $usedCost, 2));
+        $rawDailyRate = $durationDays > 0 ? ($contractValue / $durationDays) : 0.0;
+        $dailyRate = round($rawDailyRate, 2);
+        $usedCost = $usedDays !== null ? min($contractValue, round($rawDailyRate * $usedDays, 2)) : 0.0;
+        $remainingDaysCost = $remainingDaysValue !== null
+            ? min($contractValue, round($rawDailyRate * (int) $remainingDaysValue, 2))
+            : 0.0;
+        $calculatedRefundValue = $paidAmount > 0
+            ? max(0.0, round($paidAmount - $usedCost, 2))
+            : max(0.0, $remainingDaysCost);
+        $calculatedCompanyDueValue = round($rawDailyRate * $overdueDays, 2);
 
         $storedRefundValue = (float) $contract->financialAdjustments()
             ->where('context', 'closure')
@@ -1771,6 +2250,14 @@ class RentContractController extends Controller
             ->whereNull('settled_at')
             ->sum('amount');
         $refundValue = $storedRefundValue > 0 ? $storedRefundValue : $calculatedRefundValue;
+        $storedCompanyDueValue = (float) $contract->financialAdjustments()
+            ->where('context', 'closure')
+            ->where('type', 'income')
+            ->whereNull('settled_at')
+            ->sum('amount');
+        $companyDueValue = $storedCompanyDueValue > 0 ? $storedCompanyDueValue : $calculatedCompanyDueValue;
+        $settlementType = $companyDueValue > 0 ? 'company_due' : 'refund';
+        $isEarlyClosure = $this->isRentalContractEarlyClosure($contract, $closureDate);
 
         return [
             'monthly_cost' => $monthlyCost,
@@ -1783,15 +2270,55 @@ class RentContractController extends Controller
             'remaining_amount' => $remainingAmount,
             'used_days' => $usedDays,
             'remaining_days_value' => $remainingDaysValue,
+            'overdue_days' => $overdueDays,
             'daily_rate' => $dailyRate,
             'used_cost' => $usedCost,
             'calculated_refund_value' => $calculatedRefundValue,
             'refund_value' => $refundValue,
+            'calculated_company_due_value' => $calculatedCompanyDueValue,
+            'company_due_value' => $companyDueValue,
+            'settlement_type' => $settlementType,
+            'settlement_value' => $settlementType === 'company_due' ? $companyDueValue : $refundValue,
             'payment_status' => $info?->payment_status,
             'closure_client_iban' => $info?->closure_client_iban,
             'closure_client_iban_attachment_url' => $info?->closure_client_iban_attachment_url,
             'closure_return_reason' => $info?->closure_return_reason,
+            'is_early_closure' => $isEarlyClosure,
+            'closure_status' => $isEarlyClosure ? 'cancelled' : 'completed',
+            'closure_status_text' => $isEarlyClosure ? 'ملغي قبل اكتمال مدة العقد' : 'مكتمل',
         ];
+    }
+
+    private function isRentalContractEarlyClosure(RentalContract $contract, ?Carbon $closureDate = null): bool
+    {
+        $contract->loadMissing('info');
+
+        if (!$contract->info?->ingaz_to) {
+            return false;
+        }
+
+        $closureDate = ($closureDate ?: Carbon::now())->copy()->startOfDay();
+        $endDate = Carbon::parse($contract->info->ingaz_to)->startOfDay();
+
+        return $closureDate->lessThan($endDate);
+    }
+
+    private function resolveRentalClosurePackage(RentalContract $contract, int $durationDays): ?Package
+    {
+        $nationalityId = $contract->maid?->nationality_id;
+        $baseQuery = Package::query()->visible()->forNationality($nationalityId)->ordered();
+
+        if ($durationDays > 0) {
+            $durationMatch = (clone $baseQuery)
+                ->where('days_count', $durationDays)
+                ->first();
+
+            if ($durationMatch) {
+                return $durationMatch;
+            }
+        }
+
+        return $baseQuery->first();
     }
 
     private function formatRentalDurationText(int $durationDays, int $durationMonths = 0): string
@@ -1893,14 +2420,22 @@ class RentContractController extends Controller
                 'remaining_amount' => $summary['remaining_amount'],
                 'used_days' => $summary['used_days'],
                 'remaining_days_value' => $summary['remaining_days_value'],
+                'overdue_days' => $summary['overdue_days'],
                 'daily_rate' => $summary['daily_rate'],
                 'used_cost' => $summary['used_cost'],
                 'calculated_refund_value' => $summary['calculated_refund_value'],
                 'refund_value' => $summary['refund_value'],
+                'calculated_company_due_value' => $summary['calculated_company_due_value'],
+                'company_due_value' => $summary['company_due_value'],
+                'settlement_type' => $summary['settlement_type'],
+                'settlement_value' => $summary['settlement_value'],
                 'payment_status' => $summary['payment_status'],
                 'closure_client_iban' => $summary['closure_client_iban'],
                 'closure_client_iban_attachment_url' => $summary['closure_client_iban_attachment_url'],
                 'closure_return_reason' => $summary['closure_return_reason'],
+                'is_early_closure' => $summary['is_early_closure'],
+                'closure_status' => $summary['closure_status'],
+                'closure_status_text' => $summary['closure_status_text'],
                 'attachments' => $attachments,
             ];
 
@@ -1924,7 +2459,7 @@ class RentContractController extends Controller
     {
         $validated = $request->validate([
             'closure_date' => 'nullable|date',
-            'adjustment_type' => 'nullable|in:refund',
+            'adjustment_type' => 'nullable|in:refund,company_due',
             'adjustment_amount' => 'required|numeric|min:0',
             'clear_remaining_amount' => 'nullable|numeric|min:0',
             'closure_return_reason' => 'nullable|string|max:1000',
@@ -1932,7 +2467,10 @@ class RentContractController extends Controller
             'close_payment_receipt' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
             'close_client_iban' => 'nullable|string|max:34',
             'close_client_iban_attachment' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+            'send_closure_message' => 'nullable|boolean',
         ]);
+        $sendClosureMessage = $request->boolean('send_closure_message');
+        $messageResult = null;
 
         try {
             DB::beginTransaction();
@@ -1951,6 +2489,7 @@ class RentContractController extends Controller
             $this->assertClosureDateIsValidForContract($contract, $closureDate);
 
             $summary = $this->buildRentalClosureSummary($contract, $closureDate);
+            $adjustmentType = ($validated['adjustment_type'] ?? null) === 'company_due' ? 'company_due' : 'refund';
             $adjustmentAmount = (float) ($validated['adjustment_amount'] ?? 0);
             $clearRemainingAmount = (float) ($validated['clear_remaining_amount'] ?? 0);
             $currentRemainingAmount = (float) ($summary['remaining_amount'] ?? 0);
@@ -1976,8 +2515,12 @@ class RentContractController extends Controller
             }
 
             if ($request->hasFile('close_payment_receipt')) {
-                $infoUpdates['payment_receipt_path'] = $request->file('close_payment_receipt')
+                $newPaymentReceiptPath = $request->file('close_payment_receipt')
                     ->store('rental-contracts/closures/receipts', 'public');
+                $infoUpdates = array_merge(
+                    $infoUpdates,
+                    $this->buildPaymentReceiptUpdatePayload($contract->info, $newPaymentReceiptPath)
+                );
             }
 
             if ($request->hasFile('close_client_iban_attachment')) {
@@ -1989,30 +2532,49 @@ class RentContractController extends Controller
                 $contract->info->update($infoUpdates);
             }
 
-            $contract->status = 'completed';
+            $isEarlyClosure = $this->isRentalContractEarlyClosure($contract, $closureDate);
+
+            $contract->status = $isEarlyClosure ? 'cancelled' : 'completed';
             $contract->closure_type = 'available';
             $contract->closed_at = $closureDate;
+            $contract->warranty_status = $isEarlyClosure ? 'not_applicable' : 'active';
+            $contract->warranty_start_date = $isEarlyClosure ? null : $closureDate;
+            $contract->warranty_end_date = $isEarlyClosure ? null : $closureDate->copy()->addMonths(3);
             $contract->save();
 
             $this->completeLinkedRentalOrder($contract);
 
             if ($adjustmentAmount > 0) {
+                $isCompanyDue = $adjustmentType === 'company_due';
+                $adjustmentLabel = $isCompanyDue
+                    ? 'مستحق للشركة عند إغلاق العقد'
+                    : 'استرجاع عند إغلاق العقد';
+                $suggestedAmount = $isCompanyDue
+                    ? (float) ($summary['calculated_company_due_value'] ?? 0)
+                    : (float) ($summary['calculated_refund_value'] ?? 0);
+                $adjustmentNotes = ($isCompanyDue
+                    ? 'مستحق للشركة مسجل أثناء إنهاء عقد الإيجار. القيمة المقترحة حسب أيام ما بعد الانتهاء: '
+                    : 'استرجاع مسجل أثناء إنهاء عقد الإيجار. القيمة المقترحة حسب الأيام: ')
+                    . number_format($suggestedAmount, 2) . ' ريال'
+                    . ($closureReturnReason !== '' ? "\nسبب الإرجاع: " . $closureReturnReason : '');
                 $contract->financialAdjustments()->create([
                     'maid_id' => $contract->maid_id,
-                    'type' => 'expense',
-                    'label' => 'استرجاع عند إغلاق العقد',
+                    'type' => $isCompanyDue ? 'income' : 'expense',
+                    'label' => $adjustmentLabel,
                     'amount' => $adjustmentAmount,
-                    'notes' => 'استرجاع مسجل أثناء إنهاء عقد الإيجار. القيمة المقترحة حسب الأيام: ' . number_format((float) ($summary['calculated_refund_value'] ?? 0), 2) . ' ريال'
-                        . ($closureReturnReason !== '' ? "\nسبب الإرجاع: " . $closureReturnReason : ''),
+                    'notes' => $adjustmentNotes,
                     'context' => 'closure',
                     'created_by' => auth('admin')->id(),
                 ]);
             }
 
             if ($contract->maid) {
-                $contract->maid->available_at = $closureDate->toDateString();
-                $contract->maid->save();
-                $this->syncMaidBookingState($contract->maid);
+                $maid = Maid::query()->lockForUpdate()->find($contract->maid_id);
+
+                if ($maid) {
+                    $this->syncMaidBookingState($maid);
+                    $this->markRentalMaidAsAvailable($maid, $closureDate);
+                }
             }
 
             $this->returnShelterContractInsideForRental($contract);
@@ -2028,12 +2590,19 @@ class RentContractController extends Controller
 
             DB::commit();
 
+            if ($sendClosureMessage) {
+                $messageResult = $this->sendRentalClosureMessageToClient($contract);
+            }
+
             $newContract = (object) ['id' => null];
             $message = 'تم إغلاق عقد الإيجار وتوثيق نقل الكفالة بنجاح.';
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم إغلاق العقد وإرجاع العاملة متاحة بنجاح'
+                'message' => ($isEarlyClosure
+                    ? 'تم إلغاء العقد لأنه أُنهي قبل اكتمال مدة العقد، وتم إرجاع العاملة متاحة'
+                    : 'تم إغلاق العقد وإرجاع العاملة متاحة بنجاح')
+                    . $this->formatClosureMessageResultText($messageResult)
             ]);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -2133,6 +2702,142 @@ class RentContractController extends Controller
         ]);
     }
 
+    public function deletePaymentReceipt($id, string $receipt)
+    {
+        $contract = RentalContract::with('info')->findOrFail($id);
+
+        if (!$contract->info) {
+            return response()->json([
+                'success' => false,
+                'message' => 'بيانات العقد غير مكتملة',
+            ], 404);
+        }
+
+        $receiptIndex = $this->paymentReceiptIndexFromKey($receipt);
+        $receiptItems = $this->rentalPaymentReceiptItems($contract->info);
+
+        if ($receiptIndex === null || !isset($receiptItems[$receiptIndex])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'الإيصال غير موجود',
+            ], 404);
+        }
+
+        $targetReceipt = $receiptItems[$receiptIndex];
+        unset($receiptItems[$receiptIndex]);
+        $receiptItems = array_values($receiptItems);
+
+        $pathStillUsed = collect($receiptItems)->contains(fn ($item) => ($item['path'] ?? null) === $targetReceipt['path']);
+        if (!$pathStillUsed && Storage::disk('public')->exists($targetReceipt['path'])) {
+            Storage::disk('public')->delete($targetReceipt['path']);
+        }
+
+        $updates = [
+            'payment_receipt_path' => $receiptItems[0]['path'] ?? null,
+        ];
+
+        if ($this->paymentReceiptsColumnExists()) {
+            $updates['payment_receipts'] = $this->serializePaymentReceiptItems($receiptItems);
+        }
+
+        $contract->info->update($updates);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم حذف الإيصال بنجاح',
+        ]);
+    }
+
+    private function paymentReceiptsColumnExists(): bool
+    {
+        static $exists = null;
+
+        if ($exists === null) {
+            $exists = Schema::hasColumn('rental_contract_infos', 'payment_receipts');
+        }
+
+        return $exists;
+    }
+
+    private function paymentReceiptIndexFromKey(string $receipt): ?int
+    {
+        if (preg_match('/^payment-receipt-(\d+)$/', $receipt, $matches)) {
+            return (int) $matches[1];
+        }
+
+        return ctype_digit($receipt) ? (int) $receipt : null;
+    }
+
+    private function rentalPaymentReceiptItems(?RentalContractInfo $info): array
+    {
+        if (!$info) {
+            return [];
+        }
+
+        $items = [];
+        $seenPaths = [];
+        $appendReceipt = function ($receipt, ?string $fallbackUploadedAt = null) use (&$items, &$seenPaths) {
+            $path = is_array($receipt) ? ($receipt['path'] ?? null) : $receipt;
+            $path = is_string($path) ? trim($path) : null;
+
+            if (!$path || isset($seenPaths[$path]) || !Storage::disk('public')->exists($path)) {
+                return;
+            }
+
+            $seenPaths[$path] = true;
+            $items[] = [
+                'path' => $path,
+                'uploaded_at' => is_array($receipt) ? ($receipt['uploaded_at'] ?? $fallbackUploadedAt) : $fallbackUploadedAt,
+            ];
+        };
+
+        $appendReceipt($info->payment_receipt_path);
+
+        if ($this->paymentReceiptsColumnExists()) {
+            foreach ((array) ($info->payment_receipts ?? []) as $receipt) {
+                $appendReceipt($receipt);
+            }
+        }
+
+        return array_map(function (array $item, int $index) {
+            $item['key'] = 'payment-receipt-' . $index;
+            $item['label'] = 'إيصال دفع العقد رقم ' . ($index + 1);
+
+            return $item;
+        }, $items, array_keys($items));
+    }
+
+    private function buildPaymentReceiptUpdatePayload(?RentalContractInfo $info, string $newPath): array
+    {
+        $receiptItems = $this->rentalPaymentReceiptItems($info);
+        $alreadyExists = collect($receiptItems)->contains(fn ($item) => ($item['path'] ?? null) === $newPath);
+
+        if (!$alreadyExists) {
+            $receiptItems[] = [
+                'path' => $newPath,
+                'uploaded_at' => now()->toDateTimeString(),
+            ];
+        }
+
+        $updates = [
+            'payment_receipt_path' => $receiptItems[0]['path'] ?? $newPath,
+        ];
+
+        if ($this->paymentReceiptsColumnExists()) {
+            $updates['payment_receipts'] = $this->serializePaymentReceiptItems($receiptItems);
+        }
+
+        return $updates;
+    }
+
+    private function serializePaymentReceiptItems(array $receiptItems): array
+    {
+        return array_values(array_map(fn ($item) => [
+            'path' => $item['path'],
+            'uploaded_at' => $item['uploaded_at'] ?? null,
+        ], array_filter($receiptItems, fn ($item) => !empty($item['path']))));
+    }
+
     private function findRentalContractAttachment(RentalContract $contract, string $attachmentKey): ?array
     {
         foreach ($this->collectRentalContractAttachments($contract) as $attachment) {
@@ -2171,7 +2876,10 @@ class RentContractController extends Controller
             ];
         };
 
-        $addAttachment($contract->info?->payment_receipt_path, 'إيصال دفع العقد', 'payment-receipt');
+        foreach ($this->rentalPaymentReceiptItems($contract->info) as $receipt) {
+            $addAttachment($receipt['path'], $receipt['label'], 'payment-receipt');
+        }
+
         $addAttachment($contract->info?->sponsorship_transfer_payment_receipt_path, 'إيصال دفع نقل الكفالة', 'transfer-payment-receipt');
         $addAttachment($contract->info?->closure_client_iban_attachment_path, 'مرفق آيبان العميل', 'closure-iban');
         $addAttachment($contract->maid?->cv_file, 'سيرة العاملة', 'maid-cv');
@@ -2217,6 +2925,7 @@ class RentContractController extends Controller
             'transfer_finance_items.*.label' => 'nullable|string|max:150',
             'transfer_finance_items.*.amount' => 'nullable|numeric|min:0',
             'transfer_finance_items_present' => 'nullable|boolean',
+            'send_closure_message' => 'nullable|boolean',
         ], [
             'paid_amount.lte' => 'المبلغ المدفوع لا يمكن أن يكون أكبر من المبلغ الكامل.',
             'payment_type.required' => 'يجب اختيار طريقة الدفع.',
@@ -2236,10 +2945,13 @@ class RentContractController extends Controller
             ]);
         }
 
+        $sendClosureMessage = $request->boolean('send_closure_message');
+        $messageResult = null;
+
         try {
             DB::beginTransaction();
 
-            $oldContract = RentalContract::with('info')->findOrFail($id);
+            $oldContract = RentalContract::with(['info', 'user', 'maid'])->findOrFail($id);
 
             if (!$oldContract->canCloseOrExtend()) {
                 throw new \RuntimeException('لا يمكن إنهاء العقد أو نقل الكفالة قبل تفعيله');
@@ -2255,10 +2967,15 @@ class RentContractController extends Controller
             $transferPaidAmount = min((float) $request->paid_amount, $transferTotalAmount);
             $transferRemainingAmount = max(0.0, $transferTotalAmount - $transferPaidAmount);
 
+            $isEarlyClosure = $this->isRentalContractEarlyClosure($oldContract, $closureDate);
+
             // Close the old contract and set closure type to transferred
-            $oldContract->status = 'completed';
+            $oldContract->status = $isEarlyClosure ? 'cancelled' : 'completed';
             $oldContract->closure_type = 'transferred';
             $oldContract->closed_at = $closureDate;
+            $oldContract->warranty_status = $isEarlyClosure ? 'not_applicable' : 'active';
+            $oldContract->warranty_start_date = $isEarlyClosure ? null : $closureDate;
+            $oldContract->warranty_end_date = $isEarlyClosure ? null : $closureDate->copy()->addMonths(3);
             $oldContract->save();
 
             // Use the existing client from the rental contract
@@ -2379,11 +3096,17 @@ class RentContractController extends Controller
 
             DB::commit();
 
-            $message = 'تم إغلاق عقد الإيجار وتوثيق نقل الكفالة بنجاح.';
+            if ($sendClosureMessage) {
+                $messageResult = $this->sendRentalClosureMessageToClient($oldContract);
+            }
+
+            $message = $isEarlyClosure
+                ? 'تم إلغاء عقد الإيجار لأنه أُنهي قبل اكتمال مدته، وتم توثيق نقل الكفالة بنجاح.'
+                : 'تم إغلاق عقد الإيجار وتوثيق نقل الكفالة بنجاح.';
 
             return response()->json([
                 'success' => true,
-                'message' => $message,
+                'message' => $message . $this->formatClosureMessageResultText($messageResult),
                 'new_contract_id' => null,
                 'status' => 'transferred'
             ]);
@@ -2599,8 +3322,12 @@ class RentContractController extends Controller
             }
 
             if ($request->hasFile('close_payment_receipt')) {
-                $infoUpdates['payment_receipt_path'] = $request->file('close_payment_receipt')
+                $newPaymentReceiptPath = $request->file('close_payment_receipt')
                     ->store('rental-contracts/closures/receipts', 'public');
+                $infoUpdates = array_merge(
+                    $infoUpdates,
+                    $this->buildPaymentReceiptUpdatePayload($contract->info, $newPaymentReceiptPath)
+                );
             }
 
             if ($request->hasFile('close_client_iban_attachment')) {

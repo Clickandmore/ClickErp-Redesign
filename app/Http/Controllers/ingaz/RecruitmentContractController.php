@@ -43,6 +43,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use PDF;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -3102,8 +3103,19 @@ class RecruitmentContractController extends Controller
             return redirect()->back()->with('error', 'لا يمكن تعديل العقد الذي في الإيواء');
         }
 
-        $countries = Country::all();
+        $countries = Country::active()->ordered()->get();
+        $saudiCities = City::query()
+            ->whereHas('country', function ($query) {
+                $query->where('code', 'SA');
+            })
+            ->active()
+            ->ordered()
+            ->get(['id', 'name_ar', 'name_en']);
+        $maidNationalities = Nationality::with('translations')->get();
+        $maidReligions = Religion::with('translations')->get();
+        $maidJobTitles = JobTitle::with('translations')->get();
         $currentAdmin = Auth::guard('admin')->user();
+        $currentUser = $currentAdmin;
         $canSelectAnyMarketer = $this->canSelectAnyMarketer($currentAdmin);
         $marketers = $canSelectAnyMarketer
             ? \App\Models\auth\Admin::query()
@@ -3112,7 +3124,7 @@ class RecruitmentContractController extends Controller
                 ->get()
             : collect([$currentAdmin])->filter();
 
-        return view('admin.ingaz.RecruitmentContract.edit', compact('contract', 'countries', 'currentAdmin', 'canSelectAnyMarketer', 'marketers'));
+        return view('admin.ingaz.RecruitmentContract.edit', compact('contract', 'countries', 'saudiCities', 'maidNationalities', 'maidReligions', 'maidJobTitles', 'currentAdmin', 'currentUser', 'canSelectAnyMarketer', 'marketers'));
     }
 
     /**
@@ -3146,7 +3158,40 @@ class RecruitmentContractController extends Controller
             $marketerRules[] = 'in:' . $currentAdmin->id;
         }
         $request->validate([
+            'client_name' => 'required|string|max:255',
+            'client_phone' => 'required|string|max:50',
+            'client_nationality_id' => 'nullable|exists:countries,id',
+            'client_email' => 'nullable|email',
+            'account_client_type' => 'nullable|in:person,company',
+            'client_national_num' => 'nullable|string|max:100',
+            'client_license_number' => 'nullable|string|max:100',
+            'client_birthdate' => 'nullable|string|max:50',
+            'phone2' => 'nullable|string|max:50',
+            'address' => 'nullable|string|max:255',
+            'city' => 'nullable|string|max:255',
+            'beds_num' => 'nullable',
+            'family_num' => 'nullable',
+            'children' => 'nullable|integer|min:0|max:50',
+            'job' => 'nullable|string|max:255',
+            'maid_name' => 'nullable|string|max:255',
+            'maid_passport' => 'nullable|string|max:100',
+            'maid_salary' => 'nullable',
+            'contract_date' => 'required',
+            'msaned_number' => 'required|string|max:255',
+            'visa_number' => 'required|string|max:255',
+            'tafwed_number' => 'nullable|string|max:255',
+            'visa_milad_date' => 'nullable|date',
+            'visa_hijry_date' => 'nullable|date',
+            'contract_duration' => 'required',
+            'status' => ['required', Rule::in(array_column(ContractStatusEnum::cases(), 'value'))],
             'marketer_id' => $marketerRules,
+            'required_maid_nationality' => 'nullable|exists:nationalities,id',
+            'required_maid_religion' => 'nullable|exists:religions,id',
+            'required_maid_age_min' => 'nullable|integer|min:18|max:80',
+            'required_maid_age_max' => 'nullable|integer|min:18|max:80',
+            'required_maid_experience_min' => 'nullable|integer|min:0|max:50',
+            'required_maid_job_title' => 'nullable|exists:job_titles,id',
+            'required_maid_notes' => 'nullable|string|max:2000',
         ]);
 
         $marketerId = $canSelectAnyMarketer
@@ -3188,12 +3233,26 @@ class RecruitmentContractController extends Controller
         try {
             // تحديث بيانات العميل
             if ($contract->user) {
+                $accountClientType = $request->input('account_client_type') === 'company' ? 'company' : 'person';
+                $contract->user->client_type = $accountClientType;
+
                 $contract->user->update($contract->user->clientTypeAwarePayload([
+                    'client_type' => $accountClientType,
                     'name' => $request->client_name,
                     'phone' => $request->client_phone,
                     'email' => $request->client_email,
                     'nationality_id' => $request->client_nationality_id,
-                    'address' => $request->client_address,
+                    'license_number' => $accountClientType === 'company' ? $request->client_license_number : null,
+                    'tax_number' => $accountClientType === 'person' ? null : $contract->user->tax_number,
+                    'birthdate' => $request->client_birthdate,
+                    'phone2' => $request->phone2,
+                    'address' => $request->address,
+                    'city' => $request->city,
+                    'rooms_num' => $accountClientType === 'company' ? null : $request->beds_num,
+                    'beds_num' => $accountClientType === 'company' ? null : $request->beds_num,
+                    'family_num' => $request->family_num,
+                    'children' => $request->children,
+                    'job' => $request->job,
                 ], $request->client_national_num));
             }
 
@@ -3240,6 +3299,13 @@ class RecruitmentContractController extends Controller
                 'status' => $request->status,
                 'contract_date' => $request->contract_date,
                 'marketer_id' => $marketerId,
+                'required_maid_nationality_id' => $request->required_maid_nationality,
+                'required_maid_religion_id' => $request->required_maid_religion,
+                'required_maid_age_min' => $request->required_maid_age_min,
+                'required_maid_age_max' => $request->required_maid_age_max,
+                'required_maid_experience_min' => $request->required_maid_experience_min,
+                'required_maid_job_title_id' => $request->required_maid_job_title,
+                'required_maid_notes' => $request->required_maid_notes,
             ]);
 
             // تحديث حالة العاملات تلقائياً

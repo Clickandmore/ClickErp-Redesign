@@ -2,6 +2,7 @@
 
 namespace Nami\Finance\Services;
 
+use App\Models\RentalContractInfo;
 use Nami\Finance\Enums\BondTypes;
 use Nami\Finance\MainService;
 use Nami\Finance\Models\Account;
@@ -99,6 +100,7 @@ class HomeService extends MainService
                 'qabd_bonds' => Bond::query()->where('type', BondTypes::Qabd->value)->count(),
                 'sarf_bonds' => Bond::query()->where('type', BondTypes::Sarf->value)->count(),
             ],
+            'rental_contracts_total_value' => (float) RentalContractInfo::sum('contract_value'),
             'recent_bonds' => $recentBonds,
             'recent_constraints' => $recentConstraints,
         ];

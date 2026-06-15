@@ -229,7 +229,7 @@
 
             <div class="work_samples_grid constraint-attachment-grid">
                 <label class="img_upload">
-                    <input type="file" accept="image/*" multiple name="file[]" id="img-upload"
+                    <input type="file" accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.csv,image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" multiple name="file[]" id="img-upload"
                         onchange="handleFileSelect(event)">
                     <div class="img justify-content-center">
                         <img loading="lazy" src="{{ asset('admin') }}/assets/img/plus.svg" alt="plus"
@@ -239,8 +239,19 @@
 
                 @if ($obj->files->count() > 0)
                     @foreach ($obj->files as $file)
+                        @php
+                            $extension = strtolower(pathinfo($file->file, PATHINFO_EXTENSION));
+                            $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'], true);
+                        @endphp
                         <div class="uploadedImage">
-                            <img src="{{ showFile($file->file) }}" alt="">
+                            @if ($isImage)
+                                <img src="{{ showFile($file->file) }}" alt="">
+                            @else
+                                <a href="{{ showFile($file->file) }}" target="_blank" class="constraint-file-preview" title="{{ basename($file->file) }}">
+                                    <i class="fa fa-file-text-o"></i>
+                                    <span>{{ strtoupper($extension ?: 'FILE') }}</span>
+                                </a>
+                            @endif
                             <button type="button" style="border: none;background: none;color:red"
                                 class="delete deleteImagesButton"
                                 delete-route="{{ route('finance.constraint-files.destroy', $file->id) }}">

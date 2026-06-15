@@ -2,7 +2,7 @@
 
 @section('style')
     <link rel="stylesheet" href="{{ asset('admin/assets/css/dashboard-new.css') }}?v=14">
-    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/main.min.css' rel='stylesheet' />
+    <link rel="stylesheet" href="{{ asset('admin/assets/cssbundle/fullcalendar.min.css') }}">
 @endsection
 
 @section('page-title')
@@ -11,10 +11,12 @@
 
 @section('content')
     @php
+        $canViewDashboard = AdminGuardHasPerm(\App\PermKeys::DASHBOARD_VIEW);
         $canManageDashboard = AdminGuardHasPerm(\App\PermKeys::DASHBOARD_MANAGE);
         $canViewDashboardStatistics =
-            $canManageDashboard || AdminGuardHasPerm(\App\PermKeys::DASHBOARD_VIEW_STATISTICS);
-        $canViewDashboardAnalytics = $canManageDashboard || AdminGuardHasPerm(\App\PermKeys::DASHBOARD_ANALYTICS);
+            $canViewDashboard || $canManageDashboard || AdminGuardHasPerm(\App\PermKeys::DASHBOARD_VIEW_STATISTICS);
+        $canViewDashboardAnalytics =
+            $canViewDashboard || $canManageDashboard || AdminGuardHasPerm(\App\PermKeys::DASHBOARD_ANALYTICS);
 
         $canViewDashboardSection = static function (
             ?string $permission = null,
@@ -142,7 +144,7 @@
             $canViewContractsOverviewSection ||
             $canViewAnalyticsSummaryRow ||
             $canViewBottomRow;
-        $hasDashboardAccess = AdminGuardHasPerm(\App\PermKeys::DASHBOARD_VIEW) || $hasAnyDashboardSection;
+        $hasDashboardAccess = $canViewDashboard || $hasAnyDashboardSection;
     @endphp
 
     @if ($hasDashboardAccess)
@@ -1401,112 +1403,75 @@
             });
 
             const contractsCanvas = document.getElementById('contractsChart');
-            if (contractsCanvas) {
-                const contractsCtx = contractsCanvas.getContext('2d');
-                const contractsYearSeries = {!! json_encode($contractsYearSeries ?? []) !!};
-                const contractsYearColors = [chartColor1, chartColor2, successColor];
-
-                new Chart(contractsCtx, {
-                    type: 'bar',
-                    data: {
-                        labels: {!! json_encode($contractsChartLabels ?? []) !!},
-                        datasets: contractsYearSeries.map((series, index) => {
-                            const color = contractsYearColors[index % contractsYearColors.length];
-
-                            return {
-                                label: series.label,
-                                data: series.data || [],
-                                borderColor: color,
-                                backgroundColor: toRgba(color, 0.82),
-                                borderWidth: 2,
-                                borderRadius: 10,
-                                borderSkipped: false,
-                                maxBarThickness: 26,
-                                categoryPercentage: 0.72,
-                                barPercentage: 0.9
-                            };
-                        })
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: true
-                            },
-                            tooltip: {
-                                backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                                padding: 12,
-                                rtl: dashboardDirection === 'rtl',
-                                textDirection: dashboardDirection
-                            }
-                        },
-                        interaction: {
-                            mode: 'index',
-                            intersect: false
-                        },
-                        scales: {
-                            x: {
-                                grid: {
-                                    display: false
-                                }
-                            },
-                            y: {
-                                beginAtZero: true,
-                                ticks: {
-                                    precision: 0
-                                },
-                                grid: {
-                                    borderDash: [4, 4],
-                                    color: 'rgba(15, 23, 42, 0.08)'
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-
-            // الجنسيات
             const nationalitiesCanvas = document.getElementById('nationalitiesChart');
+
             if (contractsCanvas || nationalitiesCanvas) {
                 loadExternalScript('https://cdn.jsdelivr.net/npm/chart.js').then(() => {
-                    // عقود
                     if (contractsCanvas) {
                         const contractsCtx = contractsCanvas.getContext('2d');
                         const contractsYearSeries = {!! json_encode($contractsYearSeries ?? []) !!};
                         const contractsYearColors = [chartColor1, chartColor2, successColor];
 
-                new Chart(nationalitiesCtx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: {!! json_encode($nationalityLabels ?? __('admin.dashboard_new.default_nationalities')) !!},
-                        datasets: [{
-                            data: {!! json_encode($nationalityData ?? [35, 25, 20, 15, 5]) !!},
-                            backgroundColor: [chartColor1, successColor, chartColor2, chartColor4,
-                                chartColor5
-                            ],
-                            borderColor: '#fff',
-                            borderWidth: 3,
-                            hoverOffset: 8,
-                            cutout: '68%'
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: false
+                        new Chart(contractsCtx, {
+                            type: 'bar',
+                            data: {
+                                labels: {!! json_encode($contractsChartLabels ?? []) !!},
+                                datasets: contractsYearSeries.map((series, index) => {
+                                    const color = contractsYearColors[index % contractsYearColors.length];
+
+                                    return {
+                                        label: series.label,
+                                        data: series.data || [],
+                                        borderColor: color,
+                                        backgroundColor: toRgba(color, 0.82),
+                                        borderWidth: 2,
+                                        borderRadius: 10,
+                                        borderSkipped: false,
+                                        maxBarThickness: 26,
+                                        categoryPercentage: 0.72,
+                                        barPercentage: 0.9
+                                    };
+                                })
                             },
-                            tooltip: {
-                                backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                                rtl: dashboardDirection === 'rtl',
-                                textDirection: dashboardDirection
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        display: true
+                                    },
+                                    tooltip: {
+                                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                                        padding: 12,
+                                        rtl: dashboardDirection === 'rtl',
+                                        textDirection: dashboardDirection
+                                    }
+                                },
+                                interaction: {
+                                    mode: 'index',
+                                    intersect: false
+                                },
+                                scales: {
+                                    x: {
+                                        grid: {
+                                            display: false
+                                        }
+                                    },
+                                    y: {
+                                        beginAtZero: true,
+                                        ticks: {
+                                            precision: 0
+                                        },
+                                        grid: {
+                                            borderDash: [4, 4],
+                                            color: 'rgba(15, 23, 42, 0.08)'
+                                        }
+                                    }
+                                }
                             }
                         });
                     }
 
-                    // الجنسيات
                     if (nationalitiesCanvas) {
                         const nationalitiesCtx = nationalitiesCanvas.getContext('2d');
 
@@ -1534,8 +1499,8 @@
                                     },
                                     tooltip: {
                                         backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                                        rtl: true,
-                                        textDirection: 'rtl'
+                                        rtl: dashboardDirection === 'rtl',
+                                        textDirection: dashboardDirection
                                     }
                                 }
                             }
@@ -1554,58 +1519,69 @@
 
                 const appointmentCountText = @json(__('admin.dashboard_new.appointment_count', ['count' => '__count__']));
 
-                const calendar = new FullCalendar.Calendar(calendarEl, {
-                    locale: @json(app()->getLocale()),
-                    direction: dashboardDirection,
-                    initialView: 'dayGridMonth',
-                    headerToolbar: {
-                        left: 'prev,next today',
-                        center: 'title',
-                        right: 'dayGridMonth,timeGridWeek,timeGridDay'
-                    },
-                    height: 500,
-                    events: function(fetchInfo, successCallback, failureCallback) {
-                        $.ajax({
-                            url: calendarEventsUrl,
-                            type: 'GET',
-                            data: {
-                                start: fetchInfo.startStr,
-                                end: fetchInfo.endStr
-                            },
-                            success: function(response) {
-                                if (response && response.success && Array.isArray(response
-                                        .events)) {
-                                    successCallback(response.events);
+                const renderCalendar = () => {
+                    const calendar = new FullCalendar.Calendar(calendarEl, {
+                        locale: @json(app()->getLocale()),
+                        direction: dashboardDirection,
+                        initialView: 'dayGridMonth',
+                        headerToolbar: {
+                            left: 'prev,next today',
+                            center: 'title',
+                            right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                        },
+                        height: 500,
+                        events: function(fetchInfo, successCallback, failureCallback) {
+                            $.ajax({
+                                url: calendarEventsUrl,
+                                type: 'GET',
+                                data: {
+                                    start: fetchInfo.startStr,
+                                    end: fetchInfo.endStr
+                                },
+                                success: function(response) {
+                                    const events = response && response.success && Array.isArray(response.events)
+                                        ? response.events
+                                        : [];
+
+                                    successCallback(events);
                                     if (calendarCountEl) {
-                                        calendarCountEl.textContent = appointmentCountText.replace('__count__', response.events.length);
+                                        calendarCountEl.textContent = appointmentCountText.replace('__count__', events.length);
                                     }
-                                } else {
-                                    successCallback([]);
+                                },
+                                error: function(xhr) {
+                                    console.error('Calendar events load failed', xhr);
+                                    failureCallback(xhr);
                                     if (calendarCountEl) {
                                         calendarCountEl.textContent = appointmentCountText.replace('__count__', 0);
                                     }
-                                });
-                            },
-                            eventClick: function(info) {
-                                const eventUrl = info.event.extendedProps.url;
-                                if (eventUrl) {
-                                    window.location.href = eventUrl;
-                                    return;
                                 }
-                            },
-                            error: function(xhr) {
-                                console.error('Calendar events load failed', xhr);
-                                failureCallback(xhr);
-                                if (calendarCountEl) {
-                                    calendarCountEl.textContent = appointmentCountText.replace('__count__', 0);
-                                }
+                            });
+                        },
+                        eventClick: function(info) {
+                            if (info.jsEvent) {
+                                info.jsEvent.preventDefault();
                             }
-                        });
-                        calendar.render();
-                    }).catch((error) => {
+
+                            const eventUrl = info.event.url || info.event.extendedProps.url;
+                            if (eventUrl) {
+                                window.location.href = eventUrl;
+                            }
+                        }
+                    });
+
+                    calendar.render();
+                };
+
+                const loadCalendar = () => {
+                    const fullCalendarSrc = "{{ asset('admin/assets/js/bundle/fullcalendar.bundle.js') }}";
+                    const calendarLoader = window.FullCalendar
+                        ? Promise.resolve()
+                        : loadExternalScript(fullCalendarSrc);
+
+                    calendarLoader.then(renderCalendar).catch((error) => {
                         console.error('Calendar library load failed', error);
                         if (calendarCountEl) {
-                            calendarCountEl.textContent = '0 موعداً';
+                            calendarCountEl.textContent = appointmentCountText.replace('__count__', 0);
                         }
                     });
                 };
@@ -1616,13 +1592,13 @@
                             return;
                         }
                         observer.disconnect();
-                        renderCalendar();
+                        loadCalendar();
                     }, {
                         rootMargin: '240px'
                     });
                     calendarObserver.observe(calendarEl);
                 } else {
-                    renderCalendar();
+                    loadCalendar();
                 }
             }
         });

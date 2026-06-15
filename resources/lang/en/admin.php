@@ -1555,6 +1555,7 @@ return array (
   'settings_snapchat_url' => 'Snapchat URL',
   'settings_linkedin_url' => 'LinkedIn URL',
   'settings_youtube_url' => 'YouTube URL',
+  'settings_tiktok_url' => 'TikTok URL',
   'settings_whatsapp_number' => 'WhatsApp Number',
   'settings_logos' => 'Logos',
   'settings_header_logo' => 'Header Logo',

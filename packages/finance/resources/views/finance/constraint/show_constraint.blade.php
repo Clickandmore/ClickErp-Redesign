@@ -211,6 +211,27 @@
             border: 1px solid #e5e7eb;
         }
 
+        .constraint-show-page .constraint-file-preview {
+            width: 100%;
+            min-height: 190px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: .5rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 16px;
+            background: #f8fafc;
+            color: #334155;
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .constraint-show-page .constraint-file-preview i {
+            font-size: 2.2rem;
+            color: #0f766e;
+        }
+
         .constraint-show-page .constraint-attachment-grid {
             grid-template-columns: repeat(auto-fill, minmax(112px, 112px));
             align-items: start;
@@ -742,7 +763,21 @@
                 <div class="attachment-grid">
                     @foreach ($obj->files as $file)
                         <div>
-                            <img src="{{ showFile($file->file) }}" alt="attachment">
+                            @php
+                                $extension = strtolower(pathinfo($file->file, PATHINFO_EXTENSION));
+                                $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'], true);
+                            @endphp
+
+                            @if ($isImage)
+                                <a href="{{ showFile($file->file) }}" target="_blank">
+                                    <img src="{{ showFile($file->file) }}" alt="attachment">
+                                </a>
+                            @else
+                                <a href="{{ showFile($file->file) }}" target="_blank" class="constraint-file-preview" title="{{ basename($file->file) }}">
+                                    <i class="fa fa-file-text-o"></i>
+                                    <span>{{ strtoupper($extension ?: 'FILE') }}</span>
+                                </a>
+                            @endif
                         </div>
                     @endforeach
                 </div>

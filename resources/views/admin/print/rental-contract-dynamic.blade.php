@@ -45,7 +45,7 @@
                 return $fallback;
             }
 
-            return is_numeric($value) ? number_format((float) $value) : (string) $value;
+            return is_numeric($value) ? number_format((float) $value, 2) : (string) $value;
         };
         $contractInfo = data_get($contract, 'info');
         $contractDurationDays = data_get($contractInfo, 'contract_duration_days')
@@ -71,8 +71,26 @@
         $serviceNetValue = null;
         $serviceTaxValue = null;
         $serviceGrossValue = $contractGrossValue;
+        $salaryExemptValue = data_get($contractInfo, 'monthly_salary');
 
-        if (is_numeric($packageNetValue) && is_numeric($packageGrossValue) && is_numeric($packageVatValue)) {
+        if (!is_numeric($salaryExemptValue) || (float) $salaryExemptValue <= 0) {
+            $salaryExemptValue = data_get($contract, 'maid.resolved_salary')
+                ?? data_get($contract, 'maid.salary');
+        }
+
+        $salaryExemptValue = is_numeric($salaryExemptValue) && $contractGrossValue !== null
+            ? min($contractGrossValue, (float) $salaryExemptValue)
+            : 0.0;
+
+        if ($salaryExemptValue > 0 && $contractGrossValue !== null) {
+            $taxableGrossValue = max(0, $contractGrossValue - $salaryExemptValue);
+            $taxableNetValue = $taxableGrossValue > 0 ? round($taxableGrossValue / 1.15, 2) : 0.0;
+            $serviceTaxValue = round(max(0, $taxableGrossValue - $taxableNetValue), 2);
+            $serviceNetValue = round(max(0, $contractGrossValue - $serviceTaxValue), 2);
+            $serviceGrossValue = $contractGrossValue;
+            $packageOriginalValue = $serviceNetValue;
+            $packageDiscountValue = 0;
+        } elseif (is_numeric($packageNetValue) && is_numeric($packageGrossValue) && is_numeric($packageVatValue)) {
             $packageNetValue = (float) $packageNetValue;
             $packageOriginalValue = is_numeric($packageOriginalValue) ? (float) $packageOriginalValue : $packageNetValue;
             $packageDiscountValue = is_numeric($packageDiscountValue) ? (float) $packageDiscountValue : max(0, $packageOriginalValue - $packageNetValue);
@@ -135,7 +153,6 @@
         $maidGender = data_get($contract, 'maid.gender', 'أنثى');
         $maidExperience = data_get($contract, 'maid.experience', '-');
         $paymentDueDate = $formatRentalDate($contractStartDate);
-        $salaryAmount = data_get($contractInfo, 'monthly_salary');
         $taxAmount = $serviceTaxValue;
         $partyOneText = replaceDocumentPlaceholders($partyOneTextTemplate, [
             'اسم_الشركة' => $documentCompanyName,
@@ -1094,12 +1111,6 @@
                             <th>ضريبة القيمة المضافة</th>
                             <th>القيمة الإجمالية</th>
                         </tr>
-                        <tr>
-                            <td>أجر العامل/العاملة</td>
-                            <td>{{ $formatRentalMoney($salaryAmount, '0') }} ريال</td>
-                            <td>0 ريال</td>
-                            <td>{{ $formatRentalMoney($salaryAmount, '0') }} ريال</td>
-                        </tr>
                         @if(($packageDiscountValue ?? 0) > 0)
                             <tr>
                                 <td>سعر الخدمة قبل الخصم</td>
@@ -1115,11 +1126,16 @@
                             </tr>
                         @endif
                         <tr>
-                            <td>قيمة الخدمة</td>
+                            <td>قيمة العقد قبل الضريبة</td>
                             <td>{{ $formatRentalMoney($serviceNetValue, '______') }} ريال</td>
                             <td>{{ $formatRentalMoney($taxAmount, '______') }} ريال</td>
                             <td>{{ $formatRentalMoney($serviceGrossValue, '______') }} ريال</td>
                         </tr>
+                        @if(($salaryExemptValue ?? 0) > 0)
+                            <tr>
+                                <td colspan="4">تحتسب ضريبة القيمة المضافة على الجزء الخاضع للضريبة فقط، بعد استبعاد المبالغ المعفاة من إجمالي العقد.</td>
+                            </tr>
+                        @endif
                         <tr>
                             <th>قيمة العقد الإجمالي</th>
                             <th>{{ $formatRentalMoney($serviceNetValue, '______') }} ريال</th>

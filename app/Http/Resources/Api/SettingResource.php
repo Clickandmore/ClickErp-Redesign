@@ -43,6 +43,7 @@ class SettingResource extends JsonResource
             'second_qr_code' => (string)$this->second_qr_code,
 
             'facebook' => (string)$this->facebook,
+            'tiktok' => (string)$this->tiktok,
             'twitter' => (string)$this->twitter,
             'instagram' => (string)$this->instagram,
             'snapchat' => (string)$this->snapchat,

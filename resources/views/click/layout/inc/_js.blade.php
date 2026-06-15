@@ -185,15 +185,16 @@
 
     function handleFileSelect(event) {
         const input = event.target;
-        const container = document.querySelector(".work_samples_grid");
+        const container = input.closest(".work_samples_grid") || document.querySelector(".work_samples_grid");
         const videoExtensions = ['mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm', '3gp', 'mpeg', 'mpg', 'ogv', 'm4v', 'f4v', 'ts'];
+        const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'];
         let newFiles = Array.from(input.files); // الملفات الجديدة المختارة
 
         // إضافة الملفات الجديدة إلى المصفوفة مع منع التكرار
         newFiles.forEach(file => {
             if (!selectedFiles.some(f => f.name === file.name && f.lastModified === file.lastModified)) {
                 selectedFiles.push(file);
-                displayMedia(file, container, input, videoExtensions);
+                displayMedia(file, container, input, videoExtensions, imageExtensions);
             }
         });
 
@@ -202,7 +203,7 @@
     }
 
     // عرض الصورة أو الفيديو داخل الـ container
-    function displayMedia(file, container, input, videoExtensions) {
+    function displayMedia(file, container, input, videoExtensions, imageExtensions) {
         const fileExtension = file.name.split('.').pop().toLowerCase();
         const reader = new FileReader();
 
@@ -228,12 +229,27 @@
                 video.appendChild(source);
                 video.appendChild(document.createTextNode("Your browser does not support the video tag."));
                 uploadedMediaDiv.appendChild(video);
-            } else {
+            } else if (imageExtensions.includes(fileExtension)) {
                 // إنشاء عنصر صورة
                 const img = document.createElement("img");
                 img.src = event.target.result;
                 img.alt = file.name;
                 uploadedMediaDiv.appendChild(img);
+            } else {
+                const filePreview = document.createElement("div");
+                filePreview.classList.add("constraint-file-preview");
+                filePreview.style.width = "100%";
+                filePreview.style.height = "100%";
+                filePreview.style.display = "flex";
+                filePreview.style.flexDirection = "column";
+                filePreview.style.alignItems = "center";
+                filePreview.style.justifyContent = "center";
+                filePreview.style.gap = ".35rem";
+                filePreview.style.padding = ".5rem";
+                filePreview.style.color = "#334155";
+                filePreview.style.textAlign = "center";
+                filePreview.innerHTML = `<i class="fa fa-file-text-o" style="font-size: 1.8rem; color: #0f766e;"></i><span style="font-size: .75rem;">${fileExtension.toUpperCase() || 'FILE'}</span>`;
+                uploadedMediaDiv.appendChild(filePreview);
             }
 
             // إنشاء زر الحذف

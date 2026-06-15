@@ -220,7 +220,7 @@
                                 <span><i
                                         class="fas fa-flag me-1"></i>{{ $maid->nationality?->sub_title ?? helperTrans('ingaz.not_specified') }}</span>
                                 <span><i
-                                        class="fas fa-building me-1"></i>{{ $maid->office?->title ?? helperTrans('ingaz.not_specified') }}</span>
+                                        class="fas fa-building me-1"></i>{{ $externalOffice?->title ?? helperTrans('ingaz.not_specified') }}</span>
                                 <span><i
                                         class="fas fa-diagram-project me-1"></i>{{ helperTrans('ingaz.request_type') }}:
                                     {{ $maid->request_type_label }}</span>
@@ -403,7 +403,7 @@
                                 <div class="col-md-6">
                                     <div class="text-muted small">{{ helperTrans('ingaz.office') }}</div>
                                     <div class="fw-semibold">
-                                        {{ $maid->office?->title ?? helperTrans('ingaz.not_specified') }}</div>
+                                        {{ $externalOffice?->title ?? helperTrans('ingaz.not_specified') }}</div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="text-muted small">{{ helperTrans('ingaz.request_type') }}</div>
@@ -427,6 +427,32 @@
                                         {{ $maid->additional_notes ?? helperTrans('ingaz.not_specified') }}</div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+
+                    <div class="card maid-card">
+                        <div class="card-body">
+                            <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                                <i class="fas fa-building text-primary"></i>بيانات الوكيل الخارجي
+                            </h5>
+                            @if ($externalOffice)
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="text-muted small">{{ helperTrans('ingaz.recruitment_office') }}</div>
+                                        <div class="fw-semibold">{{ $externalOffice->title ?? helperTrans('ingaz.not_specified') }}</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="text-muted small">{{ helperTrans('ingaz.service') }}</div>
+                                        <div class="fw-semibold">{{ $maid->request_type_label }}</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="text-muted small">{{ helperTrans('ingaz.nationality') }}</div>
+                                        <div class="fw-semibold">{{ $maid->nationality?->sub_title ?? helperTrans('ingaz.not_specified') }}</div>
+                                    </div>
+                                </div>
+                            @else
+                                <p class="text-muted mb-0">{{ helperTrans('ingaz.not_specified') }}</p>
+                            @endif
                         </div>
                     </div>
 
@@ -806,9 +832,9 @@
                             <h5 class="fw-bold mb-3 d-flex align-items-center gap-2">
                                 <i class="fas fa-star text-warning"></i>{{ helperTrans('ingaz.skills') }}
                             </h5>
-                            @if (!empty($skills))
+                            @if (!empty($maidSkills))
                                 <div class="maid-skill-grid">
-                                    @foreach ($skills as $skill)
+                                    @foreach ($maidSkills as $skill)
                                         @php
                                             $skillName = is_string($skill)
                                                 ? trim($skill)

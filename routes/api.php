@@ -33,6 +33,8 @@ use \Api\ApiDailyLabotDemandController;
 use \Api\ApiKnownServiceController;
 use \Api\ApiSelectWorkerController;
 use App\Http\Controllers\Api\HomeController;
+use App\Enums\auth\AdminTypes;
+use App\Models\auth\Admin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 /*
@@ -68,7 +70,7 @@ Route::group(
             Route::post('/register', [ApiAuthController::class, 'register']);
             Route::post('/login', [ApiAuthController::class, 'login']);
             Route::post('/logout', [ApiAuthController::class, 'logout'])->middleware('auth:api');
-            
+
             // *****************
 
             Route::post('/update/password', [ApiAuthController::class, 'update_password']);
@@ -123,6 +125,8 @@ Route::controller(Api\HomeController::class)->group(function ($router) {
     Route::post('store_ticket', 'storeTicket');
 });
 
+
+
 // Public API routes (3mer)
 Route::group(['middleware' => 'lang', 'prefix' => 'client'], function () {
     Route::get('home', [HomeController::class, 'homeSections']);
@@ -144,10 +148,11 @@ Route::group(['middleware' => 'lang', 'prefix' => 'client'], function () {
     Route::resource('nationalities', ApiNationalityController::class);
     Route::resource('religions', ApiReligionController::class);
     Route::resource('job-types', ApiJobTypeController::class);
+    Route::get('latest-worker-cvs', [App\Http\Controllers\Api\LatestWorkerCvController::class, 'index']);
     Route::resource('all-workers', ApiMaidController::class);
     Route::get('arrival-worker', [App\Http\Controllers\Api\ApiMaidController::class, 'arrivalWorker']);
     Route::get('questions', [App\Http\Controllers\Api\ApiQuestionController::class, 'index']);
-    
+    Route::get('customer-service-employees', [App\Http\Controllers\Api\ApiCustomerController::class, 'index']);
 });
 
 // *************************************************************************************************************
@@ -167,7 +172,7 @@ Route::group(
             Route::post('/update/profile', [AppAuthController::class, 'updateProfile'])->middleware('auth:api');
             Route::post('/logout', [AppAuthController::class, 'logout'])->middleware('auth:api');
             Route::delete('/delete/profile', [AppAuthController::class, 'delete'])->middleware('auth:api');
-            
+
             Route::post('/firebase/update', [ApiUserFirebaseTokenController::class, 'store'])->middleware('auth:api');
         });
     }
@@ -195,7 +200,7 @@ Route::group(['middleware' => AppApiLang::class, 'prefix' => 'user'], function (
     Route::post('contact-us', [AppHomeController::class, 'contactUs']);
     Route::get('settings/policies', [AppHomeController::class, 'settingsPolicies']);
     Route::get('settings', [AppHomeController::class, 'settings']);
-    
+
     Route::get('orders', [AppOrderController::class, 'orders'])->middleware('auth:api');
     Route::get('orders/{id}', [AppOrderController::class, 'orderDetails'])->middleware('auth:api');
     Route::post('special-requests', [AppOrderController::class, 'createSpecialRequest'])->middleware('auth:api');

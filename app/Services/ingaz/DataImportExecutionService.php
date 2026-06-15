@@ -29,6 +29,11 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Nami\Finance\Models\ClientCategory;
 use Nami\Finance\Models\Account;
+use Nami\Hr\Models\Department as HrDepartment;
+use Nami\Hr\Models\Employee as HrEmployee;
+use Nami\Hr\Models\EmployeeShift as HrEmployeeShift;
+use Nami\Hr\Models\Job as HrJob;
+use Nami\Hr\Models\Shift as HrShift;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 
@@ -64,10 +69,14 @@ class DataImportExecutionService
                 DB::transaction(function () use ($type, $row, $adminId, &$result) {
                     $outcome = match ($type) {
                         'clients' => $this->importClient($row, $adminId),
+                        'recruitment_offices' => $this->importRecruitmentOffice($row),
+                        'employees' => $this->importEmployee($row),
                         'rental_maids' => $this->importRentalMaid($row, $adminId),
                         'recruitment_contracts' => $this->importRecruitmentContract($row, $adminId),
+                        'recruitment_contracts_clients_maids' => $this->importRecruitmentBundle($row, $adminId),
                         'shelter_contracts' => $this->importShelterContract($row, $adminId),
                         'rent_contracts' => $this->importRentContract($row, $adminId),
+                        'rent_contracts_clients_rental_maids' => $this->importRentBundle($row, $adminId),
                         'sponsorship_transfers' => $this->importSponsorshipTransfer($row, $adminId),
                         default => 'skipped',
                     };
@@ -85,7 +94,7 @@ class DataImportExecutionService
 
     private function readRows(string $path, array $columns): array
     {
-        $spreadsheet = IOFactory::load($path);
+        $spreadsheet = $this->loadSpreadsheetForImport($path);
         $sheet = $spreadsheet->getSheetByName('البيانات') ?: $spreadsheet->getActiveSheet();
         $highestRow = $sheet->getHighestDataRow();
         $highestColumn = $sheet->getHighestDataColumn();
@@ -123,6 +132,21 @@ class DataImportExecutionService
         }
 
         return $rows;
+    }
+
+    private function loadSpreadsheetForImport(string $path): \PhpOffice\PhpSpreadsheet\Spreadsheet
+    {
+        $reader = IOFactory::createReaderForFile($path);
+
+        if (method_exists($reader, 'setReadDataOnly')) {
+            $reader->setReadDataOnly(true);
+        }
+
+        if (method_exists($reader, 'setReadEmptyCells')) {
+            $reader->setReadEmptyCells(false);
+        }
+
+        return $reader->load($path);
     }
 
     private function importClient(array $row, ?int $adminId): string
@@ -198,7 +222,135 @@ class DataImportExecutionService
         return 'created';
     }
 
+    private function importRecruitmentOffice(array $row): string
+    {
+        $titleAr = trim((string) ($row['title_ar'] ?? $row['title'] ?? ''));
+        $titleEn = trim((string) ($row['title_en'] ?? ''));
+        $nationalityId = $this->resolveNationalityId($row['nationality'] ?? null);
+        $databaseId = $this->optionalInteger($row['id'] ?? null);
+
+        if ($titleAr === '') {
+            throw new \InvalidArgumentException('اسم المكتب بالعربية مطلوب.');
+        }
+
+        if (!$nationalityId) {
+            throw new \InvalidArgumentException('الجنسية مطلوبة أو غير موجودة في النظام.');
+        }
+
+        $office = $databaseId ? RecruitmentOffices::query()->whereKey($databaseId)->first() : null;
+        $office = $office ?: $this->findRecruitmentOfficeByTitle($titleAr, $titleEn, $nationalityId);
+
+        $payload = $this->filterColumns('recruitment_offices', [
+            'id' => $databaseId,
+            'nationality_id' => $nationalityId,
+            'status' => $this->normalizeOfficeStatus($row['status'] ?? null),
+            'is_show' => $this->truthy($row['is_show'] ?? null, false) ? 1 : 0,
+            'phone_office' => $row['phone_office'] ?? null,
+            'license_number' => $row['license_number'] ?? null,
+            'street' => $row['street'] ?? null,
+            'manager_name' => $row['manager_name'] ?? null,
+            'manager_phone' => $row['manager_phone'] ?? null,
+            'manager_email' => $row['manager_email'] ?? null,
+            'bank_address' => $row['bank_address'] ?? null,
+            'bank_name' => $row['bank_name'] ?? null,
+            'bank_account_name' => $row['bank_account_name'] ?? null,
+            'bank_swift_code' => $row['bank_swift_code'] ?? null,
+            'bank_iban' => $row['bank_iban'] ?? null,
+            'bank_account' => $row['bank_account'] ?? null,
+            'cost_of_dollar' => $row['cost_of_dollar'] ?? null,
+            'cost_of_other' => $row['cost_of_other'] ?? null,
+        ]);
+
+        $created = false;
+        if ($office) {
+            unset($payload['id']);
+            $office->update(array_filter($payload, fn ($value) => $value !== null && $value !== ''));
+        } else {
+            $office = RecruitmentOffices::create($payload);
+            $created = true;
+        }
+
+        $office->translateOrNew('ar')->title = $titleAr;
+        $office->translateOrNew('en')->title = $titleEn !== '' ? $titleEn : $titleAr;
+        $office->save();
+
+        return $created ? 'created' : 'updated';
+    }
+
+    private function importEmployee(array $row): string
+    {
+        if (!Schema::hasTable('hr_employee')) {
+            throw new \InvalidArgumentException('جدول الموظفين غير موجود.');
+        }
+
+        $name = trim((string) ($row['name'] ?? ''));
+        $databaseId = $this->optionalInteger($row['id'] ?? null);
+        $code = trim((string) ($row['code'] ?? ''));
+        $phone = trim((string) ($row['phone'] ?? ''));
+        $email = trim((string) ($row['email'] ?? ''));
+        $nationalNumber = $this->normalizeIdNumber($row['national_num'] ?? $row['id_number'] ?? null);
+        $departmentId = $this->resolveHrDepartmentId($row['department'] ?? $row['department_id'] ?? $row['deparment_id'] ?? null);
+        $jobId = $this->resolveHrJobId($row['job'] ?? $row['job_id'] ?? null);
+        $countryId = $this->resolveCountryId($row['country'] ?? $row['nationality'] ?? $row['country_id'] ?? null);
+        $shiftId = $this->resolveHrShiftId($row['shift'] ?? $row['shift_id'] ?? null);
+
+        if ($name === '') {
+            throw new \InvalidArgumentException('اسم الموظف مطلوب.');
+        }
+
+        $employee = $this->findEmployee($databaseId, $code, $nationalNumber, $email);
+        $creating = !$employee;
+
+        if ($creating) {
+            $this->assertEmployeeCreateData($row, $phone, $email, $nationalNumber, $departmentId, $jobId, $countryId, $shiftId);
+        }
+
+        $salary = $this->decimal($row['salary'] ?? null);
+        $payload = $this->filterColumns('hr_employee', [
+            'id' => $databaseId,
+            'name' => $name,
+            'admin_id' => $this->resolveAdminId($row['admin_id'] ?? $row['admin'] ?? null),
+            'code' => $code !== '' ? $code : null,
+            'phone' => $phone !== '' ? $phone : null,
+            'birthday' => $this->parseDate($row['birthday'] ?? $row['birthdate'] ?? null),
+            'email' => $email !== '' ? $email : null,
+            'national_num' => $nationalNumber !== '' ? $nationalNumber : null,
+            'identity_expiry_date' => $this->parseDate($row['identity_expiry_date'] ?? null),
+            'address' => $row['address'] ?? null,
+            'hired_date' => $this->parseDate($row['hired_date'] ?? null),
+            'contract_end_date' => $this->parseDate($row['contract_end_date'] ?? null),
+            'salary' => $salary,
+            'net_salary' => $this->decimal($row['net_salary'] ?? null) ?? $salary,
+            'status' => $this->normalizeEmployeeStatus($row['status'] ?? null),
+            'employee_category' => HrEmployee::CATEGORY_EMPLOYEE,
+            'deparment_id' => $departmentId,
+            'job_id' => $jobId,
+            'country_id' => $countryId,
+            'maid_id' => $this->resolveMaidId($row['maid_id'] ?? $row['maid_passport'] ?? null),
+        ]);
+
+        if ($employee) {
+            unset($payload['id']);
+            $employee->update(array_filter($payload, fn ($value) => $value !== null && $value !== ''));
+            $outcome = 'updated';
+        } else {
+            $employee = HrEmployee::create($payload);
+            $outcome = 'created';
+        }
+
+        if ($shiftId) {
+            $this->syncEmployeeShift($employee, $shiftId);
+        }
+
+        return $outcome;
+    }
+
     private function importRentalMaid(array $row, ?int $adminId): string
+    {
+        return $this->importMaid($row, $adminId, true);
+    }
+
+    private function importMaid(array $row, ?int $adminId, bool $rental): string
     {
         $passport = trim((string) ($row['passport_num'] ?? ''));
 
@@ -214,7 +366,7 @@ class DataImportExecutionService
             throw new \InvalidArgumentException('الجنسية مطلوبة أو غير موجودة في النظام.');
         }
 
-        if (!$this->resolveTranslatableId(RecruitmentOffices::class, $row['office'] ?? null)) {
+        if ($rental && !$this->resolveTranslatableId(RecruitmentOffices::class, $row['office'] ?? null)) {
             throw new \InvalidArgumentException('مكتب الاستقدام مطلوب لعاملة التأجير أو غير موجود في النظام.');
         }
 
@@ -223,7 +375,7 @@ class DataImportExecutionService
         }
 
         $maid = Maid::where('passport_num', $passport)->first();
-        $payload = $this->maidPayload($row, $adminId, true);
+        $payload = $this->maidPayload($row, $adminId, $rental);
 
         if ($maid) {
             $maid->update($payload);
@@ -234,11 +386,32 @@ class DataImportExecutionService
         }
 
         $this->syncMaidCode($maid, $row);
-        $this->syncMaidRelations($maid, $row, true);
-        $this->syncRentalFinance($maid, $row, $adminId);
-        $this->syncRentalShelterContract($maid, $row, $adminId);
+        $this->syncMaidRelations($maid, $row, $rental);
+
+        if ($rental) {
+            $this->syncRentalFinance($maid, $row, $adminId);
+            $this->syncRentalShelterContract($maid, $row, $adminId);
+        }
 
         return $outcome;
+    }
+
+    private function importRecruitmentBundle(array $row, ?int $adminId): string
+    {
+        $clientOutcome = $this->importClient($this->clientRowFromBundle($row), $adminId);
+        $maidOutcome = $this->importMaid($this->maidRowFromBundle($row), $adminId, false);
+        $contractOutcome = $this->importRecruitmentContract($this->recruitmentContractRowFromBundle($row), $adminId);
+
+        return in_array('created', [$clientOutcome, $maidOutcome, $contractOutcome], true) ? 'created' : 'updated';
+    }
+
+    private function importRentBundle(array $row, ?int $adminId): string
+    {
+        $clientOutcome = $this->importClient($this->clientRowFromBundle($row), $adminId);
+        $maidOutcome = $this->importMaid($this->maidRowFromBundle($row), $adminId, true);
+        $contractOutcome = $this->importRentContract($this->rentContractRowFromBundle($row), $adminId);
+
+        return in_array('created', [$clientOutcome, $maidOutcome, $contractOutcome], true) ? 'created' : 'updated';
     }
 
     private function importRecruitmentContract(array $row, ?int $adminId): string
@@ -263,6 +436,7 @@ class DataImportExecutionService
             'marketer_id' => $adminId,
             'status' => $status,
             'contract_number' => $row['contract_number'] ?? null,
+            'visa_number' => $row['visa_number'] ?? null,
             'contract_date' => $this->parseDate($row['contract_date'] ?? null),
             'type' => 'recruitment',
         ]);
@@ -277,6 +451,8 @@ class DataImportExecutionService
 
         $this->upsertContractInfo($contract, [
             'contract_date' => $this->parseDate($row['contract_date'] ?? null),
+            'visa_number' => $row['visa_number'] ?? null,
+            'arrival_date' => $this->parseDate($row['arrival_date'] ?? null),
             'contract_value' => $this->decimal($row['amount'] ?? null),
             'notes' => $row['notes'] ?? null,
         ]);
@@ -411,6 +587,115 @@ class DataImportExecutionService
         SponsorshipTransfer::create($payload);
 
         return 'created';
+    }
+
+    private function clientRowFromBundle(array $row): array
+    {
+        return array_merge($row, [
+            'id' => $row['client_id'] ?? $row['id'] ?? null,
+            'name' => $row['client_name'] ?? $row['name'] ?? null,
+            'phone' => $row['client_phone'] ?? $row['phone'] ?? null,
+            'id_number' => $row['client_id_number'] ?? $row['id_number'] ?? $row['national_num'] ?? null,
+            'email' => $row['client_email'] ?? $row['email'] ?? null,
+            'nationality' => $row['client_nationality'] ?? null,
+            'birthdate' => $row['client_birthdate'] ?? $row['birthdate'] ?? null,
+            'marital_status' => $row['client_marital_status'] ?? null,
+            'phone2' => $row['client_phone2'] ?? null,
+            'client_category' => $row['client_category'] ?? null,
+            'account_id' => $row['client_account_id'] ?? $row['account_id'] ?? null,
+            'city' => $row['client_city'] ?? null,
+            'address' => $row['client_address'] ?? null,
+            'rooms_num' => $row['client_rooms_num'] ?? null,
+            'family_num' => $row['client_family_num'] ?? null,
+            'children' => $row['client_children'] ?? null,
+            'job' => $row['client_job'] ?? null,
+            'status' => $row['client_status'] ?? null,
+            'created_by' => $row['client_created_by'] ?? null,
+            'notes' => $row['client_notes'] ?? null,
+        ]);
+    }
+
+    private function maidRowFromBundle(array $row): array
+    {
+        return array_merge($row, [
+            'maid_code' => $row['maid_code'] ?? null,
+            'name_en' => $row['maid_name_en'] ?? $row['name_en'] ?? $row['name:en'] ?? $row['maid_name'] ?? null,
+            'maid_name' => $row['maid_name_en'] ?? $row['maid_name'] ?? null,
+            'passport_num' => $row['maid_passport'] ?? $row['passport_num'] ?? null,
+            'maid_passport' => $row['maid_passport'] ?? $row['passport_num'] ?? null,
+            'nationality' => $row['maid_nationality'] ?? $row['nationality'] ?? null,
+            'office' => $row['maid_office'] ?? $row['office'] ?? null,
+            'type_id' => $row['maid_type'] ?? $row['type_id'] ?? null,
+            'job_titles' => $row['maid_job_titles'] ?? $row['job_titles'] ?? $row['job_title'] ?? null,
+            'religion' => $row['maid_religion'] ?? $row['religion'] ?? null,
+            'request_type' => $row['maid_request_type'] ?? $row['request_type'] ?? null,
+            'monthly_salary' => $row['maid_salary'] ?? $row['monthly_salary'] ?? $row['salary'] ?? null,
+            'salary' => $row['maid_salary'] ?? $row['salary'] ?? null,
+            'rental_price' => $row['maid_price'] ?? $row['rental_price'] ?? $row['price'] ?? null,
+            'price' => $row['maid_price'] ?? $row['price'] ?? null,
+            'birth_date' => $row['maid_birth_date'] ?? $row['birth_date'] ?? null,
+            'age' => $row['maid_age'] ?? $row['age'] ?? null,
+            'height' => $row['maid_height'] ?? $row['height'] ?? null,
+            'weight' => $row['maid_weight'] ?? $row['weight'] ?? null,
+            'id_number' => $row['maid_id_number'] ?? null,
+            'id_expiry_date' => $row['maid_id_expiry_date'] ?? null,
+            'marital_status' => $row['maid_marital_status'] ?? $row['marital_status:ar'] ?? null,
+            'childrens_count' => $row['maid_childrens_count'] ?? null,
+            'duration' => $row['maid_duration'] ?? null,
+            'experience_status' => $row['maid_experience_status'] ?? $row['experience_status'] ?? null,
+            'experience_years' => $row['maid_experience_years'] ?? $row['experience_years'] ?? null,
+            'skills' => $row['maid_skills'] ?? $row['skills'] ?? null,
+            'languages' => $row['maid_languages'] ?? $row['languages'] ?? null,
+            'language_percentages' => $row['maid_language_percentages'] ?? $row['language_percentages'] ?? null,
+            'availability_status' => $row['maid_status'] ?? $row['availability_status'] ?? $row['status'] ?? null,
+            'available_at' => $row['maid_available_at'] ?? null,
+            'arrival_date' => $row['maid_arrival_date'] ?? null,
+            'create_shelter_contract' => $row['maid_create_shelter_contract'] ?? null,
+            'is_show' => $row['maid_is_show'] ?? null,
+            'is_pinned' => $row['maid_is_pinned'] ?? null,
+            'video_link' => $row['maid_video_link'] ?? null,
+            'finance_income' => $row['maid_finance_income'] ?? null,
+            'finance_expense' => $row['maid_finance_expense'] ?? null,
+            'notes' => $row['maid_notes'] ?? $row['additional_notes'] ?? null,
+            'additional_notes' => $row['maid_notes'] ?? $row['additional_notes'] ?? null,
+        ]);
+    }
+
+    private function recruitmentContractRowFromBundle(array $row): array
+    {
+        return array_merge($row, [
+            'contract_number' => $row['contract_number'] ?? null,
+            'visa_number' => $row['visa_number'] ?? null,
+            'client_phone' => $row['client_phone'] ?? $row['phone'] ?? null,
+            'client_id_number' => $row['client_id_number'] ?? $row['id_number'] ?? null,
+            'client_name' => $row['client_name'] ?? $row['name'] ?? null,
+            'maid_passport' => $row['maid_passport'] ?? $row['passport_num'] ?? null,
+            'nationality' => $row['maid_nationality'] ?? $row['nationality'] ?? null,
+            'contract_date' => $row['contract_date'] ?? null,
+            'arrival_date' => $row['maid_arrival_date'] ?? $row['arrival_date'] ?? null,
+            'status' => $row['recruitment_contract_status'] ?? $row['contract_status'] ?? null,
+            'amount' => $row['contract_amount'] ?? $row['amount'] ?? null,
+            'paid_amount' => $row['contract_paid_amount'] ?? $row['paid_amount'] ?? null,
+            'notes' => $row['contract_notes'] ?? null,
+        ]);
+    }
+
+    private function rentContractRowFromBundle(array $row): array
+    {
+        return array_merge($row, [
+            'contract_number' => $row['rent_contract_number'] ?? $row['contract_number'] ?? null,
+            'client_phone' => $row['client_phone'] ?? $row['phone'] ?? null,
+            'client_id_number' => $row['client_id_number'] ?? $row['id_number'] ?? null,
+            'client_name' => $row['client_name'] ?? $row['name'] ?? null,
+            'maid_passport' => $row['maid_passport'] ?? $row['passport_num'] ?? null,
+            'nationality' => $row['maid_nationality'] ?? $row['nationality'] ?? null,
+            'start_date' => $row['rent_start_date'] ?? $row['start_date'] ?? null,
+            'end_date' => $row['rent_end_date'] ?? $row['end_date'] ?? null,
+            'duration_months' => $row['rent_duration_months'] ?? $row['duration_months'] ?? null,
+            'monthly_amount' => $row['rent_monthly_amount'] ?? $row['monthly_amount'] ?? null,
+            'status' => $row['rent_contract_status'] ?? $row['contract_status'] ?? null,
+            'notes' => $row['rent_contract_notes'] ?? null,
+        ]);
     }
 
     private function clientFromRow(array $row): User
@@ -630,6 +915,20 @@ class DataImportExecutionService
             ->first();
 
         if ($order) {
+            $updates = [];
+
+            if ($status && $order->status !== $status) {
+                $updates['status'] = $status;
+            }
+
+            if ($status && !$this->shouldTrackOrderDeadline($status) && $order->deadline_at !== null) {
+                $updates['deadline_at'] = null;
+            }
+
+            if ($updates !== []) {
+                $order->update($updates);
+            }
+
             return $order;
         }
 
@@ -656,6 +955,11 @@ class DataImportExecutionService
         } while (Order::where('order_code', $code)->exists());
 
         return $code;
+    }
+
+    private function shouldTrackOrderDeadline(?string $status): bool
+    {
+        return in_array($status, [OrderEnum::New->value, OrderEnum::UnderProcess->value], true);
     }
 
     private function findContract(?string $number, ?int $maidId, int $userId): ?Contract
@@ -755,6 +1059,160 @@ class DataImportExecutionService
             ->value('id');
     }
 
+    private function findEmployee(?int $databaseId, string $code, string $nationalNumber, string $email): ?HrEmployee
+    {
+        if ($databaseId) {
+            $employee = HrEmployee::query()->whereKey($databaseId)->first();
+
+            if ($employee) {
+                return $employee;
+            }
+        }
+
+        if ($code !== '' && Schema::hasColumn('hr_employee', 'code')) {
+            $employee = HrEmployee::query()->where('code', $code)->first();
+
+            if ($employee) {
+                return $employee;
+            }
+        }
+
+        if ($nationalNumber !== '' && Schema::hasColumn('hr_employee', 'national_num')) {
+            $employee = HrEmployee::query()->where('national_num', $nationalNumber)->first();
+
+            if ($employee) {
+                return $employee;
+            }
+        }
+
+        if ($email !== '' && Schema::hasColumn('hr_employee', 'email')) {
+            return HrEmployee::query()->where('email', $email)->first();
+        }
+
+        return null;
+    }
+
+    private function assertEmployeeCreateData(
+        array $row,
+        string $phone,
+        string $email,
+        string $nationalNumber,
+        ?int $departmentId,
+        ?int $jobId,
+        ?int $countryId,
+        ?int $shiftId
+    ): void {
+        $missing = [];
+
+        if ($phone === '') {
+            $missing[] = 'رقم الجوال';
+        }
+
+        if (!$this->parseDate($row['birthday'] ?? $row['birthdate'] ?? null)) {
+            $missing[] = 'تاريخ الميلاد';
+        }
+
+        if ($email === '') {
+            $missing[] = 'البريد الإلكتروني';
+        }
+
+        if ($nationalNumber === '') {
+            $missing[] = 'رقم الهوية/الإقامة';
+        }
+
+        if (!$this->parseDate($row['hired_date'] ?? null)) {
+            $missing[] = 'تاريخ التعيين';
+        }
+
+        if (!$this->parseDate($row['contract_end_date'] ?? null)) {
+            $missing[] = 'تاريخ نهاية العقد';
+        }
+
+        if ($this->decimal($row['salary'] ?? null) === null) {
+            $missing[] = 'الراتب';
+        }
+
+        if (!$departmentId) {
+            $missing[] = 'القسم';
+        }
+
+        if (!$jobId) {
+            $missing[] = 'الوظيفة';
+        }
+
+        if (!$countryId) {
+            $missing[] = 'الجنسية';
+        }
+
+        if (!$shiftId && Schema::hasTable('hr_employee_shift')) {
+            $missing[] = 'الوردية';
+        }
+
+        if ($missing !== []) {
+            throw new \InvalidArgumentException('بيانات إنشاء الموظف ناقصة أو غير موجودة في النظام: ' . implode('، ', $missing) . '.');
+        }
+    }
+
+    private function resolveHrDepartmentId($value): ?int
+    {
+        return $this->resolveHrLookupId(HrDepartment::class, 'hr_department', 'title', $value);
+    }
+
+    private function resolveHrJobId($value): ?int
+    {
+        return $this->resolveHrLookupId(HrJob::class, 'hr_jobs', 'title', $value);
+    }
+
+    private function resolveHrShiftId($value): ?int
+    {
+        return $this->resolveHrLookupId(HrShift::class, 'hr_shifts', 'name', $value);
+    }
+
+    private function resolveHrLookupId(string $modelClass, string $table, string $column, $value): ?int
+    {
+        $value = trim((string) $value);
+        if ($value === '' || !class_exists($modelClass) || !Schema::hasTable($table)) {
+            return null;
+        }
+
+        if (is_numeric($value) && $modelClass::query()->whereKey((int) $value)->exists()) {
+            return (int) $value;
+        }
+
+        return $modelClass::query()
+            ->where($column, $value)
+            ->orWhere($column, 'LIKE', "%{$value}%")
+            ->value('id');
+    }
+
+    private function resolveMaidId($value): ?int
+    {
+        $value = trim((string) $value);
+        if ($value === '') {
+            return null;
+        }
+
+        if (is_numeric($value) && Maid::query()->whereKey((int) $value)->exists()) {
+            return (int) $value;
+        }
+
+        return Maid::query()
+            ->where('passport_num', $value)
+            ->value('id');
+    }
+
+    private function syncEmployeeShift(HrEmployee $employee, int $shiftId): void
+    {
+        if (!Schema::hasTable('hr_employee_shift')) {
+            return;
+        }
+
+        HrEmployeeShift::query()->updateOrCreate(
+            ['employee_id' => $employee->id],
+            ['shift_id' => $shiftId]
+        );
+    }
+
     private function normalizeClientMaritalStatus($value): ?string
     {
         $normalized = $this->normalizeArabicText($value);
@@ -834,6 +1292,22 @@ class DataImportExecutionService
         return $modelClass::query()
             ->whereTranslationLike('title', $value)
             ->value('id');
+    }
+
+    private function findRecruitmentOfficeByTitle(string $titleAr, ?string $titleEn, int $nationalityId): ?RecruitmentOffices
+    {
+        $titles = array_values(array_filter(array_unique([$titleAr, trim((string) $titleEn)])));
+
+        if ($titles === []) {
+            return null;
+        }
+
+        return RecruitmentOffices::query()
+            ->where('nationality_id', $nationalityId)
+            ->whereHas('translations', function ($query) use ($titles) {
+                $query->whereIn('title', $titles);
+            })
+            ->first();
     }
 
     private function resolveTranslatableIds(string $modelClass, ?string $value): array
@@ -1187,6 +1661,22 @@ class DataImportExecutionService
         return in_array(trim((string) $status), ['محظور', 'موقوف', 'blocked'], true) ? 'blocked' : 'active';
     }
 
+    private function normalizeEmployeeStatus($status): int
+    {
+        $normalized = $this->normalizeArabicText($status);
+
+        return in_array($normalized, ['0', 'inactive', 'disabled', 'غير نشط', 'غيرنشط', 'موقوف'], true) ? 0 : 1;
+    }
+
+    private function normalizeOfficeStatus($status): string
+    {
+        $normalized = $this->normalizeArabicText($status);
+
+        return in_array($normalized, ['غير نشط', 'غيرنشط', 'inactive', 'disabled', 'موقوف'], true)
+            ? 'inactive'
+            : 'active';
+    }
+
     private function parseDate($value): ?string
     {
         if ($value === null || $value === '') {
@@ -1234,7 +1724,10 @@ class DataImportExecutionService
 
     private function normalizeHeader(string $value): string
     {
-        return preg_replace('/\s+/u', '', mb_strtolower(trim($value)));
+        $value = mb_strtolower(trim($value));
+        $value = str_replace(['أ', 'إ', 'آ', 'ى', 'ة', 'ـ'], ['ا', 'ا', 'ا', 'ي', 'ه', ''], $value);
+
+        return preg_replace('/\s+/u', '', $value);
     }
 
     private function defaultImportPasswordHash(): string
