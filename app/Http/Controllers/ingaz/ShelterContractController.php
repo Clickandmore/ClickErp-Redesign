@@ -963,13 +963,19 @@ class ShelterContractController extends Controller
     {
         $shelters = \App\Models\ShelterPlaces::latest()->get();
 
-        $contracts = $this->shelterSelectableContractsQuery()->get();
-
-        // Debug: Log contracts data
-
-
         // إذا تم تمرير contract_id في الطلب، نختار العقد المحدد
         $selectedContractId = request('contract_id');
+        $contracts = collect();
+
+        if ($selectedContractId) {
+            $selectedContract = $this->shelterSelectableContractsQuery()
+                ->whereKey($selectedContractId)
+                ->first();
+
+            if ($selectedContract) {
+                $contracts = collect([$selectedContract]);
+            }
+        }
 
         $nationalities = $this->shelterContractNationalities();
         $quickTagSuggestions = $this->getQuickTagSuggestions();
