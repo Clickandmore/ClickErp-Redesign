@@ -555,7 +555,7 @@
 @endsection
 @section('js')
     <script>
-        $('.select2').select2({
+        $('.select2').not('#contract_id').select2({
             placeholder: 'Search for an order...',
             allowClear: true
         });
@@ -694,12 +694,102 @@
             console.log('=== Document Ready - ShelterContract Create ===');
 
             // تهيئة Select2
-            $('.select2').select2({
+            $('.select2').not('#contract_id').select2({
                 placeholder: '{{ helperTrans('ingaz.choose') }}',
                 allowClear: true
             });
 
             // عند اختيار العقد، املأ تاريخ الوصول
+            function buildContractOptionText(contract) {
+                let optionText = contract.text || contract.desc || '';
+                if (contract.passport_number && optionText.indexOf(contract.passport_number) === -1) {
+                    optionText += ' - ' + contract.passport_number;
+                }
+
+                return optionText;
+            }
+
+            function normalizeContractSelectData(contract) {
+                return {
+                    passport: contract.passport_number || '',
+                    passportSnapshot: contract.passport_snapshot || contract.passport_number || '',
+                    maidName: contract.maid_name || '',
+                    maidNameSnapshot: contract.maid_name_snapshot || contract.maid_name || '',
+                    maidNationality: contract.maid_nationality_snapshot || contract.maid_nationality || '',
+                    clientName: contract.client_name || '',
+                    clientNationalId: contract.client_national_id || '',
+                    sponsorshipPrice: contract.sponsorship_price || '',
+                    receiptDate: contract.receipt_date || '',
+                    receiptText: contract.receipt_text || '',
+                    hasResidency: contract.has_residency || '',
+                    medicalExam: contract.medical_exam || '',
+                    serviceType: contract.service_type || '',
+                    arrivalDate: contract.arrival_date || '',
+                    status: contract.status || ''
+                };
+            }
+
+            function syncSelectedContractOptionData(contract) {
+                const normalized = normalizeContractSelectData(contract);
+                const $selectedOption = $('#contract_id').find('option:selected');
+
+                $selectedOption.attr({
+                    'data-passport': normalized.passport,
+                    'data-passport-snapshot': normalized.passportSnapshot,
+                    'data-maid-name': normalized.maidName,
+                    'data-maid-name-snapshot': normalized.maidNameSnapshot,
+                    'data-maid-nationality': normalized.maidNationality,
+                    'data-client-name': normalized.clientName,
+                    'data-client-national-id': normalized.clientNationalId,
+                    'data-sponsorship-price': normalized.sponsorshipPrice,
+                    'data-receipt-date': normalized.receiptDate,
+                    'data-receipt-text': normalized.receiptText,
+                    'data-has-residency': normalized.hasResidency,
+                    'data-medical-exam': normalized.medicalExam,
+                    'data-service-type': normalized.serviceType,
+                    'data-arrival-date': normalized.arrivalDate,
+                    'data-status': normalized.status
+                }).data(normalized);
+
+                if (normalized.arrivalDate) {
+                    $('#arrival_date').val(normalized.arrivalDate);
+                    calculateDurationFromArrivalDate(normalized.arrivalDate);
+                }
+
+                fillSnapshotFields(normalized);
+            }
+
+            $('#contract_id').select2({
+                placeholder: '{{ helperTrans('ingaz.choose') }}',
+                allowClear: true,
+                minimumInputLength: 1,
+                ajax: {
+                    url: "{{ route('search.contracts.by.passport') }}",
+                    type: 'GET',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function(params) {
+                        return {
+                            search: params.term || '',
+                            passport_number: params.term || ''
+                        };
+                    },
+                    processResults: function(response) {
+                        return {
+                            results: (response.contracts || []).map(function(contract) {
+                                contract.text = buildContractOptionText(contract);
+                                return contract;
+                            })
+                        };
+                    },
+                    cache: true
+                }
+            });
+
+            $('#contract_id').on('select2:select', function(e) {
+                syncSelectedContractOptionData(e.params.data || {});
+            });
+
             $('#contract_id').on('change', function() {
                 let contractId = $(this).val();
                 console.log('تم اختيار العقد:', contractId);
@@ -971,7 +1061,7 @@
         // إنشاء عقد جديد
         $(document).ready(function() {
             // تهيئة Select2 العادية للحقول الأخرى
-            $('.select2').select2({
+            $('.select2').not('#contract_id').select2({
                 placeholder: '{{ helperTrans('ingaz.choose') }}',
                 allowClear: true
             });
