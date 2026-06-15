@@ -2,7 +2,7 @@
 
 @section('style')
     <link rel="stylesheet" href="{{ asset('admin/assets/css/dashboard-new.css') }}?v=14">
-    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/main.min.css' rel='stylesheet' />
+    <link rel="stylesheet" href="{{ asset('admin/assets/cssbundle/fullcalendar.min.css') }}">
 @endsection
 
 @section('page-title')
@@ -1558,7 +1558,11 @@
                             });
                         },
                         eventClick: function(info) {
-                            const eventUrl = info.event.extendedProps.url;
+                            if (info.jsEvent) {
+                                info.jsEvent.preventDefault();
+                            }
+
+                            const eventUrl = info.event.url || info.event.extendedProps.url;
                             if (eventUrl) {
                                 window.location.href = eventUrl;
                             }

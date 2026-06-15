@@ -157,86 +157,127 @@ class IstiqdasmRealController extends Controller
     public function storeContract(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'beneficiary_id' => 'required|string',
-            'beneficiary_birthdate' => 'required|date',
-            'start_at' => 'required|date',
-            'package_id' => 'required|integer',
-            'contact_person_name' => 'required|string',
-            'contact_person_phone_number' => 'required|string',
-            'contact_mobile_number' => 'required|string',
-            'contact_email' => 'nullable|email',
-            'down_payment_amount' => 'required|numeric|min:0',
-            'down_payment_due_date' => 'required|date',
-            'payment_method' => 'required|string',
+            'beneficiary_id'                  => 'required|string',
+            'beneficiary_birthdate'           => 'required|date',
+            'start_at'                        => 'required|date',
+            'package_id'                      => 'required|integer',
+            'contact_person_name'             => 'required|string',
+            'contact_person_phone_number'     => 'required|string',
+            'contact_mobile_number'           => 'required|string',
+            'contact_second_number'           => 'nullable|string',
+            'contact_home_number'             => 'nullable|string',
+            'contact_work_number'             => 'nullable|string',
+            'contact_redirect'                => 'nullable|string',
+            'contact_email'                   => 'nullable|email',
+            'beneficiary_city'               => 'nullable|string',
+            'special_specification'           => 'nullable|string',
+            'down_payment_amount'             => 'required|numeric|min:0',
+            'down_payment_due_date'           => 'required|date',
+            'payment_method'                  => 'required|string',
+            'discount_percentage'             => 'nullable|numeric|min:0|max:100',
+            'notice_period'                   => 'nullable|integer',
+            'replacement_times'               => 'nullable|integer',
+            'travel_accompaniment_days'       => 'nullable|integer',
+            'travel_accompaniment_hours'      => 'nullable|integer',
+            'laborer_transportation_costs'    => 'nullable|numeric',
+            'administrative_fee_percent'      => 'nullable|numeric',
+            'termination_fee'                 => 'nullable|numeric',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
-                'errors' => $validator->errors()
+                'errors'  => $validator->errors(),
             ], 422);
         }
 
         DB::beginTransaction();
         try {
-            // Prepare contract data for Istiqdam API
+            // Build the full payload per Istiqdam API v1.2 documentation
             $contractData = [
                 'beneficiary' => [
-                    'id' => $request->beneficiary_id,
+                    'id'        => $request->beneficiary_id,
                     'birthdate' => $request->beneficiary_birthdate,
                 ],
-                'startAt' => $request->start_at . 'T00:00:00Z',
+                'startAt' => date('Y-m-d', strtotime($request->start_at)) . 'T00:00:00Z',
                 'package' => [
-                    'id' => (int)$request->package_id,
+                    'id' => (int) $request->package_id,
                 ],
                 'details' => [
+                    'specialSpecification' => $request->special_specification ?? '',
                     'beneficiary' => [
+                        'address' => [
+                            'city' => $request->beneficiary_city ?? '',
+                        ],
                         'contact' => [
                             'person' => [
-                                'name' => $request->contact_person_name,
+                                'name'        => $request->contact_person_name,
                                 'phoneNumber' => $request->contact_person_phone_number,
                             ],
                             'phoneNumber' => [
-                                'mobile' => $request->contact_mobile_number,
+                                'mobile'   => $request->contact_mobile_number,
+                                'second'   => $request->contact_second_number ?? '',
+                                'home'     => $request->contact_home_number ?? '',
+                                'work'     => $request->contact_work_number ?? '',
+                                'redirect' => $request->contact_redirect ?? '',
                             ],
-                            'email' => $request->contact_email,
+                            'email' => $request->contact_email ?? '',
                         ],
                     ],
                     'payment' => [
-                        'paymentMethod' => $request->payment_method,
-                        'paymentDetails' => [
+                        'discountPercentage' => (float) ($request->discount_percentage ?? 0),
+                        'paymentMethod'      => $request->payment_method,
+                        'paymentDetails'     => [
                             [
-                                'type' => 'DOWN_PAYMENT',
-                                'dueDate' => $request->down_payment_due_date,
-                                'grossPrice' => (float)$request->down_payment_amount,
+                                'type'       => 'DOWN_PAYMENT',
+                                'dueDate'    => $request->down_payment_due_date,
+                                'grossPrice' => (float) $request->down_payment_amount,
                             ],
+                        ],
+                    ],
+                    'commitments' => [
+                        'firstParty' => [
+                            'noticePeriod'     => (int) ($request->notice_period ?? 24),
+                            'replacementTimes' => (int) ($request->replacement_times ?? 1),
+                        ],
+                        'secondParty' => [
+                            'travelAccompaniment' => [
+                                'days'  => (int) ($request->travel_accompaniment_days ?? 1),
+                                'hours' => (int) ($request->travel_accompaniment_hours ?? 1),
+                            ],
+                            'laborerTransportationCosts' => (float) ($request->laborer_transportation_costs ?? 1),
+                            'administrativeFeePercent'   => (float) ($request->administrative_fee_percent ?? 2.5),
+                            'terminationFee'             => (float) ($request->termination_fee ?? 2.5),
                         ],
                     ],
                 ],
             ];
 
-            // Send to real Istiqdam API
+            // Call Istiqdam API
             $result = $this->istiqdasmService->createContract($contractData);
 
             if (!$result['success']) {
                 DB::rollBack();
                 return response()->json([
-                    'success' => false,
-                    'message' => 'فشل في إنشاء العقد في منصة الاستقدام: ' . ($result['error'] ?? 'خطأ غير معروف'),
-                    'error_details' => $result
+                    'success'      => false,
+                    'message'      => 'فشل في إنشاء العقد في منصة الاستقدام: ' . ($result['error'] ?? 'خطأ غير معروف'),
+                    'error_details' => $result,
                 ], 400);
             }
 
-            // Store contract reference in our database
+            // API returns contract number in the "number" field (not "contractId")
+            $contractNumber = $result['data']['number'] ?? null;
+
+            // Store local reference
             $localContract = IstiqdasmContract::create([
-                'istiqdam_contract_id' => $result['data']['contractId'],
-                'contract_number' => 'IST-' . date('Ymd') . '-' . str_pad($result['data']['contractId'], 6, '0', STR_PAD_LEFT),
-                'beneficiary_id' => $request->beneficiary_id,
-                'beneficiary_name' => $request->contact_person_name,
-                'package_id' => $request->package_id,
-                'status' => 'pending',
-                'total_amount' => $request->down_payment_amount,
-                'created_by' => auth('admin')->id(),
+                'istiqdam_contract_id' => $contractNumber,
+                'contract_number'      => 'IST-' . date('Ymd') . '-' . str_pad($contractNumber, 6, '0', STR_PAD_LEFT),
+                'beneficiary_id'       => $request->beneficiary_id,
+                'beneficiary_name'     => $request->contact_person_name,
+                'package_id'           => $request->package_id,
+                'status'               => 'pending',
+                'total_amount'         => $request->down_payment_amount,
+                'created_by'           => auth('admin')->id(),
             ]);
 
             DB::commit();
@@ -244,27 +285,91 @@ class IstiqdasmRealController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'تم إنشاء العقد في منصة الاستقدام الحكومية بنجاح!',
-                'data' => $result['data'],
+                'data'    => $result['data'],
                 'local_contract' => [
-                    'id' => $localContract->id,
+                    'id'              => $localContract->id,
                     'contract_number' => $localContract->contract_number,
                 ],
                 'api_info' => [
                     'environment' => config('istiqdam.current_env'),
-                    'real_api' => true
-                ]
+                    'real_api'    => true,
+                ],
             ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Error creating real Istiqdam contract: ' . $e->getMessage(), [
-                'exception' => $e,
-                'request_data' => $request->all()
+                'exception'    => $e,
+                'request_data' => $request->all(),
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'حدث خطأ أثناء إنشاء العقد: ' . $e->getMessage()
+                'message' => 'حدث خطأ أثناء إنشاء العقد: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Assign work permit to a contract
+     * POST /takamol/staging/api/v1/external/workPermitAssignment/{contractId}
+     */
+    public function assignWorkPermit(Request $request, $contractId)
+    {
+        $validator = Validator::make($request->all(), [
+            'work_permit_number' => 'required|string',
+            'laborer_id'         => 'required|string',
+            'laborer_birthdate'  => 'required|date',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors'  => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            $workPermitData = [
+                'number'  => $request->work_permit_number,
+                'laborer' => [
+                    'id'        => $request->laborer_id,
+                    'birthdate' => $request->laborer_birthdate,
+                ],
+            ];
+
+            $result = $this->istiqdasmService->assignWorkPermit($contractId, $workPermitData);
+
+            if ($result['success']) {
+                // Persist work permit data locally
+                $localContract = IstiqdasmContract::where('istiqdam_contract_id', $contractId)->first();
+                if ($localContract) {
+                    $localContract->update([
+                        'work_permits' => $result['data'],
+                    ]);
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'تم إضافة العاملة للعقد بنجاح',
+                    'data'    => $result['data'],
+                    'api_info' => [
+                        'environment' => config('istiqdam.current_env'),
+                        'real_api'    => true,
+                    ],
+                ]);
+            }
+
+            return response()->json([
+                'success'      => false,
+                'message'      => 'فشل في إضافة العاملة للعقد: ' . ($result['error'] ?? 'خطأ غير معروف'),
+                'error_details' => $result,
+            ], 500);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ: ' . $e->getMessage(),
             ], 500);
         }
     }

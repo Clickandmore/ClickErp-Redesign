@@ -21,6 +21,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class AdminTravelHistoryController extends Controller
@@ -276,12 +277,19 @@ class AdminTravelHistoryController extends Controller
 
     public function calendarEvents(Request $request)
     {
+        [$rangeStart, $rangeEnd] = $this->calendarRequestRange($request);
+
         $query = TravelHistory::with([
             'user:id,name,phone',
             'maid:id,name',
             'assignedTo:id,name',
         ])->orderBy('arrival_date', 'asc')
             ->orderBy('arrival_time', 'asc');
+
+        if ($rangeStart && $rangeEnd) {
+            $query->whereDate('arrival_date', '>=', $rangeStart->toDateString())
+                ->whereDate('arrival_date', '<', $rangeEnd->toDateString());
+        }
 
         if ($request->filled('travel_scope')) {
             if ($request->travel_scope === 'arrival') {
@@ -349,6 +357,7 @@ class AdminTravelHistoryController extends Controller
                 'title' => $title,
                 'start' => $arrivalAt->toIso8601String(),
                 'allDay' => false,
+                'url' => route('travel'),
                 'backgroundColor' => $this->calendarEventColor($trip),
                 'borderColor' => $this->calendarEventColor($trip),
                 'extendedProps' => [
@@ -376,10 +385,77 @@ class AdminTravelHistoryController extends Controller
             ];
         }
 
+        $this->appendTaskCalendarEvents($events, $rangeStart, $rangeEnd);
+
         return response()->json([
             'success' => true,
             'events' => $events,
         ]);
+    }
+
+    private function calendarRequestRange(Request $request): array
+    {
+        if (!$request->filled('start') || !$request->filled('end')) {
+            return [null, null];
+        }
+
+        try {
+            return [
+                Carbon::parse($request->start)->startOfDay(),
+                Carbon::parse($request->end)->startOfDay(),
+            ];
+        } catch (\Throwable $e) {
+            return [null, null];
+        }
+    }
+
+    private function appendTaskCalendarEvents(array &$events, ?Carbon $rangeStart, ?Carbon $rangeEnd): void
+    {
+        if (!Schema::hasTable('tasks') || !Schema::hasColumn('tasks', 'due_date')) {
+            return;
+        }
+
+        $query = DB::table('tasks')
+            ->select('id', 'title', 'description', 'priority', 'status', 'due_date', 'assigned_to')
+            ->whereNotNull('due_date')
+            ->whereNotIn('status', ['completed', 'cancelled'])
+            ->orderBy('due_date');
+
+        if ($rangeStart && $rangeEnd) {
+            $query->whereDate('due_date', '>=', $rangeStart->toDateString())
+                ->whereDate('due_date', '<', $rangeEnd->toDateString());
+        }
+
+        $tasks = $query->limit(300)->get();
+
+        foreach ($tasks as $task) {
+            $dueDate = Carbon::parse($task->due_date);
+            $color = match ($task->priority) {
+                'urgent' => '#dc3545',
+                'high' => '#fd7e14',
+                'low' => '#198754',
+                default => '#6f42c1',
+            };
+
+            $events[] = [
+                'id' => 'task-' . $task->id,
+                'title' => 'تذكير - ' . ($task->title ?: ('مهمة #' . $task->id)),
+                'start' => $dueDate->toDateString(),
+                'allDay' => true,
+                'backgroundColor' => $color,
+                'borderColor' => $color,
+                'extendedProps' => [
+                    'task_id' => $task->id,
+                    'event_type' => 'task',
+                    'status' => $task->status,
+                    'priority' => $task->priority,
+                    'description' => $task->description,
+                    'assigned_to_id' => $task->assigned_to,
+                    'remaining_seconds' => now()->diffInSeconds($dueDate, false),
+                    'remaining_label' => $this->formatRemainingTimeLabel(now()->diffInSeconds($dueDate, false)),
+                ],
+            ];
+        }
     }
 
     public function assignableStaff()

@@ -1,0 +1,23 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('istiqdam_contracts', function (Blueprint $table) {
+            // Store full work permit assignment API response
+            $table->json('work_permits')->nullable()->after('work_permit_number');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('istiqdam_contracts', function (Blueprint $table) {
+            $table->dropColumn('work_permits');
+        });
+    }
+};

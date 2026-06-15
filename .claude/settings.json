@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php -l /Applications/MAMP/htdocs/ClickERP/app/Services/IstiqdasmService.php)",
+      "Bash(php -l /Applications/MAMP/htdocs/ClickERP/app/Http/Controllers/admin/IstiqdasmRealController.php)",
+      "Bash(php -l /Applications/MAMP/htdocs/ClickERP/app/Models/IstiqdasmContract.php)",
+      "Bash(php -l /Applications/MAMP/htdocs/ClickERP/routes/ingaz.php)",
+      "Bash(php -l /Applications/MAMP/htdocs/ClickERP/config/istiqdam.php)"
+    ]
+  }
+}
