@@ -94,7 +94,7 @@ class DataImportExecutionService
 
     private function readRows(string $path, array $columns): array
     {
-        $spreadsheet = IOFactory::load($path);
+        $spreadsheet = $this->loadSpreadsheetForImport($path);
         $sheet = $spreadsheet->getSheetByName('البيانات') ?: $spreadsheet->getActiveSheet();
         $highestRow = $sheet->getHighestDataRow();
         $highestColumn = $sheet->getHighestDataColumn();
@@ -132,6 +132,21 @@ class DataImportExecutionService
         }
 
         return $rows;
+    }
+
+    private function loadSpreadsheetForImport(string $path): \PhpOffice\PhpSpreadsheet\Spreadsheet
+    {
+        $reader = IOFactory::createReaderForFile($path);
+
+        if (method_exists($reader, 'setReadDataOnly')) {
+            $reader->setReadDataOnly(true);
+        }
+
+        if (method_exists($reader, 'setReadEmptyCells')) {
+            $reader->setReadEmptyCells(false);
+        }
+
+        return $reader->load($path);
     }
 
     private function importClient(array $row, ?int $adminId): string
