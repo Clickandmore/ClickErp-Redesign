@@ -890,16 +890,13 @@ class ShelterContractController extends Controller
     private function shelterSelectableContractsQuery()
     {
         return Contract::query()
-            ->whereIn('status', [
-                ContractStatusEnum::Arrival->value,
-                ContractStatusEnum::Completed->value,
-                ContractStatusEnum::UnderWarranty->value,
-                ContractStatusEnum::Closed->value,
-            ])
-            ->whereNotIn('status', [
-                ContractStatusEnum::Shelter->value,
-                ContractStatusEnum::Back->value,
-            ])
+            ->where(function ($query) {
+                $query->whereNull('status')
+                    ->orWhereNotIn('status', [
+                        ContractStatusEnum::Shelter->value,
+                        ContractStatusEnum::Back->value,
+                    ]);
+            })
             ->with(['maid.nationality.translations', 'info', 'user', 'travelHistory'])
             ->latest();
     }
@@ -963,13 +960,23 @@ class ShelterContractController extends Controller
     {
         $shelters = \App\Models\ShelterPlaces::latest()->get();
 
-        $contracts = $this->shelterSelectableContractsQuery()->get();
+        $contracts = collect();
 
         // Debug: Log contracts data
 
 
         // إذا تم تمرير contract_id في الطلب، نختار العقد المحدد
-        $selectedContractId = request('contract_id');
+        $selectedContractId = old('contract_id', request('contract_id'));
+
+        if ($selectedContractId) {
+            $selectedContract = $this->shelterSelectableContractsQuery()
+                ->whereKey($selectedContractId)
+                ->first();
+
+            if ($selectedContract) {
+                $contracts = collect([$selectedContract]);
+            }
+        }
 
         $nationalities = $this->shelterContractNationalities();
         $quickTagSuggestions = $this->getQuickTagSuggestions();
@@ -984,12 +991,10 @@ class ShelterContractController extends Controller
     {
         $searchTerm = trim((string) ($request->input('passport_number') ?: $request->input('search')));
 
-        if ($searchTerm === '') {
-            return response()->json(['contracts' => []]);
-        }
+        $query = $this->shelterSelectableContractsQuery();
 
-        $contracts = $this->shelterSelectableContractsQuery()
-            ->where(function ($query) use ($searchTerm) {
+        if ($searchTerm !== '') {
+            $query->where(function ($query) use ($searchTerm) {
                 $query->where('id', 'like', '%' . $searchTerm . '%')
                     ->orWhereHas('user', function ($userQuery) use ($searchTerm) {
                         $userQuery->where('name', 'like', '%' . $searchTerm . '%')
@@ -1007,7 +1012,10 @@ class ShelterContractController extends Controller
                             ->orWhere('msaned_number', 'like', '%' . $searchTerm . '%')
                             ->orWhere('tafwed_number', 'like', '%' . $searchTerm . '%');
                     });
-            })
+            });
+        }
+
+        $contracts = $query
             ->limit(50)
             ->get()
             ->map(fn ($contract) => $this->formatShelterSelectableContract($contract));
@@ -1021,14 +1029,12 @@ class ShelterContractController extends Controller
 
         if (
             !$contract ||
-            !in_array($contract->status, [
-                ContractStatusEnum::Arrival->value,
-                ContractStatusEnum::Completed->value,
-                ContractStatusEnum::UnderWarranty->value,
-                ContractStatusEnum::Closed->value,
+            in_array($contract->status, [
+                ContractStatusEnum::Shelter->value,
+                ContractStatusEnum::Back->value,
             ], true)
         ) {
-            return jsonError('لا يمكن إضافة هذا العقد للإيواء. العقود المسموح بها هي عقود الوصول أو العقود المكتملة فقط.', 422);
+            return jsonError('لا يمكن إضافة هذا العقد للإيواء.', 422);
         }
 
         $wantsToWork = $request->input('wants_to_work') ?: 'unknown';

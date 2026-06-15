@@ -555,7 +555,7 @@
 @endsection
 @section('js')
     <script>
-        $('.select2').select2({
+        $('.select2').not('#contract_id').select2({
             placeholder: 'Search for an order...',
             allowClear: true
         });
@@ -661,8 +661,11 @@
                     });
                 }
 
-                // Reinitialize Select2
-                $select.select2('destroy').select2({
+                if ($select.hasClass('select2-hidden-accessible')) {
+                    $select.select2('destroy');
+                }
+
+                $select.select2({
                     placeholder: '{{ helperTrans('ingaz.choose') }}',
                     allowClear: true
                 });
@@ -671,20 +674,27 @@
             // Function to load all contracts (clear search)
             function loadAllContracts() {
                 $.ajax({
-                    url: "{{ route('ShelterContract.create') }}",
+                    url: "{{ route('search.contracts.by.passport') }}",
                     type: 'GET',
+                    data: {
+                        search: ''
+                    },
+                    beforeSend: function() {
+                        $('#contract_id').prop('disabled', true);
+                    },
                     success: function(response) {
-                        // Extract the contracts from the response
-                        // This is a simplified approach - in a real implementation,
-                        // you might want to create a separate endpoint for getting all contracts
-                        location.reload();
+                        updateContractDropdown(response.contracts || []);
                     },
                     error: function(xhr, status, error) {
                         console.error('Error loading contracts:', error);
-                        location.reload();
+                    },
+                    complete: function() {
+                        $('#contract_id').prop('disabled', false);
                     }
                 });
             }
+
+            loadAllContracts();
         });
     </script>
 
@@ -694,7 +704,7 @@
             console.log('=== Document Ready - ShelterContract Create ===');
 
             // تهيئة Select2
-            $('.select2').select2({
+            $('.select2').not('#contract_id').select2({
                 placeholder: '{{ helperTrans('ingaz.choose') }}',
                 allowClear: true
             });
@@ -971,7 +981,7 @@
         // إنشاء عقد جديد
         $(document).ready(function() {
             // تهيئة Select2 العادية للحقول الأخرى
-            $('.select2').select2({
+            $('.select2').not('#contract_id').select2({
                 placeholder: '{{ helperTrans('ingaz.choose') }}',
                 allowClear: true
             });
