@@ -555,7 +555,7 @@
 @endsection
 @section('js')
     <script>
-        $('.select2').select2({
+        $('.select2').not('#contract_id').select2({
             placeholder: 'Search for an order...',
             allowClear: true
         });
@@ -574,16 +574,17 @@
             }
 
             $select.select2({
-                placeholder: '{{ helperTrans('ingaz.choose') }}',
+                placeholder: 'اختر من آخر 25 عقد أو اكتب للبحث',
                 allowClear: true,
-                minimumInputLength: 2,
+                minimumInputLength: 0,
                 ajax: {
                     url: contractSearchRoute,
                     dataType: 'json',
                     delay: 300,
                     data: function(params) {
                         return {
-                            search: params.term || ''
+                            search: params.term || '',
+                            page: params.page || 1
                         };
                     },
                     processResults: function(response) {
@@ -599,15 +600,15 @@
                                     text: optionText,
                                     contract: contract
                                 };
-                            })
+                            }),
+                            pagination: {
+                                more: response.pagination ? response.pagination.more : false
+                            }
                         };
                     },
                     cache: true
                 },
                 language: {
-                    inputTooShort: function() {
-                        return 'اكتب رقم العقد أو اسم العميل أو رقم الهوية أو الجواز للبحث';
-                    },
                     searching: function() {
                         return '{{ helperTrans('ingaz.searching') }}';
                     },
@@ -770,12 +771,11 @@
             console.log('=== Document Ready - ShelterContract Create ===');
 
             // تهيئة Select2
-            $('.select2').select2({
+            $('.select2').not('#contract_id').select2({
                 placeholder: '{{ helperTrans('ingaz.choose') }}',
                 allowClear: true
             });
 
-            // عند اختيار العقد، املأ تاريخ الوصول
             $('#contract_id').on('change', function() {
                 let contractId = $(this).val();
                 console.log('تم اختيار العقد:', contractId);
@@ -1029,7 +1029,7 @@
         // إنشاء عقد جديد
         $(document).ready(function() {
             // تهيئة Select2 العادية للحقول الأخرى
-            $('.select2').select2({
+            $('.select2').not('#contract_id').select2({
                 placeholder: '{{ helperTrans('ingaz.choose') }}',
                 allowClear: true
             });
