@@ -504,7 +504,7 @@ class MaidBulkImportService
 
     private function parseUploadedFile(string $path): array
     {
-        $spreadsheet = IOFactory::load($path);
+        $spreadsheet = $this->loadSpreadsheetForImport($path);
         $sheet = $spreadsheet->getSheetByName(self::DATA_SHEET_NAME) ?: $spreadsheet->getSheet(0);
 
         $headers = $this->extractHeaders($sheet);
@@ -570,6 +570,21 @@ class MaidBulkImportService
         }
 
         return $rows;
+    }
+
+    private function loadSpreadsheetForImport(string $path): \PhpOffice\PhpSpreadsheet\Spreadsheet
+    {
+        $reader = IOFactory::createReaderForFile($path);
+
+        if (method_exists($reader, 'setReadDataOnly')) {
+            $reader->setReadDataOnly(true);
+        }
+
+        if (method_exists($reader, 'setReadEmptyCells')) {
+            $reader->setReadEmptyCells(false);
+        }
+
+        return $reader->load($path);
     }
 
     private function persistImportRows(MaidBulkImport $import, array $rows): void
