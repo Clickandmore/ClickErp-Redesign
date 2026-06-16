@@ -1705,7 +1705,7 @@ return array (
   'request_type_custom' => 'حسب المواصفات',
   'video_title' => 'شاهد الفيديو التعريفي لمنصة مساند',
   'video_description' => 'مساند - المنصة الوطنية لتقديم خدمات العمالة المنزلية',
-  'video_link' => 'رابط الفيديو',
+  'video_link' => 'https://www.youtube.com/embed/I3L7Ft6W0-s',
   'video_link_or_iframe_placeholder' => 'الصق رابط الفيديو أو كود iframe',
   'video_link_iframe_hint' => 'عند لصق iframe سيتم استخراج رابط src تلقائيا وحفظه للعرض في الموقع الخارجي.',
   'about_us' => 'من نحن',
