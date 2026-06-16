@@ -56,6 +56,7 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
                 $inner->whereIn('status', $currentStatuses)
                     ->orWhereHas('externalOfficeDispatch');
             });
+        $this->applyRequestBranchFilter($query, $request, 'contracts');
 
         if ($request->ajax()) {
             $this->applyDispatchFilter($query, $dispatchFilter, $currentStatuses);

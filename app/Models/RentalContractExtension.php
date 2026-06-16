@@ -2,16 +2,18 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AssignsBranch;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 
 class RentalContractExtension extends Model
 {
-    use HasFactory;
+    use AssignsBranch, HasFactory;
 
     protected $fillable = [
         'rental_contract_id',
+        'branch_id',
         'extension_months',
         'extension_days',
         'start_date',
@@ -27,6 +29,7 @@ class RentalContractExtension extends Model
         'end_date' => 'date',
         'extension_months' => 'integer',
         'extension_days' => 'integer',
+        'branch_id' => 'integer',
     ];
 
     public function contract()
@@ -46,5 +49,12 @@ class RentalContractExtension extends Model
         }
 
         return Storage::disk('public')->url($this->payment_receipt_path);
+    }
+
+    protected function resolveBranchIdForCreate(): ?int
+    {
+        return $this->resolveBranchIdFromRentalContract($this->rental_contract_id)
+            ?? $this->resolveBranchIdFromAdmin($this->created_by)
+            ?? $this->resolveBranchIdFromCurrentAdmin();
     }
 }

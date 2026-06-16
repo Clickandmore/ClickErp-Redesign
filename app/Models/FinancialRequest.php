@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\auth\Admin;
+use App\Models\Concerns\AssignsBranch;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\User;
 use Illuminate\Database\Eloquent\Model;
@@ -11,7 +12,7 @@ use Nami\Finance\Models\Bond;
 
 class FinancialRequest extends Model
 {
-    use SoftDeletes;
+    use AssignsBranch, SoftDeletes;
 
     public const STATUS_PENDING_REVIEW = 'pending_review';
     public const STATUS_IN_PROGRESS = 'in_progress';
@@ -32,6 +33,7 @@ class FinancialRequest extends Model
         'amount' => 'decimal:2',
         'contract_cost' => 'decimal:2',
         'contract_salary' => 'decimal:2',
+        'branch_id' => 'integer',
     ];
 
     public static function types(): array
@@ -167,5 +169,18 @@ class FinancialRequest extends Model
     public function financeBond()
     {
         return $this->belongsTo(Bond::class, 'finance_bond_id');
+    }
+
+    protected function resolveBranchIdForCreate(): ?int
+    {
+        $contractBranchId = $this->contract_type === 'rental'
+            ? $this->resolveBranchIdFromRentalContract($this->contract_id)
+            : $this->resolveBranchIdFromContract($this->contract_id);
+
+        return $contractBranchId
+            ?? $this->resolveBranchIdFromUser($this->client_id)
+            ?? $this->resolveBranchIdFromMaid($this->maid_id)
+            ?? $this->resolveBranchIdFromAdmin($this->created_by_id)
+            ?? $this->resolveBranchIdFromCurrentAdmin();
     }
 }

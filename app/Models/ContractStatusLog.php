@@ -2,14 +2,19 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AssignsBranch;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class ContractStatusLog extends Model
 {
-    use HasFactory;
+    use AssignsBranch, HasFactory;
 
     protected $guarded = [];
+
+    protected $casts = [
+        'branch_id' => 'integer',
+    ];
 
     protected static function booted(): void
     {
@@ -37,5 +42,11 @@ class ContractStatusLog extends Model
         } catch (\Throwable $exception) {
             return true;
         }
+    }
+
+    protected function resolveBranchIdForCreate(): ?int
+    {
+        return $this->resolveBranchIdFromContract($this->contract_id)
+            ?? $this->resolveBranchIdFromCurrentAdmin();
     }
 }

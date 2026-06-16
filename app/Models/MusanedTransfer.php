@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\auth\Admin;
+use App\Models\Concerns\AssignsBranch;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Nami\Finance\Models\Account;
@@ -10,7 +11,7 @@ use Nami\Finance\Models\Constraint;
 
 class MusanedTransfer extends Model
 {
-    use HasFactory;
+    use AssignsBranch, HasFactory;
 
     protected $guarded = [];
 
@@ -22,6 +23,7 @@ class MusanedTransfer extends Model
         'expense_tax_total' => 'decimal:2',
         'commission_net_total' => 'decimal:2',
         'expense_tax_rate' => 'decimal:4',
+        'branch_id' => 'integer',
     ];
 
     public function items()
@@ -62,5 +64,11 @@ class MusanedTransfer extends Model
     public function createdBy()
     {
         return $this->belongsTo(Admin::class, 'created_by_id');
+    }
+
+    protected function resolveBranchIdForCreate(): ?int
+    {
+        return $this->resolveBranchIdFromAdmin($this->created_by_id)
+            ?? $this->resolveBranchIdFromCurrentAdmin();
     }
 }

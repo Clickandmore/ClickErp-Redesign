@@ -26,6 +26,7 @@ class SponsorshipTransferController extends Controller
         // إذا كان الطلب من DataTables
         if ($request->ajax()) {
             $query = SponsorshipTransfer::with(['contract.maid.nationality', 'oldSponsor', 'newSponsor', 'approvedBy']);
+            $this->applyRequestBranchFilter($query, $request, 'sponsorship_transfers');
 
             // تطبيق الفلاتر
             if ($request->filled('status')) {
@@ -294,14 +295,15 @@ class SponsorshipTransferController extends Controller
         }
 
         // حساب الإحصائيات
-        $totalCount = SponsorshipTransfer::count();
-        $pendingCount = SponsorshipTransfer::where('status', 'pending')->count();
-        $trialCount = SponsorshipTransfer::whereIn('status', ['trial', 'trial_started'])->count();
-        $transferredCount = SponsorshipTransfer::where('status', 'transferred')->count();
-        $failedCount = SponsorshipTransfer::where('status', 'failed')->count();
-        $rejectedCount = SponsorshipTransfer::where('status', 'rejected')->count();
-        $approvedCount = SponsorshipTransfer::where('status', 'approved')->count();
-        $completedCount = SponsorshipTransfer::where('status', 'completed')->count();
+        $statsQuery = $this->applyRequestBranchFilter(SponsorshipTransfer::query(), $request, 'sponsorship_transfers');
+        $totalCount = (clone $statsQuery)->count();
+        $pendingCount = (clone $statsQuery)->where('status', 'pending')->count();
+        $trialCount = (clone $statsQuery)->whereIn('status', ['trial', 'trial_started'])->count();
+        $transferredCount = (clone $statsQuery)->where('status', 'transferred')->count();
+        $failedCount = (clone $statsQuery)->where('status', 'failed')->count();
+        $rejectedCount = (clone $statsQuery)->where('status', 'rejected')->count();
+        $approvedCount = (clone $statsQuery)->where('status', 'approved')->count();
+        $completedCount = (clone $statsQuery)->where('status', 'completed')->count();
 
         return view($this->folderPath . '.index', compact(
             'totalCount',

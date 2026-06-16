@@ -4,11 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\User;
+use App\Support\SystemModuleManager;
 use Illuminate\Foundation\Bus\DispatchesJobs;
 use Illuminate\Routing\Controller as BaseController;
 use Illuminate\Foundation\Validation\ValidatesRequests;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 class Controller extends BaseController
@@ -26,6 +29,27 @@ class Controller extends BaseController
             // })
             ->pluck('passport_num', 'id')
             ->all();
+    }
+
+    protected function applyRequestBranchFilter($query, Request $request, string $table, ?string $qualifiedColumn = null)
+    {
+        if (
+            !SystemModuleManager::isEnabled('branches') ||
+            !Schema::hasTable($table) ||
+            !Schema::hasColumn($table, 'branch_id')
+        ) {
+            return $query;
+        }
+
+        $adminBranchId = (int) (auth('admin')->user()?->branch_id ?? 0);
+        $requestedBranchId = (int) $request->input('branch_id', 0);
+        $branchId = $adminBranchId ?: $requestedBranchId;
+
+        if ($branchId > 0) {
+            $query->where($qualifiedColumn ?: "{$table}.branch_id", $branchId);
+        }
+
+        return $query;
     }
 
     protected function buildActivityTimeline($activities, array $fieldLabels = [], ?string $defaultSubjectLabel = null): Collection

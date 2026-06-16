@@ -2,19 +2,21 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AssignsBranch;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\ingaz\User;
 use App\Models\ingaz\Maid;
-use App\Models\Auth\Admin;
+use App\Models\auth\Admin;
 
 class TransferServiceContract extends Model
 {
-    use HasFactory;
+    use AssignsBranch, HasFactory;
 
     protected $fillable = [
         'sponsorship_transfer_id',
         'contract_id',
+        'branch_id',
         'old_sponsor_id',
         'new_sponsor_id',
         'maid_id',
@@ -56,7 +58,8 @@ class TransferServiceContract extends Model
         'signed_at' => 'datetime',
         'activated_at' => 'datetime',
         'completed_at' => 'datetime',
-        'cancelled_at' => 'datetime'
+        'cancelled_at' => 'datetime',
+        'branch_id' => 'integer',
     ];
 
     // العلاقات
@@ -221,5 +224,14 @@ class TransferServiceContract extends Model
                 $contract->created_by = auth('admin')->id();
             }
         });
+    }
+
+    protected function resolveBranchIdForCreate(): ?int
+    {
+        return $this->resolveBranchIdFromContract($this->contract_id)
+            ?? $this->resolveBranchIdFromUser($this->new_sponsor_id)
+            ?? $this->resolveBranchIdFromUser($this->old_sponsor_id)
+            ?? $this->resolveBranchIdFromAdmin($this->created_by)
+            ?? $this->resolveBranchIdFromCurrentAdmin();
     }
 }

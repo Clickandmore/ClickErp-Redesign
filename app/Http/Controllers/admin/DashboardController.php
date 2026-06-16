@@ -7,6 +7,8 @@ use App\Enums\auth\AdminTypes;
 use App\Enums\ingaz\ContractStatusEnum;
 use App\Enums\ingaz\OrderEnum;
 use App\Http\Actions\dashboard\DashboardAction as objAction;
+use App\PermKeys;
+use App\Models\Branch;
 use App\Models\auth\Admin;
 use App\Models\Contract;
 use App\Models\ingaz\JobType;
@@ -16,10 +18,12 @@ use App\Models\ingaz\User;
 use App\Models\RecruitmentOffices;
 use App\Models\RentalContract;
 use App\Models\SponsorshipTransfer;
+use App\Support\SystemModuleManager;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class DashboardController extends Controller
 {
@@ -65,6 +69,11 @@ class DashboardController extends Controller
 
     public function professional(Request $request, objAction $action)
     {
+        $dashboardBranchContext = $this->resolveDashboardBranchContext($request);
+        $activeDashboardBranchId = $dashboardBranchContext['activeBranchId'];
+        $dashboardBranchCacheSuffix = $this->dashboardBranchCacheSuffix($activeDashboardBranchId);
+        $dashboardBranchQuery = $activeDashboardBranchId ? ['branch_id' => $activeDashboardBranchId] : [];
+
         $now = now();
         $todayDate = $now->toDateString();
         $weekStart = $now->copy()->startOfWeek();
@@ -78,9 +87,13 @@ class DashboardController extends Controller
         $contractsByMonthCurrent = [];
         $contractsByMonthPrevious = [];
 
-        $buildOrderStats = function (int $jobTypeId) use ($todayDate, $weekStart, $weekEnd, $currentMonth, $currentYear) {
-            $row = Order::query()
-                ->where('job_type_id', $jobTypeId)
+        $buildOrderStats = function (int $jobTypeId) use ($todayDate, $weekStart, $weekEnd, $currentMonth, $currentYear, $activeDashboardBranchId) {
+            $query = Order::query()
+                ->where('job_type_id', $jobTypeId);
+
+            $this->applyDashboardBranchFilter($query, $activeDashboardBranchId, 'orders.branch_id', 'orders');
+
+            $row = $query
                 ->selectRaw('COUNT(*) as total')
                 ->selectRaw('SUM(CASE WHEN DATE(created_at) = ? THEN 1 ELSE 0 END) as today_total', [$todayDate])
                 ->selectRaw('SUM(CASE WHEN created_at BETWEEN ? AND ? THEN 1 ELSE 0 END) as week_total', [$weekStart, $weekEnd])
@@ -135,25 +148,38 @@ class DashboardController extends Controller
         ];
 
         // العملاء
-        $clientTotal = User::count();
-        $clientsWithOrders = Order::query()->whereNotNull('user_id')->distinct('user_id')->count('user_id');
-        $clientsWithContracts = Contract::query()->whereNotNull('user_id')->distinct('user_id')->count('user_id');
-        $clientDateAggregate = User::query()
+        $clientsQuery = User::query();
+        $this->applyDashboardBranchFilter($clientsQuery, $activeDashboardBranchId, 'users.branch_id', 'users');
+        $clientTotal = (clone $clientsQuery)->count();
+
+        $clientsWithOrdersQuery = Order::query()->whereNotNull('user_id');
+        $this->applyDashboardBranchFilter($clientsWithOrdersQuery, $activeDashboardBranchId, 'orders.branch_id', 'orders');
+        $clientsWithOrders = $clientsWithOrdersQuery->distinct('user_id')->count('user_id');
+
+        $clientsWithContractsQuery = Contract::query()->whereNotNull('user_id');
+        $this->applyDashboardBranchFilter($clientsWithContractsQuery, $activeDashboardBranchId, 'contracts.branch_id', 'contracts');
+        $clientsWithContracts = $clientsWithContractsQuery->distinct('user_id')->count('user_id');
+
+        $clientDateAggregate = (clone $clientsQuery)
             ->selectRaw('SUM(CASE WHEN MONTH(created_at) = ? AND YEAR(created_at) = ? THEN 1 ELSE 0 END) as month_total', [$currentMonth, $currentYear])
             ->selectRaw('SUM(CASE WHEN created_at BETWEEN ? AND ? THEN 1 ELSE 0 END) as week_total', [$weekStart, $weekEnd])
             ->selectRaw('SUM(CASE WHEN DATE(created_at) = ? THEN 1 ELSE 0 END) as today_total', [$todayDate])
             ->first();
+
+        $vipContractsQuery = Contract::query()
+            ->select('user_id')
+            ->selectRaw('count(*) as contract_count')
+            ->groupBy('user_id')
+            ->having('contract_count', '>=', 3);
+        $this->applyDashboardBranchFilter($vipContractsQuery, $activeDashboardBranchId, 'contracts.branch_id', 'contracts');
+
         $clientsStats = [
             'total' => $clientTotal,
             'newThisMonth' => (int) ($clientDateAggregate->month_total ?? 0),
             'newThisWeek' => (int) ($clientDateAggregate->week_total ?? 0),
             'newToday' => (int) ($clientDateAggregate->today_total ?? 0),
             'active' => $clientsWithContracts,
-            'vip' => Contract::select('user_id')
-                ->selectRaw('count(*) as contract_count')
-                ->groupBy('user_id')
-                ->having('contract_count', '>=', 3)
-                ->count(),
+            'vip' => $vipContractsQuery->count(),
             'with_orders' => $clientsWithOrders,
             'with_contracts' => $clientsWithContracts,
             'no_orders' => max(0, $clientTotal - $clientsWithOrders),
@@ -164,7 +190,9 @@ class DashboardController extends Controller
         ];
 
         // الإيجار ونقل الكفالة
-        $rentalAggregate = RentalContract::query()
+        $rentalAggregateQuery = RentalContract::query();
+        $this->applyDashboardBranchFilter($rentalAggregateQuery, $activeDashboardBranchId, 'rental_contracts.branch_id', 'rental_contracts');
+        $rentalAggregate = $rentalAggregateQuery
             ->selectRaw('COUNT(*) as total')
             ->selectRaw("SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active_total")
             ->selectRaw("SUM(CASE WHEN status IN ('contract_sent', 'contract_signed', 'maid_delivered') THEN 1 ELSE 0 END) as workflow_total")
@@ -184,7 +212,13 @@ class DashboardController extends Controller
             'delivered' => (int) ($rentalAggregate->delivered_total ?? 0),
         ];
 
-        $transferAggregate = SponsorshipTransfer::query()
+        $transferAggregateQuery = SponsorshipTransfer::query();
+        if ($activeDashboardBranchId && $this->tableHasBranchColumn('contracts')) {
+            $transferAggregateQuery->whereHas('contract', function ($query) use ($activeDashboardBranchId) {
+                $query->where('branch_id', $activeDashboardBranchId);
+            });
+        }
+        $transferAggregate = $transferAggregateQuery
             ->selectRaw('COUNT(*) as total')
             ->selectRaw("SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_total")
             ->selectRaw("SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved_total")
@@ -200,8 +234,10 @@ class DashboardController extends Controller
 
         $rentalOrderStats = $buildOrderStats(2);
 
-        $transferWebAggregate = Order::query()
-            ->where('job_type_id', 3)
+        $transferWebQuery = Order::query()
+            ->where('job_type_id', 3);
+        $this->applyDashboardBranchFilter($transferWebQuery, $activeDashboardBranchId, 'orders.branch_id', 'orders');
+        $transferWebAggregate = $transferWebQuery
             ->selectRaw('COUNT(*) as total')
             ->selectRaw("SUM(CASE WHEN status = 'new' THEN 1 ELSE 0 END) as new_total")
             ->selectRaw("SUM(CASE WHEN status = 'paid' THEN 1 ELSE 0 END) as paid_total")
@@ -215,7 +251,11 @@ class DashboardController extends Controller
         ];
 
         // حسب نوع الخدمة
-        $jobTypeCounts = JobType::withCount('orders')->get()->mapWithKeys(function ($type) {
+        $jobTypeCounts = JobType::withCount([
+            'orders' => function ($query) use ($activeDashboardBranchId) {
+                $this->applyDashboardBranchFilter($query, $activeDashboardBranchId, 'orders.branch_id', 'orders');
+            },
+        ])->get()->mapWithKeys(function ($type) {
             return [$type->id => $type->orders_count];
         });
         $jobTypesList = JobType::all()->keyBy('id');
@@ -340,6 +380,7 @@ class DashboardController extends Controller
             'contract_analytics',
             'v4',
             $dashboardLocale,
+            $dashboardBranchCacheSuffix,
             $contractToday,
             $selectedContractNationalityId ?: 'all',
             $selectedContractProfessionId ?: 'all',
@@ -371,6 +412,8 @@ class DashboardController extends Controller
                 $query->whereNull('c.status')
                     ->orWhere('c.status', '!=', ContractStatusEnum::Back->value);
             });
+
+        $this->applyDashboardBranchFilter($contractAnalyticsBaseSource, $activeDashboardBranchId, 'c.branch_id', 'contracts');
 
         $contractAnalyticsBaseQuery = function () use ($contractAnalyticsBaseSource) {
             return DB::query()->fromSub($contractAnalyticsBaseSource, 'contract_analytics');
@@ -732,7 +775,9 @@ class DashboardController extends Controller
             ->join('orders as o', 'o.id', '=', 'od.order_id')
             ->whereNotNull('od.admin_id')
             ->whereNull('o.deleted_at')
-            ->where('o.job_type_id', 1)
+            ->where('o.job_type_id', 1);
+        $this->applyDashboardBranchFilter($orderStatsByEmployee, $activeDashboardBranchId, 'o.branch_id', 'orders');
+        $orderStatsByEmployee
             ->groupBy('od.admin_id')
             ->selectRaw(
                 'od.admin_id,
@@ -750,17 +795,20 @@ class DashboardController extends Controller
                 ]
             );
 
-        $contractAssignmentRows = DB::table('contracts')
+        $contractDirectAssignmentRows = DB::table('contracts')
             ->selectRaw('id as contract_id, marketer_id as admin_id')
             ->whereNotNull('marketer_id')
-            ->whereIn('type', ['recruitment', 'maid'])
-            ->unionAll(
-                DB::table('contracts as c')
-                    ->join('order_details as od', 'od.order_id', '=', 'c.order_id')
-                    ->whereNotNull('od.admin_id')
-                    ->whereIn('c.type', ['recruitment', 'maid'])
-                    ->selectRaw('c.id as contract_id, od.admin_id as admin_id')
-            );
+            ->whereIn('type', ['recruitment', 'maid']);
+        $this->applyDashboardBranchFilter($contractDirectAssignmentRows, $activeDashboardBranchId, 'contracts.branch_id', 'contracts');
+
+        $contractOrderAssignmentRows = DB::table('contracts as c')
+            ->join('order_details as od', 'od.order_id', '=', 'c.order_id')
+            ->whereNotNull('od.admin_id')
+            ->whereIn('c.type', ['recruitment', 'maid'])
+            ->selectRaw('c.id as contract_id, od.admin_id as admin_id');
+        $this->applyDashboardBranchFilter($contractOrderAssignmentRows, $activeDashboardBranchId, 'c.branch_id', 'contracts');
+
+        $contractAssignmentRows = $contractDirectAssignmentRows->unionAll($contractOrderAssignmentRows);
 
         $contractAssignments = DB::query()
             ->fromSub($contractAssignmentRows, 'contract_assignments')
@@ -807,9 +855,12 @@ class DashboardController extends Controller
             'call_center',
         ];
 
-        $employeeBookingCache = Cache::remember('admin_dashboard.employee_bookings.v3', now()->addMinutes(5), function () use ($orderStatsByEmployee, $contractStatsByEmployee, $employeeAnalyticsAdminTypes) {
+        $employeeBookingCache = Cache::remember('admin_dashboard.employee_bookings.v3.' . $dashboardBranchCacheSuffix, now()->addMinutes(5), function () use ($orderStatsByEmployee, $contractStatsByEmployee, $employeeAnalyticsAdminTypes, $activeDashboardBranchId) {
             $employeeBookings = Admin::query()
                 ->whereIn('admins.admin_type', $employeeAnalyticsAdminTypes)
+                ->when($activeDashboardBranchId, function ($query) use ($activeDashboardBranchId) {
+                    $query->where('admins.branch_id', $activeDashboardBranchId);
+                })
                 ->select('admins.id', 'admins.name')
                 ->leftJoinSub($orderStatsByEmployee, 'order_stats', function ($join) {
                     $join->on('admins.id', '=', 'order_stats.admin_id');
@@ -866,6 +917,9 @@ class DashboardController extends Controller
         try {
             $employeeStatsBaseQuery = Admin::query()
                 ->whereIn('admin_type', $employeeAnalyticsAdminTypes);
+            if ($activeDashboardBranchId && $this->tableHasBranchColumn('admins')) {
+                $employeeStatsBaseQuery->where('branch_id', $activeDashboardBranchId);
+            }
 
             $totalEmployees = (clone $employeeStatsBaseQuery)->count();
             $activeEmployees = (clone $employeeStatsBaseQuery)
@@ -907,12 +961,17 @@ class DashboardController extends Controller
 
         $insideShelterQuery = Contract::insideShelter();
         $outsideShelterQuery = Contract::outsideShelter();
+        $this->applyDashboardBranchFilter($insideShelterQuery, $activeDashboardBranchId, 'contracts.branch_id', 'contracts');
+        $this->applyDashboardBranchFilter($outsideShelterQuery, $activeDashboardBranchId, 'contracts.branch_id', 'contracts');
         $insideShelterCount = (clone $insideShelterQuery)->count();
         $outsideShelterCount = (clone $outsideShelterQuery)->count();
         $shelterPlacesTotal = \App\Models\ShelterPlaces::count();
 
+        $shelterTotalQuery = Contract::where('status', ContractStatusEnum::Shelter->value);
+        $this->applyDashboardBranchFilter($shelterTotalQuery, $activeDashboardBranchId, 'contracts.branch_id', 'contracts');
+
         $shelterStats = [
-            'total' => Contract::where('status', ContractStatusEnum::Shelter->value)->count(),
+            'total' => $shelterTotalQuery->count(),
             'inside' => $insideShelterCount,
             'outside' => $outsideShelterCount,
             'places' => $shelterPlacesTotal,
@@ -945,7 +1004,9 @@ class DashboardController extends Controller
         }
 
         // أحدث الأنشطة (عقود)
-        $recentContracts = Contract::with('user')
+        $recentContractsQuery = Contract::with('user');
+        $this->applyDashboardBranchFilter($recentContractsQuery, $activeDashboardBranchId, 'contracts.branch_id', 'contracts');
+        $recentContracts = $recentContractsQuery
             ->orderBy('created_at', 'desc')
             ->limit(5)
             ->get();
@@ -988,15 +1049,19 @@ class DashboardController extends Controller
             'completed' => $contractsStats['completed'] ?? 0,
         ];
 
-        $ordersStatusBreakdown = Order::select('status')
+        $ordersStatusBreakdownQuery = Order::select('status');
+        $this->applyDashboardBranchFilter($ordersStatusBreakdownQuery, $activeDashboardBranchId, 'orders.branch_id', 'orders');
+        $ordersStatusBreakdown = $ordersStatusBreakdownQuery
             ->selectRaw('count(*) as total')
             ->groupBy('status')
             ->pluck('total', 'status')
             ->toArray();
 
+        $lastMonthClientsQuery = User::whereMonth('created_at', now()->subMonth()->month);
+        $this->applyDashboardBranchFilter($lastMonthClientsQuery, $activeDashboardBranchId, 'users.branch_id', 'users');
         $clientsGrowth = [
             'this_month' => $clientsStats['newThisMonth'] ?? 0,
-            'last_month' => User::whereMonth('created_at', now()->subMonth()->month)->count(),
+            'last_month' => $lastMonthClientsQuery->count(),
         ];
 
         $maidAvailability = [
@@ -1050,7 +1115,9 @@ class DashboardController extends Controller
             'ordersStatusBreakdown',
             'clientsGrowth',
             'maidAvailability',
-            'operationsInsights'
+            'operationsInsights',
+            'dashboardBranchContext',
+            'dashboardBranchQuery'
         ));
     }
 
@@ -1482,6 +1549,86 @@ class DashboardController extends Controller
             OrderEnum::CanceledBySystem->value => 'ملغاة آلياً',
             default => $status,
         };
+    }
+
+    protected function resolveDashboardBranchContext(Request $request): array
+    {
+        $branchesEnabled = SystemModuleManager::isEnabled('branches')
+            && Schema::hasTable('branches');
+
+        $branches = collect();
+        $activeBranchId = null;
+        $selectedBranch = null;
+        $canSelectBranch = false;
+
+        if ($branchesEnabled) {
+            $branches = Branch::query()
+                ->active()
+                ->ordered()
+                ->get(['id', 'name_ar', 'name_en']);
+        }
+
+        $admin = auth('admin')->user();
+        $adminBranchId = $branchesEnabled && $this->tableHasBranchColumn('admins') && !empty($admin?->branch_id)
+            ? (int) $admin->branch_id
+            : null;
+
+        if ($adminBranchId) {
+            $activeBranchId = $adminBranchId;
+            $selectedBranch = $branches->firstWhere('id', $adminBranchId)
+                ?: Branch::query()->whereKey($adminBranchId)->first(['id', 'name_ar', 'name_en']);
+        } elseif ($branchesEnabled && $branches->isNotEmpty()) {
+            $canSelectBranch = $branches->count() > 1
+                && (
+                    AdminGuardHasPerm(PermKeys::DASHBOARD_MANAGE)
+                    || AdminGuardHasPerm(PermKeys::BRANCHES_VIEW)
+                    || AdminGuardHasPerm(PermKeys::BRANCHES_CONTROL)
+                );
+
+            $requestedBranchId = (int) $request->query('branch_id', 0);
+            if ($requestedBranchId > 0) {
+                $requestedBranch = $branches->firstWhere('id', $requestedBranchId);
+                if ($requestedBranch) {
+                    $activeBranchId = (int) $requestedBranch->id;
+                    $selectedBranch = $requestedBranch;
+                }
+            }
+        }
+
+        return [
+            'enabled' => $branchesEnabled,
+            'branches' => $branches,
+            'canSelect' => $canSelectBranch,
+            'activeBranchId' => $activeBranchId,
+            'selectedBranchId' => $activeBranchId,
+            'selectedBranch' => $selectedBranch,
+            'isForced' => (bool) $adminBranchId,
+        ];
+    }
+
+    protected function applyDashboardBranchFilter($query, ?int $branchId, string $qualifiedColumn, string $table)
+    {
+        if ($branchId && $this->tableHasBranchColumn($table)) {
+            $query->where($qualifiedColumn, $branchId);
+        }
+
+        return $query;
+    }
+
+    protected function dashboardBranchCacheSuffix(?int $branchId): string
+    {
+        return $branchId ? 'branch_' . $branchId : 'branch_all';
+    }
+
+    protected function tableHasBranchColumn(string $table): bool
+    {
+        static $cache = [];
+
+        if (!array_key_exists($table, $cache)) {
+            $cache[$table] = Schema::hasTable($table) && Schema::hasColumn($table, 'branch_id');
+        }
+
+        return $cache[$table];
     }
 
     public function create()

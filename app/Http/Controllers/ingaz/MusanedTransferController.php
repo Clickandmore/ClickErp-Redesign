@@ -26,13 +26,17 @@ use Nami\Finance\Services\YearService;
 
 class MusanedTransferController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $transfers = MusanedTransfer::query()
-            ->with(['createdBy', 'bankAccount', 'items.contract.user', 'items.ingazDelegation.user'])
+        $query = MusanedTransfer::query()
+            ->with(['createdBy', 'bankAccount', 'items.contract.user', 'items.ingazDelegation.user']);
+        $this->applyRequestBranchFilter($query, $request, 'musaned_transfers');
+
+        $transfers = $query
             ->latest('transfer_date')
             ->latest('id')
-            ->paginate(20);
+            ->paginate(20)
+            ->appends($request->query());
 
         return view('admin.ingaz.musaned_transfers.index', compact('transfers'));
     }

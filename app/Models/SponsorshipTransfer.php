@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AssignsBranch;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -10,10 +11,11 @@ use App\Models\auth\Admin;
 
 class SponsorshipTransfer extends Model
 {
-    use HasFactory, SoftDeletes;
+    use AssignsBranch, HasFactory, SoftDeletes;
 
     protected $fillable = [
         'contract_id',
+        'branch_id',
         'old_sponsor_id',
         'new_sponsor_id',
         'trial_days',
@@ -68,7 +70,8 @@ class SponsorshipTransfer extends Model
         'remaining_amount' => 'decimal:2',
         'failure_settlement_amount' => 'decimal:2',
         'failure_clear_remaining_amount' => 'decimal:2',
-        'attachments' => 'array'
+        'attachments' => 'array',
+        'branch_id' => 'integer',
     ];
 
     // العلاقات
@@ -340,5 +343,13 @@ class SponsorshipTransfer extends Model
         ];
 
         return $badges[$this->status] ?? 'badge-secondary';
+    }
+
+    protected function resolveBranchIdForCreate(): ?int
+    {
+        return $this->resolveBranchIdFromContract($this->contract_id)
+            ?? $this->resolveBranchIdFromUser($this->new_sponsor_id)
+            ?? $this->resolveBranchIdFromUser($this->old_sponsor_id)
+            ?? $this->resolveBranchIdFromCurrentAdmin();
     }
 }

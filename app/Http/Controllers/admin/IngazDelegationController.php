@@ -44,6 +44,7 @@ class IngazDelegationController extends Controller
     public function index(Request $request): View|JsonResponse
     {
         $query = IngazDelegation::with(['country', 'nationality', 'profession', 'user', 'maid', 'marketer', 'invoice.musanedTransferItem.transfer']);
+        $this->applyRequestBranchFilter($query, $request, 'ingaz_delegations');
 
         $searchInput = $request->input('global_search', $request->query('search'));
 

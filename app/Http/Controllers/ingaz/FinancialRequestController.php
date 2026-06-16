@@ -32,7 +32,8 @@ class FinancialRequestController extends Controller
             $query->where('created_by_id', auth('admin')->id());
         }
 
-        $counts = $this->requestScopeCounts();
+        $this->applyRequestBranchFilter($query, $request, 'financial_requests');
+        $counts = $this->requestScopeCounts($request);
         $this->applyFilters($query, $request);
 
         $requests = $query->paginate(20)->withQueryString();
@@ -402,13 +403,15 @@ class FinancialRequestController extends Controller
         $query->when($request->filled('date'), fn ($query) => $query->whereDate('request_date', $request->input('date')));
     }
 
-    private function requestScopeCounts(): array
+    private function requestScopeCounts(Request $request): array
     {
         $query = FinancialRequest::query();
 
         if (! $this->canViewAll()) {
             $query->where('created_by_id', auth('admin')->id());
         }
+
+        $this->applyRequestBranchFilter($query, $request, 'financial_requests');
 
         return [
             'all' => (clone $query)->count(),
@@ -554,6 +557,12 @@ class FinancialRequestController extends Controller
 
     private function canAccessRequest(FinancialRequest $financialRequest): bool
     {
+        $adminBranchId = (int) (auth('admin')->user()?->branch_id ?? 0);
+
+        if ($adminBranchId > 0 && (int) $financialRequest->branch_id !== $adminBranchId) {
+            return false;
+        }
+
         return $this->canViewAll()
             || (AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_VIEW, \App\PermKeys::FINANCIAL_REQUESTS_CREATE]) && (int) $financialRequest->created_by_id === (int) auth('admin')->id());
     }

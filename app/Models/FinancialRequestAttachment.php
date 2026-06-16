@@ -2,14 +2,27 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AssignsBranch;
 use Illuminate\Database\Eloquent\Model;
 
 class FinancialRequestAttachment extends Model
 {
+    use AssignsBranch;
+
     protected $guarded = [];
+
+    protected $casts = [
+        'branch_id' => 'integer',
+    ];
 
     public function financialRequest()
     {
         return $this->belongsTo(FinancialRequest::class);
+    }
+
+    protected function resolveBranchIdForCreate(): ?int
+    {
+        return $this->resolveBranchIdFromFinancialRequest($this->financial_request_id)
+            ?? $this->resolveBranchIdFromCurrentAdmin();
     }
 }

@@ -2,16 +2,18 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AssignsBranch;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
 class ComplaintFeedback extends Model
 {
-    use HasFactory;
+    use AssignsBranch, HasFactory;
 
     protected $fillable = [
         'complaint_id',
+        'branch_id',
         'user_id',
         'token',
         'overall_rating',
@@ -34,7 +36,8 @@ class ComplaintFeedback extends Model
         'response_speed' => 'integer',
         'solution_quality' => 'integer',
         'employee_professionalism' => 'integer',
-        'communication_quality' => 'integer'
+        'communication_quality' => 'integer',
+        'branch_id' => 'integer',
     ];
 
     /**
@@ -140,5 +143,12 @@ class ComplaintFeedback extends Model
     public function getFeedbackUrlAttribute()
     {
         return route('complaint.feedback', ['token' => $this->token]);
+    }
+
+    protected function resolveBranchIdForCreate(): ?int
+    {
+        return $this->resolveBranchIdFromComplaint($this->complaint_id)
+            ?? $this->resolveBranchIdFromUser($this->user_id)
+            ?? $this->resolveBranchIdFromCurrentAdmin();
     }
 }

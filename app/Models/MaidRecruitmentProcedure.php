@@ -2,15 +2,19 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AssignsBranch;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\ingaz\Maid;
 use App\Models\Contract;
 
 class MaidRecruitmentProcedure extends Model
 {
+    use AssignsBranch;
+
     protected $fillable = [
         'maid_id',
         'contract_id',
+        'branch_id',
         'applied_at',
         'medical_status',
         'medical_date',
@@ -45,6 +49,7 @@ class MaidRecruitmentProcedure extends Model
         'poea_stamping_date' => 'date',
         'ticket_payment_date' => 'date',
         'ticket_purchase_date' => 'date',
+        'branch_id' => 'integer',
     ];
 
     public function maid()
@@ -55,5 +60,12 @@ class MaidRecruitmentProcedure extends Model
     public function contract()
     {
         return $this->belongsTo(Contract::class, 'contract_id');
+    }
+
+    protected function resolveBranchIdForCreate(): ?int
+    {
+        return $this->resolveBranchIdFromContract($this->contract_id)
+            ?? $this->resolveBranchIdFromMaid($this->maid_id)
+            ?? $this->resolveBranchIdFromCurrentAdmin();
     }
 }

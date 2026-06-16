@@ -3,6 +3,7 @@
 namespace App\Models\ingaz;
 
 use App\Models\AdminNotification;
+use App\Models\Concerns\AssignsBranch;
 use App\Models\ingaz\User;
 use App\Models\auth\Admin;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -12,13 +13,14 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class Complaint extends Model
 {
-    use HasFactory, LogsActivity;
+    use AssignsBranch, HasFactory, LogsActivity;
 
     protected $guarded = [];
     
     protected $casts = [
         'attachments' => 'array',
         'resolved_at' => 'datetime',
+        'branch_id' => 'integer',
     ];
 
     public function getFileUrlAttribute()
@@ -115,5 +117,12 @@ class Complaint extends Model
         return LogOptions::defaults()
             ->logOnly(['*'])
             ->logOnlyDirty();
+    }
+
+    protected function resolveBranchIdForCreate(): ?int
+    {
+        return $this->resolveBranchIdFromUser($this->user_id)
+            ?? $this->resolveBranchIdFromAdmin($this->assigned_to)
+            ?? $this->resolveBranchIdFromCurrentAdmin();
     }
 }

@@ -37,6 +37,7 @@ class ComplaintController extends Controller
     {
         if ($request->ajax()) {
             $query = objModel::query()->with(['user', 'complaintType', 'assignedTo', 'maidNationality']);
+            $this->applyRequestBranchFilter($query, $request, 'complaints');
 
             // تطبيق الفلاتر
             if ($request->ticket_number) {
@@ -62,11 +63,12 @@ class ComplaintController extends Controller
             }
 
             // حساب الإحصائيات
+            $statsQuery = $this->applyRequestBranchFilter(objModel::query(), $request, 'complaints');
             $statistics = [
-                'total' => objModel::count(),
-                'pending' => objModel::where('status', 'pending')->count(),
-                'in_progress' => objModel::where('status', 'in_progress')->count(),
-                'resolved' => objModel::where('status', 'resolved')->count()
+                'total' => (clone $statsQuery)->count(),
+                'pending' => (clone $statsQuery)->where('status', 'pending')->count(),
+                'in_progress' => (clone $statsQuery)->where('status', 'in_progress')->count(),
+                'resolved' => (clone $statsQuery)->where('status', 'resolved')->count()
             ];
 
             return DataTables::of($query)

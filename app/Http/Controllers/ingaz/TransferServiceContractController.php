@@ -28,6 +28,7 @@ class TransferServiceContractController extends Controller
                 'newSponsor',
                 'createdBy'
             ]);
+            $this->applyRequestBranchFilter($query, $request, 'transfer_service_contracts');
 
             if ($request->filled('status')) {
                 $query->where('status', $request->status);
