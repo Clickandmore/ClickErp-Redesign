@@ -2574,7 +2574,6 @@ return array (
     'video_link' => 'https://www.youtube.com/embed/I3L7Ft6W0-s',
     'Operations_Management' => 'Operations Management',
     'video_description' => 'Musaned - The National Platform for Domestic Labor Services',
-    'video_link' => 'https://www.youtube.com/embed/I3L7Ft6W0-s',
     'hr' => 'Hr Management',
     'finance' => 'Finance Management',
     'technical_support' => 'Technical Support',
