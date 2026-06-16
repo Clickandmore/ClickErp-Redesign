@@ -216,6 +216,10 @@
             font-size: 0.8rem;
         }
 
+        .rent-contract-create .select2-selection.is-invalid {
+            border-color: #dc3545 !important;
+        }
+
         .rent-contract-create .btn {
             border-radius: 12px;
             font-weight: 600;
@@ -1390,8 +1394,110 @@
             $('#monthly_cost').on('input', calculateContractValue);
             $('#total_contract_value').on('input', syncPaymentSummary);
 
+            function escapeHtml(value) {
+                return $('<div>').text(value || '').html();
+            }
+
+            function clearAjaxValidationErrors($form) {
+                $form.find('.ajax-validation-feedback').remove();
+                $form.find('.is-invalid').removeClass('is-invalid');
+                $form.find('.select2-selection.is-invalid').removeClass('is-invalid');
+            }
+
+            function validationFieldSelector(field) {
+                return '[name="' + String(field).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"]';
+            }
+
+            function showFieldValidationError($form, field, message) {
+                const $field = $form.find(validationFieldSelector(field)).first();
+
+                if (!$field.length) {
+                    return;
+                }
+
+                $field.addClass('is-invalid');
+
+                const feedbackId = 'err_' + String(field).replace(/[^a-zA-Z0-9_-]/g, '_');
+                let $feedback = $('#' + feedbackId);
+
+                if (!$feedback.length) {
+                    $feedback = $('<div class="invalid-feedback d-block ajax-validation-feedback"></div>');
+
+                    if ($field.hasClass('select2-hidden-accessible')) {
+                        $field.next('.select2-container').after($feedback);
+                    } else {
+                        $field.after($feedback);
+                    }
+                }
+
+                if ($field.hasClass('select2-hidden-accessible')) {
+                    $field.next('.select2-container').find('.select2-selection').addClass('is-invalid');
+                    $feedback.addClass('d-block');
+                }
+
+                $feedback.text(message).show();
+            }
+
+            function collectValidationMessages(response) {
+                const messages = [];
+
+                if (response && response.errors) {
+                    Object.keys(response.errors).forEach(function (field) {
+                        const fieldMessages = Array.isArray(response.errors[field])
+                            ? response.errors[field]
+                            : [response.errors[field]];
+
+                        fieldMessages.forEach(function (message) {
+                            if (message) {
+                                messages.push({
+                                    field: field,
+                                    message: String(message)
+                                });
+                            }
+                        });
+                    });
+                }
+
+                const genericLaravelMessage = 'The given data was invalid.';
+                if (!messages.length && response && response.message && response.message !== genericLaravelMessage) {
+                    messages.push({
+                        field: null,
+                        message: response.message
+                    });
+                }
+
+                if (!messages.length) {
+                    messages.push({
+                        field: null,
+                        message: 'لم يتم حفظ العقد لأن بعض البيانات غير صحيحة. راجع الحقول المطلوبة ثم حاول مرة أخرى.'
+                    });
+                }
+
+                return messages;
+            }
+
+            function showAjaxValidationAlert(messages) {
+                const messageList = messages
+                    .map(function (item) {
+                        return '<li>' + escapeHtml(item.message) + '</li>';
+                    })
+                    .join('');
+
+                Swal.fire({
+                    title: 'لم يتم حفظ العقد',
+                    html: '<div class="text-end" dir="rtl">' +
+                        '<p class="mb-2">سبب المشكلة:</p>' +
+                        '<ul class="mb-0 pe-3">' + messageList + '</ul>' +
+                        '</div>',
+                    icon: 'error',
+                    confirmButtonText: 'حسناً'
+                });
+            }
+
             $('#rentalContractForm').on('submit', function (e) {
                 e.preventDefault();
+                const $form = $(this);
+                clearAjaxValidationErrors($form);
 
                 if (!$('#new_existing_client_id').val() && !$('#new_client_name').val()) {
                     Swal.fire('خطأ', 'يرجى اختيار عميل أو تعبئة اسم العميل', 'error');
@@ -1530,23 +1636,27 @@
                             error: function (xhr) {
                                 $('#rentalContractSubmitBtn').prop('disabled', false).html('<i class="fas fa-save me-2"></i>حفظ العقد');
 
-                                var errorMessage = 'حدث خطأ أثناء الحفظ';
+                                const response = xhr.responseJSON || {};
+                                const validationMessages = collectValidationMessages(response);
 
-                                if (xhr.responseJSON) {
-                                    if (xhr.responseJSON.message) {
-                                        errorMessage = xhr.responseJSON.message;
-                                    } else if (xhr.responseJSON.errors) {
-                                        var errors = xhr.responseJSON.errors;
-                                        errorMessage = Object.values(errors).flat().join('\n');
-                                    }
+                                if (response.errors) {
+                                    Object.keys(response.errors).forEach(function (field) {
+                                        const firstMessage = Array.isArray(response.errors[field])
+                                            ? response.errors[field][0]
+                                            : response.errors[field];
+
+                                        showFieldValidationError($form, field, firstMessage);
+                                    });
                                 }
 
-                                Swal.fire({
-                                    title: 'خطأ!',
-                                    text: errorMessage,
-                                    icon: 'error',
-                                    confirmButtonText: 'حسناً'
-                                });
+                                showAjaxValidationAlert(validationMessages);
+
+                                const $firstInvalid = $form.find('.is-invalid:visible').first();
+                                if ($firstInvalid.length) {
+                                    $('html, body').animate({
+                                        scrollTop: Math.max(0, $firstInvalid.offset().top - 120)
+                                    }, 300);
+                                }
                             }
                         });
                     }
