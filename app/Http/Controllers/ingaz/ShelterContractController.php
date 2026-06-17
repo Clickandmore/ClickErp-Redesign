@@ -1015,8 +1015,11 @@ class ShelterContractController extends Controller
             });
         }
 
+        if ($searchTerm !== '') {
+            $query->limit(50);
+        }
+
         $contracts = $query
-            ->limit(50)
             ->get()
             ->map(fn ($contract) => $this->formatShelterSelectableContract($contract));
 
