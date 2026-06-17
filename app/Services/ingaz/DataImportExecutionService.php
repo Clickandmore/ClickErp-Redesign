@@ -154,12 +154,12 @@ class DataImportExecutionService
 
     private function importClient(array $row, ?int $adminId): string
     {
-        $phone = $this->normalizeSaudiPhone($row['phone'] ?? '');
+        $phone = $this->normalizeImportPhone($row['phone'] ?? '');
         $name = trim((string) ($row['name'] ?? ''));
         $idNumber = $this->normalizeIdNumber($row['id_number'] ?? $row['national_num'] ?? null);
         $databaseId = $this->optionalInteger($row['id'] ?? null);
 
-        if (!$phone || $name === '' || $idNumber === '') {
+        if ($phone === '' || $name === '' || $idNumber === '') {
             throw new \InvalidArgumentException('اسم العميل ورقم الجوال ورقم الهوية مطلوبة.');
         }
 
@@ -708,9 +708,9 @@ class DataImportExecutionService
     private function clientFromRow(array $row): User
     {
         $idNumber = $this->normalizeIdNumber($row['client_id_number'] ?? $row['id_number'] ?? $row['national_num'] ?? null);
-        $phone = $this->normalizeSaudiPhone($row['client_phone'] ?? $row['phone'] ?? '');
+        $phone = $this->normalizeImportPhone($row['client_phone'] ?? $row['phone'] ?? '');
         $userById = $idNumber !== '' ? User::where('national_num', $idNumber)->first() : null;
-        $userByPhone = $phone ? $this->findUserByPhone($phone) : null;
+        $userByPhone = $phone !== '' ? $this->findUserByPhone($phone) : null;
 
         if ($userById && $userByPhone && (int) $userById->id !== (int) $userByPhone->id) {
             throw new \InvalidArgumentException('رقم هوية العميل ورقم جواله يعودان لعميلين مختلفين.');
@@ -732,7 +732,7 @@ class DataImportExecutionService
             return $userByPhone;
         }
 
-        if (!$phone) {
+        if ($phone === '') {
             throw new \InvalidArgumentException('جوال العميل مطلوب وغير صحيح.');
         }
 
@@ -1007,8 +1007,22 @@ class DataImportExecutionService
 
     private function findUserByPhone(string $phone): ?User
     {
+        $phone = trim($phone);
+
+        if (preg_match('/\p{L}/u', $phone)) {
+            return User::where('phone', $phone)->first();
+        }
+
+        $normalizedSaudiPhone = $this->normalizeSaudiPhone($phone);
+        $digits = preg_replace('/\D+/', '', $this->normalizeDigits($phone));
+
         $candidates = array_values(array_unique(array_filter([
             $phone,
+            $digits,
+            $normalizedSaudiPhone,
+            $normalizedSaudiPhone ? '0' . $normalizedSaudiPhone : null,
+            $normalizedSaudiPhone ? '966' . $normalizedSaudiPhone : null,
+            $normalizedSaudiPhone ? '+966' . $normalizedSaudiPhone : null,
             '0' . $phone,
             '966' . $phone,
             '+966' . $phone,
@@ -1406,11 +1420,39 @@ class DataImportExecutionService
             $digits = substr($digits, 1);
         }
 
-        if (strlen($digits) > 9 && preg_match('/5\d{8}$/', $digits, $matches)) {
+        if (strlen($digits) > 9 && preg_match('/5\d{8}/', $digits, $matches)) {
             $digits = $matches[0];
         }
 
         return preg_match('/^5\d{8}$/', $digits) ? $digits : null;
+    }
+
+    private function normalizeImportPhone($phone): string
+    {
+        $phone = trim($this->normalizeDigits((string) $phone));
+        if ($phone === '') {
+            return '';
+        }
+
+        $normalizedSaudiPhone = $this->normalizeSaudiPhone($phone);
+        if ($normalizedSaudiPhone) {
+            return $normalizedSaudiPhone;
+        }
+
+        if (preg_match('/^(.+)\.0+$/', $phone, $matches)) {
+            $phone = $matches[1];
+        }
+
+        if (preg_match('/\p{L}/u', $phone)) {
+            return preg_replace('/\s+/u', '', $phone);
+        }
+
+        $digits = preg_replace('/\D+/', '', $phone);
+        if ($digits !== '') {
+            return $digits;
+        }
+
+        return preg_replace('/\s+/u', '', $phone);
     }
 
     private function normalizeOptionalPhone(?string $phone): ?string
