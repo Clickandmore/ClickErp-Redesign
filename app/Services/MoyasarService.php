@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\MoyasarSettings;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -12,8 +13,10 @@ class MoyasarService
 
     public function __construct()
     {
-        $this->secretKey = config('services.moyasar.secret_key', '');
-        $this->baseUrl   = config('services.moyasar.base_url', 'https://api.moyasar.com/v1');
+        $settings = MoyasarSettings::current();
+
+        $this->secretKey = $settings['secret_key'] ?? '';
+        $this->baseUrl   = $settings['base_url'] ?? 'https://api.moyasar.com/v1';
     }
 
     /**
@@ -27,6 +30,12 @@ class MoyasarService
      */
     public function createPaymentLink(float $amount, string $description, string $callbackUrl, array $metadata = []): ?array
     {
+        if (!MoyasarSettings::isEnabled()) {
+            Log::info('Moyasar createPaymentLink skipped because gateway is disabled');
+
+            return null;
+        }
+
         // ميسر تستقبل المبلغ بالهللات (× 100)
         $amountInHalala = (int) round($amount * 100);
 
@@ -132,7 +141,7 @@ class MoyasarService
      */
     public function verifyWebhookSignature(string $payload, string $signature): bool
     {
-        $secret = config('services.moyasar.webhook_secret', '');
+        $secret = MoyasarSettings::current()['webhook_secret'] ?? '';
 
         if (empty($secret)) {
             return true; // بيئة اختبار بدون secret

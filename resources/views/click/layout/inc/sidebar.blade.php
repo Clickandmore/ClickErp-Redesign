@@ -816,7 +816,8 @@
                         request()->routeIs('about-us.*') ||
                         request()->routeIs('questions.*') ||
                         request()->routeIs('dash.settings*');
-                    $settingsOperationOpen = $isDashboardSettings || $websiteManagementOpen;
+                    $isMoyasarSettingsRoute = request()->routeIs('moyasar-settings.*');
+                    $settingsOperationOpen = $isDashboardSettings || $websiteManagementOpen || $isMoyasarSettingsRoute;
                 @endphp
                 <li class="{{ $settingsOperationOpen ? '' : 'collapsed' }}">
                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#settingsOperation" href="#">
@@ -831,6 +832,15 @@
                                     href="{{ route('settings.section', 'dashboard') }}">
                                     <i class="fa fa-gauge"></i>
                                     <span class="ms-2">{{ helperTrans('ingaz.dashboard_settings') }}</span>
+                                </a>
+                            </li>
+                        @endif
+                        @if (@AdminGuardHasPerm(\App\PermKeys::MOYASAR_SETTINGS))
+                            <li>
+                                <a class="m-link {{ $isMoyasarSettingsRoute ? 'active' : '' }}"
+                                    href="{{ route('moyasar-settings.edit') }}">
+                                    <i class="fa fa-credit-card"></i>
+                                    <span class="ms-2">إعدادات ميسر</span>
                                 </a>
                             </li>
                         @endif

@@ -406,7 +406,11 @@
 
 @section('content')
     @php
+        $moyasarEnabled = (bool) ($moyasarEnabled ?? false);
         $rentContractPaymentTypes = ['cash', 'bank_transfer', 'mada', 'tabby', 'tamara', 'pay_later', 'other'];
+        if ($moyasarEnabled) {
+            $rentContractPaymentTypes[] = 'moyasar';
+        }
         $selectedOrderPaymentMethod = optional($selectedOrder ?? null)->payment_method ?? '';
         $defaultSelectedPaymentType = in_array($selectedOrderPaymentMethod, $rentContractPaymentTypes, true)
             ? $selectedOrderPaymentMethod
@@ -790,7 +794,9 @@
                                                         <option value="mada">مدى</option>
                                                         <option value="tabby">تابي</option>
                                                         <option value="tamara">تمارا</option>
-                                                        <option value="moyasar">دفع إلكتروني - ميسر</option>
+                                                        @if($moyasarEnabled)
+                                                            <option value="moyasar">دفع إلكتروني - ميسر</option>
+                                                        @endif
                                                         <option value="pay_later">الدفع لاحقاً</option>
                                                         <option value="other">أخرى</option>
                                                     </select>

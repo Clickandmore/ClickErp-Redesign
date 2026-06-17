@@ -25,6 +25,7 @@ use App\Models\RentalContractInfo;
 use App\Models\RentalContractTerm;
 use App\Services\ingaz\RentalContractFinanceService;
 use App\Services\MoyasarService;
+use App\Support\MoyasarSettings;
 use App\Support\SystemModuleManager;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -599,6 +600,9 @@ class RentContractController extends Controller
         ]);
 
         $selectedClientId = $request->get('client_id');
+        $moyasarSettings = MoyasarSettings::current();
+        $moyasarEnabled = MoyasarSettings::isEnabled();
+
         return view($this->folderPath . '.create', compact(
             'endedOrders',
             'availableRentalMaids',
@@ -610,7 +614,9 @@ class RentContractController extends Controller
             'hasEndedOrders',
             'countries',
             'selectedOrder',
-            'selectedClientId'
+            'selectedClientId',
+            'moyasarSettings',
+            'moyasarEnabled'
         ));
     }
 
@@ -1060,6 +1066,7 @@ class RentContractController extends Controller
         $nationalities = Nationality::with('translations')->get();
         $countries = Country::active()->ordered()->get();
         $paymentReceipts = $this->rentalPaymentReceiptItems($contract->info);
+        $moyasarEnabled = MoyasarSettings::isEnabled();
 
         return view($this->folderPath . '.edit', compact(
             'contract',
@@ -1068,7 +1075,8 @@ class RentContractController extends Controller
             'marketers',
             'nationalities',
             'countries',
-            'paymentReceipts'
+            'paymentReceipts',
+            'moyasarEnabled'
         ));
     }
 
@@ -3894,6 +3902,11 @@ class RentContractController extends Controller
             return ['link_created' => false, 'link_sent' => false];
         }
 
+        if (!MoyasarSettings::isEnabled()) {
+            Log::info('Moyasar: payment link skipped because gateway is disabled', ['contract_id' => $contract->id]);
+            return ['link_created' => false, 'link_sent' => false, 'skipped' => true];
+        }
+
         // إذا كان المسؤول أشار إلى أن الدفع تم أو سيتم لاحقاً — لا داعي لإرسال رابط
         if (in_array($paymentStatus, ['paid', 'later'], true)) {
             return ['link_created' => false, 'link_sent' => false, 'skipped' => true];
@@ -3910,7 +3923,7 @@ class RentContractController extends Controller
             return ['link_created' => false, 'link_sent' => false];
         }
 
-        if (empty(config('services.moyasar.secret_key'))) {
+        if (empty(MoyasarSettings::current()['secret_key'] ?? '')) {
             Log::error('Moyasar: secret key is not configured', ['contract_id' => $contract->id]);
             return ['link_created' => false, 'link_sent' => false];
         }
