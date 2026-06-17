@@ -564,6 +564,7 @@
     <script>
         var indexRoute = "{{ route('ShelterContract.index') }}";
         var isEditMode = @json($isEditMode);
+        var selectedShelterContractId = @json($selectedContractId ? (string) $selectedContractId : null);
     </script>
 
     <script>
@@ -585,6 +586,10 @@
             $('#clear_search_btn').on('click', function() {
                 $('#passport_search').val('');
                 loadAllContracts();
+            });
+
+            $('#contract_id').on('select2:clear', function() {
+                selectedShelterContractId = null;
             });
 
             // Function to search contracts by passport
@@ -623,15 +628,26 @@
             }
 
             // Function to update contract dropdown with search results
-            function updateContractDropdown(contracts) {
+            function updateContractDropdown(contracts, selectedId) {
+                contracts = contracts || [];
                 let $select = $('#contract_id');
+                let currentValue = selectedId || $select.val() || selectedShelterContractId;
+                let existingSelectedOption = currentValue
+                    ? $select.find('option[value="' + currentValue + '"]').clone()
+                    : $();
+                let selectedExistsInResults = false;
+
                 $select.empty();
-                $select.append('<option disabled selected>{{ helperTrans('ingaz.choose') }}</option>');
+                $select.append('<option disabled ' + (!currentValue ? 'selected' : '') + '>{{ helperTrans('ingaz.choose') }}</option>');
 
                 if (contracts.length === 0) {
                     $select.append('<option disabled>{{ helperTrans('ingaz.no_contracts_found') }}</option>');
                 } else {
                     contracts.forEach(function(contract) {
+                        if (String(contract.id) === String(currentValue)) {
+                            selectedExistsInResults = true;
+                        }
+
                         let optionText = contract.desc;
                         if (contract.passport_number) {
                             optionText += ' - ' + contract.passport_number;
@@ -657,8 +673,14 @@
                                 'data-arrival-date': contract.arrival_date || '',
                                 'data-status': contract.status || ''
                             })
+                            .prop('selected', String(contract.id) === String(currentValue))
                             .appendTo($select);
                     });
+                }
+
+                if (currentValue && !selectedExistsInResults && existingSelectedOption.length) {
+                    existingSelectedOption.prop('selected', true);
+                    $select.append(existingSelectedOption);
                 }
 
                 if ($select.hasClass('select2-hidden-accessible')) {
@@ -669,6 +691,10 @@
                     placeholder: '{{ helperTrans('ingaz.choose') }}',
                     allowClear: true
                 });
+
+                if (currentValue) {
+                    $select.val(String(currentValue)).trigger('change');
+                }
             }
 
             // Function to load all contracts (clear search)
@@ -683,7 +709,7 @@
                         $('#contract_id').prop('disabled', true);
                     },
                     success: function(response) {
-                        updateContractDropdown(response.contracts || []);
+                        updateContractDropdown(response.contracts || [], selectedShelterContractId);
                     },
                     error: function(xhr, status, error) {
                         console.error('Error loading contracts:', error);
