@@ -129,20 +129,9 @@
 
                 $canViewBranches = @SystemModuleEnabled('branches') && @AdminGuardHasAnyPerm([\App\PermKeys::BRANCHES_VIEW, \App\PermKeys::BRANCHES_CREATE, \App\PermKeys::BRANCHES_EDIT, \App\PermKeys::BRANCHES_DELETE, \App\PermKeys::BRANCHES_CONTROL]);
                 $canViewMaidsData = @AdminGuardHasAnyPerm([\App\PermKeys::NATIONALITIES_VIEW, \App\PermKeys::REC_OFFICES_VIEW, \App\PermKeys::JOB_TITLES_VIEW, \App\PermKeys::RELIGIONS_VIEW, \App\PermKeys::SKILLS_VIEW, \App\PermKeys::COUNTRIES_VIEW, \App\PermKeys::SOCIAL_STATUS_VIEW, \App\PermKeys::USERS_VIEW, \App\PermKeys::MAIDS_VIEW]);
-                $isDeveloper = (int) (auth('admin')->user()->admin_type ?? 0) === \App\Enums\AdminTypeisEnum::Developer->value;
-                $canViewAccessControl =
-                    $isDeveloper ||
-                    @AdminGuardHasAnyPerm([
-                        \App\PermKeys::USERS_VIEW,
-                        \App\PermKeys::ROLES_VIEW,
-                        \App\NewPermKeys::ACTIVITY_LOG_VIEW,
-                        \App\NewPermKeys::ACTIVITY_LOG_EXPORT,
-                        \App\NewPermKeys::ACTIVITY_LOG_MANAGE,
-                        \App\PermKeys::SETTINGS_VIEW,
-                        \App\PermKeys::DEVELOPERS_PERMS,
-                        'admins-read',
-                        'role-permissions-read',
-                    ]);
+                $isDeveloper =
+                    (int) (auth('admin')->user()->admin_type ?? 0) === \App\Enums\AdminTypeisEnum::Developer->value;
+                $canViewAccessControl = $isDeveloper || @AdminGuardHasAnyPerm([\App\PermKeys::USERS_VIEW, \App\PermKeys::ROLES_VIEW, \App\NewPermKeys::ACTIVITY_LOG_VIEW, \App\NewPermKeys::ACTIVITY_LOG_EXPORT, \App\NewPermKeys::ACTIVITY_LOG_MANAGE, \App\PermKeys::SETTINGS_VIEW, \App\PermKeys::DEVELOPERS_PERMS, 'admins-read', 'role-permissions-read']);
                 $canViewSupport = true;
 
                 $canViewOperations = @SystemModuleEnabled('operations') && $canViewOperations;
@@ -188,7 +177,8 @@
                 @endphp
 
                 @if ($canViewCrm)
-                    <li class="sidebar-module sidebar-module--crm {{ $isCrm || request()->routeIs('admin.sms-templates.*') ? '' : 'collapsed' }}">
+                    <li
+                        class="sidebar-module sidebar-module--crm {{ $isCrm || request()->routeIs('admin.sms-templates.*') ? '' : 'collapsed' }}">
                         <a class="m-link" data-bs-toggle="collapse" data-bs-target="#crm" href="#">
                             <i class="fa-regular fa-file-lines me-2"></i>
                             <span class="ms-2">{{ __('ingaz.crm') }}</span>
@@ -217,7 +207,8 @@
                     </li>
                 @endif
                 @if ($canViewOperations)
-                    <li class="sidebar-module sidebar-module--operations {{ $isOperationsManagementOpen ? '' : 'collapsed' }}">
+                    <li
+                        class="sidebar-module sidebar-module--operations {{ $isOperationsManagementOpen ? '' : 'collapsed' }}">
                         <a class="m-link" data-bs-toggle="collapse" data-bs-target="#Operations_Management"
                             href="#">
                             <i class="fa fa-tasks me-2"></i>
@@ -225,7 +216,8 @@
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
                         <ul class="sub-menu collapse {{ $isOperationsManagementOpen ? 'show' : '' }}"
-                            id="Operations_Management" data-default-open="{{ $isOperationsManagementOpen ? 'true' : 'false' }}">
+                            id="Operations_Management"
+                            data-default-open="{{ $isOperationsManagementOpen ? 'true' : 'false' }}">
                             <!-- CV Management Section -->
                             @if ($canViewCv)
                                 <li class="collapsed">
@@ -348,7 +340,8 @@
                                                 <a class="m-link {{ Route::currentRouteName() == 'recruitment_requests.index' ? 'active' : '' }}"
                                                     href="{{ route('recruitment_requests.index') }}">
                                                     <i class="fa fa-envelope"></i>
-                                                    <span class="ms-2">{{ __('admin.sidebar.private_requests') }}</span>
+                                                    <span
+                                                        class="ms-2">{{ __('admin.sidebar.private_requests') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -362,21 +355,23 @@
                                                 </a>
                                             </li>
                                         @endif
-                                @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_VIEW))
-                                    <li>
-                                        <a class="m-link {{ Route::currentRouteName() == 'known-service-requests.index' ? 'active' : '' }}"
-                                            href="{{ route('known-service-requests.index') }}">
-                                            <i class="fa fa-envelope"></i>
-                                            <span class="ms-2">{{ __('admin.sidebar.known_service_requests') }}</span>
-                                        </a>
-                                    </li>
-                                @endif
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_VIEW))
+                                            <li>
+                                                <a class="m-link {{ Route::currentRouteName() == 'known-service-requests.index' ? 'active' : '' }}"
+                                                    href="{{ route('known-service-requests.index') }}">
+                                                    <i class="fa fa-envelope"></i>
+                                                    <span
+                                                        class="ms-2">{{ __('admin.sidebar.known_service_requests') }}</span>
+                                                </a>
+                                            </li>
+                                        @endif
                                         @if (@AdminGuardHasPerm(\App\PermKeys::CONTACT_VIEW))
                                             <li>
                                                 <a class="m-link {{ Route::currentRouteName() == 'contact.index' ? 'active' : '' }}"
                                                     href="{{ route('contact.index') }}">
                                                     <i class="fa fa-comments"></i>
-                                                    <span class="ms-2">{{ __('admin.sidebar.contact_requests') }}</span>
+                                                    <span
+                                                        class="ms-2">{{ __('admin.sidebar.contact_requests') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -423,7 +418,8 @@
                                                 <a class="m-link {{ Route::currentRouteName() == 'RecruitmentContract.index' && request()->input('status') == 'completed_stage' ? 'active' : '' }}"
                                                     href="{{ route('RecruitmentContract.index', ['status' => 'completed_stage']) }}">
                                                     <i class="fa fa-check-circle"></i>
-                                                    <span class="ms-2">{{ __('admin.sidebar.completed_contracts') }}</span>
+                                                    <span
+                                                        class="ms-2">{{ __('admin.sidebar.completed_contracts') }}</span>
                                                     <span
                                                         class="badge bg-success ms-2">{{ $contractsCount['under_warranty'] ?? 0 }}</span>
                                                 </a>
@@ -433,7 +429,8 @@
                                                 <a class="m-link {{ Route::currentRouteName() == 'RecruitmentContract.index' && request()->input('status') == $backStatus->value ? 'active' : '' }}"
                                                     href="{{ route('RecruitmentContract.index', ['status' => $backStatus->value]) }}">
                                                     <i class="fa fa-undo"></i>
-                                                    <span class="ms-2">{{ __('admin.sidebar.returned_contracts') }}</span>
+                                                    <span
+                                                        class="ms-2">{{ __('admin.sidebar.returned_contracts') }}</span>
                                                     <span
                                                         class="badge bg-danger ms-2">{{ $contractsCount['back'] }}</span>
                                                 </a>
@@ -588,7 +585,8 @@
                                                 <a class="m-link {{ Route::currentRouteName() == 'rental-orders.index' ? 'active' : '' }}"
                                                     href="{{ route('rental-orders.index') }}">
                                                     <i class="fas fa-shopping-cart"></i>
-                                                    <span class="ms-2">{{ __('admin.sidebar.rental_orders') }}</span>
+                                                    <span
+                                                        class="ms-2">{{ __('admin.sidebar.rental_orders') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -605,14 +603,16 @@
                                                 <a class="m-link {{ Route::currentRouteName() == 'RentContract.index' && request('status') == 'new' ? 'active' : '' }}"
                                                     href="{{ route('RentContract.index', ['status' => 'new']) }}">
                                                     <i class="fas fa-file-plus text-primary"></i>
-                                                    <span class="ms-2">{{ __('admin.sidebar.new_contracts') }}</span>
+                                                    <span
+                                                        class="ms-2">{{ __('admin.sidebar.new_contracts') }}</span>
                                                 </a>
                                             </li>
                                             <li>
                                                 <a class="m-link {{ Route::currentRouteName() == 'RentContract.index' && request('status') == 'active' ? 'active' : '' }}"
                                                     href="{{ route('RentContract.index', ['status' => 'active']) }}">
                                                     <i class="fas fa-check-circle text-success"></i>
-                                                    <span class="ms-2">{{ __('admin.sidebar.active_contracts') }}</span>
+                                                    <span
+                                                        class="ms-2">{{ __('admin.sidebar.active_contracts') }}</span>
                                                 </a>
                                             </li>
                                             <li>
@@ -626,14 +626,16 @@
                                                 <a class="m-link {{ Route::currentRouteName() == 'RentContract.index' && request('status') == 'completed' ? 'active' : '' }}"
                                                     href="{{ route('RentContract.index', ['status' => 'completed']) }}">
                                                     <i class="fas fa-flag-checkered text-info"></i>
-                                                    <span class="ms-2">{{ __('admin.sidebar.completed_contracts') }}</span>
+                                                    <span
+                                                        class="ms-2">{{ __('admin.sidebar.completed_contracts') }}</span>
                                                 </a>
                                             </li>
                                             <li>
                                                 <a class="m-link {{ Route::currentRouteName() == 'RentContract.index' && request('status') == 'cancelled' ? 'active' : '' }}"
                                                     href="{{ route('RentContract.index', ['status' => 'cancelled']) }}">
                                                     <i class="fas fa-times-circle text-danger"></i>
-                                                    <span class="ms-2">{{ __('admin.sidebar.cancelled_contracts') }}</span>
+                                                    <span
+                                                        class="ms-2">{{ __('admin.sidebar.cancelled_contracts') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -653,7 +655,8 @@
                                                 <a class="m-link {{ Route::currentRouteName() == 'packages.index' ? 'active' : '' }}"
                                                     href="{{ route('packages.index') }}">
                                                     <i class="fas fa-box-open text-info"></i>
-                                                    <span class="ms-2">{{ __('admin.sidebar.rental_packages') }}</span>
+                                                    <span
+                                                        class="ms-2">{{ __('admin.sidebar.rental_packages') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -663,7 +666,8 @@
                                                 <a class="m-link {{ in_array(Route::currentRouteName(), ['rent-contract-terms.index', 'rent-contract-terms.create', 'rent-contract-terms.edit']) ? 'active' : '' }}"
                                                     href="{{ route('rent-contract-terms.index') }}">
                                                     <i class="fa fa-file-contract"></i>
-                                                    <span class="ms-2">{{ __('admin.sidebar.rental_contract_terms') }}</span>
+                                                    <span
+                                                        class="ms-2">{{ __('admin.sidebar.rental_contract_terms') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -686,7 +690,8 @@
                                                 <a class="m-link {{ request()->routeIs('ingaz-delegations.create') ? 'active' : '' }}"
                                                     href="{{ route('ingaz-delegations.create') }}">
                                                     <i class="fa fa-plus"></i>
-                                                    <span class="ms-2">{{ __('admin.sidebar.add_new_delegation') }}</span>
+                                                    <span
+                                                        class="ms-2">{{ __('admin.sidebar.add_new_delegation') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -695,7 +700,8 @@
                                             <a class="m-link {{ request()->routeIs('ingaz-delegations.index') ? 'active' : '' }}"
                                                 href="{{ route('ingaz-delegations.index') }}">
                                                 <i class="fa fa-passport"></i>
-                                                <span class="ms-2">{{ __('admin.sidebar.ingaz_delegations') }}</span>
+                                                <span
+                                                    class="ms-2">{{ __('admin.sidebar.ingaz_delegations') }}</span>
                                             </a>
                                         </li>
                                     </ul>
@@ -738,7 +744,8 @@
                                                 <a class="m-link {{ Route::currentRouteName() == 'ShelterContract.index' ? 'active' : '' }}"
                                                     href="{{ route('ShelterContract.index') }}">
                                                     <i class="icon-loop"></i>
-                                                    <span class="ms-2">{{ __('admin.sidebar.inside_shelter') }}</span>
+                                                    <span
+                                                        class="ms-2">{{ __('admin.sidebar.inside_shelter') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -752,7 +759,8 @@
                                                 <a class="m-link {{ Route::currentRouteName() == 'ShelterContract.outside' ? 'active' : '' }}"
                                                     href="{{ route('ShelterContract.outside') }}">
                                                     <i class="fas fa-sign-out-alt"></i>
-                                                    <span class="ms-2">{{ __('admin.sidebar.outside_shelter') }}</span>
+                                                    <span
+                                                        class="ms-2">{{ __('admin.sidebar.outside_shelter') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -766,7 +774,8 @@
                                                 <a class="m-link {{ Route::currentRouteName() == 'ShelterContract.availableForTransfer' ? 'active' : '' }}"
                                                     href="{{ route('ShelterContract.availableForTransfer') }}">
                                                     <i class="fa fa-user"></i>
-                                                    <span class="ms-2">{{ __('admin.sidebar.ready_for_transfer') }}</span>
+                                                    <span
+                                                        class="ms-2">{{ __('admin.sidebar.ready_for_transfer') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -780,7 +789,8 @@
                                                 <a class="m-link {{ Route::currentRouteName() == 'ShelterContract.deportationStage' ? 'active' : '' }}"
                                                     href="{{ route('ShelterContract.deportationStage') }}">
                                                     <i class="fa fa-plane"></i>
-                                                    <span class="ms-2">{{ __('admin.sidebar.deportation_stage') }}</span>
+                                                    <span
+                                                        class="ms-2">{{ __('admin.sidebar.deportation_stage') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -851,14 +861,16 @@
                                                 <a class="m-link {{ in_array(Route::currentRouteName(), ['DeportationTravel.index', 'DeportationTravel.create', 'DeportationTravel.edit']) ? 'active' : '' }}"
                                                     href="{{ route('DeportationTravel.index') }}">
                                                     <i class="fa fa-plane-departure"></i>
-                                                    <span class="ms-2">{{ __('admin.sidebar.deportation_trips') }}</span>
+                                                    <span
+                                                        class="ms-2">{{ __('admin.sidebar.deportation_trips') }}</span>
                                                 </a>
                                             </li>
                                             <li>
                                                 <a class="m-link {{ in_array(Route::currentRouteName(), ['travel', 'travel.control', 'travel.edit']) ? 'active' : '' }}"
                                                     href="{{ route('travel') }}">
                                                     <i class="fa fa-plane-arrival"></i>
-                                                    <span class="ms-2">{{ __('admin.sidebar.recruitment_trips') }}</span>
+                                                    <span
+                                                        class="ms-2">{{ __('admin.sidebar.recruitment_trips') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -893,7 +905,8 @@
                                                 <a class="m-link {{ Route::currentRouteName() == 'complaints.create' ? 'active' : '' }}"
                                                     href="{{ route('complaints.create') }}">
                                                     <i class="fa fa-plus-circle"></i>
-                                                    <span class="ms-2">{{ __('admin.sidebar.add_new_complaint') }}</span>
+                                                    <span
+                                                        class="ms-2">{{ __('admin.sidebar.add_new_complaint') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -913,8 +926,8 @@
                             @include('admin.layout.inc.sidebar_external_agents_menu')
                             @if ($canViewFinancialRequests)
                                 <li class="collapsed">
-                                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#financial_requests_menu_admin"
-                                        href="#">
+                                    <a class="m-link" data-bs-toggle="collapse"
+                                        data-bs-target="#financial_requests_menu_admin" href="#">
                                         <i class="fa fa-money-bill-wave"></i>
                                         <span class="ms-2">إدارة الطلبات المالية</span>
                                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
@@ -1100,15 +1113,19 @@
                 @if ($canViewSettingsOperation)
                     @php
                         $activeSettingsSection = request()->route('section');
-                        $isDashboardSettings = request()->routeIs('settings.section') && $activeSettingsSection === 'dashboard';
+                        $isDashboardSettings =
+                            request()->routeIs('settings.section') && $activeSettingsSection === 'dashboard';
                         $isTranslationSettingsRoute =
                             request()->routeIs('translation-terms.*') ||
                             (request()->routeIs('settings.section') && $activeSettingsSection === 'translations');
                         $isWebsiteSettingsRoute =
                             request()->routeIs('settings.index') ||
-                            (request()->routeIs('settings.section') && !$isDashboardSettings && !$isTranslationSettingsRoute) ||
+                            (request()->routeIs('settings.section') &&
+                                !$isDashboardSettings &&
+                                !$isTranslationSettingsRoute) ||
                             (request()->routeIs('settings.*') && !request()->routeIs('settings.section'));
-                        $isSelectWorkersSettingsRoute = request()->routeIs('select-workers.*') || request()->routeIs('select-workers-settings.*');
+                        $isSelectWorkersSettingsRoute =
+                            request()->routeIs('select-workers.*') || request()->routeIs('select-workers-settings.*');
                         $isHomeSettingsRoute =
                             request()->routeIs('fast-news.*') ||
                             request()->routeIs('sliders.*') ||
@@ -1120,11 +1137,22 @@
                             request()->routeIs('statistics.*') ||
                             request()->routeIs('steps.*') ||
                             request()->routeIs('partenrs.*');
-                        $isRecruitmentSettingsRoute = in_array(Route::currentRouteName(), ['job-titles.index', 'nationalities.index', 'religions.index', 'skills.index', 'countries.index', 'cities.index', 'social-statuses.index', 'recruitment-contract-stages.edit', 'recruitment-contract-stages.update']);
+                        $isRecruitmentSettingsRoute = in_array(Route::currentRouteName(), [
+                            'job-titles.index',
+                            'nationalities.index',
+                            'religions.index',
+                            'skills.index',
+                            'countries.index',
+                            'cities.index',
+                            'social-statuses.index',
+                            'recruitment-contract-stages.edit',
+                            'recruitment-contract-stages.update',
+                        ]);
                         $isRentalSettingsRoute =
                             request()->routeIs('rent-contract.settings') ||
                             request()->routeIs('rent-contract-terms.*') ||
-                            request()->routeIs('packages.*');
+                            request()->routeIs('packages.*') ||
+                            request()->routeIs('moyasar-settings.*');
                         $isInternalSystemSettingsRoute =
                             $isTranslationSettingsRoute ||
                             request()->routeIs('form-settings.*') ||
@@ -1132,7 +1160,8 @@
                             request()->routeIs('istiqdam.*') ||
                             Request::is('migration/*') ||
                             Request::is('migration.php');
-                        $isZatcaSettingsRoute = request()->routeIs('zatca.*') || request()->routeIs('finance.bill-sales.index');
+                        $isZatcaSettingsRoute =
+                            request()->routeIs('zatca.*') || request()->routeIs('finance.bill-sales.index');
                         $branchesManagementOpen = request()->routeIs('branches.*');
                         $isAccessControlOpen =
                             request()->routeIs('packages.access-control.*') ||
@@ -1160,20 +1189,32 @@
                             $isAccessControlOpen ||
                             $isSupportOpen;
                     @endphp
-                    <li class="sidebar-module sidebar-module--settings {{ $settingsOperationOpen ? '' : 'collapsed' }}">
+                    <li
+                        class="sidebar-module sidebar-module--settings {{ $settingsOperationOpen ? '' : 'collapsed' }}">
                         <a class="m-link" data-bs-toggle="collapse" data-bs-target="#settingsOperation"
                             href="#">
                             <i class="fa fa-cog fa-lg"></i>
                             <span class="ms-2">{{ __('admin.sidebar.system_settings') }}</span>
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
-                        <ul class="sub-menu collapse {{ $settingsOperationOpen ? 'show' : '' }}" id="settingsOperation">
+                        <ul class="sub-menu collapse {{ $settingsOperationOpen ? 'show' : '' }}"
+                            id="settingsOperation">
                             @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
                                 <li>
                                     <a class="m-link {{ $isDashboardSettings ? 'active' : '' }}"
                                         href="{{ route('settings.section', 'dashboard') }}">
                                         <i class="fa fa-gauge"></i>
                                         <span class="ms-2">{{ __('admin.sidebar.dashboard_settings') }}</span>
+                                    </a>
+                                </li>
+                            @endif
+
+                            @if (@AdminGuardHasPerm(\App\PermKeys::MOYASAR_SETTINGS))
+                                <li>
+                                    <a class="m-link {{ request()->routeIs('moyasar-settings.*') ? 'active' : '' }}"
+                                        href="{{ route('moyasar-settings.edit') }}">
+                                        <i class="fa fa-credit-card"></i>
+                                        <span class="ms-2">إعدادات بوابة ميسر</span>
                                     </a>
                                 </li>
                             @endif
@@ -1202,8 +1243,8 @@
 
                                         @if ($canViewHomeSettings)
                                             <li class="{{ $isHomeSettingsRoute ? '' : 'collapsed' }}">
-                                                <a class="m-link" data-bs-toggle="collapse" data-bs-target="#home_settings"
-                                                    href="#">
+                                                <a class="m-link" data-bs-toggle="collapse"
+                                                    data-bs-target="#home_settings" href="#">
                                                     <i class="fa fa-home"></i>
                                                     <span class="ms-2">{{ __('admin.sidebar.home_page') }}</span>
                                                     <span class="arrow fa fa-angle-left ms-auto text-end"></span>
@@ -1226,7 +1267,8 @@
                                                             <a class="m-link {{ request()->routeIs('sliders.*') ? 'active' : '' }}"
                                                                 href="{{ route('sliders.index') }}">
                                                                 <i class="fa fa-images"></i>
-                                                                <span class="ms-2">{{ helperTrans('ingaz.sliders') }}</span>
+                                                                <span
+                                                                    class="ms-2">{{ helperTrans('ingaz.sliders') }}</span>
                                                             </a>
                                                         </li>
                                                     @endif
@@ -1256,7 +1298,8 @@
                                                             <a class="m-link {{ request()->routeIs('features.*') ? 'active' : '' }}"
                                                                 href="{{ route('features.index') }}">
                                                                 <i class="fa fa-star"></i>
-                                                                <span class="ms-2">{{ helperTrans('ingaz.features') }}</span>
+                                                                <span
+                                                                    class="ms-2">{{ helperTrans('ingaz.features') }}</span>
                                                             </a>
                                                         </li>
                                                     @endif
@@ -1266,7 +1309,8 @@
                                                             <a class="m-link {{ request()->routeIs('services.*') ? 'active' : '' }}"
                                                                 href="{{ route('services.index') }}">
                                                                 <i class="fa fa-tools"></i>
-                                                                <span class="ms-2">{{ helperTrans('ingaz.services') }}</span>
+                                                                <span
+                                                                    class="ms-2">{{ helperTrans('ingaz.services') }}</span>
                                                             </a>
                                                         </li>
                                                     @endif
@@ -1276,7 +1320,8 @@
                                                             <a class="m-link {{ request()->routeIs('statistics.*') ? 'active' : '' }}"
                                                                 href="{{ route('statistics.index') }}">
                                                                 <i class="fa fa-chart-bar"></i>
-                                                                <span class="ms-2">{{ helperTrans('ingaz.statistics') }}</span>
+                                                                <span
+                                                                    class="ms-2">{{ helperTrans('ingaz.statistics') }}</span>
                                                             </a>
                                                         </li>
                                                     @endif
@@ -1286,7 +1331,8 @@
                                                             <a class="m-link {{ request()->routeIs('steps.*') ? 'active' : '' }}"
                                                                 href="{{ route('steps.index') }}">
                                                                 <i class="fa fa-list-ol"></i>
-                                                                <span class="ms-2">{{ helperTrans('ingaz.steps') }}</span>
+                                                                <span
+                                                                    class="ms-2">{{ helperTrans('ingaz.steps') }}</span>
                                                             </a>
                                                         </li>
                                                     @endif
@@ -1296,7 +1342,8 @@
                                                             <a class="m-link {{ request()->routeIs('partenrs.*') ? 'active' : '' }}"
                                                                 href="{{ route('partenrs.index') }}">
                                                                 <i class="fa fa-handshake"></i>
-                                                                <span class="ms-2">{{ helperTrans('ingaz.partenrs') }}</span>
+                                                                <span
+                                                                    class="ms-2">{{ helperTrans('ingaz.partenrs') }}</span>
                                                             </a>
                                                         </li>
                                                     @endif
@@ -1308,7 +1355,8 @@
                                             <li>
                                                 <a class="m-link" href="{{ route('istiqdam.index') }}">
                                                     <i class="fa fa-building"></i>
-                                                    <span class="ms-2">{{ __('admin.sidebar.istiqdam_platform') }}</span>
+                                                    <span
+                                                        class="ms-2">{{ __('admin.sidebar.istiqdam_platform') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -1317,8 +1365,10 @@
                                                 <a class="m-link {{ Request::is('migration/*') || Request::is('migration.php') ? 'active' : '' }}"
                                                     href="/migration/new_migration_system.php">
                                                     <i class="fa fa-exchange"></i>
-                                                    <span class="ms-2">{{ __('admin.sidebar.migration_system') }}</span>
-                                                    <span class="badge bg-success ms-2">{{ __('admin.sidebar.updated') }}</span>
+                                                    <span
+                                                        class="ms-2">{{ __('admin.sidebar.migration_system') }}</span>
+                                                    <span
+                                                        class="badge bg-success ms-2">{{ __('admin.sidebar.updated') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -1380,14 +1430,16 @@
                                                 <a class="m-link {{ Route::currentRouteName() == 'rent-contract.settings' ? 'active' : '' }}"
                                                     href="{{ route('rent-contract.settings') }}">
                                                     <i class="fa fa-sliders"></i>
-                                                    <span class="ms-2">{{ __('admin.sidebar.rent_contract_settings') }}</span>
+                                                    <span
+                                                        class="ms-2">{{ __('admin.sidebar.rent_contract_settings') }}</span>
                                                 </a>
                                             </li>
                                             <li>
                                                 <a class="m-link {{ request()->routeIs('rent-contract-terms.*') ? 'active' : '' }}"
                                                     href="{{ route('rent-contract-terms.index') }}">
                                                     <i class="fa fa-file-contract"></i>
-                                                    <span class="ms-2">{{ __('admin.sidebar.rental_contract_terms') }}</span>
+                                                    <span
+                                                        class="ms-2">{{ __('admin.sidebar.rental_contract_terms') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -1396,7 +1448,8 @@
                                                 <a class="m-link {{ Route::currentRouteName() == 'packages.index' ? 'active' : '' }}"
                                                     href="{{ route('packages.index') }}">
                                                     <i class="fa fa-box"></i>
-                                                    <span class="ms-2">{{ __('admin.sidebar.rental_packages') }}</span>
+                                                    <span
+                                                        class="ms-2">{{ __('admin.sidebar.rental_packages') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -1418,7 +1471,8 @@
                                             <li>
                                                 <a class="m-link" href="{{ route('nationalities.index') }}">
                                                     <i class="fa fa-globe"></i>
-                                                    <span class="ms-2">{{ helperTrans('ingaz.nationalities') }}</span>
+                                                    <span
+                                                        class="ms-2">{{ helperTrans('ingaz.nationalities') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -1428,7 +1482,8 @@
                                                 <a class="m-link {{ request()->routeIs('recruitment-contract-stages.*') ? 'active' : '' }}"
                                                     href="{{ route('recruitment-contract-stages.edit') }}">
                                                     <i class="fa fa-tags"></i>
-                                                    <span class="ms-2">{{ __('admin.recruitment_contract_stages') }}</span>
+                                                    <span
+                                                        class="ms-2">{{ __('admin.recruitment_contract_stages') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -1478,7 +1533,8 @@
                                             <li>
                                                 <a class="m-link" href="{{ route('social-statuses.index') }}">
                                                     <i class="fa fa-heart"></i>
-                                                    <span class="ms-2">{{ __('admin.sidebar.social_statuses') }}</span>
+                                                    <span
+                                                        class="ms-2">{{ __('admin.sidebar.social_statuses') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -1500,13 +1556,15 @@
                                         <span class="ms-2">{{ __('admin.sidebar.branches_management') }}</span>
                                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                                     </a>
-                                    <ul class="sub-menu collapse {{ $branchesManagementOpen ? 'show' : '' }}" id="branchesManagement">
+                                    <ul class="sub-menu collapse {{ $branchesManagementOpen ? 'show' : '' }}"
+                                        id="branchesManagement">
                                         @if (@AdminGuardHasAnyPerm([\App\PermKeys::BRANCHES_VIEW, \App\PermKeys::BRANCHES_CONTROL]))
                                             <li>
                                                 <a class="m-link {{ request()->routeIs('branches.index') ? 'active' : '' }}"
                                                     href="{{ route('branches.index') }}">
                                                     <i class="fa fa-list"></i>
-                                                    <span class="ms-2">{{ __('admin.sidebar.branches_list') }}</span>
+                                                    <span
+                                                        class="ms-2">{{ __('admin.sidebar.branches_list') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -1515,7 +1573,8 @@
                                                 <a class="m-link {{ request()->routeIs('branches.create') ? 'active' : '' }}"
                                                     href="{{ route('branches.create') }}">
                                                     <i class="fa fa-plus"></i>
-                                                    <span class="ms-2">{{ __('admin.sidebar.branch_create') }}</span>
+                                                    <span
+                                                        class="ms-2">{{ __('admin.sidebar.branch_create') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -1524,7 +1583,8 @@
                                                 <a class="m-link {{ request()->routeIs('branches.settings') ? 'active' : '' }}"
                                                     href="{{ route('branches.settings') }}">
                                                     <i class="fa fa-sliders"></i>
-                                                    <span class="ms-2">{{ __('admin.sidebar.branch_settings') }}</span>
+                                                    <span
+                                                        class="ms-2">{{ __('admin.sidebar.branch_settings') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -1533,12 +1593,14 @@
                             @endif
 
                             <li class="{{ $isSupportOpen ? '' : 'collapsed' }}">
-                                <a class="m-link" data-bs-toggle="collapse" data-bs-target="#supportCenterMenu" href="#">
+                                <a class="m-link" data-bs-toggle="collapse" data-bs-target="#supportCenterMenu"
+                                    href="#">
                                     <i class="fa fa-life-ring me-2"></i>
                                     <span class="ms-2">{{ __('admin.sidebar.support') }}</span>
                                     <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                                 </a>
-                                <ul class="sub-menu collapse {{ $isSupportOpen ? 'show' : '' }}" id="supportCenterMenu">
+                                <ul class="sub-menu collapse {{ $isSupportOpen ? 'show' : '' }}"
+                                    id="supportCenterMenu">
                                     <li>
                                         <a class="m-link {{ request()->routeIs('support.index', 'support.show', 'support.create', 'support.edit') ? 'active' : '' }}"
                                             href="{{ route('support.index') }}">
@@ -1558,10 +1620,11 @@
 
                             @if (@AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_VIEW, \App\PermKeys::DEVELOPERS_PERMS]))
                                 <li class="{{ $isInternalSystemSettingsRoute ? '' : 'collapsed' }}">
-                                    <a class="m-link" data-bs-toggle="collapse" data-bs-target="#internalSystemSettings"
-                                        href="#">
+                                    <a class="m-link" data-bs-toggle="collapse"
+                                        data-bs-target="#internalSystemSettings" href="#">
                                         <i class="fa fa-tools"></i>
-                                        <span class="ms-2">{{ __('admin.sidebar.internal_system_settings') }}</span>
+                                        <span
+                                            class="ms-2">{{ __('admin.sidebar.internal_system_settings') }}</span>
                                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                                     </a>
 
@@ -1572,7 +1635,8 @@
                                                 <a class="m-link {{ $isTranslationSettingsRoute ? 'active' : '' }}"
                                                     href="{{ route('translation-terms.index') }}">
                                                     <i class="fa fa-language"></i>
-                                                    <span class="ms-2">{{ __('admin.settings_section_translations') }}</span>
+                                                    <span
+                                                        class="ms-2">{{ __('admin.settings_section_translations') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -1589,9 +1653,11 @@
 
                                         @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
                                             <li>
-                                                <a class="m-link {{ request()->routeIs('istiqdam.*') ? 'active' : '' }}" href="{{ route('istiqdam.index') }}">
+                                                <a class="m-link {{ request()->routeIs('istiqdam.*') ? 'active' : '' }}"
+                                                    href="{{ route('istiqdam.index') }}">
                                                     <i class="fa fa-building"></i>
-                                                    <span class="ms-2">{{ __('admin.sidebar.istiqdam_platform') }}</span>
+                                                    <span
+                                                        class="ms-2">{{ __('admin.sidebar.istiqdam_platform') }}</span>
                                                 </a>
                                             </li>
                                         @endif
@@ -1600,14 +1666,16 @@
                                                 <a class="m-link {{ Request::is('migration/*') || Request::is('migration.php') ? 'active' : '' }}"
                                                     href="/migration/new_migration_system.php">
                                                     <i class="fa fa-exchange"></i>
-                                                    <span class="ms-2">{{ __('admin.sidebar.migration_system') }}</span>
-                                                    <span class="badge bg-success ms-2">{{ __('admin.sidebar.updated') }}</span>
+                                                    <span
+                                                        class="ms-2">{{ __('admin.sidebar.migration_system') }}</span>
+                                                    <span
+                                                        class="badge bg-success ms-2">{{ __('admin.sidebar.updated') }}</span>
                                                 </a>
                                             </li>
                                         @endif
 
-                        </ul>
-                    </li>
+                                    </ul>
+                                </li>
                             @endif
                         </ul>
                     </li>
@@ -1642,9 +1710,9 @@
         </ul>
         {{-- @endif --}}
     </div>
-    </div>
+</div>
 
-    <script>
+<script>
     document.addEventListener('DOMContentLoaded', function() {
         // تحسين انتقالات القوائم المنسدلة
         const collapseElements = document.querySelectorAll('.collapse');

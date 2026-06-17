@@ -7,6 +7,7 @@ use App\Models\ingaz\Maid;
 use App\Models\ingaz\Order;
 use App\Models\ingaz\Package;
 use App\Models\ingaz\JobType;
+use App\Support\MoyasarSettings;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -267,6 +268,10 @@ class StoreRentalContractRequest extends FormRequest
             $paymentStatus = (string) $this->payment_status;
             $moyasarAlreadyPaid = ($currentContract?->info?->moyasar_payment_status === 'paid')
                 || ($currentContract?->info?->payment_type === 'moyasar' && $currentContract?->info?->payment_status === 'paid');
+
+            if ($paymentType === 'moyasar' && !MoyasarSettings::isEnabled() && !$moyasarAlreadyPaid) {
+                $validator->errors()->add('payment_type', 'بوابة ميسر غير مفعلة حالياً من إعدادات النظام');
+            }
 
             if ($paymentType === 'moyasar' && $paymentStatus !== 'pending' && !$moyasarAlreadyPaid) {
                 $validator->errors()->add('payment_status', 'عند اختيار ميسر يجب أن تكون حالة الدفع معلقة حتى يتم تأكيد الدفع تلقائياً من ميسر');

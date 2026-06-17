@@ -53,6 +53,7 @@ use App\Http\Controllers\ingaz\RentalContractTermsController;
 use App\Http\Controllers\ingaz\RentalOrderController;
 use App\Http\Controllers\ingaz\RentContractController;
 use App\Http\Controllers\ingaz\MoyasarWebhookController;
+use App\Http\Controllers\ingaz\MoyasarSettingsController;
 use App\Http\Controllers\ingaz\ReportController;
 use App\Http\Controllers\ingaz\RequirementsController;
 use App\Http\Controllers\ingaz\ReturnRequestController;
@@ -192,6 +193,8 @@ Route::group(
 
             Route::resource('settings', SettingController::class);
             Route::get('settings/section/{section}', [SettingController::class, 'section'])->name('settings.section');
+            Route::get('moyasar-settings', [MoyasarSettingsController::class, 'edit'])->name('moyasar-settings.edit');
+            Route::put('moyasar-settings', [MoyasarSettingsController::class, 'update'])->name('moyasar-settings.update');
             Route::get('recruitment-contract-stages', [RecruitmentContractStageLabelController::class, 'edit'])->name('recruitment-contract-stages.edit');
             Route::put('recruitment-contract-stages', [RecruitmentContractStageLabelController::class, 'update'])->name('recruitment-contract-stages.update');
             Route::get('recruitment-contract-stage-labels', fn() => redirect()->route('recruitment-contract-stages.edit'));
