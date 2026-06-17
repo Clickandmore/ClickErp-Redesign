@@ -62,7 +62,14 @@
 
                 <div class="col-4">
                     <label for="TextInput" class="form-label">{{ helperTrans('ingaz.contracts') }}</label>
-                    <select name="contract_id" id="contract_id" class="form-select form-control select2"
+                    <div class="input-group mb-2">
+                        <input type="number" id="contract_number_search" class="form-control"
+                            placeholder="اكتب رقم العقد" value="{{ $selectedContractId ?: '' }}">
+                        <button type="button" id="search_contract_number_btn" class="btn btn-primary">
+                            بحث
+                        </button>
+                    </div>
+                    <select name="contract_id" id="contract_id" class="form-select form-control d-none"
                         data-validation="required" style="flex: 1;">
                         <option disabled {{ !$selectedContractId ? 'selected' : '' }}>{{ helperTrans('ingaz.choose') }}
                         </option>
@@ -122,6 +129,8 @@
                             </option>
                         @endforeach
                     </select>
+                    <div id="selected_contract_preview" class="small text-muted mt-2"></div>
+                    <div id="contract_search_feedback" class="small mt-2"></div>
                 </div>
 
                 <div class="col-4">
@@ -585,7 +594,18 @@
             // Clear search button click handler
             $('#clear_search_btn').on('click', function() {
                 $('#passport_search').val('');
-                loadAllContracts();
+                clearContractDropdown();
+            });
+
+            $('#search_contract_number_btn').on('click', function() {
+                searchContractByNumber($('#contract_number_search').val());
+            });
+
+            $('#contract_number_search').on('keypress', function(e) {
+                if (e.which === 13) {
+                    e.preventDefault();
+                    searchContractByNumber($(this).val());
+                }
             });
 
             $('#contract_id').on('select2:clear', function() {
@@ -597,7 +617,7 @@
                 let passportNumber = $('#passport_search').val().trim();
 
                 if (!passportNumber) {
-                    loadAllContracts();
+                    clearContractDropdown();
                     return;
                 }
 
@@ -627,6 +647,110 @@
                 });
             }
 
+            function contractOptionText(contract) {
+                let optionText = contract.desc || ('عقد رقم: ' + contract.id);
+                if (contract.passport_number && optionText.indexOf(contract.passport_number) === -1) {
+                    optionText += ' - ' + contract.passport_number;
+                }
+
+                return optionText;
+            }
+
+            function applyContractOptionData($option, contract) {
+                $option.attr({
+                    'data-passport': contract.passport_number || '',
+                    'data-passport-snapshot': contract.passport_snapshot || contract.passport_number || '',
+                    'data-maid-name': contract.maid_name || '',
+                    'data-maid-name-snapshot': contract.maid_name_snapshot || contract.maid_name || '',
+                    'data-maid-nationality': contract.maid_nationality_snapshot || '',
+                    'data-client-name': contract.client_name || '',
+                    'data-client-national-id': contract.client_national_id || '',
+                    'data-sponsorship-price': contract.sponsorship_price || '',
+                    'data-receipt-date': contract.receipt_date || '',
+                    'data-receipt-text': contract.receipt_text || '',
+                    'data-has-residency': contract.has_residency || '',
+                    'data-medical-exam': contract.medical_exam || '',
+                    'data-service-type': contract.service_type || '',
+                    'data-arrival-date': contract.arrival_date || '',
+                    'data-status': contract.status || ''
+                });
+            }
+
+            function initContractSelect() {
+                updateSelectedContractPreview();
+            }
+
+            function updateSelectedContractPreview() {
+                let selectedOption = $('#contract_id').find('option:selected');
+
+                if (selectedOption.length && selectedOption.val()) {
+                    $('#selected_contract_preview')
+                        .removeClass('text-muted text-danger')
+                        .addClass('text-success')
+                        .text('تم اختيار: ' + selectedOption.text().trim());
+                    return;
+                }
+
+                $('#selected_contract_preview')
+                    .removeClass('text-success text-danger')
+                    .addClass('text-muted')
+                    .text('اكتب رقم العقد ثم اضغط بحث.');
+            }
+
+            function searchContractByNumber(contractNumber, silent) {
+                contractNumber = String(contractNumber || '').trim();
+
+                if (!contractNumber) {
+                    clearContractDropdown();
+                    $('#contract_search_feedback')
+                        .removeClass('text-success')
+                        .addClass('text-danger')
+                        .text('يرجى كتابة رقم العقد أولاً.');
+                    return;
+                }
+
+                $.ajax({
+                    url: "{{ route('search.contracts.by.passport') }}",
+                    type: 'GET',
+                    data: {
+                        contract_number: contractNumber
+                    },
+                    beforeSend: function() {
+                        $('#search_contract_number_btn').prop('disabled', true).text('جاري البحث...');
+                        $('#contract_search_feedback').removeClass('text-success text-danger').text('');
+                    },
+                    success: function(response) {
+                        let contracts = response.contracts || [];
+
+                        if (!contracts.length) {
+                            clearContractDropdown();
+                            $('#contract_search_feedback')
+                                .removeClass('text-success')
+                                .addClass('text-danger')
+                                .text('لم يتم العثور على عقد بهذا الرقم أو أن العقد غير قابل للإضافة للإيواء.');
+                            return;
+                        }
+
+                        updateContractDropdown(contracts, contracts[0].id);
+                        selectedShelterContractId = String(contracts[0].id);
+                        $('#contract_search_feedback')
+                            .removeClass('text-danger')
+                            .addClass('text-success')
+                            .text(silent ? '' : 'تم جلب العقد بنجاح.');
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error searching contract:', error);
+                        $('#contract_search_feedback')
+                            .removeClass('text-success')
+                            .addClass('text-danger')
+                            .text('حدث خطأ أثناء البحث عن العقد.');
+                    },
+                    complete: function() {
+                        $('#search_contract_number_btn').prop('disabled', false).text('بحث');
+                    }
+                });
+            }
+
             // Function to update contract dropdown with search results
             function updateContractDropdown(contracts, selectedId) {
                 contracts = contracts || [];
@@ -648,33 +772,13 @@
                             selectedExistsInResults = true;
                         }
 
-                        let optionText = contract.desc;
-                        if (contract.passport_number) {
-                            optionText += ' - ' + contract.passport_number;
-                        }
-
-                        $('<option>')
+                        let $option = $('<option>')
                             .val(contract.id)
-                            .text(optionText)
-                            .attr({
-                                'data-passport': contract.passport_number || '',
-                                'data-passport-snapshot': contract.passport_snapshot || contract.passport_number || '',
-                                'data-maid-name': contract.maid_name || '',
-                                'data-maid-name-snapshot': contract.maid_name_snapshot || contract.maid_name || '',
-                                'data-maid-nationality': contract.maid_nationality_snapshot || '',
-                                'data-client-name': contract.client_name || '',
-                                'data-client-national-id': contract.client_national_id || '',
-                                'data-sponsorship-price': contract.sponsorship_price || '',
-                                'data-receipt-date': contract.receipt_date || '',
-                                'data-receipt-text': contract.receipt_text || '',
-                                'data-has-residency': contract.has_residency || '',
-                                'data-medical-exam': contract.medical_exam || '',
-                                'data-service-type': contract.service_type || '',
-                                'data-arrival-date': contract.arrival_date || '',
-                                'data-status': contract.status || ''
-                            })
-                            .prop('selected', String(contract.id) === String(currentValue))
-                            .appendTo($select);
+                            .text(contractOptionText(contract))
+                            .prop('selected', String(contract.id) === String(currentValue));
+
+                        applyContractOptionData($option, contract);
+                        $option.appendTo($select);
                     });
                 }
 
@@ -683,44 +787,25 @@
                     $select.append(existingSelectedOption);
                 }
 
-                if ($select.hasClass('select2-hidden-accessible')) {
-                    $select.select2('destroy');
-                }
-
-                $select.select2({
-                    placeholder: '{{ helperTrans('ingaz.choose') }}',
-                    allowClear: true
-                });
+                initContractSelect();
 
                 if (currentValue) {
                     $select.val(String(currentValue)).trigger('change');
                 }
             }
 
-            // Function to load all contracts (clear search)
-            function loadAllContracts() {
-                $.ajax({
-                    url: "{{ route('search.contracts.by.passport') }}",
-                    type: 'GET',
-                    data: {
-                        search: ''
-                    },
-                    beforeSend: function() {
-                        $('#contract_id').prop('disabled', true);
-                    },
-                    success: function(response) {
-                        updateContractDropdown(response.contracts || [], selectedShelterContractId);
-                    },
-                    error: function(xhr, status, error) {
-                        console.error('Error loading contracts:', error);
-                    },
-                    complete: function() {
-                        $('#contract_id').prop('disabled', false);
-                    }
-                });
+            function clearContractDropdown() {
+                let $select = $('#contract_id');
+                $select.empty();
+                $select.append('<option disabled selected>{{ helperTrans('ingaz.choose') }}</option>');
+                selectedShelterContractId = null;
+                initContractSelect();
             }
 
-            loadAllContracts();
+            initContractSelect();
+            if (selectedShelterContractId) {
+                searchContractByNumber(selectedShelterContractId, true);
+            }
         });
     </script>
 

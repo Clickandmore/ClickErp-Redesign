@@ -989,11 +989,14 @@ class ShelterContractController extends Controller
      */
     public function searchByPassport(Request $request)
     {
-        $searchTerm = trim((string) ($request->input('passport_number') ?: $request->input('search')));
+        $contractNumber = trim((string) $request->input('contract_number'));
+        $searchTerm = trim((string) ($contractNumber ?: ($request->input('passport_number') ?: $request->input('search'))));
 
         $query = $this->shelterSelectableContractsQuery();
 
-        if ($searchTerm !== '') {
+        if ($contractNumber !== '') {
+            $query->whereKey($contractNumber);
+        } elseif ($searchTerm !== '') {
             $query->where(function ($query) use ($searchTerm) {
                 $query->where('id', 'like', '%' . $searchTerm . '%')
                     ->orWhereHas('user', function ($userQuery) use ($searchTerm) {
@@ -1015,11 +1018,8 @@ class ShelterContractController extends Controller
             });
         }
 
-        if ($searchTerm !== '') {
-            $query->limit(50);
-        }
-
         $contracts = $query
+            ->limit(50)
             ->get()
             ->map(fn ($contract) => $this->formatShelterSelectableContract($contract));
 
