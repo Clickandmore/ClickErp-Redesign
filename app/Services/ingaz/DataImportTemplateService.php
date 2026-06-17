@@ -170,6 +170,7 @@ class DataImportTemplateService
                     ['key' => 'maid_passport', 'label' => 'رقم جواز العاملة', 'required' => true, 'example' => 'P0000001'],
                     ['key' => 'nationality', 'label' => 'الجنسية', 'required' => false, 'example' => 'الفلبين'],
                     ['key' => 'contract_date', 'label' => 'تاريخ العقد', 'required' => true, 'example' => now()->format('Y-m-d')],
+                    ['key' => 'arrival_date', 'label' => 'تاريخ الوصول', 'required' => false, 'example' => now()->format('Y-m-d')],
                     ['key' => 'status', 'label' => 'حالة العقد', 'required' => true, 'example' => 'عقود مساند', 'valid_values' => $this->recruitmentContractStatusLabels()],
                     ['key' => 'amount', 'label' => 'قيمة العقد', 'required' => false, 'example' => '12000'],
                     ['key' => 'paid_amount', 'label' => 'المدفوع', 'required' => false, 'example' => '5000'],

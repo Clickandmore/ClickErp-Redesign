@@ -41,10 +41,15 @@ class MaidBulkImportController extends Controller
 
     public function show(MaidBulkImport $maidBulkImport)
     {
-        $maidBulkImport->load(['rows.maid', 'uploadedBy', 'approvedBy']);
+        $maidBulkImport->load(['uploadedBy', 'approvedBy']);
+        $rows = $maidBulkImport->rows()
+            ->with('maid')
+            ->paginate(100)
+            ->withQueryString();
 
         return view('admin.ingaz.maids.bulk_import_review', [
             'import' => $maidBulkImport,
+            'rows' => $rows,
         ]);
     }
 

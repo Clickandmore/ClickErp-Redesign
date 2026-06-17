@@ -39,6 +39,8 @@ use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 
 class DataImportExecutionService
 {
+    private const MAX_ERROR_DETAILS = 200;
+
     private ?string $importPasswordHash = null;
 
     public function __construct(private DataImportTemplateService $templates)
@@ -47,23 +49,22 @@ class DataImportExecutionService
 
     public function import(string $type, UploadedFile $file, ?int $adminId): array
     {
-        @set_time_limit(0);
+        $this->prepareLargeImportRuntime();
         $this->importPasswordHash = null;
 
         $storedPath = $this->templates->storeUploadedFile($type, $file, $adminId);
-        $rows = $this->readRows(Storage::path($storedPath), $this->templates->template($type)['columns'] ?? []);
-
         $result = [
             'path' => $storedPath,
-            'total' => count($rows),
+            'total' => 0,
             'created' => 0,
             'updated' => 0,
             'skipped' => 0,
             'errors' => [],
+            'error_count' => 0,
         ];
 
-        foreach ($rows as $index => $row) {
-            $rowNumber = $index + 2;
+        foreach ($this->readRows(Storage::path($storedPath), $this->templates->template($type)['columns'] ?? []) as $rowNumber => $row) {
+            $result['total']++;
 
             try {
                 DB::transaction(function () use ($type, $row, $adminId, &$result) {
@@ -85,14 +86,18 @@ class DataImportExecutionService
                 });
             } catch (\Throwable $exception) {
                 $result['skipped']++;
-                $result['errors'][] = "صف {$rowNumber}: " . $exception->getMessage();
+                $result['error_count']++;
+
+                if (count($result['errors']) < self::MAX_ERROR_DETAILS) {
+                    $result['errors'][] = "صف {$rowNumber}: " . $exception->getMessage();
+                }
             }
         }
 
         return $result;
     }
 
-    private function readRows(string $path, array $columns): array
+    private function readRows(string $path, array $columns): \Generator
     {
         $spreadsheet = $this->loadSpreadsheetForImport($path);
         $sheet = $spreadsheet->getSheetByName('البيانات') ?: $spreadsheet->getActiveSheet();
@@ -127,11 +132,9 @@ class DataImportExecutionService
             $values = collect($row)->filter(fn ($value) => $value !== null && $value !== '');
 
             if ($values->isNotEmpty() && !$values->every(fn ($value) => in_array($value, ['مطلوب', 'اختياري'], true))) {
-                $rows[] = $row;
+                yield $rowNumber => $row;
             }
         }
-
-        return $rows;
     }
 
     private function loadSpreadsheetForImport(string $path): \PhpOffice\PhpSpreadsheet\Spreadsheet
@@ -352,7 +355,7 @@ class DataImportExecutionService
 
     private function importMaid(array $row, ?int $adminId, bool $rental): string
     {
-        $passport = trim((string) ($row['passport_num'] ?? ''));
+        $passport = $this->normalizePassportNumber($row['passport_num'] ?? $row['maid_passport'] ?? '');
 
         if ($passport === '') {
             throw new \InvalidArgumentException('رقم جواز العاملة مطلوب.');
@@ -449,13 +452,17 @@ class DataImportExecutionService
             $created = true;
         }
 
+        $arrivalDate = $this->parseDate($row['arrival_date'] ?? null);
+
         $this->upsertContractInfo($contract, [
             'contract_date' => $this->parseDate($row['contract_date'] ?? null),
             'visa_number' => $row['visa_number'] ?? null,
-            'arrival_date' => $this->parseDate($row['arrival_date'] ?? null),
+            'arrival_date' => $arrivalDate,
             'contract_value' => $this->decimal($row['amount'] ?? null),
             'notes' => $row['notes'] ?? null,
         ]);
+
+        $this->syncRecruitmentContractWarrantyFromArrivalDate($contract, $arrivalDate);
 
         return $created ? 'created' : 'updated';
     }
@@ -746,7 +753,7 @@ class DataImportExecutionService
 
     private function maidFromRow(array $row, bool $required): ?Maid
     {
-        $passport = trim((string) ($row['maid_passport'] ?? $row['passport_num'] ?? ''));
+        $passport = $this->normalizePassportNumber($row['maid_passport'] ?? $row['passport_num'] ?? '');
         if ($passport === '') {
             if ($required) {
                 throw new \InvalidArgumentException('رقم جواز العاملة مطلوب.');
@@ -771,7 +778,7 @@ class DataImportExecutionService
     {
         $payload = [
             'name' => $row['name_en'] ?? $row['maid_name'] ?? 'EDIT_ME_NAME',
-            'passport_num' => $row['passport_num'] ?? $row['maid_passport'] ?? null,
+            'passport_num' => $this->normalizePassportNumber($row['passport_num'] ?? $row['maid_passport'] ?? null),
             'nationality_id' => $this->resolveNationalityId($row['nationality'] ?? null),
             'religion_id' => $this->resolveTranslatableId(Religion::class, $row['religion'] ?? null)
                 ?: Religion::query()->value('id'),
@@ -984,6 +991,20 @@ class DataImportExecutionService
         $contract->info()->updateOrCreate([], $this->filterColumns('contract_infos', $payload));
     }
 
+    private function syncRecruitmentContractWarrantyFromArrivalDate(Contract $contract, ?string $arrivalDate): void
+    {
+        if (!$arrivalDate) {
+            return;
+        }
+
+        $contract->forceFill([
+            'status' => ContractStatusEnum::Arrival->value,
+        ])->save();
+
+        $contract->load('info', 'maid');
+        $contract->calculateWarrantyStatus();
+    }
+
     private function findUserByPhone(string $phone): ?User
     {
         $candidates = array_values(array_unique(array_filter([
@@ -1187,7 +1208,7 @@ class DataImportExecutionService
 
     private function resolveMaidId($value): ?int
     {
-        $value = trim((string) $value);
+        $value = $this->normalizePassportNumber($value);
         if ($value === '') {
             return null;
         }
@@ -1289,9 +1310,25 @@ class DataImportExecutionService
             return (int) $value;
         }
 
-        return $modelClass::query()
+        $id = $modelClass::query()
             ->whereTranslationLike('title', $value)
             ->value('id');
+
+        if ($id) {
+            return (int) $id;
+        }
+
+        $normalized = $this->normalizeArabicText($value);
+
+        return $modelClass::query()
+            ->with('translations')
+            ->get()
+            ->first(function ($record) use ($normalized) {
+                $titles = collect([$record->title ?? null])
+                    ->merge($record->translations?->pluck('title') ?? []);
+
+                return $titles->contains(fn ($title) => $this->normalizeArabicText($title) === $normalized);
+            })?->id;
     }
 
     private function findRecruitmentOfficeByTitle(string $titleAr, ?string $titleEn, int $nationalityId): ?RecruitmentOffices
@@ -1355,7 +1392,11 @@ class DataImportExecutionService
 
     private function normalizeSaudiPhone(?string $phone): ?string
     {
-        $digits = preg_replace('/\D+/', '', (string) $phone);
+        $digits = preg_replace('/\D+/', '', $this->normalizeDigits((string) $phone));
+
+        if (str_starts_with($digits, '00')) {
+            $digits = substr($digits, 2);
+        }
 
         if (str_starts_with($digits, '966')) {
             $digits = substr($digits, 3);
@@ -1363,6 +1404,10 @@ class DataImportExecutionService
 
         if (str_starts_with($digits, '0')) {
             $digits = substr($digits, 1);
+        }
+
+        if (strlen($digits) > 9 && preg_match('/5\d{8}$/', $digits, $matches)) {
+            $digits = $matches[0];
         }
 
         return preg_match('/^5\d{8}$/', $digits) ? $digits : null;
@@ -1380,7 +1425,19 @@ class DataImportExecutionService
 
     private function normalizeIdNumber($value): string
     {
-        return preg_replace('/\s+/u', '', trim((string) $value));
+        return preg_replace('/\D+/u', '', $this->normalizeDigits((string) $value));
+    }
+
+    private function normalizePassportNumber($value): string
+    {
+        $value = $this->normalizeDigits((string) $value);
+        $value = preg_replace('/\s+/u', '', trim($value));
+
+        if (preg_match('/^(.+)\.0+$/', $value, $matches)) {
+            $value = $matches[1];
+        }
+
+        return mb_strtoupper($value);
     }
 
     private function normalizeMaidStatus(?string $status): string
@@ -1683,8 +1740,22 @@ class DataImportExecutionService
             return null;
         }
 
+        $value = $this->normalizeDigits((string) $value);
+
+        if (preg_match('/^(19|20)\d{6}$/', trim($value))) {
+            return Carbon::createFromFormat('Ymd', trim($value))->toDateString();
+        }
+
         if (is_numeric($value)) {
             return Carbon::instance(ExcelDate::excelToDateTimeObject((float) $value))->toDateString();
+        }
+
+        foreach (['Y-m-d', 'Y/m/d', 'd/m/Y', 'd-m-Y', 'd.m.Y', 'm/d/Y', 'm-d-Y'] as $format) {
+            try {
+                return Carbon::createFromFormat($format, trim($value))->toDateString();
+            } catch (\Throwable) {
+                // Try the next common import format.
+            }
         }
 
         try {
@@ -1700,12 +1771,22 @@ class DataImportExecutionService
             return null;
         }
 
-        return (float) str_replace(',', '', (string) $value);
+        return (float) str_replace(',', '', $this->normalizeDigits((string) $value));
     }
 
     private function cellValue($value): string
     {
-        return trim((string) $value);
+        if ($value === null) {
+            return '';
+        }
+
+        if (is_int($value) || is_float($value)) {
+            $value = floor((float) $value) == (float) $value
+                ? number_format((float) $value, 0, '.', '')
+                : rtrim(rtrim(number_format((float) $value, 8, '.', ''), '0'), '.');
+        }
+
+        return trim($this->normalizeDigits((string) $value));
     }
 
     private function cellCoordinate(int $column, int $row): string
@@ -1715,8 +1796,10 @@ class DataImportExecutionService
 
     private function normalizeArabicText(?string $value): string
     {
+        $value = $this->normalizeDigits((string) $value);
         $value = mb_strtolower(trim((string) $value));
-        $value = str_replace(['أ', 'إ', 'آ', 'ى', 'ة', 'ـ'], ['ا', 'ا', 'ا', 'ي', 'ه', ''], $value);
+        $value = str_replace(['أ', 'إ', 'آ', 'ى', 'ة', 'ـ', 'ؤ', 'ئ'], ['ا', 'ا', 'ا', 'ي', 'ه', '', 'و', 'ي'], $value);
+        $value = preg_replace('/[\x{064B}-\x{065F}\x{0670}]/u', '', $value);
         $value = preg_replace('/[^\p{L}\p{N}_]+/u', ' ', $value);
 
         return trim(preg_replace('/\s+/u', ' ', $value));
@@ -1724,10 +1807,22 @@ class DataImportExecutionService
 
     private function normalizeHeader(string $value): string
     {
+        $value = $this->normalizeDigits($value);
         $value = mb_strtolower(trim($value));
-        $value = str_replace(['أ', 'إ', 'آ', 'ى', 'ة', 'ـ'], ['ا', 'ا', 'ا', 'ي', 'ه', ''], $value);
+        $value = str_replace(['أ', 'إ', 'آ', 'ى', 'ة', 'ـ', 'ؤ', 'ئ'], ['ا', 'ا', 'ا', 'ي', 'ه', '', 'و', 'ي'], $value);
+        $value = preg_replace('/[\x{064B}-\x{065F}\x{0670}]/u', '', $value);
 
         return preg_replace('/\s+/u', '', $value);
+    }
+
+    private function normalizeDigits(string $value): string
+    {
+        return strtr($value, [
+            '٠' => '0', '١' => '1', '٢' => '2', '٣' => '3', '٤' => '4',
+            '٥' => '5', '٦' => '6', '٧' => '7', '٨' => '8', '٩' => '9',
+            '۰' => '0', '۱' => '1', '۲' => '2', '۳' => '3', '۴' => '4',
+            '۵' => '5', '۶' => '6', '۷' => '7', '۸' => '8', '۹' => '9',
+        ]);
     }
 
     private function defaultImportPasswordHash(): string
@@ -1744,5 +1839,12 @@ class DataImportExecutionService
         return collect($payload)
             ->filter(fn ($value, $key) => Schema::hasColumn($table, $key))
             ->all();
+    }
+
+    private function prepareLargeImportRuntime(): void
+    {
+        @set_time_limit(0);
+        @ini_set('memory_limit', '1024M');
+        @ini_set('max_execution_time', '0');
     }
 }
