@@ -62,6 +62,13 @@ return [
         ],
     ],
 
+    'moyasar' => [
+        'secret_key'     => env('MOYASAR_SECRET_KEY', ''),
+        'publishable_key'=> env('MOYASAR_PUBLISHABLE_KEY', ''),
+        'webhook_secret' => env('MOYASAR_WEBHOOK_SECRET', ''),
+        'base_url'       => env('MOYASAR_BASE_URL', 'https://api.moyasar.com/v1'),
+    ],
+
     'zoho_salesiq' => [
         'salesiq_base_url' => env('ZOHO_SALESIQ_BASE_URL', 'https://salesiq.zoho.sa'),
         'accounts_base_url' => env('ZOHO_SALESIQ_ACCOUNTS_BASE_URL', 'https://accounts.zoho.sa'),

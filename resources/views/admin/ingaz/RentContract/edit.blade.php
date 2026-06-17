@@ -521,6 +521,7 @@
                                     <option value="mada" {{ ($contract->info->payment_type ?? '') === 'mada' ? 'selected' : '' }}>مدى</option>
                                     <option value="tabby" {{ ($contract->info->payment_type ?? '') === 'tabby' ? 'selected' : '' }}>تابي</option>
                                     <option value="tamara" {{ ($contract->info->payment_type ?? '') === 'tamara' ? 'selected' : '' }}>تمارا</option>
+                                    <option value="moyasar" {{ ($contract->info->payment_type ?? '') === 'moyasar' ? 'selected' : '' }}>دفع إلكتروني - ميسر</option>
                                     <option value="pay_later" {{ ($contract->info->payment_type ?? '') === 'pay_later' ? 'selected' : '' }}>الدفع لاحقاً</option>
                                     <option value="other" {{ ($contract->info->payment_type ?? '') === 'other' ? 'selected' : '' }}>أخرى</option>
                                 </select>
@@ -826,6 +827,11 @@ $(document).ready(function() {
         updatePaymentState();
     });
 
+    $('#payment_type').on('change', function() {
+        enforcePaymentCompatibility();
+        updatePaymentState();
+    });
+
     $('#paid_amount').on('input', function() {
         syncPaymentSummary();
     });
@@ -912,6 +918,8 @@ $(document).ready(function() {
     }
 
     function updatePaymentState() {
+        enforcePaymentCompatibility();
+
         const paymentStatus = $('#payment_status').val();
 
         if (paymentStatus === 'paid') {
@@ -926,6 +934,34 @@ $(document).ready(function() {
         }
 
         syncPaymentSummary();
+    }
+
+    function enforcePaymentCompatibility() {
+        const paymentType = $('#payment_type').val();
+        const $paymentStatus = $('#payment_status');
+
+        $paymentStatus.find('option').prop('disabled', false);
+
+        if (paymentType === 'moyasar') {
+            if ($paymentStatus.val() !== 'paid') {
+                $paymentStatus.val('pending');
+            }
+
+            $paymentStatus.find('option').not('[value=""], [value="pending"], [value="paid"]').prop('disabled', true);
+        } else if (paymentType === 'pay_later') {
+            $paymentStatus.val('later');
+            $paymentStatus.find('option').not('[value=""], [value="later"]').prop('disabled', true);
+        } else {
+            $paymentStatus.find('option[value="later"]').prop('disabled', true);
+
+            if (paymentType !== 'bank_transfer') {
+                $paymentStatus.find('option[value="bank_pending"]').prop('disabled', true);
+            }
+
+            if ($paymentStatus.val() === 'later' || ($paymentStatus.val() === 'bank_pending' && paymentType !== 'bank_transfer')) {
+                $paymentStatus.val('');
+            }
+        }
     }
 
     function applyPackageData() {
