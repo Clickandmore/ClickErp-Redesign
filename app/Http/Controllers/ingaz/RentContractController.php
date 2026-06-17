@@ -24,6 +24,7 @@ use App\Models\RentalContractExtension;
 use App\Models\RentalContractInfo;
 use App\Models\RentalContractTerm;
 use App\Services\ingaz\RentalContractFinanceService;
+use App\Services\MoyasarService;
 use App\Support\SystemModuleManager;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -790,13 +791,26 @@ class RentContractController extends Controller
 
             DB::commit();
 
+            // إرسال رابط الدفع عبر ميسر + SMS إذا اختار المسؤول الدفع الإلكتروني
+            $moyasarResult = $this->handleMoyasarPaymentLink($rentalContract, $request->payment_type, $request->payment_status);
+
+            $successMessage = 'تم إنشاء عقد التأجير بنجاح';
+            if ($moyasarResult['link_sent'] ?? false) {
+                $successMessage .= '، وتم إرسال رابط الدفع للعميل عبر SMS.';
+            } elseif ($moyasarResult['link_created'] ?? false) {
+                $successMessage .= '، تم إنشاء رابط الدفع لكن تعذر إرساله عبر SMS.';
+            } elseif ($moyasarResult['skipped'] ?? false) {
+                $successMessage .= '، لم يُرسل رابط الدفع لأن الدفع محدد كـ (تم الدفع / لاحقاً).';
+            }
+
             // إذا كان الطلب AJAX، أرجع استجابة JSON
             if ($request->ajax()) {
                 return response()->json([
                     'success' => true,
-                    'message' => 'تم إنشاء عقد التأجير بنجاح',
+                    'message' => $successMessage,
                     'contract_id' => $rentalContract->id,
                     'contract_number' => $rentalContract->contract_number,
+                    'moyasar_link' => $moyasarResult['payment_url'] ?? null,
                     'print_url' => route('print.rental.contract', $rentalContract->id),
                     'invoice_print_url' => $financeInvoice
                         ? route('rental.invoice.download', ['id' => $financeInvoice->id, 'autoprint' => 1])
@@ -815,7 +829,7 @@ class RentContractController extends Controller
             }
 
             return redirect()->route($this->mainRoute . '.index')
-                           ->with('success', 'تم إنشاء عقد التأجير بنجاح');
+                           ->with('success', $successMessage);
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -3870,6 +3884,101 @@ class RentContractController extends Controller
         ];
     }
 
+    /**
+     * إنشاء رابط دفع ميسر وإرساله عبر SMS للعميل إذا اختار الدفع الإلكتروني
+     * لا يُرسل الرابط إذا كانت حالة الدفع "تم الدفع" أو "الدفع لاحقاً"
+     */
+    private function handleMoyasarPaymentLink(RentalContract $contract, ?string $paymentType, ?string $paymentStatus = null): array
+    {
+        if ($paymentType !== 'moyasar') {
+            return ['link_created' => false, 'link_sent' => false];
+        }
 
+        // إذا كان المسؤول أشار إلى أن الدفع تم أو سيتم لاحقاً — لا داعي لإرسال رابط
+        if (in_array($paymentStatus, ['paid', 'later'], true)) {
+            return ['link_created' => false, 'link_sent' => false, 'skipped' => true];
+        }
 
+        $contract->loadMissing(['user', 'info']);
+
+        $amount     = (float) ($contract->info?->remaining_amount ?? $contract->info?->contract_value ?? 0);
+        $clientName = $contract->user?->name ?? 'العميل';
+        $number     = $contract->contract_number ?: $contract->id;
+
+        if ($amount <= 0) {
+            Log::warning('Moyasar: contract value is zero, skipping payment link', ['contract_id' => $contract->id]);
+            return ['link_created' => false, 'link_sent' => false];
+        }
+
+        if (empty(config('services.moyasar.secret_key'))) {
+            Log::error('Moyasar: secret key is not configured', ['contract_id' => $contract->id]);
+            return ['link_created' => false, 'link_sent' => false];
+        }
+
+        $moyasar     = app(MoyasarService::class);
+        $callbackUrl = route('moyasar.callback', ['contract_id' => $contract->id]);
+
+        $result = $moyasar->createPaymentLink(
+            $amount,
+            "دفع عقد إيجار رقم {$number} - {$clientName}",
+            $callbackUrl,
+            ['contract_id' => $contract->id, 'contract_number' => $number]
+        );
+
+        if (!$result || empty($result['id']) || empty($result['url'])) {
+            Log::error('Moyasar: failed to create payment link', ['contract_id' => $contract->id]);
+            return ['link_created' => false, 'link_sent' => false];
+        }
+
+        // حفظ بيانات ميسر في قاعدة البيانات
+        $contract->info->update([
+            'moyasar_payment_id'     => $result['id'],
+            'moyasar_payment_url'    => $result['url'],
+            'moyasar_payment_status' => 'initiated',
+        ]);
+
+        // إرسال SMS للعميل
+        $phone = trim((string) ($contract->user?->phone_code ?? '') . (string) ($contract->user?->phone ?? ''));
+
+        if (empty($phone)) {
+            Log::warning('Moyasar: client has no phone, payment link created but not sent', ['contract_id' => $contract->id]);
+            return ['link_created' => true, 'link_sent' => false, 'payment_url' => $result['url']];
+        }
+
+        $message  = $this->buildMoyasarPaymentSmsMessage($contract, $result['url'], $amount);
+        $smsResult = $this->sendSMS(formatSaudiPhone($phone), $message);
+
+        $sent = !empty($smsResult);
+
+        if ($sent) {
+            $contract->info->update(['payment_link_sent_at' => now()]);
+        }
+
+        Log::info('Moyasar payment link flow', [
+            'contract_id' => $contract->id,
+            'payment_id'  => $result['id'],
+            'sms_sent'    => $sent,
+        ]);
+
+        return [
+            'link_created' => true,
+            'link_sent'    => $sent,
+            'payment_url'  => $result['url'],
+        ];
+    }
+
+    private function buildMoyasarPaymentSmsMessage(RentalContract $contract, string $paymentUrl, float $amount): string
+    {
+        $clientName = $contract->user?->name ?? 'عميلنا العزيز';
+        $number     = $contract->contract_number ?: $contract->id;
+        $formatted  = number_format($amount, 2);
+
+        return implode("\n", [
+            "عميلنا {$clientName}،",
+            "تم إنشاء عقد إيجار رقم {$number} بقيمة {$formatted} ريال.",
+            "يمكنك إتمام الدفع إلكترونياً عبر الرابط:",
+            $paymentUrl,
+            "شكراً لتعاملكم معنا.",
+        ]);
+    }
 }

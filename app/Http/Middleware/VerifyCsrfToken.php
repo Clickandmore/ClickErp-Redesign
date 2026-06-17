@@ -14,5 +14,7 @@ class VerifyCsrfToken extends Middleware
     protected $except = [
         '/ar/bank_transfer_submit',
         '/en/bank_transfer_submit',
+        'moyasar/webhook',
+        '*/moyasar/webhook',
     ];
 }

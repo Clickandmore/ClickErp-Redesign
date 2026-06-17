@@ -53,6 +53,11 @@ class RentalContractInfo extends Model
         'ingaz_to',
         'notes',
         'additional_terms',
+        'moyasar_payment_id',
+        'moyasar_payment_url',
+        'moyasar_payment_status',
+        'payment_link_sent_at',
+        'moyasar_paid_at',
     ];
 
     protected $casts = [
@@ -83,6 +88,8 @@ class RentalContractInfo extends Model
         'ingaz_to' => 'date',
         'payment_confirmed_at' => 'datetime',
         'additional_terms' => 'array',
+        'payment_link_sent_at' => 'datetime',
+        'moyasar_paid_at' => 'datetime',
     ];
 
     // العلاقات
