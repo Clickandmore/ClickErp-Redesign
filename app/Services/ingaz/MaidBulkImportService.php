@@ -35,7 +35,8 @@ class MaidBulkImportService
     private const DATA_SHEET_NAME = 'البيانات';
     private const LOOKUPS_SHEET_NAME = 'القوائم';
     private const INSTRUCTIONS_SHEET_NAME = 'تعليمات';
-    private const TEMPLATE_ROW_LIMIT = 500;
+    private const TEMPLATE_ROW_LIMIT = 10000;
+    private const INSERT_CHUNK_SIZE = 500;
     private const TEMPLATE_EXAMPLE_PASSPORT = 'TEMPLATE-EXAMPLE';
     private const TEMPLATE_EXAMPLE_NAME = 'EDIT_ME_NAME';
 
@@ -215,6 +216,8 @@ class MaidBulkImportService
 
     public function createImportFromUpload(UploadedFile $file, int $adminId): MaidBulkImport
     {
+        $this->prepareLargeImportRuntime();
+
         $storedPath = $file->storeAs(
             'maid-imports',
             now()->format('Ymd_His') . '_' . preg_replace('/[^A-Za-z0-9_.-]/', '_', $file->getClientOriginalName())
@@ -244,12 +247,13 @@ class MaidBulkImportService
 
     public function approveImport(MaidBulkImport $import, MaidAction $maidAction, int $adminId): array
     {
-        $rows = $import->rows()
-            ->whereIn('status', ['pending', 'failed'])
-            ->orderBy('row_number')
-            ->get();
+        $this->prepareLargeImportRuntime();
 
-        if ($rows->isEmpty()) {
+        $rowsQuery = MaidBulkImportRow::query()
+            ->where('maid_bulk_import_id', $import->id)
+            ->whereIn('status', ['pending', 'failed']);
+
+        if (!$rowsQuery->exists()) {
             return [
                 'imported' => 0,
                 'failed' => 0,
@@ -265,53 +269,71 @@ class MaidBulkImportService
         $importedCount = 0;
         $failedCount = 0;
 
-        foreach ($rows as $row) {
-            $payload = $row->normalized_data ?? [];
+        MaidBulkImportRow::query()
+            ->where('maid_bulk_import_id', $import->id)
+            ->whereIn('status', ['pending', 'failed'])
+            ->orderBy('id')
+            ->chunkById(200, function ($rows) use ($maidAction, $adminId, &$importedCount, &$failedCount) {
+                foreach ($rows as $row) {
+                    $payload = $row->normalized_data ?? [];
 
-            try {
-                if (empty($payload)) {
-                    throw ValidationException::withMessages([
-                        'row' => ['لا توجد بيانات جاهزة للاستيراد في هذا الصف.'],
-                    ]);
+                    try {
+                        if (empty($payload)) {
+                            throw ValidationException::withMessages([
+                                'row' => ['لا توجد بيانات جاهزة للاستيراد في هذا الصف.'],
+                            ]);
+                        }
+
+                        $request = Request::create('', 'POST', $payload);
+                        $request->setUserResolver(function () {
+                            return auth('admin')->user();
+                        });
+
+                        DB::transaction(function () use ($maidAction, $payload, $request, $row, &$importedCount, $adminId) {
+                            $data = $payload;
+                            $data['status'] = $data['status'] ?? 'available';
+                            $data['available'] = $data['available'] ?? ($data['status'] === 'available' || $data['status'] === 'completed' ? '1' : '0');
+                            $data['added_by'] = $data['added_by'] ?? $adminId;
+                            $data['preserve_null_arrival_date'] = true;
+
+                            $maid = Maid::where('passport_num', $data['passport_num'])->first();
+
+                            if (!$maid && !empty($data['id'])) {
+                                $maid = Maid::find((int) $data['id']);
+                            }
+
+                            if ($maid) {
+                                unset(
+                                    $data['preserve_null_arrival_date'],
+                                    $data['job_id'],
+                                    $data['create_shelter_contract'],
+                                    $data['rental_finance_items'],
+                                    $data['rental_finance_items_confirmed']
+                                );
+                                $maidAction->updateMaid($maid->id, $data, $request);
+                                $maid = $maid->fresh();
+                            } else {
+                                $maid = $maidAction->storeMaid($data, $request);
+                            }
+
+                            $row->update([
+                                'status' => 'imported',
+                                'maid_id' => $maid->id,
+                                'imported_at' => now(),
+                                'error_messages' => [],
+                            ]);
+
+                            $importedCount++;
+                        });
+                    } catch (\Throwable $exception) {
+                        $failedCount++;
+                        $row->update([
+                            'status' => 'failed',
+                            'error_messages' => $this->extractErrors($exception),
+                        ]);
+                    }
                 }
-
-                if (Maid::where('passport_num', $payload['passport_num'])->exists()) {
-                    throw ValidationException::withMessages([
-                        'passport_num' => ['رقم الجواز موجود مسبقاً في النظام.'],
-                    ]);
-                }
-
-                $request = Request::create('', 'POST', $payload);
-                $request->setUserResolver(function () {
-                    return auth('admin')->user();
-                });
-
-                DB::transaction(function () use ($maidAction, $payload, $request, $row, &$importedCount, $adminId) {
-                    $data = $payload;
-                    $data['status'] = $data['status'] ?? 'available';
-                    $data['available'] = $data['available'] ?? ($data['status'] === 'available' || $data['status'] === 'completed' ? '1' : '0');
-                    $data['added_by'] = $data['added_by'] ?? $adminId;
-                    $data['preserve_null_arrival_date'] = true;
-
-                    $maid = $maidAction->storeMaid($data, $request);
-
-                    $row->update([
-                        'status' => 'imported',
-                        'maid_id' => $maid->id,
-                        'imported_at' => now(),
-                        'error_messages' => [],
-                    ]);
-
-                    $importedCount++;
-                });
-            } catch (\Throwable $exception) {
-                $failedCount++;
-                $row->update([
-                    'status' => 'failed',
-                    'error_messages' => $this->extractErrors($exception),
-                ]);
-            }
-        }
+            });
 
         $this->refreshImportCounters($import->fresh());
 
@@ -589,15 +611,21 @@ class MaidBulkImportService
 
     private function persistImportRows(MaidBulkImport $import, array $rows): void
     {
-        foreach ($rows as $row) {
-            MaidBulkImportRow::create([
-                'maid_bulk_import_id' => $import->id,
-                'row_number' => $row['row_number'],
-                'status' => $row['status'],
-                'raw_data' => $row['raw_data'],
-                'normalized_data' => $row['normalized_data'],
-                'error_messages' => $row['error_messages'],
-            ]);
+        $now = now();
+
+        foreach (array_chunk($rows, self::INSERT_CHUNK_SIZE) as $chunk) {
+            MaidBulkImportRow::insert(array_map(function (array $row) use ($import, $now) {
+                return [
+                    'maid_bulk_import_id' => $import->id,
+                    'row_number' => $row['row_number'],
+                    'status' => $row['status'],
+                    'raw_data' => json_encode($row['raw_data'], JSON_UNESCAPED_UNICODE),
+                    'normalized_data' => json_encode($row['normalized_data'], JSON_UNESCAPED_UNICODE),
+                    'error_messages' => json_encode($row['error_messages'], JSON_UNESCAPED_UNICODE),
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }, $chunk));
         }
 
         $this->refreshImportCounters($import->fresh());
@@ -605,11 +633,16 @@ class MaidBulkImportService
 
     private function refreshImportCounters(MaidBulkImport $import): void
     {
-        $rows = $import->rows()->get();
-        $importedRows = $rows->where('status', 'imported')->count();
-        $failedRows = $rows->where('status', 'failed')->count();
-        $invalidRows = $rows->where('status', 'invalid')->count();
-        $pendingRows = $rows->where('status', 'pending')->count();
+        $statusCounts = $import->rows()
+            ->selectRaw('status, COUNT(*) as aggregate')
+            ->groupBy('status')
+            ->pluck('aggregate', 'status');
+
+        $importedRows = (int) ($statusCounts['imported'] ?? 0);
+        $failedRows = (int) ($statusCounts['failed'] ?? 0);
+        $invalidRows = (int) ($statusCounts['invalid'] ?? 0);
+        $pendingRows = (int) ($statusCounts['pending'] ?? 0);
+        $totalRows = (int) $statusCounts->sum();
 
         $status = 'pending_review';
         if ($pendingRows === 0 && $invalidRows === 0 && $failedRows === 0) {
@@ -620,8 +653,8 @@ class MaidBulkImportService
 
         $import->update([
             'status' => $status,
-            'total_rows' => $rows->count(),
-            'valid_rows' => $rows->whereIn('status', ['pending', 'imported'])->count(),
+            'total_rows' => $totalRows,
+            'valid_rows' => $pendingRows + $importedRows,
             'invalid_rows' => $invalidRows,
             'imported_rows' => $importedRows,
             'failed_rows' => $failedRows,
@@ -677,11 +710,15 @@ class MaidBulkImportService
             return null;
         }
 
-        if (is_string($value)) {
-            $value = trim($value);
+        if (is_int($value) || is_float($value)) {
+            $value = floor((float) $value) == (float) $value
+                ? number_format((float) $value, 0, '.', '')
+                : rtrim(rtrim(number_format((float) $value, 8, '.', ''), '0'), '.');
         }
 
-        return $value === '' ? null : (string) $value;
+        $value = trim($this->normalizeDigits((string) $value));
+
+        return $value === '' ? null : $value;
     }
 
     private function rowIsEmpty(array $row): bool
@@ -707,7 +744,7 @@ class MaidBulkImportService
         $data = [];
 
         $data['name:en'] = trim((string) ($rawRow['name:en'] ?? ''));
-        $data['passport_num'] = trim((string) ($rawRow['passport_num'] ?? ''));
+        $data['passport_num'] = $this->normalizePassportNumber($rawRow['passport_num'] ?? '');
         $data['salary'] = $this->normalizeDecimal($rawRow['salary'] ?? null);
         $data['price'] = $this->normalizeDecimal($rawRow['price'] ?? null);
         $data['birth_date'] = $this->normalizeDate($rawRow['birth_date'] ?? null);
@@ -750,7 +787,7 @@ class MaidBulkImportService
             $errors[] = 'الجنسية: ' . $nationalityError;
         }
 
-        [$data['office_id'], $officeError, $office] = $this->resolveEntity($rawRow['office'] ?? null, $lookups['offices']);
+        [$data['office_id'], $officeError, $office] = $this->resolveOfficeEntity($rawRow['office'] ?? null, $lookups['offices'], $nationality);
         if ($officeError) {
             $errors[] = 'المكتب الخارجي: ' . $officeError;
         }
@@ -795,7 +832,7 @@ class MaidBulkImportService
         [$data['experience_status'], $experienceStatusError] = $this->resolveMappedValue(
             $rawRow['experience_status'] ?? null,
             self::EXPERIENCE_STATUS_ALIASES,
-            null
+            'no_experience'
         );
         if ($experienceStatusError) {
             $errors[] = 'حالة الخبرة: ' . $experienceStatusError;
@@ -808,11 +845,13 @@ class MaidBulkImportService
 
         $maritalStatusAr = $this->trimmed($rawRow['marital_status:ar'] ?? null);
         if ($maritalStatusAr) {
-            if (!array_key_exists($maritalStatusAr, self::MARITAL_STATUS_MAP)) {
+            $maritalStatusEn = $this->resolveMaritalStatus($maritalStatusAr);
+
+            if (!$maritalStatusEn) {
                 $errors[] = 'الحالة الاجتماعية غير معروفة.';
             } else {
                 $data['marital_status:ar'] = $maritalStatusAr;
-                $data['marital_status:en'] = self::MARITAL_STATUS_MAP[$maritalStatusAr];
+                $data['marital_status:en'] = $maritalStatusEn;
             }
         }
 
@@ -853,7 +892,7 @@ class MaidBulkImportService
 
         $validator = Validator::make($data, [
             'name:en' => 'required|string|max:255',
-            'passport_num' => 'required|unique:maids,passport_num',
+            'passport_num' => 'required|string|max:100',
             'nationality_id' => 'required|exists:nationalities,id',
             'religion_id' => 'nullable|exists:religions,id',
             'type_id' => 'required|exists:job_types,id',
@@ -863,7 +902,7 @@ class MaidBulkImportService
             'salary' => 'nullable|numeric|min:0',
             'price' => 'nullable|numeric|min:0',
             'birth_date' => 'nullable|date',
-            'age' => 'nullable|numeric|min:20|max:50',
+            'age' => 'nullable|numeric|min:16|max:80',
             'height' => 'nullable|numeric|min:0',
             'weight' => 'nullable|numeric|min:0',
             'childrens_count' => 'nullable|integer|min:0',
@@ -877,14 +916,12 @@ class MaidBulkImportService
             'create_shelter_contract' => 'nullable|in:0,1',
             'available' => 'nullable|in:0,1',
             'status' => 'nullable|in:' . implode(',', array_keys(self::MAID_STATUS_ALIASES)),
-            'id' => 'nullable|integer|min:1|unique:maids,id',
+            'id' => 'nullable|integer|min:1',
             'added_by' => 'nullable|integer|min:1',
             'created_at' => 'nullable|date',
             'gender' => 'nullable|in:male,female',
         ], [
-            'passport_num.unique' => 'رقم الجواز موجود مسبقاً في النظام.',
             'video_link.url' => 'رابط الفيديو غير صالح.',
-            'id.unique' => 'ID موجود مسبقاً في النظام.',
         ]);
 
         if (($data['experience_status'] ?? null) === 'has_experience' && ($data['experience_years'] === null || $data['experience_years'] === '')) {
@@ -995,10 +1032,37 @@ class MaidBulkImportService
         }
 
         if (count($matches) > 1) {
-            return [null, 'القيمة غير واضحة وتطابق أكثر من سجل.', null];
+            $record = Arr::first($matches);
+
+            return [$record->id, null, $record];
         }
 
         return [null, 'القيمة غير موجودة في النظام.', null];
+    }
+
+    private function resolveOfficeEntity($value, array $lookup, ?Nationality $nationality): array
+    {
+        $value = $this->trimmed($value);
+        if ($value === null) {
+            return [null, null, null];
+        }
+
+        if (isset($lookup['by_id'][(string) $value])) {
+            return [(int) $value, null, $lookup['by_id'][(string) $value]];
+        }
+
+        $matches = $lookup['by_value'][$this->normalizeText($value)] ?? [];
+
+        if ($nationality && count($matches) > 1) {
+            $sameNationality = collect($matches)
+                ->first(fn ($record) => (int) ($record->nationality_id ?? 0) === (int) $nationality->id);
+
+            if ($sameNationality) {
+                return [$sameNationality->id, null, $sameNationality];
+            }
+        }
+
+        return $this->resolveEntity($value, $lookup);
     }
 
     private function resolveManyEntities($value, array $lookup, bool $required = true): array
@@ -1122,11 +1186,12 @@ class MaidBulkImportService
 
     private function normalizeText(?string $value): string
     {
+        $value = $this->normalizeDigits((string) $value);
         $value = mb_strtolower(trim((string) $value));
-        $value = str_replace(['أ', 'إ', 'آ'], 'ا', $value);
-        $value = str_replace(['ة'], 'ه', $value);
-        $value = str_replace(['ى'], 'ي', $value);
-        $value = preg_replace('/[\s\-_\/]+/u', '', $value);
+        $value = str_replace(['أ', 'إ', 'آ', 'ؤ', 'ئ'], ['ا', 'ا', 'ا', 'و', 'ي'], $value);
+        $value = str_replace(['ة', 'ى', 'ـ'], ['ه', 'ي', ''], $value);
+        $value = preg_replace('/[\x{064B}-\x{065F}\x{0670}]/u', '', $value);
+        $value = preg_replace('/[^\p{L}\p{N}]+/u', '', $value);
 
         return $value ?? '';
     }
@@ -1139,8 +1204,22 @@ class MaidBulkImportService
         }
 
         try {
+            $value = $this->normalizeDigits($value);
+
+            if (preg_match('/^(19|20)\d{6}$/', trim($value))) {
+                return Carbon::createFromFormat('Ymd', trim($value))->format('Y-m-d');
+            }
+
             if (is_numeric($value)) {
                 return ExcelDate::excelToDateTimeObject((float) $value)->format('Y-m-d');
+            }
+
+            foreach (['Y-m-d', 'Y/m/d', 'd/m/Y', 'd-m-Y', 'd.m.Y', 'm/d/Y', 'm-d-Y'] as $format) {
+                try {
+                    return Carbon::createFromFormat($format, trim($value))->format('Y-m-d');
+                } catch (\Throwable) {
+                    // Try the next common import format.
+                }
             }
 
             return Carbon::parse($value)->format('Y-m-d');
@@ -1157,8 +1236,22 @@ class MaidBulkImportService
         }
 
         try {
+            $value = $this->normalizeDigits($value);
+
+            if (preg_match('/^(19|20)\d{6}$/', trim($value))) {
+                return Carbon::createFromFormat('Ymd', trim($value))->startOfDay()->format('Y-m-d H:i:s');
+            }
+
             if (is_numeric($value)) {
                 return ExcelDate::excelToDateTimeObject((float) $value)->format('Y-m-d H:i:s');
+            }
+
+            foreach (['Y-m-d H:i:s', 'Y-m-d H:i', 'Y/m/d H:i:s', 'Y/m/d H:i', 'd/m/Y H:i:s', 'd/m/Y H:i', 'd-m-Y H:i:s', 'd-m-Y H:i'] as $format) {
+                try {
+                    return Carbon::createFromFormat($format, trim($value))->format('Y-m-d H:i:s');
+                } catch (\Throwable) {
+                    // Try the next common import format.
+                }
             }
 
             return Carbon::parse($value)->format('Y-m-d H:i:s');
@@ -1174,6 +1267,8 @@ class MaidBulkImportService
             return null;
         }
 
+        $value = str_replace(',', '', $this->normalizeDigits($value));
+
         if (!is_numeric($value)) {
             return $value;
         }
@@ -1188,6 +1283,12 @@ class MaidBulkImportService
         $value = $this->trimmed($value);
         if ($value === null) {
             return null;
+        }
+
+        $value = $this->normalizeDigits($value);
+
+        if (preg_match('/^(.+)\.0+$/', $value, $matches)) {
+            $value = $matches[1];
         }
 
         if (!is_numeric($value)) {
@@ -1211,6 +1312,52 @@ class MaidBulkImportService
             'female', 'انثي', 'انثى', 'امراه', 'امراة', 'عامله' => 'female',
             default => $value,
         };
+    }
+
+    private function normalizePassportNumber($value): string
+    {
+        $value = $this->normalizeDigits((string) $value);
+        $value = preg_replace('/\s+/u', '', trim($value));
+
+        if (preg_match('/^(.+)\.0+$/', $value, $matches)) {
+            $value = $matches[1];
+        }
+
+        return mb_strtoupper($value);
+    }
+
+    private function resolveMaritalStatus(string $value): ?string
+    {
+        $normalized = $this->normalizeText($value);
+
+        foreach (self::MARITAL_STATUS_MAP as $label => $status) {
+            if ($this->normalizeText($label) === $normalized) {
+                return $status;
+            }
+        }
+
+        return match ($normalized) {
+            'single', 'اعزب', 'عازب', 'عزباء' => 'single',
+            'married', 'متزوج', 'متزوجه' => 'married',
+            default => null,
+        };
+    }
+
+    private function normalizeDigits(string $value): string
+    {
+        return strtr($value, [
+            '٠' => '0', '١' => '1', '٢' => '2', '٣' => '3', '٤' => '4',
+            '٥' => '5', '٦' => '6', '٧' => '7', '٨' => '8', '٩' => '9',
+            '۰' => '0', '۱' => '1', '۲' => '2', '۳' => '3', '۴' => '4',
+            '۵' => '5', '۶' => '6', '۷' => '7', '۸' => '8', '۹' => '9',
+        ]);
+    }
+
+    private function prepareLargeImportRuntime(): void
+    {
+        @set_time_limit(0);
+        @ini_set('memory_limit', '1024M');
+        @ini_set('max_execution_time', '0');
     }
 
     private function resolveAddedByValue($value): ?string

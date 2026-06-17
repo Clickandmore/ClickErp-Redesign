@@ -14,7 +14,7 @@ class BulkMaidImportUploadRequest extends MainRequest
     public function rules()
     {
         return [
-            'file' => 'required|file|mimes:xlsx,xls|max:10240',
+            'file' => 'required|file|mimes:xlsx,xls|max:51200',
         ];
     }
 
@@ -24,7 +24,7 @@ class BulkMaidImportUploadRequest extends MainRequest
             'file.required' => 'ملف الاستيراد مطلوب.',
             'file.file' => 'الملف المرفوع غير صالح.',
             'file.mimes' => 'يجب أن يكون الملف بصيغة Excel: xlsx أو xls.',
-            'file.max' => 'حجم الملف يجب ألا يتجاوز 10 ميجابايت.',
+            'file.max' => 'حجم الملف يجب ألا يتجاوز 50 ميجابايت.',
         ];
     }
 }
