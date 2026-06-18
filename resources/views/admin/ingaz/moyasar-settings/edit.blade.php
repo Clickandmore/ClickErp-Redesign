@@ -7,8 +7,14 @@
 @section('content')
 @if (@AdminGuardHasPerm(\App\PermKeys::MOYASAR_SETTINGS))
     @php
-        $data = array_replace($moyasarSettings, old());
         $enabled = (bool) old('is_enabled', $moyasarSettings['is_enabled'] ?? false);
+        $savedEnabled = (bool) ($moyasarSettings['is_enabled'] ?? false);
+        $savedSettings = [
+            'MOYASAR_BASE_URL' => $moyasarSettings['base_url'] ?? 'https://api.moyasar.com/v1',
+            'MOYASAR_PUBLISHABLE_KEY' => \App\Support\MoyasarSettings::mask($moyasarSettings['publishable_key'] ?? ''),
+            'MOYASAR_SECRET_KEY' => \App\Support\MoyasarSettings::mask($moyasarSettings['secret_key'] ?? ''),
+            'MOYASAR_WEBHOOK_SECRET' => \App\Support\MoyasarSettings::mask($moyasarSettings['webhook_secret'] ?? ''),
+        ];
     @endphp
 
     <div class="container-fluid">
@@ -44,6 +50,33 @@
                 </ul>
             </div>
         @endif
+
+        <div class="alert alert-info border-0 shadow-sm">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                <div class="fw-semibold">
+                    <i class="fa fa-lock me-1"></i>
+                    القيم المحفوظة حالياً في قاعدة البيانات
+                </div>
+                <span class="badge {{ $savedEnabled ? 'bg-success' : 'bg-secondary' }}">
+                    {{ $savedEnabled ? 'مفعلة' : 'غير مفعلة' }}
+                </span>
+            </div>
+            <div class="text-muted small mb-3">
+                يتم عرض المفاتيح بشكل مخفي للأمان، والحقول الفارغة تعني عدم وجود قيمة محفوظة.
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered align-middle mb-0 bg-white">
+                    <tbody>
+                        @foreach($savedSettings as $label => $value)
+                            <tr>
+                                <th class="text-nowrap" style="width: 260px;" dir="ltr">{{ $label }}</th>
+                                <td dir="ltr">{{ $value }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
         <div class="card">
             <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
