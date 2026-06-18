@@ -15,6 +15,9 @@
             'MOYASAR_SECRET_KEY' => \App\Support\MoyasarSettings::mask($moyasarSettings['secret_key'] ?? ''),
             'MOYASAR_WEBHOOK_SECRET' => \App\Support\MoyasarSettings::mask($moyasarSettings['webhook_secret'] ?? ''),
         ];
+        $hasMaskedSavedSecret = \App\Support\MoyasarSettings::containsMaskCharacters($moyasarSettings['publishable_key'] ?? '')
+            || \App\Support\MoyasarSettings::containsMaskCharacters($moyasarSettings['secret_key'] ?? '')
+            || \App\Support\MoyasarSettings::containsMaskCharacters($moyasarSettings['webhook_secret'] ?? '');
     @endphp
 
     <div class="container-fluid">
@@ -64,6 +67,11 @@
             <div class="text-muted small mb-3">
                 يتم عرض المفاتيح بشكل مخفي للأمان، والحقول الفارغة تعني عدم وجود قيمة محفوظة.
             </div>
+            @if($hasMaskedSavedSecret)
+                <div class="alert alert-warning py-2 mb-3">
+                    توجد قيمة محفوظة تحتوي على نجوم (*) وليست مفتاحاً حقيقياً. أعد إدخال مفاتيح ميسر الحقيقية قبل إنشاء روابط الدفع.
+                </div>
+            @endif
             <div class="table-responsive">
                 <table class="table table-sm table-bordered align-middle mb-0 bg-white">
                     <tbody>

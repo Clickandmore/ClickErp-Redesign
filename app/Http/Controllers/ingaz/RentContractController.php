@@ -256,6 +256,8 @@ class RentContractController extends Controller
                 })
                 ->addColumn('contract_info', function ($row) {
                     if ($row->info) {
+                        $this->syncMoyasarPaymentStatusIfNeeded($row);
+
                         $extensionBadge = ($row->extensions_count ?? 0) > 0
                             ? '<span class="badge bg-info">ممدد</span>'
                             : '';
@@ -272,6 +274,7 @@ class RentContractController extends Controller
 
                         $startDate = optional($row->info->ingaz_from)->format('Y-m-d') ?: 'غير محدد';
                         $endDate = optional($row->info->ingaz_to)->format('Y-m-d') ?: 'غير محدد';
+                        $paymentStatusBadge = $this->getPaymentStatusBadge($row->info->payment_status ?? null);
 
                         $extensionBadgeHtml = $extensionBadge
                             ? '<div class="d-flex justify-content-between align-items-center mb-1">' . $extensionBadge . '</div>'
@@ -282,6 +285,7 @@ class RentContractController extends Controller
                                     <div class="rent-period-row"><strong>بداية العقد</strong><span>' . e($startDate) . '</span></div>
                                     <div class="rent-period-row"><strong>نهاية العقد</strong><span>' . e($endDate) . '</span></div>
                                     <div class="rent-period-row"><strong>المدة</strong><span>' . e($durationText) . '</span></div>
+                                    <div class="rent-period-row"><strong>حالة الدفع</strong><span>' . $paymentStatusBadge . '</span></div>
                                     <div class="rent-period-money">
                                         <div><strong>التكلفة الشهرية:</strong> ' . number_format($row->info->monthly_cost ?? 0, 2) . ' ريال</div>
                                         <div><strong>قيمة العقد:</strong> ' . number_format($row->info->contract_value ?? 0, 2) . ' ريال</div>
@@ -1502,6 +1506,82 @@ class RentContractController extends Controller
         ];
 
         return $badges[$status] ?? '<span class="badge bg-secondary">' . $status . '</span>';
+    }
+
+    private function getPaymentStatusBadge(?string $status): string
+    {
+        $badges = [
+            'paid' => ['label' => 'تم الدفع', 'class' => 'bg-success'],
+            'partial' => ['label' => 'مدفوع جزئياً', 'class' => 'bg-info text-dark'],
+            'pending' => ['label' => 'معلق', 'class' => 'bg-warning text-dark'],
+            'later' => ['label' => 'الدفع لاحقاً', 'class' => 'bg-secondary'],
+            'bank_pending' => ['label' => 'بانتظار التحويل', 'class' => 'bg-primary'],
+        ];
+
+        $badge = $badges[$status] ?? ['label' => 'غير محدد', 'class' => 'bg-light text-dark'];
+
+        return '<span class="badge ' . $badge['class'] . '">' . e($badge['label']) . '</span>';
+    }
+
+    private function syncMoyasarPaymentStatusIfNeeded(RentalContract $contract): void
+    {
+        $info = $contract->info;
+
+        if (
+            !$info
+            || $info->payment_type !== 'moyasar'
+            || $info->payment_status === 'paid'
+            || empty($info->moyasar_payment_id)
+        ) {
+            return;
+        }
+
+        try {
+            $moyasar = app(MoyasarService::class);
+            $referenceId = (string) $info->moyasar_payment_id;
+            $invoice = $moyasar->getInvoice($referenceId);
+            $status = $invoice['status'] ?? $moyasar->verifyPaymentStatus($referenceId);
+
+            if ($status === 'paid') {
+                $contractValue = (float) $info->contract_value;
+                $paidAmount = $contractValue;
+
+                $info->update([
+                    'moyasar_payment_status' => 'paid',
+                    'moyasar_paid_at'        => now(),
+                    'payment_status'         => 'paid',
+                    'paid_amount'            => $paidAmount,
+                    'remaining_amount'       => 0,
+                    'payment_confirmed_at'   => now(),
+                ]);
+
+                $info->refresh();
+                $contract->setRelation('info', $info);
+
+                try {
+                    app(RentalContractFinanceService::class)->syncPaymentForContract($contract);
+                } catch (\Throwable $e) {
+                    Log::error('Moyasar: payment synced from contract index but finance sync failed', [
+                        'contract_id' => $contract->id,
+                        'message' => $e->getMessage(),
+                    ]);
+                }
+
+                return;
+            }
+
+            if (in_array($status, ['failed', 'expired', 'refunded'], true)) {
+                $info->update(['moyasar_payment_status' => $status]);
+                $info->refresh();
+                $contract->setRelation('info', $info);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Moyasar: unable to sync payment status from contract index', [
+                'contract_id' => $contract->id,
+                'moyasar_payment_id' => $info->moyasar_payment_id,
+                'message' => $e->getMessage(),
+            ]);
+        }
     }
 
     public function statistics(Request $request)

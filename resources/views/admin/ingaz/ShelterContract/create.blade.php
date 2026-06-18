@@ -447,6 +447,7 @@
                             aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
+                        <div id="createContractErrors" class="alert alert-danger d-none" role="alert"></div>
                         <form id="createContractForm">
                             @csrf
                             <div class="row g-3">
@@ -1448,6 +1449,60 @@
                     }
                 });
             }
+            function clearCreateContractErrors() {
+                $('#createContractErrors').addClass('d-none').empty();
+                $('#createContractForm .is-invalid').removeClass('is-invalid');
+            }
+
+            function escapeCreateContractError(message) {
+                return $('<div>').text(message).html();
+            }
+
+            function collectCreateContractErrorMessages(xhr) {
+                let messages = [];
+                let response = xhr.responseJSON || {};
+
+                if (response.errors) {
+                    Object.keys(response.errors).forEach(function(fieldName) {
+                        let fieldMessages = response.errors[fieldName];
+                        if (!Array.isArray(fieldMessages)) {
+                            fieldMessages = [fieldMessages];
+                        }
+
+                        fieldMessages.forEach(function(message) {
+                            if (message) {
+                                messages.push(message);
+                            }
+                        });
+
+                        $('#createContractForm [name="' + fieldName + '"]').addClass('is-invalid');
+                    });
+                }
+
+                if (!messages.length && response.message) {
+                    messages.push(response.message);
+                }
+
+                if (!messages.length) {
+                    messages.push('{{ helperTrans('ingaz.error_creating_contract') }}');
+                }
+
+                return messages;
+            }
+
+            function showCreateContractErrors(messages) {
+                if (!Array.isArray(messages)) {
+                    messages = [messages];
+                }
+
+                let listItems = messages.map(function(message) {
+                    return '<li>' + escapeCreateContractError(message) + '</li>';
+                }).join('');
+
+                $('#createContractErrors')
+                    .html('<strong>تعذر حفظ العقد للأسباب التالية:</strong><ul class="mb-0 mt-2">' + listItems + '</ul>')
+                    .removeClass('d-none');
+            }
 
             $('#createContractBtn').on('click', function() {
                 let form = $('#createContractForm');
@@ -1455,6 +1510,8 @@
                 let button = $(this);
                 let originalText = button.text();
                 let spinner = button.find('.spinner-border');
+
+                clearCreateContractErrors();
 
                 // التحقق من صحة النموذج
                 if (!form[0].checkValidity()) {
@@ -1511,6 +1568,7 @@
                                 window.location.href = response.redirect_url || '{{ route('ShelterContract.create') }}';
                             });
                         } else {
+                            showCreateContractErrors(response.message);
                             Swal.fire({
                                 icon: 'error',
                                 title: '{{ helperTrans('ingaz.error') }}',
@@ -1520,11 +1578,10 @@
                         }
                     },
                     error: function(xhr) {
-                        let errorMessage =
-                            '{{ helperTrans('ingaz.error_creating_contract') }}';
-                        if (xhr.responseJSON && xhr.responseJSON.message) {
-                            errorMessage = xhr.responseJSON.message;
-                        }
+                        let errorMessages = collectCreateContractErrorMessages(xhr);
+                        let errorMessage = errorMessages.join('\n');
+
+                        showCreateContractErrors(errorMessages);
 
                         Swal.fire({
                             icon: 'error',
@@ -1544,6 +1601,7 @@
             // إعادة تعيين النموذج عند إغلاق modal
             $('#createContractModal').on('hidden.bs.modal', function() {
                 $('#createContractForm')[0].reset();
+                clearCreateContractErrors();
                 $('#existing_client_id, #maid_id').val(null).trigger('change');
                 $('#maid_details').hide();
                 $('.new-client-field').hide();

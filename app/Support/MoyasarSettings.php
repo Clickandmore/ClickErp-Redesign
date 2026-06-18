@@ -80,6 +80,11 @@ class MoyasarSettings
         return str_repeat('*', max(6, strlen($value) - $visible)) . substr($value, -$visible);
     }
 
+    public static function containsMaskCharacters(?string $value): bool
+    {
+        return str_contains(trim((string) $value), '*');
+    }
+
     public static function defaults(): array
     {
         return [

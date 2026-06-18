@@ -42,6 +42,25 @@ class MoyasarSettingsController extends Controller
         $willBeEnabled = (bool) ($validated['is_enabled'] ?? false);
         $publishableKey = trim((string) ($validated['publishable_key'] ?? '')) ?: $current['publishable_key'];
         $secretKey = trim((string) ($validated['secret_key'] ?? '')) ?: $current['secret_key'];
+        $webhookSecret = trim((string) ($validated['webhook_secret'] ?? '')) ?: $current['webhook_secret'];
+
+        $maskedValues = [];
+
+        if (MoyasarSettings::containsMaskCharacters($publishableKey)) {
+            $maskedValues['publishable_key'] = 'مفتاح النشر يحتوي على نجوم (*)، أدخل المفتاح الحقيقي من لوحة ميسر.';
+        }
+
+        if (MoyasarSettings::containsMaskCharacters($secretKey)) {
+            $maskedValues['secret_key'] = 'المفتاح السري يحتوي على نجوم (*)، أدخل المفتاح الحقيقي من لوحة ميسر.';
+        }
+
+        if (MoyasarSettings::containsMaskCharacters($webhookSecret)) {
+            $maskedValues['webhook_secret'] = 'Webhook Secret يحتوي على نجوم (*)، أدخل القيمة الحقيقية من لوحة ميسر.';
+        }
+
+        if ($maskedValues) {
+            throw ValidationException::withMessages($maskedValues);
+        }
 
         if ($willBeEnabled && ($publishableKey === '' || $secretKey === '')) {
             $messages = [];
