@@ -29,6 +29,11 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Nami\Finance\Models\ClientCategory;
 use Nami\Finance\Models\Account;
+use Nami\Finance\Models\Constraint;
+use Nami\Finance\Models\ConstraintDetails;
+use Nami\Finance\Models\CostCenter;
+use Nami\Finance\Models\FnYear;
+use Nami\Finance\Enums\ConstraintTypiesEnum;
 use Nami\Hr\Models\Department as HrDepartment;
 use Nami\Hr\Models\Employee as HrEmployee;
 use Nami\Hr\Models\EmployeeShift as HrEmployeeShift;
@@ -63,7 +68,13 @@ class DataImportExecutionService
             'error_count' => 0,
         ];
 
-        foreach ($this->readRows(Storage::path($storedPath), $this->templates->template($type)['columns'] ?? []) as $rowNumber => $row) {
+        $columns = $this->templates->template($type)['columns'] ?? [];
+
+        if ($type === 'finance_constraints') {
+            return $this->importFinanceConstraintsFile($storedPath, $columns, $adminId, $result);
+        }
+
+        foreach ($this->readRows(Storage::path($storedPath), $columns) as $rowNumber => $row) {
             $result['total']++;
 
             try {
@@ -150,6 +161,145 @@ class DataImportExecutionService
         }
 
         return $reader->load($path);
+    }
+
+    private function importFinanceConstraintsFile(string $storedPath, array $columns, ?int $adminId, array $result): array
+    {
+        $groups = [];
+
+        foreach ($this->readRows(Storage::path($storedPath), $columns) as $rowNumber => $row) {
+            $result['total']++;
+            $reference = trim((string) ($row['constraint_ref'] ?? $row['code'] ?? ''));
+
+            if ($reference === '') {
+                $result['skipped']++;
+                $result['error_count']++;
+
+                if (count($result['errors']) < self::MAX_ERROR_DETAILS) {
+                    $result['errors'][] = "صف {$rowNumber}: رقم مجموعة القيد مطلوب.";
+                }
+
+                continue;
+            }
+
+            $groups[$reference][] = [
+                'row_number' => $rowNumber,
+                'row' => $row,
+            ];
+        }
+
+        foreach ($groups as $reference => $rows) {
+            try {
+                DB::transaction(function () use ($reference, $rows, $adminId, &$result) {
+                    $outcome = $this->importFinanceConstraintGroup($reference, $rows, $adminId);
+                    $result[$outcome]++;
+                });
+            } catch (\Throwable $exception) {
+                $result['skipped'] += count($rows);
+                $result['error_count']++;
+
+                if (count($result['errors']) < self::MAX_ERROR_DETAILS) {
+                    $rowNumbers = collect($rows)->pluck('row_number')->implode(', ');
+                    $result['errors'][] = "القيد {$reference} (صفوف {$rowNumbers}): " . $exception->getMessage();
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    private function importFinanceConstraintGroup(string $reference, array $rows, ?int $adminId): string
+    {
+        if (count($rows) < 2) {
+            throw new \InvalidArgumentException('القيد يجب أن يحتوي على سطرين على الأقل.');
+        }
+
+        $firstRow = $rows[0]['row'];
+        $date = $this->parseDate($firstRow['date'] ?? null);
+
+        if (!$date) {
+            throw new \InvalidArgumentException('تاريخ القيد مطلوب أو غير صحيح.');
+        }
+
+        $year = $this->resolveFinanceYear($date);
+        if (!$year) {
+            throw new \InvalidArgumentException('لا توجد سنة مالية نشطة تشمل تاريخ القيد.');
+        }
+
+        $statement = trim((string) ($firstRow['statement'] ?? '')) ?: '-';
+        $code = $this->resolveFinanceConstraintCode($rows);
+        $type = $this->resolveFinanceConstraintType($firstRow['type'] ?? null);
+        $details = [];
+        $debtorTotal = 0.0;
+        $creditorTotal = 0.0;
+
+        foreach ($rows as $item) {
+            $row = $item['row'];
+            $rowDate = $this->parseDate($row['date'] ?? null);
+
+            if ($rowDate !== $date) {
+                throw new \InvalidArgumentException('كل صفوف القيد الواحد يجب أن تحمل نفس التاريخ.');
+            }
+
+            $accountId = $this->resolveFinanceAccountId($row);
+            if (!$accountId) {
+                throw new \InvalidArgumentException('تعذر تحديد الحساب. استخدم account_id أو account_code أو account_name صحيح.');
+            }
+
+            $line = $this->resolveFinanceConstraintLine($row);
+            $costCenterId = $this->resolveFinanceCostCenterId($row);
+            $lineStatement = trim((string) ($row['line_statement'] ?? '')) ?: $statement;
+
+            $details[] = [
+                'type' => $line['type'],
+                'account_id' => $accountId,
+                'cost_center_id' => $costCenterId,
+                'debtor_value' => $line['debtor_value'],
+                'creditor_value' => $line['creditor_value'],
+                'statement' => $lineStatement,
+                'year_id' => $year->id,
+                'date' => $date,
+            ];
+
+            $debtorTotal += $line['debtor_value'];
+            $creditorTotal += $line['creditor_value'];
+        }
+
+        if ($debtorTotal <= 0 || round($debtorTotal, 2) !== round($creditorTotal, 2)) {
+            throw new \InvalidArgumentException('إجمالي المدين يجب أن يساوي إجمالي الدائن.');
+        }
+
+        if (!collect($details)->contains('type', 'debtor') || !collect($details)->contains('type', 'creditor')) {
+            throw new \InvalidArgumentException('القيد يجب أن يحتوي على طرف مدين وطرف دائن.');
+        }
+
+        $constraint = $code ? Constraint::query()->where('code', $code)->first() : null;
+        $payload = [
+            'type' => $type,
+            'value' => round($debtorTotal, 2),
+            'date' => $date,
+            'statement' => $statement,
+            'year_id' => $year->id,
+            'code' => $code ?: $this->nextFinanceConstraintCode(),
+            'created_by_id' => $adminId,
+        ];
+
+        if ($constraint) {
+            $constraint->update($payload);
+            ConstraintDetails::query()->where('constraint_id', $constraint->id)->delete();
+            $outcome = 'updated';
+        } else {
+            $constraint = Constraint::query()->create($payload);
+            $outcome = 'created';
+        }
+
+        foreach ($details as $detail) {
+            ConstraintDetails::query()->create($detail + [
+                'constraint_id' => $constraint->id,
+            ]);
+        }
+
+        return $outcome;
     }
 
     private function importClient(array $row, ?int $adminId): string
@@ -1076,6 +1226,184 @@ class DataImportExecutionService
         }
 
         return Account::query()->whereKey($id)->exists() ? $id : null;
+    }
+
+    private function resolveFinanceAccountId(array $row): ?int
+    {
+        if (!class_exists(Account::class) || !Schema::hasTable('fn_accounts')) {
+            return null;
+        }
+
+        $id = $this->optionalInteger($row['account_id'] ?? null);
+        if ($id && Account::query()->whereKey($id)->exists()) {
+            return $id;
+        }
+
+        $code = trim((string) ($row['account_code'] ?? ''));
+        if ($code !== '') {
+            $account = Account::query()->where('code', $this->normalizeDigits($code))->first();
+            if ($account) {
+                return (int) $account->id;
+            }
+        }
+
+        $name = trim((string) ($row['account_name'] ?? ''));
+        if ($name !== '') {
+            $account = Account::query()->where('name', $name)->first();
+            if ($account) {
+                return (int) $account->id;
+            }
+        }
+
+        return null;
+    }
+
+    private function resolveFinanceCostCenterId(array $row): ?int
+    {
+        if (!class_exists(CostCenter::class) || !Schema::hasTable('fn_cost_centers')) {
+            return null;
+        }
+
+        $id = $this->optionalInteger($row['cost_center_id'] ?? null);
+        if ($id && CostCenter::query()->whereKey($id)->exists()) {
+            return $id;
+        }
+
+        $code = trim((string) ($row['cost_center_code'] ?? ''));
+        if ($code !== '' && Schema::hasColumn('fn_cost_centers', 'code')) {
+            $costCenter = CostCenter::query()->where('code', $this->normalizeDigits($code))->first();
+            if ($costCenter) {
+                return (int) $costCenter->id;
+            }
+        }
+
+        $title = trim((string) ($row['cost_center_name'] ?? ''));
+        if ($title !== '') {
+            $costCenter = CostCenter::query()->where('title', $title)->first();
+            if ($costCenter) {
+                return (int) $costCenter->id;
+            }
+        }
+
+        return null;
+    }
+
+    private function resolveFinanceConstraintLine(array $row): array
+    {
+        $debtorValue = (float) ($this->decimal($row['debtor_value'] ?? null) ?? 0);
+        $creditorValue = (float) ($this->decimal($row['creditor_value'] ?? null) ?? 0);
+        $amount = $this->decimal($row['amount'] ?? null);
+        $type = $this->normalizeFinanceLineType($row['line_type'] ?? $row['account_type'] ?? null);
+
+        if ($amount !== null && $amount > 0 && $debtorValue <= 0 && $creditorValue <= 0) {
+            if (!$type) {
+                throw new \InvalidArgumentException('عند استخدام amount يجب تحديد line_type بقيمة debtor أو creditor.');
+            }
+
+            if ($type === 'debtor') {
+                $debtorValue = $amount;
+            } else {
+                $creditorValue = $amount;
+            }
+        }
+
+        if ($debtorValue > 0 && $creditorValue > 0) {
+            throw new \InvalidArgumentException('لا يمكن أن يكون السطر مدينا ودائنا في نفس الوقت.');
+        }
+
+        if ($debtorValue > 0) {
+            if ($type && $type !== 'debtor') {
+                throw new \InvalidArgumentException('نوع السطر لا يطابق قيمة المدين.');
+            }
+
+            return [
+                'type' => 'debtor',
+                'debtor_value' => round($debtorValue, 2),
+                'creditor_value' => 0,
+            ];
+        }
+
+        if ($creditorValue > 0) {
+            if ($type && $type !== 'creditor') {
+                throw new \InvalidArgumentException('نوع السطر لا يطابق قيمة الدائن.');
+            }
+
+            return [
+                'type' => 'creditor',
+                'debtor_value' => 0,
+                'creditor_value' => round($creditorValue, 2),
+            ];
+        }
+
+        throw new \InvalidArgumentException('يجب إدخال قيمة مدين أو دائن لكل سطر.');
+    }
+
+    private function normalizeFinanceLineType($value): ?string
+    {
+        $normalized = $this->normalizeArabicText((string) $value);
+
+        return match ($normalized) {
+            'debtor', 'debit', 'dr', 'مدين' => 'debtor',
+            'creditor', 'credit', 'cr', 'دائن', 'داين' => 'creditor',
+            default => null,
+        };
+    }
+
+    private function resolveFinanceConstraintCode(array $rows): ?int
+    {
+        $codes = collect($rows)
+            ->map(fn ($item) => $this->optionalInteger($item['row']['code'] ?? null))
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($codes->count() > 1) {
+            throw new \InvalidArgumentException('كل صفوف القيد الواحد يجب أن تحمل نفس رقم القيد.');
+        }
+
+        return $codes->first();
+    }
+
+    private function resolveFinanceConstraintType($value): ConstraintTypiesEnum
+    {
+        $value = trim((string) $value);
+
+        if ($value === '') {
+            return ConstraintTypiesEnum::DailyEntry;
+        }
+
+        if (is_numeric($value)) {
+            $type = ConstraintTypiesEnum::tryFrom((int) $value);
+            if ($type) {
+                return $type;
+            }
+        }
+
+        $normalized = $this->normalizeArabicText($value);
+
+        return match ($normalized) {
+            'dailyentry', 'daily_entry', 'daily entry', 'daily', 'journal', 'journal entry', 'قيد يومي', 'يومي' => ConstraintTypiesEnum::DailyEntry,
+            'firstbalance', 'first_balance', 'first balance', 'opening balance', 'رصيد افتتاحي' => ConstraintTypiesEnum::FirstBalance,
+            default => throw new \InvalidArgumentException('نوع القيد غير معروف. استخدم رقم النوع أو اتركه فارغا للقيد اليومي.'),
+        };
+    }
+
+    private function resolveFinanceYear(string $date): ?FnYear
+    {
+        if (!class_exists(FnYear::class) || !Schema::hasTable('fn_years')) {
+            return null;
+        }
+
+        return FnYear::query()
+            ->where('status', 1)
+            ->whereDate('from_date', '<=', $date)
+            ->whereDate('to_date', '>=', $date)
+            ->first();
+    }
+
+    private function nextFinanceConstraintCode(): int
+    {
+        return ((int) Constraint::query()->max('code')) + 1;
     }
 
     private function resolveAdminId($value): ?int
