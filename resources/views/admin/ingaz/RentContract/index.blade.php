@@ -1444,6 +1444,8 @@
                 return;
             }
 
+            $.fn.dataTable.ext.errMode = 'none';
+
             let openRentContractActionMenu = null;
 
             // Initialize DataTable with simplified settings
@@ -1469,6 +1471,29 @@
                         d.branch_id = $('#branchFilter').length ? $('#branchFilter').val() : '';
                         d.extension_filter = $('#extensionFilter').val();
                         d.expiry_filter = $('#expiryFilter').val();
+                    },
+                    error: function(xhr, textStatus, errorThrown) {
+                        const responseText = xhr.responseText || '';
+                        let message = 'تعذر تحميل بيانات عقود الإيجار.';
+
+                        if (xhr.status === 401 || xhr.status === 419) {
+                            message = 'انتهت الجلسة أو لا توجد صلاحية للطلب. أعد تسجيل الدخول ثم حاول مرة أخرى.';
+                        } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                            message = xhr.responseJSON.message;
+                        }
+
+                        console.error('RentContract DataTable Ajax error', {
+                            status: xhr.status,
+                            textStatus: textStatus,
+                            errorThrown: errorThrown,
+                            response: responseText.substring(0, 3000)
+                        });
+
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'خطأ في تحميل جدول عقود الإيجار',
+                            text: message
+                        });
                     }
                 },
                 columns: [{

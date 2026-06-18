@@ -144,6 +144,78 @@ class ContractController extends Controller
         return User::whereIn('phone', $phoneTerms)->first();
     }
 
+    private function findDuplicateClientByPhone(?string $phone, ?int $ignoreClientId = null): ?User
+    {
+        $localPhone = $this->normalizeSaudiLocalPhone($phone);
+        $rawPhone = trim((string) $phone);
+
+        $phoneTerms = array_values(array_unique(array_filter([
+            $rawPhone,
+            $localPhone,
+            $localPhone !== '' ? '0' . $localPhone : null,
+            $localPhone !== '' ? '966' . $localPhone : null,
+        ])));
+
+        if (empty($phoneTerms)) {
+            return null;
+        }
+
+        return User::query()
+            ->where(function ($query) use ($phoneTerms) {
+                $query->whereIn('phone', $phoneTerms)
+                    ->orWhereIn('phone2', $phoneTerms);
+            })
+            ->when($ignoreClientId, fn ($query) => $query->whereKeyNot($ignoreClientId))
+            ->first();
+    }
+
+    private function findDuplicateClientByNationalNumber(?string $nationalNumber, ?int $ignoreClientId = null): ?User
+    {
+        $nationalNumber = trim((string) $nationalNumber);
+
+        if ($nationalNumber === '') {
+            return null;
+        }
+
+        return User::query()
+            ->where('national_num', $nationalNumber)
+            ->when($ignoreClientId, fn ($query) => $query->whereKeyNot($ignoreClientId))
+            ->first();
+    }
+
+    private function validateCompletedContractClientIsUnique(array $clientData, ?int $ignoreClientId = null): void
+    {
+        $errors = [];
+
+        if ($this->findDuplicateClientByPhone($clientData['client_phone'] ?? null, $ignoreClientId)) {
+            $errors['client_phone'][] = 'رقم الجوال مسجل مسبقاً في جدول العملاء. يرجى اختيار العميل الموجود أو إدخال رقم آخر.';
+        }
+
+        if ($this->findDuplicateClientByNationalNumber($clientData['client_national_num'] ?? null, $ignoreClientId)) {
+            $errors['client_national_num'][] = 'رقم الهوية مسجل مسبقاً في جدول العملاء. يرجى اختيار العميل الموجود أو إدخال رقم هوية آخر.';
+        }
+
+        if (!empty($errors)) {
+            throw \Illuminate\Validation\ValidationException::withMessages($errors);
+        }
+    }
+
+    private function createCompletedContractClient(array $clientData): User
+    {
+        return User::create([
+            'name' => $clientData['client_name'],
+            'phone' => $this->normalizeSaudiLocalPhone($clientData['client_phone']) ?: $clientData['client_phone'],
+            'email' => $clientData['client_email'] ?? null,
+            'nationality_id' => $clientData['client_nationality_id'] ?? null,
+            'national_num' => filled($clientData['client_national_num'] ?? null)
+                ? trim((string) $clientData['client_national_num'])
+                : null,
+            'birthdate' => $clientData['client_birthdate'] ?? null,
+            'city' => $clientData['city'] ?? null,
+            'address' => $clientData['address'] ?? null,
+        ]);
+    }
+
     private function resolveClientForCompletedContract(array $clientData): User
     {
         $client = $this->findClientByPhone($clientData['client_phone'] ?? null);
@@ -391,7 +463,8 @@ class ContractController extends Controller
                     'address' => 'nullable|string',
                 ]);
 
-                $clientId = $this->resolveClientForCompletedContract($clientData)->id;
+                $this->validateCompletedContractClientIsUnique($clientData);
+                $clientId = $this->createCompletedContractClient($clientData)->id;
             } elseif (!$clientId) {
                 return response()->json([
                     'success' => false,
@@ -443,6 +516,10 @@ class ContractController extends Controller
             // Update client information if provided
             $client = User::find($clientId);
             if ($client) {
+                $this->validateCompletedContractClientIsUnique([
+                    'client_national_num' => $contractData['client_national_num'] ?? null,
+                ], $client->id);
+
                 $client->update($client->clientTypeAwarePayload([
                     'birthdate' => $contractData['client_birthdate'] ?? $client->birthdate,
                 ], $contractData['client_national_num'] ?? null));
@@ -491,6 +568,17 @@ class ContractController extends Controller
                 'success' => false,
                 'message' => 'بيانات غير صحيحة',
                 'errors' => $e->errors()
+            ], 422);
+        } catch (\Illuminate\Database\QueryException $e) {
+            DB::rollBack();
+
+            $message = $e->getCode() === '23000'
+                ? 'تعذر حفظ العميل لأن رقم الجوال أو رقم الهوية مسجل مسبقاً في جدول العملاء.'
+                : 'حدث خطأ في قاعدة البيانات أثناء إنشاء العقد: ' . $e->getMessage();
+
+            return response()->json([
+                'success' => false,
+                'message' => $message,
             ], 422);
         } catch (\Exception $e) {
             DB::rollBack();
