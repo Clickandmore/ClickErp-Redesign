@@ -47,7 +47,7 @@
                 @php
                     $countryLabel = trim((string) ($country->name ?? '')) ?: __("hr::hr.Countries") . ' #' . $country->id;
                 @endphp
-                <option value="{{ $country->id }}" @selected((string) old('country_id') === (string) $country->id)>{{ $countryLabel }}</option>
+                <option value="{{ $country->id }}" @if ((string) old('country_id') === (string) $country->id) selected @endif>{{ $countryLabel }}</option>
             @endforeach
         </select>
         <small class="text-muted d-block mt-2">{{ __("hr::hr.Nationality search hint") }}</small>
