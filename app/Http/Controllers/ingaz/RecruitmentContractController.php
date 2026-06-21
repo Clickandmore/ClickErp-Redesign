@@ -3098,7 +3098,7 @@ class RecruitmentContractController extends Controller
             return redirect()->back()->with('error', 'ليس لديك صلاحية لتعديل العقد');
         }
 
-        $contract = Contract::with(['user', 'maid.nationality', 'maid.religion', 'maid.jobTitles', 'info', 'order'])->find($id);
+        $contract = Contract::with(['user', 'maid.nationality', 'maid.religion', 'maid.jobTitles', 'info', 'order.details.admin', 'marketer'])->find($id);
 
         if (!$contract) {
             return redirect()->back()->with('error', 'العقد غير موجود');
@@ -3179,22 +3179,25 @@ class RecruitmentContractController extends Controller
 
         $canSelectAnyMarketer = $this->canSelectAnyMarketer($currentAdmin);
         $defaultClientNationalityId = Country::query()->where('code', 'SA')->value('id');
-        $fallbackMarketerId = $contract->marketer_id
-            ?: $contract->order?->resolveResponsibleAdminId()
-            ?: $currentAdmin->id;
+        $resolvedMarketerId = $contract->marketer_id ?: $contract->order?->resolveResponsibleAdminId();
+        $fallbackMarketerId = $resolvedMarketerId && \App\Models\auth\Admin::query()->whereKey($resolvedMarketerId)->exists()
+            ? $resolvedMarketerId
+            : $currentAdmin->id;
+        $allowedMarketerIds = array_values(array_unique(array_filter([
+            $currentAdmin->id,
+            $fallbackMarketerId,
+        ])));
 
         $request->merge([
             'account_client_type' => $request->input('account_client_type') === 'company' ? 'company' : 'person',
             'client_nationality_id' => $request->input('client_nationality_id') ?: $defaultClientNationalityId,
-            'marketer_id' => $canSelectAnyMarketer
-                ? ($request->input('marketer_id') ?: $fallbackMarketerId)
-                : $currentAdmin->id,
+            'marketer_id' => $request->input('marketer_id') ?: $fallbackMarketerId,
         ]);
 
         $hasClient = (bool) $contract->user;
         $marketerRules = ['required', 'exists:admins,id'];
         if (!$canSelectAnyMarketer) {
-            $marketerRules[] = 'in:' . $currentAdmin->id;
+            $marketerRules[] = Rule::in($allowedMarketerIds);
         }
         $request->validate([
             'client_name' => ($hasClient ? 'required' : 'nullable') . '|string|max:255',
@@ -3222,7 +3225,7 @@ class RecruitmentContractController extends Controller
             'visa_milad_date' => 'nullable|date',
             'visa_hijry_date' => 'nullable|date',
             'contract_duration' => 'required',
-            'status' => ['required', Rule::in(array_column(ContractStatusEnum::cases(), 'value'))],
+            'status' => ['nullable', Rule::in(array_column(ContractStatusEnum::cases(), 'value'))],
             'marketer_id' => $marketerRules,
             'required_maid_nationality' => 'nullable|exists:nationalities,id',
             'required_maid_religion' => 'nullable|exists:religions,id',
@@ -3233,9 +3236,7 @@ class RecruitmentContractController extends Controller
             'required_maid_notes' => 'nullable|string|max:2000',
         ]);
 
-        $marketerId = $canSelectAnyMarketer
-            ? (int) $request->marketer_id
-            : (int) $currentAdmin->id;
+        $marketerId = (int) $request->marketer_id;
 
         // منع تحديث حالة العقود المكتملة
         if ($contract->status === ContractStatusEnum::Completed->value) {
@@ -3309,25 +3310,8 @@ class RecruitmentContractController extends Controller
                 ]);
             }
 
-            if (in_array($request->status, [
-                ContractStatusEnum::Arrival->value,
-                ContractStatusEnum::Closed->value,
-                ContractStatusEnum::UnderWarranty->value,
-                ContractStatusEnum::Completed->value,
-            ], true)) {
-                $dispatchError = RecruitmentContractExternalOfficeDispatchController::ensureDispatchCompleted($contract);
-
-                if ($dispatchError) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => $dispatchError
-                    ], 422);
-                }
-            }
-
-            // تحديث حالة العقد
+            // لا يتم تعديل حالة العقد من شاشة تعديل البيانات.
             $contract->update([
-                'status' => $request->status,
                 'contract_date' => $request->contract_date,
                 'marketer_id' => $marketerId,
                 'required_maid_nationality_id' => $request->required_maid_nationality,
@@ -3344,7 +3328,7 @@ class RecruitmentContractController extends Controller
                 $maid = Maid::find($contract->maid_id);
                 if ($maid) {
                     // التحقق من حالة العقد
-                    $isActiveContract = !in_array($request->status, ['back', 'closed', 'completed']);
+                    $isActiveContract = !in_array($contract->status, ['back', 'closed', 'completed']);
 
                     if ($isActiveContract) {
                         // العقد نشط، العاملة يجب أن تكون محجوزة

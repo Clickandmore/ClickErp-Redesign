@@ -163,7 +163,8 @@
             $documentNumber = old('client_national_num', $client?->documentNumber());
             $cityValue = old('city', $client?->city);
             $selectedClientNationalityId = old('client_nationality_id', $client?->nationality_id ?: ($defaultClientNationalityId ?? null));
-            $selectedMarketerId = old('marketer_id', $contract->marketer_id ?: $contract->order?->resolveResponsibleAdminId() ?: $currentAdmin?->id);
+            $selectedMarketerId = old('marketer_id', $contract->marketer?->id ?: $contract->order?->resolveResponsibleAdmin()?->id ?: $currentAdmin?->id);
+            $displayMarketerName = $contract->marketer?->name ?: $contract->order?->resolveResponsibleAdmin()?->name ?: $currentAdmin?->name ?: 'المستخدم الحالي';
         @endphp
 
         @if ($errors->any())
@@ -479,19 +480,15 @@
                                                     @endforeach
                                                 </select>
                                             @else
-                                                <input type="text" class="form-control" value="{{ $currentAdmin?->name ?: 'المستخدم الحالي' }}" readonly>
-                                                <input type="hidden" name="marketer_id" id="marketer_id" value="{{ $currentAdmin?->id }}">
+                                                <input type="text" class="form-control" value="{{ $displayMarketerName }}" readonly>
+                                                <input type="hidden" name="marketer_id" id="marketer_id" value="{{ $selectedMarketerId }}">
                                             @endif
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label">حالة العقد <span class="text-danger">*</span></label>
-                                            <select name="status" id="status" class="form-select select2" required>
-                                                @foreach (\App\Enums\ingaz\ContractStatusEnum::cases() as $statusCase)
-                                                    <option value="{{ $statusCase->value }}" @selected(old('status', $contract->status) === $statusCase->value)>
-                                                        {{ $statusCase->lang() }}
-                                                    </option>
-                                                @endforeach
-                                            </select>
+                                            <label class="form-label">حالة العقد</label>
+                                            <input type="text" class="form-control" value="{{ getContractStatus($contract->status) }}" readonly>
+                                            <input type="hidden" name="status" id="status" value="{{ $contract->status }}">
+                                            <small class="text-muted">تعديل الحالة يتم من شاشة قائمة العقود فقط.</small>
                                         </div>
                                     </div>
                                 </div>
