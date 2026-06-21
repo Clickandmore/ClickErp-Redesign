@@ -194,6 +194,20 @@
     <div class="page-body p-4 text-dark admin-tables">
         @if (@AdminGuardHasPerm(\App\PermKeys::TRAVEL_VIEW))
             <div class="container-fluid rtl-page">
+                @if (session('success'))
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        {{ session('success') }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                @endif
+
+                @if (session('warning'))
+                    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                        {{ session('warning') }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                @endif
+
                 <div class="row mb-4">
                     <div class="col-12">
                         <div class="d-flex justify-content-between align-items-center">
@@ -666,7 +680,9 @@
                     assignment_note: $('#assignmentNote').val()
                 },
                 success: function(response) {
-                    Swal.fire(travelTranslations.doneTitle, response.message || travelTranslations.tripAssignedSuccessfully, 'success');
+                    const alertIcon = response.alert_type || 'success';
+                    const alertTitle = alertIcon === 'warning' ? travelTranslations.warningTitle : travelTranslations.doneTitle;
+                    Swal.fire(alertTitle, response.message || travelTranslations.tripAssignedSuccessfully, alertIcon);
                     if (logisticsCalendar) {
                         logisticsCalendar.refetchEvents();
                     }
