@@ -157,11 +157,13 @@
             $client = $contract->user;
             $maid = $contract->maid;
             $info = $contract->info;
+            $hasClient = (bool) $client;
             $clientType = old('account_client_type', $client?->client_type === 'company' ? 'company' : 'person');
             $isCompanyClient = $clientType === 'company';
             $documentNumber = old('client_national_num', $client?->documentNumber());
             $cityValue = old('city', $client?->city);
-            $selectedMarketerId = old('marketer_id', $contract->marketer_id ?? $currentAdmin?->id);
+            $selectedClientNationalityId = old('client_nationality_id', $client?->nationality_id ?: ($defaultClientNationalityId ?? null));
+            $selectedMarketerId = old('marketer_id', $contract->marketer_id ?: $contract->order?->resolveResponsibleAdminId() ?: $currentAdmin?->id);
         @endphp
 
         @if ($errors->any())
@@ -221,12 +223,12 @@
 
                                         <div class="col-md-6">
                                             <label class="form-label">{{ helperTrans('ingaz.client_name') }} <span class="text-danger">*</span></label>
-                                            <input type="text" id="client_name" name="client_name" class="form-control" value="{{ old('client_name', $client?->name) }}" required>
+                                            <input type="text" id="client_name" name="client_name" class="form-control" value="{{ old('client_name', $client?->name) }}" @required($hasClient)>
                                         </div>
 
                                         <div class="col-md-6">
                                             <label class="form-label">{{ helperTrans('ingaz.client_phone') }} <span class="text-danger">*</span></label>
-                                            <input type="tel" id="client_phone" name="client_phone" class="form-control" value="{{ old('client_phone', $client?->phone) }}" required dir="rtl">
+                                            <input type="tel" id="client_phone" name="client_phone" class="form-control" value="{{ old('client_phone', $client?->phone) }}" @required($hasClient) dir="rtl">
                                         </div>
 
                                         <div class="col-md-6">
@@ -234,7 +236,7 @@
                                             <select id="client_nationality_id" name="client_nationality_id" class="form-select select2">
                                                 <option value="">{{ helperTrans('ingaz.choose') }}</option>
                                                 @foreach ($countries as $country)
-                                                    <option value="{{ $country->id }}" @selected((string) old('client_nationality_id', $client?->nationality_id) === (string) $country->id)>
+                                                    <option value="{{ $country->id }}" @selected((string) $selectedClientNationalityId === (string) $country->id)>
                                                         {{ $country->name_ar }}
                                                     </option>
                                                 @endforeach
