@@ -479,7 +479,8 @@ class AdminTravelHistoryController extends Controller
         try {
             $trip = TravelHistory::with(['user', 'maid'])->findOrFail($id);
             $assignee = Admin::findOrFail($request->assigned_to);
-            $groupTrips = $this->resolveTripRecords($trip)->load(['user', 'maid']);
+            $groupTrips = $this->resolveTripRecords($trip);
+            $groupTrips->each(fn (TravelHistory $tripRecord) => $tripRecord->load(['user', 'maid']));
             $orderIds = $groupTrips->pluck('order_id')->filter()->unique()->values();
 
             DB::beginTransaction();
