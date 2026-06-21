@@ -1692,6 +1692,8 @@ return array (
   'offer_state_expired' => 'عرض منتهي',
   'before_discount' => 'قبل الخصم',
   'now_price' => 'الآن',
+  'person' => 'شخص',
+  'company' => 'شركة',
   'offer_valid_until' => 'ساري حتى',
   'permission_denied' => 'ليس لديك صلاحية لإجراء هذه العملية.',
   'offer_badge' => 'عرض',

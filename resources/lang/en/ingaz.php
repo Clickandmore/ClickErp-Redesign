@@ -2566,7 +2566,8 @@ return array (
     'on_time_delivery_text' => 'of the orders were completed within the specified time',
     'finance' => 'Finance Management',
     'hr' => 'Human Resources Management',
-
+    'person' => 'Person',
+    'company' => 'Company',
     'post_arrival_support' => 'Post-Arrival Support:',
     'post_arrival_support_text' => 'rate of follow-up and support after arrival',
     'video_title' => 'Watch the introductory video of the Musaned platform',

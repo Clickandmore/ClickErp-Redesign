@@ -373,13 +373,13 @@
                                                         <input class="form-check-input js-account-client-type" type="radio"
                                                             name="account_client_type" id="new_account_client_type_person"
                                                             value="person" checked>
-                                                        <label class="form-check-label" for="new_account_client_type_person">شخص</label>
+                                                        <label class="form-check-label" for="new_account_client_type_person">{{ helperTrans('ingaz.person') }}</label>
                                                     </div>
                                                     <div class="form-check">
                                                         <input class="form-check-input js-account-client-type" type="radio"
                                                             name="account_client_type" id="new_account_client_type_company"
                                                             value="company">
-                                                        <label class="form-check-label" for="new_account_client_type_company">شركة</label>
+                                                        <label class="form-check-label" for="new_account_client_type_company">{{ helperTrans('ingaz.company') }}</label>
                                                     </div>
                                                 </div>
                                             </div>
