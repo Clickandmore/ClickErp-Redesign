@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>دليل اختبار نظام الفروع — ClickERP</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; background: #f0f2f5; color: #222; line-height: 1.7; }
+
+  .header { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%); color: #fff; padding: 40px 40px 30px; }
+  .header h1 { font-size: 1.9rem; margin-bottom: 6px; }
+  .header p { opacity: .7; font-size: .95rem; }
+
+  .container { max-width: 960px; margin: 30px auto; padding: 0 20px 60px; }
+
+  .section { background: #fff; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,.07); margin-bottom: 28px; overflow: hidden; }
+  .section-header { padding: 16px 24px; font-weight: 700; font-size: 1.05rem; display: flex; align-items: center; gap: 10px; }
+  .section-body { padding: 20px 24px; }
+
+  .blue   { background: #e8f0fe; color: #1a56db; }
+  .green  { background: #e3f9e5; color: #1a6b2a; }
+  .orange { background: #fff3e0; color: #b45309; }
+  .red    { background: #fee2e2; color: #991b1b; }
+  .gray   { background: #f1f5f9; color: #374151; }
+  .purple { background: #ede9fe; color: #5b21b6; }
+
+  /* Credentials card */
+  .creds-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+  .cred-card { border-radius: 10px; padding: 18px 20px; border: 1.5px solid; }
+  .cred-card.super { background: #f0f9ff; border-color: #bae6fd; }
+  .cred-card.branch { background: #f0fdf4; border-color: #bbf7d0; }
+  .cred-card h3 { font-size: .9rem; margin-bottom: 10px; opacity: .7; text-transform: uppercase; letter-spacing: .05em; }
+  .cred-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: .92rem; }
+  .cred-row .label { color: #6b7280; }
+  .cred-row .value { font-family: monospace; background: #f3f4f6; padding: 1px 8px; border-radius: 4px; font-weight: 600; cursor: pointer; }
+  .cred-row .value:hover { background: #e5e7eb; }
+  .badge-type { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: .75rem; font-weight: 700; margin-top: 4px; }
+  .badge-super { background: #dbeafe; color: #1d4ed8; }
+  .badge-branch { background: #dcfce7; color: #15803d; }
+
+  /* Steps */
+  .steps { counter-reset: step; }
+  .step { display: flex; gap: 16px; margin-bottom: 20px; }
+  .step-num { counter-increment: step; min-width: 32px; height: 32px; border-radius: 50%; background: #1a56db; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .9rem; flex-shrink: 0; margin-top: 2px; }
+  .step-num::before { content: counter(step); }
+  .step-body h4 { font-size: .95rem; margin-bottom: 4px; }
+  .step-body p, .step-body ul { font-size: .88rem; color: #4b5563; }
+  .step-body ul { padding-right: 18px; margin-top: 4px; }
+  .step-body ul li { margin-bottom: 3px; }
+
+  /* URL pill */
+  .url { display: inline-block; background: #1e293b; color: #7dd3fc; font-family: monospace; font-size: .82rem; padding: 4px 12px; border-radius: 6px; margin: 6px 0; }
+
+  /* Comparison table */
+  .compare-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+  .compare-table th { background: #1e293b; color: #fff; padding: 10px 14px; text-align: right; font-weight: 600; }
+  .compare-table td { padding: 10px 14px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
+  .compare-table tr:last-child td { border-bottom: none; }
+  .compare-table tr:hover td { background: #f8fafc; }
+  .compare-table td:first-child { font-weight: 600; color: #374151; }
+  .yes { color: #15803d; font-weight: 700; }
+  .no  { color: #dc2626; font-weight: 700; }
+  .partial { color: #d97706; font-weight: 700; }
+
+  /* Scenario block */
+  .scenario { border-radius: 8px; padding: 16px 18px; margin-bottom: 14px; border-right: 4px solid; }
+  .scenario.pass { background: #f0fdf4; border-color: #22c55e; }
+  .scenario.fail { background: #fef2f2; border-color: #ef4444; }
+  .scenario.warn { background: #fffbeb; border-color: #f59e0b; }
+  .scenario h4 { font-size: .92rem; margin-bottom: 6px; }
+  .scenario p { font-size: .85rem; color: #555; }
+  .scenario .expected { display: inline-block; margin-top: 6px; padding: 3px 10px; border-radius: 4px; font-size: .8rem; font-weight: 700; }
+  .scenario.pass .expected { background: #dcfce7; color: #166534; }
+  .scenario.fail .expected { background: #fee2e2; color: #991b1b; }
+  .scenario.warn .expected { background: #fef3c7; color: #92400e; }
+
+  /* Modules grid */
+  .modules-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+  .module-tag { padding: 10px 14px; border-radius: 8px; font-size: .85rem; display: flex; align-items: center; gap: 8px; }
+  .module-tag.isolated { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+  .module-tag.not-isolated { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+
+  .note { background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 12px 16px; font-size: .85rem; color: #78350f; margin-top: 14px; }
+  .note strong { color: #92400e; }
+
+  /* Checklist */
+  .checklist { list-style: none; }
+  .checklist li { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f1f5f9; font-size: .88rem; }
+  .checklist li:last-child { border-bottom: none; }
+  .checklist li::before { content: '☐'; font-size: 1.1rem; color: #9ca3af; flex-shrink: 0; }
+  .checklist li.done::before { content: '☑'; color: #22c55e; }
+
+  h2.toc-link { font-size: 1rem; margin-bottom: 14px; color: #374151; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🏢 دليل اختبار نظام الفروع</h1>
+  <p>ClickERP — Branch Isolation Testing Guide &nbsp;|&nbsp; آخر تحديث: يونيو 2026</p>
+</div>
+
+<div class="container">
+
+  <!-- ===== 1. CREDENTIALS ===== -->
+  <div class="section">
+    <div class="section-header blue">🔑 بيانات تسجيل الدخول</div>
+    <div class="section-body">
+      <div class="creds-grid">
+
+        <div class="cred-card super">
+          <h3>Super Admin</h3>
+          <div class="cred-row">
+            <span class="label">الاسم</span>
+            <span class="value">مشرف</span>
+          </div>
+          <div class="cred-row">
+            <span class="label">رابط الدخول</span>
+            <span class="value">dashboard/login</span>
+          </div>
+          <div class="cred-row">
+            <span class="label">كلمة السر</span>
+            <span class="value" title="كلمة السر الخاصة بك">••••••••</span>
+          </div>
+          <div class="cred-row">
+            <span class="label">نوع الحساب</span>
+            <span></span>
+          </div>
+          <span class="badge-type badge-super">super_admin — بدون قيود فرع</span>
+        </div>
+
+        <div class="cred-card branch">
+          <h3>موظف فرع الاختبار</h3>
+          <div class="cred-row">
+            <span class="label">اسم المستخدم</span>
+            <span class="value">branch2_test</span>
+          </div>
+          <div class="cred-row">
+            <span class="label">رابط الدخول</span>
+            <span class="value">dashboard/login</span>
+          </div>
+          <div class="cred-row">
+            <span class="label">الفرع</span>
+            <span class="value">فرع الاختبار (BR-0002)</span>
+          </div>
+          <div class="cred-row">
+            <span class="label">نوع الحساب</span>
+            <span></span>
+          </div>
+          <span class="badge-type badge-branch">admin — مقيد بالفرع</span>
+        </div>
+
+      </div>
+
+      <div class="note">
+        <strong>ملاحظة:</strong> رابط الدخول الموحد لكلا الحسابين هو
+        <code style="background:#fef3c7;padding:2px 6px;border-radius:4px">http://127.0.0.1:8000/dashboard/login</code>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 2. BRANCHES ===== -->
+  <div class="section">
+    <div class="section-header green">🏢 الفروع الموجودة</div>
+    <div class="section-body">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>اسم الفرع</th>
+            <th>الكود</th>
+            <th>النوع</th>
+            <th>الموظف المسؤول</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>1</td>
+            <td>الفرع الرئيسي</td>
+            <td><code>MAIN</code></td>
+            <td>رئيسي</td>
+            <td>— (غير مسند)</td>
+          </tr>
+          <tr>
+            <td>2</td>
+            <td>فرع الاختبار</td>
+            <td><code>BR-0002</code></td>
+            <td>فرع عادي</td>
+            <td>موظف فرع الاختبار (branch2_test)</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="note" style="margin-top:14px">
+        <strong>لإضافة فرع جديد:</strong> من لوحة التحكم ← إدارة الفروع ← فرع جديد. ثم من صفحة الأدمنز عيّن أدمن له بتغيير الفرع المرتبط به.
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 3. MODULES ===== -->
+  <div class="section">
+    <div class="section-header purple">📦 الموديلات ومدى ارتباطها بالفروع</div>
+    <div class="section-body">
+      <div class="modules-grid">
+        <div class="module-tag isolated">✅ الطلبات (Orders)</div>
+        <div class="module-tag isolated">✅ العقود (Contracts)</div>
+        <div class="module-tag isolated">✅ الشكاوى (Complaints)</div>
+        <div class="module-tag isolated">✅ نقل الكفالة</div>
+        <div class="module-tag isolated">✅ نقل عقد الخدمة</div>
+        <div class="module-tag isolated">✅ تفويضات إنجاز</div>
+        <div class="module-tag isolated">✅ تحويلات مساند</div>
+        <div class="module-tag isolated">✅ طلبات الإرجاع</div>
+        <div class="module-tag not-isolated">❌ الطلبات المالية (لا يوجد branch_id)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 4. SCENARIOS ===== -->
+  <div class="section">
+    <div class="section-header orange">🧪 سيناريوهات الاختبار</div>
+    <div class="section-body">
+
+      <h2 class="toc-link">السيناريو 1 — Super Admin (مشرف)</h2>
+      <div class="steps">
+
+        <div class="step">
+          <div class="step-num"></div>
+          <div class="step-body">
+            <h4>تسجيل الدخول</h4>
+            <div class="url">http://127.0.0.1:8000/dashboard/login</div>
+            <p>سجّل بحساب <strong>مشرف</strong>.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num"></div>
+          <div class="step-body">
+            <h4>افتح أي موديل (مثلاً: الطلبات)</h4>
+            <div class="url">http://127.0.0.1:8000/admin/ingaz/orders</div>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num"></div>
+          <div class="step-body">
+            <h4>تحقق من فلتر الفروع</h4>
+            <p>المفروض يظهر <strong>dropdown لاختيار الفرع</strong> في أعلى الصفحة ويعرض كل الفروع.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num"></div>
+          <div class="step-body">
+            <h4>تحقق من البيانات</h4>
+            <p>بيانات <strong>كل الفروع</strong> تظهر بدون قيود. يقدر يفلتر بالفرع اللي يريده.</p>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="scenario pass">
+        <h4>النتيجة المتوقعة للـ Super Admin</h4>
+        <p>يشوف كل البيانات من كل الفروع، مع فلتر اختياري.</p>
+        <span class="expected">✅ يجب أن يمر</span>
+      </div>
+
+      <hr style="margin:24px 0;border:none;border-top:1px solid #e5e7eb">
+
+      <h2 class="toc-link">السيناريو 2 — موظف فرع الاختبار (branch2_test)</h2>
+      <div class="steps">
+
+        <div class="step">
+          <div class="step-num"></div>
+          <div class="step-body">
+            <h4>تسجيل الدخول</h4>
+            <div class="url">http://127.0.0.1:8000/dashboard/login</div>
+            <p>اسم المستخدم: <code>branch2_test</code> — كلمة السر المعينة له.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num"></div>
+          <div class="step-body">
+            <h4>تحقق من الـ Dashboard</h4>
+            <p>المفروض يفتح لوحة التحكم الرئيسية <strong>بدون إعادة توجيه لـ agent</strong>.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num"></div>
+          <div class="step-body">
+            <h4>افتح الطلبات</h4>
+            <div class="url">http://127.0.0.1:8000/admin/ingaz/orders</div>
+            <p>المفروض <strong>لا يظهر dropdown الفروع</strong> ويعرض فقط طلبات فرع الاختبار.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num"></div>
+          <div class="step-body">
+            <h4>حاول الدخول على بيانات الفرع الرئيسي مباشرة</h4>
+            <p>لو عندك record id = X ينتمي للفرع الرئيسي، حاول تفتحه:</p>
+            <div class="url">http://127.0.0.1:8000/admin/ingaz/orders/X/edit</div>
+            <p>المفروض يرجع <strong>403 Forbidden</strong> أو يحوله لصفحة ليس لديه صلاحية.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num"></div>
+          <div class="step-body">
+            <h4>تحقق من صفحة إدارة الفروع</h4>
+            <div class="url">http://127.0.0.1:8000/admin/ingaz/branches</div>
+            <p>إذا كان عنده صلاحية فقط يظهر له فرعه، وإذا لم يكن له صلاحية يظهر 403.</p>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="scenario pass">
+        <h4>النتيجة المتوقعة — بيانات الفرع نفسه</h4>
+        <p>يشوف فقط بيانات <strong>فرع الاختبار</strong>، بدون فلتر فروع.</p>
+        <span class="expected">✅ يجب أن يمر</span>
+      </div>
+
+      <div class="scenario fail">
+        <h4>النتيجة المتوقعة — بيانات فرع آخر (URL مباشر)</h4>
+        <p>لا يستطيع رؤية أو تعديل بيانات الفرع الرئيسي حتى بالـ URL المباشر.</p>
+        <span class="expected">🚫 يجب أن يُرفض (403)</span>
+      </div>
+
+      <hr style="margin:24px 0;border:none;border-top:1px solid #e5e7eb">
+
+      <h2 class="toc-link">السيناريو 3 — إنشاء فرع جديد واختباره</h2>
+      <div class="steps">
+
+        <div class="step">
+          <div class="step-num"></div>
+          <div class="step-body">
+            <h4>سجّل دخول كـ Super Admin وأنشئ فرع جديد</h4>
+            <div class="url">http://127.0.0.1:8000/admin/ingaz/branches</div>
+            <p>اضغط "فرع جديد" واملأ البيانات (الاسم بالعربي مطلوب).</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num"></div>
+          <div class="step-body">
+            <h4>من صفحة الأدمنز أنشئ أدمن جديد</h4>
+            <div class="url">http://127.0.0.1:8000/dashboard/admins</div>
+            <p>أو عدّل أدمن موجود وعيّن له الفرع الجديد من الـ actions ← تغيير الفرع.</p>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num"></div>
+          <div class="step-body">
+            <h4>سجّل دخول بالأدمن الجديد وتحقق</h4>
+            <p>يجب أن يرى فقط بيانات الفرع الجديد.</p>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== 5. COMPARISON TABLE ===== -->
+  <div class="section">
+    <div class="section-header gray">📊 جدول المقارنة — ماذا يرى كل مستخدم؟</div>
+    <div class="section-body">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>الميزة / الوصول</th>
+            <th>Super Admin (مشرف)</th>
+            <th>موظف فرع (branch2_test)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>فلتر الفروع في القوائم</td>
+            <td><span class="yes">✅ يظهر</span></td>
+            <td><span class="no">❌ مخفي</span></td>
+          </tr>
+          <tr>
+            <td>بيانات الفرع الرئيسي</td>
+            <td><span class="yes">✅ يرى ويعدّل</span></td>
+            <td><span class="no">❌ 403 Forbidden</span></td>
+          </tr>
+          <tr>
+            <td>بيانات فرع الاختبار</td>
+            <td><span class="yes">✅ يرى ويعدّل</span></td>
+            <td><span class="yes">✅ يرى ويعدّل</span></td>
+          </tr>
+          <tr>
+            <td>إدارة الفروع (إضافة/تعديل)</td>
+            <td><span class="yes">✅ كامل</span></td>
+            <td><span class="no">❌ حسب الصلاحية</span></td>
+          </tr>
+          <tr>
+            <td>إدارة الأدمنز</td>
+            <td><span class="yes">✅ كل الأدمنز</span></td>
+            <td><span class="partial">⚠️ حسب الصلاحية</span></td>
+          </tr>
+          <tr>
+            <td>تقرير الفروع</td>
+            <td><span class="yes">✅ كل الفروع</span></td>
+            <td><span class="partial">⚠️ فرعه فقط</span></td>
+          </tr>
+          <tr>
+            <td>الطلبات (Orders)</td>
+            <td><span class="yes">✅ كل الفروع</span></td>
+            <td><span class="yes">✅ فرعه فقط</span></td>
+          </tr>
+          <tr>
+            <td>العقود (Contracts)</td>
+            <td><span class="yes">✅ كل الفروع</span></td>
+            <td><span class="yes">✅ فرعه فقط</span></td>
+          </tr>
+          <tr>
+            <td>الشكاوى (Complaints)</td>
+            <td><span class="yes">✅ كل الفروع</span></td>
+            <td><span class="yes">✅ فرعه فقط</span></td>
+          </tr>
+          <tr>
+            <td>نقل الكفالة / عقد الخدمة</td>
+            <td><span class="yes">✅ كل الفروع</span></td>
+            <td><span class="yes">✅ فرعه فقط</span></td>
+          </tr>
+          <tr>
+            <td>الطلبات المالية</td>
+            <td><span class="partial">⚠️ لا يوجد branch_id</span></td>
+            <td><span class="partial">⚠️ لا يوجد branch_id</span></td>
+          </tr>
+          <tr>
+            <td>URL مباشر لبيانات فرع آخر</td>
+            <td><span class="yes">✅ مسموح</span></td>
+            <td><span class="no">❌ 403 Forbidden</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ===== 6. CHECKLIST ===== -->
+  <div class="section">
+    <div class="section-header blue">✅ قائمة الاختبار اليدوي</div>
+    <div class="section-body">
+      <ul class="checklist">
+        <li>تسجيل دخول Super Admin يفتح لوحة التحكم بدون مشاكل</li>
+        <li>Super Admin يرى فلتر الفروع في صفحة الطلبات</li>
+        <li>Super Admin يرى بيانات كل الفروع</li>
+        <li>تسجيل دخول branch2_test يفتح لوحة التحكم (مش agent dashboard)</li>
+        <li>branch2_test لا يرى فلتر الفروع في صفحة الطلبات</li>
+        <li>branch2_test يرى فقط بيانات فرع الاختبار</li>
+        <li>branch2_test يحصل على 403 عند محاولة فتح record من فرع آخر بـ URL مباشر</li>
+        <li>صفحة الفروع تظهر اسم الموظف المعين للفرع في عمود "مدير الفرع"</li>
+        <li>popup تعيين المسؤول يعمل ويحفظ بشكل صحيح</li>
+        <li>popup إدارة الموظفين (رقم الموظفين) يفتح ويعرض القائمة</li>
+        <li>إضافة أدمن لفرع من popup الموظفين يعمل</li>
+        <li>إزالة أدمن من فرع تعمل</li>
+        <li>إنشاء فرع جديد وتعيين أدمن له يعمل</li>
+        <li>الأدمن المعين للفرع الجديد يرى فقط بياناته عند الدخول</li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+
+<!--
+    <div class="section-header" style="background:#1e293b;color:#fff">📝 ملخص كل اللي اتعمل — Branch Isolation System</div>
+    <div class="section-body">
+
+      <style>
+        .dev-block { margin-bottom: 28px; }
+        .dev-block h3 { font-size: .95rem; font-weight: 700; color: #1e293b; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 2px solid #e2e8f0; display: flex; align-items: center; gap: 8px; }
+        .file-list { list-style: none; }
+        .file-list li { padding: 7px 0; border-bottom: 1px solid #f1f5f9; font-size: .87rem; display: flex; flex-direction: column; gap: 3px; }
+        .file-list li:last-child { border-bottom: none; }
+        .file-path { font-family: monospace; background: #f1f5f9; color: #0f172a; padding: 2px 8px; border-radius: 4px; font-size: .82rem; display: inline-block; margin-bottom: 2px; }
+        .file-desc { color: #475569; padding-right: 4px; }
+        .file-desc ul { padding-right: 16px; margin-top: 4px; }
+        .file-desc ul li { border: none; padding: 2px 0; }
+        .tag { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: .72rem; font-weight: 700; margin-right: 4px; }
+        .tag-new { background: #dcfce7; color: #166534; }
+        .tag-edit { background: #dbeafe; color: #1d4ed8; }
+        .tag-migration { background: #ede9fe; color: #5b21b6; }
+      </style>
+
+      <!-- 1. DATABASE -->
+      <div class="dev-block">
+        <h3>🗄️ قاعدة البيانات — Migrations</h3>
+        <ul class="file-list">
+          <li>
+            <span class="file-path">database/migrations/..._add_branch_id_to_admins_table.php</span>
+            <span class="tag tag-migration">migration</span>
+            <div class="file-desc">أضاف عمود <code>branch_id</code> (FK) لجدول admins — يربط كل أدمن بفرع معين.</div>
+          </li>
+          <li>
+            <span class="file-path">database/migrations/..._add_is_branch_manager_to_admins_table.php</span>
+            <span class="tag tag-migration">migration</span>
+            <div class="file-desc">أضاف عمود <code>is_branch_manager</code> boolean لجدول admins — يحدد المسؤول عن الفرع.</div>
+          </li>
+          <li>
+            <span class="file-path">database/migrations/..._backfill_admins_branch_id_to_main_branch.php</span>
+            <span class="tag tag-migration">migration</span>
+            <div class="file-desc">يحدّث كل الأدمنز اللي ليس لهم branch_id ويعينهم للفرع الرئيسي تلقائياً — مستثنياً الـ external office agents.</div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- 2. MODELS -->
+      <div class="dev-block">
+        <h3>🏗️ Models</h3>
+        <ul class="file-list">
+          <li>
+            <span class="file-path">app/Models/Branch.php</span>
+            <span class="tag tag-edit">تعديل</span>
+            <div class="file-desc">
+              أضيفت relationships:
+              <ul>
+                <li><code>manager()</code> — hasOne Admin حيث branch_id = هذا الفرع + admin_type real admin (يعرض الموظف المسؤول تلقائياً)</li>
+                <li><code>admins()</code> — hasMany الأدمنز الحقيقيين في هذا الفرع (مستثنياً الـ agents)</li>
+              </ul>
+            </div>
+          </li>
+          <li>
+            <span class="file-path">app/Models/auth/Admin.php</span>
+            <span class="tag tag-edit">تعديل</span>
+            <div class="file-desc">أضيف cast لـ <code>is_branch_manager</code> كـ boolean.</div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- 3. SERVICES -->
+      <div class="dev-block">
+        <h3>⚙️ Services</h3>
+        <ul class="file-list">
+          <li>
+            <span class="file-path">app/Services/BranchAccessService.php</span>
+            <span class="tag tag-new">جديد</span>
+            <div class="file-desc">
+              الـ service الأساسية لنظام عزل الفروع. تحتوي على:
+              <ul>
+                <li><code>adminBranchId()</code> — يرجع branch_id للأدمن المسجل (null للـ super_admin)</li>
+                <li><code>applyRequestBranchFilter($query, $branchColumn)</code> — يطبق فلتر الفرع على أي query تلقائياً</li>
+                <li><code>assertCanAccessBranchModel($model)</code> — يتحقق إن الأدمن يقدر يوصل لهذا الـ record، يرمي 403 لو لا</li>
+              </ul>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- 4. CONTROLLERS -->
+      <div class="dev-block">
+        <h3>🎮 Controllers — تطبيق عزل الفروع</h3>
+        <ul class="file-list">
+          <li>
+            <span class="file-path">app/Http/Controllers/Controller.php</span>
+            <span class="tag tag-edit">تعديل</span>
+            <div class="file-desc">أضيف <code>$branchService</code> و<code>$branchesEnabled</code> في الـ base controller عشان يكونوا متاحين لكل الـ controllers.</div>
+          </li>
+          <li>
+            <span class="file-path">app/Http/Controllers/admin/BranchController.php</span>
+            <span class="tag tag-edit">تعديل</span>
+            <div class="file-desc">
+              أضيفت methods جديدة:
+              <ul>
+                <li><code>assignManager()</code> — يعين موظف كمسؤول عن الفرع (branch_id + is_branch_manager)</li>
+                <li><code>branchAdmins()</code> — يرجع كل الأدمنز المتاحين (للـ popup)</li>
+                <li><code>availableAdmins()</code> — يرجع الأدمنز اللي مش في هذا الفرع (للإضافة)</li>
+                <li><code>assignAdmin()</code> — يضيف أدمن للفرع (يغير branch_id)</li>
+                <li><code>removeAdmin()</code> — يزيل أدمن من الفرع</li>
+                <li><code>index()</code> — عُدّل ليحمّل manager و admins بـ eager loading</li>
+              </ul>
+            </div>
+          </li>
+          <li>
+            <span class="file-path">app/Http/Controllers/admin/auth/AdminController.php</span>
+            <span class="tag tag-edit">تعديل</span>
+            <div class="file-desc">
+              أضيفت:
+              <ul>
+                <li><code>quickAssignRole()</code> — تغيير دور الأدمن من popup</li>
+                <li><code>quickAssignBranch()</code> — تعيين فرع للأدمن من popup</li>
+                <li><code>quickAssignOffice()</code> — تعيين مكاتب خارجية للأدمن من popup</li>
+                <li>Eager loading للـ role و branch و agentOffices في جدول الأدمنز</li>
+                <li>عمود offices يعرض المكاتب الخارجية للأدمن</li>
+              </ul>
+            </div>
+          </li>
+          <li>
+            <span class="file-path">app/Http/Controllers/ingaz/ComplaintController.php</span>
+            <span class="tag tag-edit">تعديل</span>
+            <div class="file-desc">تطبيق <code>applyRequestBranchFilter()</code> و <code>assertCanAccessBranchModel()</code> على index و show و edit.</div>
+          </li>
+          <li>
+            <span class="file-path">app/Http/Controllers/ingaz/FinancialRequestController.php</span>
+            <span class="tag tag-edit">تعديل</span>
+            <div class="file-desc">تطبيق branch isolation (ملاحظة: جدول financial_requests لا يحتوي على branch_id — يحتاج migration مستقبلاً).</div>
+          </li>
+          <li>
+            <span class="file-path">app/Http/Controllers/ingaz/MusanedTransferController.php</span>
+            <span class="tag tag-edit">تعديل</span>
+            <div class="file-desc">تطبيق branch isolation على كل العمليات.</div>
+          </li>
+          <li>
+            <span class="file-path">app/Http/Controllers/ingaz/RecruitmentContractExternalOfficeDispatchController.php</span>
+            <span class="tag tag-edit">تعديل</span>
+            <div class="file-desc">تطبيق branch isolation.</div>
+          </li>
+          <li>
+            <span class="file-path">app/Http/Controllers/ingaz/SponsorshipTransferController.php</span>
+            <span class="tag tag-edit">تعديل</span>
+            <div class="file-desc">تطبيق branch isolation.</div>
+          </li>
+          <li>
+            <span class="file-path">app/Http/Controllers/ingaz/TransferServiceContractController.php</span>
+            <span class="tag tag-edit">تعديل</span>
+            <div class="file-desc">تطبيق branch isolation.</div>
+          </li>
+          <li>
+            <span class="file-path">app/Http/Controllers/admin/IngazDelegationController.php</span>
+            <span class="tag tag-edit">تعديل</span>
+            <div class="file-desc">تطبيق branch isolation.</div>
+          </li>
+          <li>
+            <span class="file-path">app/Http/Controllers/admin/ContractReturnRequestController.php</span>
+            <span class="tag tag-edit">تعديل</span>
+            <div class="file-desc">تطبيق branch isolation.</div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- 5. VIEWS -->
+      <div class="dev-block">
+        <h3>🖥️ Views</h3>
+        <ul class="file-list">
+          <li>
+            <span class="file-path">resources/views/admin/branches/index.blade.php</span>
+            <span class="tag tag-edit">تعديل كامل</span>
+            <div class="file-desc">
+              إعادة تصميم كاملة:
+              <ul>
+                <li>عمود "مدير الفرع" يعرض اسم الموظف المعين للفرع تلقائياً</li>
+                <li>popup لتعيين/تغيير المسؤول (يفتح عند الضغط على الاسم أو "غير مسند")</li>
+                <li>عمود الموظفين clickable يفتح popup لعرض وإدارة موظفي الفرع (إضافة/إزالة)</li>
+                <li>حذف الفرع بـ SweetAlert2 بدل confirm()</li>
+                <li>تصميم عصري بـ card + sticky actions column</li>
+              </ul>
+            </div>
+          </li>
+          <li>
+            <span class="file-path">resources/views/admin/branches/report.blade.php</span>
+            <span class="tag tag-new">جديد</span>
+            <div class="file-desc">صفحة تقرير الفروع — إحصائيات كل فرع (طلبات، عقود، شكاوى، إجماليات مالية).</div>
+          </li>
+          <li>
+            <span class="file-path">resources/views/admin/partials/branch-filter.blade.php</span>
+            <span class="tag tag-new">جديد</span>
+            <div class="file-desc">Partial موحّد لفلتر الفروع — يظهر فقط للـ super_admin، مخفي تلقائياً لموظف الفرع. يُستخدم في جميع صفحات القوائم.</div>
+          </li>
+          <li>
+            <span class="file-path">resources/views/admin/auth/admin/index.blade.php</span>
+            <span class="tag tag-edit">تعديل</span>
+            <div class="file-desc">
+              تحسينات جدول الأدمنز:
+              <ul>
+                <li>سهم expand في أول عمود لإظهار التفاصيل المخفية</li>
+                <li>عمود الإجراءات sticky (ثابت عند التمرير)</li>
+                <li>popup لتغيير الدور من الجدول مباشرة</li>
+                <li>popup لتغيير الفرع من الجدول مباشرة</li>
+                <li>popup لتعيين المكاتب الخارجية (للـ agents)</li>
+                <li>عمود المكاتب يعرض badges للمكاتب الخارجية</li>
+              </ul>
+            </div>
+          </li>
+          <li>
+            <span class="file-path">resources/views/admin/ingaz/orders/index.blade.php وباقي صفحات القوائم</span>
+            <span class="tag tag-edit">تعديل</span>
+            <div class="file-desc">استبدال dropdown الفروع اليدوي بـ <code>@include('admin.partials.branch-filter')</code> الموحد.</div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- 6. ROUTES -->
+      <div class="dev-block">
+        <h3>🛣️ Routes المضافة</h3>
+        <ul class="file-list">
+          <li>
+            <span class="file-path">POST admin/ingaz/branches/{branch}/assign-manager</span>
+            <span class="tag tag-new">جديد</span>
+            <div class="file-desc">تعيين موظف كمسؤول عن الفرع.</div>
+          </li>
+          <li>
+            <span class="file-path">GET admin/ingaz/branches/{branch}/admins</span>
+            <span class="tag tag-new">جديد</span>
+            <div class="file-desc">جلب كل الأدمنز المتاحين للتعيين (JSON).</div>
+          </li>
+          <li>
+            <span class="file-path">GET admin/ingaz/branches/{branch}/available-admins</span>
+            <span class="tag tag-new">جديد</span>
+            <div class="file-desc">جلب الأدمنز اللي مش في هذا الفرع (JSON — للإضافة).</div>
+          </li>
+          <li>
+            <span class="file-path">POST admin/ingaz/branches/{branch}/assign-admin</span>
+            <span class="tag tag-new">جديد</span>
+            <div class="file-desc">إضافة أدمن للفرع (تغيير branch_id).</div>
+          </li>
+          <li>
+            <span class="file-path">POST admin/ingaz/branches/{branch}/remove-admin</span>
+            <span class="tag tag-new">جديد</span>
+            <div class="file-desc">إزالة أدمن من الفرع.</div>
+          </li>
+          <li>
+            <span class="file-path">POST dashboard/admins/{id}/quick-assign-role</span>
+            <span class="tag tag-new">جديد</span>
+            <div class="file-desc">تغيير دور الأدمن من popup.</div>
+          </li>
+          <li>
+            <span class="file-path">POST dashboard/admins/{id}/quick-assign-branch</span>
+            <span class="tag tag-new">جديد</span>
+            <div class="file-desc">تعيين فرع للأدمن من popup.</div>
+          </li>
+          <li>
+            <span class="file-path">POST dashboard/admins/{id}/quick-assign-office</span>
+            <span class="tag tag-new">جديد</span>
+            <div class="file-desc">تعيين مكاتب خارجية للأدمن (للـ agents).</div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- 7. PERMISSIONS -->
+      <div class="dev-block">
+        <h3>🔐 الصلاحيات</h3>
+        <ul class="file-list">
+          <li>
+            <span class="file-path">app/Support/AdminRoutePermissionMatrix.php</span>
+            <span class="tag tag-edit">تعديل</span>
+            <div class="file-desc">أضيفت الـ routes الجديدة لمصفوفة الصلاحيات لضمان الحماية.</div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- 8. DESIGN DECISIONS -->
+      <div class="dev-block">
+        <h3>💡 قرارات تصميمية مهمة</h3>
+        <ul class="file-list">
+          <li>
+            <div class="file-desc">
+              <strong>is_branch_manager vs manager_id:</strong> تم اختيار boolean <code>is_branch_manager</code> على جدول admins بدل عمود <code>manager_id</code> على جدول branches — لأنه يدعم تعدد المديرين مستقبلاً بدون تغيير الـ schema.
+            </div>
+          </li>
+          <li>
+            <div class="file-desc">
+              <strong>عرض المسؤول في جدول الفروع:</strong> العمود يعرض أول أدمن حقيقي معين للفرع (عبر branch_id) تلقائياً بدون حاجة لخطوة "تعيين مدير" منفصلة — من ربط الأدمن بالفرع من صفحة الأدمنز يكفي.
+            </div>
+          </li>
+          <li>
+            <div class="file-desc">
+              <strong>External Office Agents:</strong> الـ agents (admin_type = 0 أو لديهم سجل في admin_offices) مستثنيون من نظام الفروع — لهم مسار منفصل (<code>/agent/dashboard</code>) ولا يُعينون للفروع.
+            </div>
+          </li>
+          <li>
+            <div class="file-desc">
+              <strong>الطلبات المالية (financial_requests):</strong> جدول financial_requests لا يحتوي على branch_id — يحتاج migration مستقبلاً لإضافة عزل الفروع عليه.
+            </div>
+          </li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+</div>
+-->
+
+</body>
+</html>

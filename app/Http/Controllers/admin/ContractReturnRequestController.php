@@ -25,6 +25,7 @@ class ContractReturnRequestController extends Controller
     {
         $returnRequest = ContractReturnRequest::with(["contract.maid", "user", "processedBy"])
             ->findOrFail($id);
+        $this->assertCanAccessBranchModel($returnRequest);
 
         return view("admin.contract-return-requests.show", compact("returnRequest"));
     }
@@ -37,6 +38,7 @@ class ContractReturnRequestController extends Controller
         ]);
 
         $returnRequest = ContractReturnRequest::findOrFail($id);
+        $this->assertCanAccessBranchModel($returnRequest);
 
         if ($returnRequest->status !== "pending") {
             return response()->json([

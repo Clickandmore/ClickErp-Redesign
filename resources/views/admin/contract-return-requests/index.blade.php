@@ -87,6 +87,7 @@
 
                         <!-- Filters -->
                         <div class="row mb-3">
+                            @include('admin.partials.branch-filter', ['id' => 'branchFilter', 'containerClass' => 'col-md-3'])
                             <div class="col-md-3">
                                 <select class="form-select" id="status-filter">
                                     <option value="">جميع الحالات</option>
@@ -216,6 +217,14 @@
                 ]
             });
 
+            $('#branchFilter').on('change', function() {
+                const url = new URL(window.location.href);
+                const value = $(this).val();
+                if (value) { url.searchParams.set('branch_id', value); } else { url.searchParams.delete('branch_id'); }
+                url.searchParams.delete('page');
+                window.location.href = url.toString();
+            });
+
             // Status filter
             $('#status-filter').on('change', function() {
                 const status = $(this).val();
@@ -236,7 +245,7 @@
         });
 
         function loadStatistics() {
-            $.get('{{ route('contract-return-requests.statistics') }}')
+            $.get('{{ route('contract-return-requests.statistics') }}', { branch_id: $('#branchFilter').val() })
                 .done(function(data) {
                     $('#total-requests').text(data.total);
                     $('#pending-requests').text(data.pending);

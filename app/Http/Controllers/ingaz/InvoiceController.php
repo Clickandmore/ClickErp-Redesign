@@ -69,9 +69,7 @@ class InvoiceController extends Controller
             }
 
             $recruitmentInvoicesQuery = Invoice::with($invoiceRelations);
-            if ($invoiceBranchesEnabled && $request->filled('branch_id')) {
-                $recruitmentInvoicesQuery->where('branch_id', $request->branch_id);
-            }
+            $this->applyRequestBranchFilter($recruitmentInvoicesQuery, $request, 'invoices');
 
             $recruitmentInvoices = $recruitmentInvoicesQuery
                 ->latest()
@@ -84,11 +82,7 @@ class InvoiceController extends Controller
             }
 
             $rentalInvoicesQuery = RentalContractInvoice::with($rentalRelations);
-            if ($rentalBranchesEnabled && $request->filled('branch_id')) {
-                $rentalInvoicesQuery->whereHas('rentalContract', function ($query) use ($request) {
-                    $query->where('branch_id', $request->branch_id);
-                });
-            }
+            $this->applyRequestBranchFilter($rentalInvoicesQuery, $request, 'rental_contract_invoices');
 
             $rentalInvoices = $rentalInvoicesQuery
                 ->latest()
@@ -1486,6 +1480,7 @@ class InvoiceController extends Controller
             'musanedTransferItem.transfer',
             'financeSale.zatca',
         ])->findOrFail($id);
+        $this->assertCanAccessBranchModel($invoice, 'invoices');
 
         $settings = Setting::query()->first();
         $documentBranding = documentBranding();

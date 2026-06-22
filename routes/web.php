@@ -394,7 +394,13 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin', 'admin.route.p
         Route::put('cities/{city}', [CountryController::class, 'updateCity'])->name('cities.update');
         Route::delete('cities/{city}', [CountryController::class, 'destroyCity'])->name('cities.destroy');
 
+        Route::get('branches/report', [BranchController::class, 'report'])->name('branches.report');
         Route::get('branches/settings', [BranchController::class, 'settings'])->name('branches.settings');
+        Route::post('branches/{branch}/assign-manager', [BranchController::class, 'assignManager'])->name('branches.assign-manager');
+        Route::get('branches/{branch}/admins', [BranchController::class, 'branchAdmins'])->name('branches.admins');
+        Route::get('branches/{branch}/available-admins', [BranchController::class, 'availableAdmins'])->name('branches.available-admins');
+        Route::post('branches/{branch}/assign-admin', [BranchController::class, 'assignAdmin'])->name('branches.assign-admin');
+        Route::post('branches/{branch}/remove-admin', [BranchController::class, 'removeAdmin'])->name('branches.remove-admin');
         Route::resource('branches', BranchController::class)->except(['show']);
 
         // API routes للدول والمدن

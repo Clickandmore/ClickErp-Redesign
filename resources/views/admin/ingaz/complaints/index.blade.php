@@ -255,6 +255,7 @@
                 </h5>
 
                 <div class="row">
+                    @include('admin.partials.branch-filter', ['id' => 'branchFilter', 'containerClass' => 'col-md-2 mb-3'])
                     <div class="col-md-2 mb-3">
                         <label class="filter-label">{{ __('ingaz.ticket_number') }}</label>
                         <input type="text" id="filterTicketNumber" class="form-control" placeholder="#000000">
@@ -542,6 +543,7 @@
                     url: "{{ route('complaints.index') }}",
                     type: 'GET',
                     data: function (d) {
+                        d.branch_id = $('#branchFilter').val();
                         d.ticket_number = $('#filterTicketNumber').val();
                         d.status = $('#filterStatus').val();
                         d.priority = $('#filterPriority').val();
@@ -712,6 +714,7 @@
 
             // Reset filters
             $('#resetFilters').click(function () {
+                $('#branchFilter').val('');
                 $('#filterTicketNumber').val('');
                 $('#filterStatus').val('');
                 $('#filterPriority').val('');
@@ -859,6 +862,7 @@
                     url: "{{ route('complaints.cards') }}",
                     type: 'GET',
                     data: {
+                        branch_id: $('#branchFilter').val(),
                         status: $('#filterStatus').val(),
                         priority: $('#filterPriority').val(),
                         type: $('#filterType').val(),
@@ -946,6 +950,7 @@
             // Export data
             $('#exportData').click(function () {
                 window.location.href = "{{ route('complaints.index') }}?export=excel&" + $.param({
+                    branch_id: $('#branchFilter').val(),
                     status: $('#filterStatus').val(),
                     priority: $('#filterPriority').val(),
                     type: $('#filterType').val(),

@@ -52,7 +52,7 @@ class AdminController extends Controller
     {
         if ($request->ajax()) {
             $branchesEnabled = SystemModuleManager::isEnabled('branches');
-            $dataTable = ObjModel::query()->with(['role', 'branch'])->orderBy('id', 'asc');
+            $dataTable = ObjModel::query()->with(['role', 'branch', 'agentOffices'])->orderBy('id', 'asc');
 
             // Filters
             if ($request->filled('admin_type')) {
@@ -106,6 +106,22 @@ class AdminController extends Controller
 
                     return $row->branch ? e($row->branch->name) : '-';
                 })
+                ->addColumn('offices', function ($row) {
+                    if ($row->agentOffices->isEmpty()) {
+                        return '-';
+                    }
+
+                    $names = $row->agentOffices->map(function ($o) {
+                        $name = optional($o->translate(app()->getLocale()))->title
+                            ?: optional($o->translate('en'))->title
+                            ?: optional($o->translate('ar'))->title
+                            ?: $o->manager_name
+                            ?: '#' . $o->id;
+                        return '<span class="badge bg-info-subtle text-info me-1">' . e($name) . '</span>';
+                    })->implode('');
+
+                    return $names;
+                })
                 ->editColumn('phone', function ($row) {
                     return $row->contact_phone ?? '-';
                 })
@@ -150,7 +166,7 @@ class AdminController extends Controller
                         ? '<span title="' . e($row->current_session_user_agent) . '">' . e(Str::limit($row->current_session_user_agent, 70)) . '</span>'
                         : '-';
                 })
-                ->addColumn('actions', function ($row) {
+                ->addColumn('actions', function ($row) use ($branchesEnabled) {
                     $menuItems = [];
 
                     if ($row->trashed()) {
@@ -210,6 +226,33 @@ class AdminController extends Controller
                             . ' model-route="' . route($this->mainRoute . ".edit", $row->id) . '"'
                             . ' model-title="' . e(__("buttons.edit") . ' ' . $row->name) . '">'
                             . '<i class="fa fa-edit"></i> ' . __('buttons.edit')
+                            . '</button></li>';
+
+                        $menuItems[] = '<li><button type="button" class="dropdown-item text-primary admin-quick-role-button"'
+                            . ' data-id="' . $row->id . '"'
+                            . ' data-name="' . e($row->name) . '"'
+                            . ' data-role-id="' . ($row->role_id ?: '') . '"'
+                            . ' data-assign-route="' . route($this->mainRoute . ".quick-assign-role", $row->id) . '">'
+                            . '<i class="fa fa-shield"></i> ' . __('admin.role_id')
+                            . '</button></li>';
+
+                        if ($branchesEnabled) {
+                            $menuItems[] = '<li><button type="button" class="dropdown-item text-success admin-quick-branch-button"'
+                                . ' data-id="' . $row->id . '"'
+                                . ' data-name="' . e($row->name) . '"'
+                                . ' data-branch-id="' . ($row->branch_id ?: '') . '"'
+                                . ' data-assign-route="' . route($this->mainRoute . ".quick-assign-branch", $row->id) . '">'
+                                . '<i class="fa fa-building-o"></i> ' . __('admin.branches')
+                                . '</button></li>';
+                        }
+
+                        $currentOfficeIds = $row->agentOffices->pluck('id')->toJson();
+                        $menuItems[] = '<li><button type="button" class="dropdown-item text-warning admin-quick-office-button"'
+                            . ' data-id="' . $row->id . '"'
+                            . ' data-name="' . e($row->name) . '"'
+                            . ' data-office-ids=\'' . $currentOfficeIds . '\''
+                            . ' data-assign-route="' . route($this->mainRoute . ".quick-assign-office", $row->id) . '">'
+                            . '<i class="fa fa-briefcase"></i> المكاتب الخارجية'
                             . '</button></li>';
                     }
 
@@ -297,6 +340,15 @@ class AdminController extends Controller
             ->whereNull('deleted_at')
             ->where('status', 'active')
             ->orderBy('name')
+            ->get();
+        $data["roles"] = $this->adminRolesQuery()->get(['id', 'name']);
+        $data["recruitmentOffices"] = DB::table('recruitment_offices')
+            ->leftJoin('recruitment_office_translations as t', function ($j) {
+                $j->on('t.rec_office_id', '=', 'recruitment_offices.id')
+                  ->where('t.locale', app()->getLocale());
+            })
+            ->select('recruitment_offices.id', DB::raw('COALESCE(t.title, recruitment_offices.manager_name, CONCAT("#", recruitment_offices.id)) as label'))
+            ->orderBy('recruitment_offices.id')
             ->get();
         return view($this->folderPath . '.index', $data);
     }
@@ -904,6 +956,75 @@ class AdminController extends Controller
             return jsonSuccess(null, __("auth.password"), 402);
         }
         return jsonSuccess(null, __("auth.failed email"), 401);
+    }
+
+    public function quickAssignRole(Request $request, $id)
+    {
+        $this->authorize('users_edit');
+        $admin = ObjModel::findOrFail($id);
+
+        $validator = Validator::make($request->all(), [
+            'role_id' => ['nullable', 'integer', 'exists:roles,id'],
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['message' => $validator->errors()->first()], 422);
+        }
+
+        DB::transaction(function () use ($admin, $request) {
+            $admin->syncRoles($request->filled('role_id') ? [$request->role_id] : []);
+            $admin->update(['role_id' => $request->filled('role_id') ? $request->role_id : null]);
+        });
+
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
+        return response()->json(['message' => __('admin.updated')]);
+    }
+
+    public function quickAssignOffice(Request $request, $id)
+    {
+        $this->authorize('users_edit');
+        $admin = ObjModel::findOrFail($id);
+
+        $validator = Validator::make($request->all(), [
+            'office_ids'   => ['nullable', 'array'],
+            'office_ids.*' => ['integer'],
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['message' => $validator->errors()->first()], 422);
+        }
+
+        $ids = collect($request->input('office_ids', []))->filter()->unique()->values();
+
+        DB::table('admin_offices')->where('admin_id', $admin->id)->delete();
+
+        if ($ids->isNotEmpty()) {
+            $rows = $ids->map(fn ($oid) => [
+                'admin_id'   => $admin->id,
+                'office_id'  => $oid,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ])->toArray();
+            DB::table('admin_offices')->insert($rows);
+        }
+
+        return response()->json(['message' => __('admin.updated')]);
+    }
+
+    public function quickAssignBranch(Request $request, $id)
+    {
+        $this->authorize('users_edit');
+        $admin = ObjModel::findOrFail($id);
+
+        $validator = Validator::make($request->all(), [
+            'branch_id' => ['nullable', 'integer', 'exists:branches,id'],
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['message' => $validator->errors()->first()], 422);
+        }
+
+        $admin->update(['branch_id' => $request->filled('branch_id') ? $request->branch_id : null]);
+
+        return response()->json(['message' => __('admin.updated')]);
     }
 
     private function defaultAdminRedirectUrl($admin): string

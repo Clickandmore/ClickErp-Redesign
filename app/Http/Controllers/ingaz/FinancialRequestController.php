@@ -120,6 +120,7 @@ class FinancialRequestController extends Controller
 
     public function destroy(FinancialRequest $financialRequest)
     {
+        abort_unless($this->canAccessRequest($financialRequest), 403);
         abort_unless(AdminGuardHasAnyPerm([(\App\PermKeys::FINANCIAL_REQUESTS_DELETE), \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]), 403);
 
         $financialRequest->delete();
@@ -138,7 +139,7 @@ class FinancialRequestController extends Controller
             'payment_type' => ['nullable', 'integer', Rule::in(array_map(fn (BondPaymentTypes $type) => $type->value, BondPaymentTypes::cases()))],
         ]);
 
-        abort_unless($this->canUpdateStatus($financialRequest, $data), 403);
+        abort_unless($this->canAccessRequest($financialRequest) && $this->canUpdateStatus($financialRequest, $data), 403);
 
         DB::transaction(function () use ($financialRequest, $data, $bondService, $yearService) {
             $payload = [
@@ -264,6 +265,8 @@ class FinancialRequestController extends Controller
             return response()->json(['found' => false], 404);
         }
 
+        $this->assertCanAccessBranchModel($contract);
+
         $isRental = $contract instanceof RentalContract;
         $info = $contract->info;
         $maid = $contract->maid;
@@ -290,6 +293,7 @@ class FinancialRequestController extends Controller
         abort_unless(AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_EXPORT, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]), 403);
 
         $query = FinancialRequest::query()->with('creator')->latest();
+        $this->applyRequestBranchFilter($query, $request, 'financial_requests');
         $this->applyFilters($query, $request);
 
         $headers = [
@@ -328,6 +332,7 @@ class FinancialRequestController extends Controller
         abort_unless(AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_EXPORT, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]), 403);
 
         $query = FinancialRequest::query()->with('creator')->latest();
+        $this->applyRequestBranchFilter($query, $request, 'financial_requests');
         $this->applyFilters($query, $request);
 
         return view('admin.ingaz.financial_requests.print', [
@@ -551,7 +556,8 @@ class FinancialRequestController extends Controller
 
     private function canEdit(FinancialRequest $financialRequest): bool
     {
-        return $financialRequest->status !== FinancialRequest::STATUS_PAID
+        return $this->canAccessRequest($financialRequest)
+            && $financialRequest->status !== FinancialRequest::STATUS_PAID
             && AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_EDIT, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]);
     }
 

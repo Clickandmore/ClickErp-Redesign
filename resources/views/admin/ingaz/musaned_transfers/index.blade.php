@@ -20,6 +20,16 @@
             <div class="alert alert-success">{{ session('success') }}</div>
         @endif
 
+        <form method="GET" class="mb-3">
+            <div class="row g-3 align-items-end">
+                @include('admin.partials.branch-filter', ['id' => 'branchFilter', 'containerClass' => 'col-md-3'])
+                <div class="col-md-2">
+                    <button class="btn btn-dark w-100" type="submit">
+                        <i class="fas fa-filter me-1"></i>تصفية
+                    </button>
+                </div>
+            </div>
+        </form>
         <div class="card shadow-sm">
             <div class="card-body p-0">
                 <div class="table-responsive">

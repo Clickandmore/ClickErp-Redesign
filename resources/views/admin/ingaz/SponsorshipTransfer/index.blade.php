@@ -267,6 +267,7 @@
             <div class="collapse" id="filtersCollapse">
                 <div class="card-body">
                     <div class="row g-3">
+                        @include('admin.partials.branch-filter', ['id' => 'branchFilter', 'containerClass' => 'col-md-3'])
                         <div class="col-md-3">
                             <label for="statusFilter" class="form-label">{{helperTrans("ingaz.status")}}</label>
                             <select class="form-select" id="statusFilter">
@@ -428,6 +429,7 @@
                 ajax: {
                     url: '{{ route("SponsorshipTransfer.index") }}',
                     data: function(d) {
+                        d.branch_id = $('#branchFilter').val();
                         d.status = $('#statusFilter').val();
                         d.date_from = $('#dateFromFilter').val();
                         d.date_to = $('#dateToFilter').val();
@@ -475,6 +477,7 @@
 
             // مسح الفلاتر
             $('#clearFiltersBtn').click(function() {
+                $('#branchFilter').val('');
                 $('#statusFilter').val('');
                 $('#dateFromFilter').val('');
                 $('#dateToFilter').val('');

@@ -88,6 +88,7 @@
                             <label class="form-label">التاريخ</label>
                             <input type="date" name="date" value="{{ request('date') }}" class="form-control">
                         </div>
+                        @include('admin.partials.branch-filter', ['id' => 'branchFilter', 'containerClass' => 'col-md-2'])
                         <div class="col-md-1 d-flex align-items-end">
                             <button class="btn btn-dark w-100" type="submit"><i class="fa fa-search"></i></button>
                         </div>

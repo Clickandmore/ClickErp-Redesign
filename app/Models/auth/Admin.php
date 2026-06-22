@@ -22,6 +22,7 @@ class Admin extends Authenticatable
     protected $guard_name = 'admin';
     protected $casts = [
         'branch_id' => 'integer',
+        'is_branch_manager' => 'boolean',
         'last_login_at' => 'datetime',
         'last_activity_at' => 'datetime',
     ];

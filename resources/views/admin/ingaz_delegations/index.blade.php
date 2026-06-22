@@ -119,6 +119,7 @@
             <div class="card shadow-sm border-0 mb-4 filter-card">
                 <div class="card-body">
                     <form method="GET" id="delegations-filter-form" class="row g-3">
+                        @include('admin.partials.branch-filter', ['id' => 'branchFilter', 'containerClass' => 'col-md-2'])
                         <div class="col-md-4">
                             <label class="form-label">بحث</label>
                             <input type="text" name="search" value="{{ request('search') }}" class="form-control"
@@ -214,6 +215,7 @@
                     url: "{{ route('ingaz-delegations.index') }}",
                     type: 'GET',
                     data: function (d) {
+                        d.branch_id = $('#branchFilter').val();
                         d.global_search = $('input[name="search"]').val();
                         d.country_id = $('select[name="country_id"]').val();
                         d.client_source_type = $('select[name="client_source_type"]').val();

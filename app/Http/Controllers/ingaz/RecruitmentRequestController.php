@@ -39,8 +39,11 @@ class RecruitmentRequestController extends Controller
 
         if ($request->ajax()) {
             $rows = objModel::query()
-                ->with(['client', 'religion'])
-                ->when($request->filled('status'), function ($query) use ($request) {
+                ->with(['client', 'religion']);
+
+            $this->applyRequestBranchFilter($rows, $request, 'recruitment_requests');
+
+            $rows->when($request->filled('status'), function ($query) use ($request) {
                     $query->where('status', $request->get('status'));
                 })
                 ->when($request->filled('jobTitle'), function ($query) use ($request) {
@@ -199,6 +202,7 @@ class RecruitmentRequestController extends Controller
         abort_unless(@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT), 403);
 
         $contract = objModel::with('client')->findOrFail($id);
+        $this->assertCanAccessBranchModel($contract, 'recruitment_requests');
 
         // لو جاي من toggle status
         if ($request->has('status')) {
@@ -247,8 +251,8 @@ public function show($id)
 {
    abort_unless(@AdminGuardHasPerm(\App\PermKeys::RECRUITMENT_REQUESTS_VIEW), 403);
 
-   // جلب الطلب مع العميل والمساعدة (Maid) ونوع الوظيفة (JobType)
     $recruitmentRequest = objModel::with(['client', 'maid'])->findOrFail($id);
+    $this->assertCanAccessBranchModel($recruitmentRequest, 'recruitment_requests');
 
     // تحديث حالة القراءة إذا لم يكن قد تم قراءته من قبل
     if (!$recruitmentRequest->is_read) {
@@ -264,6 +268,9 @@ public function show($id)
     public function destroy($id, objAction $action)
     {
         abort_unless(@AdminGuardHasPerm(\App\PermKeys::ORDERS_DELETE), 403);
+
+        $record = objModel::findOrFail($id);
+        $this->assertCanAccessBranchModel($record, 'recruitment_requests');
 
         $action->delete($id);
         return jsonSuccess(['success' => true]);

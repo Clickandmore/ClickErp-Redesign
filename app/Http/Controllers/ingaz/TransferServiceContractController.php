@@ -156,6 +156,7 @@ class TransferServiceContractController extends Controller
             'oldSponsor',
             'newSponsor'
         ])->findOrFail($transferId);
+        $this->assertCanAccessBranchModel($transfer);
 
         // التحقق من أن الحالة تسمح بإنشاء عقد
         if (!$transfer->canCreateContract()) {
@@ -194,6 +195,7 @@ class TransferServiceContractController extends Controller
 
             $transfer = SponsorshipTransfer::with(['contract.maid', 'oldSponsor', 'newSponsor'])
                 ->findOrFail($request->sponsorship_transfer_id);
+            $this->assertCanAccessBranchModel($transfer);
 
             // إنشاء عقد نقل الخدمات
             $contract = TransferServiceContract::create([
@@ -238,6 +240,8 @@ class TransferServiceContractController extends Controller
      */
     public function show(TransferServiceContract $transferServiceContract)
     {
+        $this->assertCanAccessBranchModel($transferServiceContract);
+
         $transferServiceContract->load([
             'sponsorshipTransfer',
             'contract.maid.nationality',
@@ -259,6 +263,8 @@ class TransferServiceContractController extends Controller
      */
     public function edit(TransferServiceContract $transferServiceContract)
     {
+        $this->assertCanAccessBranchModel($transferServiceContract);
+
         // يمكن تحرير العقد فقط إذا كان في حالة مسودة
         if ($transferServiceContract->status !== 'draft') {
             return redirect()->route('TransferServiceContract.show', $transferServiceContract->id)
@@ -279,6 +285,8 @@ class TransferServiceContractController extends Controller
      */
     public function update(Request $request, TransferServiceContract $transferServiceContract)
     {
+        $this->assertCanAccessBranchModel($transferServiceContract);
+
         // يمكن تحديث العقد فقط إذا كان في حالة مسودة
         if ($transferServiceContract->status !== 'draft') {
             return response()->json([
@@ -329,6 +337,8 @@ class TransferServiceContractController extends Controller
      */
     public function destroy(TransferServiceContract $transferServiceContract)
     {
+        $this->assertCanAccessBranchModel($transferServiceContract);
+
         // يمكن حذف العقد فقط إذا كان في حالة مسودة
         if ($transferServiceContract->status !== 'draft') {
             return response()->json([
@@ -358,6 +368,8 @@ class TransferServiceContractController extends Controller
      */
     public function print(TransferServiceContract $transferServiceContract)
     {
+        $this->assertCanAccessBranchModel($transferServiceContract);
+
         $transferServiceContract->load([
             'sponsorshipTransfer',
             'contract.maid.nationality',

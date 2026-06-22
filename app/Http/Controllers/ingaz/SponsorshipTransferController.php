@@ -325,6 +325,7 @@ class SponsorshipTransferController extends Controller
         abort_unless(@AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_WEB_REQUESTS_VIEW), 403);
 
         $baseQuery = Order::query()->where('job_type_id', 3);
+        $this->applyRequestBranchFilter($baseQuery, $request, 'orders');
         $statistics = [
             'new' => (clone $baseQuery)->where('status', 'new')->count(),
             'paid' => (clone $baseQuery)->where('status', 'paid')->count(),
@@ -342,6 +343,7 @@ class SponsorshipTransferController extends Controller
             $query = Order::with(['user', 'maid.nationality', 'details.admin'])
                 ->where('job_type_id', 3) // طلبات نقل الكفالة
                 ->orderBy('created_at', 'desc');
+            $this->applyRequestBranchFilter($query, $request, 'orders');
 
             return DataTables::of($query)
                 ->addIndexColumn()
@@ -448,6 +450,7 @@ class SponsorshipTransferController extends Controller
         $order = Order::with(['user', 'maid.nationality', 'details.admin'])
             ->where('job_type_id', 3)
             ->findOrFail($id);
+        $this->assertCanAccessBranchModel($order);
 
                 return view($this->folderPath . '.show-web-request', compact('order'));
     }
@@ -462,17 +465,22 @@ class SponsorshipTransferController extends Controller
         // إذا تم تمرير order_id، نجلب تفاصيل الطلب
         if ($orderId) {
             $selectedOrder = Order::with(['maid', 'user'])->find($orderId);
+            if ($selectedOrder) {
+                $this->assertCanAccessBranchModel($selectedOrder);
+            }
 
             // إذا كان الطلب موجوداً وله عاملة، نبحث عن العقد المناسب
             if ($selectedOrder && $selectedOrder->maid) {
                 // البحث عن العقد الذي يحتوي على هذه العاملة في الإيواء
-                $matchingContract = Contract::with(['maid', 'user', 'info'])
+                $matchingContractQuery = Contract::with(['maid', 'user', 'info'])
                     ->where('maid_id', $selectedOrder->maid_id)
                     ->where('status', \App\Enums\ingaz\ContractStatusEnum::Shelter->value)
                     ->whereHas('info', function($query) {
                         $query->where('wants_to_work', 'yes');
                     })
-                    ->first();
+                    ;
+                $this->applyRequestBranchFilter($matchingContractQuery, request(), 'contracts');
+                $matchingContract = $matchingContractQuery->first();
 
                 if ($matchingContract) {
                     $selectedContractId = $matchingContract->id;
@@ -493,13 +501,14 @@ class SponsorshipTransferController extends Controller
         }
 
         // جلب العقود المتاحة للنقل (العقود داخل الإيواء مع work_willingness = 'yes')
-        $contracts = Contract::with(['maid', 'user', 'info'])
+        $contractsQuery = Contract::with(['maid', 'user', 'info'])
             ->where('status', \App\Enums\ingaz\ContractStatusEnum::Shelter->value)
             ->whereHas('info', function($query) {
                 $query->where('wants_to_work', 'yes');
             })
-            ->latest()
-            ->get();
+            ;
+        $this->applyRequestBranchFilter($contractsQuery, request(), 'contracts');
+        $contracts = $contractsQuery->latest()->get();
 
         return view($this->folderPath . '.create', compact('contracts', 'selectedContractId', 'selectedOrder', 'selectedNewSponsorId', 'selectedNewSponsor'));
     }
@@ -569,6 +578,9 @@ class SponsorshipTransferController extends Controller
             }
 
             $contract = Contract::with('info')->find($validated['contract_id']);
+            if ($contract) {
+                $this->assertCanAccessBranchModel($contract);
+            }
 
             if (!$contract) {
                 return response()->json([
@@ -590,6 +602,9 @@ class SponsorshipTransferController extends Controller
             $newSponsor = $validated['new_sponsor_mode'] === 'existing'
                 ? User::find($validated['new_sponsor_id'])
                 : $this->findOrCreateNewSponsor($validated);
+            if ($newSponsor) {
+                $this->assertCanAccessBranchModel($newSponsor);
+            }
 
             if (!$newSponsor) {
                 throw ValidationException::withMessages([
@@ -683,6 +698,7 @@ class SponsorshipTransferController extends Controller
             'transferredBy',
             'failedBy'
         ])->findOrFail($id);
+        $this->assertCanAccessBranchModel($transfer);
 
         return view($this->folderPath . '.show', compact('transfer'));
     }
@@ -695,18 +711,20 @@ class SponsorshipTransferController extends Controller
         abort_unless(@AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_EDIT), 403);
 
         $transfer = SponsorshipTransfer::with(['contract.maid.nationality', 'oldSponsor', 'newSponsor'])->findOrFail($id);
+        $this->assertCanAccessBranchModel($transfer);
 
         if (!$transfer->canEditDetails()) {
             return redirect()->back()->with('error', 'لا يمكن تحرير هذا الطلب');
         }
 
         // جلب العقود المتاحة للنقل
-        $contracts = Contract::with(['maid', 'user', 'info'])
+        $contractsQuery = Contract::with(['maid', 'user', 'info'])
             ->whereHas('info', function($query) {
                 $query->where('wants_to_work', 'yes');
             })
-            ->latest()
-            ->get();
+            ;
+        $this->applyRequestBranchFilter($contractsQuery, request(), 'contracts');
+        $contracts = $contractsQuery->latest()->get();
 
         $isEditMode = true;
         $selectedContractId = $transfer->contract_id;
@@ -734,6 +752,7 @@ class SponsorshipTransferController extends Controller
 
         try {
             $transfer = SponsorshipTransfer::findOrFail($id);
+            $this->assertCanAccessBranchModel($transfer);
 
             if (!$transfer->canEditDetails()) {
                 return response()->json([
@@ -772,6 +791,9 @@ class SponsorshipTransferController extends Controller
             }
 
             $contract = Contract::with('info')->find($validated['contract_id']);
+            if ($contract) {
+                $this->assertCanAccessBranchModel($contract);
+            }
 
             if (!$contract || !$contract->info || $contract->info->wants_to_work !== 'yes') {
                 return response()->json([
@@ -785,6 +807,9 @@ class SponsorshipTransferController extends Controller
             $newSponsor = $validated['new_sponsor_mode'] === 'existing'
                 ? User::find($validated['new_sponsor_id'])
                 : $this->findOrCreateNewSponsor($validated);
+            if ($newSponsor) {
+                $this->assertCanAccessBranchModel($newSponsor);
+            }
 
             if (!$newSponsor) {
                 throw ValidationException::withMessages([
@@ -869,6 +894,7 @@ class SponsorshipTransferController extends Controller
     {
         try {
             $transfer = SponsorshipTransfer::findOrFail($id);
+            $this->assertCanAccessBranchModel($transfer);
 
             if ($transfer->status !== 'pending') {
                 return response()->json([
@@ -904,6 +930,7 @@ class SponsorshipTransferController extends Controller
     {
         try {
             $transfer = SponsorshipTransfer::findOrFail($id);
+            $this->assertCanAccessBranchModel($transfer);
 
             if ($transfer->status !== 'pending') {
                 return response()->json([
@@ -937,6 +964,7 @@ class SponsorshipTransferController extends Controller
     {
         try {
             $transfer = SponsorshipTransfer::findOrFail($id);
+            $this->assertCanAccessBranchModel($transfer);
 
             if ($transfer->status !== 'approved') {
                 return response()->json([
@@ -973,6 +1001,7 @@ class SponsorshipTransferController extends Controller
 
         try {
             $transfer = SponsorshipTransfer::findOrFail($id);
+            $this->assertCanAccessBranchModel($transfer);
 
             if (!$transfer->canDeleteDetails()) {
                 return response()->json([
@@ -1003,7 +1032,7 @@ class SponsorshipTransferController extends Controller
     {
         $search = trim((string) $request->input('search'));
 
-        $clients = User::query()
+        $clientsQuery = User::query()
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($subQuery) use ($search) {
                     $subQuery->where('name', 'LIKE', "%{$search}%")
@@ -1014,7 +1043,9 @@ class SponsorshipTransferController extends Controller
             ->select('id', 'name', 'national_num', 'client_type', 'tax_number', 'license_number', 'phone', 'phone_code', 'city')
             ->latest('id')
             ->limit(10)
-            ->get();
+            ;
+        $this->applyRequestBranchFilter($clientsQuery, $request, 'users');
+        $clients = $clientsQuery->get();
 
         $results = $clients->map(function ($client) {
             $phone = trim((string) (($client->phone_code ?? '') . $client->phone));
@@ -1120,6 +1151,7 @@ class SponsorshipTransferController extends Controller
     {
         try {
             $transfer = SponsorshipTransfer::with(['contract.info', 'transferServiceContract'])->findOrFail($id);
+            $this->assertCanAccessBranchModel($transfer);
 
             if ($transfer->status !== 'trial_started' && $transfer->status !== 'trial') {
                 return response()->json([
@@ -1194,6 +1226,7 @@ class SponsorshipTransferController extends Controller
 
         try {
             $transfer = SponsorshipTransfer::with(['contract.info', 'transferServiceContract'])->findOrFail($id);
+            $this->assertCanAccessBranchModel($transfer);
 
             if ($transfer->status !== 'trial_started' && $transfer->status !== 'trial') {
                 return response()->json([
@@ -1303,6 +1336,7 @@ class SponsorshipTransferController extends Controller
 
         try {
             $order = Order::findOrFail($id);
+            $this->assertCanAccessBranchModel($order);
 
             if (!in_array($order->status, ['new', 'paid'])) {
                 return response()->json([
@@ -1369,6 +1403,7 @@ class SponsorshipTransferController extends Controller
 
         $baseQuery = SponsorshipTransfer::query()
             ->whereIn('status', $pageConfig['statuses']);
+        $this->applyRequestBranchFilter($baseQuery, $request, 'sponsorship_transfers');
 
         $this->applyStatusListingFilters($baseQuery, $request, $page);
 
@@ -1723,6 +1758,7 @@ class SponsorshipTransferController extends Controller
     {
         try {
             $transfer = SponsorshipTransfer::findOrFail($id);
+            $this->assertCanAccessBranchModel($transfer);
 
             // التحقق من الحالة
             if (!$transfer->canSendContract()) {
@@ -1766,6 +1802,7 @@ class SponsorshipTransferController extends Controller
     {
         try {
             $transfer = SponsorshipTransfer::findOrFail($id);
+            $this->assertCanAccessBranchModel($transfer);
 
             // التحقق من الحالة
             if (!$transfer->canSignContract()) {
@@ -1810,6 +1847,7 @@ class SponsorshipTransferController extends Controller
     {
         try {
             $transfer = SponsorshipTransfer::with(['transferServiceContract', 'contract'])->findOrFail($id);
+            $this->assertCanAccessBranchModel($transfer);
 
             // التحقق من الحالة
             if (!$transfer->canDeliverMaid()) {
@@ -1923,6 +1961,7 @@ class SponsorshipTransferController extends Controller
     {
         try {
             $transfer = SponsorshipTransfer::with(['transferServiceContract', 'contract'])->findOrFail($id);
+            $this->assertCanAccessBranchModel($transfer);
 
             // إضافة logging للتشخيص
             \Log::info('Start Trial - Transfer ID: ' . $id . ', Current Status: ' . $transfer->status);
@@ -1993,6 +2032,7 @@ class SponsorshipTransferController extends Controller
             'oldSponsor',
             'newSponsor'
         ])->findOrFail($id);
+        $this->assertCanAccessBranchModel($transfer);
 
         // جلب بنود العقد
         $contractTerms = \App\Models\TransferContractTerm::active()
@@ -2025,6 +2065,7 @@ class SponsorshipTransferController extends Controller
             'oldSponsor',
             'newSponsor'
         ])->findOrFail($id);
+        $this->assertCanAccessBranchModel($transfer);
 
         // التحقق من الحالة
         if (!in_array($transfer->status, ['maid_delivered', 'trial_started'], true)) {
@@ -2043,6 +2084,7 @@ class SponsorshipTransferController extends Controller
         try {
             // التحقق من وجود طلب النقل
             $transfer = SponsorshipTransfer::findOrFail($id);
+            $this->assertCanAccessBranchModel($transfer);
 
             // التحقق من الحالة - يجب أن يكون العقد مُرسل
             if ($transfer->status !== 'contract_sent') {
@@ -2123,6 +2165,7 @@ class SponsorshipTransferController extends Controller
         try {
             // التحقق من وجود طلب النقل
             $transfer = SponsorshipTransfer::findOrFail($id);
+            $this->assertCanAccessBranchModel($transfer);
 
             // التحقق من البيانات المرسلة
             $request->validate([

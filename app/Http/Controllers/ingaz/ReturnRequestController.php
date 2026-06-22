@@ -34,6 +34,7 @@ class ReturnRequestController extends Controller
     {
         if ($request->ajax()) {
             $rows = $this->buildBaseQuery();
+            $this->applyRequestBranchFilter($rows, $request, 'orders');
             $this->applyFilters($rows, $request);
             $rows->orderByDesc('created_at');
 
@@ -328,6 +329,7 @@ class ReturnRequestController extends Controller
                 'details.package',
                 'details.address'
             ])->withTrashed()->findOrFail($id);
+            $this->assertCanAccessBranchModel($obj, 'orders');
 
             $returnHTML = view($this->folderPath . '.edit')
                 ->with(['obj' => $obj])->render();
@@ -352,6 +354,7 @@ class ReturnRequestController extends Controller
             ]);
 
             $order = Order::withTrashed()->findOrFail($id);
+            $this->assertCanAccessBranchModel($order, 'orders');
 
             if ($order->trashed()) {
                 return jsonError('لا يمكن تعديل حالة طلب محذوف. قم باستعادته أولاً.', 422);
@@ -412,6 +415,7 @@ class ReturnRequestController extends Controller
     public function destroy(Request $request, $id, objAction $action)
     {
         $order = Order::withTrashed()->findOrFail($id);
+        $this->assertCanAccessBranchModel($order, 'orders');
 
         if ($order->trashed()) {
             return jsonError('الطلب محذوف بالفعل. استخدم الاستعادة لإرجاعه إلى حالته السابقة.', 422);
@@ -426,6 +430,7 @@ class ReturnRequestController extends Controller
     {
         try {
             $order = Order::withTrashed()->findOrFail($id);
+            $this->assertCanAccessBranchModel($order, 'orders');
             $order->restore();
 
             Notification::create([
@@ -446,6 +451,7 @@ class ReturnRequestController extends Controller
     {
         try {
             $order = Order::withTrashed()->findOrFail($id);
+            $this->assertCanAccessBranchModel($order, 'orders');
 
             if ($order->trashed()) {
                 return jsonError('الطلب محذوف. استخدم استعادة الطلب أولاً.', 422);

@@ -326,13 +326,14 @@ class MusanedTransferController extends Controller
                 'createdBy',
             ])
             ->findOrFail($id);
+        $this->assertCanAccessBranchModel($transfer);
 
         return view('admin.ingaz.musaned_transfers.show', compact('transfer'));
     }
 
     private function getEligibleInvoicesQuery()
     {
-        return Invoice::query()
+        $query = Invoice::query()
             ->with([
                 'contract.user',
                 'contract.info',
@@ -348,6 +349,10 @@ class MusanedTransferController extends Controller
                 $query->whereHas('contract')
                     ->orWhereHas('ingazDelegation');
             });
+
+        $this->applyRequestBranchFilter($query, request(), 'invoices');
+
+        return $query;
     }
 
     private function getBankAccounts()

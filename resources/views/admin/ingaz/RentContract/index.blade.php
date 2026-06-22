@@ -670,17 +670,7 @@
                             @endforeach
                         </select>
                     </div>
-                    @if ($branchesEnabled ?? false)
-                        <div class="col-md-3">
-                            <label for="branchFilter" class="form-label">{{ __('admin.branches') }}:</label>
-                            <select id="branchFilter" class="form-select">
-                                <option value="">{{ helperTrans('ingaz.all') }}</option>
-                                @foreach ($branches ?? collect() as $branch)
-                                    <option value="{{ $branch->id }}">{{ $branch->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    @endif
+                    @include('admin.partials.branch-filter', ['id' => 'branchFilter', 'containerClass' => 'col-md-3'])
                     <div class="col-md-3">
                         <label for="extensionFilter" class="form-label">حالة التمديد:</label>
                         <select id="extensionFilter" class="form-select">

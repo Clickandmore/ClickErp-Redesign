@@ -134,9 +134,7 @@ class RentContractController extends Controller
                 $query->where('marketer_id', $request->marketer_id);
             }
 
-            if ($branchesEnabled && $request->filled('branch_id')) {
-                $query->where('branch_id', $request->branch_id);
-            }
+            $this->applyRequestBranchFilter($query, $request, 'rental_contracts');
 
             if ($request->filled('client_phone')) {
                 $phone = $request->client_phone;
@@ -851,6 +849,7 @@ class RentContractController extends Controller
             'extensions',
             'financialAdjustments',
         ])->findOrFail($id);
+        $this->assertCanAccessBranchModel($contract, 'rental_contracts');
 
         $availableReplacementMaids = $this->getAvailableRentalMaidsQuery()
             ->when($contract->maid_id, function ($query) use ($contract) {
@@ -1033,6 +1032,7 @@ class RentContractController extends Controller
     public function edit($id)
     {
         $contract = RentalContract::with(['user', 'maid', 'info', 'marketer'])->findOrFail($id);
+        $this->assertCanAccessBranchModel($contract, 'rental_contracts');
 
         // الحصول على العاملات المتاحة من نوع تأجير
         $availableRentalMaids = $this->getAvailableRentalMaidsQuery($contract->maid_id)->get();
@@ -1064,6 +1064,7 @@ class RentContractController extends Controller
             DB::beginTransaction();
 
             $contract = RentalContract::with(['user', 'info'])->findOrFail($id);
+            $this->assertCanAccessBranchModel($contract, 'rental_contracts');
 
             // تحديث بيانات العميل
             $contract->user->update($contract->user->clientTypeAwarePayload([
@@ -1231,6 +1232,7 @@ class RentContractController extends Controller
             DB::beginTransaction();
 
             $contract = RentalContract::with(['maid'])->findOrFail($id);
+            $this->assertCanAccessBranchModel($contract, 'rental_contracts');
             $releasedMaidId = $contract->maid_id;
 
             // حذف العقد (سيحذف معلومات العقد تلقائياً بسبب cascade)
