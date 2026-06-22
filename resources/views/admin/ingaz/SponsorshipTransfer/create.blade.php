@@ -310,6 +310,69 @@ $(document).ready(function() {
     $('#payment_status').on('change', syncPaymentReceiptRequirement);
     syncPaymentReceiptRequirement();
 
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function collectErrorMessages(response) {
+        const messages = [];
+
+        if (response && response.message) {
+            messages.push(response.message);
+        }
+
+        if (response && response.errors) {
+            Object.values(response.errors).forEach(function(fieldMessages) {
+                if (Array.isArray(fieldMessages)) {
+                    fieldMessages.forEach(function(message) {
+                        if (message && !messages.includes(message)) {
+                            messages.push(message);
+                        }
+                    });
+                }
+            });
+        }
+
+        return messages.length ? messages : ['حدث خطأ غير متوقع'];
+    }
+
+    function showErrorResponse(response, fallbackMessage) {
+        const messages = collectErrorMessages(response || { message: fallbackMessage });
+        let html = '<div class="text-start" dir="rtl">';
+
+        if (messages.length === 1) {
+            html += '<p class="mb-0">' + escapeHtml(messages[0]) + '</p>';
+        } else {
+            html += '<ul class="mb-0 pe-3">';
+            messages.forEach(function(message) {
+                html += '<li>' + escapeHtml(message) + '</li>';
+            });
+            html += '</ul>';
+        }
+
+        if (response && response.debug) {
+            html += '<hr class="my-3">';
+            html += '<div class="small text-muted" dir="ltr" style="text-align:left; white-space:normal;">';
+            html += '<div><strong>Exception:</strong> ' + escapeHtml(response.debug.exception) + '</div>';
+            html += '<div><strong>File:</strong> ' + escapeHtml(response.debug.file) + ':' + escapeHtml(response.debug.line) + '</div>';
+            html += '</div>';
+        }
+
+        html += '</div>';
+
+        Swal.fire({
+            icon: 'error',
+            title: 'خطأ!',
+            html: html,
+            width: 650
+        });
+    }
+
     // إرسال الطلب
     $('#sponsorshipTransferForm').on('submit', function(e) {
         e.preventDefault();
@@ -334,20 +397,11 @@ $(document).ready(function() {
                         window.location.href = '{{ route("SponsorshipTransfer.index") }}';
                     });
                 } else {
-                    Swal.fire('خطأ!', response.message, 'error');
+                    showErrorResponse(response, 'حدث خطأ في حفظ طلب نقل الكفالة');
                 }
             },
             error: function(xhr) {
-                let msg = 'حدث خطأ غير متوقع';
-                if (xhr.responseJSON && xhr.responseJSON.errors) {
-                    const firstField = Object.keys(xhr.responseJSON.errors)[0];
-                    if (firstField && xhr.responseJSON.errors[firstField][0]) {
-                        msg = xhr.responseJSON.errors[firstField][0];
-                    }
-                } else if (xhr.responseJSON && xhr.responseJSON.message) {
-                    msg = xhr.responseJSON.message;
-                }
-                Swal.fire('خطأ!', msg, 'error');
+                showErrorResponse(xhr.responseJSON, 'حدث خطأ غير متوقع');
             },
             complete: function() {
                 btn.prop('disabled', false).html('<i class="fas fa-save me-2"></i>{{ $isEditMode ? 'حفظ التعديلات' : 'حفظ الطلب' }}');
