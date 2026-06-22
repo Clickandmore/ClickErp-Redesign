@@ -659,11 +659,16 @@ class SponsorshipTransferController extends Controller
             if (DB::transactionLevel() > 0) {
                 DB::rollBack();
             }
-            \Log::error('Error in SponsorshipTransfer store: ' . $e->getMessage());
+            \Log::error('Error in SponsorshipTransfer store: ' . $e->getMessage(), [
+                'exception' => get_class($e),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'حدث خطأ في حفظ طلب نقل الكفالة'
+                'message' => $this->exceptionMessage('حدث خطأ في حفظ طلب نقل الكفالة', $e),
+                'debug' => $this->exceptionDebug($e),
             ], 500);
         }
     }
@@ -851,13 +856,41 @@ class SponsorshipTransferController extends Controller
                 DB::rollBack();
             }
 
-            \Log::error('Error in SponsorshipTransfer update: ' . $e->getMessage());
+            \Log::error('Error in SponsorshipTransfer update: ' . $e->getMessage(), [
+                'exception' => get_class($e),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'حدث خطأ في تحديث طلب نقل الكفالة'
+                'message' => $this->exceptionMessage('حدث خطأ في تحديث طلب نقل الكفالة', $e),
+                'debug' => $this->exceptionDebug($e),
             ], 500);
         }
+    }
+
+    private function exceptionMessage(string $baseMessage, \Throwable $e): string
+    {
+        if (!config('app.debug')) {
+            return $baseMessage;
+        }
+
+        return $baseMessage . ': ' . $e->getMessage();
+    }
+
+    private function exceptionDebug(\Throwable $e): ?array
+    {
+        if (!config('app.debug')) {
+            return null;
+        }
+
+        return [
+            'exception' => get_class($e),
+            'message' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+        ];
     }
 
     /**
