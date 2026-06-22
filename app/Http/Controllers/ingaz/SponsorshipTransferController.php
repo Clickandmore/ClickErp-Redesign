@@ -575,6 +575,12 @@ class SponsorshipTransferController extends Controller
                 ], 404);
             }
 
+            if (!$contract->user_id) {
+                throw ValidationException::withMessages([
+                    'contract_id' => 'لا يمكن إنشاء طلب نقل كفالة لهذا العقد لأنه لا يحتوي على كفيل حالي. يرجى ربط العقد بالعميل الحالي أولا.',
+                ]);
+            }
+
             // التحقق من أن العقد متاح للنقل
             if (!$contract->info || $contract->info->wants_to_work !== 'yes') {
                 return response()->json([
@@ -781,6 +787,12 @@ class SponsorshipTransferController extends Controller
                     'success' => false,
                     'message' => 'هذا العقد غير متاح للنقل'
                 ], 400);
+            }
+
+            if (!$contract->user_id) {
+                throw ValidationException::withMessages([
+                    'contract_id' => 'لا يمكن تحديث طلب نقل الكفالة بهذا العقد لأنه لا يحتوي على كفيل حالي. يرجى ربط العقد بالعميل الحالي أولا.',
+                ]);
             }
 
             DB::beginTransaction();
