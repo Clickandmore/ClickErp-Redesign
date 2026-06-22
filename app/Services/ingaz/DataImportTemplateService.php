@@ -170,6 +170,7 @@ class DataImportTemplateService
                     ['key' => 'maid_passport', 'label' => 'رقم جواز العاملة', 'required' => true, 'example' => 'P0000001'],
                     ['key' => 'nationality', 'label' => 'الجنسية', 'required' => false, 'example' => 'الفلبين'],
                     ['key' => 'contract_date', 'label' => 'تاريخ العقد', 'required' => true, 'example' => now()->format('Y-m-d')],
+                    ['key' => 'arrival_date', 'label' => 'تاريخ الوصول', 'required' => false, 'example' => now()->format('Y-m-d')],
                     ['key' => 'status', 'label' => 'حالة العقد', 'required' => true, 'example' => 'عقود مساند', 'valid_values' => $this->recruitmentContractStatusLabels()],
                     ['key' => 'amount', 'label' => 'قيمة العقد', 'required' => false, 'example' => '12000'],
                     ['key' => 'paid_amount', 'label' => 'المدفوع', 'required' => false, 'example' => '5000'],
@@ -232,6 +233,31 @@ class DataImportTemplateService
                     ['key' => 'trial_start_date', 'label' => 'بداية التجربة', 'required' => false, 'example' => now()->format('Y-m-d')],
                     ['key' => 'amount', 'label' => 'القيمة', 'required' => false, 'example' => '8000'],
                     ['key' => 'notes', 'label' => 'ملاحظات', 'required' => false, 'example' => 'طلب نقل مستورد'],
+                ],
+            ],
+            'finance_constraints' => [
+                'label' => 'القيود المالية',
+                'route_hint' => '/finance/constraints',
+                'icon' => 'fas fa-balance-scale',
+                'description' => 'استيراد القيود المحاسبية. كل صف يمثل طرفا مدينا أو دائنا، ويتم تجميع الصفوف التي تحمل نفس رقم مجموعة القيد في قيد واحد. يجب تساوي إجمالي المدين والدائن.',
+                'filename' => 'finance-constraints-import-template.xlsx',
+                'columns' => [
+                    ['key' => 'constraint_ref', 'label' => 'رقم مجموعة القيد', 'required' => true, 'example' => 'JV-0001'],
+                    ['key' => 'code', 'label' => 'رقم القيد في النظام', 'required' => false, 'example' => '1001'],
+                    ['key' => 'date', 'label' => 'تاريخ القيد', 'required' => true, 'example' => now()->format('Y-m-d')],
+                    ['key' => 'type', 'label' => 'نوع القيد', 'required' => false, 'example' => 'daily_entry', 'valid_values' => ['daily_entry', 'first_balance', '1', '10']],
+                    ['key' => 'statement', 'label' => 'بيان القيد', 'required' => true, 'example' => 'قيد افتتاحي مستورد'],
+                    ['key' => 'line_type', 'label' => 'نوع السطر', 'required' => true, 'example' => 'debtor', 'valid_values' => ['debtor', 'creditor', 'مدين', 'دائن']],
+                    ['key' => 'account_id', 'label' => 'Account ID', 'required' => false, 'example' => '15'],
+                    ['key' => 'account_code', 'label' => 'كود الحساب', 'required' => false, 'example' => '110101'],
+                    ['key' => 'account_name', 'label' => 'اسم الحساب', 'required' => false, 'example' => 'الصندوق الرئيسي'],
+                    ['key' => 'amount', 'label' => 'المبلغ', 'required' => false, 'example' => '5000'],
+                    ['key' => 'debtor_value', 'label' => 'قيمة المدين', 'required' => false, 'example' => '5000'],
+                    ['key' => 'creditor_value', 'label' => 'قيمة الدائن', 'required' => false, 'example' => '0'],
+                    ['key' => 'line_statement', 'label' => 'بيان السطر', 'required' => false, 'example' => 'طرف مدين من القيد'],
+                    ['key' => 'cost_center_id', 'label' => 'Cost Center ID', 'required' => false, 'example' => ''],
+                    ['key' => 'cost_center_code', 'label' => 'كود مركز التكلفة', 'required' => false, 'example' => ''],
+                    ['key' => 'cost_center_name', 'label' => 'اسم مركز التكلفة', 'required' => false, 'example' => ''],
                 ],
             ],
         ];
@@ -419,13 +445,20 @@ class DataImportTemplateService
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('البيانات');
         $sheet->setRightToLeft(true);
+        $exampleRows = $type === 'finance_constraints' ? $this->financeConstraintExampleRows() : null;
+        $metadataRow = $exampleRows ? 4 : 3;
 
         foreach ($template['columns'] as $index => $column) {
             $columnIndex = $index + 1;
             $columnLetter = Coordinate::stringFromColumnIndex($columnIndex);
             $sheet->setCellValue("{$columnLetter}1", $column['label']);
-            $sheet->setCellValue("{$columnLetter}2", $column['example'] ?? '');
-            $sheet->setCellValue("{$columnLetter}3", $column['required'] ? 'مطلوب' : 'اختياري');
+            if ($exampleRows) {
+                $sheet->setCellValue("{$columnLetter}2", $exampleRows[0][$column['key']] ?? ($column['example'] ?? ''));
+                $sheet->setCellValue("{$columnLetter}3", $exampleRows[1][$column['key']] ?? '');
+            } else {
+                $sheet->setCellValue("{$columnLetter}2", $column['example'] ?? '');
+            }
+            $sheet->setCellValue("{$columnLetter}{$metadataRow}", $column['required'] ? 'مطلوب' : 'اختياري');
         }
 
         $lastColumn = Coordinate::stringFromColumnIndex(count($template['columns']));
@@ -434,7 +467,7 @@ class DataImportTemplateService
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '1F4E78']],
         ]);
-        $sheet->getStyle("A2:{$lastColumn}3")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle("A2:{$lastColumn}{$metadataRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         $sheet->freezePane('A2');
 
         foreach (range(1, count($template['columns'])) as $columnIndex) {
@@ -446,8 +479,12 @@ class DataImportTemplateService
         $instructions->setRightToLeft(true);
         $instructions->setCellValue('A1', $template['label']);
         $instructions->setCellValue('A2', $template['description']);
-        $instructions->setCellValue('A3', 'لا تغير أسماء الأعمدة. استخدم الصف الثاني كمثال، واحذف أو عدل البيانات قبل الرفع.');
-        $instructions->setCellValue('A4', 'الصف الثالث يوضح هل الحقل مطلوب أو اختياري.');
+        $instructions->setCellValue('A3', $exampleRows
+            ? 'لا تغير أسماء الأعمدة. الصفان الثاني والثالث مثال لقيد متوازن، واحذف أو عدل البيانات قبل الرفع.'
+            : 'لا تغير أسماء الأعمدة. استخدم الصف الثاني كمثال، واحذف أو عدل البيانات قبل الرفع.');
+        $instructions->setCellValue('A4', $exampleRows
+            ? 'الصف الرابع يوضح هل الحقل مطلوب أو اختياري.'
+            : 'الصف الثالث يوضح هل الحقل مطلوب أو اختياري.');
 
         $instructionRow = 5;
         foreach ($template['columns'] as $column) {
@@ -476,6 +513,48 @@ class DataImportTemplateService
                 'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             ])
             ->deleteFileAfterSend(true);
+    }
+
+    private function financeConstraintExampleRows(): array
+    {
+        return [
+            [
+                'constraint_ref' => 'JV-0001',
+                'code' => '',
+                'date' => now()->format('Y-m-d'),
+                'type' => 'daily_entry',
+                'statement' => 'قيد افتتاحي مستورد',
+                'line_type' => 'debtor',
+                'account_id' => '',
+                'account_code' => '110101',
+                'account_name' => 'الصندوق الرئيسي',
+                'amount' => '5000',
+                'debtor_value' => '5000',
+                'creditor_value' => '0',
+                'line_statement' => 'طرف مدين من القيد',
+                'cost_center_id' => '',
+                'cost_center_code' => '',
+                'cost_center_name' => '',
+            ],
+            [
+                'constraint_ref' => 'JV-0001',
+                'code' => '',
+                'date' => now()->format('Y-m-d'),
+                'type' => 'daily_entry',
+                'statement' => 'قيد افتتاحي مستورد',
+                'line_type' => 'creditor',
+                'account_id' => '',
+                'account_code' => '210101',
+                'account_name' => 'حساب دائن',
+                'amount' => '5000',
+                'debtor_value' => '0',
+                'creditor_value' => '5000',
+                'line_statement' => 'طرف دائن من القيد',
+                'cost_center_id' => '',
+                'cost_center_code' => '',
+                'cost_center_name' => '',
+            ],
+        ];
     }
 
     public function storeUploadedFile(string $type, UploadedFile $file, ?int $adminId): string

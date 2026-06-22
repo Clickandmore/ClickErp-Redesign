@@ -62,7 +62,14 @@
 
                 <div class="col-4">
                     <label for="TextInput" class="form-label">{{ helperTrans('ingaz.contracts') }}</label>
-                    <select name="contract_id" id="contract_id" class="form-select form-control select2"
+                    <div class="input-group mb-2">
+                        <input type="number" id="contract_number_search" class="form-control"
+                            placeholder="اكتب رقم العقد" value="{{ $selectedContractId ?: '' }}">
+                        <button type="button" id="search_contract_number_btn" class="btn btn-primary">
+                            بحث
+                        </button>
+                    </div>
+                    <select name="contract_id" id="contract_id" class="form-select form-control d-none"
                         data-validation="required" style="flex: 1;">
                         <option disabled {{ !$selectedContractId ? 'selected' : '' }}>{{ helperTrans('ingaz.choose') }}
                         </option>
@@ -122,6 +129,8 @@
                             </option>
                         @endforeach
                     </select>
+                    <div id="selected_contract_preview" class="small text-muted mt-2"></div>
+                    <div id="contract_search_feedback" class="small mt-2"></div>
                 </div>
 
                 <div class="col-4">
@@ -438,6 +447,7 @@
                             aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
+                        <div id="createContractErrors" class="alert alert-danger d-none" role="alert"></div>
                         <form id="createContractForm">
                             @csrf
                             <div class="row g-3">
@@ -564,6 +574,7 @@
     <script>
         var indexRoute = "{{ route('ShelterContract.index') }}";
         var isEditMode = @json($isEditMode);
+        var selectedShelterContractId = @json($selectedContractId ? (string) $selectedContractId : null);
     </script>
 
     <script>
@@ -584,7 +595,22 @@
             // Clear search button click handler
             $('#clear_search_btn').on('click', function() {
                 $('#passport_search').val('');
-                loadAllContracts();
+                clearContractDropdown();
+            });
+
+            $('#search_contract_number_btn').on('click', function() {
+                searchContractByNumber($('#contract_number_search').val());
+            });
+
+            $('#contract_number_search').on('keypress', function(e) {
+                if (e.which === 13) {
+                    e.preventDefault();
+                    searchContractByNumber($(this).val());
+                }
+            });
+
+            $('#contract_id').on('select2:clear', function() {
+                selectedShelterContractId = null;
             });
 
             // Function to search contracts by passport
@@ -592,7 +618,7 @@
                 let passportNumber = $('#passport_search').val().trim();
 
                 if (!passportNumber) {
-                    loadAllContracts();
+                    clearContractDropdown();
                     return;
                 }
 
@@ -622,79 +648,165 @@
                 });
             }
 
+            function contractOptionText(contract) {
+                let optionText = contract.desc || ('عقد رقم: ' + contract.id);
+                if (contract.passport_number && optionText.indexOf(contract.passport_number) === -1) {
+                    optionText += ' - ' + contract.passport_number;
+                }
+
+                return optionText;
+            }
+
+            function applyContractOptionData($option, contract) {
+                $option.attr({
+                    'data-passport': contract.passport_number || '',
+                    'data-passport-snapshot': contract.passport_snapshot || contract.passport_number || '',
+                    'data-maid-name': contract.maid_name || '',
+                    'data-maid-name-snapshot': contract.maid_name_snapshot || contract.maid_name || '',
+                    'data-maid-nationality': contract.maid_nationality_snapshot || '',
+                    'data-client-name': contract.client_name || '',
+                    'data-client-national-id': contract.client_national_id || '',
+                    'data-sponsorship-price': contract.sponsorship_price || '',
+                    'data-receipt-date': contract.receipt_date || '',
+                    'data-receipt-text': contract.receipt_text || '',
+                    'data-has-residency': contract.has_residency || '',
+                    'data-medical-exam': contract.medical_exam || '',
+                    'data-service-type': contract.service_type || '',
+                    'data-arrival-date': contract.arrival_date || '',
+                    'data-status': contract.status || ''
+                });
+            }
+
+            function initContractSelect() {
+                updateSelectedContractPreview();
+            }
+
+            function updateSelectedContractPreview() {
+                let selectedOption = $('#contract_id').find('option:selected');
+
+                if (selectedOption.length && selectedOption.val()) {
+                    $('#selected_contract_preview')
+                        .removeClass('text-muted text-danger')
+                        .addClass('text-success')
+                        .text('تم اختيار: ' + selectedOption.text().trim());
+                    return;
+                }
+
+                $('#selected_contract_preview')
+                    .removeClass('text-success text-danger')
+                    .addClass('text-muted')
+                    .text('اكتب رقم العقد ثم اضغط بحث.');
+            }
+
+            function searchContractByNumber(contractNumber, silent) {
+                contractNumber = String(contractNumber || '').trim();
+
+                if (!contractNumber) {
+                    clearContractDropdown();
+                    $('#contract_search_feedback')
+                        .removeClass('text-success')
+                        .addClass('text-danger')
+                        .text('يرجى كتابة رقم العقد أولاً.');
+                    return;
+                }
+
+                $.ajax({
+                    url: "{{ route('search.contracts.by.passport') }}",
+                    type: 'GET',
+                    data: {
+                        contract_number: contractNumber
+                    },
+                    beforeSend: function() {
+                        $('#search_contract_number_btn').prop('disabled', true).text('جاري البحث...');
+                        $('#contract_search_feedback').removeClass('text-success text-danger').text('');
+                    },
+                    success: function(response) {
+                        let contracts = response.contracts || [];
+
+                        if (!contracts.length) {
+                            clearContractDropdown();
+                            $('#contract_search_feedback')
+                                .removeClass('text-success')
+                                .addClass('text-danger')
+                                .text('لم يتم العثور على عقد بهذا الرقم أو أن العقد غير قابل للإضافة للإيواء.');
+                            return;
+                        }
+
+                        updateContractDropdown(contracts, contracts[0].id);
+                        selectedShelterContractId = String(contracts[0].id);
+                        $('#contract_search_feedback')
+                            .removeClass('text-danger')
+                            .addClass('text-success')
+                            .text(silent ? '' : 'تم جلب العقد بنجاح.');
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error searching contract:', error);
+                        $('#contract_search_feedback')
+                            .removeClass('text-success')
+                            .addClass('text-danger')
+                            .text('حدث خطأ أثناء البحث عن العقد.');
+                    },
+                    complete: function() {
+                        $('#search_contract_number_btn').prop('disabled', false).text('بحث');
+                    }
+                });
+            }
+
             // Function to update contract dropdown with search results
-            function updateContractDropdown(contracts) {
+            function updateContractDropdown(contracts, selectedId) {
+                contracts = contracts || [];
                 let $select = $('#contract_id');
+                let currentValue = selectedId || $select.val() || selectedShelterContractId;
+                let existingSelectedOption = currentValue
+                    ? $select.find('option[value="' + currentValue + '"]').clone()
+                    : $();
+                let selectedExistsInResults = false;
+
                 $select.empty();
-                $select.append('<option disabled selected>{{ helperTrans('ingaz.choose') }}</option>');
+                $select.append('<option disabled ' + (!currentValue ? 'selected' : '') + '>{{ helperTrans('ingaz.choose') }}</option>');
 
                 if (contracts.length === 0) {
                     $select.append('<option disabled>{{ helperTrans('ingaz.no_contracts_found') }}</option>');
                 } else {
                     contracts.forEach(function(contract) {
-                        let optionText = contract.desc;
-                        if (contract.passport_number) {
-                            optionText += ' - ' + contract.passport_number;
+                        if (String(contract.id) === String(currentValue)) {
+                            selectedExistsInResults = true;
                         }
 
-                        $('<option>')
+                        let $option = $('<option>')
                             .val(contract.id)
-                            .text(optionText)
-                            .attr({
-                                'data-passport': contract.passport_number || '',
-                                'data-passport-snapshot': contract.passport_snapshot || contract.passport_number || '',
-                                'data-maid-name': contract.maid_name || '',
-                                'data-maid-name-snapshot': contract.maid_name_snapshot || contract.maid_name || '',
-                                'data-maid-nationality': contract.maid_nationality_snapshot || '',
-                                'data-client-name': contract.client_name || '',
-                                'data-client-national-id': contract.client_national_id || '',
-                                'data-sponsorship-price': contract.sponsorship_price || '',
-                                'data-receipt-date': contract.receipt_date || '',
-                                'data-receipt-text': contract.receipt_text || '',
-                                'data-has-residency': contract.has_residency || '',
-                                'data-medical-exam': contract.medical_exam || '',
-                                'data-service-type': contract.service_type || '',
-                                'data-arrival-date': contract.arrival_date || '',
-                                'data-status': contract.status || ''
-                            })
-                            .appendTo($select);
+                            .text(contractOptionText(contract))
+                            .prop('selected', String(contract.id) === String(currentValue));
+
+                        applyContractOptionData($option, contract);
+                        $option.appendTo($select);
                     });
                 }
 
-                if ($select.hasClass('select2-hidden-accessible')) {
-                    $select.select2('destroy');
+                if (currentValue && !selectedExistsInResults && existingSelectedOption.length) {
+                    existingSelectedOption.prop('selected', true);
+                    $select.append(existingSelectedOption);
                 }
 
-                $select.select2({
-                    placeholder: '{{ helperTrans('ingaz.choose') }}',
-                    allowClear: true
-                });
+                initContractSelect();
+
+                if (currentValue) {
+                    $select.val(String(currentValue)).trigger('change');
+                }
             }
 
-            // Function to load all contracts (clear search)
-            function loadAllContracts() {
-                $.ajax({
-                    url: "{{ route('search.contracts.by.passport') }}",
-                    type: 'GET',
-                    data: {
-                        search: ''
-                    },
-                    beforeSend: function() {
-                        $('#contract_id').prop('disabled', true);
-                    },
-                    success: function(response) {
-                        updateContractDropdown(response.contracts || []);
-                    },
-                    error: function(xhr, status, error) {
-                        console.error('Error loading contracts:', error);
-                    },
-                    complete: function() {
-                        $('#contract_id').prop('disabled', false);
-                    }
-                });
+            function clearContractDropdown() {
+                let $select = $('#contract_id');
+                $select.empty();
+                $select.append('<option disabled selected>{{ helperTrans('ingaz.choose') }}</option>');
+                selectedShelterContractId = null;
+                initContractSelect();
             }
 
-            loadAllContracts();
+            initContractSelect();
+            if (selectedShelterContractId) {
+                searchContractByNumber(selectedShelterContractId, true);
+            }
         });
     </script>
 
@@ -1337,6 +1449,60 @@
                     }
                 });
             }
+            function clearCreateContractErrors() {
+                $('#createContractErrors').addClass('d-none').empty();
+                $('#createContractForm .is-invalid').removeClass('is-invalid');
+            }
+
+            function escapeCreateContractError(message) {
+                return $('<div>').text(message).html();
+            }
+
+            function collectCreateContractErrorMessages(xhr) {
+                let messages = [];
+                let response = xhr.responseJSON || {};
+
+                if (response.errors) {
+                    Object.keys(response.errors).forEach(function(fieldName) {
+                        let fieldMessages = response.errors[fieldName];
+                        if (!Array.isArray(fieldMessages)) {
+                            fieldMessages = [fieldMessages];
+                        }
+
+                        fieldMessages.forEach(function(message) {
+                            if (message) {
+                                messages.push(message);
+                            }
+                        });
+
+                        $('#createContractForm [name="' + fieldName + '"]').addClass('is-invalid');
+                    });
+                }
+
+                if (!messages.length && response.message) {
+                    messages.push(response.message);
+                }
+
+                if (!messages.length) {
+                    messages.push('{{ helperTrans('ingaz.error_creating_contract') }}');
+                }
+
+                return messages;
+            }
+
+            function showCreateContractErrors(messages) {
+                if (!Array.isArray(messages)) {
+                    messages = [messages];
+                }
+
+                let listItems = messages.map(function(message) {
+                    return '<li>' + escapeCreateContractError(message) + '</li>';
+                }).join('');
+
+                $('#createContractErrors')
+                    .html('<strong>تعذر حفظ العقد للأسباب التالية:</strong><ul class="mb-0 mt-2">' + listItems + '</ul>')
+                    .removeClass('d-none');
+            }
 
             $('#createContractBtn').on('click', function() {
                 let form = $('#createContractForm');
@@ -1344,6 +1510,8 @@
                 let button = $(this);
                 let originalText = button.text();
                 let spinner = button.find('.spinner-border');
+
+                clearCreateContractErrors();
 
                 // التحقق من صحة النموذج
                 if (!form[0].checkValidity()) {
@@ -1400,6 +1568,7 @@
                                 window.location.href = response.redirect_url || '{{ route('ShelterContract.create') }}';
                             });
                         } else {
+                            showCreateContractErrors(response.message);
                             Swal.fire({
                                 icon: 'error',
                                 title: '{{ helperTrans('ingaz.error') }}',
@@ -1409,11 +1578,10 @@
                         }
                     },
                     error: function(xhr) {
-                        let errorMessage =
-                            '{{ helperTrans('ingaz.error_creating_contract') }}';
-                        if (xhr.responseJSON && xhr.responseJSON.message) {
-                            errorMessage = xhr.responseJSON.message;
-                        }
+                        let errorMessages = collectCreateContractErrorMessages(xhr);
+                        let errorMessage = errorMessages.join('\n');
+
+                        showCreateContractErrors(errorMessages);
 
                         Swal.fire({
                             icon: 'error',
@@ -1433,6 +1601,7 @@
             // إعادة تعيين النموذج عند إغلاق modal
             $('#createContractModal').on('hidden.bs.modal', function() {
                 $('#createContractForm')[0].reset();
+                clearCreateContractErrors();
                 $('#existing_client_id, #maid_id').val(null).trigger('change');
                 $('#maid_details').hide();
                 $('.new-client-field').hide();

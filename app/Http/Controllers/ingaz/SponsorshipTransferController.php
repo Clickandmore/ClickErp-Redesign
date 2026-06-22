@@ -589,6 +589,12 @@ class SponsorshipTransferController extends Controller
                 ], 404);
             }
 
+            if (!$contract->user_id) {
+                throw ValidationException::withMessages([
+                    'contract_id' => 'لا يمكن إنشاء طلب نقل كفالة لهذا العقد لأنه لا يحتوي على كفيل حالي. يرجى ربط العقد بالعميل الحالي أولا.',
+                ]);
+            }
+
             // التحقق من أن العقد متاح للنقل
             if (!$contract->info || $contract->info->wants_to_work !== 'yes') {
                 return response()->json([
@@ -676,11 +682,16 @@ class SponsorshipTransferController extends Controller
             if (DB::transactionLevel() > 0) {
                 DB::rollBack();
             }
-            \Log::error('Error in SponsorshipTransfer store: ' . $e->getMessage());
+            \Log::error('Error in SponsorshipTransfer store: ' . $e->getMessage(), [
+                'exception' => get_class($e),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'حدث خطأ في حفظ طلب نقل الكفالة'
+                'message' => $this->exceptionMessage('حدث خطأ في حفظ طلب نقل الكفالة', $e),
+                'debug' => $this->exceptionDebug($e),
             ], 500);
         }
     }
@@ -802,6 +813,12 @@ class SponsorshipTransferController extends Controller
                 ], 400);
             }
 
+            if (!$contract->user_id) {
+                throw ValidationException::withMessages([
+                    'contract_id' => 'لا يمكن تحديث طلب نقل الكفالة بهذا العقد لأنه لا يحتوي على كفيل حالي. يرجى ربط العقد بالعميل الحالي أولا.',
+                ]);
+            }
+
             DB::beginTransaction();
 
             $newSponsor = $validated['new_sponsor_mode'] === 'existing'
@@ -878,13 +895,41 @@ class SponsorshipTransferController extends Controller
                 DB::rollBack();
             }
 
-            \Log::error('Error in SponsorshipTransfer update: ' . $e->getMessage());
+            \Log::error('Error in SponsorshipTransfer update: ' . $e->getMessage(), [
+                'exception' => get_class($e),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'حدث خطأ في تحديث طلب نقل الكفالة'
+                'message' => $this->exceptionMessage('حدث خطأ في تحديث طلب نقل الكفالة', $e),
+                'debug' => $this->exceptionDebug($e),
             ], 500);
         }
+    }
+
+    private function exceptionMessage(string $baseMessage, \Throwable $e): string
+    {
+        if (!config('app.debug')) {
+            return $baseMessage;
+        }
+
+        return $baseMessage . ': ' . $e->getMessage();
+    }
+
+    private function exceptionDebug(\Throwable $e): ?array
+    {
+        if (!config('app.debug')) {
+            return null;
+        }
+
+        return [
+            'exception' => get_class($e),
+            'message' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+        ];
     }
 
     /**

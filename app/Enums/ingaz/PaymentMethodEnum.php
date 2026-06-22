@@ -8,5 +8,6 @@ enum PaymentMethodEnum: string
     case Cash = "cash";
     case Online = "online";
     case ApplePay = "apple_pay";
+    case Moyasar = "moyasar";
 
 }

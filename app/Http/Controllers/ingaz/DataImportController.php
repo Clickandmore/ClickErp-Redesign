@@ -42,13 +42,13 @@ class DataImportController extends Controller
 
         $data = $request->validate([
             'type' => ['required', 'string', 'in:' . implode(',', $availableTypes)],
-            'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:20480'],
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:51200'],
         ], [
             'type.required' => 'اختر نوع البيانات.',
             'type.in' => 'نوع البيانات المحدد غير مدعوم.',
             'file.required' => 'اختر ملف الاستيراد.',
             'file.mimes' => 'يجب أن يكون الملف بصيغة Excel أو CSV.',
-            'file.max' => 'حجم الملف يجب ألا يتجاوز 20 ميجابايت.',
+            'file.max' => 'حجم الملف يجب ألا يتجاوز 50 ميجابايت.',
         ]);
 
         $adminId = auth('admin')->id() ?? auth()->id();
@@ -62,11 +62,15 @@ class DataImportController extends Controller
         }
 
         $result = $importer->import($data['type'], $request->file('file'), $adminId);
+        $shownErrors = array_slice($result['errors'] ?? [], 0, 10);
         $message = "تمت معالجة {$result['total']} صف. جديد: {$result['created']}، محدث: {$result['updated']}، متجاوز: {$result['skipped']}.";
+        if (($result['error_count'] ?? 0) > count($shownErrors)) {
+            $message .= " تم عرض أول " . count($shownErrors) . " خطأ من إجمالي {$result['error_count']} خطأ.";
+        }
 
         return redirect()
             ->route('reports.import.index')
             ->with('success', $message)
-            ->with('import_errors', array_slice($result['errors'], 0, 10));
+            ->with('import_errors', $shownErrors);
     }
 }

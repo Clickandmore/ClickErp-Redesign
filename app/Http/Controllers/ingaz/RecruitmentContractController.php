@@ -129,34 +129,43 @@ class RecruitmentContractController extends Controller
 
     private function getManualStatusTransition(?string $status): ?array
     {
-        return match ($status) {
+        $transition = match ($status) {
             ContractStatusEnum::New->value => [
                 'next_status' => ContractStatusEnum::Msaned->value,
                 'permission' => NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED,
-                'button_text' => 'انتقال إلى مساند',
+                'button_prefix' => 'انتقال إلى',
             ],
             ContractStatusEnum::AccreditationContracts->value => [
                 'next_status' => ContractStatusEnum::Msaned->value,
                 'permission' => NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED,
-                'button_text' => 'اعتماد العقد إلى مساند',
+                'button_prefix' => 'اعتماد العقد إلى',
             ],
             ContractStatusEnum::Msaned->value => [
                 'next_status' => ContractStatusEnum::Tafwed->value,
                 'permission' => NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFWED,
-                'button_text' => 'انتقال إلى تفويض',
+                'button_prefix' => 'انتقال إلى',
             ],
             ContractStatusEnum::Tafwed->value => [
                 'next_status' => ContractStatusEnum::Taffez->value,
                 'permission' => NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFFEZ,
-                'button_text' => 'انتقال إلى تفييز',
+                'button_prefix' => 'انتقال إلى',
             ],
             ContractStatusEnum::Taffez->value => [
                 'next_status' => ContractStatusEnum::Tazker->value,
                 'permission' => NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAZKER,
-                'button_text' => 'انتقال إلى تذكرة',
+                'button_prefix' => 'انتقال إلى',
             ],
             default => null,
         };
+
+        if (!$transition) {
+            return null;
+        }
+
+        $transition['button_text'] = $transition['button_prefix'] . ' ' . getContractStatus($transition['next_status']);
+        unset($transition['button_prefix']);
+
+        return $transition;
     }
 
     private function getBlockedTransitionReason(?string $status): string
@@ -1177,8 +1186,10 @@ class RecruitmentContractController extends Controller
                                 if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAZKER)) {
                                     $lastContractStatusLog = $row->getLastContractStatusLog();
 
-                                    return '<button class="btn btn-success btn-sm update-status-btn btn-action" data-bs-toggle="modal" data-bs-target="#updateStatusModal" data-row-id="' . $row->id . '" data-status="' . $row->status . '" data-next-status="' . ContractStatusEnum::Tazker->value . '" data-date="' . ($lastContractStatusLog ? $lastContractStatusLog->date : \Carbon\Carbon::now()->format('Y-m-d')) . '" title="انتقال إلى تذكرة">
-                                        <i class="fas fa-arrow-up me-1"></i>انتقال إلى تذكرة
+                                    $buttonText = 'انتقال إلى ' . getContractStatus(ContractStatusEnum::Tazker->value);
+
+                                    return '<button class="btn btn-success btn-sm update-status-btn btn-action" data-bs-toggle="modal" data-bs-target="#updateStatusModal" data-row-id="' . $row->id . '" data-status="' . $row->status . '" data-next-status="' . ContractStatusEnum::Tazker->value . '" data-date="' . ($lastContractStatusLog ? $lastContractStatusLog->date : \Carbon\Carbon::now()->format('Y-m-d')) . '" title="' . e($buttonText) . '">
+                                        <i class="fas fa-arrow-up me-1"></i>' . e($buttonText) . '
                                     </button>';
                                 }
 
@@ -1218,7 +1229,7 @@ class RecruitmentContractController extends Controller
                             case ContractStatusEnum::New->value:
                                 $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED;
                                 $nextStatus = ContractStatusEnum::Msaned->value;
-                                $buttonText = 'انتقال إلى مساند';
+                                $buttonText = 'انتقال إلى ' . getContractStatus($nextStatus);
                                 if (@AdminGuardHasPerm($permissionRequired)) {
                                     $hasPermission = true;
                                 }
@@ -1226,7 +1237,7 @@ class RecruitmentContractController extends Controller
                             case ContractStatusEnum::AccreditationContracts->value:
                                 $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED;
                                 $nextStatus = ContractStatusEnum::Msaned->value;
-                                $buttonText = 'اعتماد العقد إلى مساند';
+                                $buttonText = 'اعتماد العقد إلى ' . getContractStatus($nextStatus);
                                 if (@AdminGuardHasPerm($permissionRequired)) {
                                     $hasPermission = true;
                                 }
@@ -1234,7 +1245,7 @@ class RecruitmentContractController extends Controller
                             case ContractStatusEnum::Msaned->value:
                                 $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFWED;
                                 $nextStatus = ContractStatusEnum::Tafwed->value;
-                                $buttonText = 'انتقال إلى تفويض';
+                                $buttonText = 'انتقال إلى ' . getContractStatus($nextStatus);
                                 if (@AdminGuardHasPerm($permissionRequired)) {
                                     $hasPermission = true;
                                 }
@@ -1242,7 +1253,7 @@ class RecruitmentContractController extends Controller
                             case ContractStatusEnum::Tafwed->value:
                                 $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFFEZ;
                                 $nextStatus = ContractStatusEnum::Taffez->value;
-                                $buttonText = 'انتقال إلى تفييز';
+                                $buttonText = 'انتقال إلى ' . getContractStatus($nextStatus);
                                 if (@AdminGuardHasPerm($permissionRequired)) {
                                     $hasPermission = true;
                                 }
@@ -1250,7 +1261,7 @@ class RecruitmentContractController extends Controller
                             case ContractStatusEnum::Taffez->value:
                                 $permissionRequired = \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAZKER;
                                 $nextStatus = ContractStatusEnum::Tazker->value;
-                                $buttonText = 'انتقال إلى تذكرة';
+                                $buttonText = 'انتقال إلى ' . getContractStatus($nextStatus);
                                 if (@AdminGuardHasPerm($permissionRequired)) {
                                     $hasPermission = true;
                                 }
@@ -1340,8 +1351,13 @@ class RecruitmentContractController extends Controller
 
                         if ($hasPermission) {
                             $lastContractStatusLog = $row->getLastContractStatusLog();
-                            return '<button class="btn btn-success btn-sm update-status-btn btn-action" data-bs-toggle="modal" data-bs-target="#updateStatusModal" data-row-id="' . $row->id . '" data-status="' . $row->status . '" data-next-status="' . $nextStatus . '" data-date="' . ($lastContractStatusLog ? $lastContractStatusLog->date : \Carbon\Carbon::now()->format('Y-m-d')) . '" title="' . $buttonText . '">
-                                <i class="fas fa-arrow-up me-1"></i>' . $buttonText . '
+                            $buttonPrefix = $row->status === ContractStatusEnum::AccreditationContracts->value
+                                ? 'اعتماد العقد إلى'
+                                : 'انتقال إلى';
+                            $buttonText = $buttonPrefix . ' ' . getContractStatus($nextStatus);
+
+                            return '<button class="btn btn-success btn-sm update-status-btn btn-action" data-bs-toggle="modal" data-bs-target="#updateStatusModal" data-row-id="' . $row->id . '" data-status="' . $row->status . '" data-next-status="' . $nextStatus . '" data-date="' . ($lastContractStatusLog ? $lastContractStatusLog->date : \Carbon\Carbon::now()->format('Y-m-d')) . '" title="' . e($buttonText) . '">
+                                <i class="fas fa-arrow-up me-1"></i>' . e($buttonText) . '
                             </button>';
                         } else {
                             return '<span class="text-muted">لا توجد صلاحية</span>';
@@ -3082,7 +3098,7 @@ class RecruitmentContractController extends Controller
             return redirect()->back()->with('error', 'ليس لديك صلاحية لتعديل العقد');
         }
 
-        $contract = Contract::with(['user', 'maid.nationality', 'maid.religion', 'maid.jobTitles', 'info'])->find($id);
+        $contract = Contract::with(['user', 'maid.nationality', 'maid.religion', 'maid.jobTitles', 'info', 'order.details.admin', 'marketer'])->find($id);
 
         if (!$contract) {
             return redirect()->back()->with('error', 'العقد غير موجود');
@@ -3106,6 +3122,7 @@ class RecruitmentContractController extends Controller
         }
 
         $countries = Country::active()->ordered()->get();
+        $defaultClientNationalityId = optional($countries->firstWhere('code', 'SA'))->id;
         $saudiCities = City::query()
             ->whereHas('country', function ($query) {
                 $query->where('code', 'SA');
@@ -3126,7 +3143,7 @@ class RecruitmentContractController extends Controller
                 ->get()
             : collect([$currentAdmin])->filter();
 
-        return view('admin.ingaz.RecruitmentContract.edit', compact('contract', 'countries', 'saudiCities', 'maidNationalities', 'maidReligions', 'maidJobTitles', 'currentAdmin', 'currentUser', 'canSelectAnyMarketer', 'marketers'));
+        return view('admin.ingaz.RecruitmentContract.edit', compact('contract', 'countries', 'defaultClientNationalityId', 'saudiCities', 'maidNationalities', 'maidReligions', 'maidJobTitles', 'currentAdmin', 'currentUser', 'canSelectAnyMarketer', 'marketers'));
     }
 
     /**
@@ -3154,14 +3171,39 @@ class RecruitmentContractController extends Controller
             ], 401);
         }
 
+        $contract = Contract::with(['user', 'order'])->find($id);
+        if (!$contract) {
+            return response()->json([
+                'success' => false,
+                'message' => 'العقد غير موجود'
+            ], 404);
+        }
+
         $canSelectAnyMarketer = $this->canSelectAnyMarketer($currentAdmin);
+        $defaultClientNationalityId = Country::query()->where('code', 'SA')->value('id');
+        $resolvedMarketerId = $contract->marketer_id ?: $contract->order?->resolveResponsibleAdminId();
+        $fallbackMarketerId = $resolvedMarketerId && \App\Models\auth\Admin::query()->whereKey($resolvedMarketerId)->exists()
+            ? $resolvedMarketerId
+            : $currentAdmin->id;
+        $allowedMarketerIds = array_values(array_unique(array_filter([
+            $currentAdmin->id,
+            $fallbackMarketerId,
+        ])));
+
+        $request->merge([
+            'account_client_type' => $request->input('account_client_type') === 'company' ? 'company' : 'person',
+            'client_nationality_id' => $request->input('client_nationality_id') ?: $defaultClientNationalityId,
+            'marketer_id' => $request->input('marketer_id') ?: $fallbackMarketerId,
+        ]);
+
+        $hasClient = (bool) $contract->user;
         $marketerRules = ['required', 'exists:admins,id'];
         if (!$canSelectAnyMarketer) {
-            $marketerRules[] = 'in:' . $currentAdmin->id;
+            $marketerRules[] = Rule::in($allowedMarketerIds);
         }
         $request->validate([
-            'client_name' => 'required|string|max:255',
-            'client_phone' => 'required|string|max:50',
+            'client_name' => ($hasClient ? 'required' : 'nullable') . '|string|max:255',
+            'client_phone' => ($hasClient ? 'required' : 'nullable') . '|string|max:50',
             'client_nationality_id' => 'nullable|exists:countries,id',
             'client_email' => 'nullable|email',
             'account_client_type' => 'nullable|in:person,company',
@@ -3185,7 +3227,7 @@ class RecruitmentContractController extends Controller
             'visa_milad_date' => 'nullable|date',
             'visa_hijry_date' => 'nullable|date',
             'contract_duration' => 'required',
-            'status' => ['required', Rule::in(array_column(ContractStatusEnum::cases(), 'value'))],
+            'status' => ['nullable', Rule::in(array_column(ContractStatusEnum::cases(), 'value'))],
             'marketer_id' => $marketerRules,
             'required_maid_nationality' => 'nullable|exists:nationalities,id',
             'required_maid_religion' => 'nullable|exists:religions,id',
@@ -3196,15 +3238,7 @@ class RecruitmentContractController extends Controller
             'required_maid_notes' => 'nullable|string|max:2000',
         ]);
 
-        $marketerId = $canSelectAnyMarketer
-            ? (int) $request->marketer_id
-            : (int) $currentAdmin->id;
-
-        $contract = Contract::find($id);
-        if (!$contract) {
-            return response()->json(['success' => false, 'message' => 'العقد غير موجود'], 404);
-        }
-        $this->assertCanAccessBranchModel($contract, 'contracts');
+        $marketerId = (int) $request->marketer_id;
 
         // منع تحديث حالة العقود المكتملة
         if ($contract->status === ContractStatusEnum::Completed->value) {
@@ -3278,25 +3312,8 @@ class RecruitmentContractController extends Controller
                 ]);
             }
 
-            if (in_array($request->status, [
-                ContractStatusEnum::Arrival->value,
-                ContractStatusEnum::Closed->value,
-                ContractStatusEnum::UnderWarranty->value,
-                ContractStatusEnum::Completed->value,
-            ], true)) {
-                $dispatchError = RecruitmentContractExternalOfficeDispatchController::ensureDispatchCompleted($contract);
-
-                if ($dispatchError) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => $dispatchError
-                    ], 422);
-                }
-            }
-
-            // تحديث حالة العقد
+            // لا يتم تعديل حالة العقد من شاشة تعديل البيانات.
             $contract->update([
-                'status' => $request->status,
                 'contract_date' => $request->contract_date,
                 'marketer_id' => $marketerId,
                 'required_maid_nationality_id' => $request->required_maid_nationality,
@@ -3313,7 +3330,7 @@ class RecruitmentContractController extends Controller
                 $maid = Maid::find($contract->maid_id);
                 if ($maid) {
                     // التحقق من حالة العقد
-                    $isActiveContract = !in_array($request->status, ['back', 'closed', 'completed']);
+                    $isActiveContract = !in_array($contract->status, ['back', 'closed', 'completed']);
 
                     if ($isActiveContract) {
                         // العقد نشط، العاملة يجب أن تكون محجوزة
@@ -3962,7 +3979,7 @@ class RecruitmentContractController extends Controller
             ->filter(fn(string $status) => $this->canMoveCompletedContractToStatus($status))
             ->map(fn(string $status) => [
                 'value' => $status,
-                'label' => getEnumValue('contract_statuses', $status) ?? getContractStatus($status),
+                'label' => getContractStatus($status) ?? getEnumValue('contract_statuses', $status),
             ])
             ->values()
             ->all();

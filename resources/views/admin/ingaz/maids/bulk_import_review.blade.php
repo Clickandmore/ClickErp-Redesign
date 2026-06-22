@@ -117,7 +117,7 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">نتيجة تحليل الصفوف</h5>
-                    <span class="badge bg-light text-dark">{{ $import->rows->count() }} صف</span>
+                    <span class="badge bg-light text-dark">{{ $rows->total() }} صف</span>
                 </div>
                 <div class="card-body table-responsive">
                     <table class="table table-hover align-middle">
@@ -136,7 +136,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse ($import->rows as $row)
+                            @forelse ($rows as $row)
                                 @php
                                     $raw = $row->raw_data ?? [];
                                 @endphp
@@ -188,6 +188,9 @@
                             @endforelse
                         </tbody>
                     </table>
+                    <div class="mt-3">
+                        {{ $rows->links() }}
+                    </div>
                 </div>
             </div>
         </div>

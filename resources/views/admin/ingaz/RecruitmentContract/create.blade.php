@@ -373,13 +373,13 @@
                                                         <input class="form-check-input js-account-client-type" type="radio"
                                                             name="account_client_type" id="new_account_client_type_person"
                                                             value="person" checked>
-                                                        <label class="form-check-label" for="new_account_client_type_person">شخص</label>
+                                                        <label class="form-check-label" for="new_account_client_type_person">{{ helperTrans('ingaz.person') }}</label>
                                                     </div>
                                                     <div class="form-check">
                                                         <input class="form-check-input js-account-client-type" type="radio"
                                                             name="account_client_type" id="new_account_client_type_company"
                                                             value="company">
-                                                        <label class="form-check-label" for="new_account_client_type_company">شركة</label>
+                                                        <label class="form-check-label" for="new_account_client_type_company">{{ helperTrans('ingaz.company') }}</label>
                                                     </div>
                                                 </div>
                                             </div>
@@ -508,86 +508,82 @@
                                             <i class="fas fa-female"></i>
                                         </div>
                                         <div>
-                                            <h5 class="section-title">بيانات العامل/ة</h5>
-                                            <p class="section-subtitle">البيانات الشخصية والمهنية</p>
+                                            <h5 class="section-title">{{ __('ingaz.worker_data') }}</h5>
+                                            <p class="section-subtitle">{{ __('ingaz.personal_professional_data') }}</p>
                                         </div>
                                     </div>
                                     <div class="card-body p-2" id="new-maid-section-card">
                                         <div class="row">
                                             <div class="col-12 mb-3">
-                                                <label class="form-label">طريقة إضافة العامل/ة <span
+                                                <label class="form-label">{{ __('ingaz.worker_add_method') }} <span
                                                         class="text-danger">*</span></label>
-                                                <div class="maid-mode-options" role="group" aria-label="طريقة إضافة العامل/ة">
+                                                <div class="maid-mode-options" role="group" aria-label="{{ __('ingaz.worker_add_method') }}">
                                                     <input type="radio" class="btn-check" name="maid_selection_mode"
                                                         id="maid_mode_existing" value="existing" checked>
-                                                    <label class="btn btn-outline-success" for="maid_mode_existing">عامل/ة
-                                                        موجودة</label>
+                                                    <label class="btn btn-outline-success" for="maid_mode_existing">{{ __('ingaz.existing_worker') }}</label>
 
                                                     <input type="radio" class="btn-check" name="maid_selection_mode"
                                                         id="maid_mode_manual" value="manual">
-                                                    <label class="btn btn-outline-primary" for="maid_mode_manual">عامل/ة
-                                                        مختصرة</label>
+                                                    <label class="btn btn-outline-primary" for="maid_mode_manual">{{ __('ingaz.short_worker') }}</label>
 
                                                     <input type="radio" class="btn-check" name="maid_selection_mode"
                                                         id="maid_mode_postponed" value="postponed">
-                                                    <label class="btn btn-outline-warning" for="maid_mode_postponed">تأجيل
-                                                        الاختيار</label>
+                                                    <label class="btn btn-outline-warning" for="maid_mode_postponed">{{ __('ingaz.postpone_worker_selection') }}</label>
                                                 </div>
-                                                <small class="text-muted d-block mt-2">يمكنك ربط عامل/ة موجود/ة، أو حفظ بيانات
-                                                    مختصرة مؤقتة، أو إنشاء العقد بدون عامل/ة حالياً.</small>
+                                                <small class="text-muted d-block mt-2">{{ __('ingaz.worker_add_method_hint') }}</small>
                                             </div>
                                         </div>
 
                                         <div class="row">
                                             <div class="col-12 mb-3" id="new-existing-maid-picker">
-                                                <label for="new_new_maid_id" class="form-label">اختر عامل/ة</label>
+                                                <label for="new_new_maid_id" class="form-label">{{ __('ingaz.select_worker') }}</label>
                                                 <select name="new_new_maid_id" id="new_new_maid_id"
                                                     class="form-select select2 ajax-maid-select" style="width:100%"
-                                                    data-placeholder="ابحث باسم العامل/ة أو رقم الجواز">
-                                                    <option value="" selected>اختر عامل/ة...</option>
+                                                    data-placeholder="{{ __('ingaz.worker_search_placeholder') }}">
+                                                    <option value="" selected>{{ __('ingaz.select_worker_placeholder') }}</option>
                                                 </select>
                                             </div>
                                         </div>
 
                                         <div id="existing-maid-summary" class="row">
                                             <div class="col-6 mb-2">
-                                                <label class="form-label">الاسم</label>
+                                                <label class="form-label">{{ __('ingaz.name') }}</label>
                                                 <input type="text" id="new_maid_name" name="new_maid_name"
                                                     class="form-control" readonly>
                                                 <div class="invalid-feedback" id="err_new_maid_name"></div>
                                             </div>
                                             <div class="col-6 mb-2">
-                                                <label class="form-label">رقم الجواز</label>
+                                                <label class="form-label">{{ __('ingaz.passport_number') }}</label>
                                                 <input type="text" id="new_maid_passport" name="new_maid_passport"
                                                     class="form-control" readonly>
                                             </div>
                                             <div class="col-6 mb-2">
-                                                <label class="form-label">الديانة</label>
+                                                <label class="form-label">{{ __('ingaz.religion') }}</label>
                                                 <input type="text" id="new_maid_religion" name="new_maid_religion"
                                                     class="form-control" readonly>
                                             </div>
                                             <div class="col-6 mb-2">
-                                                <label class="form-label">المهنة</label>
+                                                <label class="form-label">{{ __('ingaz.profession') }}</label>
                                                 <input type="text" id="new_maid_job" name="new_maid_job"
                                                     class="form-control" readonly>
                                             </div>
                                             <div class="col-6 mb-2">
-                                                <label class="form-label">الجنسية</label>
+                                                <label class="form-label">{{ __('ingaz.nationality') }}</label>
                                                 <input type="text" id="new_maid_nationality"
                                                     name="new_maid_nationality" class="form-control" readonly>
                                             </div>
                                             <div class="col-6 mb-2">
-                                                <label class="form-label">الراتب</label>
+                                                <label class="form-label">{{ __('ingaz.salary') }}</label>
                                                 <input type="text" id="new_maid_salary" name="new_maid_salary"
                                                     class="form-control" readonly>
                                             </div>
                                             <div class="col-6 mb-2">
-                                                <label class="form-label">سنوات الخبرة</label>
+                                                <label class="form-label">{{ __('ingaz.experience_years') }}</label>
                                                 <input type="text" id="new_maid_experience_years"
                                                     name="new_maid_experience_years" class="form-control" readonly>
                                             </div>
                                             <div class="col-6 mb-2">
-                                                <label class="form-label">العمر</label>
+                                                <label class="form-label">{{ __('ingaz.age') }}</label>
                                                 <input type="text" id="new_maid_age" name="new_maid_age"
                                                     class="form-control" readonly>
                                             </div>
@@ -595,36 +591,36 @@
 
                                         <div id="manual-maid-section-card" class="row g-3" style="display:none;">
                                             <div class="col-md-6">
-                                                <label for="manual_maid_name" class="form-label">اسم العامل/ة المختصر
+                                                <label for="manual_maid_name" class="form-label">{{ __('ingaz.short_worker_name') }}
                                                     <span class="text-danger">*</span></label>
                                                 <input type="text" id="manual_maid_name" name="manual_maid_name"
-                                                    class="form-control" placeholder="الاسم كما هو في المرفق أو الجواز">
+                                                    class="form-control" placeholder="{{ __('ingaz.short_worker_name_placeholder') }}">
                                                 <div class="invalid-feedback" id="err_manual_maid_name"></div>
                                             </div>
                                             <div class="col-md-6">
-                                                <label for="manual_maid_gender" class="form-label">الجنس
+                                                <label for="manual_maid_gender" class="form-label">{{ __('ingaz.gender') }}
                                                     <span class="text-danger">*</span></label>
                                                 <select id="manual_maid_gender" name="manual_maid_gender"
                                                     class="form-select">
-                                                    <option value="female" selected>أنثى</option>
-                                                    <option value="male">ذكر</option>
+                                                    <option value="female" selected>{{ __('ingaz.female') }}</option>
+                                                    <option value="male">{{ __('ingaz.male') }}</option>
                                                 </select>
                                                 <div class="invalid-feedback" id="err_manual_maid_gender"></div>
                                             </div>
                                             <div class="col-md-6">
-                                                <label for="manual_maid_passport_num" class="form-label">رقم الجواز
+                                                <label for="manual_maid_passport_num" class="form-label">{{ __('ingaz.passport_number') }}
                                                     <span class="text-danger">*</span></label>
                                                 <input type="text" id="manual_maid_passport_num"
                                                     name="manual_maid_passport_num" class="form-control"
-                                                    placeholder="رقم الجواز">
+                                                    placeholder="{{ __('ingaz.passport_number') }}">
                                                 <div class="invalid-feedback" id="err_manual_maid_passport_num"></div>
                                             </div>
                                             <div class="col-md-6">
-                                                <label for="manual_maid_job_title_id" class="form-label">المهنة
+                                                <label for="manual_maid_job_title_id" class="form-label">{{ __('ingaz.profession') }}
                                                     <span class="text-danger">*</span></label>
                                                 <select id="manual_maid_job_title_id" name="manual_maid_job_title_id"
-                                                    class="form-select select2" data-placeholder="اختر المهنة">
-                                                    <option value="">اختر المهنة...</option>
+                                                    class="form-select select2" data-placeholder="{{ __('ingaz.select_profession') }}">
+                                                    <option value="">{{ __('ingaz.select_profession_placeholder') }}</option>
                                                     @foreach ($maidJobTitles as $jobTitle)
                                                         <option value="{{ $jobTitle->id }}">{{ $jobTitle->title }}</option>
                                                     @endforeach
@@ -632,11 +628,11 @@
                                                 <div class="invalid-feedback" id="err_manual_maid_job_title_id"></div>
                                             </div>
                                             <div class="col-md-6">
-                                                <label for="manual_maid_nationality_id" class="form-label">الجنسية
+                                                <label for="manual_maid_nationality_id" class="form-label">{{ __('ingaz.nationality') }}
                                                     <span class="text-danger">*</span></label>
                                                 <select id="manual_maid_nationality_id" name="manual_maid_nationality_id"
-                                                    class="form-select select2" data-placeholder="اختر الجنسية">
-                                                    <option value="">اختر الجنسية...</option>
+                                                    class="form-select select2" data-placeholder="{{ __('ingaz.select_nationality') }}">
+                                                    <option value="">{{ __('ingaz.select_nationality_placeholder') }}</option>
                                                     @foreach ($maidNationalities as $nationality)
                                                         <option value="{{ $nationality->id }}">{{ $nationality->sub_title }}
                                                         </option>
@@ -645,12 +641,12 @@
                                                 <div class="invalid-feedback" id="err_manual_maid_nationality_id"></div>
                                             </div>
                                             <div class="col-md-6">
-                                                <label for="manual_maid_office_id" class="form-label">المكتب الخارجي
+                                                <label for="manual_maid_office_id" class="form-label">{{ __('ingaz.external_office') }}
                                                     <span class="text-danger">*</span></label>
                                                 <select id="manual_maid_office_id" name="manual_maid_office_id"
                                                     class="form-select select2"
-                                                    data-placeholder="اختر المكتب الخارجي">
-                                                    <option value="">اختر المكتب الخارجي...</option>
+                                                    data-placeholder="{{ __('ingaz.select_external_office') }}">
+                                                    <option value="">{{ __('ingaz.select_external_office_placeholder') }}</option>
                                                     @foreach ($recruitmentOffices as $office)
                                                         <option value="{{ $office->id }}">{{ $office->title }}</option>
                                                     @endforeach
@@ -658,19 +654,18 @@
                                                 <div class="invalid-feedback" id="err_manual_maid_office_id"></div>
                                             </div>
                                             <div class="col-12">
-                                                <label for="manual_maid_attachment" class="form-label">مرفق العامل/ة
-                                                    <small class="text-muted">(اختياري)</small></label>
+                                                <label for="manual_maid_attachment" class="form-label">{{ __('ingaz.worker_attachment') }}
+                                                    <small class="text-muted">({{ __('ingaz.optional') }})</small></label>
                                                 <input type="file" id="manual_maid_attachment"
                                                     name="manual_maid_attachment" class="form-control"
                                                     accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
                                                 <div class="invalid-feedback" id="err_manual_maid_attachment"></div>
-                                                <small class="text-muted d-block mt-1">يدعم PDF والصور وملفات Word حتى 5
-                                                    ميجابايت.</small>
+                                                <small class="text-muted d-block mt-1">{{ __('ingaz.worker_attachment_hint') }}</small>
                                             </div>
                                             <div class="col-12">
                                                 <div class="alert alert-info mb-0">
                                                     <i class="fas fa-circle-info me-2"></i>
-                                                    سيتم إنشاء عامل/ة مختصر/ة وربطه/ا بالعقد مباشرة. مرفق الجواز اختياري.
+                                                    {{ __('ingaz.short_worker_creation_hint') }}
                                                 </div>
                                             </div>
                                         </div>
@@ -678,7 +673,7 @@
                                         <div id="new-no-maid-alert" style="display:none;">
                                             <div class="alert alert-warning mt-2">
                                                 <i class="fas fa-exclamation-triangle me-2"></i>
-                                                تم اختيار "بدون عامل/ة حالياً". يمكنك إضافة عامل/ة لاحقاً من صفحة العقود.
+                                                {{ __('ingaz.no_worker_selected_hint') }}
                                             </div>
 
                                             <div class="row mt-3">
@@ -1071,6 +1066,20 @@
         var isManualPassportDuplicate = false;
         var selectedOrder = @json($selectedOrder);
         var hasOrderId = {{ isset($orderId) ? 'true' : 'false' }};
+        var select2Direction = @json(app()->getLocale() === 'ar' ? 'rtl' : 'ltr');
+        var recruitmentContractTranslations = {
+            workerRequiredOrChangeMethod: @json(__('ingaz.worker_required_or_change_method')),
+            shortWorkerNameRequired: @json(__('ingaz.short_worker_name_required')),
+            genderRequired: @json(__('ingaz.gender_required')),
+            passportRequired: @json(__('ingaz.passport_required')),
+            passportAlreadyExists: @json(__('ingaz.passport_already_exists')),
+            professionRequired: @json(__('ingaz.profession_required')),
+            nationalityRequired: @json(__('ingaz.nationality_required')),
+            externalOfficeRequired: @json(__('ingaz.external_office_required')),
+            errorTitle: @json(__('ingaz.error_title')),
+            ok: @json(__('ingaz.ok')),
+            selectWorkerRequired: @json(__('ingaz.select_worker_required'))
+        };
     </script>
 
     <script>
@@ -1421,7 +1430,7 @@
                 $(this).select2({
                     placeholder: $(this).data('placeholder') || 'اختر من القائمة...',
                     allowClear: true,
-                    dir: 'rtl',
+                    dir: select2Direction,
                     width: '100%'
                 });
             });
@@ -1432,7 +1441,7 @@
                 $(this).select2({
                     placeholder: $(this).data('placeholder') || 'ابحث عن العميل...',
                     allowClear: true,
-                    dir: 'rtl',
+                    dir: select2Direction,
                     width: '100%',
                     minimumInputLength: 1,
                     ajax: {
@@ -1459,7 +1468,7 @@
                 $(this).select2({
                     placeholder: $(this).data('placeholder') || 'ابحث عن العامل/ة...',
                     allowClear: true,
-                    dir: 'rtl',
+                    dir: select2Direction,
                     width: '100%',
                     minimumInputLength: 1,
                     ajax: {
@@ -2191,9 +2200,9 @@
                         isValid = false;
                         Swal.fire({
                             icon: 'error',
-                            title: 'خطأ',
-                            text: 'يرجى اختيار العامل/ة',
-                            confirmButtonText: 'حسناً'
+                            title: recruitmentContractTranslations.errorTitle,
+                            text: recruitmentContractTranslations.selectWorkerRequired,
+                            confirmButtonText: recruitmentContractTranslations.ok
                         });
                         return false;
                     }
@@ -2483,7 +2492,7 @@
                             $('#new_new_maid_id').addClass('is-invalid');
                             if ($('#err_new_new_maid_id').length === 0) {
                                 $('#new-existing-maid-picker').append(
-                                    '<div class="invalid-feedback d-block" id="err_new_new_maid_id">يرجى اختيار العامل/ة أو تغيير طريقة الإضافة.</div>'
+                                    '<div class="invalid-feedback d-block" id="err_new_new_maid_id">' + recruitmentContractTranslations.workerRequiredOrChangeMethod + '</div>'
                                 );
                             }
                         } else {
@@ -2501,7 +2510,7 @@
                         if (!manualMaidName) {
                             isValid = false;
                             $('#manual_maid_name').addClass('is-invalid');
-                            $('#err_manual_maid_name').text('يرجى إدخال اسم العامل/ة المختصر');
+                            $('#err_manual_maid_name').text(recruitmentContractTranslations.shortWorkerNameRequired);
                         } else {
                             $('#manual_maid_name').removeClass('is-invalid');
                             $('#err_manual_maid_name').text('');
@@ -2510,7 +2519,7 @@
                         if (!manualMaidGender) {
                             isValid = false;
                             $('#manual_maid_gender').addClass('is-invalid');
-                            $('#err_manual_maid_gender').text('يرجى اختيار الجنس');
+                            $('#err_manual_maid_gender').text(recruitmentContractTranslations.genderRequired);
                         } else {
                             $('#manual_maid_gender').removeClass('is-invalid');
                             $('#err_manual_maid_gender').text('');
@@ -2519,14 +2528,14 @@
                         if (!manualMaidPassport) {
                             isValid = false;
                             $('#manual_maid_passport_num').addClass('is-invalid');
-                            $('#err_manual_maid_passport_num').text('يرجى إدخال رقم الجواز');
+                            $('#err_manual_maid_passport_num').text(recruitmentContractTranslations.passportRequired);
                         } else if (isManualPassportDuplicate) {
                             isValid = false;
                             $('#manual_maid_passport_num').addClass('is-invalid');
                             $('#err_manual_maid_passport_num')
                                 .removeClass('valid-feedback')
                                 .addClass('invalid-feedback')
-                                .text('رقم الجواز مسجل مسبقاً في النظام');
+                                .text(recruitmentContractTranslations.passportAlreadyExists);
                         } else {
                             $('#manual_maid_passport_num').removeClass('is-invalid');
                             if (!$('#manual_maid_passport_num').hasClass('is-valid')) {
@@ -2537,7 +2546,7 @@
                         if (!manualMaidJobTitle) {
                             isValid = false;
                             $('#manual_maid_job_title_id').addClass('is-invalid');
-                            $('#err_manual_maid_job_title_id').text('يرجى اختيار المهنة');
+                            $('#err_manual_maid_job_title_id').text(recruitmentContractTranslations.professionRequired);
                         } else {
                             $('#manual_maid_job_title_id').removeClass('is-invalid');
                             $('#err_manual_maid_job_title_id').text('');
@@ -2546,7 +2555,7 @@
                         if (!manualMaidNationality) {
                             isValid = false;
                             $('#manual_maid_nationality_id').addClass('is-invalid');
-                            $('#err_manual_maid_nationality_id').text('يرجى اختيار الجنسية');
+                            $('#err_manual_maid_nationality_id').text(recruitmentContractTranslations.nationalityRequired);
                         } else {
                             $('#manual_maid_nationality_id').removeClass('is-invalid');
                             $('#err_manual_maid_nationality_id').text('');
@@ -2555,7 +2564,7 @@
                         if (!manualMaidOffice) {
                             isValid = false;
                             $('#manual_maid_office_id').addClass('is-invalid');
-                            $('#err_manual_maid_office_id').text('يرجى اختيار المكتب الخارجي');
+                            $('#err_manual_maid_office_id').text(recruitmentContractTranslations.externalOfficeRequired);
                         } else {
                             $('#manual_maid_office_id').removeClass('is-invalid');
                             $('#err_manual_maid_office_id').text('');

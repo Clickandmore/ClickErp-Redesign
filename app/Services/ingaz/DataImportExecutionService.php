@@ -29,6 +29,11 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Nami\Finance\Models\ClientCategory;
 use Nami\Finance\Models\Account;
+use Nami\Finance\Models\Constraint;
+use Nami\Finance\Models\ConstraintDetails;
+use Nami\Finance\Models\CostCenter;
+use Nami\Finance\Models\FnYear;
+use Nami\Finance\Enums\ConstraintTypiesEnum;
 use Nami\Hr\Models\Department as HrDepartment;
 use Nami\Hr\Models\Employee as HrEmployee;
 use Nami\Hr\Models\EmployeeShift as HrEmployeeShift;
@@ -39,6 +44,8 @@ use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
 
 class DataImportExecutionService
 {
+    private const MAX_ERROR_DETAILS = 200;
+
     private ?string $importPasswordHash = null;
 
     public function __construct(private DataImportTemplateService $templates)
@@ -47,23 +54,28 @@ class DataImportExecutionService
 
     public function import(string $type, UploadedFile $file, ?int $adminId): array
     {
-        @set_time_limit(0);
+        $this->prepareLargeImportRuntime();
         $this->importPasswordHash = null;
 
         $storedPath = $this->templates->storeUploadedFile($type, $file, $adminId);
-        $rows = $this->readRows(Storage::path($storedPath), $this->templates->template($type)['columns'] ?? []);
-
         $result = [
             'path' => $storedPath,
-            'total' => count($rows),
+            'total' => 0,
             'created' => 0,
             'updated' => 0,
             'skipped' => 0,
             'errors' => [],
+            'error_count' => 0,
         ];
 
-        foreach ($rows as $index => $row) {
-            $rowNumber = $index + 2;
+        $columns = $this->templates->template($type)['columns'] ?? [];
+
+        if ($type === 'finance_constraints') {
+            return $this->importFinanceConstraintsFile($storedPath, $columns, $adminId, $result);
+        }
+
+        foreach ($this->readRows(Storage::path($storedPath), $columns) as $rowNumber => $row) {
+            $result['total']++;
 
             try {
                 DB::transaction(function () use ($type, $row, $adminId, &$result) {
@@ -85,14 +97,18 @@ class DataImportExecutionService
                 });
             } catch (\Throwable $exception) {
                 $result['skipped']++;
-                $result['errors'][] = "صف {$rowNumber}: " . $exception->getMessage();
+                $result['error_count']++;
+
+                if (count($result['errors']) < self::MAX_ERROR_DETAILS) {
+                    $result['errors'][] = "صف {$rowNumber}: " . $exception->getMessage();
+                }
             }
         }
 
         return $result;
     }
 
-    private function readRows(string $path, array $columns): array
+    private function readRows(string $path, array $columns): \Generator
     {
         $spreadsheet = $this->loadSpreadsheetForImport($path);
         $sheet = $spreadsheet->getSheetByName('البيانات') ?: $spreadsheet->getActiveSheet();
@@ -127,11 +143,9 @@ class DataImportExecutionService
             $values = collect($row)->filter(fn ($value) => $value !== null && $value !== '');
 
             if ($values->isNotEmpty() && !$values->every(fn ($value) => in_array($value, ['مطلوب', 'اختياري'], true))) {
-                $rows[] = $row;
+                yield $rowNumber => $row;
             }
         }
-
-        return $rows;
     }
 
     private function loadSpreadsheetForImport(string $path): \PhpOffice\PhpSpreadsheet\Spreadsheet
@@ -149,14 +163,153 @@ class DataImportExecutionService
         return $reader->load($path);
     }
 
+    private function importFinanceConstraintsFile(string $storedPath, array $columns, ?int $adminId, array $result): array
+    {
+        $groups = [];
+
+        foreach ($this->readRows(Storage::path($storedPath), $columns) as $rowNumber => $row) {
+            $result['total']++;
+            $reference = trim((string) ($row['constraint_ref'] ?? $row['code'] ?? ''));
+
+            if ($reference === '') {
+                $result['skipped']++;
+                $result['error_count']++;
+
+                if (count($result['errors']) < self::MAX_ERROR_DETAILS) {
+                    $result['errors'][] = "صف {$rowNumber}: رقم مجموعة القيد مطلوب.";
+                }
+
+                continue;
+            }
+
+            $groups[$reference][] = [
+                'row_number' => $rowNumber,
+                'row' => $row,
+            ];
+        }
+
+        foreach ($groups as $reference => $rows) {
+            try {
+                DB::transaction(function () use ($reference, $rows, $adminId, &$result) {
+                    $outcome = $this->importFinanceConstraintGroup($reference, $rows, $adminId);
+                    $result[$outcome]++;
+                });
+            } catch (\Throwable $exception) {
+                $result['skipped'] += count($rows);
+                $result['error_count']++;
+
+                if (count($result['errors']) < self::MAX_ERROR_DETAILS) {
+                    $rowNumbers = collect($rows)->pluck('row_number')->implode(', ');
+                    $result['errors'][] = "القيد {$reference} (صفوف {$rowNumbers}): " . $exception->getMessage();
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    private function importFinanceConstraintGroup(string $reference, array $rows, ?int $adminId): string
+    {
+        if (count($rows) < 2) {
+            throw new \InvalidArgumentException('القيد يجب أن يحتوي على سطرين على الأقل.');
+        }
+
+        $firstRow = $rows[0]['row'];
+        $date = $this->parseDate($firstRow['date'] ?? null);
+
+        if (!$date) {
+            throw new \InvalidArgumentException('تاريخ القيد مطلوب أو غير صحيح.');
+        }
+
+        $year = $this->resolveFinanceYear($date);
+        if (!$year) {
+            throw new \InvalidArgumentException('لا توجد سنة مالية نشطة تشمل تاريخ القيد.');
+        }
+
+        $statement = trim((string) ($firstRow['statement'] ?? '')) ?: '-';
+        $code = $this->resolveFinanceConstraintCode($rows);
+        $type = $this->resolveFinanceConstraintType($firstRow['type'] ?? null);
+        $details = [];
+        $debtorTotal = 0.0;
+        $creditorTotal = 0.0;
+
+        foreach ($rows as $item) {
+            $row = $item['row'];
+            $rowDate = $this->parseDate($row['date'] ?? null);
+
+            if ($rowDate !== $date) {
+                throw new \InvalidArgumentException('كل صفوف القيد الواحد يجب أن تحمل نفس التاريخ.');
+            }
+
+            $accountId = $this->resolveFinanceAccountId($row);
+            if (!$accountId) {
+                throw new \InvalidArgumentException('تعذر تحديد الحساب. استخدم account_id أو account_code أو account_name صحيح.');
+            }
+
+            $line = $this->resolveFinanceConstraintLine($row);
+            $costCenterId = $this->resolveFinanceCostCenterId($row);
+            $lineStatement = trim((string) ($row['line_statement'] ?? '')) ?: $statement;
+
+            $details[] = [
+                'type' => $line['type'],
+                'account_id' => $accountId,
+                'cost_center_id' => $costCenterId,
+                'debtor_value' => $line['debtor_value'],
+                'creditor_value' => $line['creditor_value'],
+                'statement' => $lineStatement,
+                'year_id' => $year->id,
+                'date' => $date,
+            ];
+
+            $debtorTotal += $line['debtor_value'];
+            $creditorTotal += $line['creditor_value'];
+        }
+
+        if ($debtorTotal <= 0 || round($debtorTotal, 2) !== round($creditorTotal, 2)) {
+            throw new \InvalidArgumentException('إجمالي المدين يجب أن يساوي إجمالي الدائن.');
+        }
+
+        if (!collect($details)->contains('type', 'debtor') || !collect($details)->contains('type', 'creditor')) {
+            throw new \InvalidArgumentException('القيد يجب أن يحتوي على طرف مدين وطرف دائن.');
+        }
+
+        $constraint = $code ? Constraint::query()->where('code', $code)->first() : null;
+        $payload = [
+            'type' => $type,
+            'value' => round($debtorTotal, 2),
+            'date' => $date,
+            'statement' => $statement,
+            'year_id' => $year->id,
+            'code' => $code ?: $this->nextFinanceConstraintCode(),
+            'created_by_id' => $adminId,
+        ];
+
+        if ($constraint) {
+            $constraint->update($payload);
+            ConstraintDetails::query()->where('constraint_id', $constraint->id)->delete();
+            $outcome = 'updated';
+        } else {
+            $constraint = Constraint::query()->create($payload);
+            $outcome = 'created';
+        }
+
+        foreach ($details as $detail) {
+            ConstraintDetails::query()->create($detail + [
+                'constraint_id' => $constraint->id,
+            ]);
+        }
+
+        return $outcome;
+    }
+
     private function importClient(array $row, ?int $adminId): string
     {
-        $phone = $this->normalizeSaudiPhone($row['phone'] ?? '');
+        $phone = $this->normalizeImportPhone($row['phone'] ?? '');
         $name = trim((string) ($row['name'] ?? ''));
         $idNumber = $this->normalizeIdNumber($row['id_number'] ?? $row['national_num'] ?? null);
         $databaseId = $this->optionalInteger($row['id'] ?? null);
 
-        if (!$phone || $name === '' || $idNumber === '') {
+        if ($phone === '' || $name === '' || $idNumber === '') {
             throw new \InvalidArgumentException('اسم العميل ورقم الجوال ورقم الهوية مطلوبة.');
         }
 
@@ -352,7 +505,7 @@ class DataImportExecutionService
 
     private function importMaid(array $row, ?int $adminId, bool $rental): string
     {
-        $passport = trim((string) ($row['passport_num'] ?? ''));
+        $passport = $this->normalizePassportNumber($row['passport_num'] ?? $row['maid_passport'] ?? '');
 
         if ($passport === '') {
             throw new \InvalidArgumentException('رقم جواز العاملة مطلوب.');
@@ -449,13 +602,17 @@ class DataImportExecutionService
             $created = true;
         }
 
+        $arrivalDate = $this->parseDate($row['arrival_date'] ?? null);
+
         $this->upsertContractInfo($contract, [
             'contract_date' => $this->parseDate($row['contract_date'] ?? null),
             'visa_number' => $row['visa_number'] ?? null,
-            'arrival_date' => $this->parseDate($row['arrival_date'] ?? null),
+            'arrival_date' => $arrivalDate,
             'contract_value' => $this->decimal($row['amount'] ?? null),
             'notes' => $row['notes'] ?? null,
         ]);
+
+        $this->syncRecruitmentContractWarrantyFromArrivalDate($contract, $arrivalDate);
 
         return $created ? 'created' : 'updated';
     }
@@ -701,9 +858,9 @@ class DataImportExecutionService
     private function clientFromRow(array $row): User
     {
         $idNumber = $this->normalizeIdNumber($row['client_id_number'] ?? $row['id_number'] ?? $row['national_num'] ?? null);
-        $phone = $this->normalizeSaudiPhone($row['client_phone'] ?? $row['phone'] ?? '');
+        $phone = $this->normalizeImportPhone($row['client_phone'] ?? $row['phone'] ?? '');
         $userById = $idNumber !== '' ? User::where('national_num', $idNumber)->first() : null;
-        $userByPhone = $phone ? $this->findUserByPhone($phone) : null;
+        $userByPhone = $phone !== '' ? $this->findUserByPhone($phone) : null;
 
         if ($userById && $userByPhone && (int) $userById->id !== (int) $userByPhone->id) {
             throw new \InvalidArgumentException('رقم هوية العميل ورقم جواله يعودان لعميلين مختلفين.');
@@ -725,7 +882,7 @@ class DataImportExecutionService
             return $userByPhone;
         }
 
-        if (!$phone) {
+        if ($phone === '') {
             throw new \InvalidArgumentException('جوال العميل مطلوب وغير صحيح.');
         }
 
@@ -746,7 +903,7 @@ class DataImportExecutionService
 
     private function maidFromRow(array $row, bool $required): ?Maid
     {
-        $passport = trim((string) ($row['maid_passport'] ?? $row['passport_num'] ?? ''));
+        $passport = $this->normalizePassportNumber($row['maid_passport'] ?? $row['passport_num'] ?? '');
         if ($passport === '') {
             if ($required) {
                 throw new \InvalidArgumentException('رقم جواز العاملة مطلوب.');
@@ -771,7 +928,7 @@ class DataImportExecutionService
     {
         $payload = [
             'name' => $row['name_en'] ?? $row['maid_name'] ?? 'EDIT_ME_NAME',
-            'passport_num' => $row['passport_num'] ?? $row['maid_passport'] ?? null,
+            'passport_num' => $this->normalizePassportNumber($row['passport_num'] ?? $row['maid_passport'] ?? null),
             'nationality_id' => $this->resolveNationalityId($row['nationality'] ?? null),
             'religion_id' => $this->resolveTranslatableId(Religion::class, $row['religion'] ?? null)
                 ?: Religion::query()->value('id'),
@@ -984,10 +1141,38 @@ class DataImportExecutionService
         $contract->info()->updateOrCreate([], $this->filterColumns('contract_infos', $payload));
     }
 
+    private function syncRecruitmentContractWarrantyFromArrivalDate(Contract $contract, ?string $arrivalDate): void
+    {
+        if (!$arrivalDate) {
+            return;
+        }
+
+        $contract->forceFill([
+            'status' => ContractStatusEnum::Arrival->value,
+        ])->save();
+
+        $contract->load('info', 'maid');
+        $contract->calculateWarrantyStatus();
+    }
+
     private function findUserByPhone(string $phone): ?User
     {
+        $phone = trim($phone);
+
+        if (preg_match('/\p{L}/u', $phone)) {
+            return User::where('phone', $phone)->first();
+        }
+
+        $normalizedSaudiPhone = $this->normalizeSaudiPhone($phone);
+        $digits = preg_replace('/\D+/', '', $this->normalizeDigits($phone));
+
         $candidates = array_values(array_unique(array_filter([
             $phone,
+            $digits,
+            $normalizedSaudiPhone,
+            $normalizedSaudiPhone ? '0' . $normalizedSaudiPhone : null,
+            $normalizedSaudiPhone ? '966' . $normalizedSaudiPhone : null,
+            $normalizedSaudiPhone ? '+966' . $normalizedSaudiPhone : null,
             '0' . $phone,
             '966' . $phone,
             '+966' . $phone,
@@ -1041,6 +1226,184 @@ class DataImportExecutionService
         }
 
         return Account::query()->whereKey($id)->exists() ? $id : null;
+    }
+
+    private function resolveFinanceAccountId(array $row): ?int
+    {
+        if (!class_exists(Account::class) || !Schema::hasTable('fn_accounts')) {
+            return null;
+        }
+
+        $id = $this->optionalInteger($row['account_id'] ?? null);
+        if ($id && Account::query()->whereKey($id)->exists()) {
+            return $id;
+        }
+
+        $code = trim((string) ($row['account_code'] ?? ''));
+        if ($code !== '') {
+            $account = Account::query()->where('code', $this->normalizeDigits($code))->first();
+            if ($account) {
+                return (int) $account->id;
+            }
+        }
+
+        $name = trim((string) ($row['account_name'] ?? ''));
+        if ($name !== '') {
+            $account = Account::query()->where('name', $name)->first();
+            if ($account) {
+                return (int) $account->id;
+            }
+        }
+
+        return null;
+    }
+
+    private function resolveFinanceCostCenterId(array $row): ?int
+    {
+        if (!class_exists(CostCenter::class) || !Schema::hasTable('fn_cost_centers')) {
+            return null;
+        }
+
+        $id = $this->optionalInteger($row['cost_center_id'] ?? null);
+        if ($id && CostCenter::query()->whereKey($id)->exists()) {
+            return $id;
+        }
+
+        $code = trim((string) ($row['cost_center_code'] ?? ''));
+        if ($code !== '' && Schema::hasColumn('fn_cost_centers', 'code')) {
+            $costCenter = CostCenter::query()->where('code', $this->normalizeDigits($code))->first();
+            if ($costCenter) {
+                return (int) $costCenter->id;
+            }
+        }
+
+        $title = trim((string) ($row['cost_center_name'] ?? ''));
+        if ($title !== '') {
+            $costCenter = CostCenter::query()->where('title', $title)->first();
+            if ($costCenter) {
+                return (int) $costCenter->id;
+            }
+        }
+
+        return null;
+    }
+
+    private function resolveFinanceConstraintLine(array $row): array
+    {
+        $debtorValue = (float) ($this->decimal($row['debtor_value'] ?? null) ?? 0);
+        $creditorValue = (float) ($this->decimal($row['creditor_value'] ?? null) ?? 0);
+        $amount = $this->decimal($row['amount'] ?? null);
+        $type = $this->normalizeFinanceLineType($row['line_type'] ?? $row['account_type'] ?? null);
+
+        if ($amount !== null && $amount > 0 && $debtorValue <= 0 && $creditorValue <= 0) {
+            if (!$type) {
+                throw new \InvalidArgumentException('عند استخدام amount يجب تحديد line_type بقيمة debtor أو creditor.');
+            }
+
+            if ($type === 'debtor') {
+                $debtorValue = $amount;
+            } else {
+                $creditorValue = $amount;
+            }
+        }
+
+        if ($debtorValue > 0 && $creditorValue > 0) {
+            throw new \InvalidArgumentException('لا يمكن أن يكون السطر مدينا ودائنا في نفس الوقت.');
+        }
+
+        if ($debtorValue > 0) {
+            if ($type && $type !== 'debtor') {
+                throw new \InvalidArgumentException('نوع السطر لا يطابق قيمة المدين.');
+            }
+
+            return [
+                'type' => 'debtor',
+                'debtor_value' => round($debtorValue, 2),
+                'creditor_value' => 0,
+            ];
+        }
+
+        if ($creditorValue > 0) {
+            if ($type && $type !== 'creditor') {
+                throw new \InvalidArgumentException('نوع السطر لا يطابق قيمة الدائن.');
+            }
+
+            return [
+                'type' => 'creditor',
+                'debtor_value' => 0,
+                'creditor_value' => round($creditorValue, 2),
+            ];
+        }
+
+        throw new \InvalidArgumentException('يجب إدخال قيمة مدين أو دائن لكل سطر.');
+    }
+
+    private function normalizeFinanceLineType($value): ?string
+    {
+        $normalized = $this->normalizeArabicText((string) $value);
+
+        return match ($normalized) {
+            'debtor', 'debit', 'dr', 'مدين' => 'debtor',
+            'creditor', 'credit', 'cr', 'دائن', 'داين' => 'creditor',
+            default => null,
+        };
+    }
+
+    private function resolveFinanceConstraintCode(array $rows): ?int
+    {
+        $codes = collect($rows)
+            ->map(fn ($item) => $this->optionalInteger($item['row']['code'] ?? null))
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($codes->count() > 1) {
+            throw new \InvalidArgumentException('كل صفوف القيد الواحد يجب أن تحمل نفس رقم القيد.');
+        }
+
+        return $codes->first();
+    }
+
+    private function resolveFinanceConstraintType($value): ConstraintTypiesEnum
+    {
+        $value = trim((string) $value);
+
+        if ($value === '') {
+            return ConstraintTypiesEnum::DailyEntry;
+        }
+
+        if (is_numeric($value)) {
+            $type = ConstraintTypiesEnum::tryFrom((int) $value);
+            if ($type) {
+                return $type;
+            }
+        }
+
+        $normalized = $this->normalizeArabicText($value);
+
+        return match ($normalized) {
+            'dailyentry', 'daily_entry', 'daily entry', 'daily', 'journal', 'journal entry', 'قيد يومي', 'يومي' => ConstraintTypiesEnum::DailyEntry,
+            'firstbalance', 'first_balance', 'first balance', 'opening balance', 'رصيد افتتاحي' => ConstraintTypiesEnum::FirstBalance,
+            default => throw new \InvalidArgumentException('نوع القيد غير معروف. استخدم رقم النوع أو اتركه فارغا للقيد اليومي.'),
+        };
+    }
+
+    private function resolveFinanceYear(string $date): ?FnYear
+    {
+        if (!class_exists(FnYear::class) || !Schema::hasTable('fn_years')) {
+            return null;
+        }
+
+        return FnYear::query()
+            ->where('status', 1)
+            ->whereDate('from_date', '<=', $date)
+            ->whereDate('to_date', '>=', $date)
+            ->first();
+    }
+
+    private function nextFinanceConstraintCode(): int
+    {
+        return ((int) Constraint::query()->max('code')) + 1;
     }
 
     private function resolveAdminId($value): ?int
@@ -1187,7 +1550,7 @@ class DataImportExecutionService
 
     private function resolveMaidId($value): ?int
     {
-        $value = trim((string) $value);
+        $value = $this->normalizePassportNumber($value);
         if ($value === '') {
             return null;
         }
@@ -1289,9 +1652,25 @@ class DataImportExecutionService
             return (int) $value;
         }
 
-        return $modelClass::query()
+        $id = $modelClass::query()
             ->whereTranslationLike('title', $value)
             ->value('id');
+
+        if ($id) {
+            return (int) $id;
+        }
+
+        $normalized = $this->normalizeArabicText($value);
+
+        return $modelClass::query()
+            ->with('translations')
+            ->get()
+            ->first(function ($record) use ($normalized) {
+                $titles = collect([$record->title ?? null])
+                    ->merge($record->translations?->pluck('title') ?? []);
+
+                return $titles->contains(fn ($title) => $this->normalizeArabicText($title) === $normalized);
+            })?->id;
     }
 
     private function findRecruitmentOfficeByTitle(string $titleAr, ?string $titleEn, int $nationalityId): ?RecruitmentOffices
@@ -1355,7 +1734,11 @@ class DataImportExecutionService
 
     private function normalizeSaudiPhone(?string $phone): ?string
     {
-        $digits = preg_replace('/\D+/', '', (string) $phone);
+        $digits = preg_replace('/\D+/', '', $this->normalizeDigits((string) $phone));
+
+        if (str_starts_with($digits, '00')) {
+            $digits = substr($digits, 2);
+        }
 
         if (str_starts_with($digits, '966')) {
             $digits = substr($digits, 3);
@@ -1365,7 +1748,39 @@ class DataImportExecutionService
             $digits = substr($digits, 1);
         }
 
+        if (strlen($digits) > 9 && preg_match('/5\d{8}/', $digits, $matches)) {
+            $digits = $matches[0];
+        }
+
         return preg_match('/^5\d{8}$/', $digits) ? $digits : null;
+    }
+
+    private function normalizeImportPhone($phone): string
+    {
+        $phone = trim($this->normalizeDigits((string) $phone));
+        if ($phone === '') {
+            return '';
+        }
+
+        $normalizedSaudiPhone = $this->normalizeSaudiPhone($phone);
+        if ($normalizedSaudiPhone) {
+            return $normalizedSaudiPhone;
+        }
+
+        if (preg_match('/^(.+)\.0+$/', $phone, $matches)) {
+            $phone = $matches[1];
+        }
+
+        if (preg_match('/\p{L}/u', $phone)) {
+            return preg_replace('/\s+/u', '', $phone);
+        }
+
+        $digits = preg_replace('/\D+/', '', $phone);
+        if ($digits !== '') {
+            return $digits;
+        }
+
+        return preg_replace('/\s+/u', '', $phone);
     }
 
     private function normalizeOptionalPhone(?string $phone): ?string
@@ -1380,7 +1795,19 @@ class DataImportExecutionService
 
     private function normalizeIdNumber($value): string
     {
-        return preg_replace('/\s+/u', '', trim((string) $value));
+        return preg_replace('/\D+/u', '', $this->normalizeDigits((string) $value));
+    }
+
+    private function normalizePassportNumber($value): string
+    {
+        $value = $this->normalizeDigits((string) $value);
+        $value = preg_replace('/\s+/u', '', trim($value));
+
+        if (preg_match('/^(.+)\.0+$/', $value, $matches)) {
+            $value = $matches[1];
+        }
+
+        return mb_strtoupper($value);
     }
 
     private function normalizeMaidStatus(?string $status): string
@@ -1683,8 +2110,22 @@ class DataImportExecutionService
             return null;
         }
 
+        $value = $this->normalizeDigits((string) $value);
+
+        if (preg_match('/^(19|20)\d{6}$/', trim($value))) {
+            return Carbon::createFromFormat('Ymd', trim($value))->toDateString();
+        }
+
         if (is_numeric($value)) {
             return Carbon::instance(ExcelDate::excelToDateTimeObject((float) $value))->toDateString();
+        }
+
+        foreach (['Y-m-d', 'Y/m/d', 'd/m/Y', 'd-m-Y', 'd.m.Y', 'm/d/Y', 'm-d-Y'] as $format) {
+            try {
+                return Carbon::createFromFormat($format, trim($value))->toDateString();
+            } catch (\Throwable) {
+                // Try the next common import format.
+            }
         }
 
         try {
@@ -1700,12 +2141,22 @@ class DataImportExecutionService
             return null;
         }
 
-        return (float) str_replace(',', '', (string) $value);
+        return (float) str_replace(',', '', $this->normalizeDigits((string) $value));
     }
 
     private function cellValue($value): string
     {
-        return trim((string) $value);
+        if ($value === null) {
+            return '';
+        }
+
+        if (is_int($value) || is_float($value)) {
+            $value = floor((float) $value) == (float) $value
+                ? number_format((float) $value, 0, '.', '')
+                : rtrim(rtrim(number_format((float) $value, 8, '.', ''), '0'), '.');
+        }
+
+        return trim($this->normalizeDigits((string) $value));
     }
 
     private function cellCoordinate(int $column, int $row): string
@@ -1715,8 +2166,10 @@ class DataImportExecutionService
 
     private function normalizeArabicText(?string $value): string
     {
+        $value = $this->normalizeDigits((string) $value);
         $value = mb_strtolower(trim((string) $value));
-        $value = str_replace(['أ', 'إ', 'آ', 'ى', 'ة', 'ـ'], ['ا', 'ا', 'ا', 'ي', 'ه', ''], $value);
+        $value = str_replace(['أ', 'إ', 'آ', 'ى', 'ة', 'ـ', 'ؤ', 'ئ'], ['ا', 'ا', 'ا', 'ي', 'ه', '', 'و', 'ي'], $value);
+        $value = preg_replace('/[\x{064B}-\x{065F}\x{0670}]/u', '', $value);
         $value = preg_replace('/[^\p{L}\p{N}_]+/u', ' ', $value);
 
         return trim(preg_replace('/\s+/u', ' ', $value));
@@ -1724,10 +2177,22 @@ class DataImportExecutionService
 
     private function normalizeHeader(string $value): string
     {
+        $value = $this->normalizeDigits($value);
         $value = mb_strtolower(trim($value));
-        $value = str_replace(['أ', 'إ', 'آ', 'ى', 'ة', 'ـ'], ['ا', 'ا', 'ا', 'ي', 'ه', ''], $value);
+        $value = str_replace(['أ', 'إ', 'آ', 'ى', 'ة', 'ـ', 'ؤ', 'ئ'], ['ا', 'ا', 'ا', 'ي', 'ه', '', 'و', 'ي'], $value);
+        $value = preg_replace('/[\x{064B}-\x{065F}\x{0670}]/u', '', $value);
 
         return preg_replace('/\s+/u', '', $value);
+    }
+
+    private function normalizeDigits(string $value): string
+    {
+        return strtr($value, [
+            '٠' => '0', '١' => '1', '٢' => '2', '٣' => '3', '٤' => '4',
+            '٥' => '5', '٦' => '6', '٧' => '7', '٨' => '8', '٩' => '9',
+            '۰' => '0', '۱' => '1', '۲' => '2', '۳' => '3', '۴' => '4',
+            '۵' => '5', '۶' => '6', '۷' => '7', '۸' => '8', '۹' => '9',
+        ]);
     }
 
     private function defaultImportPasswordHash(): string
@@ -1744,5 +2209,12 @@ class DataImportExecutionService
         return collect($payload)
             ->filter(fn ($value, $key) => Schema::hasColumn($table, $key))
             ->all();
+    }
+
+    private function prepareLargeImportRuntime(): void
+    {
+        @set_time_limit(0);
+        @ini_set('memory_limit', '1024M');
+        @ini_set('max_execution_time', '0');
     }
 }

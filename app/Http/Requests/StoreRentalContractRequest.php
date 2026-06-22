@@ -7,8 +7,10 @@ use App\Models\ingaz\Maid;
 use App\Models\ingaz\Order;
 use App\Models\ingaz\Package;
 use App\Models\ingaz\JobType;
+use App\Support\MoyasarSettings;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class StoreRentalContractRequest extends FormRequest
 {
@@ -41,7 +43,12 @@ class StoreRentalContractRequest extends FormRequest
         return [
             // معلومات العميل الأساسية
             'new_client_name' => 'required|string|max:255',
-            'new_client_phone' => 'required|string|max:20',
+            'new_client_phone' => [
+                'required', 'string', 'max:20',
+                $this->input('new_existing_client_id')
+                    ? Rule::unique('users', 'phone')->ignore((int) $this->input('new_existing_client_id'))
+                    : Rule::unique('users', 'phone'),
+            ],
             'account_client_type' => 'nullable|in:person,company',
             'client_nationality_id' => 'required|exists:countries,id',
             'new_client_email' => 'nullable|email|max:255',
@@ -74,7 +81,7 @@ class StoreRentalContractRequest extends FormRequest
             'sponsorship_transfer' => 'nullable|string|in:yes,no',
             'package_id' => 'required|exists:packages,id',
             'selected_package_id' => 'nullable|exists:packages,id',
-            'payment_type' => 'required|string|in:cash,bank_transfer,mada,tabby,tamara,pay_later,other',
+            'payment_type' => 'required|string|in:cash,bank_transfer,mada,tabby,tamara,moyasar,pay_later,other',
             'payment_status' => 'required|string|in:paid,partial,pending,later,bank_pending',
             'payment_receipt' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
             'paid_amount' => 'nullable|numeric|min:0',
@@ -121,7 +128,7 @@ class StoreRentalContractRequest extends FormRequest
             'salary_after_sponsorship' => 'nullable|numeric|min:0',
             'package_id' => 'required|exists:packages,id',
             'selected_package_id' => 'nullable|exists:packages,id',
-            'payment_type' => 'required|string|in:cash,bank_transfer,mada,tabby,tamara,pay_later,other',
+            'payment_type' => 'required|string|in:cash,bank_transfer,mada,tabby,tamara,moyasar,pay_later,other',
             'payment_status' => 'required|string|in:paid,partial,pending,later,bank_pending',
             'payment_receipt' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
             'paid_amount' => 'nullable|numeric|min:0',
@@ -146,6 +153,7 @@ class StoreRentalContractRequest extends FormRequest
             // رسائل معلومات العميل
             'new_client_name.required' => 'اسم العميل مطلوب',
             'new_client_phone.required' => 'رقم جوال العميل مطلوب',
+            'new_client_phone.unique' => 'رقم الجوال مسجل لعميل آخر في النظام. ابحث عنه في قائمة "العملاء الحاليين" واختره منها.',
             'client_nationality_id.required' => 'جنسية العميل مطلوبة',
             'client_nationality_id.exists' => 'الجنسية المختارة غير صحيحة',
             'new_client_email.email' => 'البريد الإلكتروني غير صحيح',
@@ -256,6 +264,30 @@ class StoreRentalContractRequest extends FormRequest
 
             $contractValue = (float) ($this->total_contract_value ?: (($this->monthly_cost ?? 0) * ($this->contract_duration_months ?? 0)));
             $paidAmount = (float) ($this->paid_amount ?? 0);
+            $paymentType = (string) $this->payment_type;
+            $paymentStatus = (string) $this->payment_status;
+            $moyasarAlreadyPaid = ($currentContract?->info?->moyasar_payment_status === 'paid')
+                || ($currentContract?->info?->payment_type === 'moyasar' && $currentContract?->info?->payment_status === 'paid');
+
+            if ($paymentType === 'moyasar' && !MoyasarSettings::isEnabled() && !$moyasarAlreadyPaid) {
+                $validator->errors()->add('payment_type', 'بوابة ميسر غير مفعلة حالياً من إعدادات النظام');
+            }
+
+            if ($paymentType === 'moyasar' && $paymentStatus !== 'pending' && !$moyasarAlreadyPaid) {
+                $validator->errors()->add('payment_status', 'عند اختيار ميسر يجب أن تكون حالة الدفع معلقة حتى يتم تأكيد الدفع تلقائياً من ميسر');
+            }
+
+            if ($paymentType === 'pay_later' && $paymentStatus !== 'later') {
+                $validator->errors()->add('payment_status', 'عند اختيار طريقة الدفع لاحقاً يجب أن تكون حالة الدفع "الدفع لاحقاً"');
+            }
+
+            if ($paymentStatus === 'later' && $paymentType !== 'pay_later') {
+                $validator->errors()->add('payment_type', 'حالة الدفع لاحقاً تتطلب اختيار طريقة الدفع لاحقاً');
+            }
+
+            if ($paymentStatus === 'bank_pending' && $paymentType !== 'bank_transfer') {
+                $validator->errors()->add('payment_type', 'حالة بانتظار التحويل تتطلب اختيار طريقة الدفع تحويل بنكي');
+            }
 
             if ($this->payment_status === 'partial') {
                 if ($paidAmount <= 0) {

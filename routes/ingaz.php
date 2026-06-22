@@ -52,6 +52,8 @@ use App\Http\Controllers\ingaz\RentalContractInvoiceController;
 use App\Http\Controllers\ingaz\RentalContractTermsController;
 use App\Http\Controllers\ingaz\RentalOrderController;
 use App\Http\Controllers\ingaz\RentContractController;
+use App\Http\Controllers\ingaz\MoyasarWebhookController;
+use App\Http\Controllers\ingaz\MoyasarSettingsController;
 use App\Http\Controllers\ingaz\ReportController;
 use App\Http\Controllers\ingaz\RequirementsController;
 use App\Http\Controllers\ingaz\ReturnRequestController;
@@ -97,6 +99,11 @@ Route::group(
         'middleware' => ['localeSessionRedirect', 'localizationRedirect', 'localeViewPath'],
     ],
     function () {
+        // ميسر: callback يستقبل العميل بعد الدفع (بدون auth)
+        Route::get('moyasar/callback', [MoyasarWebhookController::class, 'callback'])->name('moyasar.callback');
+        // ميسر: webhook يستقبل إشعارات ميسر (بدون CSRF — يُستثنى في VerifyCsrfToken أيضاً)
+        Route::post('moyasar/webhook', [MoyasarWebhookController::class, 'webhook'])->name('moyasar.webhook')->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
+
         Route::group(["prefix" => "admin"], function () {
             Route::get('print/rental-contract/{id}', [AdminContractController::class, 'printRentalContract'])->name('print.rental.contract');
             Route::post('RentContract/{id}/save-signature', [AdminContractController::class, 'saveSignature'])->name('RentContract.saveSignature');
@@ -186,6 +193,8 @@ Route::group(
 
             Route::resource('settings', SettingController::class);
             Route::get('settings/section/{section}', [SettingController::class, 'section'])->name('settings.section');
+            Route::get('moyasar-settings', [MoyasarSettingsController::class, 'edit'])->name('moyasar-settings.edit');
+            Route::put('moyasar-settings', [MoyasarSettingsController::class, 'update'])->name('moyasar-settings.update');
             Route::get('recruitment-contract-stages', [RecruitmentContractStageLabelController::class, 'edit'])->name('recruitment-contract-stages.edit');
             Route::put('recruitment-contract-stages', [RecruitmentContractStageLabelController::class, 'update'])->name('recruitment-contract-stages.update');
             Route::get('recruitment-contract-stage-labels', fn() => redirect()->route('recruitment-contract-stages.edit'));

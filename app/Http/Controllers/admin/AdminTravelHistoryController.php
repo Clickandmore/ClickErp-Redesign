@@ -14,6 +14,7 @@ use App\Models\TravelHistory;
 use App\Models\TravelHistoryFiles;
 use App\Services\ingaz\RecruitmentTripAccountingService;
 use App\Support\AutomationSettings;
+use App\Support\CommunicationSettings;
 use Carbon\Carbon;
 use DataTables;
 use Illuminate\Http\Request;
@@ -479,7 +480,8 @@ class AdminTravelHistoryController extends Controller
         try {
             $trip = TravelHistory::with(['user', 'maid'])->findOrFail($id);
             $assignee = Admin::findOrFail($request->assigned_to);
-            $groupTrips = $this->resolveTripRecords($trip)->load(['user', 'maid']);
+            $groupTrips = $this->resolveTripRecords($trip);
+            $groupTrips->each(fn (TravelHistory $tripRecord) => $tripRecord->load(['user', 'maid']));
             $orderIds = $groupTrips->pluck('order_id')->filter()->unique()->values();
 
             DB::beginTransaction();
@@ -494,18 +496,22 @@ class AdminTravelHistoryController extends Controller
             }
 
             $notificationText = $this->createTripAssignmentNotification($groupTrips, $assignee, $request->assignment_note);
-            $smsSent = $this->sendAssignmentSms($assignee, $notificationText);
+            $smsResult = $this->sendAssignmentSms($assignee, $notificationText);
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => $smsSent
-                    ? 'تم إسناد الرحلة وإرسال التنبيه بنجاح'
-                    : 'تم إسناد الرحلة بنجاح (تعذر إرسال SMS)',
+                'message' => $smsResult['sent']
+                    ? __('ingaz.trip_assigned_and_notification_sent')
+                    : __('ingaz.trip_assigned_sms_failed', ['reason' => $smsResult['error']]),
+                'alert_type' => $smsResult['sent'] ? 'success' : 'warning',
+                'sms' => $smsResult,
             ]);
         } catch (\Throwable $e) {
-            DB::rollBack();
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
 
             \Log::error('Trip assignment failed', [
                 'trip_id' => $id,
@@ -514,7 +520,7 @@ class AdminTravelHistoryController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'حدث خطأ أثناء إسناد الرحلة',
+                'message' => __('ingaz.trip_assignment_error_details', ['error' => $e->getMessage()]),
             ], 500);
         }
     }
@@ -610,22 +616,112 @@ class AdminTravelHistoryController extends Controller
         return $message;
     }
 
-    private function sendAssignmentSms(Admin $assignee, string $message): bool
+    private function sendAssignmentSms(Admin $assignee, string $message): array
     {
-        if (empty($assignee->formatted_verification_phone)) {
-            return false;
+        $phone = $assignee->formatted_verification_phone;
+
+        if (empty($phone)) {
+            return [
+                'sent' => false,
+                'error' => __('ingaz.trip_assignment_sms_missing_phone'),
+                'response' => null,
+            ];
+        }
+
+        if (! CommunicationSettings::smsGatewayIsEnabled()) {
+            return [
+                'sent' => false,
+                'error' => __('ingaz.trip_assignment_sms_gateway_disabled'),
+                'response' => null,
+            ];
+        }
+
+        if (! CommunicationSettings::smsIsConfigured()) {
+            return [
+                'sent' => false,
+                'error' => __('ingaz.trip_assignment_sms_gateway_not_configured'),
+                'response' => null,
+            ];
         }
 
         try {
-            $this->sendSMS($assignee->formatted_verification_phone, $message);
-            return true;
+            $response = $this->sendSMS($phone, $message);
+            $failureReason = $this->smsGatewayFailureReason($response);
+
+            if ($failureReason) {
+                \Log::warning('Failed to send assignment SMS', [
+                    'admin_id' => $assignee->id,
+                    'phone' => $phone,
+                    'error' => $failureReason,
+                    'response' => $response,
+                ]);
+
+                return [
+                    'sent' => false,
+                    'error' => $failureReason,
+                    'response' => $response,
+                ];
+            }
+
+            return [
+                'sent' => true,
+                'error' => null,
+                'response' => $response,
+            ];
         } catch (\Throwable $e) {
             \Log::warning('Failed to send assignment SMS', [
                 'admin_id' => $assignee->id,
+                'phone' => $phone,
                 'error' => $e->getMessage(),
             ]);
-            return false;
+
+            return [
+                'sent' => false,
+                'error' => __('ingaz.trip_assignment_sms_exception', ['error' => $e->getMessage()]),
+                'response' => null,
+            ];
         }
+    }
+
+    private function smsGatewayFailureReason($response): ?string
+    {
+        if ($response === null || trim((string) $response) === '') {
+            return __('ingaz.trip_assignment_sms_empty_response');
+        }
+
+        $body = trim((string) $response);
+        $decoded = json_decode($body, true);
+
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            $code = trim((string) data_get($decoded, 'code', data_get($decoded, 'statusCode', '')));
+            $status = strtolower(trim((string) data_get($decoded, 'status', data_get($decoded, 'state', ''))));
+            $success = data_get($decoded, 'success');
+            $message = trim((string) data_get($decoded, 'message', data_get($decoded, 'error', data_get($decoded, 'errors.0.message', ''))));
+
+            if ($success === true || in_array($status, ['success', 'sent', 'queued', 'accepted'], true) || in_array($code, ['1', '200', '201'], true)) {
+                return null;
+            }
+
+            if ($success === false || in_array($status, ['error', 'failed', 'failure', 'rejected'], true) || ($code !== '' && ! in_array($code, ['1', '200', '201'], true))) {
+                $detail = $message !== '' ? $message : Str::limit($body, 200);
+                $reference = $code !== '' ? $code : ($status !== '' ? $status : null);
+
+                return $reference
+                    ? __('ingaz.trip_assignment_sms_gateway_response_with_reference', ['response' => $detail, 'reference' => $reference])
+                    : __('ingaz.trip_assignment_sms_gateway_response', ['response' => $detail]);
+            }
+        }
+
+        $normalizedBody = strtolower($body);
+        if (in_array($normalizedBody, ['1', 'ok', 'success'], true)) {
+            return null;
+        }
+
+        if (Str::contains($normalizedBody, ['error', 'fail', 'failed', 'reject', 'rejected', 'invalid'])) {
+            return __('ingaz.trip_assignment_sms_gateway_response', ['response' => Str::limit($body, 200)]);
+        }
+
+        return null;
     }
 
     private function assignableStaffCollection(): Collection
@@ -1164,13 +1260,25 @@ class AdminTravelHistoryController extends Controller
             }
         });
 
+        $assignmentSmsWarning = null;
+
         if ($assignee && $savedTrips->isNotEmpty()) {
             $savedTrips->each(fn (TravelHistory $trip) => $trip->load(['user', 'maid']));
             $notificationText = $this->createTripAssignmentNotification($savedTrips, $assignee, $request->assignment_note);
-            $this->sendAssignmentSms($assignee, $notificationText);
+            $smsResult = $this->sendAssignmentSms($assignee, $notificationText);
+
+            if (! $smsResult['sent']) {
+                $assignmentSmsWarning = __('ingaz.trip_assigned_sms_failed', ['reason' => $smsResult['error']]);
+            }
         }
 
-        return redirect(route('travel'))->with('success', __('admin.success'));
+        $redirect = redirect(route('travel'))->with('success', __('admin.success'));
+
+        if ($assignmentSmsWarning) {
+            $redirect->with('warning', $assignmentSmsWarning);
+        }
+
+        return $redirect;
     }
 
     public function edit(Request $request, $id)

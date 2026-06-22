@@ -406,7 +406,11 @@
 
 @section('content')
     @php
+        $moyasarEnabled = (bool) ($moyasarEnabled ?? false);
         $rentContractPaymentTypes = ['cash', 'bank_transfer', 'mada', 'tabby', 'tamara', 'pay_later', 'other'];
+        if ($moyasarEnabled) {
+            $rentContractPaymentTypes[] = 'moyasar';
+        }
         $selectedOrderPaymentMethod = optional($selectedOrder ?? null)->payment_method ?? '';
         $defaultSelectedPaymentType = in_array($selectedOrderPaymentMethod, $rentContractPaymentTypes, true)
             ? $selectedOrderPaymentMethod
@@ -790,9 +794,18 @@
                                                         <option value="mada">مدى</option>
                                                         <option value="tabby">تابي</option>
                                                         <option value="tamara">تمارا</option>
+                                                        @if($moyasarEnabled)
+                                                            <option value="moyasar">دفع إلكتروني - ميسر</option>
+                                                        @endif
                                                         <option value="pay_later">الدفع لاحقاً</option>
                                                         <option value="other">أخرى</option>
                                                     </select>
+                                                    {{-- تنبيه ميسر --}}
+                                                    <div id="moyasarNotice" class="alert alert-info d-none mt-2 mb-0 py-2 px-3 small">
+                                                        <i class="fas fa-paper-plane me-1"></i>
+                                                        سيتم إنشاء رابط دفع تلقائياً وإرساله للعميل عبر <strong>SMS</strong> بعد حفظ العقد.
+                                                        <br><small class="text-muted">تأكد من إدخال رقم جوال العميل بشكل صحيح.</small>
+                                                    </div>
                                                 </div>
                                                 <div class="col-md-4">
                                                     <label for="payment_status" class="form-label">حالة الدفع <span class="text-danger">*</span></label>
@@ -1229,12 +1242,15 @@
                 if (!hasPackage) {
                     $('#payment_type').val('');
                     $('#payment_status').val('');
+                    $('#payment_status option').prop('disabled', false);
                     $('#paidAmountWrapper').addClass('d-none');
                     $('#paid_amount').prop('readonly', false).val('0.00');
                     $('#remaining_amount').val('0.00');
                     $('#paymentTotalValue, #paymentRemainingText').text('0.00 ريال');
                     return;
                 }
+
+                enforcePaymentCompatibility();
 
                 const paymentStatus = $('#payment_status').val();
                 if (paymentStatus === 'paid') {
@@ -1249,6 +1265,33 @@
                 }
 
                 syncPaymentSummary();
+            }
+
+            function enforcePaymentCompatibility() {
+                const paymentType = $('#payment_type').val();
+                const $paymentStatus = $('#payment_status');
+
+                $paymentStatus.find('option').prop('disabled', false);
+
+                if (paymentType === 'moyasar') {
+                    $paymentStatus.val('pending');
+                    $paymentStatus.find('option').not('[value=""], [value="pending"]').prop('disabled', true);
+                } else if (paymentType === 'pay_later') {
+                    $paymentStatus.val('later');
+                    $paymentStatus.find('option').not('[value=""], [value="later"]').prop('disabled', true);
+                } else {
+                    $paymentStatus.find('option[value="later"]').prop('disabled', true);
+
+                    if (paymentType !== 'bank_transfer') {
+                        $paymentStatus.find('option[value="bank_pending"]').prop('disabled', true);
+                    }
+
+                    if ($paymentStatus.val() === 'later' || ($paymentStatus.val() === 'bank_pending' && paymentType !== 'bank_transfer')) {
+                        $paymentStatus.val('');
+                    }
+                }
+
+                $('#moyasarNotice').toggleClass('d-none', paymentType !== 'moyasar');
             }
 
             function filterPackageOptions() {
@@ -1383,6 +1426,11 @@
             });
 
             $('#payment_status').on('change', function () {
+                updatePaymentState();
+            });
+
+            $('#payment_type').on('change', function () {
+                enforcePaymentCompatibility();
                 updatePaymentState();
             });
 
