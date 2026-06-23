@@ -109,6 +109,10 @@
                     <p class="text-muted mb-0">متابعة تاريخ التفويض وتاريخ الإضافة وبيانات العميل والفاتورة وتحويل مساند.</p>
                 </div>
                 @if ($canCreateDelegation)
+                    <a href="{{ route('reports.import.index', ['type' => 'ingaz_delegations']) }}" class="btn btn-outline-success">
+                        <i class="fa fa-file-import me-1"></i>
+                        استيراد من Excel
+                    </a>
                     <a href="{{ route('ingaz-delegations.create') }}" class="btn btn-primary">
                         <i class="fa fa-plus me-1"></i>
                         إضافة تفويض جديد
