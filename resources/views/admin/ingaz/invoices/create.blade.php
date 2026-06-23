@@ -379,6 +379,9 @@
         $selectedContract = $selectedContract ?? null;
         $selectedIngazDelegation = $selectedIngazDelegation ?? null;
         $selectedClient = $selectedClient ?? null;
+        $contractSearch = $contractSearch ?? request('contract_search');
+        $contractSearchAttempted = $contractSearchAttempted ?? filled($contractSearch);
+        $contractSearchMessage = $contractSearchMessage ?? null;
         $isDelegationInvoice = (bool) $selectedIngazDelegation;
         $isGeneralInvoice = !$isDelegationInvoice && !$selectedContract && $selectedClientId;
         $invoiceMode = $isDelegationInvoice ? 'delegation' : ($isGeneralInvoice ? 'general' : 'contract');
@@ -437,6 +440,37 @@
             </div>
         </div>
 
+        @if (!$isDelegationInvoice && !$isGeneralInvoice)
+            <div class="editor-panel mb-3">
+                <div class="mini-section mb-0">
+                    <div class="mini-title">
+                        <i class="fas fa-search"></i>
+                        البحث عن عقد حالي
+                    </div>
+                    <form method="GET" action="{{ route('invoices.create') }}" class="row g-2 align-items-end">
+                        <div class="col-md-9">
+                            <label class="form-label" for="contract_search">رقم العقد</label>
+                            <input type="text" name="contract_search" id="contract_search" class="form-control"
+                                value="{{ $contractSearch }}" placeholder="اكتب رقم العقد ثم اضغط بحث">
+                            <div class="field-note">يتم البحث في العقود الحالية فقط، ولا يتم جلب كل العقود.</div>
+                        </div>
+                        <div class="col-md-3 d-grid">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search me-1"></i>
+                                بحث
+                            </button>
+                        </div>
+                    </form>
+
+                    @if ($contractSearchMessage)
+                        <div class="alert alert-warning mt-3 mb-0">
+                            {{ $contractSearchMessage }}
+                        </div>
+                    @endif
+                </div>
+            </div>
+        @endif
+
         <form method="post" action="{{ route('invoices.store') }}" id="invoiceForm">
             @csrf
 
@@ -481,6 +515,11 @@
                                     </div>
                                     <div class="col-12">
                                         <div class="invoice-mode-section" data-mode-section="contract">
+                                            @if ($contracts->isEmpty())
+                                                <div class="alert alert-info mb-0">
+                                                    اكتب رقم العقد في مربع البحث بالأعلى ثم اضغط بحث لإظهار العقد وإصدار الفاتورة.
+                                                </div>
+                                            @else
                                             <label class="form-label" for="contract_id">
                                             العقد
                                             <span class="text-danger">*</span>
@@ -535,6 +574,7 @@
                                                     </option>
                                                 @endforeach
                                             </select>
+                                            @endif
                                         </div>
 
                                         @if (!$canCreateInvoice)
@@ -1202,6 +1242,15 @@
                 e.preventDefault();
 
                 if ($submitButton.prop('disabled')) {
+                    return;
+                }
+
+                if (currentInvoiceMode() === 'contract' && !$form.find('[name="contract_id"]').val()) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'ابحث عن العقد أولاً',
+                        text: 'اكتب رقم العقد في مربع البحث واضغط بحث قبل إصدار الفاتورة.',
+                    });
                     return;
                 }
 
