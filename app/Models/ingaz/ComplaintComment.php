@@ -3,12 +3,13 @@
 namespace App\Models\ingaz;
 
 use App\Models\auth\Admin;
+use App\Models\Concerns\AssignsBranch;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class ComplaintComment extends Model
 {
-    use HasFactory;
+    use AssignsBranch, HasFactory;
 
     protected $guarded = [];
 
@@ -17,8 +18,13 @@ class ComplaintComment extends Model
     protected $fillable = [
         'comment',
         'complaint_id',
+        'branch_id',
         'added_by',
         'attachments'
+    ];
+
+    protected $casts = [
+        'branch_id' => 'integer',
     ];
 
     // Added By
@@ -28,5 +34,12 @@ class ComplaintComment extends Model
 
     public function complaint(){
         return $this->belongsTo(Complaint::class);
+    }
+
+    protected function resolveBranchIdForCreate(): ?int
+    {
+        return $this->resolveBranchIdFromComplaint($this->complaint_id)
+            ?? $this->resolveBranchIdFromAdmin($this->added_by)
+            ?? $this->resolveBranchIdFromCurrentAdmin();
     }
 }

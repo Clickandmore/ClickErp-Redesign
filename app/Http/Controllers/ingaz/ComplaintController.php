@@ -37,6 +37,7 @@ class ComplaintController extends Controller
     {
         if ($request->ajax()) {
             $query = objModel::query()->with(['user', 'complaintType', 'assignedTo', 'maidNationality']);
+            $this->applyRequestBranchFilter($query, $request, 'complaints');
 
             // تطبيق الفلاتر
             if ($request->ticket_number) {
@@ -62,11 +63,12 @@ class ComplaintController extends Controller
             }
 
             // حساب الإحصائيات
+            $statsQuery = $this->applyRequestBranchFilter(objModel::query(), $request, 'complaints');
             $statistics = [
-                'total' => objModel::count(),
-                'pending' => objModel::where('status', 'pending')->count(),
-                'in_progress' => objModel::where('status', 'in_progress')->count(),
-                'resolved' => objModel::where('status', 'resolved')->count()
+                'total' => (clone $statsQuery)->count(),
+                'pending' => (clone $statsQuery)->where('status', 'pending')->count(),
+                'in_progress' => (clone $statsQuery)->where('status', 'in_progress')->count(),
+                'resolved' => (clone $statsQuery)->where('status', 'resolved')->count()
             ];
 
             return DataTables::of($query)
@@ -272,6 +274,7 @@ class ComplaintController extends Controller
     {
         $complaint = objModel::with(['user', 'complaintType', 'assignedTo', 'resolvedBy', 'maidNationality'])
             ->findOrFail($id);
+        $this->assertCanAccessBranchModel($complaint);
 
         $admins = Admin::whereNull('deleted_at')->orderBy('name')->get();
 
@@ -285,6 +288,7 @@ class ComplaintController extends Controller
     public function edit($id)
     {
         $complaint = objModel::findOrFail($id);
+        $this->assertCanAccessBranchModel($complaint);
 
         $users = User::orderBy('name')->get();
         $nationalities = Nationality::with('translations')->get()->sortBy('title');
@@ -298,6 +302,7 @@ class ComplaintController extends Controller
     {
         try {
             $complaint = objModel::findOrFail($id);
+            $this->assertCanAccessBranchModel($complaint);
 
             $request->validate([
                 'complainant_name' => 'required|string|max:255',
@@ -375,6 +380,7 @@ class ComplaintController extends Controller
     public function cards(Request $request)
     {
         $query = objModel::with(['complaintType', 'assignedTo']);
+        $this->applyRequestBranchFilter($query, $request, 'complaints');
 
         // تطبيق الفلاتر
         if ($request->status) {
@@ -398,6 +404,7 @@ class ComplaintController extends Controller
     public function quickResponse(Request $request)
     {
         $complaint = objModel::findOrFail($request->complaint_id);
+        $this->assertCanAccessBranchModel($complaint);
 
         if ($request->response) {
             $complaint->response = $request->response;
@@ -420,6 +427,7 @@ class ComplaintController extends Controller
     public function addComment(Request $request)
     {
         $complaint = objModel::findOrFail($request->complaint_id);
+        $this->assertCanAccessBranchModel($complaint);
 
         // إضافة التعليق إلى سجل التحديثات
         // يمكن إنشاء جدول منفصل للتعليقات إذا لزم الأمر
@@ -454,6 +462,7 @@ class ComplaintController extends Controller
     public function updateStatus(Request $request)
     {
         $complaint = objModel::findOrFail($request->complaint_id);
+        $this->assertCanAccessBranchModel($complaint);
         $previousStatus = $complaint->status;
         $complaint->status = $request->status;
 
@@ -480,6 +489,7 @@ class ComplaintController extends Controller
     public function assign(Request $request)
     {
         $complaint = objModel::findOrFail($request->complaint_id);
+        $this->assertCanAccessBranchModel($complaint);
         $complaint->assigned_to = $request->assigned_to;
         $complaint->save();
 
@@ -489,6 +499,7 @@ class ComplaintController extends Controller
     public function changePriority(Request $request)
     {
         $complaint = objModel::findOrFail($request->complaint_id);
+        $this->assertCanAccessBranchModel($complaint);
         $complaint->priority = $request->priority;
         $complaint->save();
 
@@ -498,6 +509,7 @@ class ComplaintController extends Controller
     public function destroy($id)
     {
         $complaint = objModel::findOrFail($id);
+        $this->assertCanAccessBranchModel($complaint);
 
         // حذف المرفقات
         if ($complaint->attachments && is_array($complaint->attachments)) {
@@ -539,6 +551,7 @@ class ComplaintController extends Controller
     public function response(Request $request)
     {
         $complaint = objModel::findOrFail($request->complaint_id);
+        $this->assertCanAccessBranchModel($complaint);
         $complaint->response = $request->response;
         $complaint->status = $request->status;
         $complaint->save();
@@ -575,6 +588,7 @@ class ComplaintController extends Controller
     public function deleteComment($id)
     {
         $complaint_comment = ComplaintComment::findOrFail($id);
+        $this->assertCanAccessBranchModel($complaint_comment);
 
         if (!$complaint_comment) {
             return jsonError(['error' => 'هذا التعليق غير موجود'], 404);

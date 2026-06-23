@@ -8,11 +8,15 @@ use Illuminate\Support\Facades\Auth;
 
 class ContractReturnRequestController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $returnRequests = ContractReturnRequest::with(["contract.maid", "user", "processedBy"])
+        $query = ContractReturnRequest::with(["contract.maid", "user", "processedBy"]);
+        $this->applyRequestBranchFilter($query, $request, 'contract_return_requests');
+
+        $returnRequests = $query
             ->orderBy("created_at", "desc")
-            ->paginate(15);
+            ->paginate(15)
+            ->appends($request->query());
 
         return view("admin.contract-return-requests.index", compact("returnRequests"));
     }
@@ -21,6 +25,7 @@ class ContractReturnRequestController extends Controller
     {
         $returnRequest = ContractReturnRequest::with(["contract.maid", "user", "processedBy"])
             ->findOrFail($id);
+        $this->assertCanAccessBranchModel($returnRequest);
 
         return view("admin.contract-return-requests.show", compact("returnRequest"));
     }
@@ -33,6 +38,7 @@ class ContractReturnRequestController extends Controller
         ]);
 
         $returnRequest = ContractReturnRequest::findOrFail($id);
+        $this->assertCanAccessBranchModel($returnRequest);
 
         if ($returnRequest->status !== "pending") {
             return response()->json([
@@ -55,13 +61,15 @@ class ContractReturnRequestController extends Controller
         ]);
     }
 
-    public function statistics()
+    public function statistics(Request $request)
     {
+        $query = $this->applyRequestBranchFilter(ContractReturnRequest::query(), $request, 'contract_return_requests');
+
         $stats = [
-            "total" => ContractReturnRequest::count(),
-            "pending" => ContractReturnRequest::where("status", "pending")->count(),
-            "approved" => ContractReturnRequest::where("status", "approved")->count(),
-            "rejected" => ContractReturnRequest::where("status", "rejected")->count(),
+            "total" => (clone $query)->count(),
+            "pending" => (clone $query)->where("status", "pending")->count(),
+            "approved" => (clone $query)->where("status", "approved")->count(),
+            "rejected" => (clone $query)->where("status", "rejected")->count(),
         ];
 
         return response()->json($stats);

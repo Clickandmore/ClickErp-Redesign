@@ -111,6 +111,7 @@
         <div class="filter-card">
             <h5 class="mb-3"><i class="fas fa-filter"></i> فلاتر البحث</h5>
             <div class="row">
+                @include('admin.partials.branch-filter', ['id' => 'branchFilter', 'containerClass' => 'col-md-3'])
                 <div class="col-md-3">
                     <div class="mb-3">
                         <label for="status_filter" class="form-label">الحالة</label>
@@ -225,6 +226,7 @@
                     ajax: {
                         url: "{{ route('TransferServiceContract.index') }}",
                         data: function(d) {
+                            d.branch_id = $('#branchFilter').val();
                             d.status = $('#status_filter').val();
                             d.contract_number = $('#contract_number_filter').val();
                             d.date_from = $('#date_from_filter').val();
@@ -310,6 +312,7 @@
                     url: "{{ route('TransferServiceContract.index') }}",
                     data: {
                         get_stats: true,
+                        branch_id: $('#branchFilter').val(),
                         status: $('#status_filter').val(),
                         contract_number: $('#contract_number_filter').val(),
                         date_from: $('#date_from_filter').val(),
@@ -335,6 +338,7 @@
 
             // مسح الفلاتر
             $('#clearFilters').on('click', function() {
+                $('#branchFilter').val('');
                 $('#status_filter').val('');
                 $('#contract_number_filter').val('');
                 $('#date_from_filter').val('');
@@ -346,6 +350,7 @@
             // تصدير Excel
             $('#exportExcel').on('click', function() {
                 window.location.href = "{{ route('TransferServiceContract.index') }}?export=excel&" +
+                    "branch_id=" + $('#branchFilter').val() + "&" +
                     "status=" + $('#status_filter').val() + "&" +
                     "contract_number=" + $('#contract_number_filter').val() + "&" +
                     "date_from=" + $('#date_from_filter').val() + "&" +
@@ -356,6 +361,7 @@
             // تصدير PDF
             $('#exportPdf').on('click', function() {
                 window.location.href = "{{ route('TransferServiceContract.index') }}?export=pdf&" +
+                    "branch_id=" + $('#branchFilter').val() + "&" +
                     "status=" + $('#status_filter').val() + "&" +
                     "contract_number=" + $('#contract_number_filter').val() + "&" +
                     "date_from=" + $('#date_from_filter').val() + "&" +

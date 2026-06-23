@@ -2,9 +2,10 @@
 
 namespace App\Models;
 
-use Laratrust\Models\LaratrustRole;
+use Spatie\Permission\Models\Role as SpatieRole;
 
-class Role extends LaratrustRole
+class Role extends SpatieRole
 {
     public $guarded = [];
+    protected $guard_name = 'admin';
 }

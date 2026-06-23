@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AssignsBranch;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Activitylog\LogOptions;
@@ -9,13 +10,14 @@ use Spatie\Activitylog\Traits\LogsActivity;
 
 class ContractExternalOfficeDispatch extends Model
 {
-    use HasFactory, LogsActivity;
+    use AssignsBranch, HasFactory, LogsActivity;
 
     protected $guarded = [];
 
     protected $casts = [
         'dispatch_date' => 'date',
         'office_contract_cost_usd' => 'decimal:2',
+        'branch_id' => 'integer',
     ];
 
     public function contract()
@@ -44,5 +46,12 @@ class ContractExternalOfficeDispatch extends Model
             ->useLogName('contract_external_office_dispatch')
             ->logOnly(['*'])
             ->logOnlyDirty();
+    }
+
+    protected function resolveBranchIdForCreate(): ?int
+    {
+        return $this->resolveBranchIdFromContract($this->contract_id)
+            ?? $this->resolveBranchIdFromAdmin($this->created_by_admin_id)
+            ?? $this->resolveBranchIdFromCurrentAdmin();
     }
 }

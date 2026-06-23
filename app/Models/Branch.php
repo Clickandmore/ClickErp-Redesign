@@ -36,4 +36,19 @@ class Branch extends Model
     {
         return $query->orderBy('sort_order')->orderBy('name_ar');
     }
+
+    public function manager()
+    {
+        return $this->hasOne(\App\Models\auth\Admin::class, 'branch_id')
+            ->whereIn('admin_type', ['admin', 'super_admin'])
+            ->whereNull('deleted_at')
+            ->orderBy('id');
+    }
+
+    public function admins()
+    {
+        return $this->hasMany(\App\Models\auth\Admin::class, 'branch_id')
+            ->whereIn('admin_type', ['admin', 'super_admin'])
+            ->whereNull('deleted_at');
+    }
 }

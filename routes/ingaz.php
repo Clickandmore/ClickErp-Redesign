@@ -391,6 +391,7 @@ Route::group(
 
             // Routes Ø¬Ø¯ÙŠØ¯Ø© Ù„Ù€ workflow Ø¹Ù‚ÙˆØ¯ Ø§Ù„Ø¥ÙŠØ¬Ø§Ø±
             Route::post('RentContract/{id}/send-contract', [RentContractController::class, 'sendContract'])->name('RentContract.sendContract');
+            Route::post('RentContract/{id}/send-payment-link', [RentContractController::class, 'sendPaymentLink'])->name('RentContract.sendPaymentLink');
             Route::post('RentContract/{id}/sign-contract', [RentContractController::class, 'signContract'])->name('RentContract.signContract');
             Route::post('RentContract/{id}/deliver-maid', [RentContractController::class, 'deliverMaid'])->name('RentContract.deliverMaid');
             Route::post('RentContract/{id}/activate-contract', [RentContractController::class, 'activateContract'])->name('RentContract.activateContract');
@@ -555,6 +556,8 @@ Route::group(
             //** SETTINGS **//
             Route::get('/settings', [AdminSettingsController::class, 'index'])->name('settings');
             Route::get('/settings/announcements', [AdminSettingsController::class, 'announcements'])->name('settings.announcements');
+            Route::get('/settings/zoho', [AdminSettingsController::class, 'zoho'])->name('settings.zoho');
+            Route::post('/settings/zoho', [AdminSettingsController::class, 'updateZoho'])->name('settings.zoho.update');
             Route::post('/settings/store', [AdminSettingsController::class, 'store'])->name('settings.store');
 
             //** ROLES **//

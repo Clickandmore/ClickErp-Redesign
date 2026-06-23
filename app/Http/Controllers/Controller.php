@@ -4,10 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\User;
+use App\Services\BranchAccessService;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Bus\DispatchesJobs;
 use Illuminate\Routing\Controller as BaseController;
 use Illuminate\Foundation\Validation\ValidatesRequests;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
@@ -26,6 +29,21 @@ class Controller extends BaseController
             // })
             ->pluck('passport_num', 'id')
             ->all();
+    }
+
+    protected function applyRequestBranchFilter($query, Request $request, string $table, ?string $qualifiedColumn = null)
+    {
+        return app(BranchAccessService::class)->applyToQuery($query, $request, $table, $qualifiedColumn);
+    }
+
+    protected function assertCanAccessBranchModel(Model $model, ?string $table = null): void
+    {
+        app(BranchAccessService::class)->assertCanAccessModel($model, null, $table);
+    }
+
+    protected function branchSelectorData(Request $request): array
+    {
+        return app(BranchAccessService::class)->selectorData($request);
     }
 
     protected function buildActivityTimeline($activities, array $fieldLabels = [], ?string $defaultSubjectLabel = null): Collection
@@ -85,6 +103,8 @@ class Controller extends BaseController
             'Order' => 'الطلب',
             'OrderDetail' => 'تفاصيل الطلب',
             'OrderTransfers' => 'ملف الطلب',
+            'RentalContract' => 'عقد التأجير',
+            'RentalContractInfo' => 'بيانات عقد التأجير',
             default => $defaultSubjectLabel ?: ($subjectType ? Str::headline($subjectType) : 'السجل'),
         };
     }
@@ -95,6 +115,7 @@ class Controller extends BaseController
             'created' => 'إضافة',
             'updated' => 'تحديث',
             'deleted' => 'حذف',
+            'maid_changed' => 'تغيير',
             default => 'تنفيذ إجراء على',
         };
     }

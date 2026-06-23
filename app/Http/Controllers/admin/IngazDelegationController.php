@@ -44,6 +44,7 @@ class IngazDelegationController extends Controller
     public function index(Request $request): View|JsonResponse
     {
         $query = IngazDelegation::with(['country', 'nationality', 'profession', 'user', 'maid', 'marketer', 'invoice.musanedTransferItem.transfer']);
+        $this->applyRequestBranchFilter($query, $request, 'ingaz_delegations');
 
         $searchInput = $request->input('global_search', $request->query('search'));
 
@@ -258,6 +259,8 @@ class IngazDelegationController extends Controller
 
     public function print(IngazDelegation $ingazDelegation): View
     {
+        $this->assertCanAccessBranchModel($ingazDelegation);
+
         $ingazDelegation->load(['country', 'nationality', 'profession', 'user', 'maid.religion', 'marketer', 'invoice.musanedTransferItem.transfer']);
 
         return view('admin.ingaz_delegations.print', [
@@ -291,6 +294,8 @@ class IngazDelegationController extends Controller
 
     public function show(IngazDelegation $ingazDelegation): View
     {
+        $this->assertCanAccessBranchModel($ingazDelegation);
+
         $ingazDelegation->load(['country', 'nationality', 'profession', 'user', 'maid.religion', 'marketer', 'invoice']);
 
         return view('admin.ingaz_delegations.show', [
@@ -308,6 +313,8 @@ class IngazDelegationController extends Controller
 
     public function edit(IngazDelegation $ingazDelegation): View
     {
+        $this->assertCanAccessBranchModel($ingazDelegation);
+
         $ingazDelegation->load(['country', 'nationality', 'profession', 'user', 'maid.religion', 'marketer']);
 
         return view('admin.ingaz_delegations.edit', array_merge(
@@ -318,6 +325,8 @@ class IngazDelegationController extends Controller
 
     public function update(StoreIngazDelegationRequest $request, IngazDelegation $ingazDelegation): RedirectResponse
     {
+        $this->assertCanAccessBranchModel($ingazDelegation);
+
         DB::transaction(function () use ($request, $ingazDelegation) {
             $client = $this->resolveClient($request);
             $country = $this->resolveCountry($request);
@@ -334,6 +343,8 @@ class IngazDelegationController extends Controller
 
     public function destroy(IngazDelegation $ingazDelegation): RedirectResponse
     {
+        $this->assertCanAccessBranchModel($ingazDelegation);
+
         $this->deleteAttachments($ingazDelegation->attachments ?? []);
         $ingazDelegation->delete();
 
@@ -371,6 +382,8 @@ class IngazDelegationController extends Controller
 
     public function updateStatus(Request $request, IngazDelegation $ingazDelegation): JsonResponse
     {
+        $this->assertCanAccessBranchModel($ingazDelegation);
+
         $validated = $request->validate([
             'status' => ['required', 'in:' . implode(',', array_keys(IngazDelegation::statusOptions()))],
         ]);

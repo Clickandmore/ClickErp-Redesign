@@ -68,6 +68,9 @@ Route::group(
                 Route::post('admins/{id}/toggle-status', 'AdminController@toggleStatus')->name('admins.toggle-status');
                 Route::post('admins/{id}/restore', 'AdminController@restore')->name('admins.restore');
                 Route::delete('admins/{id}/force-delete', 'AdminController@forceDelete')->name('admins.force-delete');
+                Route::post('admins/{id}/quick-assign-role', 'AdminController@quickAssignRole')->name('admins.quick-assign-role');
+                Route::post('admins/{id}/quick-assign-branch', 'AdminController@quickAssignBranch')->name('admins.quick-assign-branch');
+                Route::post('admins/{id}/quick-assign-office', 'AdminController@quickAssignOffice')->name('admins.quick-assign-office');
             });
 
         });

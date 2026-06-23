@@ -49,6 +49,18 @@
             return false;
         };
 
+        $dashboardBranchContext = $dashboardBranchContext ?? [];
+        $dashboardBranchQuery = $dashboardBranchQuery ?? [];
+        $dashboardBranches = $dashboardBranchContext['branches'] ?? collect();
+        $canSelectDashboardBranch = (bool) ($dashboardBranchContext['canSelect'] ?? false);
+        $selectedDashboardBranchId = $dashboardBranchContext['selectedBranchId'] ?? null;
+        $withDashboardBranch = static function (array $params = []) use ($dashboardBranchQuery): array {
+            return array_merge($params, $dashboardBranchQuery);
+        };
+        $contractIndexUrl = static function (array $params = []) use ($withDashboardBranch): string {
+            return route('RecruitmentContract.index', $withDashboardBranch($params));
+        };
+
         $canViewRecruitmentOrdersCard = $canViewDashboardSection(
             \App\PermKeys::DASHBOARD_RECRUITMENT_ORDERS_COUNT,
             [\App\PermKeys::DASHBOARD_CURRENT_ORDERS_COUNT],
@@ -159,10 +171,10 @@
                 </div>
                 <div class="hero-quick-actions">
                     <a href="{{ route('RecruitmentContract.create') }}"><i class="fas fa-plus-circle ms-1"></i> {{ __('admin.dashboard_new.new_contract') }}</a>
-                    <a href="{{ route('orders.index') }}"><i class="fas fa-shopping-basket ms-1"></i> {{ __('admin.dashboard_new.direct_orders') }}</a>
-                    <a href="{{ route('admins.index') }}"><i class="fas fa-users-cog ms-1"></i> {{ __('admin.dashboard_new.team_management') }}</a>
-                    <a href="{{ route('reports.index') }}"><i class="fas fa-chart-pie ms-1"></i> {{ __('admin.dashboard_new.reports') }}</a>
-                    <a href="{{ route('finance.home.index') }}"><i class="fas fa-wallet ms-1"></i> {{ __('admin.dashboard_new.finance') }}</a>
+                    <a href="{{ route('orders.index', $dashboardBranchQuery) }}"><i class="fas fa-shopping-basket ms-1"></i> {{ __('admin.dashboard_new.direct_orders') }}</a>
+                    <a href="{{ route('admins.index', $dashboardBranchQuery) }}"><i class="fas fa-users-cog ms-1"></i> {{ __('admin.dashboard_new.team_management') }}</a>
+                    <a href="{{ route('reports.index', $dashboardBranchQuery) }}"><i class="fas fa-chart-pie ms-1"></i> {{ __('admin.dashboard_new.reports') }}</a>
+                    <a href="{{ route('finance.home.index', $dashboardBranchQuery) }}"><i class="fas fa-wallet ms-1"></i> {{ __('admin.dashboard_new.finance') }}</a>
                 </div>
             </div>
             <div class="hero-controls">
@@ -173,6 +185,24 @@
                     </div>
                     <i class="fas fa-sliders-h"></i>
                 </div>
+                @if ($canSelectDashboardBranch)
+                    <form method="GET" action="{{ route('dashboard.index') }}" class="mt-3">
+                        @foreach (['contract_nationality_id', 'contract_profession_id'] as $dashboardFilterKey)
+                            @if (request()->filled($dashboardFilterKey))
+                                <input type="hidden" name="{{ $dashboardFilterKey }}" value="{{ request($dashboardFilterKey) }}">
+                            @endif
+                        @endforeach
+                        <label for="dashboardBranchFilter" class="form-label mb-1">{{ __('admin.branches') }}</label>
+                        <select id="dashboardBranchFilter" name="branch_id" class="form-select" onchange="this.form.submit()">
+                            <option value="">كل الفروع</option>
+                            @foreach ($dashboardBranches as $branch)
+                                <option value="{{ $branch->id }}" @selected((string) $selectedDashboardBranchId === (string) $branch->id)>
+                                    {{ $branch->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </form>
+                @endif
                 <div class="range-switch" role="group" aria-label="{{ __('admin.dashboard_new.stats_filter_period') }}">
                     <button class="range-btn active" data-range="today">{{ __('admin.dashboard_new.today') }}</button>
                     <button class="range-btn" data-range="week">{{ __('admin.dashboard_new.this_week') }}</button>
@@ -206,7 +236,7 @@
         @endif
 
         <div class="dashboard-route-grid">
-            <a href="{{ route('reports.index') }}" class="dashboard-route-card rc-1">
+            <a href="{{ route('reports.index', $dashboardBranchQuery) }}" class="dashboard-route-card rc-1">
                 <span class="dashboard-route-icon"><i class="fas fa-chart-line"></i></span>
                 <span>
                     <strong>{{ __('admin.dashboard_new.reports_center') }}</strong>
@@ -214,7 +244,7 @@
                 </span>
                 <i class="fas fa-arrow-left"></i>
             </a>
-            <a href="{{ route('finance.home.index') }}" class="dashboard-route-card rc-2">
+            <a href="{{ route('finance.home.index', $dashboardBranchQuery) }}" class="dashboard-route-card rc-2">
                 <span class="dashboard-route-icon"><i class="fas fa-file-invoice-dollar"></i></span>
                 <span>
                     <strong>{{ __('admin.dashboard_new.finance_dashboard') }}</strong>
@@ -222,7 +252,7 @@
                 </span>
                 <i class="fas fa-arrow-left"></i>
             </a>
-            <a href="{{ route('ShelterContract.index') }}" class="dashboard-route-card rc-3">
+            <a href="{{ route('ShelterContract.index', $dashboardBranchQuery) }}" class="dashboard-route-card rc-3">
                 <span class="dashboard-route-icon"><i class="fas fa-house-user"></i></span>
                 <span>
                     <strong>{{ __('admin.dashboard_new.shelter_management') }}</strong>
@@ -242,7 +272,7 @@
                                 <small class="stat-label">{{ __('admin.dashboard_new.recruitment_orders') }}</small>
                                 <h3 class="mb-0">{{ number_format($ordersStats['total'] ?? 0) }}</h3>
                             </div>
-                            <a href="{{ route('orders.index') }}" class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
+                            <a href="{{ route('orders.index', $dashboardBranchQuery) }}" class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
                         </div>
                         <div class="mt-3 stat-meta">{{ __('admin.dashboard_new.new') }}: {{ number_format($ordersStats['new'] ?? 0) }} | {{ __('admin.dashboard_new.under_process') }}:
                             {{ number_format($ordersStats['under_process'] ?? 0) }} | {{ __('admin.dashboard_new.contracted') }}:
@@ -266,11 +296,11 @@
                                 <small class="stat-label">{{ __('admin.dashboard_new.recruitment_contracts_this_month') }}</small>
                                 <h3 class="mb-0">{{ number_format($contractsStats['total'] ?? 0) }}</h3>
                             </div>
-                            <a href="{{ route('RecruitmentContract.index', [
+                            <a href="{{ route('RecruitmentContract.index', $withDashboardBranch([
                                 'date_from' => $contractMonthStartDate ?? now()->startOfMonth()->toDateString(),
                                 'date_to' => $contractMonthEndDate ?? now()->endOfMonth()->toDateString(),
                                 'exclude_back' => 1,
-                            ]) }}"
+                            ])) }}"
                                 class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
                         </div>
                         <div class="mt-3 stat-meta">{{ __('admin.dashboard_new.pre_arrival') }}: {{ number_format($contractsPipeline['pre_arrival'] ?? 0) }}
@@ -338,7 +368,7 @@
                                 <small class="stat-label">{{ __('admin.dashboard_new.clients') }}</small>
                                 <h3 class="mb-0">{{ number_format($clientsStats['total'] ?? 0) }}</h3>
                             </div>
-                            <a href="{{ url('admin/clients') }}" class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
+                            <a href="{{ route('clients.index', $dashboardBranchQuery) }}" class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
                         </div>
                         <div class="mt-3 stat-meta">{{ __('admin.dashboard_new.with_orders') }}: {{ number_format($clientsStats['with_orders'] ?? 0) }} |
                             {{ __('admin.dashboard_new.without_orders') }}: {{ number_format($clientsStats['no_orders'] ?? 0) }}</div>
@@ -389,7 +419,7 @@
                     'meta' => __('admin.dashboard_new.today') . ': ' . number_format($contractsStats['today'] ?? 0),
                     'video' => asset('admin/assets/img/new-dashboard/contracted.webm'),
                     'icon' => 'fas fa-file-signature',
-                    'link' => route('RecruitmentContract.index', [
+                    'link' => $contractIndexUrl([
                         'status' => \App\Enums\ingaz\ContractStatusEnum::New->value,
                     ]),
                 ],
@@ -400,7 +430,7 @@
                     'meta' => __('admin.dashboard_new.tickets_ready') . ': ' . number_format($ticketsReady),
                     'video' => asset('admin/assets/img/new-dashboard/daily-arraivel.webm'),
                     'icon' => 'fas fa-plane-arrival',
-                    'link' => route('RecruitmentContract.index', ['status' => 'arrival_today']),
+                    'link' => $contractIndexUrl(['status' => 'arrival_today']),
                 ],
                 [
                     'title' => __('admin.dashboard_new.delayed_arrival'),
@@ -409,7 +439,7 @@
                     'meta' => __('admin.dashboard_new.urgent_followup_required'),
                     'video' => asset('admin/assets/img/new-dashboard/ezgif.com-resize.webm'),
                     'icon' => 'fas fa-triangle-exclamation',
-                    'link' => route('RecruitmentContract.index', ['status' => 'delayed_arrival']),
+                    'link' => $contractIndexUrl(['status' => 'delayed_arrival']),
                 ],
                 [
                     'title' => __('admin.dashboard_new.expired_contracts'),
@@ -422,7 +452,7 @@
                         number_format($completedContractsCount),
                     'video' => asset('admin/assets/img/new-dashboard/ended-contracted.webm'),
                     'icon' => 'fas fa-hourglass-end',
-                    'link' => route('RecruitmentContract.index', ['status' => 'expired_over_2y']),
+                    'link' => $contractIndexUrl(['status' => 'expired_over_2y']),
                 ],
             ];
 
@@ -433,7 +463,7 @@
                     'value' => $statusCounts[\App\Enums\ingaz\ContractStatusEnum::New->value] ?? 0,
                     'icon' => 'fas fa-file-signature',
                     'color' => 'var(--dash-chart-1)',
-                    'link' => route('RecruitmentContract.index', [
+                    'link' => $contractIndexUrl([
                         'status' => \App\Enums\ingaz\ContractStatusEnum::New->value,
                     ]),
                 ],
@@ -443,7 +473,7 @@
                     'value' => $statusCounts[\App\Enums\ingaz\ContractStatusEnum::Msaned->value] ?? 0,
                     'icon' => 'fas fa-folder-open',
                     'color' => 'var(--dash-chart-2)',
-                    'link' => route('RecruitmentContract.index', [
+                    'link' => $contractIndexUrl([
                         'status' => \App\Enums\ingaz\ContractStatusEnum::Msaned->value,
                     ]),
                 ],
@@ -453,7 +483,7 @@
                     'value' => $statusCounts[\App\Enums\ingaz\ContractStatusEnum::Tafwed->value] ?? 0,
                     'icon' => 'fas fa-key',
                     'color' => 'var(--dash-chart-3)',
-                    'link' => route('RecruitmentContract.index', [
+                    'link' => $contractIndexUrl([
                         'status' => \App\Enums\ingaz\ContractStatusEnum::Tafwed->value,
                     ]),
                 ],
@@ -463,7 +493,7 @@
                     'value' => $statusCounts[\App\Enums\ingaz\ContractStatusEnum::Taffez->value] ?? 0,
                     'icon' => 'fas fa-check-double',
                     'color' => 'var(--dash-chart-4)',
-                    'link' => route('RecruitmentContract.index', [
+                    'link' => $contractIndexUrl([
                         'status' => \App\Enums\ingaz\ContractStatusEnum::Taffez->value,
                     ]),
                 ],
@@ -476,7 +506,7 @@
                     'value' => $ticketsReady,
                     'icon' => 'fas fa-ticket-alt',
                     'color' => 'var(--dash-chart-5)',
-                    'link' => route('RecruitmentContract.index', [
+                    'link' => $contractIndexUrl([
                         'status' => \App\Enums\ingaz\ContractStatusEnum::Tazker->value,
                     ]),
                 ],
@@ -486,7 +516,7 @@
                     'value' => $warrantyActive,
                     'icon' => 'fas fa-shield-alt',
                     'color' => 'var(--warning)',
-                    'link' => route('RecruitmentContract.index', [
+                    'link' => $contractIndexUrl([
                         'status' => \App\Enums\ingaz\ContractStatusEnum::Completed->value,
                         'warranty_status' => 'active',
                     ]),
@@ -497,7 +527,7 @@
                     'value' => $completedContractsCount,
                     'icon' => 'fas fa-check-circle',
                     'color' => 'var(--success)',
-                    'link' => route('RecruitmentContract.index', [
+                    'link' => $contractIndexUrl([
                         'status' => \App\Enums\ingaz\ContractStatusEnum::Completed->value,
                     ]),
                 ],
@@ -529,7 +559,7 @@
                 <div class="section-body operations-showcase" data-section-body="operations">
                     <div class="operations-highlight-grid">
                         @foreach ($operationsHighlights as $index => $highlight)
-                            <a href="{{ $highlight['link'] ?? route('RecruitmentContract.index') }}"
+                            <a href="{{ $highlight['link'] ?? route('RecruitmentContract.index', $dashboardBranchQuery) }}"
                                 class="operation-tile op-tile-{{ $index }} operation-link">
                                 <div class="operation-icon">
                                     {{-- <video src="{{ $highlight['video'] }}" autoplay muted loop playsinline></video> --}}
@@ -558,7 +588,7 @@
                                         ? round((($card['value'] ?? 0) / $operationsTotal) * 100)
                                         : 0;
                                 @endphp
-                                <a href="{{ $card['link'] ?? route('RecruitmentContract.index') }}"
+                                <a href="{{ $card['link'] ?? route('RecruitmentContract.index', $dashboardBranchQuery) }}"
                                     class="mini-operation-card mini-operation-link">
                                     <div class="mini-operation-main">
                                         <span class="mini-operation-icon" style="background: {{ $card['color'] }};">
@@ -591,7 +621,7 @@
                                         ? round((($card['value'] ?? 0) / $operationsTotal) * 100)
                                         : 0;
                                 @endphp
-                                <a href="{{ $card['link'] ?? route('RecruitmentContract.index') }}"
+                                <a href="{{ $card['link'] ?? route('RecruitmentContract.index', $dashboardBranchQuery) }}"
                                     class="mini-operation-card mini-operation-link">
                                     <div class="mini-operation-main">
                                         <span class="mini-operation-icon" style="background: {{ $card['color'] }};">
@@ -628,7 +658,7 @@
                                 <small class="stat-label">{{ __('admin.dashboard_new.rental_contracts') }}</small>
                                 <h3 class="mb-0">{{ number_format($rentalStats['total'] ?? 0) }}</h3>
                             </div>
-                            <a href="{{ route('RentContract.index') }}" class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
+                            <a href="{{ route('RentContract.index', $dashboardBranchQuery) }}" class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
                         </div>
                         <div class="stat-chip-list mt-3">
                             <span>{{ __('admin.dashboard_new.active') }}: {{ number_format($rentalStats['active'] ?? 0) }}</span>
@@ -637,7 +667,7 @@
                             <span>{{ __('admin.dashboard_new.delivered') }}: {{ number_format($rentalStats['delivered'] ?? 0) }}</span>
                             <span>{{ __('admin.dashboard_new.completed') }}: {{ number_format($rentalStats['completed'] ?? 0) }}</span>
                         </div>
-                        <a href="{{ route('finance.home.index') }}" class="stat-meta stat-link d-inline-block mt-2">
+                        <a href="{{ route('finance.home.index', $dashboardBranchQuery) }}" class="stat-meta stat-link d-inline-block mt-2">
                             {{ __('admin.dashboard_new.rental_finance_details') }} <i class="fas fa-arrow-left ms-1"></i>
                         </a>
                     </div>
@@ -651,12 +681,12 @@
                                 <small class="stat-label">{{ __('admin.dashboard_new.rental_orders') }}</small>
                                 <h3 class="mb-0">{{ number_format($rentalOrderStats['total'] ?? 0) }}</h3>
                             </div>
-                            <a href="{{ route('rental-orders.index') }}" class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
+                            <a href="{{ route('rental-orders.index', $dashboardBranchQuery) }}" class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
                         </div>
                         <div class="mt-3 stat-meta">{{ __('admin.dashboard_new.new') }}: {{ number_format($rentalOrderStats['new'] ?? 0) }} | {{ __('admin.dashboard_new.under_process') }}:
                             {{ number_format($rentalOrderStats['under_process'] ?? 0) }} | {{ __('admin.dashboard_new.completed') }}:
                             {{ number_format($rentalOrderStats['completed'] ?? 0) }}</div>
-                        <a href="{{ route('RentContract.index') }}" class="stat-meta stat-link d-inline-block mt-2">
+                        <a href="{{ route('RentContract.index', $dashboardBranchQuery) }}" class="stat-meta stat-link d-inline-block mt-2">
                             {{ __('admin.dashboard_new.convert_to_rental_contract') }} <i class="fas fa-arrow-left ms-1"></i>
                         </a>
                     </div>
@@ -706,7 +736,7 @@
                                 <small class="stat-label">{{ __('admin.dashboard_new.shelter') }}</small>
                                 <h3 class="mb-0">{{ number_format($shelterStats['total'] ?? 0) }}</h3>
                             </div>
-                            <a href="{{ route('ShelterContract.index') }}" class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
+                            <a href="{{ route('ShelterContract.index', $dashboardBranchQuery) }}" class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
                         </div>
                         <div class="stat-chip-list mt-3">
                             <span>{{ __('admin.dashboard_new.inside_shelter') }}: {{ number_format($shelterStats['inside'] ?? 0) }}</span>
@@ -931,7 +961,7 @@
                                     <strong>{{ number_format($contractStagesRawTotal) }}</strong>
                                 </div>
                             </div>
-                            <a href="{{ route('RecruitmentContract.index') }}" class="contract-stage-link">{{ __('admin.dashboard_new.all_contracts') }}</a>
+                            <a href="{{ route('RecruitmentContract.index', $dashboardBranchQuery) }}" class="contract-stage-link">{{ __('admin.dashboard_new.all_contracts') }}</a>
                             <div class="contract-stages mt-3 flex-grow-1">
                                 @foreach ($contractStageRows as $stage)
                                     @php
@@ -1205,7 +1235,7 @@
                                     <p class="section-eyebrow">{{ __('admin.dashboard_new.staff') }}</p>
                                     <h4 class="mb-0">{{ __('admin.dashboard_new.employee_bookings_contracts') }}</h4>
                                 </div>
-                                <a href="{{ route('admins.index') }}" class="btn btn-outline-primary btn-sm">{{ __('admin.dashboard_new.manage') }}</a>
+                                <a href="{{ route('admins.index', $dashboardBranchQuery) }}" class="btn btn-outline-primary btn-sm">{{ __('admin.dashboard_new.manage') }}</a>
                             </div>
                             <div class="employee-summary-row">
                                 <span class="employee-summary-pill">{{ __('admin.dashboard_new.active_employees') }}:
@@ -1222,7 +1252,7 @@
                                     @endphp
                                     <div class="employee-performance-card">
                                         <div class="employee-performance-head">
-                                            <a href="{{ route('dashboard.employees.show', ['employee' => $emp->id, 'range' => 'all']) }}"
+                                            <a href="{{ route('dashboard.employees.show', $withDashboardBranch(['employee' => $emp->id, 'range' => 'all'])) }}"
                                                 class="employee-profile-link">{{ $emp->name }}</a>
                                             <span class="employee-total-badge">{{ number_format($handledTotal) }}
                                                 {{ __('admin.dashboard_new.followups') }}</span>
@@ -1251,11 +1281,11 @@
                                             <small>{{ __('admin.dashboard_new.conversion_rate_from_bookings') }}:
                                                 {{ number_format((int) ($emp->conversion_rate ?? 0)) }}%</small>
                                             <div class="employee-performance-actions">
-                                                <a href="{{ route('dashboard.employees.show', ['employee' => $emp->id, 'range' => 'all']) }}"
+                                                <a href="{{ route('dashboard.employees.show', $withDashboardBranch(['employee' => $emp->id, 'range' => 'all'])) }}"
                                                     class="btn btn-primary btn-sm">{{ __('admin.dashboard_new.analytics_profile') }}</a>
-                                                <a href="{{ route('orders.index', ['admin_id' => $emp->id]) }}"
+                                                <a href="{{ route('orders.index', $withDashboardBranch(['admin_id' => $emp->id])) }}"
                                                     class="btn btn-outline-primary btn-sm">{{ __('admin.dashboard_new.bookings') }}</a>
-                                                <a href="{{ route('RecruitmentContract.index', ['marketer_id' => $emp->id]) }}"
+                                                <a href="{{ route('RecruitmentContract.index', $withDashboardBranch(['marketer_id' => $emp->id])) }}"
                                                     class="btn btn-outline-success btn-sm">{{ __('admin.dashboard_new.contracts') }}</a>
                                             </div>
                                         </div>

@@ -3,6 +3,7 @@
 namespace App\Models\ingaz;
 
 use App\Models\auth\Admin;
+use App\Models\Concerns\AssignsBranch;
 use App\Models\Contract;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -10,9 +11,13 @@ use Illuminate\Support\Facades\Storage;
 
 class RecruitmentContractAttachment extends Model
 {
-    use HasFactory;
+    use AssignsBranch, HasFactory;
 
     protected $guarded = [];
+
+    protected $casts = [
+        'branch_id' => 'integer',
+    ];
 
     public function contract()
     {
@@ -42,5 +47,12 @@ class RecruitmentContractAttachment extends Model
         }
 
         return $bytes . ' B';
+    }
+
+    protected function resolveBranchIdForCreate(): ?int
+    {
+        return $this->resolveBranchIdFromContract($this->contract_id)
+            ?? $this->resolveBranchIdFromAdmin($this->uploaded_by)
+            ?? $this->resolveBranchIdFromCurrentAdmin();
     }
 }

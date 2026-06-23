@@ -696,9 +696,7 @@ class RecruitmentContractController extends Controller
                 });
             }
 
-            if ($branchesEnabled && $request->filled('branch_id')) {
-                $query->where('branch_id', $request->branch_id);
-            }
+            $this->applyRequestBranchFilter($query, $request, 'contracts');
 
             $rows = $query->orderBy('id', 'desc');
 
@@ -2916,6 +2914,8 @@ class RecruitmentContractController extends Controller
                 ], 404);
             }
 
+            $this->assertCanAccessBranchModel($row, 'contracts');
+
             // التحقق من أن العقد من نوع الاستقدام
             // تم إزالة هذا التحقق لأن جميع العقود في هذا Controller هي عقود استقدام
             // if ($row->type !== 'recruitment') {
@@ -3103,6 +3103,8 @@ class RecruitmentContractController extends Controller
         if (!$contract) {
             return redirect()->back()->with('error', 'العقد غير موجود');
         }
+
+        $this->assertCanAccessBranchModel($contract, 'contracts');
 
         // منع تعديل العقود المكتملة
         if ($contract->status === ContractStatusEnum::Completed->value) {
@@ -3376,11 +3378,9 @@ class RecruitmentContractController extends Controller
 
         $contract = Contract::find($id);
         if (!$contract) {
-            return response()->json([
-                'success' => false,
-                'message' => 'العقد غير موجود'
-            ], 404);
+            return response()->json(['success' => false, 'message' => 'العقد غير موجود'], 404);
         }
+        $this->assertCanAccessBranchModel($contract, 'contracts');
 
         // منع حذف العقود المكتملة
         if ($contract->status === ContractStatusEnum::Completed->value) {

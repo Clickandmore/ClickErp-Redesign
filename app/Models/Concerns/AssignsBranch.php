@@ -66,6 +66,28 @@ trait AssignsBranch
         return $branchId ? (int) $branchId : null;
     }
 
+    protected function resolveBranchIdFromUser(?int $userId): ?int
+    {
+        if (!$userId || !Schema::hasTable('users') || !Schema::hasColumn('users', 'branch_id')) {
+            return null;
+        }
+
+        $branchId = DB::table('users')->where('id', $userId)->value('branch_id');
+
+        return $branchId ? (int) $branchId : null;
+    }
+
+    protected function resolveBranchIdFromComplaint(?int $complaintId): ?int
+    {
+        if (!$complaintId || !Schema::hasTable('complaints') || !Schema::hasColumn('complaints', 'branch_id')) {
+            return null;
+        }
+
+        $branchId = DB::table('complaints')->where('id', $complaintId)->value('branch_id');
+
+        return $branchId ? (int) $branchId : null;
+    }
+
     protected function resolveBranchIdFromContract(?int $contractId): ?int
     {
         if (!$contractId || !Schema::hasTable('contracts')) {
@@ -93,6 +115,72 @@ trait AssignsBranch
             $adminId = DB::table('contracts')->where('id', $contractId)->value('marketer_id');
 
             return $this->resolveBranchIdFromAdmin($adminId ? (int) $adminId : null);
+        }
+
+        return null;
+    }
+
+    protected function resolveBranchIdFromRentalContract(?int $rentalContractId): ?int
+    {
+        if (!$rentalContractId || !Schema::hasTable('rental_contracts') || !Schema::hasColumn('rental_contracts', 'branch_id')) {
+            return null;
+        }
+
+        $branchId = DB::table('rental_contracts')->where('id', $rentalContractId)->value('branch_id');
+
+        return $branchId ? (int) $branchId : null;
+    }
+
+    protected function resolveBranchIdFromInvoice(?int $invoiceId): ?int
+    {
+        if (!$invoiceId || !Schema::hasTable('invoices') || !Schema::hasColumn('invoices', 'branch_id')) {
+            return null;
+        }
+
+        $branchId = DB::table('invoices')->where('id', $invoiceId)->value('branch_id');
+
+        return $branchId ? (int) $branchId : null;
+    }
+
+    protected function resolveBranchIdFromFinancialRequest(?int $financialRequestId): ?int
+    {
+        if (!$financialRequestId || !Schema::hasTable('financial_requests') || !Schema::hasColumn('financial_requests', 'branch_id')) {
+            return null;
+        }
+
+        $branchId = DB::table('financial_requests')->where('id', $financialRequestId)->value('branch_id');
+
+        return $branchId ? (int) $branchId : null;
+    }
+
+    protected function resolveBranchIdFromMaid(?int $maidId): ?int
+    {
+        if (!$maidId) {
+            return null;
+        }
+
+        if (Schema::hasTable('contracts') && Schema::hasColumn('contracts', 'branch_id') && Schema::hasColumn('contracts', 'maid_id')) {
+            $branchId = DB::table('contracts')
+                ->where('maid_id', $maidId)
+                ->whereNotNull('branch_id')
+                ->latest('id')
+                ->value('branch_id');
+
+            if ($branchId) {
+                return (int) $branchId;
+            }
+        }
+
+        if (Schema::hasTable('rental_contracts') && Schema::hasColumn('rental_contracts', 'branch_id') && Schema::hasColumn('rental_contracts', 'maid_id')) {
+            $branchId = DB::table('rental_contracts')
+                ->where('maid_id', $maidId)
+                ->whereNotNull('branch_id')
+                ->latest('id')
+                ->value('branch_id');
+
+            if ($branchId) {
+                return (int) $branchId;
+            }
         }
 
         return null;

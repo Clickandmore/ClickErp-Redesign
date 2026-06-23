@@ -7,6 +7,8 @@ use App\Models\Branch;
 use App\Support\SystemModuleManager;
 use App\Support\ZohoSalesIqSettings;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 
 class BranchController extends Controller
@@ -31,7 +33,7 @@ class BranchController extends Controller
             $query->where('is_active', $request->boolean('is_active'));
         }
 
-        $branches = $query->paginate(20);
+        $branches = $query->with(['manager', 'admins'])->paginate(20);
         $branchesCount = Branch::query()->count();
         $branchLimit = SystemModuleManager::branchLimit();
         $canCreateBranch = $branchLimit === null || $branchesCount < $branchLimit;
@@ -62,6 +64,61 @@ class BranchController extends Controller
         ]);
     }
 
+    public function report(Request $request)
+    {
+        $branchService = app(\App\Services\BranchAccessService::class);
+        $adminBranchId = $branchService->adminBranchId();
+
+        $branches = Branch::query()
+            ->ordered()
+            ->when($adminBranchId, fn ($q) => $q->whereKey($adminBranchId))
+            ->get(['id', 'name_ar', 'name_en', 'code', 'is_active']);
+
+        $selectedBranchId = $adminBranchId ?: (int) $request->query('branch_id', 0);
+        $reportBranches = $selectedBranchId > 0
+            ? $branches->where('id', $selectedBranchId)
+            : $branches;
+
+        $rows = $reportBranches->map(function (Branch $branch) {
+            return [
+                'branch' => $branch,
+                'clients' => $this->countBranchRows('users', $branch->id),
+                'admins' => $this->countBranchRows('admins', $branch->id),
+                'orders' => $this->countBranchRows('orders', $branch->id),
+                'contracts' => $this->countBranchRows('contracts', $branch->id),
+                'rental_contracts' => $this->countBranchRows('rental_contracts', $branch->id),
+                'invoices' => $this->countBranchRows('invoices', $branch->id),
+                'rental_invoices' => $this->countBranchRows('rental_contract_invoices', $branch->id),
+                'complaints' => $this->countBranchRows('complaints', $branch->id),
+                'financial_requests' => $this->countBranchRows('financial_requests', $branch->id),
+                'sponsorship_transfers' => $this->countBranchRows('sponsorship_transfers', $branch->id),
+                'transfer_contracts' => $this->countBranchRows('transfer_service_contracts', $branch->id),
+                'delegations' => $this->countBranchRows('ingaz_delegations', $branch->id),
+                'musaned_transfers' => $this->countBranchRows('musaned_transfers', $branch->id),
+                'return_requests' => $this->countBranchRows('contract_return_requests', $branch->id),
+                'invoice_total' => $this->sumBranchRows('invoices', $branch->id, ['total', 'total_amount', 'amount', 'final_total']),
+                'rental_invoice_total' => $this->sumBranchRows('rental_contract_invoices', $branch->id, ['total', 'total_amount', 'amount', 'invoice_amount']),
+            ];
+        })->values();
+
+        $totals = [];
+        foreach ($rows as $row) {
+            foreach ($row as $key => $value) {
+                if ($key === 'branch') {
+                    continue;
+                }
+
+                $totals[$key] = ($totals[$key] ?? 0) + $value;
+            }
+        }
+
+        return view('admin.branches.report', [
+            'branches' => $branches,
+            'rows' => $rows,
+            'totals' => $totals,
+            'selectedBranchId' => $selectedBranchId,
+        ]);
+    }
     public function store(Request $request)
     {
         if (! $this->canCreateBranch()) {
@@ -94,6 +151,103 @@ class BranchController extends Controller
             ->with('success', 'تم تحديث الفرع بنجاح');
     }
 
+    public function assignManager(Request $request, Branch $branch)
+    {
+        $request->validate([
+            'admin_id' => ['nullable', 'integer', 'exists:admins,id'],
+        ]);
+
+        DB::transaction(function () use ($branch, $request) {
+            // Clear current manager flag
+            DB::table('admins')
+                ->where('branch_id', $branch->id)
+                ->where('is_branch_manager', true)
+                ->update(['is_branch_manager' => false]);
+
+            if ($request->filled('admin_id')) {
+                // Assign admin to this branch and mark as responsible
+                DB::table('admins')
+                    ->where('id', $request->admin_id)
+                    ->whereIn('admin_type', ['admin', 'super_admin'])
+                    ->update(['branch_id' => $branch->id, 'is_branch_manager' => true]);
+            }
+        });
+
+        return response()->json(['message' => 'تم تحديث مدير الفرع']);
+    }
+
+    public function branchAdmins(Branch $branch)
+    {
+        // Return ALL real admins so user can pick any one as responsible
+        $currentManagerId = \App\Models\auth\Admin::query()
+            ->where('branch_id', $branch->id)
+            ->where('is_branch_manager', true)
+            ->whereNull('deleted_at')
+            ->value('id');
+
+        $admins = \App\Models\auth\Admin::query()
+            ->whereIn('admin_type', ['admin', 'super_admin'])
+            ->whereNull('deleted_at')
+            ->orderBy('name')
+            ->get(['id', 'name', 'branch_id'])
+            ->map(fn ($a) => [
+                'id'         => $a->id,
+                'name'       => $a->name,
+                'is_selected'=> $a->id === $currentManagerId,
+            ]);
+
+        return response()->json($admins);
+    }
+
+    public function availableAdmins(Branch $branch)
+    {
+        // All real admins NOT already in this branch
+        $admins = \App\Models\auth\Admin::query()
+            ->whereIn('admin_type', ['admin', 'super_admin'])
+            ->where(function ($q) use ($branch) {
+                $q->whereNull('branch_id')->orWhere('branch_id', '!=', $branch->id);
+            })
+            ->whereNull('deleted_at')
+            ->orderBy('name')
+            ->get(['id', 'name', 'branch_id']);
+
+        $branches = Branch::query()->get(['id', 'name_ar'])->keyBy('id');
+
+        return response()->json($admins->map(fn ($a) => [
+            'id'          => $a->id,
+            'name'        => $a->name,
+            'branch_name' => $a->branch_id ? ($branches[$a->branch_id]->name_ar ?? null) : null,
+        ]));
+    }
+
+    public function assignAdmin(Request $request, Branch $branch)
+    {
+        $request->validate([
+            'admin_id' => ['required', 'integer', 'exists:admins,id'],
+        ]);
+
+        DB::table('admins')
+            ->where('id', $request->admin_id)
+            ->whereIn('admin_type', ['admin', 'super_admin'])
+            ->update(['branch_id' => $branch->id]);
+
+        return response()->json(['message' => 'تم إضافة الموظف للفرع']);
+    }
+
+    public function removeAdmin(Request $request, Branch $branch)
+    {
+        $request->validate([
+            'admin_id' => ['required', 'integer', 'exists:admins,id'],
+        ]);
+
+        DB::table('admins')
+            ->where('id', $request->admin_id)
+            ->where('branch_id', $branch->id)
+            ->update(['branch_id' => null, 'is_branch_manager' => false]);
+
+        return response()->json(['message' => 'تم إزالة الموظف من الفرع']);
+    }
+
     public function destroy(Request $request, Branch $branch)
     {
         $branch->delete();
@@ -110,6 +264,28 @@ class BranchController extends Controller
             ->with('success', 'تم حذف الفرع بنجاح');
     }
 
+    private function countBranchRows(string $table, int $branchId): int
+    {
+        if (! Schema::hasTable($table) || ! Schema::hasColumn($table, 'branch_id')) {
+            return 0;
+        }
+
+        return (int) DB::table($table)->where('branch_id', $branchId)->count();
+    }
+
+    private function sumBranchRows(string $table, int $branchId, array $candidateColumns): float
+    {
+        if (! Schema::hasTable($table) || ! Schema::hasColumn($table, 'branch_id')) {
+            return 0.0;
+        }
+
+        $column = collect($candidateColumns)->first(fn ($candidate) => Schema::hasColumn($table, $candidate));
+        if (! $column) {
+            return 0.0;
+        }
+
+        return (float) DB::table($table)->where('branch_id', $branchId)->sum($column);
+    }
     private function validatedData(Request $request, ?Branch $branch = null): array
     {
         $data = $request->validate([

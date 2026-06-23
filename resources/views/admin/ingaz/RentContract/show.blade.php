@@ -517,6 +517,10 @@
             background: #64748b;
         }
 
+        .btn-copy-payment {
+            background: #2563eb;
+        }
+
         .btn-delete {
             background: #ef4444;
         }
@@ -1077,6 +1081,17 @@
                                 لم يتم إنشاء مستندات مالية لهذا العقد حتى الآن.
                             </div>
                         @endif
+
+                        @if (!empty($contract->info?->moyasar_payment_url))
+                            <div class="d-flex flex-wrap gap-2 mt-3">
+                                <button type="button"
+                                    class="btn btn-outline-primary copy-payment-link-btn"
+                                    data-payment-url="{{ $contract->info->moyasar_payment_url }}">
+                                    <i class="fas fa-link me-1"></i>
+                                    نسخ رابط الدفع
+                                </button>
+                            </div>
+                        @endif
                     </div>
                 </div>
 
@@ -1360,6 +1375,15 @@
                 </a>
             @endif
 
+            @if (!empty($contract->info?->moyasar_payment_url))
+                <button type="button"
+                    class="btn-icon btn-copy-payment copy-payment-link-btn"
+                    title="نسخ رابط الدفع"
+                    data-payment-url="{{ $contract->info->moyasar_payment_url }}">
+                    <i class="fas fa-link"></i>
+                </button>
+            @endif
+
             @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_EDIT))
                 <a href="{{ route('RentContract.edit', $contract->id) }}" class="btn-icon btn-edit" title="تعديل العقد">
                     <i class="fas fa-pen"></i>
@@ -1403,6 +1427,53 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         $(document).ready(function() {
+            function copyTextToClipboard(text) {
+                if (navigator.clipboard && window.isSecureContext) {
+                    return navigator.clipboard.writeText(text);
+                }
+
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.focus();
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+
+                return Promise.resolve();
+            }
+
+            $(document).on('click', '.copy-payment-link-btn', function() {
+                const paymentUrl = $(this).data('payment-url');
+
+                if (!paymentUrl) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'تعذر النسخ',
+                        text: 'لا يوجد رابط دفع محفوظ لهذا العقد.'
+                    });
+                    return;
+                }
+
+                copyTextToClipboard(paymentUrl).then(function() {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'تم النسخ',
+                        text: 'تم نسخ رابط الدفع بنجاح.',
+                        timer: 1600,
+                        showConfirmButton: false
+                    });
+                }).catch(function() {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'تعذر النسخ',
+                        text: 'لم يتمكن المتصفح من نسخ رابط الدفع.'
+                    });
+                });
+            });
+
             function initChangeMaidSelect() {
                 const replacementMaidSelect = $('#new_maid_id');
 

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AssignsBranch;
 use App\Models\ingaz\Invoice;
 use App\Models\IngazDelegation;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -11,7 +12,7 @@ use Nami\Finance\Models\CostCenter;
 
 class MusanedTransferItem extends Model
 {
-    use HasFactory;
+    use AssignsBranch, HasFactory;
 
     protected $guarded = [];
 
@@ -21,6 +22,7 @@ class MusanedTransferItem extends Model
         'commission_amount' => 'decimal:2',
         'expense_tax_amount' => 'decimal:2',
         'commission_net_amount' => 'decimal:2',
+        'branch_id' => 'integer',
     ];
 
     public function transfer()
@@ -51,5 +53,12 @@ class MusanedTransferItem extends Model
     public function sourceAccount()
     {
         return $this->belongsTo(Account::class, 'source_account_id');
+    }
+
+    protected function resolveBranchIdForCreate(): ?int
+    {
+        return $this->resolveBranchIdFromContract($this->contract_id)
+            ?? $this->resolveBranchIdFromInvoice($this->invoice_id)
+            ?? $this->resolveBranchIdFromCurrentAdmin();
     }
 }

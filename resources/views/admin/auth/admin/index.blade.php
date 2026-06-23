@@ -57,7 +57,36 @@
         #dataTableObject {
             border-collapse: separate !important;
             border-spacing: 0;
-            min-width: 1520px;
+        }
+
+        /* responsive expand control column */
+        #dataTableObject th:first-child,
+        #dataTableObject td.dtr-control {
+            width: 36px !important;
+            min-width: 36px !important;
+            text-align: center;
+            cursor: pointer;
+            padding: 0 !important;
+        }
+
+        #dataTableObject td.dtr-control::before {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #0d6efd url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='white'%3E%3Cpath d='M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z'/%3E%3C/svg%3E") center/14px no-repeat;
+            vertical-align: middle;
+            transition: transform 0.2s ease;
+        }
+
+        #dataTableObject tr.parent td.dtr-control::before {
+            background-color: #dc3545;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='white'%3E%3Cpath d='M4 8a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 0 1h-7A.5.5 0 0 1 4 8z'/%3E%3C/svg%3E");
+        }
+
+        #dataTableObject tr.child td {
+            background: #f8fafc !important;
         }
 
         #dataTableObject thead th {
@@ -123,6 +152,23 @@
             min-width: var(--admin-actions-width);
             text-align: center;
             white-space: nowrap;
+            position: sticky;
+            right: 0;
+            z-index: 2;
+            background: #fff;
+        }
+
+        #dataTableObject thead th:last-child {
+            background: var(--admin-soft-bg) !important;
+            z-index: 3;
+        }
+
+        #dataTableObject tbody tr:hover td:last-child {
+            background: #f9fbff;
+        }
+
+        .admins-management-page .admins-table-shell {
+            overflow-x: auto;
         }
 
         #dataTableObject .admin-actions-dropdown {
@@ -334,6 +380,7 @@
                     <th>{{ __('admin.status') }}</th>
                     <th>{{ __('admin.activity') }}</th>
                     <th>{{ __('admin.note') }}</th>
+                    <th>المكاتب الخارجية</th>
                     <th>{{__("auth.actions")}}</th>
                 </tr>
                 </thead>
@@ -359,22 +406,23 @@
             let tableInstance;
 
             let columns = [
-                {"data": 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
+                {"data": 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, defaultContent: ''},
                 {"data": "name", orderable: true, searchable: true},
-                {"data": "username", orderable: true, searchable: true},
+                {"data": "username", orderable: true, searchable: true, visible: false},
                 {"data": "admin_type", orderable: true, searchable: true},
                 {"data": "role", orderable: true, searchable: true},
                 @if($branchesEnabled ?? false)
                 {"data": "branch", orderable: true, searchable: true},
                 @endif
                 {"data": "phone", orderable: true, searchable: true},
-                {"data": "whatsapp", orderable: true, searchable: true},
-                {"data": "verification_phone", orderable: true, searchable: true},
-                {"data": "email", orderable: true, searchable: true},
-                {"data": "sex_type", orderable: false, searchable: false},
+                {"data": "whatsapp", orderable: true, searchable: true, visible: false},
+                {"data": "verification_phone", orderable: true, searchable: true, visible: false},
+                {"data": "email", orderable: true, searchable: true, visible: false},
+                {"data": "sex_type", orderable: false, searchable: false, visible: false},
                 {"data": "status", orderable: true, searchable: false},
-                {"data": "activity_summary", orderable: false, searchable: false},
-                {"data": "note", orderable: false, searchable: true},
+                {"data": "activity_summary", orderable: false, searchable: false, visible: false},
+                {"data": "note", orderable: false, searchable: true, visible: false},
+                {"data": "offices", orderable: false, searchable: false, visible: false},
                 {"data": "actions", orderable: false, searchable: false}
             ];
 
@@ -405,7 +453,17 @@
 
             function initAdminUsersTable(url) {
                 tableInstance = $("#dataTableObject").DataTable({
-                    responsive: false,
+                    responsive: {
+                        details: {
+                            type: 'column',
+                            target: 0,
+                            renderer: $.fn.dataTable.Responsive.renderer.listHiddenNodes()
+                        }
+                    },
+                    columnDefs: [
+                        { className: 'dtr-control', orderable: false, targets: 0 },
+                        { className: 'all',  orderable: false, targets: -1 }
+                    ],
                     autoWidth: false,
                     ordering: true,
                     searching: true,
@@ -784,6 +842,109 @@
                         },
                         error: handleErrorResponce
                     });
+                });
+            });
+
+            const quickOfficesList = @json($recruitmentOffices ?? collect());
+            const quickRolesMap = @json($roles->pluck('name', 'id'));
+            const quickBranchesMap = @json($branches->mapWithKeys(fn($b) => [$b->id => $b->name_ar ?: $b->name_en]));
+
+            $(document).on('click', '.admin-quick-role-button', function (e) {
+                e.preventDefault();
+                const url = $(this).data('assign-route');
+                const name = $(this).data('name') || '';
+                const currentRoleId = String($(this).data('role-id') || '');
+
+                const opts = {'': '— {{ __('admin.no_role') ?? 'بدون دور' }} —'};
+                Object.entries(quickRolesMap).forEach(([id, label]) => { opts[id] = label; });
+
+                adminSwal.fire({
+                    title: '{{ __('admin.role_id') }}',
+                    html: '<div class="text-muted small mb-2">' + name + '</div>',
+                    input: 'select',
+                    inputOptions: opts,
+                    inputValue: currentRoleId,
+                    showCancelButton: true,
+                    confirmButtonText: '{{ __('buttons.save') }}',
+                    cancelButtonText: '{{ __('buttons.cancel') }}',
+                    customClass: { input: 'form-select mt-2' },
+                }).then(function (result) {
+                    if (result.isConfirmed) {
+                        postAdminAction(url, { role_id: result.value }, '{{ __('admin.updated') }}');
+                    }
+                });
+            });
+
+            $(document).on('click', '.admin-quick-office-button', function (e) {
+                e.preventDefault();
+                const url = $(this).data('assign-route');
+                const name = $(this).data('name') || '';
+                const currentIds = $(this).data('office-ids') || [];
+
+                if (!quickOfficesList.length) {
+                    adminSwal.fire('', 'لا توجد مكاتب خارجية مسجّلة في النظام', 'info');
+                    return;
+                }
+
+                let checkboxesHtml = '<div class="text-muted small mb-2">' + name + '</div>'
+                    + '<div style="max-height:260px;overflow-y:auto;text-align:right;padding:4px 0">';
+                quickOfficesList.forEach(function(o) {
+                    const checked = currentIds.includes(o.id) ? 'checked' : '';
+                    checkboxesHtml += '<div class="form-check mb-1">'
+                        + '<input class="form-check-input office-checkbox" type="checkbox" value="' + o.id + '" id="oc_' + o.id + '" ' + checked + '>'
+                        + '<label class="form-check-label" for="oc_' + o.id + '">' + o.label + '</label>'
+                        + '</div>';
+                });
+                checkboxesHtml += '</div>';
+
+                adminSwal.fire({
+                    title: 'المكاتب الخارجية',
+                    html: checkboxesHtml,
+                    showCancelButton: true,
+                    confirmButtonText: '{{ __('buttons.save') }}',
+                    cancelButtonText: '{{ __('buttons.cancel') }}',
+                    preConfirm: function () {
+                        return [...document.querySelectorAll('.office-checkbox:checked')].map(c => parseInt(c.value));
+                    }
+                }).then(function (result) {
+                    if (result.isConfirmed) {
+                        $.post({
+                            url: url,
+                            data: { _token: "{{ csrf_token() }}", office_ids: result.value },
+                            success: function (res) {
+                                handleSuccessResponce(res);
+                                adminSwal.fire({ icon: 'success', title: res.message || '{{ __('admin.updated') }}', confirmButtonText: '{{ __('buttons.close') }}' });
+                                reloadWithFilters();
+                            },
+                            error: handleErrorResponce
+                        });
+                    }
+                });
+            });
+
+            $(document).on('click', '.admin-quick-branch-button', function (e) {
+                e.preventDefault();
+                const url = $(this).data('assign-route');
+                const name = $(this).data('name') || '';
+                const currentBranchId = String($(this).data('branch-id') || '');
+
+                const opts = {'': '— {{ __('admin.no_branch') ?? 'بدون فرع (Super Admin)' }} —'};
+                Object.entries(quickBranchesMap).forEach(([id, label]) => { opts[id] = label; });
+
+                adminSwal.fire({
+                    title: '{{ __('admin.branches') }}',
+                    html: '<div class="text-muted small mb-2">' + name + '</div>',
+                    input: 'select',
+                    inputOptions: opts,
+                    inputValue: currentBranchId,
+                    showCancelButton: true,
+                    confirmButtonText: '{{ __('buttons.save') }}',
+                    cancelButtonText: '{{ __('buttons.cancel') }}',
+                    customClass: { input: 'form-select mt-2' },
+                }).then(function (result) {
+                    if (result.isConfirmed) {
+                        postAdminAction(url, { branch_id: result.value }, '{{ __('admin.updated') }}');
+                    }
                 });
             });
 

@@ -2,15 +2,17 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AssignsBranch;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class RentalFinancialAdjustment extends Model
 {
-    use HasFactory;
+    use AssignsBranch, HasFactory;
 
     protected $fillable = [
         'rental_contract_id',
+        'branch_id',
         'maid_id',
         'account_id',
         'constraint_id',
@@ -29,6 +31,7 @@ class RentalFinancialAdjustment extends Model
     protected $casts = [
         'amount' => 'decimal:2',
         'settled_at' => 'datetime',
+        'branch_id' => 'integer',
     ];
 
     public function rentalContract()
@@ -64,5 +67,13 @@ class RentalFinancialAdjustment extends Model
     public function settledBy()
     {
         return $this->belongsTo(\App\Models\auth\Admin::class, 'settled_by');
+    }
+
+    protected function resolveBranchIdForCreate(): ?int
+    {
+        return $this->resolveBranchIdFromRentalContract($this->rental_contract_id)
+            ?? $this->resolveBranchIdFromMaid($this->maid_id)
+            ?? $this->resolveBranchIdFromAdmin($this->created_by)
+            ?? $this->resolveBranchIdFromCurrentAdmin();
     }
 }

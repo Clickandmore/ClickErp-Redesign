@@ -3,22 +3,28 @@
 namespace App\Models\ingaz;
 
 use App\Models\auth\Admin;
+use App\Models\Concerns\AssignsBranch;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 
 class ClientAttachment extends Model
 {
-    use HasFactory;
+    use AssignsBranch, HasFactory;
 
     protected $fillable = [
         'user_id',
+        'branch_id',
         'uploaded_by',
         'title',
         'original_name',
         'path',
         'mime_type',
         'size',
+    ];
+
+    protected $casts = [
+        'branch_id' => 'integer',
     ];
 
     public function client()
@@ -49,5 +55,12 @@ class ClientAttachment extends Model
     public function existsOnDisk(): bool
     {
         return $this->path && Storage::disk('public')->exists($this->path);
+    }
+
+    protected function resolveBranchIdForCreate(): ?int
+    {
+        return $this->resolveBranchIdFromUser($this->user_id)
+            ?? $this->resolveBranchIdFromAdmin($this->uploaded_by)
+            ?? $this->resolveBranchIdFromCurrentAdmin();
     }
 }

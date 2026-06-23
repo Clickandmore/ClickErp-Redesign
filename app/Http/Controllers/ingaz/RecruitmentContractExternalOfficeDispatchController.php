@@ -56,6 +56,7 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
                 $inner->whereIn('status', $currentStatuses)
                     ->orWhereHas('externalOfficeDispatch');
             });
+        $this->applyRequestBranchFilter($query, $request, 'contracts');
 
         if ($request->ajax()) {
             $this->applyDispatchFilter($query, $dispatchFilter, $currentStatuses);
@@ -173,6 +174,7 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
                 $inner->whereIn('status', $currentStatuses)
                     ->orWhereHas('externalOfficeDispatch');
             });
+        $this->applyRequestBranchFilter($statsBaseQuery, $request, 'contracts');
 
         $stats = [
             'all' => (clone $statsBaseQuery)->count(),
@@ -191,6 +193,8 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
 
     public function edit(Contract $contract)
     {
+        $this->assertCanAccessBranchModel($contract);
+
         if (!$this->canViewRecruitmentContracts()) {
             abort(403, 'ليس لديك صلاحية لعرض إرسالية المكتب الخارجي.');
         }
@@ -237,6 +241,8 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
 
     public function store(Request $request, Contract $contract)
     {
+        $this->assertCanAccessBranchModel($contract);
+
         if (!$this->canUpdateRecruitmentContracts()) {
             return redirect()->back()->with('error', 'ليس لديك صلاحية لتحديث إرسالية المكتب الخارجي.');
         }
@@ -311,7 +317,7 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
             'arrival_station.max' => 'محطة الوصول طويلة جداً.',
         ]);
 
-        $contracts = Contract::query()
+        $contractsQuery = Contract::query()
             ->with([
                 'user',
                 'maid.religion',
@@ -321,8 +327,9 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
                 'externalOfficeDispatch',
                 'travelHistory',
             ])
-            ->whereIn('id', $validated['contract_ids'])
-            ->get();
+            ->whereIn('id', $validated['contract_ids']);
+        $this->applyRequestBranchFilter($contractsQuery, $request, 'contracts');
+        $contracts = $contractsQuery->get();
 
         $adminId = auth('admin')->id() ?? auth()->id();
         $createdCount = 0;
@@ -381,6 +388,8 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
 
     public function print(Contract $contract, Request $request)
     {
+        $this->assertCanAccessBranchModel($contract);
+
         if (!$this->canViewRecruitmentContracts()) {
             abort(403, 'ليس لديك صلاحية لعرض إرسالية المكتب الخارجي.');
         }

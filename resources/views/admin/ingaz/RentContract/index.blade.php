@@ -670,17 +670,7 @@
                             @endforeach
                         </select>
                     </div>
-                    @if ($branchesEnabled ?? false)
-                        <div class="col-md-3">
-                            <label for="branchFilter" class="form-label">{{ __('admin.branches') }}:</label>
-                            <select id="branchFilter" class="form-select">
-                                <option value="">{{ helperTrans('ingaz.all') }}</option>
-                                @foreach ($branches ?? collect() as $branch)
-                                    <option value="{{ $branch->id }}">{{ $branch->name }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    @endif
+                    @include('admin.partials.branch-filter', ['id' => 'branchFilter', 'containerClass' => 'col-md-3'])
                     <div class="col-md-3">
                         <label for="extensionFilter" class="form-label">حالة التمديد:</label>
                         <select id="extensionFilter" class="form-select">
@@ -1623,6 +1613,75 @@
 
                 $toggle.removeClass('show').attr('aria-expanded', 'false');
                 openRentContractActionMenu = null;
+            }
+
+            function escapeRentContractHtml(value) {
+                return $('<div>').text(value || '').html();
+            }
+
+            function copyRentContractText(text, button) {
+                const markCopied = function() {
+                    if (!button) {
+                        return;
+                    }
+
+                    const originalText = button.innerHTML;
+                    button.innerHTML = '<i class="fas fa-check me-1"></i>تم النسخ';
+                    setTimeout(function() {
+                        button.innerHTML = originalText;
+                    }, 1600);
+                };
+
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(text).then(markCopied);
+                    return;
+                }
+
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.focus();
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                markCopied();
+            }
+
+            function showPaymentLinkResult(response) {
+                const paymentUrl = response.payment_url || '';
+                let html = '<div class="text-end" dir="rtl"><p class="mb-2">' + escapeRentContractHtml(response.message || '') + '</p>';
+
+                if (paymentUrl) {
+                    html += '<label class="form-label fw-bold">رابط الدفع</label>' +
+                        '<div class="input-group" dir="ltr">' +
+                        '<input type="text" class="form-control" id="rentPaymentLinkInput" value="' + escapeRentContractHtml(paymentUrl) + '" readonly>' +
+                        '<button type="button" class="btn btn-outline-primary" id="copyRentPaymentLinkBtn">' +
+                        '<i class="fas fa-copy me-1"></i>نسخ الرابط' +
+                        '</button>' +
+                        '</div>' +
+                        '<small class="text-muted d-block mt-2" dir="rtl">يمكنك نسخ الرابط وإرساله للعميل لاحقاً.</small>';
+                }
+
+                html += '</div>';
+
+                Swal.fire({
+                    icon: response.message_sent === false ? 'warning' : 'success',
+                    title: response.message_sent === false ? 'تم إنشاء الرابط ولم ترسل الرسالة' : 'تم إرسال رابط الدفع',
+                    html: html,
+                    confirmButtonText: 'موافق',
+                    didOpen: function() {
+                        const copyButton = document.getElementById('copyRentPaymentLinkBtn');
+                        const input = document.getElementById('rentPaymentLinkInput');
+
+                        if (copyButton && input) {
+                            copyButton.addEventListener('click', function() {
+                                copyRentContractText(input.value, copyButton);
+                            });
+                        }
+                    }
+                });
             }
 
             function initializeRentContractActionDropdowns() {
@@ -2860,6 +2919,64 @@
                     if (result.isConfirmed) {
                         executeWorkflowAction(contractId, 'resume', 'تم استئناف عقد الإيجار بنجاح');
                     }
+                });
+            });
+
+            $(document).on('click', '.send-payment-link', function() {
+                const url = $(this).data('url');
+
+                Swal.fire({
+                    title: 'إرسال رابط الدفع',
+                    text: 'هل تريد إرسال رابط الدفع للعميل الآن؟',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#0d6efd',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'نعم، أرسل الرابط',
+                    cancelButtonText: 'إلغاء'
+                }).then((result) => {
+                    if (!result.isConfirmed) {
+                        return;
+                    }
+
+                    $.ajax({
+                        url: url,
+                        type: 'POST',
+                        data: {
+                            _token: '{{ csrf_token() }}'
+                        },
+                        beforeSend: function() {
+                            Swal.fire({
+                                title: 'جارٍ إرسال رابط الدفع...',
+                                allowOutsideClick: false,
+                                didOpen: function() {
+                                    Swal.showLoading();
+                                }
+                            });
+                        },
+                        success: function(response) {
+                            dataTable.ajax.reload(null, false);
+                            showPaymentLinkResult(response);
+                        },
+                        error: function(xhr) {
+                            const response = xhr.responseJSON || {};
+
+                            if (response.payment_url) {
+                                showPaymentLinkResult({
+                                    message_sent: false,
+                                    message: response.message || 'تعذر إرسال الرسالة للعميل.',
+                                    payment_url: response.payment_url
+                                });
+                                return;
+                            }
+
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'تعذر إرسال رابط الدفع',
+                                text: response.message || 'حدث خطأ أثناء إرسال رابط الدفع.'
+                            });
+                        }
+                    });
                 });
             });
 

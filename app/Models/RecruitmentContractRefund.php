@@ -3,12 +3,15 @@
 namespace App\Models;
 
 use App\Models\auth\Admin;
+use App\Models\Concerns\AssignsBranch;
 use App\Models\ingaz\Invoice;
 use Illuminate\Database\Eloquent\Model;
 use Nami\Finance\Models\Constraint;
 
 class RecruitmentContractRefund extends Model
 {
+    use AssignsBranch;
+
     protected $guarded = [];
 
     protected $casts = [
@@ -17,6 +20,7 @@ class RecruitmentContractRefund extends Model
         'penalty_percent' => 'decimal:4',
         'penalty_amount' => 'decimal:2',
         'refund_amount' => 'decimal:2',
+        'branch_id' => 'integer',
     ];
 
     public function contract()
@@ -42,5 +46,13 @@ class RecruitmentContractRefund extends Model
     public function createdBy()
     {
         return $this->belongsTo(Admin::class, 'created_by_id');
+    }
+
+    protected function resolveBranchIdForCreate(): ?int
+    {
+        return $this->resolveBranchIdFromContract($this->contract_id)
+            ?? $this->resolveBranchIdFromInvoice($this->invoice_id)
+            ?? $this->resolveBranchIdFromAdmin($this->created_by_id)
+            ?? $this->resolveBranchIdFromCurrentAdmin();
     }
 }

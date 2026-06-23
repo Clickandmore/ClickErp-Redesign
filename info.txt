@@ -1,0 +1,16 @@
+ي config هي:
+
+Username: dev-superadmin
+Password: Dev@2026!ChangeMe
+
+لو مش بتدخل من:
+
+http://127.0.0.1:8000/superadmin
+
+جرّب الرابط ده:
+
+http://127.0.0.1:8000/admin/ingaz/superadmin
+
+ملاحظة: لو في .env متغيرات DEV_SUPERADMIN_USERNAME أو DEV_SUPERADMIN_PASSWORD هتكون هي اللي شغالة بدل القيم دي.
+
+3:24 AM

@@ -109,6 +109,10 @@
                     <p class="text-muted mb-0">متابعة تاريخ التفويض وتاريخ الإضافة وبيانات العميل والفاتورة وتحويل مساند.</p>
                 </div>
                 @if ($canCreateDelegation)
+                    <a href="{{ route('reports.import.index', ['type' => 'ingaz_delegations']) }}" class="btn btn-outline-success">
+                        <i class="fa fa-file-import me-1"></i>
+                        استيراد من Excel
+                    </a>
                     <a href="{{ route('ingaz-delegations.create') }}" class="btn btn-primary">
                         <i class="fa fa-plus me-1"></i>
                         إضافة تفويض جديد
@@ -119,6 +123,7 @@
             <div class="card shadow-sm border-0 mb-4 filter-card">
                 <div class="card-body">
                     <form method="GET" id="delegations-filter-form" class="row g-3">
+                        @include('admin.partials.branch-filter', ['id' => 'branchFilter', 'containerClass' => 'col-md-2'])
                         <div class="col-md-4">
                             <label class="form-label">بحث</label>
                             <input type="text" name="search" value="{{ request('search') }}" class="form-control"
@@ -214,6 +219,7 @@
                     url: "{{ route('ingaz-delegations.index') }}",
                     type: 'GET',
                     data: function (d) {
+                        d.branch_id = $('#branchFilter').val();
                         d.global_search = $('input[name="search"]').val();
                         d.country_id = $('select[name="country_id"]').val();
                         d.client_source_type = $('select[name="client_source_type"]').val();

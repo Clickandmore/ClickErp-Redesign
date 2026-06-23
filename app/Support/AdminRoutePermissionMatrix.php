@@ -260,6 +260,8 @@ class AdminRoutePermissionMatrix
         return [
             'dash.settings' => [PermKeys::SETTINGS_VIEW],
             'dash.settings.announcements' => [PermKeys::SETTINGS_VIEW],
+            'dash.settings.zoho' => [PermKeys::SETTINGS_VIEW],
+            'dash.settings.zoho.update' => [PermKeys::SETTINGS_CONTROL],
             'dash.settings.store' => [PermKeys::SETTINGS_CONTROL],
             'dash.roles.index' => [PermKeys::ROLES_VIEW],
             'dash.roles.store' => static fn (?Request $request) => filled($request?->input('edit_id'))
@@ -755,6 +757,7 @@ class AdminRoutePermissionMatrix
                 'cities.destroy' => [PermKeys::COUNTRIES_DELETE, PermKeys::COUNTRIES_CONTROL],
                 'branches.index' => [PermKeys::BRANCHES_VIEW, PermKeys::BRANCHES_CONTROL],
                 'branches.settings' => [PermKeys::BRANCHES_VIEW, PermKeys::BRANCHES_CONTROL],
+                'branches.report' => [PermKeys::BRANCHES_VIEW, PermKeys::BRANCHES_CONTROL],
                 'branches.create' => [PermKeys::BRANCHES_CREATE, PermKeys::BRANCHES_CONTROL],
                 'branches.store' => [PermKeys::BRANCHES_CREATE, PermKeys::BRANCHES_CONTROL],
                 'branches.edit' => [PermKeys::BRANCHES_EDIT, PermKeys::BRANCHES_CONTROL],

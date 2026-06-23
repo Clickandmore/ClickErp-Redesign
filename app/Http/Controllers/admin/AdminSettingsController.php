@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\admin;
 
+use App\Models\Branch;
 use App\Models\ingaz\FastNew;
 use App\Models\NewSettings;
 use App\Support\AutomationSettings;
+use App\Support\ZohoSalesIqSettings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -43,6 +45,81 @@ class AdminSettingsController extends Controller
         } catch (\Exception $e) {
             Log::error('Error loading announcements settings: ' . $e->getMessage());
             return redirect()->back()->with('error', __('admin.error_loading_settings'));
+        }
+    }
+
+    public function zoho(Request $request)
+    {
+        if (!@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW)) {
+            return redirect()->back()->with('error', __('admin.no_permissions'));
+        }
+
+        try {
+            $branches = $this->zohoBranches();
+            $currentBranch = $this->resolveZohoBranch($request, $branches);
+            $storedZohoSettings = $currentBranch?->zoho_salesiq_settings ?? [];
+            $zohoEffectiveSettings = ZohoSalesIqSettings::forBranch($currentBranch);
+            $missingConfig = ZohoSalesIqSettings::missingKeys($currentBranch);
+            $activeSection = 'zoho';
+
+            return view('admin.settings.zoho', compact(
+                'branches',
+                'currentBranch',
+                'storedZohoSettings',
+                'zohoEffectiveSettings',
+                'missingConfig',
+                'activeSection'
+            ));
+        } catch (\Exception $e) {
+            Log::error('Error loading Zoho settings: ' . $e->getMessage());
+
+            return redirect()->back()->with('error', __('admin.error_loading_settings'));
+        }
+    }
+
+    public function updateZoho(Request $request)
+    {
+        if (!@AdminGuardHasPerm(\App\PermKeys::SETTINGS_CONTROL)) {
+            return redirect()->back()->with('error', __('admin.no_permissions'));
+        }
+
+        $data = $request->validate([
+            'branch_id' => ['nullable', 'integer', 'exists:branches,id'],
+            'zoho_salesiq_settings' => ['nullable', 'array'],
+            'zoho_salesiq_settings.salesiq_base_url' => ['nullable', 'url', 'max:500'],
+            'zoho_salesiq_settings.accounts_base_url' => ['nullable', 'url', 'max:500'],
+            'zoho_salesiq_settings.screen_name' => ['nullable', 'string', 'max:255'],
+            'zoho_salesiq_settings.client_id' => ['nullable', 'string', 'max:255'],
+            'zoho_salesiq_settings.client_secret' => ['nullable', 'string', 'max:1000'],
+            'zoho_salesiq_settings.refresh_token' => ['nullable', 'string', 'max:1000'],
+            'zoho_salesiq_settings.widget_url' => ['nullable', 'url', 'max:1000'],
+            'zoho_salesiq_settings.timeout' => ['nullable', 'integer', 'min:5', 'max:120'],
+        ]);
+
+        try {
+            $branches = $this->zohoBranches();
+            $currentBranch = $this->resolveZohoBranch($request, $branches);
+
+            if (!$currentBranch) {
+                return redirect()
+                    ->route('dash.settings.zoho')
+                    ->with('error', 'لا توجد شركة/فرع لحفظ إعدادات Zoho عليها.');
+            }
+
+            $currentBranch->forceFill([
+                'zoho_salesiq_settings' => ZohoSalesIqSettings::normalizeForStorage(
+                    $data['zoho_salesiq_settings'] ?? [],
+                    $currentBranch->zoho_salesiq_settings ?? []
+                ),
+            ])->save();
+
+            return redirect()
+                ->route('dash.settings.zoho', ['branch_id' => $currentBranch->id])
+                ->with('success', __('admin.settings_updated_successfully'));
+        } catch (\Exception $e) {
+            Log::error('Error updating Zoho settings: ' . $e->getMessage());
+
+            return redirect()->back()->with('error', __('admin.settings_update_failed'))->withInput();
         }
     }
 
@@ -198,6 +275,39 @@ class AdminSettingsController extends Controller
                 ]);
             }
         }
+    }
+
+    private function zohoBranches()
+    {
+        $admin = auth('admin')->user();
+
+        if ($admin?->branch_id) {
+            return Branch::query()
+                ->whereKey($admin->branch_id)
+                ->get();
+        }
+
+        return Branch::query()
+            ->ordered()
+            ->get();
+    }
+
+    private function resolveZohoBranch(Request $request, $branches): ?Branch
+    {
+        if ($branches->isEmpty()) {
+            return null;
+        }
+
+        $requestedBranchId = (int) $request->input('branch_id', $request->query('branch_id', 0));
+        if ($requestedBranchId > 0) {
+            $requestedBranch = $branches->firstWhere('id', $requestedBranchId);
+
+            if ($requestedBranch) {
+                return $requestedBranch;
+            }
+        }
+
+        return $branches->firstWhere('is_main', true) ?: $branches->first();
     }
 
 }

@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Country;
 use App\Models\ingaz\Nationality;
 use App\Models\auth\Admin;
+use App\Models\Concerns\AssignsBranch;
 use App\Models\ingaz\JobTitle;
 use App\Models\ingaz\Invoice;
 use App\Models\ingaz\Maid;
@@ -14,7 +15,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class IngazDelegation extends Model
 {
-    use HasFactory;
+    use AssignsBranch, HasFactory;
 
     public const STATUS_UNDER_PROCESS = 'under_process';
     public const STATUS_EXECUTED = 'executed';
@@ -26,6 +27,7 @@ class IngazDelegation extends Model
         'country_id',
         'profession_id',
         'user_id',
+        'branch_id',
         'maid_id',
         'marketer_id',
         'client_source_type',
@@ -53,6 +55,7 @@ class IngazDelegation extends Model
         'worker_passport_issue_date' => 'date',
         'visa_date' => 'date',
         'attachments' => 'array',
+        'branch_id' => 'integer',
     ];
 
     public static function statusOptions(): array
@@ -101,5 +104,13 @@ class IngazDelegation extends Model
     public function invoice()
     {
         return $this->hasOne(Invoice::class, 'ingaz_delegation_id');
+    }
+
+    protected function resolveBranchIdForCreate(): ?int
+    {
+        return $this->resolveBranchIdFromUser($this->user_id)
+            ?? $this->resolveBranchIdFromMaid($this->maid_id)
+            ?? $this->resolveBranchIdFromAdmin($this->marketer_id)
+            ?? $this->resolveBranchIdFromCurrentAdmin();
     }
 }

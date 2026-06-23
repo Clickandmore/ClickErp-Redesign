@@ -487,6 +487,21 @@ $quickLinks = collect([
                     </a>
                 </li>
 
+                @php
+                    $__adminBranch = ($user && $user->branch_id && \App\Support\SystemModuleManager::isEnabled('branches'))
+                        ? $user->branch
+                        : null;
+                @endphp
+                @if ($__adminBranch)
+                <li class="d-none d-xl-flex align-items-center me-1">
+                    <span class="badge bg-primary-subtle text-primary px-2 py-1 rounded-pill"
+                          style="font-size:0.78rem; max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"
+                          title="{{ $__adminBranch->name_ar ?: $__adminBranch->name_en }}">
+                        <i class="fa fa-building-o me-1"></i>{{ $__adminBranch->name_ar ?: $__adminBranch->name_en }}
+                    </span>
+                </li>
+                @endif
+
                 <li>
                     <div class="dropdown morphing {{$scaleDirection}} user-profile mx-lg-3 mx-2">
                         <a class="nav-link dropdown-toggle rounded-circle after-none p-0" href="#" role="button"
@@ -503,11 +518,17 @@ $quickLinks = collect([
                                         alt="">
                                     <div class="flex-fill ms-3">
                                         <h6 class="card-title mb-0">{{$user ? $user->name : 'Guest'}}</h6>
-                                        <span class="text-muted">
-                                            {{--<a href="#" class="__cf_email__"
-                                                data-cfemail="a8c9c4c4c1cdcfdac9dccddae8c4ddc6c786cbc7c5">--}}
-                                                {{$user ? $user->phone : 'N/A'}}{{--</a>--}}
+                                        <span class="text-muted small">
+                                                {{$user ? $user->phone : 'N/A'}}
                                         </span>
+                                        @if ($__adminBranch ?? null)
+                                            <div class="mt-1">
+                                                <span class="badge bg-primary-subtle text-primary"
+                                                      style="font-size:0.72rem;">
+                                                    <i class="fa fa-building-o me-1"></i>{{ ($__adminBranch->name_ar ?: $__adminBranch->name_en) }}
+                                                </span>
+                                            </div>
+                                        @endif
                                     </div>
                                 </div>
                                 <div class="list-group m-2 mb-3">

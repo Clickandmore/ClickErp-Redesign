@@ -105,6 +105,7 @@ class ComplaintFeedbackController extends Controller
         $feedbacks = ComplaintFeedback::with(['complaint', 'user'])
             ->whereNotNull('submitted_at')
             ->orderBy('submitted_at', 'desc');
+        $this->applyRequestBranchFilter($feedbacks, $request, 'complaint_feedbacks');
 
         // الفلاتر
         if ($request->rating) {
@@ -122,14 +123,15 @@ class ComplaintFeedbackController extends Controller
         $feedbacks = $feedbacks->paginate(20);
 
         // حساب الإحصائيات
+        $statsQuery = $this->applyRequestBranchFilter(ComplaintFeedback::query(), $request, 'complaint_feedbacks');
         $stats = [
-            'total' => ComplaintFeedback::whereNotNull('submitted_at')->count(),
-            'very_satisfied' => ComplaintFeedback::where('overall_rating', 'very_satisfied')->count(),
-            'satisfied' => ComplaintFeedback::where('overall_rating', 'satisfied')->count(),
-            'neutral' => ComplaintFeedback::where('overall_rating', 'neutral')->count(),
-            'dissatisfied' => ComplaintFeedback::where('overall_rating', 'dissatisfied')->count(),
-            'very_dissatisfied' => ComplaintFeedback::where('overall_rating', 'very_dissatisfied')->count(),
-            'average_rating' => ComplaintFeedback::whereNotNull('submitted_at')
+            'total' => (clone $statsQuery)->whereNotNull('submitted_at')->count(),
+            'very_satisfied' => (clone $statsQuery)->where('overall_rating', 'very_satisfied')->count(),
+            'satisfied' => (clone $statsQuery)->where('overall_rating', 'satisfied')->count(),
+            'neutral' => (clone $statsQuery)->where('overall_rating', 'neutral')->count(),
+            'dissatisfied' => (clone $statsQuery)->where('overall_rating', 'dissatisfied')->count(),
+            'very_dissatisfied' => (clone $statsQuery)->where('overall_rating', 'very_dissatisfied')->count(),
+            'average_rating' => (clone $statsQuery)->whereNotNull('submitted_at')
                 ->selectRaw('AVG((response_speed + solution_quality + employee_professionalism + communication_quality) / 4) as avg')
                 ->first()->avg ?? 0
         ];

@@ -99,9 +99,7 @@ class OrderController extends Controller
                 $query->whereResponsibleAdmin((int) $request->admin_id);
             }
 
-            if ($branchesEnabled && $request->filled('branch_id')) {
-                $query->where('branch_id', $request->branch_id);
-            }
+            $this->applyRequestBranchFilter($query, $request, 'orders');
 
             // Apply client name search
             if ($request->filled('client_name')) {
@@ -532,6 +530,7 @@ class OrderController extends Controller
                     'details.package',
                     'details.address'
                 ])->findOrFail($id);
+                $this->assertCanAccessBranchModel($obj, 'orders');
 
                 $returnHTML = view($this->folderPath . '.edit')
                     ->with(['obj' => $obj])->render();
@@ -562,6 +561,7 @@ class OrderController extends Controller
             ]);
 
             $order = Order::findOrFail($id);
+            $this->assertCanAccessBranchModel($order, 'orders');
             $newStatus = $validated['status'];
 
             if ($this->isCompletedOrder($order) && $newStatus !== $order->status) {
@@ -640,6 +640,7 @@ class OrderController extends Controller
         if (!$order) {
             return jsonError(__('index.order_not_found'), 404);
         }
+        $this->assertCanAccessBranchModel($order, 'orders');
         if ($this->isCompletedOrder($order)) {
             return $this->completedOrderLockedResponse();
         }
@@ -803,6 +804,8 @@ class OrderController extends Controller
             abort(404);
         }
 
+        $this->assertCanAccessBranchModel($data, 'orders');
+
         $activities = $this->buildOrderActivitiesTimeline($data);
 
         return view('admin.ingaz.orders.show', compact('data', 'activities'));
@@ -827,6 +830,8 @@ class OrderController extends Controller
         if (!$data) {
             abort(404);
         }
+
+        $this->assertCanAccessBranchModel($data, 'orders');
 
         $activities = $this->buildOrderActivitiesTimeline($data);
 

@@ -2,15 +2,17 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\AssignsBranch;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class ContractReturnRequest extends Model
 {
-    use HasFactory;
+    use AssignsBranch, HasFactory;
 
     protected $fillable = [
         'contract_id',
+        'branch_id',
         'user_id',
         'notes',
         'status',
@@ -21,6 +23,7 @@ class ContractReturnRequest extends Model
 
     protected $casts = [
         'processed_at' => 'datetime',
+        'branch_id' => 'integer',
     ];
 
     public function contract()
@@ -71,5 +74,13 @@ class ContractReturnRequest extends Model
             'rejected' => '<span class="badge bg-danger">مرفوض</span>',
             default => '<span class="badge bg-secondary">' . $this->status . '</span>'
         };
+    }
+
+    protected function resolveBranchIdForCreate(): ?int
+    {
+        return $this->resolveBranchIdFromContract($this->contract_id)
+            ?? $this->resolveBranchIdFromUser($this->user_id)
+            ?? $this->resolveBranchIdFromAdmin($this->processed_by)
+            ?? $this->resolveBranchIdFromCurrentAdmin();
     }
 }

@@ -377,17 +377,7 @@
                                             @endif
                                         </select>
                                     </div>
-                                    @if($branchesEnabled ?? false)
-                                        <div class="col-md-2">
-                                            <label class="form-label">{{ __('admin.branches') }}</label>
-                                            <select class="form-select" name="branch_id" id="branch_id">
-                                                <option value="">{{ helperTrans('ingaz.all') }}</option>
-                                                @foreach(($branches ?? collect()) as $branch)
-                                                    <option value="{{ $branch->id }}">{{ $branch->name }}</option>
-                                                @endforeach
-                                            </select>
-                                        </div>
-                                    @endif
+                                    @include('admin.partials.branch-filter', ['id' => 'branch_id', 'containerClass' => 'col-md-2'])
                                     <div class="col-md-2">
                                         <label class="form-label">{{ helperTrans('ingaz.timer_status') }}</label>
                                         <select class="form-select" name="timer_status" id="timer_status">
