@@ -232,11 +232,15 @@ class InvoiceController extends Controller
         $clientId = $request->query('client_id');
         $clientId = is_numeric($clientId) ? (int) $clientId : null;
 
-        $contracts = Contract::query()
-            ->with(['user', 'maid.nationality', 'requiredMaidNationality'])
-            ->whereDoesntHave('invoice')
-            ->latest('id')
-            ->get();
+        $contracts = collect();
+
+        if (!$contractId && !$ingazDelegationId && !$clientId) {
+            $contracts = Contract::query()
+                ->with(['user', 'maid.nationality', 'requiredMaidNationality'])
+                ->whereDoesntHave('invoice')
+                ->latest('id')
+                ->get();
+        }
 
         $selectedContract = null;
         $selectedIngazDelegation = null;

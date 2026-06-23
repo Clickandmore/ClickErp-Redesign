@@ -1446,6 +1446,58 @@
                 return $('<div>').text(value || '').html();
             }
 
+            function copyTextToClipboard(text, button) {
+                const markCopied = function () {
+                    if (button) {
+                        const originalText = button.innerHTML;
+                        button.innerHTML = '<i class="fas fa-check me-1"></i>تم النسخ';
+                        setTimeout(function () {
+                            button.innerHTML = originalText;
+                        }, 1600);
+                    }
+                };
+
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(text).then(markCopied);
+                    return;
+                }
+
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.focus();
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                markCopied();
+            }
+
+            function buildPaymentLinkSuccessHtml(response) {
+                let html = '<div class="text-end" dir="rtl"><p class="mb-2">' + escapeHtml(response.message || '') + '</p>';
+
+                if (response.moyasar_link) {
+                    const warning = response.payment_link_created && !response.payment_link_sent
+                        ? '<div class="alert alert-warning py-2 mb-3">' + escapeHtml(response.payment_link_sms_error || 'تعذر إرسال رسالة رابط الدفع للعميل.') + '</div>'
+                        : '';
+
+                    html += warning +
+                        '<label class="form-label fw-bold">رابط الدفع</label>' +
+                        '<div class="input-group" dir="ltr">' +
+                        '<input type="text" class="form-control" id="createdPaymentLinkInput" value="' + escapeHtml(response.moyasar_link) + '" readonly>' +
+                        '<button type="button" class="btn btn-outline-primary" id="copyCreatedPaymentLinkBtn">' +
+                        '<i class="fas fa-copy me-1"></i>نسخ الرابط' +
+                        '</button>' +
+                        '</div>' +
+                        '<small class="text-muted d-block mt-2" dir="rtl">يمكنك نسخ الرابط وإرساله للعميل لاحقاً عند الحاجة.</small>';
+                }
+
+                html += '</div>';
+
+                return html;
+            }
+
             function clearAjaxValidationErrors($form) {
                 $form.find('.ajax-validation-feedback').remove();
                 $form.find('.is-invalid').removeClass('is-invalid');
@@ -1647,13 +1699,23 @@
                                 if (response.success) {
                                     Swal.fire({
                                         title: 'تم بنجاح!',
-                                        text: response.message,
-                                        icon: 'success',
+                                        html: buildPaymentLinkSuccessHtml(response),
+                                        icon: response.payment_link_created && !response.payment_link_sent ? 'warning' : 'success',
                                         showCancelButton: true,
                                         confirmButtonText: 'طباعة المستندات',
                                         cancelButtonText: 'الذهاب للقائمة',
                                         confirmButtonColor: '#2794eb',
-                                        cancelButtonColor: '#6c757d'
+                                        cancelButtonColor: '#6c757d',
+                                        didOpen: function () {
+                                            const copyButton = document.getElementById('copyCreatedPaymentLinkBtn');
+                                            const input = document.getElementById('createdPaymentLinkInput');
+
+                                            if (copyButton && input) {
+                                                copyButton.addEventListener('click', function () {
+                                                    copyTextToClipboard(input.value, copyButton);
+                                                });
+                                            }
+                                        }
                                     }).then((result) => {
                                         if (result.isConfirmed) {
                                             if (response.print_url) {
