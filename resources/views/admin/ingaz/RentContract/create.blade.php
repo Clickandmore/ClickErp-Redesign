@@ -310,6 +310,57 @@
             padding: 1.15rem;
         }
 
+        .rent-contract-create .moyasar-payment-methods {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.45rem;
+            align-items: center;
+        }
+
+        .rent-contract-create .moyasar-payment-method {
+            min-height: 30px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.25rem 0.55rem;
+            border: 1px solid #d7e3ef;
+            border-radius: 8px;
+            background: #fff;
+            color: var(--rent-text);
+            font-size: 0.78rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .rent-contract-create .moyasar-payment-method i {
+            font-size: 1.05rem;
+        }
+
+        .rent-contract-create .moyasar-payment-method.visa i {
+            color: #1a1f71;
+        }
+
+        .rent-contract-create .moyasar-payment-method.mastercard i {
+            color: #eb001b;
+        }
+
+        .rent-contract-create .moyasar-payment-method.apple-pay i {
+            color: #111827;
+        }
+
+        .rent-contract-create .moyasar-payment-method.mada .mada-mark {
+            min-width: 26px;
+            height: 18px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            background: #0f766e;
+            color: #fff;
+            font-size: 0.68rem;
+            font-weight: 800;
+        }
+
         .rent-contract-create .payment-summary {
             background: var(--rent-primary-soft);
             border: 1px solid #cddff6;
@@ -794,11 +845,31 @@
                                                         <option value="tabby">تابي</option>
                                                         <option value="tamara">تمارا</option>
                                                         @if($moyasarEnabled)
-                                                            <option value="moyasar">دفع إلكتروني - ميسر</option>
+                                                            <option value="moyasar">ميسر: فيزا، مدى، ماستر كارد، أبل باي</option>
                                                         @endif
                                                         <option value="pay_later">الدفع لاحقاً</option>
                                                         <option value="other">أخرى</option>
                                                     </select>
+                                                    @if($moyasarEnabled)
+                                                        <div id="moyasarPaymentIcons" class="moyasar-payment-methods d-none mt-2">
+                                                            <span class="moyasar-payment-method visa" title="فيزا">
+                                                                <i class="fab fa-cc-visa"></i>
+                                                                <span>فيزا</span>
+                                                            </span>
+                                                            <span class="moyasar-payment-method mada" title="مدى">
+                                                                <span class="mada-mark">مدى</span>
+                                                                <span>مدى</span>
+                                                            </span>
+                                                            <span class="moyasar-payment-method mastercard" title="ماستر كارد">
+                                                                <i class="fab fa-cc-mastercard"></i>
+                                                                <span>ماستر كارد</span>
+                                                            </span>
+                                                            <span class="moyasar-payment-method apple-pay" title="أبل باي">
+                                                                <i class="fab fa-apple-pay"></i>
+                                                                <span>أبل باي</span>
+                                                            </span>
+                                                        </div>
+                                                    @endif
                                                     {{-- تنبيه ميسر --}}
                                                     <div id="moyasarNotice" class="alert alert-info d-none mt-2 mb-0 py-2 px-3 small">
                                                         <i class="fas fa-paper-plane me-1"></i>
@@ -1363,6 +1434,7 @@
                 }
 
                 $('#moyasarNotice').toggleClass('d-none', paymentType !== 'moyasar');
+                $('#moyasarPaymentIcons').toggleClass('d-none', paymentType !== 'moyasar');
             }
 
             function filterPackageOptions() {
