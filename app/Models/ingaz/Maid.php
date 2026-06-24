@@ -93,6 +93,10 @@ class Maid extends Model
         'deleted_by',
         'arrival_date',
         'created_at',
+        'submission_status',
+        'rejection_reason',
+        'reviewed_by',
+        'reviewed_at',
     ];
 
     protected $casts = [
@@ -115,7 +119,13 @@ class Maid extends Model
         'offer_expires_at' => 'date',
         'arrival_date' => 'date',
         'deleted_at' => 'datetime',
+        'reviewed_at' => 'datetime',
     ];
+
+    // ثوابت حالة تقديم السيرة
+    const SUBMISSION_PENDING  = 'pending_review';
+    const SUBMISSION_APPROVED = 'approved';
+    const SUBMISSION_REJECTED = 'rejected';
 
     public $translatedAttributes = ['marital_status'];
     protected $translationForeignKey = 'maid_id';
@@ -356,6 +366,16 @@ class Maid extends Model
     public function scopeShown($query)
     {
         return $query->where('is_show', true);
+    }
+
+    public function scopePendingSubmission($query)
+    {
+        return $query->where('submission_status', self::SUBMISSION_PENDING);
+    }
+
+    public function scopeFromExternalOffice($query)
+    {
+        return $query->whereNotNull('office_id');
     }
 
     public function scopeAvailableFromToday($query)

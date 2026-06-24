@@ -194,8 +194,9 @@ class DashboardController extends Controller
             'experience_years' => $request->experience_years,
             'status' => 'available',
             'available' => 1,
-            'is_show' => 0, // Admin must review
+            'is_show' => 0,
             'added_by' => auth()->id(),
+            'submission_status' => Maid::SUBMISSION_PENDING,
         ]);
 
         if ($request->has('job_type_ids')) {

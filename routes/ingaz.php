@@ -232,6 +232,9 @@ Route::group(
             Route::get('reports/export/{report}', [ReportController::class, 'export'])->name('reports.export');
             Route::get('show-maid-details/{id}', [\App\Http\Controllers\ingaz\MaidController::class, 'showMaidDetails'])->name('showMaidDetails');
             Route::get('maids-not-available', [\App\Http\Controllers\ingaz\MaidController::class, 'noneAvailableMaids'])->name('noneAvailableMaids');
+            Route::get('maids/pending-submissions', [\App\Http\Controllers\ingaz\MaidController::class, 'pendingSubmissions'])->name('maids.pending-submissions');
+            Route::post('maids/{id}/approve-submission', [\App\Http\Controllers\ingaz\MaidController::class, 'approveSubmission'])->name('maids.approve-submission');
+            Route::post('maids/{id}/reject-submission', [\App\Http\Controllers\ingaz\MaidController::class, 'rejectSubmission'])->name('maids.reject-submission');
             Route::get('maids/cvs-deleted', [\App\Http\Controllers\ingaz\MaidController::class, 'deletedCvs'])->name('maids.deleted_cvs');
             Route::get('maids/{id}/details', [\App\Http\Controllers\ingaz\MaidController::class, 'getMaidDetails'])->name('maids.details');
             Route::get('maids/rental', [\App\Http\Controllers\ingaz\MaidController::class, 'rentalIndex'])->name('maids.rental.index');

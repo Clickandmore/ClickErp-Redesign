@@ -1989,6 +1989,75 @@ class MaidController extends Controller
         ]);
     }
 
+    // ================================================================
+    // سير ذاتية قيد المراجعة من المكاتب الخارجية
+    // ================================================================
+
+    public function pendingSubmissions(Request $request)
+    {
+        $query = objModel::with(['nationality', 'office', 'jobTypes'])
+            ->pendingSubmission()
+            ->fromExternalOffice()
+            ->latest();
+
+        if ($request->filled('search')) {
+            $s = $request->search;
+            $query->where(function ($q) use ($s) {
+                $q->where('name', 'like', "%$s%")
+                  ->orWhere('passport_num', 'like', "%$s%");
+            });
+        }
+
+        if ($request->filled('office_id')) {
+            $query->where('office_id', $request->office_id);
+        }
+
+        $maids   = $query->paginate(20)->appends($request->query());
+        $offices = \App\Models\RecruitmentOffices::orderBy('title')->get(['id', 'title']);
+        $pendingCount = objModel::pendingSubmission()->fromExternalOffice()->count();
+
+        return view('admin.ingaz.maids.pending_submissions', compact('maids', 'offices', 'pendingCount'));
+    }
+
+    public function approveSubmission(Request $request, $id)
+    {
+        $maid = objModel::where('submission_status', objModel::SUBMISSION_PENDING)->findOrFail($id);
+
+        $maid->update([
+            'submission_status' => objModel::SUBMISSION_APPROVED,
+            'is_show'           => 1,
+            'reviewed_by'       => auth('admin')->id(),
+            'reviewed_at'       => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تمت الموافقة على السيرة الذاتية وإضافتها للنظام',
+        ]);
+    }
+
+    public function rejectSubmission(Request $request, $id)
+    {
+        $request->validate([
+            'rejection_reason' => 'nullable|string|max:500',
+        ]);
+
+        $maid = objModel::where('submission_status', objModel::SUBMISSION_PENDING)->findOrFail($id);
+
+        $maid->update([
+            'submission_status' => objModel::SUBMISSION_REJECTED,
+            'is_show'           => 0,
+            'rejection_reason'  => $request->rejection_reason,
+            'reviewed_by'       => auth('admin')->id(),
+            'reviewed_at'       => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم رفض السيرة الذاتية',
+        ]);
+    }
+
     public function exportPdf(Request $request)
     {
         $this->configureMaidExportRuntime();
