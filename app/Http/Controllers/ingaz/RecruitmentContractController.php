@@ -467,6 +467,58 @@ class RecruitmentContractController extends Controller
         return "DATE(COALESCE(NULLIF((SELECT ci.contract_date FROM contract_infos as ci WHERE ci.contract_id = contracts.id LIMIT 1), '0000-00-00'), NULLIF(contracts.contract_date, '0000-00-00')))";
     }
 
+    private function sponsorshipTransferDisplayStatuses(): array
+    {
+        return [
+            'transferred',
+            'completed',
+            'trial_started',
+            'trial',
+            'maid_delivered',
+            'contract_signed',
+            'contract_sent',
+            'waiting_contract_send',
+        ];
+    }
+
+    private function resolveDisplayedContractClient(Contract $contract): ?User
+    {
+        $transfer = $contract->relationLoaded('sponsorshipTransfers')
+            ? $contract->sponsorshipTransfers
+                ->whereIn('status', $this->sponsorshipTransferDisplayStatuses())
+                ->sortByDesc('id')
+                ->first()
+            : $contract->sponsorshipTransfers()
+                ->with('oldSponsor')
+                ->whereIn('status', $this->sponsorshipTransferDisplayStatuses())
+                ->latest('id')
+                ->first();
+
+        return $transfer?->oldSponsor ?: $contract->user;
+    }
+
+    private function applyDisplayedClientFilter($query, callable $userFilter): void
+    {
+        $displayStatuses = $this->sponsorshipTransferDisplayStatuses();
+
+        $query->where(function ($clientQuery) use ($userFilter, $displayStatuses) {
+            $clientQuery->where(function ($transferClientQuery) use ($userFilter, $displayStatuses) {
+                $transferClientQuery
+                    ->whereHas('sponsorshipTransfers', function ($transferQuery) use ($userFilter, $displayStatuses) {
+                        $transferQuery
+                            ->whereIn('status', $displayStatuses)
+                            ->whereHas('oldSponsor', $userFilter);
+                    });
+            })->orWhere(function ($directClientQuery) use ($userFilter, $displayStatuses) {
+                $directClientQuery
+                    ->whereDoesntHave('sponsorshipTransfers', function ($transferQuery) use ($displayStatuses) {
+                        $transferQuery->whereIn('status', $displayStatuses);
+                    })
+                    ->whereHas('user', $userFilter);
+            });
+        });
+    }
+
     private function applyStatusFilter($query, ?string $statusFilter): void
     {
         if ($statusFilter === null || $statusFilter === '') {
@@ -551,6 +603,7 @@ class RecruitmentContractController extends Controller
                 'latestContractStatusLog', // آخر تحديث للحالة بدون تحميل كامل السجل
                 'invoice.musanedTransferItem.transfer',
                 'recruitmentRefund',
+                'sponsorshipTransfers.oldSponsor.nationality',
                 'order', // بيانات الطلب
                 'order.details', // تفاصيل الطلب
                 'order.details.admin',
@@ -619,14 +672,14 @@ class RecruitmentContractController extends Controller
 
             // فلتر رقم جوال العميل
             if ($request->filled('client_phone')) {
-                $query->whereHas('user', function ($q) use ($request) {
+                $this->applyDisplayedClientFilter($query, function ($q) use ($request) {
                     $q->where('phone', 'like', '%' . $request->client_phone . '%');
                 });
             }
 
             // فلتر اسم العميل
             if ($request->filled('client_name')) {
-                $query->whereHas('user', function ($q) use ($request) {
+                $this->applyDisplayedClientFilter($query, function ($q) use ($request) {
                     $q->where('name', 'like', '%' . $request->client_name . '%');
                 });
             }
@@ -677,7 +730,7 @@ class RecruitmentContractController extends Controller
 
             // فلتر مدينة العميل
             if ($request->filled('city')) {
-                $query->whereHas('user', function ($q) use ($request) {
+                $this->applyDisplayedClientFilter($query, function ($q) use ($request) {
                     $q->where('city', 'like', '%' . $request->city . '%');
                 });
             }
@@ -794,42 +847,44 @@ class RecruitmentContractController extends Controller
 
                 ->editColumn('clirnt_data', function ($row) {
                     $phoneInfo = '';
-                    if ($row->user) {
+                    $displayClient = $this->resolveDisplayedContractClient($row);
+
+                    if ($displayClient) {
                         $phoneInfo  = '<div class="d-flex flex-column gap-3">';
 
                         // Name
                         $phoneInfo .= '<div class="fw-semibold text-dark">'
-                            . $row->user->name
+                            . e($displayClient->name)
                             . '</div>';
 
                         // Phone
                         $phoneInfo .= '<div>'
-                            . getPhoneWithTag($row->user->phone_code . $row->user->phone)
+                            . getPhoneWithTag($displayClient->phone_code . $displayClient->phone)
                             . '</div>';
 
                         // Birthdate
-                        if ($row->user->birthdate) {
+                        if ($displayClient->birthdate) {
                             $phoneInfo .= '<div class="text-muted small d-flex align-items-center gap-2">'
                                 . '<i class="fas fa-cake-candles text-secondary"></i>'
                                 . '<span><span class="text-secondary">تاريخ الميلاد: </span>'
-                                . \Carbon\Carbon::parse($row->user->birthdate)->format('Y-m-d')
+                                . \Carbon\Carbon::parse($displayClient->birthdate)->format('Y-m-d')
                                 . '</span>'
                                 . '</div>';
                         }
 
                         // Client document number
-                        if ($row->user->documentNumber()) {
+                        if ($displayClient->documentNumber()) {
                             $phoneInfo .= '<div class="text-muted small d-flex align-items-center gap-2">'
                                 . '<i class="fas fa-id-card text-secondary"></i>'
-                                . '<span><span class="text-secondary">' . e($row->user->documentNumberLabel()) . ': </span>' . e($row->user->documentNumber()) . '</span>'
+                                . '<span><span class="text-secondary">' . e($displayClient->documentNumberLabel()) . ': </span>' . e($displayClient->documentNumber()) . '</span>'
                                 . '</div>';
                         }
 
                         // Address
-                        if ($row->user->address) {
+                        if ($displayClient->address) {
                             $phoneInfo .= '<div class="text-muted small d-flex align-items-center gap-2">'
                                 . '<i class="fas fa-location-dot text-secondary"></i>'
-                                . '<span style="max-width:180px;"><span class="text-secondary font-bold"><span class="text-secondary">العنوان: </span></span></br>' . $row->user->address . '</span>'
+                                . '<span style="max-width:180px;"><span class="text-secondary font-bold"><span class="text-secondary">العنوان: </span></span></br>' . e($displayClient->address) . '</span>'
                                 . '</div>';
                         }
 
@@ -1528,7 +1583,7 @@ class RecruitmentContractController extends Controller
                                 $actions .= '<li><button class="dropdown-item action-refund refund-contract-btn"
                                                 data-contract-id="' . $row->id . '"
                                                 data-contract-number="' . $row->id . '"
-                                                data-client-name="' . e($row->user ? $row->user->name : 'غير محدد') . '"
+                                                data-client-name="' . e($this->resolveDisplayedContractClient($row)?->name ?? 'غير محدد') . '"
                                                 data-has-musaned-transfer="' . ($hasMusanedTransfer ? '1' : '0') . '"
                                                 data-contract-amount="' . e(number_format((float) $invoice->total_due, 2, '.', '')) . '">
                                                 <i class="fas fa-rotate-left"></i> استرداد العقد
@@ -1607,6 +1662,8 @@ class RecruitmentContractController extends Controller
             'info.manualMaidOffice',
             'info.shelter',
             'externalOfficeDispatch',
+            'sponsorshipTransfers.oldSponsor',
+            'sponsorshipTransfers.newSponsor',
             'recruitmentRefund.refundConstraint.constraintDetails.account',
             'recruitmentRefund.createdBy',
             'attachments.uploader',
@@ -4966,19 +5023,21 @@ class RecruitmentContractController extends Controller
                 ->orWhere('order_id', 'like', $likeSearch)
                 ->orWhere('status', 'like', $likeSearch);
 
-            // بيانات العميل
-            $q->orWhereHas('user', function ($userQuery) use ($likeSearch) {
-                $userQuery->where('name', 'like', $likeSearch)
-                    ->orWhere('phone_code', 'like', $likeSearch)
-                    ->orWhere('phone', 'like', $likeSearch)
-                    ->orWhereRaw("CONCAT(COALESCE(phone_code,''), COALESCE(phone,'')) LIKE ?", [$likeSearch])
-                    ->orWhere('phone2', 'like', $likeSearch)
-                    ->orWhere('national_num', 'like', $likeSearch)
-                    ->orWhere('email', 'like', $likeSearch)
-                    ->orWhere('city', 'like', $likeSearch)
-                    ->orWhere('address', 'like', $likeSearch)
-                    ->orWhere('birthdate', 'like', $likeSearch)
-                    ->orWhere('job', 'like', $likeSearch);
+            // بيانات العميل المعروض في الجدول، مع الحفاظ على الكفيل القديم بعد نقل الكفالة.
+            $q->orWhere(function ($clientSearchQuery) use ($likeSearch) {
+                $this->applyDisplayedClientFilter($clientSearchQuery, function ($userQuery) use ($likeSearch) {
+                    $userQuery->where('name', 'like', $likeSearch)
+                        ->orWhere('phone_code', 'like', $likeSearch)
+                        ->orWhere('phone', 'like', $likeSearch)
+                        ->orWhereRaw("CONCAT(COALESCE(phone_code,''), COALESCE(phone,'')) LIKE ?", [$likeSearch])
+                        ->orWhere('phone2', 'like', $likeSearch)
+                        ->orWhere('national_num', 'like', $likeSearch)
+                        ->orWhere('email', 'like', $likeSearch)
+                        ->orWhere('city', 'like', $likeSearch)
+                        ->orWhere('address', 'like', $likeSearch)
+                        ->orWhere('birthdate', 'like', $likeSearch)
+                        ->orWhere('job', 'like', $likeSearch);
+                });
             });
 
             // بيانات العاملة
