@@ -42,6 +42,11 @@ class ContractExtensionRequest extends Model
         return $this->belongsTo(\App\Models\auth\Admin::class, 'processed_by');
     }
 
+    public function notes()
+    {
+        return $this->hasMany(ContractExtensionRequestNote::class, 'extension_request_id')->latest();
+    }
+
     public function scopePending($query)
     {
         return $query->where('status', 'pending');

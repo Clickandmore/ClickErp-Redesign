@@ -546,6 +546,8 @@ Route::group(
                 Route::get('/', [\App\Http\Controllers\ingaz\ContractExtensionRequestController::class, 'index'])->name('index');
                 Route::get('/{extensionRequest}', [\App\Http\Controllers\ingaz\ContractExtensionRequestController::class, 'show'])->name('show');
                 Route::post('/{extensionRequest}/process', [\App\Http\Controllers\ingaz\ContractExtensionRequestController::class, 'process'])->name('process');
+                Route::post('/{extensionRequest}/notes', [\App\Http\Controllers\ingaz\ContractExtensionRequestController::class, 'storeNote'])->name('notes.store');
+                Route::delete('/{extensionRequest}/notes/{note}', [\App\Http\Controllers\ingaz\ContractExtensionRequestController::class, 'deleteNote'])->name('notes.delete');
             });
             Route::post('RecruitmentContract/{contractId}/request-extension', [\App\Http\Controllers\ingaz\ContractExtensionRequestController::class, 'store'])
                 ->name('RecruitmentContract.requestExtension');

@@ -124,6 +124,7 @@ class ContractExtensionRequestController extends Controller
             'contract.info',
             'requestedBy',
             'processedBy',
+            'notes.admin',
         ])->findOrFail($id);
 
         $this->assertCanAccessBranchModel($extensionRequest);
@@ -184,6 +185,72 @@ class ContractExtensionRequestController extends Controller
             'message' => $message,
             'data'    => $extensionRequest->fresh(),
         ]);
+    }
+
+    /**
+     * إضافة ملاحظة على طلب التمديد.
+     */
+    public function storeNote(Request $request, $id)
+    {
+        if (!@AdminGuardHasAnyPerm([
+            NewPermKeys::REC_CONTRACTS_EXTENSION_VIEW,
+            NewPermKeys::REC_CONTRACTS_EXTENSION_MANAGE,
+            NewPermKeys::REC_CONTRACTS_MANAGE,
+        ])) {
+            return response()->json(['success' => false, 'message' => 'ليس لديك صلاحية لإضافة ملاحظات'], 403);
+        }
+
+        $request->validate([
+            'note' => 'required|string|max:1000',
+        ], [
+            'note.required' => 'يرجى كتابة الملاحظة',
+            'note.max'      => 'الملاحظة يجب ألا تتجاوز 1000 حرف',
+        ]);
+
+        $extensionRequest = ContractExtensionRequest::findOrFail($id);
+        $this->assertCanAccessBranchModel($extensionRequest);
+
+        $note = \App\Models\ContractExtensionRequestNote::create([
+            'extension_request_id' => $extensionRequest->id,
+            'admin_id'             => Auth::guard('admin')->id(),
+            'note'                 => $request->note,
+        ]);
+
+        $note->load('admin');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تمت إضافة الملاحظة بنجاح',
+            'note'    => [
+                'id'         => $note->id,
+                'note'       => $note->note,
+                'admin_name' => $note->admin?->name ?? 'غير محدد',
+                'created_at' => $note->created_at->format('Y-m-d H:i'),
+            ],
+        ]);
+    }
+
+    /**
+     * حذف ملاحظة من طلب التمديد.
+     */
+    public function deleteNote(Request $request, $id, $noteId)
+    {
+        if (!@AdminGuardHasAnyPerm([
+            NewPermKeys::REC_CONTRACTS_EXTENSION_MANAGE,
+            NewPermKeys::REC_CONTRACTS_MANAGE,
+        ])) {
+            return response()->json(['success' => false, 'message' => 'ليس لديك صلاحية لحذف الملاحظات'], 403);
+        }
+
+        $extensionRequest = ContractExtensionRequest::findOrFail($id);
+        $this->assertCanAccessBranchModel($extensionRequest);
+
+        $note = \App\Models\ContractExtensionRequestNote::where('extension_request_id', $extensionRequest->id)
+            ->findOrFail($noteId);
+
+        $note->delete();
+
+        return response()->json(['success' => true, 'message' => 'تم حذف الملاحظة بنجاح']);
     }
 
     /**

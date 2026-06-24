@@ -5,7 +5,7 @@
 @endsection
 
 @section('content')
-    <div class="container-fluid py-3" style="max-width:760px;">
+    <div class="container-fluid py-3" style="max-width:820px;">
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-white d-flex align-items-center gap-2 py-3">
                 <i class="fas fa-calendar-plus text-primary fs-5"></i>
@@ -92,6 +92,67 @@
                 </a>
             </div>
         </div>
+
+        {{-- قسم الملاحظات --}}
+        <div class="card border-0 shadow-sm mt-4">
+            <div class="card-header bg-white d-flex align-items-center gap-2 py-3">
+                <i class="fas fa-sticky-note text-warning fs-5"></i>
+                <h5 class="mb-0">ملاحظات الطلب</h5>
+                <span class="badge bg-secondary ms-1" id="notesCount">{{ $extensionRequest->notes->count() }}</span>
+            </div>
+
+            {{-- قائمة الملاحظات --}}
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush" id="notesList">
+                    @forelse($extensionRequest->notes as $note)
+                        <li class="list-group-item d-flex gap-3 align-items-start py-3" id="note-{{ $note->id }}">
+                            <div class="flex-shrink-0">
+                                <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center"
+                                     style="width:38px;height:38px;">
+                                    <i class="fas fa-user text-primary small"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-start gap-2">
+                                    <span class="fw-semibold small">{{ $note->admin?->name ?? 'غير محدد' }}</span>
+                                    <span class="text-muted small text-nowrap">{{ $note->created_at->format('Y-m-d H:i') }}</span>
+                                </div>
+                                <p class="mb-0 mt-1 text-dark" style="white-space:pre-wrap">{{ $note->note }}</p>
+                            </div>
+                            @if(@AdminGuardHasAnyPerm([\App\NewPermKeys::REC_CONTRACTS_EXTENSION_MANAGE, \App\NewPermKeys::REC_CONTRACTS_MANAGE]))
+                                <button type="button" class="btn btn-sm btn-outline-danger flex-shrink-0 js-delete-note"
+                                        data-id="{{ $note->id }}" title="حذف الملاحظة">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            @endif
+                        </li>
+                    @empty
+                        <li class="list-group-item text-center text-muted py-4" id="emptyNotesMsg">
+                            <i class="fas fa-comment-slash fs-4 d-block mb-2 opacity-50"></i>
+                            لا توجد ملاحظات بعد
+                        </li>
+                    @endforelse
+                </ul>
+            </div>
+
+            {{-- نموذج إضافة ملاحظة --}}
+            @if(@AdminGuardHasAnyPerm([\App\NewPermKeys::REC_CONTRACTS_EXTENSION_VIEW, \App\NewPermKeys::REC_CONTRACTS_EXTENSION_MANAGE, \App\NewPermKeys::REC_CONTRACTS_MANAGE]))
+                <div class="card-footer bg-white">
+                    <div class="d-flex gap-2 align-items-start">
+                        <textarea id="newNoteText" class="form-control" rows="2"
+                                  placeholder="اكتب ملاحظة..." maxlength="1000"
+                                  style="resize:none;"></textarea>
+                        <button type="button" id="submitNoteBtn" class="btn btn-primary flex-shrink-0"
+                                style="min-width:90px;">
+                            <i class="fas fa-paper-plane me-1"></i> إرسال
+                        </button>
+                    </div>
+                    <div class="d-flex justify-content-end mt-1">
+                        <small class="text-muted"><span id="noteCharCount">0</span>/1000</small>
+                    </div>
+                </div>
+            @endif
+        </div>
     </div>
 
     {{-- مودال المعالجة --}}
@@ -173,6 +234,112 @@ $(document).ready(function () {
             complete: function () {
                 $btn.prop('disabled', false).text(currentAction === 'approved' ? 'قبول التمديد' : 'رفض التمديد');
             }
+        });
+    });
+
+    // ===========================================================
+    // الملاحظات
+    // ===========================================================
+    var storeNoteUrl  = '{{ route('contract-extension-requests.notes.store', $extensionRequest->id) }}';
+    var deleteNoteUrl = '/admin/contract-extension-requests/{{ $extensionRequest->id }}/notes/';
+    var canManage     = {{ @AdminGuardHasAnyPerm([\App\NewPermKeys::REC_CONTRACTS_EXTENSION_MANAGE, \App\NewPermKeys::REC_CONTRACTS_MANAGE]) ? 'true' : 'false' }};
+
+    // عداد الأحرف
+    $('#newNoteText').on('input', function () {
+        $('#noteCharCount').text($(this).val().length);
+    });
+
+    // إرسال ملاحظة جديدة
+    $('#submitNoteBtn').on('click', function () {
+        var text = $('#newNoteText').val().trim();
+        if (!text) {
+            $('#newNoteText').addClass('is-invalid').focus();
+            return;
+        }
+        $('#newNoteText').removeClass('is-invalid');
+
+        var $btn = $(this).prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i>');
+
+        $.ajax({
+            url:  storeNoteUrl,
+            type: 'POST',
+            data: { _token: $('meta[name="csrf-token"]').attr('content'), note: text },
+            success: function (res) {
+                if (!res.success) { Swal.fire('خطأ', res.message || 'حدث خطأ', 'error'); return; }
+
+                // إزالة رسالة "لا توجد ملاحظات"
+                $('#emptyNotesMsg').remove();
+
+                // بناء عنصر الملاحظة الجديدة
+                var deleteBtn = canManage
+                    ? '<button type="button" class="btn btn-sm btn-outline-danger flex-shrink-0 js-delete-note" data-id="' + res.note.id + '" title="حذف الملاحظة"><i class="fas fa-trash-alt"></i></button>'
+                    : '';
+
+                var html = '<li class="list-group-item d-flex gap-3 align-items-start py-3" id="note-' + res.note.id + '">' +
+                    '<div class="flex-shrink-0"><div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center" style="width:38px;height:38px;"><i class="fas fa-user text-primary small"></i></div></div>' +
+                    '<div class="flex-grow-1">' +
+                    '<div class="d-flex justify-content-between align-items-start gap-2">' +
+                    '<span class="fw-semibold small">' + $('<div>').text(res.note.admin_name).html() + '</span>' +
+                    '<span class="text-muted small text-nowrap">' + res.note.created_at + '</span>' +
+                    '</div>' +
+                    '<p class="mb-0 mt-1 text-dark" style="white-space:pre-wrap">' + $('<div>').text(res.note.note).html() + '</p>' +
+                    '</div>' +
+                    deleteBtn +
+                    '</li>';
+
+                $('#notesList').prepend(html);
+                $('#notesCount').text(parseInt($('#notesCount').text() || '0') + 1);
+                $('#newNoteText').val('');
+                $('#noteCharCount').text('0');
+            },
+            error: function (xhr) {
+                var msg = xhr.responseJSON?.errors?.note?.[0] || xhr.responseJSON?.message || 'حدث خطأ';
+                Swal.fire('خطأ', msg, 'error');
+            },
+            complete: function () {
+                $btn.prop('disabled', false).html('<i class="fas fa-paper-plane me-1"></i> إرسال');
+            }
+        });
+    });
+
+    // إرسال بـ Ctrl+Enter
+    $('#newNoteText').on('keydown', function (e) {
+        if (e.ctrlKey && e.key === 'Enter') { $('#submitNoteBtn').trigger('click'); }
+    });
+
+    // حذف ملاحظة
+    $(document).on('click', '.js-delete-note', function () {
+        var noteId = $(this).data('id');
+        Swal.fire({
+            title: 'حذف الملاحظة',
+            text: 'هل أنت متأكد من حذف هذه الملاحظة؟',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            confirmButtonText: 'نعم، احذف',
+            cancelButtonText: 'إلغاء',
+        }).then(function (result) {
+            if (!result.isConfirmed) return;
+            $.ajax({
+                url:  deleteNoteUrl + noteId,
+                type: 'DELETE',
+                data: { _token: $('meta[name="csrf-token"]').attr('content') },
+                success: function (res) {
+                    if (res.success) {
+                        $('#note-' + noteId).fadeOut(300, function () {
+                            $(this).remove();
+                            var count = parseInt($('#notesCount').text() || '1') - 1;
+                            $('#notesCount').text(count);
+                            if (count === 0) {
+                                $('#notesList').append('<li class="list-group-item text-center text-muted py-4" id="emptyNotesMsg"><i class="fas fa-comment-slash fs-4 d-block mb-2 opacity-50"></i>لا توجد ملاحظات بعد</li>');
+                            }
+                        });
+                    } else {
+                        Swal.fire('خطأ', res.message, 'error');
+                    }
+                },
+                error: function () { Swal.fire('خطأ', 'حدث خطأ أثناء الحذف', 'error'); }
+            });
         });
     });
 });
