@@ -348,6 +348,7 @@ return array (
   'BankVisa' => 'فيزا بنك  ',
   'BankTransfer' => 'تحويل بنكى ',
   'Network' => 'شبكة',
+  'Online' => 'دفع إلكتروني (ميسر)',
   'It is not allowed to delete this item because it is linked to other items' => 'لا يجوز حذف هذا العنصر لأنه مرتبط بعناصر أخرى',
   'Is there a tax?' => 'هل يوجد ضريبة؟ ',
   'Tax rate' => 'نسبة الضريبة ',

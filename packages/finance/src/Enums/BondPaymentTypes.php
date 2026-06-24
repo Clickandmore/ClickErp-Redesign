@@ -10,6 +10,7 @@ enum BondPaymentTypes: int
     case BankTransfer = 4;
     case ElectronicWallet = 5;
     case Network = 6;
+    case Online = 7;
 
     public function lang()
     {
@@ -20,6 +21,7 @@ enum BondPaymentTypes: int
             BondPaymentTypes::BankTransfer => __("finance::finance.BankTransfer"),
             BondPaymentTypes::ElectronicWallet => __("finance::finance.ElectronicWallet"),
             BondPaymentTypes::Network => __("finance::finance.Network"),
+            BondPaymentTypes::Online => __("finance::finance.Online"),
         };
     }
 
@@ -32,7 +34,8 @@ enum BondPaymentTypes: int
             BondPaymentTypes::BankTransfer->value => __("finance::finance.BankTransfer"),
             BondPaymentTypes::ElectronicWallet->value => __("finance::finance.ElectronicWallet"),
             BondPaymentTypes::Network->value => __("finance::finance.Network"),
-            default => __("finance::finance.unknown"), // في حال كانت القيمة غير معروفة
+            BondPaymentTypes::Online->value => __("finance::finance.Online"),
+            default => __("finance::finance.unknown"),
         };
     }
 }

@@ -719,6 +719,7 @@ class RentalContractFinanceService
             'mada' => $this->findReceiptAccountByTypes([AccountTypesEnum::Bank]),
             'tabby', 'tamara' => $this->findReceiptAccountByTypes([AccountTypesEnum::ElectronicWallet, AccountTypesEnum::Bank]),
             'bank_transfer', 'bank_pending', 'other' => $this->findReceiptAccountByTypes([AccountTypesEnum::Bank]),
+            'moyasar' => $this->findReceiptAccountByTypes([AccountTypesEnum::ElectronicWallet, AccountTypesEnum::Bank]),
             default => $this->findReceiptAccountByTypes([AccountTypesEnum::Bank, AccountTypesEnum::Box]),
         };
 
@@ -783,6 +784,7 @@ class RentalContractFinanceService
             'mada' => BondPaymentTypes::Network,
             'tabby', 'tamara' => BondPaymentTypes::ElectronicWallet,
             'bank_transfer', 'bank_pending', 'other' => BondPaymentTypes::BankTransfer,
+            'moyasar' => BondPaymentTypes::Online,
             default => BondPaymentTypes::BankTransfer,
         };
     }

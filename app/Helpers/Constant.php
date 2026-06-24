@@ -56,6 +56,10 @@ class Constant
                 "ar" => "شبكة",
                 "en" => "en"
             ],
+            '7' => [
+                "ar" => "دفع إلكتروني (ميسر)",
+                "en" => "Online Payment (Moyasar)"
+            ],
         ],
         "note_types" => [
             '1' => [

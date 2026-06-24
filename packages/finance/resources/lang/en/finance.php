@@ -336,6 +336,7 @@ return array (
   'BankVisa' => 'Bank Visa',
   'BankTransfer' => 'Bank Transfer',
   'Network' => 'Network',
+  'Online' => 'Online Payment (Moyasar)',
   'It is not allowed to delete this item because it is linked to other items' => 'It is not allowed to delete this item because it is linked to other items',
   'Is there a tax?' => 'Is there a tax?',
   'Tax rate' => 'Tax rate',
