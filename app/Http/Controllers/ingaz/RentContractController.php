@@ -4,7 +4,6 @@ namespace App\Http\Controllers\ingaz;
 
 use App\Enums\ingaz\ContractStatusEnum;
 use App\Enums\ingaz\OrderEnum;
-use App\Http\Actions\ingaz\RecruitmentOfficeAction;
 use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\StoreRentalContractRequest;
 use App\Http\Traits\SendSMSTrait;
@@ -523,7 +522,7 @@ class RentContractController extends Controller
         return view($this->folderPath . '.index', $data);
     }
 
-    public function create(RecruitmentOfficeAction $officeAction, Request $request)
+    public function create(Request $request)
     {
         $rentalJobTypeId = $this->getRentalJobTypeId();
 
@@ -532,17 +531,6 @@ class RentContractController extends Controller
             'has_order_id' => $request->has('order_id'),
             'order_id' => $request->get('order_id')
         ]);
-
-        // الطلبات الجاهزة لإنشاء عقد تأجير، سواء كانت مقبولة أو تم إنهاؤها من شاشة الطلبات.
-        $endedOrders = Order::where('job_type_id', $rentalJobTypeId)
-                           ->whereIn('status', [
-                               OrderEnum::UnderProcess->value,
-                               OrderEnum::Done->value,
-                           ])
-                           ->whereDoesntHave('rentalContracts')
-                           ->with(['user', 'maid'])
-                           ->latest()
-                           ->get();
 
         // إذا تم تمرير order_id، احصل على بيانات الطلب
         $selectedOrder = null;
@@ -587,22 +575,14 @@ class RentContractController extends Controller
                          ->orderBy('name')
                          ->get();
 
-        // الحصول على الجنسيات مع الترجمات
-        $nationalities = Nationality::with('translations')->get();
+        $selectedClientId = $request->get('client_id');
+        $selectedClient = null;
+        $initialClientId = $selectedOrder?->user_id ?: $selectedClientId;
+        if ($initialClientId) {
+            $selectedClient = $this->rentContractClientSelectQuery()
+                ->find($initialClientId);
+        }
 
-        // الحصول على العملاء الموجودين - نفس الطريقة المستخدمة في عقود الاستقدام
-        $existing_clients = User::with('nationality')->get();
-
-        // تسجيل عدد العملاء للتشخيص
-        \Log::info('Existing clients loaded for rent contract create', [
-            'count' => $existing_clients->count(),
-            'first_3' => $existing_clients->take(3)->pluck('name', 'id')->toArray()
-        ]);
-
-        $offices = $officeAction->getAllOffices();
-
-        // إضافة متغير لتحديد ما إذا كانت هناك طلبات متاحة
-        $hasEndedOrders = $endedOrders->count() > 0;
         $countries = Country::active()->ordered()->get();
 
         \Log::info('RentContract create view data', [
@@ -614,25 +594,20 @@ class RentContractController extends Controller
                 'maid_name' => $selectedOrder->maid ? $selectedOrder->maid->name : null,
             ] : null,
             'availableRentalMaids_count' => $availableRentalMaids->count(),
-            'existing_clients_count' => $existing_clients->count()
+            'selected_client_id' => $selectedClient?->id,
         ]);
 
-        $selectedClientId = $request->get('client_id');
         $moyasarSettings = MoyasarSettings::current();
         $moyasarEnabled = MoyasarSettings::isEnabled();
 
         return view($this->folderPath . '.create', compact(
-            'endedOrders',
             'availableRentalMaids',
             'packages',
             'marketers',
-            'nationalities',
-            'existing_clients',
-            'offices',
-            'hasEndedOrders',
             'countries',
             'selectedOrder',
             'selectedClientId',
+            'selectedClient',
             'moyasarSettings',
             'moyasarEnabled'
         ));
@@ -2194,14 +2169,7 @@ class RentContractController extends Controller
     {
         $search = $request->get('search', '');
 
-        $clients = User::select('id', 'name', 'phone', 'email', 'nationality_id', 'national_num', 'client_type', 'tax_number', 'license_number', 'birthdate', 'address', 'city', 'family_num', 'children', 'profession', 'monthly_income')
-                      ->whereNotNull('name')
-                      ->where('name', '!=', '')
-                      ->where('name', 'not like', '+966%')
-                      ->where('name', 'not like', '10%')
-                      ->where('name', 'not like', '05%')
-                      ->where('name', 'not like', '2%')
-                      ->whereNotNull('phone');
+        $clients = $this->rentContractClientSelectQuery();
 
         if ($search) {
             $clients->where(function($query) use ($search) {
@@ -2223,11 +2191,44 @@ class RentContractController extends Controller
                 $client->document_number = $client->searchableDocumentNumber();
                 $client->document_label = $client->documentNumberLabel();
                 $client->national_num = $client->document_number;
+                $client->job = $client->job ?: $client->profession;
 
                 return $client;
             })->values(),
             'count' => $clients->count()
         ]);
+    }
+
+    private function rentContractClientSelectQuery()
+    {
+        return User::select(
+            'id',
+            'name',
+            'phone',
+            'phone2',
+            'email',
+            'nationality_id',
+            'national_num',
+            'client_type',
+            'tax_number',
+            'license_number',
+            'birthdate',
+            'address',
+            'city',
+            'rooms_num',
+            'family_num',
+            'children',
+            'job',
+            'profession',
+            'monthly_income'
+        )
+            ->whereNotNull('name')
+            ->where('name', '!=', '')
+            ->where('name', 'not like', '+966%')
+            ->where('name', 'not like', '10%')
+            ->where('name', 'not like', '05%')
+            ->where('name', 'not like', '2%')
+            ->whereNotNull('phone');
     }
 
     protected function buildRentalClosureSummary(RentalContract $contract, ?Carbon $closureDate = null): array

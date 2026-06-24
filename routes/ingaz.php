@@ -364,12 +364,12 @@ Route::group(
             Route::get('RecruitmentContract/{contractId}/change-maid', [RecruitmentContractController::class, 'showChangeMaid'])->name('RecruitmentContract.showChangeMaid');
             Route::post('RecruitmentContract/{contractId}/change-maid', [RecruitmentContractController::class, 'changeMaid'])->name('RecruitmentContract.changeMaid');
             Route::post('RecruitmentContract/{contractId}/notes', [RecruitmentContractController::class, 'storeNote'])->name('RecruitmentContract.notes.store');
+            Route::get('RentContract/existing-clients', [RentContractController::class, 'getExistingClients'])->name('RentContract.existing.clients');
             Route::resource('RentContract', RentContractController::class);
             Route::get('rental-invoices/download/{id}', [RentalContractInvoiceController::class, 'download'])->name('rental.invoice.download');
             Route::post('RentContract/{id}/complete', [RentContractController::class, 'completeContract'])->name('RentContract.complete');
             Route::get('RentContract/statistics/data', [RentContractController::class, 'statistics'])->name('RentContract.statistics');
             Route::get('RentContract/export/excel', [RentContractController::class, 'exportExcel'])->name('RentContract.export.excel');
-            Route::get('RentContract/existing-clients', [RentContractController::class, 'getExistingClients'])->name('RentContract.existing.clients');
 
             // Ø§Ù„ÙÙˆØ§ØªÙŠØ±
             Route::post('invoices/{id}/queue-zatca-sale', [InvoiceController::class, 'queueZatcaSale'])->name('invoices.queue-zatca-sale');
