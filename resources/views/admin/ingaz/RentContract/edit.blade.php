@@ -522,7 +522,7 @@
                                     <option value="tabby" {{ ($contract->info->payment_type ?? '') === 'tabby' ? 'selected' : '' }}>تابي</option>
                                     <option value="tamara" {{ ($contract->info->payment_type ?? '') === 'tamara' ? 'selected' : '' }}>تمارا</option>
                                     @if(($moyasarEnabled ?? false) || ($contract->info->payment_type ?? '') === 'moyasar')
-                                        <option value="moyasar" {{ ($contract->info->payment_type ?? '') === 'moyasar' ? 'selected' : '' }}>دفع إلكتروني - ميسر</option>
+                                        <option value="moyasar" {{ ($contract->info->payment_type ?? '') === 'moyasar' ? 'selected' : '' }}>ميسر: فيزا، مدى، ماستر كارد، أبل باي</option>
                                     @endif
                                     <option value="pay_later" {{ ($contract->info->payment_type ?? '') === 'pay_later' ? 'selected' : '' }}>الدفع لاحقاً</option>
                                     <option value="other" {{ ($contract->info->payment_type ?? '') === 'other' ? 'selected' : '' }}>أخرى</option>
