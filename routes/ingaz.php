@@ -533,13 +533,22 @@ Route::group(
                 Route::get('contract_download_form/download/{contract_id}', [App\Http\Controllers\ingaz\ContractController::class, 'deliveryFormDownload'])->name('contract_download_form.download');
             });
 
-            // Ø·Ù„Ø¨Ø§Øª Ø§Ø³ØªØ±Ø¬Ø§Ø¹ Ø§Ù„Ø¹Ù‚ÙˆØ¯ - Ø§Ù„Ø¥Ø¯Ø§Ø±Ø©
+            // طلبات استرجاع العقود - الإدارة
             Route::prefix('contract-return-requests')->name('contract-return-requests.')->group(function () {
                 Route::get('/', [ContractReturnRequestController::class, 'index'])->name('index');
                 Route::get('/statistics', [ContractReturnRequestController::class, 'statistics'])->name('statistics');
                 Route::get('/{returnRequest}', [ContractReturnRequestController::class, 'show'])->name('show');
                 Route::post('/{returnRequest}/process', [ContractReturnRequestController::class, 'process'])->name('process');
             });
+
+            // طلبات تمديد العقود - الإدارة
+            Route::prefix('contract-extension-requests')->name('contract-extension-requests.')->group(function () {
+                Route::get('/', [\App\Http\Controllers\ingaz\ContractExtensionRequestController::class, 'index'])->name('index');
+                Route::get('/{extensionRequest}', [\App\Http\Controllers\ingaz\ContractExtensionRequestController::class, 'show'])->name('show');
+                Route::post('/{extensionRequest}/process', [\App\Http\Controllers\ingaz\ContractExtensionRequestController::class, 'process'])->name('process');
+            });
+            Route::post('RecruitmentContract/{contractId}/request-extension', [\App\Http\Controllers\ingaz\ContractExtensionRequestController::class, 'store'])
+                ->name('RecruitmentContract.requestExtension');
         });
     }
 );

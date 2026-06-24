@@ -2075,6 +2075,13 @@
                     <i class="fas fa-arrow-right"></i>
                 </a>
 
+                @if (@AdminGuardHasAnyPerm([\App\NewPermKeys::REC_CONTRACTS_EXTENSION_CREATE, \App\NewPermKeys::REC_CONTRACTS_EXTENSION_MANAGE, \App\NewPermKeys::REC_CONTRACTS_MANAGE]))
+                    <button type="button" class="btn-icon" style="background:linear-gradient(135deg,#0d6efd,#0a58ca);"
+                            onclick="openExtensionModal()" title="طلب تمديد العقد">
+                        <i class="fas fa-calendar-plus"></i>
+                    </button>
+                @endif
+
                 @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_DELETE))
                     <button type="button" class="btn-icon btn-delete" onclick="deleteContract({{ $contract->id }})"
                         title="حذف العقد">
@@ -2231,6 +2238,111 @@
                 </div>
             </div>
         </div>
+    @if (@AdminGuardHasAnyPerm([\App\NewPermKeys::REC_CONTRACTS_EXTENSION_CREATE, \App\NewPermKeys::REC_CONTRACTS_EXTENSION_MANAGE, \App\NewPermKeys::REC_CONTRACTS_MANAGE]))
+        {{-- مودال طلب تمديد العقد --}}
+        <div class="modal fade" id="extensionRequestModal" tabindex="-1" aria-labelledby="extensionRequestModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="extensionRequestModalLabel">
+                            <i class="fas fa-calendar-plus me-2 text-primary"></i>
+                            طلب تمديد العقد #{{ $contract->id }}
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        @php
+                            $currentDuration = $contract->info?->contract_duration ?? 2;
+                            $ingazTo = $contract->info?->ingaz_to;
+                            $pendingExtension = $contractExtensionRequests->firstWhere('status', 'pending');
+                        @endphp
+
+                        @if($pendingExtension)
+                            <div class="alert alert-warning">
+                                <i class="fas fa-clock me-1"></i>
+                                يوجد طلب تمديد قيد المعالجة (رقم #{{ $pendingExtension->id }}) — يرجى الانتظار حتى يتم البت فيه.
+                            </div>
+                        @else
+                            <div class="alert alert-info small">
+                                <strong>المدة الحالية:</strong> {{ $currentDuration }} {{ $currentDuration == 1 ? 'سنة' : 'سنوات' }}
+                                @if($ingazTo)
+                                    &nbsp;|&nbsp; <strong>تاريخ الانتهاء:</strong> {{ $ingazTo }}
+                                @endif
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">عدد سنوات التمديد <span class="text-danger">*</span></label>
+                                <input type="number" id="extensionYearsInput" class="form-control" min="1" max="10" value="1">
+                                <div class="form-text">الحد الأقصى 10 سنوات</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">سبب التمديد <small class="text-muted">(اختياري)</small></label>
+                                <textarea id="extensionReasonInput" class="form-control" rows="3" maxlength="1000"
+                                          placeholder="اذكر سبب طلب التمديد..."></textarea>
+                            </div>
+                        @endif
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                        @if(!$pendingExtension)
+                            <button type="button" id="submitExtensionBtn" class="btn btn-primary">
+                                <i class="fas fa-paper-plane me-1"></i> تقديم الطلب
+                            </button>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    @if(@AdminGuardHasAnyPerm([\App\NewPermKeys::REC_CONTRACTS_EXTENSION_VIEW, \App\NewPermKeys::REC_CONTRACTS_EXTENSION_MANAGE, \App\NewPermKeys::REC_CONTRACTS_MANAGE]) && $contractExtensionRequests->isNotEmpty())
+        {{-- قسم طلبات التمديد --}}
+        <div class="contract-activity-section mt-4" id="extensionRequestsSection">
+            <div class="info-card">
+                <h5 class="card-title">
+                    <i class="fas fa-calendar-plus text-primary"></i>
+                    طلبات تمديد العقد
+                </h5>
+                <div class="table-responsive">
+                    <table class="info-table">
+                        <thead>
+                            <tr>
+                                <th style="width:10%">#</th>
+                                <th style="width:15%">سنوات التمديد</th>
+                                <th style="width:30%">سبب التمديد</th>
+                                <th style="width:15%">مقدم الطلب</th>
+                                <th style="width:15%">تاريخ الطلب</th>
+                                <th style="width:15%">الحالة</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($contractExtensionRequests as $extReq)
+                                <tr>
+                                    <td>
+                                        <a href="{{ route('contract-extension-requests.show', $extReq->id) }}" class="text-decoration-none">#{{ $extReq->id }}</a>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info text-dark">
+                                            {{ $extReq->extension_years }} {{ $extReq->extension_years == 1 ? 'سنة' : 'سنوات' }}
+                                        </span>
+                                    </td>
+                                    <td class="text-muted small">{{ $extReq->reason ?: '—' }}</td>
+                                    <td>{{ $extReq->requestedBy?->name ?? '—' }}</td>
+                                    <td class="text-nowrap">{{ $extReq->created_at?->format('Y-m-d') }}</td>
+                                    <td>
+                                        {!! $extReq->status_badge !!}
+                                        @if($extReq->status !== 'pending' && $extReq->admin_notes)
+                                            <div class="small text-muted mt-1">{{ $extReq->admin_notes }}</div>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    @endif
+
     @else
         @include('components.no_permissions')
     @endif
@@ -2515,5 +2627,58 @@
             document.getElementById('maid_search').value = '';
             loadAvailableMaids(''); // إعادة تحميل جميع العاملات المتاحات
         }
+
+        // ===========================================================
+        // طلب تمديد العقد
+        // ===========================================================
+        function openExtensionModal() {
+            var modal = new bootstrap.Modal(document.getElementById('extensionRequestModal'));
+            modal.show();
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            var submitBtn = document.getElementById('submitExtensionBtn');
+            if (!submitBtn) return;
+
+            submitBtn.addEventListener('click', function () {
+                var years  = parseInt(document.getElementById('extensionYearsInput')?.value || '0', 10);
+                var reason = document.getElementById('extensionReasonInput')?.value || '';
+
+                if (!years || years < 1 || years > 10) {
+                    Swal.fire('خطأ', 'يرجى إدخال عدد سنوات صحيح بين 1 و 10', 'error');
+                    return;
+                }
+
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i>جاري الإرسال...';
+
+                fetch('{{ route('RecruitmentContract.requestExtension', $contract->id) }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({ extension_years: years, reason: reason }),
+                })
+                .then(function (r) { return r.json(); })
+                .then(function (res) {
+                    bootstrap.Modal.getInstance(document.getElementById('extensionRequestModal')).hide();
+                    if (res.success) {
+                        Swal.fire({ icon: 'success', title: 'تم بنجاح', text: res.message, confirmButtonText: 'حسناً' })
+                            .then(function () { location.reload(); });
+                    } else {
+                        Swal.fire('خطأ', res.message || 'حدث خطأ', 'error');
+                    }
+                })
+                .catch(function () {
+                    Swal.fire('خطأ', 'حدث خطأ أثناء تقديم الطلب', 'error');
+                })
+                .finally(function () {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-paper-plane me-1"></i> تقديم الطلب';
+                });
+            });
+        });
     </script>
 @endsection

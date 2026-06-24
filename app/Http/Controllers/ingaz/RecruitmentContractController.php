@@ -1716,6 +1716,11 @@ class RecruitmentContractController extends Controller
             ];
         });
 
+        $contractExtensionRequests = \App\Models\ContractExtensionRequest::with(['requestedBy', 'processedBy'])
+            ->where('contract_id', $contract->id)
+            ->orderByDesc('created_at')
+            ->get();
+
         return view('admin.ingaz.RecruitmentContract.details', compact(
             'contract',
             'info',
@@ -1724,7 +1729,8 @@ class RecruitmentContractController extends Controller
             'durationSummary',
             'contractAttachments',
             'contractDocuments',
-            'statusHistory'
+            'statusHistory',
+            'contractExtensionRequests'
         ));
     }
 

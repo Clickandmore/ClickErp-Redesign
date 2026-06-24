@@ -133,6 +133,11 @@ class NewPermKeys
     const REC_CONTRACTS_RETURN_VIEW = 'rec_contracts_return_view';
     const REC_CONTRACTS_RETURN_MANAGE = 'rec_contracts_return_manage';
 
+    // صلاحيات تمديد العقود
+    const REC_CONTRACTS_EXTENSION_CREATE  = 'rec_contracts_extension_create';
+    const REC_CONTRACTS_EXTENSION_VIEW    = 'rec_contracts_extension_view';
+    const REC_CONTRACTS_EXTENSION_MANAGE  = 'rec_contracts_extension_manage'; // يشمل القبول والرفض
+
     // صلاحيات الإدارة العامة
     const REC_CONTRACTS_MANAGE = 'rec_contracts_manage';
     const REC_CONTRACTS_REPORTS = 'rec_contracts_reports';
