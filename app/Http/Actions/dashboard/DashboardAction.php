@@ -64,7 +64,9 @@ class DashboardAction extends MainAction
 
     public function getTopCallCenter()
     {
-        return Admin::select('admins.id', 'admins.name', 'admins.sex_type')
+        return Admin::query()
+            ->activeForOperations()
+            ->select('admins.id', 'admins.name', 'admins.sex_type')
             ->selectRaw('COUNT(order_details.id) as order_count')
             ->join('order_details', 'admins.id', '=', 'order_details.admin_id')
             ->groupBy('admins.id', 'admins.name', 'admins.sex_type')
@@ -75,7 +77,10 @@ class DashboardAction extends MainAction
 
     public function callCenterCount()
     {
-        return Admin::where('admin_type', AdminTypes::CustomerService->value)->count();
+        return Admin::query()
+            ->activeForOperations()
+            ->where('admin_type', AdminTypes::CustomerService->value)
+            ->count();
     }
 
     public function cvCount()

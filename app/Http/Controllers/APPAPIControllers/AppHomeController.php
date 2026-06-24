@@ -81,7 +81,9 @@ class AppHomeController extends Controller
 
     public function customers()
     {
-        $customers = Admin::where('admin_type', AdminTypes::CustomerService->value)
+        $customers = Admin::query()
+            ->activeForOperations()
+            ->where('admin_type', AdminTypes::CustomerService->value)
             ->orderBy('id')
             ->get()
             ->map(function (Admin $customer) {

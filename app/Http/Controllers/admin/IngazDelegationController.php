@@ -410,7 +410,7 @@ class IngazDelegationController extends Controller
             'existingUsers' => User::query()
                 ->orderBy('name')
                 ->get(['id', 'name', 'phone_code', 'phone', 'national_num', 'address']),
-            'marketers' => Admin::query()->orderBy('name')->get(['id', 'name']),
+            'marketers' => Admin::query()->activeForOperations()->orderBy('name')->get(['id', 'name']),
             'visaTypeOptions' => $this->visaTypeOptions(),
             'religionOptions' => $this->religionOptions(),
             'experienceOptions' => $this->experienceOptions(),

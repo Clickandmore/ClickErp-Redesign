@@ -9,6 +9,7 @@ use App\Models\office\Office;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -27,6 +28,18 @@ class Admin extends Authenticatable
         'last_activity_at' => 'datetime',
     ];
 
+    public function scopeNotSuspended(Builder $query): Builder
+    {
+        return $query->where(function (Builder $query) {
+            $query->whereNull($this->getTable() . '.status')
+                ->orWhere($this->getTable() . '.status', '!=', 'suspended');
+        });
+    }
+
+    public function scopeActiveForOperations(Builder $query): Builder
+    {
+        return $query->notSuspended();
+    }
 
     public function role()
     {

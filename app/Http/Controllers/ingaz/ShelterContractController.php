@@ -7,6 +7,8 @@ use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\ShelterContactStore;
 use App\Models\Contract;
 use App\Models\ContractInfo;
+use App\Models\ingaz\Complaint;
+use App\Models\ingaz\ComplaintType;
 use App\Models\ingaz\JobType;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\Nationality;
@@ -890,15 +892,67 @@ class ShelterContractController extends Controller
     private function shelterSelectableContractsQuery()
     {
         return Contract::query()
-            ->where(function ($query) {
-                $query->whereNull('status')
-                    ->orWhereNotIn('status', [
-                        ContractStatusEnum::Shelter->value,
-                        ContractStatusEnum::Back->value,
-                    ]);
-            })
-            ->with(['maid.nationality.translations', 'info', 'user', 'travelHistory'])
+            ->whereIn('status', $this->shelterEligibleContractStatuses())
+            ->where($this->shelterArrivedContractConstraint())
+            ->with([
+                'maid.nationality.translations',
+                'info',
+                'user',
+                'travelHistory',
+                'complaints' => function ($query) {
+                    $query->whereNotIn('status', ['resolved', 'closed', 'rejected'])
+                        ->latest();
+                },
+            ])
             ->latest();
+    }
+
+    private function shelterEligibleContractStatuses(): array
+    {
+        return [
+            ContractStatusEnum::Completed->value,
+            ContractStatusEnum::UnderWarranty->value,
+            ContractStatusEnum::Closed->value,
+        ];
+    }
+
+    private function shelterArrivedContractConstraint(): \Closure
+    {
+        $today = now()->toDateString();
+
+        return function ($query) use ($today) {
+            $query->whereHas('info', function ($infoQuery) use ($today) {
+                $infoQuery->whereNotNull('arrival_date')
+                    ->whereDate('arrival_date', '<=', $today);
+            })
+                ->orWhereHas('maid', function ($maidQuery) use ($today) {
+                    $maidQuery->whereNotNull('arrival_date')
+                        ->whereDate('arrival_date', '<=', $today);
+                })
+                ->orWhereHas('travelHistory', function ($travelQuery) use ($today) {
+                    $travelQuery->whereNotNull('arrival_date')
+                        ->whereDate('arrival_date', '<=', $today);
+                });
+        };
+    }
+
+    private function contractCanBeAddedToShelter(Contract $contract): bool
+    {
+        if (!in_array($contract->status, $this->shelterEligibleContractStatuses(), true)) {
+            return false;
+        }
+
+        $arrivalDate = $this->resolveArrivalDate($contract);
+
+        return $arrivalDate && $arrivalDate->lte(now()->endOfDay());
+    }
+
+    private function formatShelterComplaintOption(Complaint $complaint): array
+    {
+        return [
+            'id' => $complaint->id,
+            'label' => '#' . str_pad((string) $complaint->id, 6, '0', STR_PAD_LEFT) . ' - ' . ($complaint->subject ?: 'بدون عنوان'),
+        ];
     }
 
     private function formatShelterSelectableContract(Contract $contract): array
@@ -953,6 +1007,9 @@ class ShelterContractController extends Controller
             'service_type' => optional($contract->info)->worker_service_type ?? '',
             'arrival_date' => $arrivalDate,
             'status' => $contract->status,
+            'shelter_complaints' => $contract->complaints
+                ? $contract->complaints->map(fn (Complaint $complaint) => $this->formatShelterComplaintOption($complaint))->values()
+                : [],
         ];
     }
 
@@ -980,8 +1037,9 @@ class ShelterContractController extends Controller
 
         $nationalities = $this->shelterContractNationalities();
         $quickTagSuggestions = $this->getQuickTagSuggestions();
+        $complaintTypes = ComplaintType::orderBy('name')->get();
 
-        return view($this->folderPath . '.create', compact('shelters', 'contracts', 'selectedContractId', 'nationalities', 'quickTagSuggestions'));
+        return view($this->folderPath . '.create', compact('shelters', 'contracts', 'selectedContractId', 'nationalities', 'quickTagSuggestions', 'complaintTypes'));
     }
 
     /**
@@ -1002,11 +1060,15 @@ class ShelterContractController extends Controller
                     ->orWhereHas('user', function ($userQuery) use ($searchTerm) {
                         $userQuery->where('name', 'like', '%' . $searchTerm . '%')
                             ->orWhere('national_num', 'like', '%' . $searchTerm . '%')
+                            ->orWhere('tax_number', 'like', '%' . $searchTerm . '%')
+                            ->orWhere('license_number', 'like', '%' . $searchTerm . '%')
                             ->orWhere('phone', 'like', '%' . $searchTerm . '%');
                     })
                     ->orWhereHas('maid', function ($maidQuery) use ($searchTerm) {
                         $maidQuery->where('name', 'like', '%' . $searchTerm . '%')
-                            ->orWhere('passport_num', 'like', '%' . $searchTerm . '%');
+                            ->orWhere('passport_num', 'like', '%' . $searchTerm . '%')
+                            ->orWhere('id_number', 'like', '%' . $searchTerm . '%')
+                            ->orWhere('border_number', 'like', '%' . $searchTerm . '%');
                     })
                     ->orWhereHas('info', function ($infoQuery) use ($searchTerm) {
                         $infoQuery->where('manual_maid_name', 'like', '%' . $searchTerm . '%')
@@ -1028,16 +1090,13 @@ class ShelterContractController extends Controller
 
     public function store(ShelterContactStore $request)
     {
-        $contract = Contract::with(['maid.nationality', 'user', 'info'])->find($request->contract_id);
+        $contract = Contract::with(['maid.nationality', 'user', 'info', 'travelHistory'])->find($request->contract_id);
 
         if (
             !$contract ||
-            in_array($contract->status, [
-                ContractStatusEnum::Shelter->value,
-                ContractStatusEnum::Back->value,
-            ], true)
+            !$this->contractCanBeAddedToShelter($contract)
         ) {
-            return jsonError('لا يمكن إضافة هذا العقد للإيواء.', 422);
+            return jsonError('لا يمكن إضافة هذا العقد للإيواء. يجب أن يكون العقد مكتملًا وأن تكون العاملة وصلت فعليًا.', 422);
         }
 
         $wantsToWork = $request->input('wants_to_work') ?: 'unknown';
@@ -1073,19 +1132,23 @@ class ShelterContractController extends Controller
             $infoPayload['shelter_quick_tags'] = $this->normalizeQuickTags($request->input('shelter_quick_tags'));
         }
 
-        if ($contract->info) {
-            $contract->info()->update($infoPayload);
-        } else {
-            $contract->info()->create(array_merge(['contract_id' => $contract->id], $infoPayload));
-        }
+        DB::transaction(function () use ($contract, $infoPayload, $request) {
+            if ($contract->info) {
+                $contract->info()->update($infoPayload);
+            } else {
+                $contract->info()->create(array_merge(['contract_id' => $contract->id], $infoPayload));
+            }
 
-        $contract->status = ContractStatusEnum::Shelter->value;
-        $contract->save();
+            $contract->status = ContractStatusEnum::Shelter->value;
+            $contract->save();
 
-        $contract->contract_status_logs()->create([
-            'contract_id' => $contract->id,
-            'status' => ContractStatusEnum::Shelter->value,
-        ]);
+            $contract->contract_status_logs()->create([
+                'contract_id' => $contract->id,
+                'status' => ContractStatusEnum::Shelter->value,
+            ]);
+
+            $this->syncShelterComplaint($contract, $request);
+        });
 
         // dd($contract->maid->id);
         // $maid = Maid::find($contract->maid->id);
@@ -1093,6 +1156,57 @@ class ShelterContractController extends Controller
         $this->syncMaidInstantDisplay($contract, $displayOnSite);
 
         return jsonSuccess(['success' => true], __('ingaz.shelter_contract_stored'), 200);
+    }
+
+    private function syncShelterComplaint(Contract $contract, ShelterContactStore $request): void
+    {
+        if (!Schema::hasColumn('complaints', 'contract_id')) {
+            return;
+        }
+
+        $action = $request->input('complaint_action', 'none');
+
+        if ($action === 'link' && $request->filled('shelter_complaint_id')) {
+            Complaint::whereKey($request->input('shelter_complaint_id'))->update([
+                'contract_id' => $contract->id,
+                'maid_passport' => $request->input('passport_number_snapshot') ?: optional($contract->maid)->passport_num,
+                'maid_nationality_id' => $request->input('maid_nationality_snapshot') ?: optional($contract->maid)->nationality_id,
+            ]);
+
+            return;
+        }
+
+        if ($action !== 'create') {
+            return;
+        }
+
+        $user = $contract->user;
+        if (!$user) {
+            return;
+        }
+
+        $details = trim((string) $request->input('shelter_complaint_details'));
+        if ($details === '') {
+            $details = trim((string) $request->input('back_reasons')) ?: 'تم إنشاء الشكوى تلقائياً من إدخال العاملة للإيواء.';
+        }
+        $complaintTypeId = $request->input('shelter_complaint_type_id')
+            ?: ComplaintType::query()->orderBy('id')->value('id');
+
+        Complaint::create([
+            'contract_id' => $contract->id,
+            'user_id' => $user->id,
+            'address' => 'إيواء العاملة',
+            'message' => mb_substr($details, 0, 1000),
+            'details' => $details,
+            'subject' => $request->input('shelter_complaint_subject') ?: 'شكوى مرتبطة بإدخال العاملة للإيواء',
+            'complaint_type_id' => $complaintTypeId,
+            'priority' => $request->input('shelter_complaint_priority', 'medium'),
+            'status' => 'pending',
+            'complainant_name' => $request->input('client_name_snapshot') ?: $user->name,
+            'complainant_phone' => ltrim((string) ($user->phone ?? ''), '0'),
+            'maid_passport' => $request->input('passport_number_snapshot') ?: optional($contract->maid)->passport_num,
+            'maid_nationality_id' => $request->input('maid_nationality_snapshot') ?: optional($contract->maid)->nationality_id,
+        ]);
     }
 
 

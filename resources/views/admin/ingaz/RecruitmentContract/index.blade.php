@@ -187,6 +187,50 @@
             margin: 0 8px 8px 0;
         }
 
+        .contracts-page-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 1.5rem;
+        }
+
+        .contracts-header-actions {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 8px;
+            max-width: 760px;
+        }
+
+        .contracts-header-actions .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            min-height: 38px;
+            white-space: nowrap;
+        }
+
+        .contracts-header-actions .btn i {
+            margin: 0 !important;
+        }
+
+        @media (max-width: 767.98px) {
+            .contracts-page-header {
+                flex-direction: column;
+            }
+
+            .contracts-header-actions {
+                width: 100%;
+                justify-content: flex-start;
+            }
+
+            .contracts-header-actions .btn {
+                flex: 1 1 calc(50% - 8px);
+                justify-content: center;
+            }
+        }
+
         #dataTableObject tbody tr.table-primary > td {
             background-color: rgba(13, 110, 253, 0.08) !important;
         }
@@ -292,23 +336,31 @@
         @endphp
 
         <!-- Header Section -->
-        <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <div class="contracts-page-header">
             <h3 class="h3 mb-0 text-gray-800">
                 <i class="fas fa-file-contract text-primary me-2"></i>
                 {{ helperTrans('ingaz.All Recruitment contracts') }}
             </h3>
-            <div class="d-flex flex-wrap gap-2">
-                <a href="{{ route('musaned-transfers.create') }}" class="btn btn-outline-info">
-                    <i class="fas fa-money-bill-transfer me-2"></i>
-                    تسجيل تحويل مساند
+            <div class="contracts-header-actions">
+                <a href="{{ route('RecruitmentContract.index') }}" class="btn btn-outline-dark">
+                    <i class="fas fa-list"></i>
+                    كل العقود
+                </a>
+                <a href="{{ route('RecruitmentContract.index', ['status' => 'current']) }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-layer-group"></i>
+                    العقود السارية
                 </a>
                 <a href="{{ route('RecruitmentContract.externalOfficeDispatch.index') }}" class="btn btn-outline-primary">
-                    <i class="fas fa-paper-plane me-2"></i>
+                    <i class="fas fa-paper-plane"></i>
                     إرسالات المكتب الخارجي
+                </a>
+                <a href="{{ route('musaned-transfers.create') }}" class="btn btn-outline-info">
+                    <i class="fas fa-money-bill-transfer"></i>
+                    تحويل مساند
                 </a>
                 @if (AdminGuardHasAnyPerm([\App\NewPermKeys::REC_CONTRACTS_CREATE, \App\NewPermKeys::REC_CONTRACTS_MANAGE]))
                     <a href="{{ route('RecruitmentContract.create') }}" class="btn btn-primary">
-                        <i class="fas fa-plus me-2"></i>
+                        <i class="fas fa-plus"></i>
                         {{ helperTrans('ingaz.add_recruitment_contract') }}
                     </a>
                 @endif
@@ -324,7 +376,7 @@
                             <i class="fas fa-chart-bar me-2"></i>
                             احصائيات مراحل العقود
                         </h6>
-                        <small class="text-muted">اضغط على الإحصائية لتصفية العقود</small>
+                        <small class="text-muted">الأرقام تتبع فلاتر البحث وتعرض توزيع النتائج على المراحل</small>
                     </div>
                     <div class="card-body">
                         <div id="currentStatsSection" @if (!$showCurrentStatsInitially) style="display: none;" @endif>
@@ -1276,6 +1328,7 @@
                     if (statusCard.length) {
                         statusCard.addClass('active');
                     }
+                    return;
                 }
             }
 
@@ -1500,8 +1553,8 @@
                 },
                 {
                     "data": "clirnt_data",
-                    orderable: true,
-                    searchable: true
+                    orderable: false,
+                    searchable: false
                 },
                 {
                     "data": "maid_id",
@@ -1521,34 +1574,34 @@
                 {
                     "data": "recruitment_office",
                     orderable: false,
-                    searchable: true
+                    searchable: false
                 },
                 {
                     "data": "marketer",
-                    orderable: true,
-                    searchable: true
+                    orderable: false,
+                    searchable: false
                 },
                 @if($branchesEnabled ?? false)
                 {
                     "data": "branch",
-                    orderable: true,
-                    searchable: true
+                    orderable: false,
+                    searchable: false
                 },
                 @endif
                 {
                     "data": "status",
-                    orderable: true,
-                    searchable: true
+                    orderable: false,
+                    searchable: false
                 },
                 {
                     "data": "updateStatus",
-                    orderable: true,
-                    searchable: true
+                    orderable: false,
+                    searchable: false
                 },
                 {
                     "data": "actions",
-                    orderable: true,
-                    searchable: true
+                    orderable: false,
+                    searchable: false
                 },
             ];
 
@@ -1564,9 +1617,9 @@
                 paging: true, // التأكد من تفعيل التصفح
                 pageLength: 10, // تقليل عدد الصفوف لتسريع التحميل
                 lengthMenu: [
-                    [10, 25, 50, 100, 500],
-                    [10, 25, 50, 100, 500]
-                ], // خيارات أقل
+                    [10, 25, 50, 100],
+                    [10, 25, 50, 100]
+                ], // خيارات عملية حتى لا يتأخر تحميل علاقات العقود
                 stateSave: false, // إيقاف حفظ الحالة لتسريع التحميل
                 deferRender: true, // تحسين الأداء للبيانات الكبيرة
                 scroller: false,
@@ -1574,7 +1627,7 @@
                 destroy: true, // السماح بإعادة التهيئة
                 ajax: {
                     url: "{{ route('RecruitmentContract.index') }}",
-                    timeout: 15000, // تقليل timeout إلى 15 ثانية
+                    timeout: 45000,
                     type: 'GET',
                     dataSrc: function(json) {
                         // معالجة البيانات قبل العرض
@@ -1610,6 +1663,9 @@
                     error: function(xhr, error, thrown) {
                         console.error('DataTables AJAX error:', error);
                         console.error('Response:', xhr.responseText);
+                        $('#loadingOverlay').hide();
+                        $('#dataTableObject').removeClass('loading');
+                        $('body').removeClass('loading');
 
                         // إظهار رسالة خطأ للمستخدم
                         $('#dataTableObject tbody').html(
@@ -1626,9 +1682,9 @@
                 ],
                 pageLength: 10, // تقليل عدد الصفوف لتسريع التحميل
                 lengthMenu: [
-                    [10, 25, 50, 100, 500],
-                    [10, 25, 50, 100, 500]
-                ], // خيارات أقل
+                    [10, 25, 50, 100],
+                    [10, 25, 50, 100]
+                ], // خيارات عملية حتى لا يتأخر تحميل علاقات العقود
                 stateSave: false, // إيقاف حفظ الحالة لتسريع التحميل
                 deferRender: true, // تحسين الأداء للبيانات الكبيرة
                 scroller: false,
@@ -1666,10 +1722,14 @@
                     $('#dataTableObject').addClass('loading');
                 },
                 drawCallback: function(settings) {
+                    const tableApi = this.api();
+
                     // تمكين التفاعل بعد التحميل
                     $('#dataTableObject').removeClass('loading');
                     syncSelectedRows();
                     closeRecruitmentActionsDropdown();
+                    handleEmptyTableNotice(tableApi);
+                    scheduleStatisticsUpdate();
 
                     // إعادة تهيئة tooltips إذا كانت موجودة
                     if (typeof $().tooltip === 'function') {
@@ -2000,18 +2060,18 @@
                 });
             });
 
-            // تحديث الإحصائيات عند تحميل البيانات
-            dataTable.on('xhr', function() {
-                updateStatistics();
-
-                // إظهار إشعار إذا لم توجد نتائج فقط عند البحث (وليس عند فلتر الحالة الأساسي)
-                var info = dataTable.page.info();
-                var hasSearchFilters = $('#globalSearchFilter').val() || $('#dateFromFilter').val() || $('#dateToFilter').val() ||
+            function hasActiveSearchFilters() {
+                return $('#globalSearchFilter').val() || $('#dateFromFilter').val() || $('#dateToFilter').val() ||
                     $('#clientPhoneFilter').val() || $('#clientNameFilter').val() ||
                     $('#maidPassportFilter').val() || $('#maidNameFilter').val() ||
                     $('#contractNumberFilter').val() || $('#nationalityFilter').val() ||
                     $('#religionFilter').val() || $('#officeFilter').val() || $('#requestTypeFilter').val() || $('#cityFilter').val() ||
                     $('#marketerFilter').val() || ($('#branchFilter').length ? $('#branchFilter').val() : '');
+            }
+
+            function handleEmptyTableNotice(tableApi) {
+                var info = tableApi.page.info();
+                var hasSearchFilters = hasActiveSearchFilters();
 
                 console.log('DataTable XHR completed:', {
                     recordsTotal: info.recordsTotal,
@@ -2053,11 +2113,26 @@
                         $('#dataTableObject tbody').html(message);
                     }
                 }
-            });
+            }
 
             // دالة تحديث الإحصائيات
+            let statisticsRequest = null;
+            let statisticsTimer = null;
+
+            function scheduleStatisticsUpdate() {
+                clearTimeout(statisticsTimer);
+
+                statisticsTimer = setTimeout(function() {
+                    updateStatistics();
+                }, 450);
+            }
+
             function updateStatistics() {
-                $.ajax({
+                if (statisticsRequest && statisticsRequest.readyState !== 4) {
+                    statisticsRequest.abort();
+                }
+
+                statisticsRequest = $.ajax({
                     url: '{{ route('RecruitmentContract.statistics') }}',
                     method: 'GET',
                     data: {
@@ -2092,6 +2167,10 @@
                         }
                     },
                     error: function(xhr) {
+                        if (xhr.statusText === 'abort') {
+                            return;
+                        }
+
                         console.error('Statistics error:', xhr.responseText);
                     }
                 });
@@ -2155,7 +2234,6 @@
             toggleWarrantyFilter();
             toggleStatsSections();
             syncStatSelection();
-            updateStatistics();
 
             // حفظ الفلاتر عند تغييرها (فقط إذا لم يكن هناك status في الـ URL)
             $('.form-control, .form-select').on('change', function() {

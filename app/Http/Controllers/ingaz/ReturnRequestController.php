@@ -96,8 +96,8 @@ class ReturnRequestController extends Controller
         $data['nationalities'] = \Cache::remember('return_requests_nationalities_list', 300, function () {
             return NationalityModel::with('translations')->get()->sortBy('title');
         });
-        $data['admins'] = \Cache::remember('return_requests_admins_list', 300, function () {
-            return \App\Models\auth\Admin::select('id', 'name')->whereNull('deleted_at')->get();
+        $data['admins'] = \Cache::remember('return_requests_admins_list.v2', 300, function () {
+            return \App\Models\auth\Admin::query()->activeForOperations()->select('id', 'name')->get();
         });
 
         $data['totalOrders'] = \Cache::remember('return_requests_total_count', 60, function () {

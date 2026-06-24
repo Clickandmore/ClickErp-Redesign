@@ -386,7 +386,6 @@
                             <th class="d-none d-md-table-cell">{{ helperTrans('ingaz.age') }}</th>
                             <th class="d-none d-lg-table-cell">{{ helperTrans('ingaz.maidContractRemaining') }}</th>
                             <th class="d-none d-lg-table-cell">{{ helperTrans('ingaz.is_show') }}</th>
-                            <th class="d-none d-lg-table-cell">{{ helperTrans('ingaz.pinned') }}</th>
                             <th>{{ helperTrans('ingaz.cv_status') }}</th>
                             <th class="d-none d-md-table-cell">{{ helperTrans('ingaz.created_at') }}</th>
                             <th>{{ helperTrans('ingaz.actions') }}</th>
@@ -573,7 +572,6 @@
                 { data: 'age', orderable: false, searchable: false, className: 'd-none d-md-table-cell' },
                 { data: 'maidContractRemaining', orderable: false, searchable: false, className: 'd-none d-lg-table-cell' },
                 { data: 'is_show', orderable: false, searchable: false, className: 'd-none d-lg-table-cell' },
-                { data: 'is_pinned', orderable: false, searchable: false, className: 'd-none d-lg-table-cell' },
                 { data: 'cv_status', orderable: false, searchable: false },
                 { data: 'created_at', orderable: false, searchable: false, className: 'd-none d-md-table-cell' },
                 { data: 'actions', orderable: false, searchable: false }

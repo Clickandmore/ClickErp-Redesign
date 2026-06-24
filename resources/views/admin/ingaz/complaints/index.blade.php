@@ -379,6 +379,7 @@
                                             <th width="80">{{ __('ingaz.ticket_number') }}</th>
                                             <th>{{ __('ingaz.complainant_name') }}</th>
                                             <th>{{ __('ingaz.subject') }}</th>
+                                            <th>عقد الإيواء</th>
                                             <th>{{ __('ingaz.type') }}</th>
                                             <th width="80">{{ __('ingaz.priority') }}</th>
                                             <th width="100">{{ __('ingaz.status') }}</th>
@@ -583,6 +584,16 @@
                         render: function (data) {
                             return data || '<span class="text-muted">' + complaintsTranslations.noSubject + '</span>';
                         },searchable: true
+                    },
+                    {
+                        data: 'contract',
+                        render: function (data) {
+                            if (!data) {
+                                return '<span class="text-muted">غير مرتبط</span>';
+                            }
+
+                            return '<a href="' + data.url + '" class="badge bg-secondary text-decoration-none">#' + data.id + '</a>';
+                        }, searchable: false
                     },
                     {
                         data: 'complaint_type',

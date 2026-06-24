@@ -101,6 +101,7 @@ class ActivityLogController extends Controller
     private function buildFilterOptions(): array
     {
         $employees = Admin::query()
+            ->activeForOperations()
             ->whereIn(
                 'id',
                 Activity::query()

@@ -727,11 +727,8 @@ class AdminTravelHistoryController extends Controller
     private function assignableStaffCollection(): Collection
     {
         return Admin::query()
+            ->activeForOperations()
             ->select('id', 'name', 'phone', 'admin_type', 'status')
-            ->where(function ($query) {
-                $query->whereNull('status')
-                    ->orWhere('status', '!=', 'suspended');
-            })
             ->orderBy('name')
             ->get();
     }

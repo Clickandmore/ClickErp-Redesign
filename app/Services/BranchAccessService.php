@@ -88,7 +88,17 @@ class BranchAccessService
         $branchId = $this->selectedBranchId($request, $admin);
 
         if ($branchId) {
-            $query->where($qualifiedColumn ?: "{$table}.branch_id", $branchId);
+            $column = $qualifiedColumn ?: "{$table}.branch_id";
+            $adminBranchId = $this->adminBranchId($admin);
+
+            if ($adminBranchId) {
+                $query->where(function ($branchQuery) use ($column, $branchId) {
+                    $branchQuery->where($column, $branchId)
+                        ->orWhereNull($column);
+                });
+            } else {
+                $query->where($column, $branchId);
+            }
         }
 
         return $query;

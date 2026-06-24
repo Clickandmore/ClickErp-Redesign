@@ -519,7 +519,7 @@ class RentContractController extends Controller
         $data['branches'] = $data['branchesEnabled']
             ? Branch::query()->active()->ordered()->get(['id', 'name_ar', 'name_en'])
             : collect();
-        $data['marketers'] = Admin::query()->whereNull('deleted_at')->orderBy('name')->get(['id', 'name']);
+        $data['marketers'] = Admin::query()->activeForOperations()->orderBy('name')->get(['id', 'name']);
         return view($this->folderPath . '.index', $data);
     }
 
@@ -583,7 +583,7 @@ class RentContractController extends Controller
             ->get();
 
         // الحصول على المسوقين النشطين
-        $marketers = Admin::whereNull('deleted_at')
+        $marketers = Admin::query()->activeForOperations()
                          ->orderBy('name')
                          ->get();
 
@@ -1087,7 +1087,7 @@ class RentContractController extends Controller
             ->ordered()
             ->get();
 
-        $marketers = Admin::whereNull('deleted_at')->orderBy('name')->get();
+        $marketers = Admin::query()->activeForOperations()->orderBy('name')->get();
         $nationalities = Nationality::with('translations')->get();
         $countries = Country::active()->ordered()->get();
         $paymentReceipts = $this->rentalPaymentReceiptItems($contract->info);

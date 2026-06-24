@@ -1201,6 +1201,7 @@ class MaidAction extends MainAction
 
         $maid = parent::find($id);
         $jobTypeIds = $this->resolveRequiredJobTypeIds($request, $maid);
+        $this->guardFinanciallyLinkedMaidIdentityChanges($maid, $data, $jobTypeIds);
 
         $requestTypeColumnExists = Schema::hasColumn('maids', 'request_type');
         $offerPriceColumnExists = Schema::hasColumn('maids', 'offer_price');
@@ -1437,6 +1438,103 @@ class MaidAction extends MainAction
 
         $this->syncHrMaidRecord($maid->fresh(['jobTypes', 'nationality', 'office']));
         return parent::find($id);
+    }
+
+    protected function guardFinanciallyLinkedMaidIdentityChanges(Maid $maid, array $data, array $newJobTypeIds): void
+    {
+        if (!$this->maidHasLockedFinancialContext($maid)) {
+            return;
+        }
+
+        $lockedFields = [];
+
+        if (
+            array_key_exists('nationality_id', $data)
+            && (int) $data['nationality_id'] !== (int) $maid->nationality_id
+        ) {
+            $lockedFields['nationality_id'] = 'لا يمكن تعديل جنسية العاملة بعد حجز السيرة أو وجود ارتباطات مالية.';
+        }
+
+        if (
+            array_key_exists('office_id', $data)
+            && $this->nullableInt($data['office_id']) !== $this->nullableInt($maid->office_id)
+        ) {
+            $lockedFields['office_id'] = 'لا يمكن تعديل المكتب الخارجي بعد حجز السيرة أو وجود ارتباطات مالية.';
+        }
+
+        $currentJobTypeIds = $maid->jobTypes()
+            ->pluck('job_types.id')
+            ->map(fn ($id) => (int) $id)
+            ->sort()
+            ->values()
+            ->all();
+        $submittedJobTypeIds = collect($newJobTypeIds)
+            ->map(fn ($id) => (int) $id)
+            ->sort()
+            ->values()
+            ->all();
+
+        if ($currentJobTypeIds !== $submittedJobTypeIds) {
+            $lockedFields['type_id'] = 'لا يمكن تعديل نوع السيرة بين استقدام وإيجار بعد حجز السيرة أو وجود ارتباطات مالية.';
+        }
+
+        if (
+            array_key_exists('request_type', $data)
+            && Maid::resolveRequestType($data['request_type']) !== Maid::resolveRequestType($maid->request_type)
+        ) {
+            $lockedFields['request_type'] = 'لا يمكن تعديل نوع طلب السيرة بعد حجز السيرة أو وجود ارتباطات مالية.';
+        }
+
+        if ($lockedFields === []) {
+            return;
+        }
+
+        throw ValidationException::withMessages($lockedFields);
+    }
+
+    protected function maidHasLockedFinancialContext(Maid $maid): bool
+    {
+        if (in_array($maid->status, ['reserved', 'contracted'], true) || !$maid->available) {
+            return true;
+        }
+
+        if (
+            $maid->orders()->whereIn('status', $this->activeOrderStatuses())->exists()
+            || $maid->contracts()->whereIn('status', $this->recruitmentContractStatuses())->exists()
+            || $maid->rentalContracts()->whereIn('status', $this->rentalActiveContractStatuses())->exists()
+        ) {
+            return true;
+        }
+
+        return $maid->rentalFinancialAdjustments()->exists();
+    }
+
+    protected function activeOrderStatuses(): array
+    {
+        return ['new', 'under_process', 'contracted', 'contracted_without_contract'];
+    }
+
+    protected function recruitmentContractStatuses(): array
+    {
+        return [
+            ContractStatusEnum::PendingMaidSelection->value,
+            ContractStatusEnum::New->value,
+            ContractStatusEnum::Msaned->value,
+            ContractStatusEnum::Tafwed->value,
+            ContractStatusEnum::Taffez->value,
+            ContractStatusEnum::Tazker->value,
+            ContractStatusEnum::Arrival->value,
+        ];
+    }
+
+    protected function rentalActiveContractStatuses(): array
+    {
+        return ['new', 'waiting_contract_send', 'contract_sent', 'contract_signed', 'maid_delivered', 'active', 'transferred', 'suspended', 'frozen'];
+    }
+
+    protected function nullableInt($value): ?int
+    {
+        return $value === null || $value === '' ? null : (int) $value;
     }
 
     private function syncLegacyMaidLanguageTranslations(Maid $maid, array $languages): void

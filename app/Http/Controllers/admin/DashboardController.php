@@ -857,6 +857,7 @@ class DashboardController extends Controller
 
         $employeeBookingCache = Cache::remember('admin_dashboard.employee_bookings.v3.' . $dashboardBranchCacheSuffix, now()->addMinutes(5), function () use ($orderStatsByEmployee, $contractStatsByEmployee, $employeeAnalyticsAdminTypes, $activeDashboardBranchId) {
             $employeeBookings = Admin::query()
+                ->activeForOperations()
                 ->whereIn('admins.admin_type', $employeeAnalyticsAdminTypes)
                 ->when($activeDashboardBranchId, function ($query) use ($activeDashboardBranchId) {
                     $query->where('admins.branch_id', $activeDashboardBranchId);
@@ -916,6 +917,7 @@ class DashboardController extends Controller
         // الموظفون
         try {
             $employeeStatsBaseQuery = Admin::query()
+                ->activeForOperations()
                 ->whereIn('admin_type', $employeeAnalyticsAdminTypes);
             if ($activeDashboardBranchId && $this->tableHasBranchColumn('admins')) {
                 $employeeStatsBaseQuery->where('branch_id', $activeDashboardBranchId);

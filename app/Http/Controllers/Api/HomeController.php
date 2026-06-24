@@ -240,7 +240,10 @@ class HomeController extends Controller
     }
     public function allStaff(Request $request)
     {
-        $staffs = Admin::where('admin_type', AdminTypes::CustomerService->value)->get();
+        $staffs = Admin::query()
+            ->activeForOperations()
+            ->where('admin_type', AdminTypes::CustomerService->value)
+            ->get();
         $users = $staffs->mapWithKeys(function ($staff) {
             $phone = !empty($staff->whatsapp) ? $staff->whatsapp : $staff->phone;
             return [$staff->name => $phone];
@@ -340,7 +343,11 @@ class HomeController extends Controller
 
         $counts['clients'] = DB::table('users')->count();
 
-        $customerService = Admin::where('admin_type', AdminTypes::CustomerService->value)->select('id', 'name', 'phone', 'whatsapp')->get();
+        $customerService = Admin::query()
+            ->activeForOperations()
+            ->where('admin_type', AdminTypes::CustomerService->value)
+            ->select('id', 'name', 'phone', 'whatsapp')
+            ->get();
 
         $data = [
             'sliders' => $sliders,

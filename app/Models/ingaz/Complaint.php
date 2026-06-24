@@ -4,6 +4,7 @@ namespace App\Models\ingaz;
 
 use App\Models\AdminNotification;
 use App\Models\Concerns\AssignsBranch;
+use App\Models\Contract;
 use App\Models\ingaz\User;
 use App\Models\auth\Admin;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -75,6 +76,11 @@ class Complaint extends Model
     public function assignedTo()
     {
         return $this->belongsTo(Admin::class, 'assigned_to');
+    }
+
+    public function contract()
+    {
+        return $this->belongsTo(Contract::class, 'contract_id');
     }
     
     public function resolvedBy()

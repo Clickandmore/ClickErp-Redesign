@@ -63,8 +63,8 @@
                 <div class="col-4">
                     <label for="TextInput" class="form-label">{{ helperTrans('ingaz.contracts') }}</label>
                     <div class="input-group mb-2">
-                        <input type="number" id="contract_number_search" class="form-control"
-                            placeholder="اكتب رقم العقد" value="{{ $selectedContractId ?: '' }}">
+                        <input type="text" id="contract_number_search" class="form-control"
+                            placeholder="ابحث برقم العقد، العميل، العاملة، الهوية، الجواز أو رقم مساند" value="{{ $selectedContractId ?: '' }}">
                         <button type="button" id="search_contract_number_btn" class="btn btn-primary">
                             بحث
                         </button>
@@ -98,6 +98,14 @@
                                 } elseif ($contract->status === \App\Enums\ingaz\ContractStatusEnum::Closed->value) {
                                     $warrantyStatus = ' (مكتمل)';
                                 }
+                                $shelterComplaintOptions = ($contract->complaints ?? collect())
+                                    ->map(function ($complaint) {
+                                        return [
+                                            'id' => $complaint->id,
+                                            'label' => '#' . str_pad((string) $complaint->id, 6, '0', STR_PAD_LEFT) . ' - ' . ($complaint->subject ?: 'بدون عنوان'),
+                                        ];
+                                    })
+                                    ->values();
                             @endphp
                             <option value="{{ $contract->id }}"
                                 data-passport="{{ $passportNumber }}"
@@ -114,6 +122,7 @@
                                 data-medical-exam="{{ optional($contract->info)->performing_medical_examination }}"
                                 data-service-type="{{ optional($contract->info)->worker_service_type }}"
                                 data-arrival-date="{{ $arrivalDate }}"
+                                data-shelter-complaints='@json($shelterComplaintOptions)'
                                 data-status="{{ $contract->status }}"
                                 {{ $selectedContractId == $contract->id ? 'selected' : '' }}>
                                 {{ $contract->desc }}{{ $warrantyStatus }}
@@ -290,6 +299,78 @@
                     </datalist>
                     <small class="form-text text-muted">افصل بين التصنيفات بفاصلة عربية أو إنجليزية. هذه التصنيفات ستظهر في الإحصائيات والفلاتر السريعة بصفحة الإيواء.</small>
                 </div>
+
+                @if (!$isEditMode)
+                    <div class="col-12 mt-4">
+                        <div class="card border-secondary">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0">ربط الإيواء بشكوى</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-12">
+                                        <label class="form-label d-block">الإجراء</label>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="complaint_action" id="complaint_action_none" value="none" {{ old('complaint_action', 'none') === 'none' ? 'checked' : '' }}>
+                                            <label class="form-check-label" for="complaint_action_none">بدون شكوى</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="complaint_action" id="complaint_action_link" value="link" {{ old('complaint_action') === 'link' ? 'checked' : '' }}>
+                                            <label class="form-check-label" for="complaint_action_link">ربط بشكوى موجودة</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" name="complaint_action" id="complaint_action_create" value="create" {{ old('complaint_action') === 'create' ? 'checked' : '' }}>
+                                            <label class="form-check-label" for="complaint_action_create">إنشاء شكوى جديدة</label>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12" id="link_complaint_wrapper" style="display:none;">
+                                        <label class="form-label" for="shelter_complaint_id">الشكاوى المقترحة</label>
+                                        <select name="shelter_complaint_id" id="shelter_complaint_id" class="form-select">
+                                            <option value="">اختر شكوى</option>
+                                        </select>
+                                        <small class="form-text text-muted" id="shelter_complaint_hint">اختر العقد أولاً لعرض الشكاوى المرتبطة به.</small>
+                                    </div>
+
+                                    <div class="col-12" id="create_complaint_wrapper" style="display:none;">
+                                        <div class="row g-3">
+                                            <div class="col-md-4">
+                                                <label class="form-label" for="shelter_complaint_type_id">نوع الشكوى</label>
+                                                <select name="shelter_complaint_type_id" id="shelter_complaint_type_id" class="form-select">
+                                                    <option value="">اختر نوع الشكوى</option>
+                                                    @foreach ($complaintTypes ?? [] as $type)
+                                                        <option value="{{ $type->id }}" {{ (string) old('shelter_complaint_type_id') === (string) $type->id ? 'selected' : '' }}>
+                                                            {{ $type->name }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label" for="shelter_complaint_priority">الأولوية</label>
+                                                <select name="shelter_complaint_priority" id="shelter_complaint_priority" class="form-select">
+                                                    <option value="low" {{ old('shelter_complaint_priority') === 'low' ? 'selected' : '' }}>منخفضة</option>
+                                                    <option value="medium" {{ old('shelter_complaint_priority', 'medium') === 'medium' ? 'selected' : '' }}>متوسطة</option>
+                                                    <option value="high" {{ old('shelter_complaint_priority') === 'high' ? 'selected' : '' }}>عالية</option>
+                                                    <option value="urgent" {{ old('shelter_complaint_priority') === 'urgent' ? 'selected' : '' }}>عاجلة</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label" for="shelter_complaint_subject">موضوع الشكوى</label>
+                                                <input type="text" name="shelter_complaint_subject" id="shelter_complaint_subject" class="form-control"
+                                                    value="{{ old('shelter_complaint_subject', 'شكوى مرتبطة بإدخال العاملة للإيواء') }}">
+                                            </div>
+                                            <div class="col-12">
+                                                <label class="form-label" for="shelter_complaint_details">تفاصيل الشكوى</label>
+                                                <textarea name="shelter_complaint_details" id="shelter_complaint_details" class="form-control" rows="3"
+                                                    placeholder="اتركها فارغة لاستخدام أسباب الإرجاع كتفاصيل للشكوى">{{ old('shelter_complaint_details') }}</textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endif
 
                 <div class="col-12 mt-4">
                     <div class="card border-secondary">
@@ -673,8 +754,56 @@
                     'data-medical-exam': contract.medical_exam || '',
                     'data-service-type': contract.service_type || '',
                     'data-arrival-date': contract.arrival_date || '',
+                    'data-shelter-complaints': JSON.stringify(contract.shelter_complaints || []),
                     'data-status': contract.status || ''
                 });
+            }
+
+            function selectedContractComplaints() {
+                let selectedOption = $('#contract_id').find('option:selected');
+                let complaints = selectedOption.data('shelterComplaints');
+
+                if (typeof complaints === 'string') {
+                    try {
+                        complaints = JSON.parse(complaints);
+                    } catch (e) {
+                        complaints = [];
+                    }
+                }
+
+                return Array.isArray(complaints) ? complaints : [];
+            }
+
+            function updateShelterComplaintOptions() {
+                let complaints = selectedContractComplaints();
+                let selectedOldValue = @json(old('shelter_complaint_id'));
+                let $select = $('#shelter_complaint_id');
+
+                if (!$select.length) {
+                    return;
+                }
+
+                $select.empty().append('<option value="">اختر شكوى</option>');
+
+                complaints.forEach(function(complaint) {
+                    $('<option>')
+                        .val(complaint.id)
+                        .text(complaint.label)
+                        .prop('selected', String(complaint.id) === String(selectedOldValue))
+                        .appendTo($select);
+                });
+
+                $('#shelter_complaint_hint').text(
+                    complaints.length
+                        ? 'تم العثور على شكاوى مفتوحة مرتبطة بهذا العقد.'
+                        : 'لا توجد شكاوى مفتوحة مرتبطة بهذا العقد. يمكنك إنشاء شكوى جديدة.'
+                );
+            }
+
+            function toggleShelterComplaintFields() {
+                let action = $('input[name="complaint_action"]:checked').val() || 'none';
+                $('#link_complaint_wrapper').toggle(action === 'link');
+                $('#create_complaint_wrapper').toggle(action === 'create');
             }
 
             function initContractSelect() {
@@ -695,7 +824,7 @@
                 $('#selected_contract_preview')
                     .removeClass('text-success text-danger')
                     .addClass('text-muted')
-                    .text('اكتب رقم العقد ثم اضغط بحث.');
+                    .text('ابحث برقم العقد، العميل، العاملة، الهوية، الجواز أو رقم مساند.');
             }
 
             function searchContractByNumber(contractNumber, silent) {
@@ -706,7 +835,7 @@
                     $('#contract_search_feedback')
                         .removeClass('text-success')
                         .addClass('text-danger')
-                        .text('يرجى كتابة رقم العقد أولاً.');
+                        .text('يرجى كتابة كلمة البحث أولاً.');
                     return;
                 }
 
@@ -714,7 +843,7 @@
                     url: "{{ route('search.contracts.by.passport') }}",
                     type: 'GET',
                     data: {
-                        contract_number: contractNumber
+                        search: contractNumber
                     },
                     beforeSend: function() {
                         $('#search_contract_number_btn').prop('disabled', true).text('جاري البحث...');
@@ -728,7 +857,7 @@
                             $('#contract_search_feedback')
                                 .removeClass('text-success')
                                 .addClass('text-danger')
-                                .text('لم يتم العثور على عقد بهذا الرقم أو أن العقد غير قابل للإضافة للإيواء.');
+                                .text('لم يتم العثور على عقد مؤهل للإيواء. يجب أن يكون مكتملًا وتاريخ الوصول مسجلًا وغير مستقبلي.');
                             return;
                         }
 
@@ -801,9 +930,21 @@
                 $select.append('<option disabled selected>{{ helperTrans('ingaz.choose') }}</option>');
                 selectedShelterContractId = null;
                 initContractSelect();
+                updateShelterComplaintOptions();
             }
 
             initContractSelect();
+            updateShelterComplaintOptions();
+            toggleShelterComplaintFields();
+
+            $('#contract_id').on('change', function() {
+                updateShelterComplaintOptions();
+            });
+
+            $('input[name="complaint_action"]').on('change', function() {
+                toggleShelterComplaintFields();
+            });
+
             if (selectedShelterContractId) {
                 searchContractByNumber(selectedShelterContractId, true);
             }

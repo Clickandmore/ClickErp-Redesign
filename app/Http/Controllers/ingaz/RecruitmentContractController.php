@@ -536,16 +536,19 @@ class RecruitmentContractController extends Controller
                 'user.nationality', // جنسية العميل (Country model)
                 'maid', // جميع بيانات العاملة
                 'travelHistory',
+                'marketer',
                 'externalOfficeDispatch',
                 'maid.nationality.translations', // جنسية العاملة مع الترجمات
                 'maid.religion.translations', // ديانة العاملة مع الترجمات
                 'maid.office.translations', // المكتب الخارجي مع الترجمات
                 'requiredMaidNationality.translations', // الجنسية المفضلة للعاملة
+                'requiredMaidReligion.translations',
+                'requiredMaidJobTitle.translations',
                 'info', // جميع بيانات العقد
                 'info.manualMaidNationality.translations',
                 'info.manualMaidOffice.translations',
                 'info.shelter.translations', // بيانات الإيواء
-                'contract_status_logs', // سجل حالات العقد (مطلوب لبعض العمليات)
+                'latestContractStatusLog', // آخر تحديث للحالة بدون تحميل كامل السجل
                 'invoice.musanedTransferItem.transfer',
                 'recruitmentRefund',
                 'order', // بيانات الطلب
@@ -755,20 +758,12 @@ class RecruitmentContractController extends Controller
                             // إذا كان تاريخ انتهاء الضمان في المستقبل (ضمان نشط)
                             if ($endDate->isFuture()) {
                                 $remainingDays = $now->diffInDays($endDate);
-                                // تحديث حالة الضمان إذا كانت غير صحيحة
-                                if ($warrantyStatus !== 'active') {
-                                    $row->update(['warranty_status' => 'active']);
-                                    $warrantyStatus = 'active';
-                                }
+                                $warrantyStatus = 'active';
                             }
                             // إذا كان تاريخ انتهاء الضمان في الماضي (ضمان منتهي)
                             else {
                                 $remainingDays = 0;
-                                // تحديث حالة الضمان إذا كانت غير صحيحة
-                                if ($warrantyStatus !== 'expired') {
-                                    $row->update(['warranty_status' => 'expired']);
-                                    $warrantyStatus = 'expired';
-                                }
+                                $warrantyStatus = 'expired';
                             }
                         }
 
@@ -1134,14 +1129,11 @@ class RecruitmentContractController extends Controller
                     $marketerInfo = '';
 
                     // البحث عن المسوق من marketer_id المباشر
-                    if ($row->marketer_id) {
-                        $marketer = \App\Models\auth\Admin::find($row->marketer_id);
-                        if ($marketer) {
-                            $marketerInfo = '<div class="marketer-info text-nowrap text-secondary">';
-                            $marketerInfo .= '<i class="fas fa-user-tie me-1 text-secondary"></i>';
-                            $marketerInfo .= '<span>' . htmlspecialchars($marketer->name) . '</span>';
-                            $marketerInfo .= '</div>';
-                        }
+                    if ($row->marketer) {
+                        $marketerInfo = '<div class="marketer-info text-nowrap text-secondary">';
+                        $marketerInfo .= '<i class="fas fa-user-tie me-1 text-secondary"></i>';
+                        $marketerInfo .= '<span>' . htmlspecialchars($row->marketer->name) . '</span>';
+                        $marketerInfo .= '</div>';
                     }
 
                     // إذا لم يوجد marketer_id، البحث في order.details.admin
@@ -1179,7 +1171,7 @@ class RecruitmentContractController extends Controller
                         $hasCompleteTravelPermission = @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_COMPLETE_TRAVEL);
 
                         // check if there is a travel history for this contract
-                        $travelHistory = TravelHistory::where('order_id', $row->id)->first();
+                        $travelHistory = $row->travelHistory;
 
                         if ($travelHistory) {
                             if ($row->status === ContractStatusEnum::Taffez->value) {
@@ -1268,7 +1260,7 @@ class RecruitmentContractController extends Controller
                                 break;
                             case ContractStatusEnum::Arrival->value:
                                 // إضافة زر إكمال الرحلة إذا كان العقد لديه رحلة
-                                $travelHistory = TravelHistory::where('order_id', $row->id)->first();
+                                $travelHistory = $row->travelHistory;
                                 if ($travelHistory && $travelHistory->status !== 'completed' && @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_COMPLETE_TRAVEL)) {
                                     return '<button class="btn btn-success btn-sm complete-trip-btn btn-action" data-trip-id="' . $travelHistory->id . '" title="إكمال الرحلة">
                                         <i class="fas fa-check me-1"></i>إكمال الرحلة
@@ -1285,7 +1277,7 @@ class RecruitmentContractController extends Controller
                                 return '<span class="text-muted">يُستكمل تلقائياً بعد انتهاء الضمان</span>';
                             case ContractStatusEnum::Sari->value:
                                 // إضافة زر إكمال الرحلة إذا كان العقد لديه رحلة
-                                $travelHistory = TravelHistory::where('order_id', $row->id)->first();
+                                $travelHistory = $row->travelHistory;
                                 if ($travelHistory && $travelHistory->status !== 'completed' && @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_COMPLETE_TRAVEL)) {
                                     return '<button class="btn btn-success btn-sm complete-trip-btn btn-action" data-trip-id="' . $travelHistory->id . '" title="إكمال الرحلة">
                                         <i class="fas fa-check me-1"></i>إكمال الرحلة
@@ -1294,7 +1286,7 @@ class RecruitmentContractController extends Controller
                                 break;
                             case ContractStatusEnum::Shelter->value:
                                 // إضافة زر إكمال الرحلة إذا كان العقد لديه رحلة
-                                $travelHistory = TravelHistory::where('order_id', $row->id)->first();
+                                $travelHistory = $row->travelHistory;
                                 if ($travelHistory && $travelHistory->status !== 'completed' && @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_COMPLETE_TRAVEL)) {
                                     return '<button class="btn btn-success btn-sm complete-trip-btn btn-action" data-trip-id="' . $travelHistory->id . '" title="إكمال الرحلة">
                                         <i class="fas fa-check me-1"></i>إكمال الرحلة
@@ -1303,7 +1295,7 @@ class RecruitmentContractController extends Controller
                                 break;
                             case ContractStatusEnum::UnderWarranty->value:
                                 // إضافة زر إكمال الرحلة إذا كان العقد لديه رحلة
-                                $travelHistory = TravelHistory::where('order_id', $row->id)->first();
+                                $travelHistory = $row->travelHistory;
                                 if ($travelHistory && $travelHistory->status !== 'completed' && @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_COMPLETE_TRAVEL)) {
                                     return '<button class="btn btn-success btn-sm complete-trip-btn btn-action" data-trip-id="' . $travelHistory->id . '" title="إكمال الرحلة">
                                         <i class="fas fa-check me-1"></i>إكمال الرحلة
@@ -1312,7 +1304,7 @@ class RecruitmentContractController extends Controller
                                 break;
                             case ContractStatusEnum::Closed->value:
                                 // إضافة زر إكمال الرحلة إذا كان العقد لديه رحلة
-                                $travelHistory = TravelHistory::where('order_id', $row->id)->first();
+                                $travelHistory = $row->travelHistory;
                                 if ($travelHistory && $travelHistory->status !== 'completed' && @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_COMPLETE_TRAVEL)) {
                                     return '<button class="btn btn-success btn-sm complete-trip-btn btn-action" data-trip-id="' . $travelHistory->id . '" title="إكمال الرحلة">
                                         <i class="fas fa-check me-1"></i>إكمال الرحلة
@@ -1322,7 +1314,7 @@ class RecruitmentContractController extends Controller
                             case ContractStatusEnum::Completed->value:
                                 // إضافة زر إكمال الرحلة إذا كان العقد لديه رحلة
                                 $availableStatuses = $this->getCompletedContractStatusChangeOptions();
-                                $travelHistory = TravelHistory::where('order_id', $row->id)->first();
+                                $travelHistory = $row->travelHistory;
                                 if ($travelHistory && $travelHistory->status !== 'completed' && @AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_COMPLETE_TRAVEL)) {
                                     return '<button class="btn btn-success btn-sm complete-trip-btn btn-action" data-trip-id="' . $travelHistory->id . '" title="إكمال الرحلة">
                                         <i class="fas fa-check me-1"></i>إكمال الرحلة
@@ -1467,7 +1459,7 @@ class RecruitmentContractController extends Controller
                     }
 
                     // زر إكمال الرحلة - يظهر للعقود في مرحلة التذاكر التي لديها رحلة فعلية
-                    $travelHistory = TravelHistory::where('order_id', $row->id)->first();
+                    $travelHistory = $row->travelHistory;
                     if ($travelHistory) {
                         $travelManagementActions = $this->buildTravelManagementActions($travelHistory, 'dropdown');
                         if ($travelManagementActions !== '') {
@@ -2445,6 +2437,7 @@ class RecruitmentContractController extends Controller
         $canSelectAnyMarketer = $this->canSelectAnyMarketer($currentUser);
         $marketers = $canSelectAnyMarketer
             ? \App\Models\auth\Admin::query()
+                ->activeForOperations()
                 ->orderByRaw('CASE WHEN id = ? THEN 0 ELSE 1 END', [$currentUser?->id ?? 0])
                 ->orderBy('name')
                 ->get(['id', 'name'])
@@ -2520,6 +2513,13 @@ class RecruitmentContractController extends Controller
         $marketerId = $canSelectAnyMarketer
             ? (int) $request->input('marketer_id', $currentAdmin->id)
             : (int) $currentAdmin->id;
+
+        if (!\App\Models\auth\Admin::query()->activeForOperations()->whereKey($marketerId)->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'لا يمكن اختيار موظف حالته معلق كمسؤول عن العقد'
+            ], 422);
+        }
 
         // logger()->info('Recruitment Contract Creation Request:', $request->all());
         // logger()->info('Request validation:', [
@@ -3138,6 +3138,7 @@ class RecruitmentContractController extends Controller
         $canSelectAnyMarketer = $this->canSelectAnyMarketer($currentAdmin);
         $marketers = $canSelectAnyMarketer
             ? \App\Models\auth\Admin::query()
+                ->activeForOperations()
                 ->orderByRaw('CASE WHEN id = ? THEN 0 ELSE 1 END', [$currentAdmin?->id ?? 0])
                 ->orderBy('name')
                 ->get()
@@ -3182,7 +3183,7 @@ class RecruitmentContractController extends Controller
         $canSelectAnyMarketer = $this->canSelectAnyMarketer($currentAdmin);
         $defaultClientNationalityId = Country::query()->where('code', 'SA')->value('id');
         $resolvedMarketerId = $contract->marketer_id ?: $contract->order?->resolveResponsibleAdminId();
-        $fallbackMarketerId = $resolvedMarketerId && \App\Models\auth\Admin::query()->whereKey($resolvedMarketerId)->exists()
+        $fallbackMarketerId = $resolvedMarketerId && \App\Models\auth\Admin::query()->activeForOperations()->whereKey($resolvedMarketerId)->exists()
             ? $resolvedMarketerId
             : $currentAdmin->id;
         $allowedMarketerIds = array_values(array_unique(array_filter([
@@ -3197,7 +3198,15 @@ class RecruitmentContractController extends Controller
         ]);
 
         $hasClient = (bool) $contract->user;
-        $marketerRules = ['required', 'exists:admins,id'];
+        $marketerRules = [
+            'required',
+            Rule::exists('admins', 'id')->where(function ($query) {
+                $query->where(function ($statusQuery) {
+                    $statusQuery->whereNull('status')
+                        ->orWhere('status', '!=', 'suspended');
+                });
+            }),
+        ];
         if (!$canSelectAnyMarketer) {
             $marketerRules[] = Rule::in($allowedMarketerIds);
         }
@@ -4435,7 +4444,7 @@ class RecruitmentContractController extends Controller
         }
 
         // استخدام cache لتسريع التحميل
-        return \Cache::remember('recruitment_contract_filter_options', 300, function () { // 5 دقائق
+        return \Cache::remember('recruitment_contract_filter_options.v2', 300, function () { // 5 دقائق
             // جلب الجنسيات مع الترجمات وتحويلها للشكل المطلوب
             $nationalities = \App\Models\ingaz\Nationality::with('translations')->get()->map(function ($nationality) {
                 $translation = $nationality->translations->where('locale', app()->getLocale())->first();
@@ -4476,7 +4485,7 @@ class RecruitmentContractController extends Controller
                 'nationalities' => $nationalities,
                 'religions' => $religions,
                 'offices' => $offices,
-                'marketers' => \App\Models\auth\Admin::select('id', 'name')->orderBy('name')->get(),
+                'marketers' => \App\Models\auth\Admin::query()->activeForOperations()->select('id', 'name')->orderBy('name')->get(),
             ];
         });
     }
@@ -4722,31 +4731,67 @@ class RecruitmentContractController extends Controller
             ];
             $completedStageStatuses = $this->getCompletedStageStatuses();
 
+            $aggregateBindings = array_merge(
+                $currentStatuses,
+                $completedStageStatuses,
+                [
+                    ContractStatusEnum::Back->value,
+                    ContractStatusEnum::PendingMaidSelection->value,
+                    ContractStatusEnum::New->value,
+                    ContractStatusEnum::Msaned->value,
+                    ContractStatusEnum::Tafwed->value,
+                    ContractStatusEnum::Taffez->value,
+                    ContractStatusEnum::Tazker->value,
+                    ContractStatusEnum::Arrival->value,
+                    ContractStatusEnum::Completed->value,
+                    ContractStatusEnum::Arrival->value,
+                    $today,
+                    ContractStatusEnum::Completed->value,
+                    $today,
+                    ContractStatusEnum::Completed->value,
+                ]
+            );
+
+            $aggregate = (clone $baseQuery)
+                ->selectRaw(
+                    '
+                    COUNT(*) as total,
+                    SUM(CASE WHEN status IN (' . implode(',', array_fill(0, count($currentStatuses), '?')) . ') THEN 1 ELSE 0 END) as current_total,
+                    SUM(CASE WHEN status IN (' . implode(',', array_fill(0, count($completedStageStatuses), '?')) . ') THEN 1 ELSE 0 END) as completed_total,
+                    SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as stage_back,
+                    SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as stage_pending_maid_selection,
+                    SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as stage_new,
+                    SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as stage_msaned,
+                    SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as stage_tafwed,
+                    SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as stage_taffez,
+                    SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as stage_tazker,
+                    SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as stage_arrival,
+                    SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as stage_completed,
+                    SUM(CASE WHEN status = ? AND warranty_end_date IS NOT NULL AND DATE(warranty_end_date) >= ? THEN 1 ELSE 0 END) as warranty_active,
+                    SUM(CASE WHEN status = ? AND warranty_end_date IS NOT NULL AND DATE(warranty_end_date) < ? THEN 1 ELSE 0 END) as warranty_expired,
+                    SUM(CASE WHEN status = ? AND warranty_end_date IS NULL THEN 1 ELSE 0 END) as warranty_not_applicable
+                    ',
+                    $aggregateBindings
+                )
+                ->first();
+
             $counts = [
-                'total' => (clone $baseQuery)->count(),
-                'current_total' => (clone $baseQuery)->whereIn('status', $currentStatuses)->count(),
-                'completed_total' => (clone $baseQuery)->whereIn('status', $completedStageStatuses)->count(),
-                'stage_back' => (clone $baseQuery)->where('status', ContractStatusEnum::Back->value)->count(),
-                'stage_pending_maid_selection' => (clone $baseQuery)->where('status', ContractStatusEnum::PendingMaidSelection->value)->count(),
-                'stage_new' => (clone $baseQuery)->where('status', ContractStatusEnum::New->value)->count(),
-                'stage_msaned' => (clone $baseQuery)->where('status', ContractStatusEnum::Msaned->value)->count(),
-                'stage_tafwed' => (clone $baseQuery)->where('status', ContractStatusEnum::Tafwed->value)->count(),
-                'stage_taffez' => (clone $baseQuery)->where('status', ContractStatusEnum::Taffez->value)->count(),
-                'stage_tazker' => (clone $baseQuery)->where('status', ContractStatusEnum::Tazker->value)->count(),
-                'stage_arrival' => (clone $baseQuery)->where('status', ContractStatusEnum::Arrival->value)->count(),
-                'stage_completed' => (clone $baseQuery)->where('status', ContractStatusEnum::Completed->value)->count(),
+                'total' => (int) ($aggregate->total ?? 0),
+                'current_total' => (int) ($aggregate->current_total ?? 0),
+                'completed_total' => (int) ($aggregate->completed_total ?? 0),
+                'stage_back' => (int) ($aggregate->stage_back ?? 0),
+                'stage_pending_maid_selection' => (int) ($aggregate->stage_pending_maid_selection ?? 0),
+                'stage_new' => (int) ($aggregate->stage_new ?? 0),
+                'stage_msaned' => (int) ($aggregate->stage_msaned ?? 0),
+                'stage_tafwed' => (int) ($aggregate->stage_tafwed ?? 0),
+                'stage_taffez' => (int) ($aggregate->stage_taffez ?? 0),
+                'stage_tazker' => (int) ($aggregate->stage_tazker ?? 0),
+                'stage_arrival' => (int) ($aggregate->stage_arrival ?? 0),
+                'stage_completed' => (int) ($aggregate->stage_completed ?? 0),
                 'stage_shelter' => (clone $shelterQuery)->count(),
-                'warranty_active' => (clone $baseQuery)->where('status', ContractStatusEnum::Arrival->value)
-                    ->whereNotNull('warranty_end_date')
-                    ->whereDate('warranty_end_date', '>=', $today)
-                    ->count(),
-                'warranty_expired' => (clone $baseQuery)->where('status', ContractStatusEnum::Completed->value)
-                    ->whereNotNull('warranty_end_date')
-                    ->whereDate('warranty_end_date', '<', $today)
-                    ->count(),
-                'warranty_not_applicable' => (clone $baseQuery)->where('status', ContractStatusEnum::Completed->value)
-                    ->whereNull('warranty_end_date')
-                    ->count(),
+                'warranty_active' => (int) ($aggregate->warranty_active ?? 0),
+                'warranty_expired' => (int) ($aggregate->warranty_expired ?? 0),
+                'warranty_not_applicable' => (int) ($aggregate->warranty_not_applicable ?? 0),
             ];
 
             return response()->json([

@@ -339,8 +339,8 @@ class OrderController extends Controller
             return Nationality::with('translations')->get()->sortBy('title');
         });
 
-        $data['admins'] = \Cache::remember('admins_list', 300, function () {
-            return \App\Models\auth\Admin::select('id', 'name')->whereNull('deleted_at')->get();
+        $data['admins'] = \Cache::remember('admins_list.active_for_operations', 300, function () {
+            return \App\Models\auth\Admin::query()->activeForOperations()->select('id', 'name')->get();
         });
 
         $completedStatuses = [
@@ -1109,10 +1109,8 @@ class OrderController extends Controller
 
             // Get customer service admins only
             $admin = \App\Models\auth\Admin::where('id', $request->admin_id)
+                ->activeForOperations()
                 ->where('admin_type', 'customer_service')
-                ->where(function ($query) {
-                    $query->whereNull('status')->orWhere('status', 'active');
-                })
                 ->first();
 
             if (!$admin) {

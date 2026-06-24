@@ -186,8 +186,8 @@ class BranchController extends Controller
             ->value('id');
 
         $admins = \App\Models\auth\Admin::query()
+            ->activeForOperations()
             ->whereIn('admin_type', ['admin', 'super_admin'])
-            ->whereNull('deleted_at')
             ->orderBy('name')
             ->get(['id', 'name', 'branch_id'])
             ->map(fn ($a) => [
@@ -203,11 +203,11 @@ class BranchController extends Controller
     {
         // All real admins NOT already in this branch
         $admins = \App\Models\auth\Admin::query()
+            ->activeForOperations()
             ->whereIn('admin_type', ['admin', 'super_admin'])
             ->where(function ($q) use ($branch) {
                 $q->whereNull('branch_id')->orWhere('branch_id', '!=', $branch->id);
             })
-            ->whereNull('deleted_at')
             ->orderBy('name')
             ->get(['id', 'name', 'branch_id']);
 

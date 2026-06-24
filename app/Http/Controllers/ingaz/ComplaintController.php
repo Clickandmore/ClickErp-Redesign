@@ -36,7 +36,7 @@ class ComplaintController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = objModel::query()->with(['user', 'complaintType', 'assignedTo', 'maidNationality']);
+            $query = objModel::query()->with(['user', 'complaintType', 'assignedTo', 'maidNationality', 'contract']);
             $this->applyRequestBranchFilter($query, $request, 'complaints');
 
             // تطبيق الفلاتر
@@ -122,6 +122,12 @@ class ComplaintController extends Controller
                         'name' => $row->complaintType->name
                     ] : null;
                 })
+                ->addColumn('contract', function ($row) {
+                    return $row->contract ? [
+                        'id' => $row->contract->id,
+                        'url' => route('ShelterContract.show', $row->contract->id),
+                    ] : null;
+                })
                 ->addColumn('actions', function ($row) {
                     $buttons = '<div class="btn-group" role="group" aria-label="Actions">';
                     $buttons .= '<button class="btn btn-sm btn-primary response-btn" data-id="' . $row->id . '" data-response="' . htmlspecialchars($row->response ?? '', ENT_QUOTES) . '" data-status="' . $row->status . '">
@@ -156,7 +162,7 @@ class ComplaintController extends Controller
 
         // جلب البيانات للفلاتر
         $complaintTypes = ComplaintType::orderBy('name')->get();
-        $admins = Admin::whereNull('deleted_at')->orderBy('name')->get();
+        $admins = Admin::query()->activeForOperations()->orderBy('name')->get();
 
         return view($this->folderPath . '.index', compact('complaintTypes', 'admins'));
     }
@@ -166,7 +172,7 @@ class ComplaintController extends Controller
         $users = \App\Models\ingaz\User::orderBy('name')->get();
         $nationalities = Nationality::with('translations')->get()->sortBy('title');
         $complaintTypes = ComplaintType::orderBy('name')->get();
-        $admins = Admin::whereNull('deleted_at')->orderBy('name')->get();
+        $admins = Admin::query()->activeForOperations()->orderBy('name')->get();
 
         return view($this->folderPath . '.create', compact('users', 'nationalities', 'complaintTypes', 'admins'));
     }
@@ -272,11 +278,11 @@ class ComplaintController extends Controller
 
     public function show($id)
     {
-        $complaint = objModel::with(['user', 'complaintType', 'assignedTo', 'resolvedBy', 'maidNationality'])
+        $complaint = objModel::with(['user', 'complaintType', 'assignedTo', 'resolvedBy', 'maidNationality', 'contract'])
             ->findOrFail($id);
         $this->assertCanAccessBranchModel($complaint);
 
-        $admins = Admin::whereNull('deleted_at')->orderBy('name')->get();
+        $admins = Admin::query()->activeForOperations()->orderBy('name')->get();
 
         // إضافة شارات الحالة والأولوية
         $complaint->statusBadge = $this->getStatusBadge($complaint->status);
@@ -293,7 +299,7 @@ class ComplaintController extends Controller
         $users = User::orderBy('name')->get();
         $nationalities = Nationality::with('translations')->get()->sortBy('title');
         $complaintTypes = ComplaintType::orderBy('name')->get();
-        $admins = Admin::whereNull('deleted_at')->orderBy('name')->get();
+        $admins = Admin::query()->activeForOperations()->orderBy('name')->get();
 
         return view($this->folderPath . '.edit', compact('complaint', 'users', 'nationalities', 'complaintTypes', 'admins'));
     }

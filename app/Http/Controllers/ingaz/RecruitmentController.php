@@ -87,10 +87,8 @@ class RecruitmentController extends Controller
 
         // Get employees
         $employees = Admin::query()
+            ->activeForOperations()
             ->where('admin_type', 'customer_service')
-            ->where(function ($query) {
-                $query->whereNull('status')->orWhere('status', 'active');
-            })
             ->get();
 
         return view('admin.ingaz.recruitment.select_maid', compact(
@@ -117,10 +115,8 @@ class RecruitmentController extends Controller
             || adminHasAnyRoleSafe($currentAdmin, ['super_admin', 'admin', 'Administrator'])
         )) {
             $employees = Admin::query()
+                ->activeForOperations()
                 ->where('admin_type', 'customer_service')
-                ->where(function ($query) {
-                    $query->whereNull('status')->orWhere('status', 'active');
-                })
                 ->get();
         }
 
@@ -147,7 +143,7 @@ class RecruitmentController extends Controller
                             ->whereNull('deleted_at')
                             ->where('admin_type', 'customer_service')
                             ->where(function ($statusQuery) {
-                                $statusQuery->whereNull('status')->orWhere('status', 'active');
+                                $statusQuery->whereNull('status')->orWhere('status', '!=', 'suspended');
                             });
                     }),
                 ],
@@ -247,7 +243,7 @@ class RecruitmentController extends Controller
     {
         $maid = Maid::findOrFail($maid_id);
         $client = User::findOrFail($client_id);
-        $employees = Admin::whereHas('roles', function ($query) {
+        $employees = Admin::query()->activeForOperations()->whereHas('roles', function ($query) {
             $query->where('name', 'employee');
         })->get();
 

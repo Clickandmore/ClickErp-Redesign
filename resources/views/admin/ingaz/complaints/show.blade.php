@@ -449,6 +449,17 @@
                         </div>
                     </div>
 
+                    @if ($complaint->contract)
+                        <div class="info-row">
+                            <div class="info-label">عقد الإيواء:</div>
+                            <div class="info-value">
+                                <a href="{{ route('ShelterContract.show', $complaint->contract->id) }}">
+                                    #{{ $complaint->contract->id }}
+                                </a>
+                            </div>
+                        </div>
+                    @endif
+
                     <div class="info-row">
                         <div class="info-label">{{ __('ingaz.description') }}:</div>
                         <div class="info-value">
