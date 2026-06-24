@@ -3226,7 +3226,7 @@ class RecruitmentContractController extends Controller
             'tafwed_number' => 'nullable|string|max:255',
             'visa_milad_date' => 'nullable|date',
             'visa_hijry_date' => 'nullable|date',
-            'contract_duration' => 'required',
+            'contract_duration' => 'required|integer|min:1',
             'status' => ['nullable', Rule::in(array_column(ContractStatusEnum::cases(), 'value'))],
             'marketer_id' => $marketerRules,
             'required_maid_nationality' => 'nullable|exists:nationalities,id',

@@ -40,8 +40,8 @@
         <div class="col-6">
             <label class="form-label">{{helperTrans("ingaz.contract duration")}} <span class="text-danger">*</span></label>
             <input type="number" id="contract_duration" name="contract_duration" class="form-control"
-                   value="2" readonly>
-            <small class="text-muted">(مدة التعاقد ثابتة: سنتين)</small>
+                   value="2" min="1" data-validation="required">
+            <small class="text-muted">(مدة التعاقد بالسنوات)</small>
         </div>
 
         <div class="col-6">

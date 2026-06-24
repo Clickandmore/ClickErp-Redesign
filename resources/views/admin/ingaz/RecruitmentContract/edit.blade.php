@@ -465,8 +465,8 @@
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label">{{ helperTrans('ingaz.contract duration') }} <span class="text-danger">*</span></label>
-                                            <input type="number" id="contract_duration" name="contract_duration" class="form-control" value="{{ old('contract_duration', $info?->contract_duration ?? 2) }}" readonly>
-                                            <small class="text-muted">(مدة التعاقد ثابتة: سنتين)</small>
+                                            <input type="number" id="contract_duration" name="contract_duration" class="form-control" value="{{ old('contract_duration', $info?->contract_duration ?? 2) }}" min="1" required>
+                                            <small class="text-muted">(مدة التعاقد بالسنوات)</small>
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label">المسوق <span class="text-danger">*</span></label>
