@@ -855,9 +855,13 @@ class SponsorshipTransferController extends Controller
                 ];
             }
 
+            $oldSponsorId = (int) $transfer->contract_id === (int) $contract->id
+                ? $transfer->old_sponsor_id
+                : $contract->user_id;
+
             $transfer->update([
                 'contract_id' => $contract->id,
-                'old_sponsor_id' => $contract->user_id,
+                'old_sponsor_id' => $oldSponsorId,
                 'new_sponsor_id' => $newSponsor->id,
                 'trial_days' => $validated['trial_days'],
                 'trial_start_date' => $validated['trial_start_date'],

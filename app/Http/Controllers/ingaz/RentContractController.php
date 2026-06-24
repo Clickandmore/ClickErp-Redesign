@@ -4,7 +4,6 @@ namespace App\Http\Controllers\ingaz;
 
 use App\Enums\ingaz\ContractStatusEnum;
 use App\Enums\ingaz\OrderEnum;
-use App\Http\Actions\ingaz\RecruitmentOfficeAction;
 use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\StoreRentalContractRequest;
 use App\Http\Traits\SendSMSTrait;
@@ -64,6 +63,7 @@ class RentContractController extends Controller
                 'closeAndMakeAvailable',
                 'transferSponsorship',
                 'sendContract',
+                'sendPaymentLink',
                 'signContract',
                 'deliverMaid',
                 'activateContract',
@@ -394,6 +394,21 @@ class RentContractController extends Controller
                         }
                     }
 
+                    $paymentStatus = $row->info?->payment_status;
+                    $remainingAmount = (float) ($row->info?->remaining_amount ?? 0);
+                    if (
+                        @AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CONTROL)
+                        && $row->info
+                        && $paymentStatus !== 'paid'
+                        && $remainingAmount > 0
+                    ) {
+                        $actions .= '<li><button class="dropdown-item text-primary send-payment-link"
+                                        data-id="' . $row->id . '"
+                                        data-url="' . route('RentContract.sendPaymentLink', $row->id) . '">
+                                        <i class="fas fa-link"></i> إرسال رابط الدفع
+                                    </button></li>';
+                    }
+
                     if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CONTROL) && $row->canSignContract()) {
                         $actions .= '<li><button class="dropdown-item text-success sign-contract" data-id="' . $row->id . '">
                                         <i class="fas fa-signature"></i> تأكيد توقيع العقد
@@ -503,11 +518,11 @@ class RentContractController extends Controller
         $data['branches'] = $data['branchesEnabled']
             ? Branch::query()->active()->ordered()->get(['id', 'name_ar', 'name_en'])
             : collect();
-        $data['marketers'] = Admin::query()->whereNull('deleted_at')->orderBy('name')->get(['id', 'name']);
+        $data['marketers'] = Admin::query()->activeForOperations()->orderBy('name')->get(['id', 'name']);
         return view($this->folderPath . '.index', $data);
     }
 
-    public function create(RecruitmentOfficeAction $officeAction, Request $request)
+    public function create(Request $request)
     {
         $rentalJobTypeId = $this->getRentalJobTypeId();
 
@@ -516,17 +531,6 @@ class RentContractController extends Controller
             'has_order_id' => $request->has('order_id'),
             'order_id' => $request->get('order_id')
         ]);
-
-        // الطلبات الجاهزة لإنشاء عقد تأجير، سواء كانت مقبولة أو تم إنهاؤها من شاشة الطلبات.
-        $endedOrders = Order::where('job_type_id', $rentalJobTypeId)
-                           ->whereIn('status', [
-                               OrderEnum::UnderProcess->value,
-                               OrderEnum::Done->value,
-                           ])
-                           ->whereDoesntHave('rentalContracts')
-                           ->with(['user', 'maid'])
-                           ->latest()
-                           ->get();
 
         // إذا تم تمرير order_id، احصل على بيانات الطلب
         $selectedOrder = null;
@@ -567,26 +571,18 @@ class RentContractController extends Controller
             ->get();
 
         // الحصول على المسوقين النشطين
-        $marketers = Admin::whereNull('deleted_at')
+        $marketers = Admin::query()->activeForOperations()
                          ->orderBy('name')
                          ->get();
 
-        // الحصول على الجنسيات مع الترجمات
-        $nationalities = Nationality::with('translations')->get();
+        $selectedClientId = $request->get('client_id');
+        $selectedClient = null;
+        $initialClientId = $selectedOrder?->user_id ?: $selectedClientId;
+        if ($initialClientId) {
+            $selectedClient = $this->rentContractClientSelectQuery()
+                ->find($initialClientId);
+        }
 
-        // الحصول على العملاء الموجودين - نفس الطريقة المستخدمة في عقود الاستقدام
-        $existing_clients = User::with('nationality')->get();
-
-        // تسجيل عدد العملاء للتشخيص
-        \Log::info('Existing clients loaded for rent contract create', [
-            'count' => $existing_clients->count(),
-            'first_3' => $existing_clients->take(3)->pluck('name', 'id')->toArray()
-        ]);
-
-        $offices = $officeAction->getAllOffices();
-
-        // إضافة متغير لتحديد ما إذا كانت هناك طلبات متاحة
-        $hasEndedOrders = $endedOrders->count() > 0;
         $countries = Country::active()->ordered()->get();
 
         \Log::info('RentContract create view data', [
@@ -598,25 +594,20 @@ class RentContractController extends Controller
                 'maid_name' => $selectedOrder->maid ? $selectedOrder->maid->name : null,
             ] : null,
             'availableRentalMaids_count' => $availableRentalMaids->count(),
-            'existing_clients_count' => $existing_clients->count()
+            'selected_client_id' => $selectedClient?->id,
         ]);
 
-        $selectedClientId = $request->get('client_id');
         $moyasarSettings = MoyasarSettings::current();
         $moyasarEnabled = MoyasarSettings::isEnabled();
 
         return view($this->folderPath . '.create', compact(
-            'endedOrders',
             'availableRentalMaids',
             'packages',
             'marketers',
-            'nationalities',
-            'existing_clients',
-            'offices',
-            'hasEndedOrders',
             'countries',
             'selectedOrder',
             'selectedClientId',
+            'selectedClient',
             'moyasarSettings',
             'moyasarEnabled'
         ));
@@ -806,7 +797,9 @@ class RentContractController extends Controller
             if ($moyasarResult['link_sent'] ?? false) {
                 $successMessage .= '، وتم إرسال رابط الدفع للعميل عبر SMS.';
             } elseif ($moyasarResult['link_created'] ?? false) {
-                $successMessage .= '، تم إنشاء رابط الدفع لكن تعذر إرساله عبر SMS.';
+                $successMessage .= '، تم إنشاء رابط الدفع لكن تعذر إرساله عبر SMS: ' . ($moyasarResult['sms_error'] ?? 'لم يرجع مزود الرسائل تأكيد نجاح.');
+            } elseif (!empty($moyasarResult['failure_reason'])) {
+                $successMessage .= '، تعذر إنشاء أو إرسال رابط الدفع: ' . $moyasarResult['failure_reason'];
             } elseif ($moyasarResult['skipped'] ?? false) {
                 $successMessage .= '، لم يُرسل رابط الدفع لأن الدفع محدد كـ (تم الدفع / لاحقاً).';
             }
@@ -819,6 +812,9 @@ class RentContractController extends Controller
                     'contract_id' => $rentalContract->id,
                     'contract_number' => $rentalContract->contract_number,
                     'moyasar_link' => $moyasarResult['payment_url'] ?? null,
+                    'payment_link_created' => (bool) ($moyasarResult['link_created'] ?? false),
+                    'payment_link_sent' => (bool) ($moyasarResult['link_sent'] ?? false),
+                    'payment_link_sms_error' => $moyasarResult['sms_error'] ?? $moyasarResult['failure_reason'] ?? null,
                     'print_url' => route('print.rental.contract', $rentalContract->id),
                     'invoice_print_url' => $financeInvoice
                         ? route('rental.invoice.download', ['id' => $financeInvoice->id, 'autoprint' => 1])
@@ -1066,7 +1062,7 @@ class RentContractController extends Controller
             ->ordered()
             ->get();
 
-        $marketers = Admin::whereNull('deleted_at')->orderBy('name')->get();
+        $marketers = Admin::query()->activeForOperations()->orderBy('name')->get();
         $nationalities = Nationality::with('translations')->get();
         $countries = Country::active()->ordered()->get();
         $paymentReceipts = $this->rentalPaymentReceiptItems($contract->info);
@@ -2173,14 +2169,7 @@ class RentContractController extends Controller
     {
         $search = $request->get('search', '');
 
-        $clients = User::select('id', 'name', 'phone', 'email', 'nationality_id', 'national_num', 'client_type', 'tax_number', 'license_number', 'birthdate', 'address', 'city', 'family_num', 'children', 'profession', 'monthly_income')
-                      ->whereNotNull('name')
-                      ->where('name', '!=', '')
-                      ->where('name', 'not like', '+966%')
-                      ->where('name', 'not like', '10%')
-                      ->where('name', 'not like', '05%')
-                      ->where('name', 'not like', '2%')
-                      ->whereNotNull('phone');
+        $clients = $this->rentContractClientSelectQuery();
 
         if ($search) {
             $clients->where(function($query) use ($search) {
@@ -2202,11 +2191,44 @@ class RentContractController extends Controller
                 $client->document_number = $client->searchableDocumentNumber();
                 $client->document_label = $client->documentNumberLabel();
                 $client->national_num = $client->document_number;
+                $client->job = $client->job ?: $client->profession;
 
                 return $client;
             })->values(),
             'count' => $clients->count()
         ]);
+    }
+
+    private function rentContractClientSelectQuery()
+    {
+        return User::select(
+            'id',
+            'name',
+            'phone',
+            'phone2',
+            'email',
+            'nationality_id',
+            'national_num',
+            'client_type',
+            'tax_number',
+            'license_number',
+            'birthdate',
+            'address',
+            'city',
+            'rooms_num',
+            'family_num',
+            'children',
+            'job',
+            'profession',
+            'monthly_income'
+        )
+            ->whereNotNull('name')
+            ->where('name', '!=', '')
+            ->where('name', 'not like', '+966%')
+            ->where('name', 'not like', '10%')
+            ->where('name', 'not like', '05%')
+            ->where('name', 'not like', '2%')
+            ->whereNotNull('phone');
     }
 
     protected function buildRentalClosureSummary(RentalContract $contract, ?Carbon $closureDate = null): array
@@ -3974,11 +3996,64 @@ class RentContractController extends Controller
         ];
     }
 
+    public function sendPaymentLink(Request $request, $id)
+    {
+        try {
+            $contract = RentalContract::with(['user', 'info'])->findOrFail($id);
+
+            if (!$contract->info) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'بيانات الدفع لهذا العقد غير مكتملة.',
+                ], 422);
+            }
+
+            if ($contract->info->payment_status === 'paid') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن إرسال رابط دفع لعقد مدفوع بالكامل.',
+                ], 422);
+            }
+
+            $result = $this->handleMoyasarPaymentLink($contract, 'moyasar', $contract->info->payment_status, true);
+
+            if (!($result['link_created'] ?? false)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $result['failure_reason'] ?? 'تعذر إنشاء رابط الدفع.',
+                    'payment_url' => $result['payment_url'] ?? null,
+                ], 422);
+            }
+
+            $message = ($result['link_sent'] ?? false)
+                ? 'تم إرسال رابط الدفع للعميل بنجاح.'
+                : 'تم إنشاء رابط الدفع، لكن تعذر إرسال الرسالة للعميل: ' . ($result['sms_error'] ?? 'لم يرجع مزود الرسائل تأكيد نجاح.');
+
+            return response()->json([
+                'success' => true,
+                'message_sent' => (bool) ($result['link_sent'] ?? false),
+                'message' => $message,
+                'payment_url' => $result['payment_url'] ?? null,
+                'sms_error' => $result['sms_error'] ?? null,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Moyasar: send payment link action failed', [
+                'contract_id' => $id,
+                'message' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء إرسال رابط الدفع: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
     /**
      * إنشاء رابط دفع ميسر وإرساله عبر SMS للعميل إذا اختار الدفع الإلكتروني
-     * لا يُرسل الرابط إذا كانت حالة الدفع "تم الدفع" أو "الدفع لاحقاً"
+     * لا يُرسل الرابط أثناء الإنشاء إذا كانت حالة الدفع "تم الدفع" أو "الدفع لاحقاً"
      */
-    private function handleMoyasarPaymentLink(RentalContract $contract, ?string $paymentType, ?string $paymentStatus = null): array
+    private function handleMoyasarPaymentLink(RentalContract $contract, ?string $paymentType, ?string $paymentStatus = null, bool $force = false): array
     {
         if ($paymentType !== 'moyasar') {
             return ['link_created' => false, 'link_sent' => false];
@@ -3986,11 +4061,25 @@ class RentContractController extends Controller
 
         if (!MoyasarSettings::isEnabled()) {
             Log::info('Moyasar: payment link skipped because gateway is disabled', ['contract_id' => $contract->id]);
-            return ['link_created' => false, 'link_sent' => false, 'skipped' => true];
+            return [
+                'link_created' => false,
+                'link_sent' => false,
+                'skipped' => true,
+                'failure_reason' => 'بوابة ميسر غير مفعلة.',
+            ];
         }
 
-        // إذا كان المسؤول أشار إلى أن الدفع تم أو سيتم لاحقاً — لا داعي لإرسال رابط
-        if (in_array($paymentStatus, ['paid', 'later'], true)) {
+        if ($paymentStatus === 'paid') {
+            return [
+                'link_created' => false,
+                'link_sent' => false,
+                'skipped' => true,
+                'failure_reason' => 'العقد مدفوع بالكامل.',
+            ];
+        }
+
+        // إذا كان المسؤول أشار أثناء الإنشاء إلى أن الدفع سيتم لاحقاً، لا يرسل الرابط تلقائياً.
+        if (!$force && $paymentStatus === 'later') {
             return ['link_created' => false, 'link_sent' => false, 'skipped' => true];
         }
 
@@ -4002,48 +4091,91 @@ class RentContractController extends Controller
 
         if ($amount <= 0) {
             Log::warning('Moyasar: contract value is zero, skipping payment link', ['contract_id' => $contract->id]);
-            return ['link_created' => false, 'link_sent' => false];
+            return [
+                'link_created' => false,
+                'link_sent' => false,
+                'failure_reason' => 'لا يوجد مبلغ متبقٍ لإرساله في رابط الدفع.',
+            ];
         }
 
         if (empty(MoyasarSettings::current()['secret_key'] ?? '')) {
             Log::error('Moyasar: secret key is not configured', ['contract_id' => $contract->id]);
-            return ['link_created' => false, 'link_sent' => false];
+            return [
+                'link_created' => false,
+                'link_sent' => false,
+                'failure_reason' => 'مفتاح ميسر السري غير مضبوط.',
+            ];
         }
 
-        $moyasar     = app(MoyasarService::class);
-        $callbackUrl = route('moyasar.callback', ['contract_id' => $contract->id]);
+        $result = null;
+        $createdNewLink = false;
+        if (!empty($contract->info?->moyasar_payment_id) && !empty($contract->info?->moyasar_payment_url)) {
+            $result = [
+                'id' => $contract->info->moyasar_payment_id,
+                'url' => $contract->info->moyasar_payment_url,
+            ];
+        } else {
+            $moyasar     = app(MoyasarService::class);
+            $callbackUrl = route('moyasar.callback', ['contract_id' => $contract->id]);
 
-        $result = $moyasar->createPaymentLink(
-            $amount,
-            "دفع عقد إيجار رقم {$number} - {$clientName}",
-            $callbackUrl,
-            ['contract_id' => $contract->id, 'contract_number' => $number]
-        );
+            $result = $moyasar->createPaymentLink(
+                $amount,
+                "دفع عقد إيجار رقم {$number} - {$clientName}",
+                $callbackUrl,
+                ['contract_id' => $contract->id, 'contract_number' => $number]
+            );
 
-        if (!$result || empty($result['id']) || empty($result['url'])) {
-            Log::error('Moyasar: failed to create payment link', ['contract_id' => $contract->id]);
-            return ['link_created' => false, 'link_sent' => false];
+            if (!$result || empty($result['id']) || empty($result['url'])) {
+                Log::error('Moyasar: failed to create payment link', ['contract_id' => $contract->id]);
+                return [
+                    'link_created' => false,
+                    'link_sent' => false,
+                    'failure_reason' => 'تعذر إنشاء رابط الدفع من ميسر.',
+                ];
+            }
+
+            $createdNewLink = true;
         }
 
         // حفظ بيانات ميسر في قاعدة البيانات
-        $contract->info->update([
+        $moyasarUpdates = [
+            'payment_type'            => 'moyasar',
             'moyasar_payment_id'     => $result['id'],
             'moyasar_payment_url'    => $result['url'],
-            'moyasar_payment_status' => 'initiated',
-        ]);
+        ];
+
+        if ($createdNewLink) {
+            $moyasarUpdates['moyasar_payment_status'] = 'initiated';
+        }
+
+        $contract->info->update($moyasarUpdates);
 
         // إرسال SMS للعميل
         $phone = trim((string) ($contract->user?->phone_code ?? '') . (string) ($contract->user?->phone ?? ''));
 
         if (empty($phone)) {
             Log::warning('Moyasar: client has no phone, payment link created but not sent', ['contract_id' => $contract->id]);
-            return ['link_created' => true, 'link_sent' => false, 'payment_url' => $result['url']];
+            return [
+                'link_created' => true,
+                'link_sent' => false,
+                'payment_url' => $result['url'],
+                'sms_error' => 'لا يوجد رقم جوال للعميل.',
+            ];
         }
 
         $message  = $this->buildMoyasarPaymentSmsMessage($contract, $result['url'], $amount);
-        $smsResult = $this->sendSMS(formatSaudiPhone($phone), $message);
+        $smsResult = null;
 
-        $sent = !empty($smsResult);
+        try {
+            $smsResult = $this->sendSMS(formatSaudiPhone($phone), $message);
+        } catch (\Throwable $e) {
+            Log::error('Moyasar: payment link SMS exception', [
+                'contract_id' => $contract->id,
+                'message' => $e->getMessage(),
+            ]);
+        }
+
+        $sent = $this->smsWasSent($smsResult);
 
         if ($sent) {
             $contract->info->update(['payment_link_sent_at' => now()]);
@@ -4053,13 +4185,66 @@ class RentContractController extends Controller
             'contract_id' => $contract->id,
             'payment_id'  => $result['id'],
             'sms_sent'    => $sent,
+            'sms_response' => $smsResult,
         ]);
 
         return [
             'link_created' => true,
             'link_sent'    => $sent,
             'payment_url'  => $result['url'],
+            'sms_error'    => $sent ? null : $this->describeSmsFailure($smsResult),
         ];
+    }
+
+    private function smsWasSent($result): bool
+    {
+        if (is_array($result)) {
+            if (array_key_exists('success', $result)) {
+                return (bool) $result['success'];
+            }
+
+            if (isset($result['code']) && in_array((string) $result['code'], ['1', '200'], true)) {
+                return true;
+            }
+
+            return isset($result['statusCode']) && in_array((string) $result['statusCode'], ['200', '201'], true);
+        }
+
+        if ($result === null || $result === false || trim((string) $result) === '') {
+            return false;
+        }
+
+        $decoded = json_decode((string) $result, true);
+        if (is_array($decoded)) {
+            if (array_key_exists('success', $decoded)) {
+                return (bool) $decoded['success'];
+            }
+
+            if (isset($decoded['code']) && in_array((string) $decoded['code'], ['1', '200'], true)) {
+                return true;
+            }
+
+            if (isset($decoded['statusCode']) && in_array((string) $decoded['statusCode'], ['200', '201'], true)) {
+                return true;
+            }
+
+            if (isset($decoded['status']) && in_array(strtolower((string) $decoded['status']), ['success', 'sent', 'accepted'], true)) {
+                return true;
+            }
+        }
+
+        return in_array(strtolower(trim((string) $result)), ['1', '200', 'success', 'sent', 'accepted'], true);
+    }
+
+    private function describeSmsFailure($result): string
+    {
+        if ($result === null || $result === false || trim((string) $result) === '') {
+            return 'لم يرجع مزود الرسائل تأكيد نجاح.';
+        }
+
+        $text = is_scalar($result) ? (string) $result : json_encode($result, JSON_UNESCAPED_UNICODE);
+
+        return 'استجابة مزود الرسائل: ' . Str::limit($text ?: 'غير معروفة', 180);
     }
 
     private function buildMoyasarPaymentSmsMessage(RentalContract $contract, string $paymentUrl, float $amount): string

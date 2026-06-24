@@ -92,6 +92,11 @@ class Contract extends Model
         return $this->hasMany(ContractStatusLog::class, "contract_id");
     }
 
+    public function latestContractStatusLog()
+    {
+        return $this->hasOne(ContractStatusLog::class, 'contract_id')->latestOfMany('id');
+    }
+
     public function invoice()
     {
         return $this->hasOne(Invoice::class, 'contract_id');
@@ -110,6 +115,11 @@ class Contract extends Model
     public function notes()
     {
         return $this->hasMany(ContractNote::class, 'contract_id');
+    }
+
+    public function complaints()
+    {
+        return $this->hasMany(\App\Models\ingaz\Complaint::class, 'contract_id');
     }
 
     public function attachments()
@@ -401,6 +411,14 @@ class Contract extends Model
     // get last contract status log
     public function getLastContractStatusLog()
     {
+        if ($this->relationLoaded('latestContractStatusLog')) {
+            return $this->latestContractStatusLog;
+        }
+
+        if ($this->relationLoaded('contract_status_logs')) {
+            return $this->contract_status_logs->sortByDesc('id')->first();
+        }
+
         return $this->contract_status_logs()->latest()->first();
     }
 

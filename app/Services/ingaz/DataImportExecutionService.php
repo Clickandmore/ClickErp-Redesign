@@ -15,11 +15,13 @@ use App\Models\ingaz\JobTitle;
 use App\Models\ingaz\JobType;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\Nationality;
+use App\Models\ingaz\NationalitiesTranslation;
 use App\Models\ingaz\Order;
 use App\Models\ingaz\Religion;
 use App\Models\ingaz\Skill;
 use App\Models\ingaz\User;
 use App\Models\Country;
+use App\Models\IngazDelegation;
 use Carbon\Carbon;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -90,6 +92,7 @@ class DataImportExecutionService
                         'rent_contracts' => $this->importRentContract($row, $adminId),
                         'rent_contracts_clients_rental_maids' => $this->importRentBundle($row, $adminId),
                         'sponsorship_transfers' => $this->importSponsorshipTransfer($row, $adminId),
+                        'ingaz_delegations' => $this->importIngazDelegation($row, $adminId),
                         default => 'skipped',
                     };
 
@@ -746,6 +749,77 @@ class DataImportExecutionService
         return 'created';
     }
 
+    private function importIngazDelegation(array $row, ?int $adminId): string
+    {
+        $delegationDate = $this->parseDate($row['delegation_date_gregorian'] ?? $row['delegation_date'] ?? null);
+        if (!$delegationDate) {
+            throw new \InvalidArgumentException('تاريخ التفويض الميلادي مطلوب أو غير صحيح.');
+        }
+
+        $country = $this->resolveIngazDelegationCountry($row);
+        if (!$country) {
+            throw new \InvalidArgumentException('الدولة مطلوبة أو غير موجودة في النظام.');
+        }
+
+        $nationality = $this->resolveIngazDelegationNationality($row, $country);
+        $client = $this->resolveIngazDelegationClient($row);
+        $professionId = $this->resolveTranslatableId(JobTitle::class, $row['profession'] ?? $row['profession_id'] ?? null);
+        $maid = $this->resolveIngazDelegationMaid($row, $nationality, $professionId, $adminId);
+        $delegation = $this->findIngazDelegation($row);
+        $visaNumber = trim((string) ($row['visa_number'] ?? ''));
+        $ingazNumber = trim((string) ($row['ingaz_number'] ?? ''));
+        $msanedContractNumber = trim((string) ($row['msaned_contract_number'] ?? ''));
+
+        if ($visaNumber === '') {
+            throw new \InvalidArgumentException('رقم التأشيرة مطلوب.');
+        }
+
+        if ($ingazNumber === '') {
+            throw new \InvalidArgumentException('رقم إنجاز مطلوب.');
+        }
+
+        if ($msanedContractNumber === '') {
+            throw new \InvalidArgumentException('رقم عقد مساند مطلوب.');
+        }
+
+        $payload = $this->filterColumns('ingaz_delegations', [
+            'delegation_date_gregorian' => $delegationDate,
+            'delegation_date_hijri' => $row['delegation_date_hijri'] ?? null,
+            'nationality_id' => $nationality->id,
+            'country_id' => $country->id,
+            'profession_id' => $professionId,
+            'user_id' => $client->id,
+            'maid_id' => $maid?->id,
+            'marketer_id' => $this->resolveAdminId($row['marketer_id'] ?? $row['marketer'] ?? null) ?: $adminId,
+            'client_source_type' => filled($row['existing_user_id'] ?? null) ? 'existing_in_program' : 'separate_client',
+            'visa_type' => 'electronic_ingaz_delegation',
+            'worker_name' => $this->nullableImportString($row['worker_name'] ?? null),
+            'worker_passport_number' => $this->nullableImportString($row['worker_passport_number'] ?? null),
+            'worker_passport_issue_date' => $this->parseDate($row['worker_passport_issue_date'] ?? null),
+            'visa_number' => $visaNumber,
+            'visa_date' => $this->parseDate($row['visa_date'] ?? null),
+            'worker_religion' => $this->normalizeIngazDelegationReligion($row['worker_religion'] ?? null),
+            'worker_experience' => $this->normalizeIngazDelegationExperience($row['worker_experience'] ?? null),
+            'external_office_name' => $this->nullableImportString($row['external_office_name'] ?? null),
+            'external_office_license_number' => $this->nullableImportString($row['external_office_license_number'] ?? null),
+            'external_office_address' => $this->nullableImportString($row['external_office_address'] ?? null),
+            'external_office_phone' => $this->nullableImportString($row['external_office_phone'] ?? null),
+            'status' => $this->normalizeIngazDelegationStatus($row['status'] ?? null),
+            'ingaz_number' => $ingazNumber,
+            'msaned_contract_number' => $msanedContractNumber,
+            'notes' => $row['notes'] ?? null,
+        ]);
+
+        if ($delegation) {
+            $delegation->update(array_filter($payload, fn ($value) => $value !== null && $value !== ''));
+            return 'updated';
+        }
+
+        IngazDelegation::create($payload);
+
+        return 'created';
+    }
+
     private function clientRowFromBundle(array $row): array
     {
         return array_merge($row, [
@@ -1155,6 +1229,182 @@ class DataImportExecutionService
         $contract->calculateWarrantyStatus();
     }
 
+    private function findIngazDelegation(array $row): ?IngazDelegation
+    {
+        $databaseId = $this->optionalInteger($row['id'] ?? null);
+        if ($databaseId) {
+            $delegation = IngazDelegation::query()->whereKey($databaseId)->first();
+            if ($delegation) {
+                return $delegation;
+            }
+        }
+
+        $ingazNumber = trim((string) ($row['ingaz_number'] ?? ''));
+        if ($ingazNumber !== '') {
+            $delegation = IngazDelegation::query()->where('ingaz_number', $ingazNumber)->first();
+            if ($delegation) {
+                return $delegation;
+            }
+        }
+
+        $msanedContractNumber = trim((string) ($row['msaned_contract_number'] ?? ''));
+        if ($msanedContractNumber !== '') {
+            return IngazDelegation::query()
+                ->where('msaned_contract_number', $msanedContractNumber)
+                ->first();
+        }
+
+        return null;
+    }
+
+    private function resolveIngazDelegationCountry(array $row): ?Country
+    {
+        $countryId = $this->resolveCountryId($row['country_id'] ?? $row['country'] ?? null);
+
+        return $countryId ? Country::query()->find($countryId) : null;
+    }
+
+    private function resolveIngazDelegationNationality(array $row, Country $country): Nationality
+    {
+        $nationalityId = $this->resolveNationalityId($row['nationality'] ?? null)
+            ?: $this->resolveNationalityId($country->name_ar)
+            ?: $this->resolveNationalityId($country->name_en);
+
+        if ($nationalityId) {
+            return Nationality::query()->findOrFail($nationalityId);
+        }
+
+        $payload = [
+            'logo' => '',
+            'phone_code' => (string) ($country->phone_code ?? ''),
+        ];
+
+        if (Schema::hasColumn('nationalities', 'is_show')) {
+            $payload['is_show'] = false;
+        }
+
+        $nationality = Nationality::query()->create($payload);
+        $this->syncIngazNationalityTranslation($nationality, 'ar', $country->name_ar ?: $country->name_en);
+        $this->syncIngazNationalityTranslation($nationality, 'en', $country->name_en ?: $country->name_ar);
+
+        return $nationality->fresh(['translations']) ?? $nationality;
+    }
+
+    private function syncIngazNationalityTranslation(Nationality $nationality, string $locale, ?string $name): void
+    {
+        $name = trim((string) $name);
+        if ($name === '') {
+            return;
+        }
+
+        NationalitiesTranslation::query()->updateOrCreate(
+            [
+                'nationality_id' => $nationality->id,
+                'locale' => $locale,
+            ],
+            [
+                'title' => $name,
+                'sub_title' => $name,
+            ]
+        );
+    }
+
+    private function resolveIngazDelegationClient(array $row): User
+    {
+        $databaseId = $this->optionalInteger($row['existing_user_id'] ?? $row['client_id'] ?? null);
+        $name = trim((string) ($row['client_name'] ?? ''));
+        $phone = $this->normalizeImportPhone($row['client_phone'] ?? '');
+        $identityNumber = $this->normalizeIdNumber($row['client_id_number'] ?? $row['id_number'] ?? null);
+
+        $userByDatabaseId = $databaseId ? User::query()->whereKey($databaseId)->first() : null;
+        $userByPhone = $phone !== '' ? $this->findUserByPhone($phone) : null;
+        $userByIdentity = $identityNumber !== '' ? User::query()->where('national_num', $identityNumber)->first() : null;
+
+        $ids = collect([$userByDatabaseId?->id, $userByPhone?->id, $userByIdentity?->id])->filter()->unique()->values();
+        if ($ids->count() > 1) {
+            throw new \InvalidArgumentException('بيانات العميل تشير إلى أكثر من عميل. راجع ID العميل والجوال ورقم الهوية.');
+        }
+
+        $user = $userByDatabaseId ?: $userByPhone ?: $userByIdentity;
+
+        if (!$user && $name === '') {
+            throw new \InvalidArgumentException('اسم العميل مطلوب عند عدم استخدام ID عميل موجود.');
+        }
+
+        $payload = [
+            'name' => $name !== '' ? $name : ($user?->name ?? null),
+            'phone_code' => $phone !== '' ? ($user?->phone_code ?: '+966') : ($user?->phone_code ?: ''),
+            'phone' => $phone !== '' ? $phone : ($user?->phone ?: $this->internalIngazDelegationClientPhone()),
+            'national_num' => $identityNumber !== '' ? $identityNumber : ($user?->national_num ?? null),
+            'address' => $row['client_address'] ?? $user?->address ?? null,
+            'register_from' => 'data_import',
+        ];
+
+        if ($user) {
+            $user->update(array_filter($payload, fn ($value) => $value !== null && $value !== ''));
+            return $user;
+        }
+
+        if (Schema::hasColumn('users', 'password')) {
+            $payload['password'] = $this->defaultImportPasswordHash();
+        }
+
+        return User::query()->create($payload);
+    }
+
+    private function resolveIngazDelegationMaid(array $row, Nationality $nationality, ?int $professionId, ?int $adminId): ?Maid
+    {
+        $passport = $this->normalizePassportNumber($row['worker_passport_number'] ?? '');
+        $workerName = trim((string) ($row['worker_name'] ?? ''));
+
+        if ($passport === '') {
+            return null;
+        }
+
+        $maid = Maid::query()->where('passport_num', $passport)->first();
+        if (!$maid && $workerName === '') {
+            return null;
+        }
+
+        $experienceStatus = in_array($this->normalizeIngazDelegationExperience($row['worker_experience'] ?? null), ['previously_worked', 'appointed_by_client', 'known_service'], true)
+            ? 'has_experience'
+            : 'no_experience';
+
+        $payload = $this->filterColumns('maids', [
+            'name' => $workerName !== '' ? $workerName : ($maid?->name ?? null),
+            'passport_num' => $passport,
+            'nationality_id' => $maid?->nationality_id ?: $nationality->id,
+            'religion_id' => $this->resolveIngazDelegationReligionId($row['worker_religion'] ?? null),
+            'experience_status' => $experienceStatus,
+            'experience_years' => $experienceStatus === 'has_experience' ? max((int) ($maid?->experience_years ?? 1), 1) : 0,
+            'price' => $maid?->price ?? 0,
+            'salary' => $maid?->salary ?? 0,
+            'age' => $maid?->age ?? 0,
+            'cv_file' => $maid?->cv_file ?? '',
+            'image' => $maid?->image ?? '',
+            'available' => $maid?->available ?? 0,
+            'available_at' => $maid?->available_at ?? now()->toDateString(),
+            'is_show' => $maid?->is_show ?? 0,
+            'status' => $maid?->status ?? 'available',
+            'request_type' => $this->normalizeIngazDelegationExperience($row['worker_experience'] ?? null) === 'known_service'
+                ? Maid::REQUEST_TYPE_KNOWN
+                : ($maid?->request_type ?? Maid::REQUEST_TYPE_SPECIFIC),
+            'added_by' => $maid?->added_by ?? $adminId,
+        ]);
+
+        if ($maid) {
+            $maid->update(array_filter($payload, fn ($value) => $value !== null && $value !== ''));
+        } else {
+            $maid = Maid::query()->create($payload);
+        }
+
+        if ($professionId) {
+            $maid->jobTitles()->syncWithoutDetaching([$professionId]);
+        }
+
+        return $maid;
+    }
+
     private function findUserByPhone(string $phone): ?User
     {
         $phone = trim($phone);
@@ -1179,6 +1429,22 @@ class DataImportExecutionService
         ])));
 
         return User::whereIn('phone', $candidates)->first();
+    }
+
+    private function internalIngazDelegationClientPhone(): string
+    {
+        do {
+            $phone = 'ingaz-delegation-' . Str::uuid();
+        } while (User::query()->where('phone', $phone)->exists());
+
+        return $phone;
+    }
+
+    private function nullableImportString($value): ?string
+    {
+        $value = trim((string) $value);
+
+        return $value === '' ? null : $value;
     }
 
     private function resolveNationalityId(?string $value): ?int
@@ -2080,6 +2346,65 @@ class DataImportExecutionService
             'مكتمل', 'completed' => 'completed',
             'مرفوض', 'rejected' => 'rejected',
             default => 'pending',
+        };
+    }
+
+    private function normalizeIngazDelegationStatus(?string $status): string
+    {
+        $normalized = $this->normalizeArabicText($status);
+
+        return in_array($normalized, [
+            'executed',
+            'done',
+            'completed',
+            $this->normalizeArabicText('تم تنفيذ التفويض'),
+            $this->normalizeArabicText('منفذ'),
+            $this->normalizeArabicText('مكتمل'),
+        ], true)
+            ? IngazDelegation::STATUS_EXECUTED
+            : IngazDelegation::STATUS_UNDER_PROCESS;
+    }
+
+    private function normalizeIngazDelegationReligion(?string $religion): string
+    {
+        $normalized = $this->normalizeArabicText($religion);
+
+        return match ($normalized) {
+            'muslim', $this->normalizeArabicText('مسلم'), $this->normalizeArabicText('مسلمة') => 'muslim',
+            'non_muslim', 'non muslim', $this->normalizeArabicText('غير مسلم'), $this->normalizeArabicText('غير مسلمة') => 'non_muslim',
+            default => 'unspecified',
+        };
+    }
+
+    private function resolveIngazDelegationReligionId(?string $religion): ?int
+    {
+        $normalizedReligion = $this->normalizeIngazDelegationReligion($religion);
+        $labels = match ($normalizedReligion) {
+            'muslim' => ['مسلم', 'مسلمة', 'Muslim'],
+            'non_muslim' => ['غير مسلم', 'غير مسلمة', 'Non-Muslim'],
+            default => ['غير محدد', 'Unspecified'],
+        };
+
+        foreach ($labels as $label) {
+            $id = $this->resolveTranslatableId(Religion::class, $label);
+            if ($id) {
+                return $id;
+            }
+        }
+
+        return Religion::query()->value('id');
+    }
+
+    private function normalizeIngazDelegationExperience(?string $experience): string
+    {
+        $normalized = $this->normalizeArabicText($experience);
+
+        return match ($normalized) {
+            'previously_worked', 'has_experience', $this->normalizeArabicText('سبق العمل'), $this->normalizeArabicText('سبق لها العمل'), $this->normalizeArabicText('لديها خبرة') => 'previously_worked',
+            'not_previously_worked', 'no_experience', $this->normalizeArabicText('لم يسبق العمل'), $this->normalizeArabicText('لم يسبق لها العمل'), $this->normalizeArabicText('بدون خبرة') => 'not_previously_worked',
+            'appointed_by_client', $this->normalizeArabicText('معينة من قبل العميل'), $this->normalizeArabicText('معين من قبل العميل') => 'appointed_by_client',
+            'known_service', 'known', $this->normalizeArabicText('خدمة معروفة'), $this->normalizeArabicText('معروفة') => 'known_service',
+            default => 'unspecified',
         };
     }
 

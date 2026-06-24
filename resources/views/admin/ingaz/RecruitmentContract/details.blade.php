@@ -21,7 +21,14 @@
     $externalOfficeDispatchPdfUrl = $externalOfficeDispatch
         ? route('RecruitmentContract.externalOfficeDispatch.print', ['contract' => $contract->id, 'driver' => 'dompdf', 'download' => 1])
         : null;
-    $clientName = optional($contract->user)->name;
+    $sponsorshipTransferForDisplay = $contract->sponsorshipTransfers
+        ->whereIn('status', ['transferred', 'completed', 'trial_started', 'trial', 'maid_delivered', 'contract_signed', 'contract_sent', 'waiting_contract_send'])
+        ->sortByDesc('id')
+        ->first();
+    $displayClient = $sponsorshipTransferForDisplay?->oldSponsor ?: $contract->user;
+    $clientCardTitle = $sponsorshipTransferForDisplay ? 'معلومات الكفيل السابق' : 'معلومات العميل';
+    $clientOverviewLabel = $sponsorshipTransferForDisplay ? 'الكفيل السابق' : 'العميل';
+    $clientName = optional($displayClient)->name;
     $contractCreatedAt = $contract->created_at ? \Carbon\Carbon::parse($contract->created_at) : null;
     $contractDate = $info->contract_date ? \Carbon\Carbon::parse($info->contract_date) : null;
     $contractExpiryDate = $contractDate
@@ -34,8 +41,8 @@
         default => ($info->contract_duration ?? 0) . ' سنوات',
     };
     $clientPhone = trim(implode(' ', array_filter([
-        optional($contract->user)->phone_code,
-        optional($contract->user)->phone,
+        optional($displayClient)->phone_code,
+        optional($displayClient)->phone,
     ]))) ?: 'غير محدد';
     $canSelectContractMaid = \AdminGuardHasAnyPerm([
         \App\NewPermKeys::REC_CONTRACTS_CREATE,
@@ -932,7 +939,7 @@
 
                 <div class="page-overview">
                     <div class="overview-card">
-                        <span class="overview-label">العميل</span>
+                        <span class="overview-label">{{ $clientOverviewLabel }}</span>
                         <div class="overview-value">{{ $clientName ?? 'غير محدد' }}</div>
                         <div class="overview-meta">{{ $clientPhone }}</div>
                     </div>
@@ -962,40 +969,40 @@
                     <div class="info-card client-info">
                         <div class="card-title">
                             <i class="fas fa-user text-success"></i>
-                            معلومات العميل
+                            {{ $clientCardTitle }}
                         </div>
                         <div class="info-row">
                             <span class="info-label">الاسم:</span>
-                            <span class="info-value highlight">{{ $contract->user->name ?? 'غير محدد' }}</span>
+                            <span class="info-value highlight">{{ $displayClient->name ?? 'غير محدد' }}</span>
                         </div>
                         <div class="info-row">
                             <span class="info-label">رقم الجوال:</span>
                             <span class="info-value">{{ $clientPhone }}</span>
                         </div>
-                        @unless($contract->user?->isCompanyClient())
+                        @unless($displayClient?->isCompanyClient())
                         <div class="info-row">
                             <span class="info-label">تاريخ الميلاد:</span>
                             <span
-                                class="info-value">{{ $contract->user->birthdate ? \Carbon\Carbon::parse($contract->user->birthdate)->format('Y-m-d') : 'غير محدد' }}</span>
+                                class="info-value">{{ $displayClient?->birthdate ? \Carbon\Carbon::parse($displayClient->birthdate)->format('Y-m-d') : 'غير محدد' }}</span>
                         </div>
                         @endunless
                         <div class="info-row">
                             <span class="info-label">الجنسية:</span>
-                            <span class="info-value">{{ $contract->user->nationality->title ?? 'غير محدد' }}</span>
+                            <span class="info-value">{{ $displayClient?->nationality->title ?? 'غير محدد' }}</span>
                         </div>
                         <div class="info-row">
-                            <span class="info-label">{{ $contract->user?->documentNumberLabel() ?? 'رقم الهوية' }}:</span>
-                            <span class="info-value">{{ $contract->user?->documentNumber() ?? 'غير محدد' }}</span>
+                            <span class="info-label">{{ $displayClient?->documentNumberLabel() ?? 'رقم الهوية' }}:</span>
+                            <span class="info-value">{{ $displayClient?->documentNumber() ?? 'غير محدد' }}</span>
                         </div>
                         <div class="info-row">
                             <span class="info-label">البريد الإلكتروني:</span>
-                            <span class="info-value">{{ $contract->user->email ?? 'غير محدد' }}</span>
+                            <span class="info-value">{{ $displayClient?->email ?? 'غير محدد' }}</span>
                         </div>
-                        @if (isset($contract->user->addresses[0]))
+                        @if (isset($displayClient->addresses[0]))
                             <div class="info-row">
                                 <span class="info-label">العنوان:</span>
                                 <span
-                                    class="info-value">{{ $contract->user->addresses[0]->address . ' ' . $contract->user->addresses[0]->title }}</span>
+                                    class="info-value">{{ $displayClient->addresses[0]->address . ' ' . $displayClient->addresses[0]->title }}</span>
                             </div>
                         @endif
                     </div>

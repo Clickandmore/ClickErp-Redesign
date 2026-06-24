@@ -364,12 +364,12 @@ Route::group(
             Route::get('RecruitmentContract/{contractId}/change-maid', [RecruitmentContractController::class, 'showChangeMaid'])->name('RecruitmentContract.showChangeMaid');
             Route::post('RecruitmentContract/{contractId}/change-maid', [RecruitmentContractController::class, 'changeMaid'])->name('RecruitmentContract.changeMaid');
             Route::post('RecruitmentContract/{contractId}/notes', [RecruitmentContractController::class, 'storeNote'])->name('RecruitmentContract.notes.store');
+            Route::get('RentContract/existing-clients', [RentContractController::class, 'getExistingClients'])->name('RentContract.existing.clients');
             Route::resource('RentContract', RentContractController::class);
             Route::get('rental-invoices/download/{id}', [RentalContractInvoiceController::class, 'download'])->name('rental.invoice.download');
             Route::post('RentContract/{id}/complete', [RentContractController::class, 'completeContract'])->name('RentContract.complete');
             Route::get('RentContract/statistics/data', [RentContractController::class, 'statistics'])->name('RentContract.statistics');
             Route::get('RentContract/export/excel', [RentContractController::class, 'exportExcel'])->name('RentContract.export.excel');
-            Route::get('RentContract/existing-clients', [RentContractController::class, 'getExistingClients'])->name('RentContract.existing.clients');
 
             // Ø§Ù„ÙÙˆØ§ØªÙŠØ±
             Route::post('invoices/{id}/queue-zatca-sale', [InvoiceController::class, 'queueZatcaSale'])->name('invoices.queue-zatca-sale');
@@ -391,6 +391,7 @@ Route::group(
 
             // Routes Ø¬Ø¯ÙŠØ¯Ø© Ù„Ù€ workflow Ø¹Ù‚ÙˆØ¯ Ø§Ù„Ø¥ÙŠØ¬Ø§Ø±
             Route::post('RentContract/{id}/send-contract', [RentContractController::class, 'sendContract'])->name('RentContract.sendContract');
+            Route::post('RentContract/{id}/send-payment-link', [RentContractController::class, 'sendPaymentLink'])->name('RentContract.sendPaymentLink');
             Route::post('RentContract/{id}/sign-contract', [RentContractController::class, 'signContract'])->name('RentContract.signContract');
             Route::post('RentContract/{id}/deliver-maid', [RentContractController::class, 'deliverMaid'])->name('RentContract.deliverMaid');
             Route::post('RentContract/{id}/activate-contract', [RentContractController::class, 'activateContract'])->name('RentContract.activateContract');

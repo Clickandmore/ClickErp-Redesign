@@ -32,7 +32,7 @@
                                 <i class="fas fa-flask me-1"></i>
                                 النسخة التجريبية
                             </button>
-                            <a href="{{ route('istiqdam.real.index') }}" class="btn btn-outline-primary">
+                            <a href="{{ route('istiqdam.index') }}" class="btn btn-outline-primary">
                                 <i class="fas fa-link me-1"></i>
                                 الربط الفعلي
                             </a>

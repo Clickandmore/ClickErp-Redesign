@@ -11,6 +11,7 @@ use App\Models\ingaz\ClientAttachment;
 use App\Models\ingaz\Invoice;
 use App\Models\ingaz\Order;
 use App\Models\ingaz\User as objModel;
+use App\Models\Contract;
 use App\Models\RentalContract;
 use App\Models\SponsorshipTransfer;
 use App\Support\SystemModuleManager;
@@ -39,6 +40,20 @@ class UserController extends Controller
     {
     }
 
+    private function sponsorshipTransferDisplayStatuses(): array
+    {
+        return [
+            'transferred',
+            'completed',
+            'trial_started',
+            'trial',
+            'maid_delivered',
+            'contract_signed',
+            'contract_sent',
+            'waiting_contract_send',
+        ];
+    }
+
     /**
      * Display a listing of the resource.
      *
@@ -58,10 +73,26 @@ class UserController extends Controller
                         $query->whereNotIn('status', ['completed', 'done', 'refused', 'return']);
                     },
                     'rentalContracts as rental_contracts_count',
-                    'sponsorshipTransfersAsNewSponsor as transfer_requests_count',
                     'clientAttachments as client_attachments_count',
                 ])
                 ->addSelect([
+                    'recruitment_contracts_count' => Contract::selectRaw('COUNT(*)')
+                        ->whereIn('type', ['recruitment', 'maid'])
+                        ->where(function ($contractQuery) {
+                            $contractQuery
+                                ->where(function ($directContractQuery) {
+                                    $directContractQuery
+                                        ->whereColumn('user_id', 'users.id')
+                                        ->whereDoesntHave('sponsorshipTransfers', function ($transferQuery) {
+                                            $transferQuery->whereIn('status', $this->sponsorshipTransferDisplayStatuses());
+                                        });
+                                })
+                                ->orWhereHas('sponsorshipTransfers', function ($transferQuery) {
+                                    $transferQuery
+                                        ->whereIn('status', $this->sponsorshipTransferDisplayStatuses())
+                                        ->whereColumn('old_sponsor_id', 'users.id');
+                                });
+                        }),
                     'last_order_at' => Order::select('created_at')
                         ->whereColumn('user_id', 'users.id')
                         ->latest('created_at')
@@ -70,8 +101,18 @@ class UserController extends Controller
                         ->whereColumn('user_id', 'users.id')
                         ->latest('created_at')
                         ->limit(1),
+                    'transfer_requests_count' => SponsorshipTransfer::selectRaw('COUNT(*)')
+                        ->where(function ($transferQuery) {
+                            $transferQuery
+                                ->whereColumn('old_sponsor_id', 'users.id')
+                                ->orWhereColumn('new_sponsor_id', 'users.id');
+                        }),
                     'last_transfer_request_at' => SponsorshipTransfer::select('created_at')
-                        ->whereColumn('new_sponsor_id', 'users.id')
+                        ->where(function ($transferQuery) {
+                            $transferQuery
+                                ->whereColumn('old_sponsor_id', 'users.id')
+                                ->orWhereColumn('new_sponsor_id', 'users.id');
+                        })
                         ->latest('created_at')
                         ->limit(1),
                 ])
@@ -240,6 +281,7 @@ class UserController extends Controller
                 ->addColumn('metrics', function ($row) {
                     $ordersCount = number_format((int)$row->orders_count);
                     $activeOrders = number_format((int)$row->active_orders_count);
+                    $recruitmentCount = number_format((int)$row->recruitment_contracts_count);
                     $rentalCount = number_format((int)$row->rental_contracts_count);
                     $transferCount = number_format((int)$row->transfer_requests_count);
 
@@ -253,6 +295,9 @@ class UserController extends Controller
                                     </span>
                                 </div>
                                 <div class="d-flex flex-wrap gap-2">
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                        <i class="fas fa-file-signature me-1"></i>عقود الاستقدام: ' . $recruitmentCount . '
+                                    </span>
                                     <span class="badge bg-info-subtle text-info border border-info-subtle">
                                         <i class="fas fa-file-contract me-1"></i>' . helperTrans('ingaz.rental_contracts_count') . ': ' . $rentalCount . '
                                     </span>
@@ -716,7 +761,21 @@ class UserController extends Controller
 
         $invoices = Invoice::with(['contract'])
             ->whereHas('contract', function ($query) use ($client) {
-                $query->where('user_id', $client->id);
+                $query->where(function ($contractQuery) use ($client) {
+                    $contractQuery
+                        ->where(function ($directContractQuery) use ($client) {
+                            $directContractQuery
+                                ->where('user_id', $client->id)
+                                ->whereDoesntHave('sponsorshipTransfers', function ($transferQuery) {
+                                    $transferQuery->whereIn('status', $this->sponsorshipTransferDisplayStatuses());
+                                });
+                        })
+                        ->orWhereHas('sponsorshipTransfers', function ($transferQuery) use ($client) {
+                            $transferQuery
+                                ->whereIn('status', $this->sponsorshipTransferDisplayStatuses())
+                                ->where('old_sponsor_id', $client->id);
+                        });
+                });
             })
             ->latest()
             ->get();

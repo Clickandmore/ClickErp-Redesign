@@ -310,6 +310,57 @@
             padding: 1.15rem;
         }
 
+        .rent-contract-create .moyasar-payment-methods {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.45rem;
+            align-items: center;
+        }
+
+        .rent-contract-create .moyasar-payment-method {
+            min-height: 30px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.25rem 0.55rem;
+            border: 1px solid #d7e3ef;
+            border-radius: 8px;
+            background: #fff;
+            color: var(--rent-text);
+            font-size: 0.78rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .rent-contract-create .moyasar-payment-method i {
+            font-size: 1.05rem;
+        }
+
+        .rent-contract-create .moyasar-payment-method.visa i {
+            color: #1a1f71;
+        }
+
+        .rent-contract-create .moyasar-payment-method.mastercard i {
+            color: #eb001b;
+        }
+
+        .rent-contract-create .moyasar-payment-method.apple-pay i {
+            color: #111827;
+        }
+
+        .rent-contract-create .moyasar-payment-method.mada .mada-mark {
+            min-width: 26px;
+            height: 18px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            background: #0f766e;
+            color: #fff;
+            font-size: 0.68rem;
+            font-weight: 800;
+        }
+
         .rent-contract-create .payment-summary {
             background: var(--rent-primary-soft);
             border: 1px solid #cddff6;
@@ -467,30 +518,29 @@
                                         class="text-danger">*</span></label>
                                 <select name="new_existing_client_id" id="new_existing_client_id"
                                         class="form-select select2" style="width:100%">
-                                    <option value="" selected disabled>اختر عميل...</option>
-                                    @if(isset($existing_clients))
-                                        @foreach($existing_clients as $client)
-                                            <option value="{{$client->id}}"
-                                                    data-name="{{$client->name}}"
-                                                    data-phone="{{$client->phone}}"
-                                                    data-email="{{$client->email}}"
-                                                    data-nationality="{{$client->nationality_id}}"
-                                                    data-account-client-type="{{ $client->client_type ?? 'person' }}"
-                                                    data-document-label="{{ $client->documentNumberLabel() }}"
-                                                    data-tax-number="{{ $client->tax_number }}"
-                                                    data-license-number="{{ $client->license_number }}"
-                                                    data-national-num="{{ $client->documentNumber() }}"
-                                                    data-birthdate="{{$client->birthdate}}"
-                                                    data-phone2="{{$client->phone2}}"
-                                                    data-address="{{$client->address}}"
-                                                    data-city="{{$client->city}}"
-                                                    data-beds-num="{{$client->rooms_num}}"
-                                                    data-family-num="{{$client->family_num}}"
-                                                    data-children="{{$client->children}}"
-                                                    data-job="{{$client->job}}">
-                                                {{$client->name}} - {{$client->phone}} - {{$client->documentNumber()}}
-                                            </option>
-                                        @endforeach
+                                    <option value="" @selected(!isset($selectedClient) || !$selectedClient) disabled>اختر عميل...</option>
+                                    @if(isset($selectedClient) && $selectedClient)
+                                        <option value="{{ $selectedClient->id }}"
+                                                selected
+                                                data-name="{{ $selectedClient->name }}"
+                                                data-phone="{{ $selectedClient->phone }}"
+                                                data-email="{{ $selectedClient->email }}"
+                                                data-nationality="{{ $selectedClient->nationality_id }}"
+                                                data-account-client-type="{{ $selectedClient->client_type ?? 'person' }}"
+                                                data-document-label="{{ $selectedClient->documentNumberLabel() }}"
+                                                data-tax-number="{{ $selectedClient->tax_number }}"
+                                                data-license-number="{{ $selectedClient->license_number }}"
+                                                data-national-num="{{ $selectedClient->documentNumber() }}"
+                                                data-birthdate="{{ $selectedClient->birthdate }}"
+                                                data-phone2="{{ $selectedClient->phone2 }}"
+                                                data-address="{{ $selectedClient->address }}"
+                                                data-city="{{ $selectedClient->city }}"
+                                                data-beds-num="{{ $selectedClient->rooms_num }}"
+                                                data-family-num="{{ $selectedClient->family_num }}"
+                                                data-children="{{ $selectedClient->children }}"
+                                                data-job="{{ $selectedClient->job ?: $selectedClient->profession }}">
+                                            {{ $selectedClient->name }} - {{ $selectedClient->phone }} - {{ $selectedClient->searchableDocumentNumber() }}
+                                        </option>
                                     @endif
                                 </select>
                             </div>
@@ -795,11 +845,31 @@
                                                         <option value="tabby">تابي</option>
                                                         <option value="tamara">تمارا</option>
                                                         @if($moyasarEnabled)
-                                                            <option value="moyasar">دفع إلكتروني - ميسر</option>
+                                                            <option value="moyasar">ميسر: فيزا، مدى، ماستر كارد، أبل باي</option>
                                                         @endif
                                                         <option value="pay_later">الدفع لاحقاً</option>
                                                         <option value="other">أخرى</option>
                                                     </select>
+                                                    @if($moyasarEnabled)
+                                                        <div id="moyasarPaymentIcons" class="moyasar-payment-methods d-none mt-2">
+                                                            <span class="moyasar-payment-method visa" title="فيزا">
+                                                                <i class="fab fa-cc-visa"></i>
+                                                                <span>فيزا</span>
+                                                            </span>
+                                                            <span class="moyasar-payment-method mada" title="مدى">
+                                                                <span class="mada-mark">مدى</span>
+                                                                <span>مدى</span>
+                                                            </span>
+                                                            <span class="moyasar-payment-method mastercard" title="ماستر كارد">
+                                                                <i class="fab fa-cc-mastercard"></i>
+                                                                <span>ماستر كارد</span>
+                                                            </span>
+                                                            <span class="moyasar-payment-method apple-pay" title="أبل باي">
+                                                                <i class="fab fa-apple-pay"></i>
+                                                                <span>أبل باي</span>
+                                                            </span>
+                                                        </div>
+                                                    @endif
                                                     {{-- تنبيه ميسر --}}
                                                     <div id="moyasarNotice" class="alert alert-info d-none mt-2 mb-0 py-2 px-3 small">
                                                         <i class="fas fa-paper-plane me-1"></i>
@@ -1024,11 +1094,42 @@
                 clientAutoSelected: @json($isClientAutoSelected),
             };
 
-            $('.select2').select2({
+            $('.select2').not('#new_existing_client_id').select2({
                 placeholder: 'اختر...',
                 allowClear: true,
                 dir: 'rtl',
                 width: '100%'
+            });
+
+            $('#new_existing_client_id').select2({
+                placeholder: 'ابحث باسم العميل أو الجوال أو رقم الهوية...',
+                allowClear: true,
+                dir: 'rtl',
+                width: '100%',
+                minimumInputLength: 2,
+                ajax: {
+                    url: @json(route('RentContract.existing.clients')),
+                    dataType: 'json',
+                    delay: 300,
+                    data: function (params) {
+                        return {
+                            search: params.term || ''
+                        };
+                    },
+                    processResults: function (response) {
+                        return {
+                            results: (response.clients || []).map(function (client) {
+                                const documentNumber = client.document_number || client.national_num || client.tax_number || '';
+                                return {
+                                    id: client.id,
+                                    text: [client.name, client.phone, documentNumber].filter(Boolean).join(' - '),
+                                    client: client
+                                };
+                            })
+                        };
+                    },
+                    cache: true
+                }
             });
 
             function formatCurrency(value) {
@@ -1159,6 +1260,47 @@
                 $('#new_client_name, #new_client_phone, #new_client_email, #new_client_national_num, #new_client_license_number, #new_client_birthdate, #new_client_phone2, #new_client_address, #new_client_city, #new_client_beds_num, #new_client_family_num, #new_client_children, #new_client_job, #monthly_income').val('');
                 $('#client_nationality_id').val('').trigger('change');
                 resetRentClientDocumentMode();
+            }
+
+            function applyClientDataToOption($option, client) {
+                const data = {
+                    name: client.name || '',
+                    phone: client.phone || '',
+                    email: client.email || '',
+                    nationality: client.nationality_id || '',
+                    accountClientType: client.client_type || 'person',
+                    documentLabel: client.document_label || '',
+                    taxNumber: client.tax_number || '',
+                    licenseNumber: client.license_number || '',
+                    nationalNum: client.document_number || client.national_num || '',
+                    birthdate: client.birthdate || '',
+                    phone2: client.phone2 || '',
+                    address: client.address || '',
+                    city: client.city || '',
+                    bedsNum: client.rooms_num || '',
+                    familyNum: client.family_num || '',
+                    children: client.children || '',
+                    job: client.job || client.profession || ''
+                };
+
+                $option
+                    .attr('data-name', data.name).data('name', data.name)
+                    .attr('data-phone', data.phone).data('phone', data.phone)
+                    .attr('data-email', data.email).data('email', data.email)
+                    .attr('data-nationality', data.nationality).data('nationality', data.nationality)
+                    .attr('data-account-client-type', data.accountClientType).data('account-client-type', data.accountClientType)
+                    .attr('data-document-label', data.documentLabel).data('document-label', data.documentLabel)
+                    .attr('data-tax-number', data.taxNumber).data('tax-number', data.taxNumber)
+                    .attr('data-license-number', data.licenseNumber).data('license-number', data.licenseNumber)
+                    .attr('data-national-num', data.nationalNum).data('national-num', data.nationalNum)
+                    .attr('data-birthdate', data.birthdate).data('birthdate', data.birthdate)
+                    .attr('data-phone2', data.phone2).data('phone2', data.phone2)
+                    .attr('data-address', data.address).data('address', data.address)
+                    .attr('data-city', data.city).data('city', data.city)
+                    .attr('data-beds-num', data.bedsNum).data('beds-num', data.bedsNum)
+                    .attr('data-family-num', data.familyNum).data('family-num', data.familyNum)
+                    .attr('data-children', data.children).data('children', data.children)
+                    .attr('data-job', data.job).data('job', data.job);
             }
 
             $('input[name="account_client_type"]').on('change', function () {
@@ -1292,6 +1434,7 @@
                 }
 
                 $('#moyasarNotice').toggleClass('d-none', paymentType !== 'moyasar');
+                $('#moyasarPaymentIcons').toggleClass('d-none', paymentType !== 'moyasar');
             }
 
             function filterPackageOptions() {
@@ -1402,6 +1545,16 @@
                 }
             });
 
+            $('#new_existing_client_id').on('select2:select', function (event) {
+                const client = event.params.data.client || null;
+                const selectedOption = $(this).find('option:selected');
+
+                if (client && selectedOption.length) {
+                    applyClientDataToOption(selectedOption, client);
+                    fillClientData(selectedOption);
+                }
+            });
+
             $('#maid_id').on('change', function () {
                 const selectedOption = $(this).find('option:selected');
                 if (selectedOption.val()) {
@@ -1444,6 +1597,58 @@
 
             function escapeHtml(value) {
                 return $('<div>').text(value || '').html();
+            }
+
+            function copyTextToClipboard(text, button) {
+                const markCopied = function () {
+                    if (button) {
+                        const originalText = button.innerHTML;
+                        button.innerHTML = '<i class="fas fa-check me-1"></i>تم النسخ';
+                        setTimeout(function () {
+                            button.innerHTML = originalText;
+                        }, 1600);
+                    }
+                };
+
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(text).then(markCopied);
+                    return;
+                }
+
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.focus();
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                markCopied();
+            }
+
+            function buildPaymentLinkSuccessHtml(response) {
+                let html = '<div class="text-end" dir="rtl"><p class="mb-2">' + escapeHtml(response.message || '') + '</p>';
+
+                if (response.moyasar_link) {
+                    const warning = response.payment_link_created && !response.payment_link_sent
+                        ? '<div class="alert alert-warning py-2 mb-3">' + escapeHtml(response.payment_link_sms_error || 'تعذر إرسال رسالة رابط الدفع للعميل.') + '</div>'
+                        : '';
+
+                    html += warning +
+                        '<label class="form-label fw-bold">رابط الدفع</label>' +
+                        '<div class="input-group" dir="ltr">' +
+                        '<input type="text" class="form-control" id="createdPaymentLinkInput" value="' + escapeHtml(response.moyasar_link) + '" readonly>' +
+                        '<button type="button" class="btn btn-outline-primary" id="copyCreatedPaymentLinkBtn">' +
+                        '<i class="fas fa-copy me-1"></i>نسخ الرابط' +
+                        '</button>' +
+                        '</div>' +
+                        '<small class="text-muted d-block mt-2" dir="rtl">يمكنك نسخ الرابط وإرساله للعميل لاحقاً عند الحاجة.</small>';
+                }
+
+                html += '</div>';
+
+                return html;
             }
 
             function clearAjaxValidationErrors($form) {
@@ -1647,13 +1852,23 @@
                                 if (response.success) {
                                     Swal.fire({
                                         title: 'تم بنجاح!',
-                                        text: response.message,
-                                        icon: 'success',
+                                        html: buildPaymentLinkSuccessHtml(response),
+                                        icon: response.payment_link_created && !response.payment_link_sent ? 'warning' : 'success',
                                         showCancelButton: true,
                                         confirmButtonText: 'طباعة المستندات',
                                         cancelButtonText: 'الذهاب للقائمة',
                                         confirmButtonColor: '#2794eb',
-                                        cancelButtonColor: '#6c757d'
+                                        cancelButtonColor: '#6c757d',
+                                        didOpen: function () {
+                                            const copyButton = document.getElementById('copyCreatedPaymentLinkBtn');
+                                            const input = document.getElementById('createdPaymentLinkInput');
+
+                                            if (copyButton && input) {
+                                                copyButton.addEventListener('click', function () {
+                                                    copyTextToClipboard(input.value, copyButton);
+                                                });
+                                            }
+                                        }
                                     }).then((result) => {
                                         if (result.isConfirmed) {
                                             if (response.print_url) {

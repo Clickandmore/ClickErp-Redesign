@@ -277,8 +277,8 @@ class RentalOrderController extends Controller
             return JobTitle::with('translations')->get();
         });
 
-        $data['admins'] = \Cache::remember('admins_list', 300, function() {
-            return \App\Models\auth\Admin::select('id', 'name')->whereNull('deleted_at')->get();
+        $data['admins'] = \Cache::remember('admins_list.active_for_operations', 300, function() {
+            return \App\Models\auth\Admin::query()->activeForOperations()->select('id', 'name')->get();
         });
 
         // Get statistics with optimized queries (cache for 1 minute) - Rental orders only

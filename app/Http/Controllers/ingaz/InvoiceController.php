@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\ingaz;
 
+use App\Enums\ingaz\ContractStatusEnum;
 use App\Http\Controllers\admin\Controller;
 use App\Models\Branch;
 use App\Models\Contract;
@@ -231,12 +232,36 @@ class InvoiceController extends Controller
         $ingazDelegationId = is_numeric($ingazDelegationId) ? (int) $ingazDelegationId : null;
         $clientId = $request->query('client_id');
         $clientId = is_numeric($clientId) ? (int) $clientId : null;
+        $contractSearch = trim((string) $request->query('contract_search', ''));
+        $contractSearchAttempted = $contractSearch !== '';
+        $contractSearchMessage = null;
 
-        $contracts = Contract::query()
-            ->with(['user', 'maid.nationality', 'requiredMaidNationality'])
-            ->whereDoesntHave('invoice')
-            ->latest('id')
-            ->get();
+        $contracts = collect();
+
+        if (!$contractId && !$ingazDelegationId && !$clientId && $contractSearchAttempted) {
+            $searchedContract = Contract::query()
+                ->with(['user', 'maid.nationality', 'requiredMaidNationality'])
+                ->whereDoesntHave('invoice')
+                ->whereIn('status', $this->currentRecruitmentContractStatuses())
+                ->where(function ($query) use ($contractSearch) {
+                    if (is_numeric($contractSearch)) {
+                        $query->where('id', (int) $contractSearch);
+                    } else {
+                        $query->whereRaw('1 = 0');
+                    }
+
+                    if (Schema::hasColumn('contracts', 'contract_number')) {
+                        $query->orWhere('contract_number', $contractSearch);
+                    }
+                })
+                ->first();
+
+            if ($searchedContract) {
+                $contractId = (int) $searchedContract->id;
+            } else {
+                $contractSearchMessage = 'لم يتم العثور على عقد حالي بهذا الرقم، أو أن العقد لديه فاتورة مسبقة.';
+            }
+        }
 
         $selectedContract = null;
         $selectedIngazDelegation = null;
@@ -252,6 +277,12 @@ class InvoiceController extends Controller
                     ->route('invoices.show', $selectedContract->invoice->id)
                     ->with('success', 'تم إصدار فاتورة لهذا العقد مسبقاً.');
             }
+        }
+
+        if ($selectedContract && !$selectedContract->isCurrentRecruitmentContract()) {
+            $selectedContract = null;
+            $contractId = null;
+            $contractSearchMessage = 'لا يمكن إصدار فاتورة إلا لعقد من العقود الحالية.';
         }
 
         if ($ingazDelegationId) {
@@ -277,8 +308,23 @@ class InvoiceController extends Controller
             'contracts',
             'selectedContract',
             'selectedIngazDelegation',
-            'selectedClient'
+            'selectedClient',
+            'contractSearch',
+            'contractSearchAttempted',
+            'contractSearchMessage'
         ));
+    }
+
+    private function currentRecruitmentContractStatuses(): array
+    {
+        return [
+            ContractStatusEnum::PendingMaidSelection->value,
+            ContractStatusEnum::New->value,
+            ContractStatusEnum::Msaned->value,
+            ContractStatusEnum::Tafwed->value,
+            ContractStatusEnum::Taffez->value,
+            ContractStatusEnum::Tazker->value,
+        ];
     }
 
     /**
@@ -341,6 +387,20 @@ class InvoiceController extends Controller
                 'success' => false,
                 'message' => $request->filled('contract_id') ? 'هذا العقد لديه فاتورة سابقة' : 'هذا التفويض لديه فاتورة سابقة'
             ], 422);
+        }
+
+        if ($request->filled('contract_id')) {
+            $contractIsCurrent = Contract::query()
+                ->whereKey($request->contract_id)
+                ->whereIn('status', $this->currentRecruitmentContractStatuses())
+                ->exists();
+
+            if (!$contractIsCurrent) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن إصدار فاتورة إلا لعقد من العقود الحالية.'
+                ], 422);
+            }
         }
 
         try {

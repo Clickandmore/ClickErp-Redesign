@@ -253,7 +253,7 @@ $(document).ready(function() {
         `);
 
         $.ajax({
-            url: '{{ route("istiqdam.real.test.connection") }}',
+            url: '{{ route("istiqdam.test.connection") }}',
             type: 'GET',
             timeout: 30000, // 30 seconds timeout
             success: function(response) {
@@ -361,7 +361,7 @@ function testRealPackages() {
             Swal.showLoading();
 
             $.ajax({
-                url: '{{ route("istiqdam.real.packages.data") }}',
+                url: '{{ route("istiqdam.packages.data") }}',
                 type: 'GET',
                 timeout: 30000,
                 success: function(response) {
@@ -454,7 +454,7 @@ function searchRealContract(contractId) {
             Swal.showLoading();
 
             $.ajax({
-                url: '{{ route("istiqdam.real.contracts.show", ":id") }}'.replace(':id', contractId),
+                url: '{{ route("istiqdam.contracts.show", ":id") }}'.replace(':id', contractId),
                 type: 'GET',
                 timeout: 30000,
                 success: function(response) {
@@ -494,7 +494,7 @@ $(document).on('click', '#diagnoseBtn', function() {
             Swal.showLoading();
 
             $.ajax({
-                url: '{{ route("istiqdam.real.diagnose") }}',
+                url: '{{ route("istiqdam.diagnose") }}',
                 type: 'GET',
                 timeout: 30000,
                 success: function(response) {

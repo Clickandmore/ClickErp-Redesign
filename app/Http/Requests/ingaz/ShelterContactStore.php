@@ -45,6 +45,12 @@ class ShelterContactStore extends MainRequest
             'receipt_form_date' => 'nullable|date',
             'receipt_form_text' => 'nullable|string',
             'shelter_quick_tags' => 'nullable|string|max:1000',
+            'complaint_action' => 'nullable|in:none,link,create',
+            'shelter_complaint_id' => 'required_if:complaint_action,link|nullable|exists:complaints,id',
+            'shelter_complaint_type_id' => 'nullable|exists:complaint_types,id',
+            'shelter_complaint_priority' => 'nullable|in:low,medium,high,urgent',
+            'shelter_complaint_subject' => 'nullable|string|max:255',
+            'shelter_complaint_details' => 'nullable|string|max:5000',
         ];
     }
 

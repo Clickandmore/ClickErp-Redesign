@@ -116,7 +116,7 @@
                                     <select name="type" id="import-type" class="form-select" required>
                                         <option value="">اختر النوع</option>
                                         @foreach ($templates as $key => $template)
-                                            <option value="{{ $key }}" {{ old('type') === $key ? 'selected' : '' }}>{{ $template['label'] }}</option>
+                                            <option value="{{ $key }}" {{ old('type', request('type')) === $key ? 'selected' : '' }}>{{ $template['label'] }}</option>
                                         @endforeach
                                     </select>
                                 </div>
