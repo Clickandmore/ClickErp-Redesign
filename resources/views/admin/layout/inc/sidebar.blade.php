@@ -281,7 +281,9 @@
                                                 href="{{ route('maids.pending-submissions') }}">
                                                 <i class="fas fa-user-clock text-warning"></i>
                                                 <span class="ms-2">سير ذاتية بانتظار المراجعة</span>
-                                                @php($pendingMaidsCount = \App\Models\ingaz\Maid::pendingSubmission()->fromExternalOffice()->count())
+                                                @php
+                                                    $pendingMaidsCount = \App\Models\ingaz\Maid::pendingSubmission()->fromExternalOffice()->count();
+                                                @endphp
                                                 @if($pendingMaidsCount > 0)
                                                     <span class="badge bg-warning text-dark ms-2">{{ $pendingMaidsCount }}</span>
                                                 @endif
@@ -464,7 +466,9 @@
                                                         href="{{ route('contract-extension-requests.index') }}">
                                                         <i class="fas fa-calendar-plus"></i>
                                                         <span class="ms-2">طلبات تمديد العقود</span>
-                                                        @php($pendingExtCount = \App\Models\ContractExtensionRequest::where('status', 'pending')->count())
+                                                        @php
+                                                            $pendingExtCount = \App\Models\ContractExtensionRequest::where('status', 'pending')->count();
+                                                        @endphp
                                                         @if($pendingExtCount > 0)
                                                             <span class="badge bg-warning text-dark ms-2">{{ $pendingExtCount }}</span>
                                                         @endif
