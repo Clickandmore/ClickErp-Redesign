@@ -11,7 +11,10 @@
             \App\PermKeys::SETTINGS_VIEW,
         ]);
     $canViewAccessControlPermissionKeys = $isDeveloper || @AdminGuardHasPerm(\App\PermKeys::DEVELOPERS_PERMS);
-    $isAdminsRoute = request()->routeIs('admins.*') || request()->routeIs('packages.access-control.admins.*');
+    $_sidebarFilterScope = request()->get('filter_scope', '');
+    $isAdminsRoute = (request()->routeIs('admins.*') && $_sidebarFilterScope === '') || request()->routeIs('packages.access-control.admins.*');
+    $isBranchEmployeesRoute = request()->routeIs('admins.*') && $_sidebarFilterScope === 'branch';
+    $isOfficeEmployeesRoute = request()->routeIs('admins.*') && $_sidebarFilterScope === 'office';
     $isRolesRoute =
         request()->routeIs('packages.access-control.roles.*') ||
         request()->routeIs('dash.roles.*') ||
@@ -22,12 +25,26 @@
         request()->routeIs('packages.access-control.role-permissions.*');
 @endphp
 
-@if ($canViewAccessControlUsers || $isAdminsRoute)
+@if ($canViewAccessControlUsers || $isAdminsRoute || $isBranchEmployeesRoute || $isOfficeEmployeesRoute)
     <li>
         <a class="m-link {{ $isAdminsRoute ? 'active' : '' }}"
            href="{{ route('admins.index') }}">
             <i class="fas fa-users-cog"></i>
             <span class="ms-2">{{ __('access-control::sidebar.package_users') }}</span>
+        </a>
+    </li>
+    <li>
+        <a class="m-link {{ $isBranchEmployeesRoute ? 'active' : '' }}"
+           href="{{ route('admins.index', ['filter_scope' => 'branch']) }}">
+            <i class="fas fa-building"></i>
+            <span class="ms-2">موظفو الفروع</span>
+        </a>
+    </li>
+    <li>
+        <a class="m-link {{ $isOfficeEmployeesRoute ? 'active' : '' }}"
+           href="{{ route('admins.index', ['filter_scope' => 'office']) }}">
+            <i class="fas fa-briefcase"></i>
+            <span class="ms-2">موظفو المكاتب</span>
         </a>
     </li>
 @endif
