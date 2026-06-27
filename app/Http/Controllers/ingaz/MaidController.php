@@ -1993,7 +1993,7 @@ class MaidController extends Controller
     // سير ذاتية قيد المراجعة من المكاتب الخارجية
     // ================================================================
 
-    public function pendingSubmissions(Request $request)
+    public function pendingSubmissions(Request $request, RecruitmentOfficeAction $officeAct)
     {
         $query = objModel::with(['nationality', 'office', 'jobTypes'])
             ->pendingSubmission()
@@ -2012,8 +2012,8 @@ class MaidController extends Controller
             $query->where('office_id', $request->office_id);
         }
 
-        $maids   = $query->paginate(20)->appends($request->query());
-        $offices = \App\Models\RecruitmentOffices::orderBy('title')->get(['id', 'title']);
+        $maids        = $query->paginate(20)->appends($request->query());
+        $offices      = $officeAct->getAllOffices();
         $pendingCount = objModel::pendingSubmission()->fromExternalOffice()->count();
 
         return view('admin.ingaz.maids.pending_submissions', compact('maids', 'offices', 'pendingCount'));
