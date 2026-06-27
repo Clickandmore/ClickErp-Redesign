@@ -227,7 +227,7 @@
                                         <span class="ms-2">{{ helperTrans('ingaz.cv_management') }}</span>
                                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                                     </a>
-                                    <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['maids.index', 'noneAvailableMaids', 'maids.deleted_cvs', 'maids.create', 'maids.create_rapid_cv', 'maids.rental.index', 'maids.rental.create']) ? 'show' : '' }}"
+                                    <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['maids.index', 'noneAvailableMaids', 'maids.deleted_cvs', 'maids.create', 'maids.create_rapid_cv', 'maids.rental.index', 'maids.rental.create', 'maids.pending-submissions']) ? 'show' : '' }}"
                                         id="cvManagement">
                                         @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_CREATE))
                                             <li>
@@ -276,6 +276,17 @@
                                                 </a>
                                             </li>
                                         @endif
+                                        <li>
+                                            <a class="m-link {{ Route::currentRouteName() == 'maids.pending-submissions' ? 'active' : '' }}"
+                                                href="{{ route('maids.pending-submissions') }}">
+                                                <i class="fas fa-user-clock text-warning"></i>
+                                                <span class="ms-2">سير ذاتية بانتظار المراجعة</span>
+                                                @php($pendingMaidsCount = \App\Models\ingaz\Maid::pendingSubmission()->fromExternalOffice()->count())
+                                                @if($pendingMaidsCount > 0)
+                                                    <span class="badge bg-warning text-dark ms-2">{{ $pendingMaidsCount }}</span>
+                                                @endif
+                                            </a>
+                                        </li>
                                     </ul>
                                 </li>
                             @endif
@@ -388,7 +399,7 @@
                                         <span class="ms-2"> {{ helperTrans('ingaz.Recruitment contracts') }} </span>
                                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                                     </a>
-                                    <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['RecruitmentContracts.index', 'RecruitmentContract.index', 'RecruitmentContract.create', 'RecruitmentContract.externalOfficeDispatch.index', 'RecruitmentContract.externalOfficeDispatch.edit', 'RecruitmentContract.externalOfficeDispatch.print', 'contract-return-requests.index', 'invoices.index']) ? 'show' : '' }}"
+                                    <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['RecruitmentContracts.index', 'RecruitmentContract.index', 'RecruitmentContract.create', 'RecruitmentContract.externalOfficeDispatch.index', 'RecruitmentContract.externalOfficeDispatch.edit', 'RecruitmentContract.externalOfficeDispatch.print', 'contract-return-requests.index', 'invoices.index', 'contract-extension-requests.index', 'contract-extension-requests.show']) ? 'show' : '' }}"
                                         id="contracts">
                                         @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CREATE))
                                             <li>
@@ -447,6 +458,19 @@
                                                     </span>
                                                 </a>
                                             </li>
+                                            @if (@AdminGuardHasAnyPerm([\App\NewPermKeys::REC_CONTRACTS_EXTENSION_VIEW, \App\NewPermKeys::REC_CONTRACTS_EXTENSION_MANAGE]))
+                                                <li>
+                                                    <a class="m-link {{ request()->routeIs('contract-extension-requests.*') ? 'active' : '' }}"
+                                                        href="{{ route('contract-extension-requests.index') }}">
+                                                        <i class="fas fa-calendar-plus"></i>
+                                                        <span class="ms-2">طلبات تمديد العقود</span>
+                                                        @php($pendingExtCount = \App\Models\ContractExtensionRequest::where('status', 'pending')->count())
+                                                        @if($pendingExtCount > 0)
+                                                            <span class="badge bg-warning text-dark ms-2">{{ $pendingExtCount }}</span>
+                                                        @endif
+                                                    </a>
+                                                </li>
+                                            @endif
                                             {{-- @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED))
                                         <li>
                                             <a class="m-link"
