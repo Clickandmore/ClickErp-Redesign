@@ -460,21 +460,19 @@
                                                     </span>
                                                 </a>
                                             </li>
-                                            @if (@AdminGuardHasAnyPerm([\App\NewPermKeys::REC_CONTRACTS_EXTENSION_VIEW, \App\NewPermKeys::REC_CONTRACTS_EXTENSION_MANAGE]))
-                                                <li>
-                                                    <a class="m-link {{ request()->routeIs('contract-extension-requests.*') ? 'active' : '' }}"
-                                                        href="{{ route('contract-extension-requests.index') }}">
-                                                        <i class="fas fa-calendar-plus"></i>
-                                                        <span class="ms-2">طلبات تمديد العقود</span>
-                                                        @php
-                                                            $pendingExtCount = \App\Models\ContractExtensionRequest::where('status', 'pending')->count();
-                                                        @endphp
-                                                        @if($pendingExtCount > 0)
-                                                            <span class="badge bg-warning text-dark ms-2">{{ $pendingExtCount }}</span>
-                                                        @endif
-                                                    </a>
-                                                </li>
-                                            @endif
+                                            <li>
+                                                <a class="m-link {{ request()->routeIs('contract-extension-requests.*') ? 'active' : '' }}"
+                                                    href="{{ route('contract-extension-requests.index') }}">
+                                                    <i class="fas fa-calendar-plus"></i>
+                                                    <span class="ms-2">طلبات تمديد العقود</span>
+                                                    @php
+                                                        $pendingExtCount = \App\Models\ContractExtensionRequest::where('status', 'pending')->count();
+                                                    @endphp
+                                                    @if($pendingExtCount > 0)
+                                                        <span class="badge bg-warning text-dark ms-2">{{ $pendingExtCount }}</span>
+                                                    @endif
+                                                </a>
+                                            </li>
                                             {{-- @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED))
                                         <li>
                                             <a class="m-link"
