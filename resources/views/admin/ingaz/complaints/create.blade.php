@@ -49,6 +49,13 @@
     .btn-primary:hover {
         background: linear-gradient(135deg, #5569d8 0%, #6a4190 100%);
     }
+    .is-invalid + .select2-container .select2-selection,
+    select.is-invalid + .select2-container .select2-selection {
+        border-color: #dc3545 !important;
+    }
+    .select2-container--default.select2-invalid .select2-selection {
+        border-color: #dc3545 !important;
+    }
 </style>
 @endsection
 
@@ -63,7 +70,7 @@
         </h4>
     </div>
     <div class="card-body">
-        <form action="{{ route('complaints.store') }}" method="POST" enctype="multipart/form-data" id="complaintForm" class="from-submit-global">
+        <form action="{{ route('complaints.store') }}" method="POST" enctype="multipart/form-data" id="complaintForm" class="from-submit-global" novalidate>
             @csrf
 
             <!-- معلومات مقدم الشكوى -->
@@ -76,27 +83,23 @@
             <div class="row mb-4">
                 <div class="col-md-4 mb-3">
                     <label class="form-label">{{ __('ingaz.complainant_name') }} <span class="required-star">*</span></label>
-                    <input type="text" name="complainant_name" class="form-control" required
+                    <input type="text" name="complainant_name" class="form-control {{ $errors->has('complainant_name') ? 'is-invalid' : '' }}" required
                            placeholder="{{ __('ingaz.complainant_name_placeholder') }}" value="{{ old('complainant_name') }}"
                            data-validation="required">
-                    @error('complainant_name')
-                        <span class="text-danger">{{ $message }}</span>
-                    @enderror
+                    <span class="text-danger small d-block mt-1" data-field="complainant_name">{{ $errors->first('complainant_name') }}</span>
                 </div>
 
                 <div class="col-md-4 mb-3">
                     <label class="form-label">{{ __('ingaz.phone') }} <span class="required-star">*</span></label>
-                    <input type="tel" name="complainant_phone" class="form-control" required
+                    <input type="tel" name="complainant_phone" class="form-control {{ $errors->has('complainant_phone') ? 'is-invalid' : '' }}" required
                            placeholder="05XXXXXXXX | 5XXXXXXXX" pattern="^(05|5)[0-9]{8}$" value="{{ old('complainant_phone') }}"
                            data-validation="required">
-                    @error('complainant_phone')
-                        <span class="text-danger">{{ $message }}</span>
-                    @enderror
+                    <span class="text-danger small d-block mt-1" data-field="complainant_phone">{{ $errors->first('complainant_phone') }}</span>
                 </div>
 
                 <div class="col-md-4 mb-3">
                     <label class="form-label">{{ __('ingaz.registered_client_optional') }}</label>
-                    <select name="user_id" class="form-select select2">
+                    <select name="user_id" class="form-select select2 {{ $errors->has('user_id') ? 'is-invalid' : '' }}">
                         <option value="">{{ __('ingaz.select_registered_client') }}</option>
                         @foreach($users as $user)
                             <option value="{{ $user->id }}" {{ old('user_id') == $user->id ? 'selected' : '' }}
@@ -105,9 +108,7 @@
                             </option>
                         @endforeach
                     </select>
-                    @error('user_id')
-                        <span class="text-danger">{{ $message }}</span>
-                    @enderror
+                    <span class="text-danger small d-block mt-1" data-field="user_id">{{ $errors->first('user_id') }}</span>
                 </div>
             </div>
 
@@ -121,16 +122,14 @@
             <div class="row mb-4">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">{{ __('ingaz.worker_passport_number') }}</label>
-                    <input type="text" name="maid_passport" class="form-control"
+                    <input type="text" name="maid_passport" class="form-control {{ $errors->has('maid_passport') ? 'is-invalid' : '' }}"
                            placeholder="{{ __('ingaz.passport_number_placeholder') }}" value="{{ old('maid_passport') }}">
-                    @error('maid_passport')
-                        <span class="text-danger">{{ $message }}</span>
-                    @enderror
+                    <span class="text-danger small d-block mt-1" data-field="maid_passport">{{ $errors->first('maid_passport') }}</span>
                 </div>
 
                 <div class="col-md-6 mb-3">
                     <label class="form-label">{{ __('ingaz.worker_nationality') }}</label>
-                    <select name="maid_nationality_id" class="form-select select2">
+                    <select name="maid_nationality_id" class="form-select select2 {{ $errors->has('maid_nationality_id') ? 'is-invalid' : '' }}">
                         <option value="">{{ __('ingaz.select_nationality') }}</option>
                         @foreach($nationalities as $nationality)
                             <option value="{{ $nationality->id }}" {{ old('maid_nationality_id') == $nationality->id ? 'selected' : '' }}>
@@ -138,9 +137,7 @@
                             </option>
                         @endforeach
                     </select>
-                    @error('maid_nationality_id')
-                        <span class="text-danger">{{ $message }}</span>
-                    @enderror
+                    <span class="text-danger small d-block mt-1" data-field="maid_nationality_id">{{ $errors->first('maid_nationality_id') }}</span>
                 </div>
             </div>
 
@@ -154,17 +151,15 @@
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">{{ __('ingaz.complaint_subject') }} <span class="required-star">*</span></label>
-                    <input type="text" name="subject" class="form-control" required
+                    <input type="text" name="subject" class="form-control {{ $errors->has('subject') ? 'is-invalid' : '' }}" required
                            placeholder="{{ __('ingaz.complaint_subject_placeholder') }}" value="{{ old('subject') }}"
                            data-validation="required">
-                    @error('subject')
-                        <span class="text-danger">{{ $message }}</span>
-                    @enderror
+                    <span class="text-danger small d-block mt-1" data-field="subject">{{ $errors->first('subject') }}</span>
                 </div>
 
                 <div class="col-md-6 mb-3">
                     <label class="form-label">{{ __('ingaz.complaint_type') }} <span class="required-star">*</span></label>
-                    <select name="complaint_type_id" class="form-select" required data-validation="required">
+                    <select name="complaint_type_id" class="form-select {{ $errors->has('complaint_type_id') ? 'is-invalid' : '' }}" required data-validation="required">
                         <option value="">{{ __('ingaz.select_complaint_type') }}</option>
                         @foreach($complaintTypes as $type)
                             <option value="{{ $type->id }}" {{ old('complaint_type_id') == $type->id ? 'selected' : '' }}>
@@ -172,14 +167,12 @@
                             </option>
                         @endforeach
                     </select>
-                    @error('complaint_type_id')
-                        <span class="text-danger">{{ $message }}</span>
-                    @enderror
+                    <span class="text-danger small d-block mt-1" data-field="complaint_type_id">{{ $errors->first('complaint_type_id') }}</span>
                 </div>
 
                 <div class="col-md-4 mb-3">
                     <label class="form-label">{{ __('ingaz.priority') }} <span class="required-star">*</span></label>
-                    <select name="priority" class="form-select" required data-validation="required">
+                    <select name="priority" class="form-select {{ $errors->has('priority') ? 'is-invalid' : '' }}" required data-validation="required">
                         <option value="low" {{ old('priority') == 'low' ? 'selected' : '' }}>
                             {{ __('ingaz.priority_low') }}
                         </option>
@@ -193,14 +186,12 @@
                             {{ __('ingaz.priority_urgent') }}
                         </option>
                     </select>
-                    @error('priority')
-                        <span class="text-danger">{{ $message }}</span>
-                    @enderror
+                    <span class="text-danger small d-block mt-1" data-field="priority">{{ $errors->first('priority') }}</span>
                 </div>
 
                 <div class="col-md-8 mb-3">
                     <label class="form-label">{{ __('ingaz.assigned_employee') }}</label>
-                    <select name="assigned_to" class="form-select select2">
+                    <select name="assigned_to" class="form-select select2 {{ $errors->has('assigned_to') ? 'is-invalid' : '' }}">
                         <option value="">{{ __('ingaz.select_assigned_employee') }}</option>
                         @foreach($admins as $admin)
                             <option value="{{ $admin->id }}" {{ old('assigned_to') == $admin->id ? 'selected' : '' }}>
@@ -208,28 +199,22 @@
                             </option>
                         @endforeach
                     </select>
-                    @error('assigned_to')
-                        <span class="text-danger">{{ $message }}</span>
-                    @enderror
+                    <span class="text-danger small d-block mt-1" data-field="assigned_to">{{ $errors->first('assigned_to') }}</span>
                 </div>
 
                 <div class="col-12 mb-3">
                     <label class="form-label">{{ __('ingaz.complaint_details') }} <span class="required-star">*</span></label>
-                    <textarea name="details" class="form-control" rows="5" required
+                    <textarea name="details" class="form-control {{ $errors->has('details') ? 'is-invalid' : '' }}" rows="5" required
                               placeholder="{{ __('ingaz.complaint_details_placeholder') }}" data-validation="required">{{ old('details') }}</textarea>
-                    @error('details')
-                        <span class="text-danger">{{ $message }}</span>
-                    @enderror
+                    <span class="text-danger small d-block mt-1" data-field="details">{{ $errors->first('details') }}</span>
                 </div>
 
                 <div class="col-12 mb-3">
                     <label class="form-label">{{ __('ingaz.attachments') }}</label>
-                    <input type="file" name="attachments[]" class="form-control" multiple
+                    <input type="file" name="attachments[]" class="form-control {{ $errors->has('attachments') ? 'is-invalid' : '' }}" multiple
                            accept="image/*,application/pdf,.doc,.docx">
                     <small class="text-muted">{{ __('ingaz.attachments_hint') }}</small>
-                    @error('attachments')
-                        <span class="text-danger">{{ $message }}</span>
-                    @enderror
+                    <span class="text-danger small d-block mt-1" data-field="attachments">{{ $errors->first('attachments') }}</span>
                 </div>
             </div>
 
@@ -314,6 +299,64 @@ $(document).ready(function() {
             case 'urgent':
                 $(this).addClass('text-danger');
                 break;
+        }
+    });
+
+    function setFieldInvalid(fieldName, message) {
+        var $input = $('#complaintForm [name="' + fieldName + '"]');
+        $input.addClass('is-invalid');
+        // select2: لون الحد على الـ container
+        $input.next('.select2-container').find('.select2-selection').css('border-color', '#dc3545');
+        $('#complaintForm [data-field="' + fieldName + '"]').text(message);
+    }
+
+    function clearFieldInvalid(fieldName) {
+        var $input = $('#complaintForm [name="' + fieldName + '"]');
+        $input.removeClass('is-invalid');
+        $input.next('.select2-container').find('.select2-selection').css('border-color', '');
+        $('#complaintForm [data-field="' + fieldName + '"]').text('');
+    }
+
+    // إزالة is-invalid عند الكتابة أو التغيير
+    $('#complaintForm').on('input change', 'input, select, textarea', function() {
+        clearFieldInvalid($(this).attr('name'));
+    });
+
+    // التحقق من الحقول المطلوبة قبل الإرسال
+    var requiredFields = [
+        { name: 'complainant_name',  label: 'اسم مقدم الشكوى' },
+        { name: 'complainant_phone', label: 'رقم الجوال' },
+        { name: 'subject',           label: 'موضوع الشكوى' },
+        { name: 'complaint_type_id', label: 'نوع الشكوى' },
+        { name: 'details',           label: 'تفاصيل الشكوى' },
+        { name: 'priority',          label: 'الأولوية' },
+    ];
+
+    $('#complaintForm').on('submit', function(e) {
+        var hasError = false;
+
+        $.each(requiredFields, function(i, field) {
+            var val = $('#complaintForm [name="' + field.name + '"]').val();
+            if (!val || val.toString().trim() === '') {
+                setFieldInvalid(field.name, 'حقل ' + field.label + ' مطلوب');
+                hasError = true;
+            }
+        });
+
+        // تحقق إضافي من صيغة رقم الجوال
+        var phoneVal = $('input[name="complainant_phone"]').val();
+        if (phoneVal && !phoneVal.match(/^(05|5)[0-9]{8}$/)) {
+            setFieldInvalid('complainant_phone', 'صيغة رقم الجوال غير صحيحة (مثال: 0512345678)');
+            hasError = true;
+        }
+
+        if (hasError) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            var $firstInvalid = $('#complaintForm .is-invalid').first();
+            if ($firstInvalid.length) {
+                $('html, body').animate({ scrollTop: $firstInvalid.offset().top - 120 }, 400);
+            }
         }
     });
 });

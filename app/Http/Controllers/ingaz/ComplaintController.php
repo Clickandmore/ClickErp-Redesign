@@ -188,7 +188,7 @@ class ComplaintController extends Controller
                     function ($attribute, $value, $fail) {
                         $phoneWithout0 = ltrim($value, '0');
                         if (!User::whereIn('phone', [$phoneWithout0, $value])->exists()) {
-                            $fail(__('validation.exists', ['attribute' => $attribute]));
+                            $fail('رقم الجوال غير مسجل في النظام، يرجى التحقق من الرقم أو اختر عميلاً من القائمة');
                         }
                     },
                 ],
@@ -231,7 +231,7 @@ class ComplaintController extends Controller
             }
             if (!$user) {
                 throw ValidationException::withMessages([
-                    'complainant_phone' => [__('validation.exists', ['attribute' => 'complainant_phone'])],
+                    'complainant_phone' => ['رقم الجوال غير مسجل في النظام، يرجى التحقق من الرقم أو اختر عميلاً من القائمة'],
                 ]);
             }
 

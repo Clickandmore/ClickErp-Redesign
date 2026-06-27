@@ -241,10 +241,11 @@
         if (window.tinymce && tinymce.editors && tinymce.editors.length) {
             tinymce.triggerSave();
         }
+        let form = this;
         let formData = new FormData(this);
         let url = $(this).attr('action');
         let submitButton = $(e.originalEvent.submitter);
-        let buttonText = submitButton.text();
+        let buttonText = submitButton.html();
         let modalResult = $("#createModal");
         $.ajax({
             url: url,
@@ -254,12 +255,14 @@
             contentType: false,
             processData: false,
             beforeSend: function () {
+                $(form).find('[data-field]').text('').closest('.mb-3, .col-md-4, .col-md-6, .col-md-8, .col-12').find('input, select, textarea').removeClass('is-invalid');
                 if (window.cmShowLoader) {
                     window.cmShowLoader();
                 } else {
                     $('#loading-wrapper').show();
                 }
-                submitButton.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ' + buttonText)
+                submitButton.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> جاري الحفظ...')
+                submitButton.prop('disabled', true);
             },
             complete: function () {
                 if (window.cmHideLoader) {
@@ -273,17 +276,33 @@
                 $('.form-alert').html(result.message);
                 handleSuccessResponce(result);
                 reloadDataTable();
-                submitButton.html(buttonText)
+                submitButton.html(buttonText);
+                submitButton.prop('disabled', false);
                 if (modalResult.is(":visible")) {
                     modalResult.modal('toggle');
                 }
-                // modalResult.modal('toggle');
                 console.log(modalResult.is(':visible'));
             },
             error: function (errorObj, errorText, errorThrown) {
                 console.log(500)
                 console.log(errorObj)
+                submitButton.html(buttonText);
+                submitButton.prop('disabled', false);
                 handleErrorResponce(errorObj);
+                if (errorObj.status == 422 || errorObj.status == 400) {
+                    try {
+                        let errorsObj = $.parseJSON(errorObj.responseText);
+                        let listObject = errorsObj.data || errorsObj.errors || {};
+                        $.each(listObject, function (fieldName, errorArr) {
+                            let firstError = Array.isArray(errorArr) ? errorArr[0] : errorArr;
+                            let $errorSpan = $(form).find('[data-field="' + fieldName + '"]');
+                            if ($errorSpan.length) {
+                                $errorSpan.text(firstError);
+                                $(form).find('[name="' + fieldName + '"]').addClass('is-invalid');
+                            }
+                        });
+                    } catch(e) {}
+                }
             }
         });
 
