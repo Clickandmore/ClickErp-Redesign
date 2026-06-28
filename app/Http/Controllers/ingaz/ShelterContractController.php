@@ -910,6 +910,7 @@ class ShelterContractController extends Controller
     private function shelterEligibleContractStatuses(): array
     {
         return [
+            ContractStatusEnum::Arrival->value,
             ContractStatusEnum::Completed->value,
             ContractStatusEnum::UnderWarranty->value,
             ContractStatusEnum::Closed->value,
@@ -1096,7 +1097,7 @@ class ShelterContractController extends Controller
             !$contract ||
             !$this->contractCanBeAddedToShelter($contract)
         ) {
-            return jsonError('لا يمكن إضافة هذا العقد للإيواء. يجب أن يكون العقد مكتملًا وأن تكون العاملة وصلت فعليًا.', 422);
+            return jsonError('لا يمكن إضافة هذا العقد للإيواء. يجب أن يكون العقد في مرحلة وصول/ضمان/مكتمل وأن تكون العاملة وصلت فعليًا.', 422);
         }
 
         $wantsToWork = $request->input('wants_to_work') ?: 'unknown';
