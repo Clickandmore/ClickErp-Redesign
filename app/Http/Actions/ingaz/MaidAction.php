@@ -1450,6 +1450,7 @@ class MaidAction extends MainAction
 
         if (
             array_key_exists('nationality_id', $data)
+            && $this->hasStoredValue($maid->nationality_id)
             && (int) $data['nationality_id'] !== (int) $maid->nationality_id
         ) {
             $lockedFields['nationality_id'] = 'لا يمكن تعديل جنسية العاملة بعد حجز السيرة أو وجود ارتباطات مالية.';
@@ -1457,6 +1458,7 @@ class MaidAction extends MainAction
 
         if (
             array_key_exists('office_id', $data)
+            && $this->hasStoredValue($maid->office_id)
             && $this->nullableInt($data['office_id']) !== $this->nullableInt($maid->office_id)
         ) {
             $lockedFields['office_id'] = 'لا يمكن تعديل المكتب الخارجي بعد حجز السيرة أو وجود ارتباطات مالية.';
@@ -1474,12 +1476,13 @@ class MaidAction extends MainAction
             ->values()
             ->all();
 
-        if ($currentJobTypeIds !== $submittedJobTypeIds) {
+        if ($currentJobTypeIds !== [] && $currentJobTypeIds !== $submittedJobTypeIds) {
             $lockedFields['type_id'] = 'لا يمكن تعديل نوع السيرة بين استقدام وإيجار بعد حجز السيرة أو وجود ارتباطات مالية.';
         }
 
         if (
             array_key_exists('request_type', $data)
+            && Maid::normalizeRequestType($maid->request_type) !== null
             && Maid::resolveRequestType($data['request_type']) !== Maid::resolveRequestType($maid->request_type)
         ) {
             $lockedFields['request_type'] = 'لا يمكن تعديل نوع طلب السيرة بعد حجز السيرة أو وجود ارتباطات مالية.';
@@ -1535,6 +1538,13 @@ class MaidAction extends MainAction
     protected function nullableInt($value): ?int
     {
         return $value === null || $value === '' ? null : (int) $value;
+    }
+
+    protected function hasStoredValue($value): bool
+    {
+        $value = $this->nullableInt($value);
+
+        return $value !== null && $value > 0;
     }
 
     private function syncLegacyMaidLanguageTranslations(Maid $maid, array $languages): void
