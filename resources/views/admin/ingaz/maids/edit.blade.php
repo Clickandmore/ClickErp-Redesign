@@ -7,7 +7,9 @@
     $requireIdFields = $requireIdFields ?? true;
     $shelterCompanyName = documentSetting('document_company_name', documentSetting('website_name', config('app.name')));
     $shelterCompanyHint = __('ingaz.auto_shelter_contract_hint', ['company' => $shelterCompanyName]);
-    $selectedTypeId = (int) old('type_id', $obj->jobTypes->pluck('id')->first());
+    $storedTypeIds = $obj->jobTypes->pluck('id')->filter()->map(fn ($id) => (int) $id)->values();
+    $storedTypeId = (int) $storedTypeIds->first();
+    $selectedTypeId = (int) old('type_id', $storedTypeId);
     $defaultTypeId = $defaultTypeId ?? $selectedTypeId;
     $selectedTypeTitle = collect($types ?? [])->firstWhere('id', $selectedTypeId)->title ?? '';
     $selectedRequestType = old('request_type', \App\Models\ingaz\Maid::resolveRequestType($obj->request_type));
@@ -91,6 +93,12 @@
         $obj->contracts()->whereIn('status', $activeRecruitmentContractStatuses)->exists() ||
         $obj->rentalContracts()->whereIn('status', $activeRentalContractStatuses)->exists() ||
         $obj->rentalFinancialAdjustments()->exists();
+    $storedRequestType = \App\Models\ingaz\Maid::normalizeRequestType($obj->request_type);
+    $typeFieldLocked = $identityFieldsLocked && $storedTypeIds->isNotEmpty();
+    $nationalityFieldLocked = $identityFieldsLocked && filled($obj->nationality_id) && (int) $obj->nationality_id > 0;
+    $officeFieldLocked = $identityFieldsLocked && filled($obj->office_id) && (int) $obj->office_id > 0;
+    $requestTypeFieldLocked = $identityFieldsLocked && $storedRequestType !== null;
+    $hasLockedIdentityFields = $typeFieldLocked || $nationalityFieldLocked || $officeFieldLocked || $requestTypeFieldLocked;
     $cvFieldsFilledTemplate = __('ingaz.cv_fields_filled', [
         'count' => '__count__',
         'extra' => '__extra__',
@@ -301,14 +309,22 @@
                     enctype="multipart/form-data" id="maidForm">
                     @csrf
                     @method('PUT')
-                    @if ($identityFieldsLocked)
-                        <input type="hidden" name="type_id" value="{{ $selectedTypeId }}">
+                    @if ($typeFieldLocked)
+                        <input type="hidden" name="type_id" value="{{ $storedTypeId }}">
+                    @endif
+                    @if ($nationalityFieldLocked)
                         <input type="hidden" name="nationality_id" value="{{ $obj->nationality_id }}">
+                    @endif
+                    @if ($officeFieldLocked)
                         <input type="hidden" name="office_id" value="{{ $obj->office_id }}">
-                        <input type="hidden" name="request_type" value="{{ $selectedRequestType }}">
+                    @endif
+                    @if ($requestTypeFieldLocked)
+                        <input type="hidden" name="request_type" value="{{ $storedRequestType }}">
+                    @endif
+                    @if ($hasLockedIdentityFields)
                         <div class="col-12">
                             <div class="alert alert-warning mb-0">
-                                لا يمكن تعديل نوع السيرة أو الجنسية أو المكتب الخارجي لهذه السيرة لأنها محجوزة أو مرتبطة مالياً.
+                                لا يمكن تعديل بيانات السيرة المحفوظة لهذه السيرة لأنها محجوزة أو مرتبطة مالياً. يمكن استكمال الحقول التي لا توجد لها قيمة محفوظة.
                             </div>
                         </div>
                     @endif
@@ -350,7 +366,7 @@
                                             <div class="col-md-6 col-xl-4">
                                                 <button type="button"
                                                     class="maid-type-option {{ $isSelectedType ? 'is-active' : '' }}"
-                                                    {{ $identityFieldsLocked ? 'disabled' : '' }}
+                                                    {{ $typeFieldLocked ? 'disabled' : '' }}
                                                     data-type-id="{{ $type->id }}">
                                                     <span class="d-flex gap-3 align-items-start">
                                                         <span class="maid-type-option__icon">
@@ -406,7 +422,7 @@
                             </div>
                             <select name="type_id" id="type_id" class="form-control maid-type-native-select" required
                                 data-default-type="{{ $selectedTypeId }}"
-                                {{ $identityFieldsLocked ? 'disabled' : '' }}
+                                {{ $typeFieldLocked ? 'disabled' : '' }}
                                 aria-label="{{ helperTrans('ingaz.select_cv_type') }}">
                                 <option value="">{{ helperTrans('ingaz.select_cv_type') }}</option>
                                 @foreach ($types as $type)
@@ -489,7 +505,7 @@
                                 <div class="col-4">
                                     <label for="TextInput" class="form-label">{{ helperTrans('ingaz.nationality') }} </label>
                                     <select name="nationality_id" id="Pnationality_id" class="form-control" required
-                                        {{ $identityFieldsLocked ? 'disabled' : '' }}>
+                                        {{ $nationalityFieldLocked ? 'disabled' : '' }}>
                                         <option value="">{{ helperTrans('ingaz.choose') }}</option>
                                         @foreach ($nationalities as $nationality)
                                             <option value="{{ $nationality->id }}" data-price="{{ $nationality->price }}"
@@ -506,7 +522,7 @@
                                 <!-- مكتب الاستقدام -->
                                 <div class="col-4 office-field">
                                     <label for="TextInput" class="form-label">{{ helperTrans('ingaz.recruitment office') }} </label>
-                                    <select name="office_id" class="form-control" {{ $identityFieldsLocked ? 'disabled' : '' }}>
+                                    <select name="office_id" class="form-control" {{ $officeFieldLocked ? 'disabled' : '' }}>
                                         <option value="">{{ helperTrans('ingaz.choose_recruitment_office') }}</option>
                                         {!! showSelectElement($offices, 'title', old('office_id', $obj->office_id)) !!}
                                     </select>
@@ -525,7 +541,7 @@
                                 <div class="col-4" id="request_type_field">
                                     <label for="request_type" class="form-label">{{ helperTrans('ingaz.request_type') }}</label>
                                     <select name="request_type" id="request_type" class="form-control"
-                                        {{ $identityFieldsLocked ? 'disabled' : '' }}>
+                                        {{ $requestTypeFieldLocked ? 'disabled' : '' }}>
                                         @foreach (\App\Models\ingaz\Maid::getRequestTypeOptions() as $value => $label)
                                             <option value="{{ $value }}" {{ $selectedRequestType === $value ? 'selected' : '' }}>
                                                 {{ $label }}
@@ -1595,7 +1611,12 @@
             const defaultTypeId = @json($defaultTypeId);
             const defaultShelterContract = @json($defaultShelterContract);
             const isRentalForm = {{ $isRentalForm ? 'true' : 'false' }};
-            const identityFieldsLocked = {{ $identityFieldsLocked ? 'true' : 'false' }};
+            const identityFieldLocks = {
+                type: {{ $typeFieldLocked ? 'true' : 'false' }},
+                nationality: {{ $nationalityFieldLocked ? 'true' : 'false' }},
+                office: {{ $officeFieldLocked ? 'true' : 'false' }},
+                requestType: {{ $requestTypeFieldLocked ? 'true' : 'false' }}
+            };
             const requestTypeCustom = @json(\App\Models\ingaz\Maid::REQUEST_TYPE_CUSTOM);
             const rentalKingdomStatusNotes = {
                 '': 'اختر حالة العاملة لتحديد مسارها بعد حفظ السيرة.',
@@ -1611,12 +1632,19 @@
             }
 
             function applyIdentityFieldsLock() {
-                if (!identityFieldsLocked) {
-                    return;
+                if (identityFieldLocks.type) {
+                    $('#type_id').prop('disabled', true);
+                    $('#maid_type_picker .maid-type-option').prop('disabled', true);
                 }
-
-                $('#type_id, #Pnationality_id, select[name="office_id"], #request_type').prop('disabled', true);
-                $('#maid_type_picker .maid-type-option').prop('disabled', true);
+                if (identityFieldLocks.nationality) {
+                    $('#Pnationality_id').prop('disabled', true);
+                }
+                if (identityFieldLocks.office) {
+                    $('select[name="office_id"]').prop('disabled', true);
+                }
+                if (identityFieldLocks.requestType) {
+                    $('#request_type').prop('disabled', true);
+                }
             }
 
             window.initExperienceSelects = function(context) {
@@ -1946,7 +1974,7 @@
             }
 
             $('#maid_type_picker').on('click', '.maid-type-option', function() {
-                if (identityFieldsLocked) {
+                if (identityFieldLocks.type) {
                     return;
                 }
                 $('select[name="type_id"]').val($(this).data('type-id')).trigger('change');
