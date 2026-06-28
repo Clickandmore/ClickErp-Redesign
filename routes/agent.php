@@ -22,6 +22,8 @@ Route::group(
                 Route::get('maids', [DashboardController::class, 'maids'])->name('maids.index');
                 Route::get('maids/create', [DashboardController::class, 'createMaid'])->name('maids.create');
                 Route::post('maids/store', [DashboardController::class, 'storeMaid'])->name('maids.store');
+                Route::get('maids/create-rapid', [DashboardController::class, 'createRapidMaid'])->name('maids.create_rapid_cv');
+                Route::post('maids/store-rapid', [DashboardController::class, 'storeRapidMaid'])->name('maids.store_rapid_cv');
                 Route::post('maids/extract-cv', [DashboardController::class, 'extractCv'])->name('maids.extract-cv');
                 Route::get('maids/bulk-import/template', [AgentBulkImportController::class, 'template'])->name('maids.bulk-import.template');
                 Route::get('maids/bulk-import/create', [AgentBulkImportController::class, 'create'])->name('maids.bulk-import.create');

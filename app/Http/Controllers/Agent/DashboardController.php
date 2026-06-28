@@ -2,12 +2,16 @@
 
 namespace App\Http\Controllers\Agent;
 
+use App\Http\Actions\ingaz\MaidAction;
 use App\Http\Controllers\Controller;
 use App\Models\Contract;
+use App\Models\Country;
+use App\Models\ingaz\JobTitle;
 use App\Models\ingaz\JobType;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\Nationality;
 use App\Models\ingaz\Religion;
+use App\Models\ingaz\Skill;
 use App\Models\RecruitmentOffices;
 use App\Models\office\Office;
 use App\Enums\ingaz\ContractStatusEnum;
@@ -16,6 +20,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
 
 class DashboardController extends Controller
 {
@@ -66,6 +71,11 @@ class DashboardController extends Controller
             $workerFilter = 'all';
         }
 
+        $submissionFilter = $request->input('submission_filter', 'all');
+        if (!in_array($submissionFilter, ['all', 'pending', 'approved', 'rejected'], true)) {
+            $submissionFilter = 'all';
+        }
+
         $baseQuery = $this->maidsQuery();
 
         $filterCounts = [
@@ -82,8 +92,19 @@ class DashboardController extends Controller
                 ->count(),
         ];
 
+        $submissionCounts = [
+            'all' => (clone $baseQuery)->count(),
+            'pending' => (clone $baseQuery)->where('submission_status', Maid::SUBMISSION_PENDING)->count(),
+            'approved' => (clone $baseQuery)
+                ->where(function (Builder $q) {
+                    $q->where('submission_status', Maid::SUBMISSION_APPROVED)
+                        ->orWhereNull('submission_status');
+                })->count(),
+            'rejected' => (clone $baseQuery)->where('submission_status', Maid::SUBMISSION_REJECTED)->count(),
+        ];
+
         $query = (clone $baseQuery)
-            ->with(['nationality', 'jobTypes'])
+            ->with(['nationality', 'jobTypes', 'office'])
             ->withCount([
                 'contracts as active_contracts_count' => function (Builder $contractQuery) {
                     $this->applyActiveContractConstraint($contractQuery);
@@ -101,6 +122,17 @@ class DashboardController extends Controller
             });
         }
 
+        if ($submissionFilter === 'pending') {
+            $query->where('submission_status', Maid::SUBMISSION_PENDING);
+        } elseif ($submissionFilter === 'approved') {
+            $query->where(function (Builder $q) {
+                $q->where('submission_status', Maid::SUBMISSION_APPROVED)
+                    ->orWhereNull('submission_status');
+            });
+        } elseif ($submissionFilter === 'rejected') {
+            $query->where('submission_status', Maid::SUBMISSION_REJECTED);
+        }
+
         if ($request->filled('search')) {
             $search = trim((string) $request->input('search'));
             $query->where(function (Builder $innerQuery) use ($search) {
@@ -116,7 +148,7 @@ class DashboardController extends Controller
 
         $maids = $query->paginate(15)->appends($request->query());
 
-        return view('agent.maids.index', compact('maids', 'workerFilter', 'filterCounts'));
+        return view('agent.maids.index', compact('maids', 'workerFilter', 'filterCounts', 'submissionFilter', 'submissionCounts'));
     }
 
     public function createMaid()
@@ -125,8 +157,23 @@ class DashboardController extends Controller
         $religions = Religion::all();
         $offices = $this->agentOffices();
         $jobTypes = JobType::all();
+        $types = $jobTypes;
+        $jobs = JobTitle::all();
+        $skills = Skill::all();
+        $countries = Country::query()->orderBy('name_ar')->get();
+        $defaultTypeId = optional($types->first())->id;
 
-        return view('agent.maids.create', compact('nationalities', 'religions', 'offices', 'jobTypes'));
+        return view('agent.maids.create', compact(
+            'nationalities',
+            'religions',
+            'offices',
+            'jobTypes',
+            'types',
+            'jobs',
+            'skills',
+            'countries',
+            'defaultTypeId'
+        ));
     }
 
     public function extractCv(Request $request)
@@ -170,40 +217,125 @@ class DashboardController extends Controller
         return response()->json($data);
     }
 
-    public function storeMaid(Request $request)
+    public function storeMaid(Request $request, MaidAction $maidAction)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
-            'passport_num' => 'required|string|max:255',
+            'name:en' => 'required|string|max:255',
+            'passport_num' => 'required|string|max:255|unique:maids,passport_num',
             'nationality_id' => 'required|exists:nationalities,id',
             'office_id' => 'required|exists:recruitment_offices,id',
+            'type_id' => 'required|exists:job_types,id',
+            'religion_id' => 'nullable|exists:religions,id',
+            'job_id' => 'required|array',
+            'job_id.*' => 'exists:job_titles,id',
+            'image' => 'required|file|image',
+            'cv_file' => 'nullable|file',
+            'gender' => 'nullable|in:male,female',
+            'salary' => 'nullable|numeric',
+            'age' => 'nullable|numeric|min:18|max:90',
+            'birth_date' => 'nullable|date',
+            'height' => 'nullable',
+            'weight' => 'nullable',
+            'childrens_count' => 'nullable|numeric',
+            'duration' => 'nullable|string',
+            'experience_status' => 'required|in:has_experience,no_experience',
+            'experience_years' => 'nullable',
+            'video_link' => 'nullable|string|max:2000',
+            'additional_notes' => 'nullable|string',
+            'id_number' => 'nullable|string|max:30',
+            'id_expiry_date' => 'nullable|date',
+            'border_number' => 'nullable|string|max:50',
+            'passport_issue_date' => 'nullable|date',
+            'passport_expiry_date' => 'nullable|date',
+            'languages' => 'nullable|array',
+            'percentage' => 'nullable|array',
+            'skills' => 'nullable|array',
+            'expertises' => 'nullable|array',
+            'request_type' => 'nullable|in:known,specific,custom_spec',
+            'marital_status:ar' => 'nullable|string',
+            'marital_status:en' => 'nullable|string',
         ]);
 
         $officeIds = $this->agentOfficeIds();
-        if (!$officeIds->contains($request->office_id)) {
+        if (!$officeIds->contains((int) $request->office_id)) {
             abort(403, 'Unauthorized office');
         }
 
-        $maid = Maid::create([
-            'name' => $request->name,
-            'passport_num' => $request->passport_num,
-            'nationality_id' => $request->nationality_id,
-            'office_id' => $request->office_id,
-            'religion_id' => $request->religion_id,
-            'age' => $request->age,
-            'experience_years' => $request->experience_years,
-            'status' => 'available',
-            'available' => 1,
-            'is_show' => 0,
-            'added_by' => auth()->id(),
-            'submission_status' => Maid::SUBMISSION_PENDING,
-        ]);
+        // Agent-submitted CVs always start as pending review and hidden from the site.
+        $data = $request->all();
+        $data['status'] = 'available';
+        $data['added_by'] = auth('agent')->id();
+        $data['available'] = 1;
+        $data['is_show'] = 0;
+        $data['submission_status'] = Maid::SUBMISSION_PENDING;
+        // Force experience_status fallback to avoid unexpected null
+        $data['experience_status'] = $data['experience_status'] ?? 'no_experience';
 
-        if ($request->has('job_type_ids')) {
-            $maid->jobTypes()->sync($request->job_type_ids);
+        try {
+            $maidAction->storeMaid($data, $request);
+        } catch (\Throwable $e) {
+            \Log::error('Agent storeMaid failed: ' . $e->getMessage());
+            return redirect()->back()->withInput()->with('error', $e->getMessage());
         }
 
-        return redirect()->route('agent.maids.index')->with('success', 'CV added successfully and pending review.');
+        return redirect()->route('agent.maids.index')->with('success', app()->getLocale() === 'ar'
+            ? 'تم إضافة السيرة الذاتية وهي بانتظار المراجعة'
+            : 'CV added successfully and pending review.');
+    }
+
+    public function createRapidMaid()
+    {
+        $nationalities = Nationality::all();
+        $offices = $this->agentOffices();
+        $jobs = JobTitle::all();
+        $jobTypes = JobType::all();
+        $defaultTypeId = optional($jobTypes->first())->id;
+
+        return view('agent.maids.rapid_cv_add', compact('nationalities', 'offices', 'jobs', 'defaultTypeId'));
+    }
+
+    public function storeRapidMaid(Request $request, MaidAction $maidAction)
+    {
+        $data = $request->validate([
+            'name:en' => 'nullable|string|max:255',
+            'gender' => 'required|in:male,female',
+            'nationality_id' => 'required|exists:nationalities,id',
+            'passport_num' => 'required|unique:maids,passport_num',
+            'type_id' => 'required|exists:job_types,id',
+            'job_id' => 'required|array|min:1',
+            'job_id.*' => 'exists:job_titles,id',
+            'office_id' => 'required|exists:recruitment_offices,id',
+            'cv_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
+        ]);
+
+        $officeIds = $this->agentOfficeIds();
+        if (!$officeIds->contains((int) $request->office_id)) {
+            abort(403, 'Unauthorized office');
+        }
+
+        $data = array_merge($request->all(), $data);
+        $data['status'] = 'available';
+        $data['added_by'] = auth('agent')->id();
+        $data['available'] = 1;
+        $data['is_show'] = 0;
+        $data['submission_status'] = Maid::SUBMISSION_PENDING;
+        $data['experience_status'] = $data['experience_status'] ?? 'no_experience';
+        $data['experience_years'] = $data['experience_years'] ?? '0';
+
+        $name = trim((string) ($data['name:en'] ?? ''));
+        $data['name'] = $name !== '' ? $name : null;
+        unset($data['name:en']);
+
+        try {
+            $maidAction->storeRapidCvMaid($data, $request);
+        } catch (\Throwable $e) {
+            \Log::error('Agent storeRapidMaid failed: ' . $e->getMessage());
+            return redirect()->back()->withInput()->with('error', $e->getMessage());
+        }
+
+        return redirect()->route('agent.maids.index')->with('success', app()->getLocale() === 'ar'
+            ? 'تم إضافة السيرة المختصرة وهي بانتظار المراجعة'
+            : 'Short CV added and pending review.');
     }
 
     public function updateNotes(Request $request, Maid $maid)

@@ -400,6 +400,7 @@
     <script>
         $(document).ready(function () {
             let baseUrl = "{{route("admins.index")}}";
+            let filterScope = "{{ request()->get('filter_scope', '') }}";
             const restoreAdminRouteTemplate = "{{ route('admins.restore', ['id' => 'ADMIN_ID']) }}";
             const reassignmentAdmins = @json($reassignmentAdmins->map(fn($admin) => ['id' => $admin->id, 'name' => $admin->name])->values());
             const adminSwal = window.Swal || window.swal;
@@ -408,7 +409,7 @@
             let columns = [
                 {"data": 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false, defaultContent: ''},
                 {"data": "name", orderable: true, searchable: true},
-                {"data": "username", orderable: true, searchable: true, visible: false},
+                {"data": "username", orderable: true, searchable: true},
                 {"data": "admin_type", orderable: true, searchable: true},
                 {"data": "role", orderable: true, searchable: true},
                 @if($branchesEnabled ?? false)
@@ -417,7 +418,7 @@
                 {"data": "phone", orderable: true, searchable: true},
                 {"data": "whatsapp", orderable: true, searchable: true, visible: false},
                 {"data": "verification_phone", orderable: true, searchable: true, visible: false},
-                {"data": "email", orderable: true, searchable: true, visible: false},
+                {"data": "email", orderable: true, searchable: true},
                 {"data": "sex_type", orderable: false, searchable: false, visible: false},
                 {"data": "status", orderable: true, searchable: false},
                 {"data": "activity_summary", orderable: false, searchable: false, visible: false},
@@ -492,6 +493,7 @@
                 if (sexType !== '') params.append('sex_type', sexType);
                 if (status) params.append('status', status);
                 if (branchId) params.append('branch_id', branchId);
+                if (filterScope) params.append('filter_scope', filterScope);
                 if (tableInstance) {
                     $("#dataTableObject").DataTable().clear().destroy();
                 }

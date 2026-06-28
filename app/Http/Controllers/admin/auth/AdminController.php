@@ -65,6 +65,13 @@ class AdminController extends Controller
                 $dataTable->where('branch_id', $request->branch_id);
             }
 
+            $filterScope = $request->get('filter_scope');
+            if ($filterScope === 'branch') {
+                $dataTable->whereNotNull('branch_id');
+            } elseif ($filterScope === 'office') {
+                $dataTable->whereHas('agentOfficeLinks');
+            }
+
             $statusFilter = $request->get('status');
             if (!$statusFilter && $request->has('suspended') && $request->boolean('suspended')) {
                 $statusFilter = 'suspended';
