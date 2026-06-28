@@ -827,7 +827,7 @@
                     .text('ابحث برقم العقد، العميل، العاملة، الهوية، الجواز أو رقم مساند.');
             }
 
-            function searchContractByNumber(contractNumber, silent) {
+            function searchContractByNumber(contractNumber, silent, exactContractNumber) {
                 contractNumber = String(contractNumber || '').trim();
 
                 if (!contractNumber) {
@@ -839,20 +839,27 @@
                     return;
                 }
 
+                let requestData = exactContractNumber
+                    ? { contract_number: contractNumber }
+                    : { search: contractNumber };
+
                 $.ajax({
                     url: "{{ route('search.contracts.by.passport') }}",
                     type: 'GET',
-                    data: {
-                        search: contractNumber
-                    },
+                    data: requestData,
                     beforeSend: function() {
                         $('#search_contract_number_btn').prop('disabled', true).text('جاري البحث...');
                         $('#contract_search_feedback').removeClass('text-success text-danger').text('');
                     },
                     success: function(response) {
                         let contracts = response.contracts || [];
+                        let selectedContract = exactContractNumber
+                            ? contracts.find(function(contract) {
+                                return String(contract.id) === contractNumber;
+                            })
+                            : contracts[0];
 
-                        if (!contracts.length) {
+                        if (!selectedContract) {
                             clearContractDropdown();
                             $('#contract_search_feedback')
                                 .removeClass('text-success')
@@ -861,8 +868,8 @@
                             return;
                         }
 
-                        updateContractDropdown(contracts, contracts[0].id);
-                        selectedShelterContractId = String(contracts[0].id);
+                        updateContractDropdown(contracts, selectedContract.id);
+                        selectedShelterContractId = String(selectedContract.id);
                         $('#contract_search_feedback')
                             .removeClass('text-danger')
                             .addClass('text-success')
@@ -945,8 +952,8 @@
                 toggleShelterComplaintFields();
             });
 
-            if (selectedShelterContractId) {
-                searchContractByNumber(selectedShelterContractId, true);
+            if (selectedShelterContractId && !$('#contract_id').find('option[value="' + selectedShelterContractId + '"]').length) {
+                searchContractByNumber(selectedShelterContractId, true, true);
             }
         });
     </script>

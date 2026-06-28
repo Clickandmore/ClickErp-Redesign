@@ -587,6 +587,23 @@
             $maidNationality = optional($currentMaid?->nationality)->title ?? optional($currentMaid?->nationality)->name ?? 'غير محدد';
             $maidReligion = optional($currentMaid?->religion)->title ?? optional($currentMaid?->religion)->name ?? 'غير محدد';
             $additionalTerms = collect($contract->info?->additional_terms)->filter(fn($term) => filled($term))->values();
+            $paymentTypes = [
+                'cash' => 'نقداً',
+                'bank_transfer' => 'تحويل بنكي',
+                'mada' => 'مدى',
+                'tabby' => 'تابي',
+                'tamara' => 'تمارا',
+                'moyasar' => 'ميسر: فيزا، مدى، ماستر كارد، أبل باي',
+                'pay_later' => 'الدفع لاحقاً',
+                'other' => 'أخرى',
+            ];
+            $paymentStatuses = [
+                'paid' => 'تم الدفع',
+                'partial' => 'مدفوع جزئياً',
+                'pending' => 'معلق',
+                'later' => 'الدفع لاحقاً',
+                'bank_pending' => 'بانتظار التحويل',
+            ];
             $closureCompanyDue = (float) ($closureSummary['company_due_value'] ?? $closureSummary['calculated_company_due_value'] ?? 0);
             $closureClientRefund = (float) ($closureSummary['refund_value'] ?? $closureSummary['calculated_refund_value'] ?? 0);
             $showClosureSettlement = $closureCompanyDue > 0 || $closureClientRefund > 0;
@@ -785,6 +802,115 @@
                             </li>
                             @endunless
                         </ul>
+                    </div>
+                </div>
+
+                <div class="col-xl-6">
+                    <div class="section-card">
+                        <div class="section-header">
+                            <h3 class="section-title">
+                                <i class="fas fa-receipt"></i>
+                                الباقة والدفع
+                            </h3>
+                        </div>
+
+                        <ul class="detail-list mb-4">
+                            <li>
+                                <span class="label">الباقة</span>
+                                <span class="value highlight">{{ $contract->info?->package?->title ?? 'غير محدد' }}</span>
+                            </li>
+                            <li>
+                                <span class="label">نوع/مدة الباقة</span>
+                                <span class="value">
+                                    {{ $contract->info?->package?->rental_type_label ?? ($contract->info?->rental_type ?? 'غير محدد') }}
+                                    /
+                                    {{ $contract->info?->package?->duration_label ?? ((int) ($contract->info?->contract_duration_days ?? 0) . ' يوم') }}
+                                </span>
+                            </li>
+                            <li>
+                                <span class="label">إجمالي العقد</span>
+                                <span class="value">{{ number_format((float) ($contract->info?->contract_value ?? 0), 2) }} ريال</span>
+                            </li>
+                            <li>
+                                <span class="label">المدفوع</span>
+                                <span class="value">{{ number_format((float) ($contract->info?->paid_amount ?? 0), 2) }} ريال</span>
+                            </li>
+                            <li>
+                                <span class="label">المتبقي</span>
+                                <span class="value">{{ number_format((float) ($contract->info?->remaining_amount ?? 0), 2) }} ريال</span>
+                            </li>
+                            <li>
+                                <span class="label">طريقة الدفع</span>
+                                <span class="value">{{ $paymentTypes[$contract->info?->payment_type] ?? 'غير محدد' }}</span>
+                            </li>
+                            <li>
+                                <span class="label">حالة الدفع</span>
+                                <span class="value">{{ $paymentStatuses[$contract->info?->payment_status] ?? 'غير محدد' }}</span>
+                            </li>
+                        </ul>
+
+                        @if(!empty($paymentReceipts))
+                            <div id="paymentReceiptsList" class="mb-4">
+                                <div class="fw-bold mb-2">إيصالات الدفع</div>
+                                @foreach($paymentReceipts as $receipt)
+                                    <div class="payment-receipt-item d-flex align-items-center justify-content-between gap-2 border rounded p-2 mb-2">
+                                        <a href="{{ route('RentContract.attachments.view', [$contract->id, $receipt['key']]) }}" target="_blank" class="small">
+                                            {{ $receipt['label'] }}
+                                        </a>
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_EDIT))
+                                            <button
+                                                type="button"
+                                                class="btn btn-sm btn-outline-danger delete-payment-receipt"
+                                                data-delete-url="{{ route('RentContract.paymentReceipts.delete', [$contract->id, $receipt['key']]) }}"
+                                            >
+                                                حذف
+                                            </button>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_EDIT))
+                            <form method="POST" action="{{ route('RentContract.payment.update', $contract->id) }}" enctype="multipart/form-data" class="no-print">
+                                @csrf
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label for="show_payment_type" class="form-label">طريقة الدفع</label>
+                                        <select name="payment_type" id="show_payment_type" class="form-select" required>
+                                            @foreach($paymentTypes as $value => $label)
+                                                <option value="{{ $value }}" {{ ($contract->info?->payment_type ?? '') === $value ? 'selected' : '' }}>
+                                                    {{ $label }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="show_payment_status" class="form-label">حالة الدفع</label>
+                                        <select name="payment_status" id="show_payment_status" class="form-select" required>
+                                            @foreach($paymentStatuses as $value => $label)
+                                                <option value="{{ $value }}" {{ ($contract->info?->payment_status ?? '') === $value ? 'selected' : '' }}>
+                                                    {{ $label }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="show_paid_amount" class="form-label">المبلغ المدفوع</label>
+                                        <input type="number" id="show_paid_amount" name="paid_amount" class="form-control" step="0.01" min="0"
+                                            value="{{ $contract->info?->paid_amount ?? '0.00' }}">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="show_payment_receipt" class="form-label">إرفاق إيصال دفع</label>
+                                        <input type="file" id="show_payment_receipt" name="payment_receipt" class="form-control" accept=".jpg,.jpeg,.png,.pdf">
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary mt-3">
+                                    <i class="fas fa-save me-1"></i>
+                                    حفظ بيانات الدفع
+                                </button>
+                            </form>
+                        @endif
                     </div>
                 </div>
 
@@ -1470,6 +1596,60 @@
                         icon: 'error',
                         title: 'تعذر النسخ',
                         text: 'لم يتمكن المتصفح من نسخ رابط الدفع.'
+                    });
+                });
+            });
+
+            $(document).on('click', '.delete-payment-receipt', function() {
+                const button = $(this);
+
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'حذف الإيصال',
+                    text: 'هل تريد حذف هذا الإيصال؟',
+                    showCancelButton: true,
+                    confirmButtonText: 'نعم، حذف',
+                    cancelButtonText: 'إلغاء'
+                }).then((result) => {
+                    if (!result.isConfirmed) {
+                        return;
+                    }
+
+                    button.prop('disabled', true);
+
+                    $.ajax({
+                        url: button.data('delete-url'),
+                        method: 'POST',
+                        data: {
+                            _token: '{{ csrf_token() }}',
+                            _method: 'DELETE'
+                        },
+                        success: function(response) {
+                            button.closest('.payment-receipt-item').remove();
+
+                            if (!$('#paymentReceiptsList .payment-receipt-item').length) {
+                                $('#paymentReceiptsList').remove();
+                            }
+
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'تم الحذف',
+                                text: response.message || 'تم حذف الإيصال بنجاح'
+                            });
+                        },
+                        error: function(xhr) {
+                            const message = xhr.responseJSON && xhr.responseJSON.message
+                                ? xhr.responseJSON.message
+                                : 'حدث خطأ أثناء حذف الإيصال';
+
+                            button.prop('disabled', false);
+
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'تعذر الحذف',
+                                text: message
+                            });
+                        }
                     });
                 });
             });

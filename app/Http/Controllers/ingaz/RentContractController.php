@@ -52,7 +52,7 @@ class RentContractController extends Controller
             'only' => ['create', 'store', 'getExistingClients'],
         ]);
         $this->middleware('permission:' . \App\PermKeys::RENT_CONTRACT_EDIT . ',admin', [
-            'only' => ['edit', 'update', 'changeMaid', 'deletePaymentReceipt'],
+            'only' => ['edit', 'update', 'changeMaid', 'updatePayment', 'deletePaymentReceipt'],
         ]);
         $this->middleware('permission:' . \App\PermKeys::RENT_CONTRACT_DELETE . ',admin', [
             'only' => ['destroy'],
@@ -920,6 +920,7 @@ class RentContractController extends Controller
         $contractAttachments = $this->collectRentalContractAttachments($contract);
         $closureSummaryDate = $contract->closed_at ? Carbon::parse($contract->closed_at) : Carbon::now();
         $closureSummary = $this->buildRentalClosureSummary($contract, $closureSummaryDate);
+        $paymentReceipts = $this->rentalPaymentReceiptItems($contract->info);
 
         return view($this->folderPath . '.show', compact(
             'contract',
@@ -927,7 +928,8 @@ class RentContractController extends Controller
             'activities',
             'maidChangeHistory',
             'contractAttachments',
-            'closureSummary'
+            'closureSummary',
+            'paymentReceipts'
         ));
     }
 
@@ -1279,6 +1281,95 @@ class RentContractController extends Controller
 
             return redirect()->back()
                            ->with('error', 'حدث خطأ أثناء حذف عقد التأجير: ' . $e->getMessage());
+        }
+    }
+
+    public function updatePayment(Request $request, RentalContractFinanceService $rentalContractFinanceService, $id)
+    {
+        $validated = $request->validate([
+            'payment_type' => ['required', 'string', 'in:cash,bank_transfer,mada,tabby,tamara,moyasar,pay_later,other'],
+            'payment_status' => ['required', 'string', 'in:paid,partial,pending,later,bank_pending'],
+            'paid_amount' => ['nullable', 'numeric', 'min:0'],
+            'payment_receipt' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $contract = RentalContract::with(['user', 'maid', 'info.package', 'financeInvoice'])
+                ->findOrFail($id);
+            $this->assertCanAccessBranchModel($contract, 'rental_contracts');
+
+            if (!$contract->info) {
+                DB::rollBack();
+
+                return redirect()->back()->with('error', 'لا توجد بيانات مالية مرتبطة بهذا العقد');
+            }
+
+            $contractValue = (float) ($contract->info->contract_value ?? 0);
+            $paidAmount = match ($validated['payment_status']) {
+                'paid' => $contractValue,
+                'partial' => min((float) ($validated['paid_amount'] ?? 0), $contractValue),
+                default => 0.0,
+            };
+
+            if ($validated['payment_status'] === 'partial' && $paidAmount <= 0) {
+                DB::rollBack();
+
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'أدخل المبلغ المدفوع عند اختيار حالة مدفوع جزئياً');
+            }
+
+            if ($validated['payment_status'] === 'partial' && $contractValue > 0 && $paidAmount >= $contractValue) {
+                DB::rollBack();
+
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'إذا تم سداد كامل المبلغ اختر حالة تم الدفع بدلاً من مدفوع جزئياً');
+            }
+
+            $updates = [
+                'payment_type' => $validated['payment_type'],
+                'payment_status' => $validated['payment_status'],
+                'paid_amount' => $paidAmount,
+                'remaining_amount' => max(0, $contractValue - $paidAmount),
+                'payment_confirmed_at' => $paidAmount > 0
+                    ? ($contract->info->payment_confirmed_at ?: now())
+                    : null,
+                'payment_confirmed_by' => $paidAmount > 0
+                    ? ($contract->info->payment_confirmed_by ?: auth('admin')->id())
+                    : null,
+            ];
+
+            if ($request->hasFile('payment_receipt')) {
+                $newPaymentReceiptPath = $request->file('payment_receipt')
+                    ->store('rental-contracts/payments/receipts', 'public');
+                $updates = array_merge(
+                    $updates,
+                    $this->buildPaymentReceiptUpdatePayload($contract->info, $newPaymentReceiptPath)
+                );
+            }
+
+            $contract->info->update($updates);
+            $contract->refresh()->loadMissing(['user', 'maid', 'info.package', 'financeInvoice']);
+            $rentalContractFinanceService->syncPaymentForContract($contract, $contract->info?->package);
+
+            DB::commit();
+
+            return redirect()->back()->with('success', 'تم تحديث بيانات الدفع وإيصالات العقد بنجاح');
+        } catch (\Throwable $e) {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+
+            Log::error('Error updating rental contract payment: ' . $e->getMessage(), [
+                'contract_id' => $id,
+            ]);
+
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'حدث خطأ أثناء تحديث بيانات الدفع: ' . $e->getMessage());
         }
     }
 

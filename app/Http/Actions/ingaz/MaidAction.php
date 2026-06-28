@@ -1442,26 +1442,26 @@ class MaidAction extends MainAction
 
     protected function guardFinanciallyLinkedMaidIdentityChanges(Maid $maid, array $data, array $newJobTypeIds): void
     {
-        if (!$this->maidHasLockedFinancialContext($maid)) {
-            return;
-        }
-
         $lockedFields = [];
+        $hasFinancialEditLock = $maid->hasFinancialEditLock();
+        $hasExternalOfficeDispatchEditLock = $maid->hasExternalOfficeDispatchEditLock();
 
         if (
-            array_key_exists('nationality_id', $data)
+            $hasFinancialEditLock
+            && array_key_exists('nationality_id', $data)
             && $this->hasStoredValue($maid->nationality_id)
             && (int) $data['nationality_id'] !== (int) $maid->nationality_id
         ) {
-            $lockedFields['nationality_id'] = 'لا يمكن تعديل جنسية العاملة بعد حجز السيرة أو وجود ارتباطات مالية.';
+            $lockedFields['nationality_id'] = 'لا يمكن تعديل جنسية العاملة لوجود فاتورة مالية أو قيد محاسبي مرتبط بالسيرة أو عقدها.';
         }
 
         if (
-            array_key_exists('office_id', $data)
+            $hasExternalOfficeDispatchEditLock
+            && array_key_exists('office_id', $data)
             && $this->hasStoredValue($maid->office_id)
             && $this->nullableInt($data['office_id']) !== $this->nullableInt($maid->office_id)
         ) {
-            $lockedFields['office_id'] = 'لا يمكن تعديل المكتب الخارجي بعد حجز السيرة أو وجود ارتباطات مالية.';
+            $lockedFields['office_id'] = 'لا يمكن تعديل المكتب الخارجي بعد إنشاء إرسالية المكتب الخارجي.';
         }
 
         $currentJobTypeIds = $maid->jobTypes()
@@ -1476,16 +1476,17 @@ class MaidAction extends MainAction
             ->values()
             ->all();
 
-        if ($currentJobTypeIds !== [] && $currentJobTypeIds !== $submittedJobTypeIds) {
-            $lockedFields['type_id'] = 'لا يمكن تعديل نوع السيرة بين استقدام وإيجار بعد حجز السيرة أو وجود ارتباطات مالية.';
+        if ($hasFinancialEditLock && $currentJobTypeIds !== [] && $currentJobTypeIds !== $submittedJobTypeIds) {
+            $lockedFields['type_id'] = 'لا يمكن تعديل نوع السيرة لوجود فاتورة مالية أو قيد محاسبي مرتبط بالسيرة أو عقدها.';
         }
 
         if (
-            array_key_exists('request_type', $data)
+            $hasFinancialEditLock
+            && array_key_exists('request_type', $data)
             && Maid::normalizeRequestType($maid->request_type) !== null
             && Maid::resolveRequestType($data['request_type']) !== Maid::resolveRequestType($maid->request_type)
         ) {
-            $lockedFields['request_type'] = 'لا يمكن تعديل نوع طلب السيرة بعد حجز السيرة أو وجود ارتباطات مالية.';
+            $lockedFields['request_type'] = 'لا يمكن تعديل نوع طلب السيرة لوجود فاتورة مالية أو قيد محاسبي مرتبط بالسيرة أو عقدها.';
         }
 
         if ($lockedFields === []) {
@@ -1493,23 +1494,6 @@ class MaidAction extends MainAction
         }
 
         throw ValidationException::withMessages($lockedFields);
-    }
-
-    protected function maidHasLockedFinancialContext(Maid $maid): bool
-    {
-        if (in_array($maid->status, ['reserved', 'contracted'], true) || !$maid->available) {
-            return true;
-        }
-
-        if (
-            $maid->orders()->whereIn('status', $this->activeOrderStatuses())->exists()
-            || $maid->contracts()->whereIn('status', $this->recruitmentContractStatuses())->exists()
-            || $maid->rentalContracts()->whereIn('status', $this->rentalActiveContractStatuses())->exists()
-        ) {
-            return true;
-        }
-
-        return $maid->rentalFinancialAdjustments()->exists();
     }
 
     protected function activeOrderStatuses(): array

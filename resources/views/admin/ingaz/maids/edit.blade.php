@@ -75,29 +75,13 @@
         'positive' => '__positive__',
         'total' => '__total__',
     ]);
-    $activeOrderStatuses = ['new', 'under_process', 'contracted', 'contracted_without_contract'];
-    $activeRecruitmentContractStatuses = [
-        \App\Enums\ingaz\ContractStatusEnum::PendingMaidSelection->value,
-        \App\Enums\ingaz\ContractStatusEnum::New->value,
-        \App\Enums\ingaz\ContractStatusEnum::Msaned->value,
-        \App\Enums\ingaz\ContractStatusEnum::Tafwed->value,
-        \App\Enums\ingaz\ContractStatusEnum::Taffez->value,
-        \App\Enums\ingaz\ContractStatusEnum::Tazker->value,
-        \App\Enums\ingaz\ContractStatusEnum::Arrival->value,
-    ];
-    $activeRentalContractStatuses = ['new', 'waiting_contract_send', 'contract_sent', 'contract_signed', 'maid_delivered', 'active', 'transferred', 'suspended', 'frozen'];
-    $identityFieldsLocked =
-        in_array($obj->status, ['reserved', 'contracted'], true) ||
-        !($obj->available ?? true) ||
-        $obj->orders()->whereIn('status', $activeOrderStatuses)->exists() ||
-        $obj->contracts()->whereIn('status', $activeRecruitmentContractStatuses)->exists() ||
-        $obj->rentalContracts()->whereIn('status', $activeRentalContractStatuses)->exists() ||
-        $obj->rentalFinancialAdjustments()->exists();
+    $financialEditLock = $obj->hasFinancialEditLock();
+    $externalOfficeDispatchEditLock = $obj->hasExternalOfficeDispatchEditLock();
     $storedRequestType = \App\Models\ingaz\Maid::normalizeRequestType($obj->request_type);
-    $typeFieldLocked = $identityFieldsLocked && $storedTypeIds->isNotEmpty();
-    $nationalityFieldLocked = $identityFieldsLocked && filled($obj->nationality_id) && (int) $obj->nationality_id > 0;
-    $officeFieldLocked = $identityFieldsLocked && filled($obj->office_id) && (int) $obj->office_id > 0;
-    $requestTypeFieldLocked = $identityFieldsLocked && $storedRequestType !== null;
+    $typeFieldLocked = $financialEditLock && $storedTypeIds->isNotEmpty();
+    $nationalityFieldLocked = $financialEditLock && filled($obj->nationality_id) && (int) $obj->nationality_id > 0;
+    $officeFieldLocked = $externalOfficeDispatchEditLock && filled($obj->office_id) && (int) $obj->office_id > 0;
+    $requestTypeFieldLocked = $financialEditLock && $storedRequestType !== null;
     $hasLockedIdentityFields = $typeFieldLocked || $nationalityFieldLocked || $officeFieldLocked || $requestTypeFieldLocked;
     $cvFieldsFilledTemplate = __('ingaz.cv_fields_filled', [
         'count' => '__count__',
@@ -324,7 +308,7 @@
                     @if ($hasLockedIdentityFields)
                         <div class="col-12">
                             <div class="alert alert-warning mb-0">
-                                لا يمكن تعديل بيانات السيرة المحفوظة لهذه السيرة لأنها محجوزة أو مرتبطة مالياً. يمكن استكمال الحقول التي لا توجد لها قيمة محفوظة.
+                                بعض بيانات السيرة مقفلة لوجود فاتورة/قيد محاسبي مرتبط أو إرسالية مكتب خارجي. الحقول غير المرتبطة بهذه المستندات يمكن تعديلها.
                             </div>
                         </div>
                     @endif

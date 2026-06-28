@@ -17,6 +17,8 @@ use Spatie\Activitylog\Traits\LogsActivity;
 use App\Models\ingaz\User;
 use App\Models\auth\Admin;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class Maid extends Model
 {
@@ -446,6 +448,107 @@ class Maid extends Model
     public function unavailableRecords()
     {
         return $this->hasMany(\App\Models\MaidUnavailableRecord::class, 'maid_id')->orderBy('created_at', 'desc');
+    }
+
+    public function hasFinancialEditLock(): bool
+    {
+        if (!$this->exists || !$this->id) {
+            return false;
+        }
+
+        if ($this->hasRecruitmentInvoiceForEditLock()) {
+            return true;
+        }
+
+        if ($this->hasRentalInvoiceForEditLock()) {
+            return true;
+        }
+
+        if ($this->hasMaidAccountingConstraintForEditLock()) {
+            return true;
+        }
+
+        return false;
+    }
+
+    public function hasExternalOfficeDispatchEditLock(): bool
+    {
+        if (
+            !$this->exists
+            || !$this->id
+            || !Schema::hasTable('contracts')
+            || !Schema::hasTable('contract_external_office_dispatches')
+        ) {
+            return false;
+        }
+
+        return DB::table('contract_external_office_dispatches')
+            ->join('contracts', 'contracts.id', '=', 'contract_external_office_dispatches.contract_id')
+            ->where('contracts.maid_id', $this->id)
+            ->exists();
+    }
+
+    private function hasRecruitmentInvoiceForEditLock(): bool
+    {
+        if (
+            !Schema::hasTable('contracts')
+            || !Schema::hasTable('invoices')
+            || !Schema::hasColumn('contracts', 'maid_id')
+            || !Schema::hasColumn('invoices', 'contract_id')
+        ) {
+            return false;
+        }
+
+        return DB::table('invoices')
+            ->join('contracts', 'contracts.id', '=', 'invoices.contract_id')
+            ->where('contracts.maid_id', $this->id)
+            ->exists();
+    }
+
+    private function hasRentalInvoiceForEditLock(): bool
+    {
+        if (
+            !Schema::hasTable('rental_contracts')
+            || !Schema::hasTable('rental_contract_invoices')
+            || !Schema::hasColumn('rental_contracts', 'maid_id')
+            || !Schema::hasColumn('rental_contract_invoices', 'rental_contract_id')
+        ) {
+            return false;
+        }
+
+        return DB::table('rental_contract_invoices')
+            ->join('rental_contracts', 'rental_contracts.id', '=', 'rental_contract_invoices.rental_contract_id')
+            ->where('rental_contracts.maid_id', $this->id)
+            ->exists();
+    }
+
+    private function hasMaidAccountingConstraintForEditLock(): bool
+    {
+        if (
+            Schema::hasTable('rental_financial_adjustments')
+            && Schema::hasColumn('rental_financial_adjustments', 'maid_id')
+            && Schema::hasColumn('rental_financial_adjustments', 'constraint_id')
+            && DB::table('rental_financial_adjustments')
+                ->where('maid_id', $this->id)
+                ->whereNotNull('constraint_id')
+                ->exists()
+        ) {
+            return true;
+        }
+
+        if (
+            Schema::hasTable('shelter_living_expenses')
+            && Schema::hasColumn('shelter_living_expenses', 'maid_id')
+            && Schema::hasColumn('shelter_living_expenses', 'constraint_id')
+            && DB::table('shelter_living_expenses')
+                ->where('maid_id', $this->id)
+                ->whereNotNull('constraint_id')
+                ->exists()
+        ) {
+            return true;
+        }
+
+        return false;
     }
 
     public function getActivitylogOptions(): LogOptions
