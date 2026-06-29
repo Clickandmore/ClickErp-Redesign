@@ -35,6 +35,7 @@ use Nami\Finance\Models\Constraint;
 use Nami\Finance\Models\ConstraintDetails;
 use Nami\Finance\Models\CostCenter;
 use Nami\Finance\Models\FnYear;
+use Nami\Finance\Enums\AccountTypesEnum;
 use Nami\Finance\Enums\ConstraintTypiesEnum;
 use Nami\Hr\Models\Department as HrDepartment;
 use Nami\Hr\Models\Employee as HrEmployee;
@@ -74,6 +75,10 @@ class DataImportExecutionService
 
         if ($type === 'finance_constraints') {
             return $this->importFinanceConstraintsFile($storedPath, $columns, $adminId, $result);
+        }
+
+        if ($type === 'finance_accounts') {
+            return $this->importFinanceAccountsFile($storedPath, $columns, $adminId, $result);
         }
 
         foreach ($this->readRows(Storage::path($storedPath), $columns) as $rowNumber => $row) {
@@ -123,6 +128,9 @@ class DataImportExecutionService
         foreach ($columns as $column) {
             $labelMap[$this->normalizeHeader($column['label'])] = $column['key'];
             $labelMap[$this->normalizeHeader($column['key'])] = $column['key'];
+        }
+        foreach ($this->importHeaderAliases() as $header => $key) {
+            $labelMap[$this->normalizeHeader($header)] = $key;
         }
 
         $headers = [];
@@ -229,7 +237,8 @@ class DataImportExecutionService
             throw new \InvalidArgumentException('لا توجد سنة مالية نشطة تشمل تاريخ القيد.');
         }
 
-        $statement = trim((string) ($firstRow['statement'] ?? '')) ?: '-';
+        $statement = trim((string) ($firstRow['statement'] ?? ''))
+            ?: (trim((string) ($firstRow['line_statement'] ?? '')) ?: '-');
         $code = $this->resolveFinanceConstraintCode($rows);
         $type = $this->resolveFinanceConstraintType($firstRow['type'] ?? null);
         $details = [];
@@ -238,7 +247,7 @@ class DataImportExecutionService
 
         foreach ($rows as $item) {
             $row = $item['row'];
-            $rowDate = $this->parseDate($row['date'] ?? null);
+            $rowDate = $this->parseDate($row['date'] ?? null) ?: $date;
 
             if ($rowDate !== $date) {
                 throw new \InvalidArgumentException('كل صفوف القيد الواحد يجب أن تحمل نفس التاريخ.');
@@ -251,7 +260,8 @@ class DataImportExecutionService
 
             $line = $this->resolveFinanceConstraintLine($row);
             $costCenterId = $this->resolveFinanceCostCenterId($row);
-            $lineStatement = trim((string) ($row['line_statement'] ?? '')) ?: $statement;
+            $lineStatement = trim((string) ($row['line_statement'] ?? ''))
+                ?: (trim((string) ($row['statement'] ?? '')) ?: $statement);
 
             $details[] = [
                 'type' => $line['type'],
@@ -303,6 +313,219 @@ class DataImportExecutionService
         }
 
         return $outcome;
+    }
+
+    private function importFinanceAccountsFile(string $storedPath, array $columns, ?int $adminId, array $result): array
+    {
+        if (!class_exists(Account::class) || !Schema::hasTable('fn_accounts')) {
+            $result['error_count']++;
+            $result['errors'][] = 'جدول الحسابات المالية غير موجود.';
+
+            return $result;
+        }
+
+        $rows = [];
+        foreach ($this->readRows(Storage::path($storedPath), $columns) as $rowNumber => $row) {
+            $result['total']++;
+
+            $code = $this->normalizeFinanceAccountCode($row['account_code'] ?? null);
+            $name = trim((string) ($row['account_name'] ?? $row['name'] ?? ''));
+            $level = $this->optionalInteger($row['level'] ?? null);
+
+            if (!$code || $name === '' || !$level) {
+                $result['skipped']++;
+                $result['error_count']++;
+
+                if (count($result['errors']) < self::MAX_ERROR_DETAILS) {
+                    $result['errors'][] = "صف {$rowNumber}: المستوى ورقم الحساب واسم الحساب مطلوبة.";
+                }
+
+                continue;
+            }
+
+            $rows[] = [
+                'row_number' => $rowNumber,
+                'code' => $code,
+                'name' => $name,
+                'level' => $level,
+                'parent_name' => trim((string) ($row['parent_name'] ?? '')),
+                'status' => $this->normalizeFinanceAccountStatus($row['account_status'] ?? $row['status'] ?? null),
+                'statement_type' => $this->normalizeFinanceStatementType($row['statement_type'] ?? null),
+            ];
+        }
+
+        usort($rows, fn ($left, $right) => [$left['level'], $left['code']] <=> [$right['level'], $right['code']]);
+
+        $accountsByCode = Account::query()->get()->keyBy(fn ($account) => (string) $account->code);
+        $accountsByLevelName = [];
+        $accountTableColumns = array_flip(Schema::getColumnListing('fn_accounts'));
+
+        foreach ($accountsByCode as $account) {
+            $accountsByLevelName[(int) $account->level][$this->normalizeArabicText($account->name)][] = $account;
+        }
+
+        foreach ($rows as $row) {
+            try {
+                $parent = null;
+
+                if ($row['level'] > 1) {
+                    $parent = $this->resolveImportedFinanceAccountParent($row, $accountsByCode, $accountsByLevelName);
+
+                    if (!$parent) {
+                        throw new \InvalidArgumentException('تعذر تحديد الحساب الأصل: ' . ($row['parent_name'] ?: '-'));
+                    }
+                }
+
+                $existing = $accountsByCode[(string) $row['code']]
+                    ?? Account::query()->where('code', $row['code'])->first();
+                $type = $this->resolveImportedFinanceAccountType($row, $parent, $existing);
+                $payload = [
+                    'name' => $row['name'],
+                    'operation_type' => $parent?->operation_type ?? 1,
+                    'status' => $row['status'],
+                    'statement_type' => $row['statement_type'] ?: ($parent?->statement_type),
+                    'level' => $row['level'],
+                    'type' => $type,
+                    'parent_id' => $parent?->id,
+                    'created_by_id' => $existing?->created_by_id ?? $adminId ?? auth('admin')->id() ?? 1,
+                ];
+
+                $payload = array_intersect_key($payload, $accountTableColumns);
+
+                if ($existing) {
+                    $existing->update($payload);
+                    $account = $existing;
+                    $result['updated']++;
+                } else {
+                    $account = Account::query()->create($payload + ['code' => $row['code']]);
+                    $result['created']++;
+                }
+
+                $accountsByCode[(string) $account->code] = $account;
+                $accountsByLevelName[(int) $account->level][$this->normalizeArabicText($account->name)][] = $account;
+            } catch (\Throwable $exception) {
+                $result['skipped']++;
+                $result['error_count']++;
+
+                if (count($result['errors']) < self::MAX_ERROR_DETAILS) {
+                    $result['errors'][] = "صف {$row['row_number']}: " . $exception->getMessage();
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    private function resolveImportedFinanceAccountParent(array $row, $accountsByCode, array $accountsByLevelName): ?Account
+    {
+        $parentName = $this->normalizeArabicText($row['parent_name']);
+        if ($parentName !== '') {
+            $matches = $accountsByLevelName[$row['level'] - 1][$parentName] ?? [];
+            $matches = collect($matches)->filter(fn ($account) => (int) $account->level === $row['level'] - 1)->values();
+
+            if ($matches->count() === 1) {
+                return $matches->first();
+            }
+
+            if ($matches->count() > 1) {
+                $prefixMatches = $matches->filter(fn ($account) => str_starts_with((string) $row['code'], (string) $account->code))->values();
+                if ($prefixMatches->count() === 1) {
+                    return $prefixMatches->first();
+                }
+            }
+        }
+
+        $code = (string) $row['code'];
+        while (strlen($code) > 1) {
+            $code = substr($code, 0, -1);
+            $candidate = $accountsByCode[$code] ?? null;
+
+            if ($candidate && (int) $candidate->level === $row['level'] - 1) {
+                return $candidate;
+            }
+        }
+
+        return null;
+    }
+
+    private function normalizeFinanceAccountCode($value): ?int
+    {
+        $value = trim($this->normalizeDigits((string) $value));
+        if ($value === '') {
+            return null;
+        }
+
+        $value = preg_replace('/[^\d]/', '', $value);
+
+        return $value === '' ? null : (int) $value;
+    }
+
+    private function normalizeFinanceAccountStatus($value): string
+    {
+        $normalized = $this->normalizeArabicText((string) $value);
+
+        return in_array($normalized, ['دائن', 'داين', 'creditor', 'credit', 'cr'], true)
+            ? 'creditor'
+            : 'debtor';
+    }
+
+    private function normalizeFinanceStatementType($value): ?string
+    {
+        $normalized = $this->normalizeArabicText((string) $value);
+
+        return match ($normalized) {
+            'قائمه دخل', 'قائمة دخل', 'دخل', 'income', 'income statement', 'income_statement' => 'income_statement',
+            'ميزانيه', 'ميزانية', 'balance', 'balance sheet', 'balance_sheet' => 'balance_sheet',
+            default => null,
+        };
+    }
+
+    private function resolveImportedFinanceAccountType(array $row, ?Account $parent, ?Account $existing): int
+    {
+        $name = $this->normalizeArabicText($row['name']);
+
+        if (str_contains($name, 'عملاء')) {
+            return AccountTypesEnum::Clients->value;
+        }
+
+        if ($parent && $this->financeAccountTypeValue($parent) === AccountTypesEnum::Clients->value) {
+            return AccountTypesEnum::Client->value;
+        }
+
+        if (str_contains($name, 'موردين')) {
+            return AccountTypesEnum::Suppliers->value;
+        }
+
+        if ($parent && $this->financeAccountTypeValue($parent) === AccountTypesEnum::Suppliers->value) {
+            return AccountTypesEnum::Supplier->value;
+        }
+
+        if (str_contains($name, 'بنوك') || str_contains($name, 'البنوك')) {
+            return AccountTypesEnum::Banks->value;
+        }
+
+        if ($parent && $this->financeAccountTypeValue($parent) === AccountTypesEnum::Banks->value) {
+            return AccountTypesEnum::Bank->value;
+        }
+
+        if (str_contains($name, 'النقديه') || str_contains($name, 'النقدية') || str_contains($name, 'صندوق')) {
+            return $parent && $this->financeAccountTypeValue($parent) === AccountTypesEnum::Boxs->value
+                ? AccountTypesEnum::Box->value
+                : AccountTypesEnum::Boxs->value;
+        }
+
+        if ($parent && $this->financeAccountTypeValue($parent) === AccountTypesEnum::Boxs->value) {
+            return AccountTypesEnum::Box->value;
+        }
+
+        return (int) ($existing?->getRawOriginal('type') ?? AccountTypesEnum::NormalAccount->value);
+    }
+
+    private function financeAccountTypeValue(Account $account): int
+    {
+        $raw = $account->getRawOriginal('type');
+
+        return is_numeric($raw) ? (int) $raw : AccountTypesEnum::NormalAccount->value;
     }
 
     private function importClient(array $row, ?int $adminId): string
@@ -1623,6 +1846,14 @@ class DataImportExecutionService
             ->unique()
             ->values();
 
+        if ($codes->isEmpty()) {
+            $codes = collect($rows)
+                ->map(fn ($item) => $this->optionalInteger($item['row']['constraint_ref'] ?? null))
+                ->filter()
+                ->unique()
+                ->values();
+        }
+
         if ($codes->count() > 1) {
             throw new \InvalidArgumentException('كل صفوف القيد الواحد يجب أن تحمل نفس رقم القيد.');
         }
@@ -2508,6 +2739,42 @@ class DataImportExecutionService
         $value = preg_replace('/[\x{064B}-\x{065F}\x{0670}]/u', '', $value);
 
         return preg_replace('/\s+/u', '', $value);
+    }
+
+    private function importHeaderAliases(): array
+    {
+        return [
+            'قيد محاسبي رقم' => 'constraint_ref',
+            'رقم القيد' => 'constraint_ref',
+            'رقم مجموعة القيد' => 'constraint_ref',
+            'العنوان' => 'statement',
+            'بيان القيد' => 'statement',
+            'مدين' => 'debtor_value',
+            'المدين' => 'debtor_value',
+            'قيمة المدين' => 'debtor_value',
+            'دائن' => 'creditor_value',
+            'الدائن' => 'creditor_value',
+            'قيمة الدائن' => 'creditor_value',
+            'اسم الحساب' => 'account_name',
+            'الحساب' => 'account_name',
+            'رقم الحساب' => 'account_code',
+            'كود الحساب' => 'account_code',
+            'المستوى' => 'level',
+            'مستوى الحساب' => 'level',
+            'الحساب الأصل' => 'parent_name',
+            'الحساب الاصلي' => 'parent_name',
+            'الحساب الأب' => 'parent_name',
+            'طبيعة الحساب' => 'account_status',
+            'نوع الحساب' => 'statement_type',
+            'الرصيد' => 'balance',
+            'رصيد افتتاحي' => 'opening_balance',
+            'مركز التكلفة' => 'cost_center_name',
+            'ملاحظة' => 'line_statement',
+            'ملاحظات' => 'line_statement',
+            'بيان السطر' => 'line_statement',
+            'تاريخ' => 'date',
+            'تاريخ القيد' => 'date',
+        ];
     }
 
     private function normalizeDigits(string $value): string
