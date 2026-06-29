@@ -299,6 +299,10 @@
                                             placeholder="{{ __('admin.search_by_client_maid_order') }}">
                                     </div>
                                     <div class="col-md-3">
+                                        <label class="form-label">رقم العقد</label>
+                                        <input type="text" class="form-control" id="order_id" placeholder="#123">
+                                    </div>
+                                    <div class="col-md-3">
                                         <label class="form-label">{{ __('admin.travel_type') }}</label>
                                         <select id="travel_type" class="form-control">
                                             <option value="">{{ __('admin.travel_type') }}</option>
@@ -310,6 +314,16 @@
                                         </select>
                                     </div>
                                     <div class="col-md-3">
+                                        <label class="form-label">{{ __('admin.travel_with') }}</label>
+                                        <select id="travel_with" class="form-control">
+                                            <option value="">الكل</option>
+                                            @foreach (__('travel_types.travel_with') ?? [] as $k => $name)
+                                                <option value="{{ $k }}">{{ $name }}</option>
+                                            @endforeach
+                                            <option value="group_transport">{{ helperTrans('ingaz.travel_with_group_transport') }}</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
                                         <label class="form-label">{{ __('admin.status') }}</label>
                                         <select id="status" class="form-control">
                                             <option value="">{{ helperTrans('ingaz.active_trips_default') }}</option>
@@ -317,9 +331,48 @@
                                             <option value="all">{{ helperTrans('ingaz.all_trips') }}</option>
                                         </select>
                                     </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">تاريخ الرحلة</label>
+                                        <input type="date" class="form-control" id="travel_date">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">تاريخ الإنشاء</label>
+                                        <input type="date" class="form-control" id="created_date">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">المنشئ</label>
+                                        <select id="created_by" class="form-control">
+                                            <option value="">الكل</option>
+                                            @foreach (($travelCreators ?? collect()) as $creator)
+                                                <option value="{{ $creator->id }}">{{ $creator->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">المطار</label>
+                                        <select id="arrival_airport" class="form-control">
+                                            <option value="">الكل</option>
+                                            @foreach ($airports as $airportCode => $airportName)
+                                                <option value="{{ $airportCode }}">{{ $airportName }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">{{ __('admin.flight_company') }}</label>
+                                        <input type="text" class="form-control" id="flight_company">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">{{ __('admin.flight_number') }}</label>
+                                        <input type="text" class="form-control" id="flight_number">
+                                    </div>
                                     <div class="col-md-3 d-flex align-items-end">
                                         <button class="btn btn-primary w-100" onclick="loadTable()">
                                             <i class="fa fa-search"></i> {{ __('admin.search') }}
+                                        </button>
+                                    </div>
+                                    <div class="col-md-3 d-flex align-items-end">
+                                        <button class="btn btn-outline-secondary w-100" onclick="resetTravelFilters()">
+                                            <i class="fa fa-undo"></i> إعادة ضبط
                                         </button>
                                     </div>
                                 </div>
@@ -399,6 +452,7 @@
                                     <th>{{ __('admin.flight_company') }}</th>
                                     <th>{{ __('admin.flight_number') }}</th>
                                     <th>{{ __('admin.status') }}</th>
+                                    <th>تاريخ الإنشاء والمنشئ</th>
                                     <th width="100">{{ __('admin.actions') }}</th>
                                 </tr>
                             </thead>
@@ -732,8 +786,16 @@
                     type: 'GET',
                     data: function(d) {
                         d.search = $('#search_text').val();
+                        d.order_id = $('#order_id').val();
                         d.travel_type = $('#travel_type').val();
+                        d.travel_with = $('#travel_with').val();
                         d.status = $('#status').val();
+                        d.travel_date = $('#travel_date').val();
+                        d.created_date = $('#created_date').val();
+                        d.created_by = $('#created_by').val();
+                        d.arrival_airport = $('#arrival_airport').val();
+                        d.flight_company = $('#flight_company').val();
+                        d.flight_number = $('#flight_number').val();
                     }
                 },
                 columns: [{
@@ -787,6 +849,7 @@
                             const travelWithMap = {
                                 airport: travelTranslations.travelWithAirport,
                                 group_transport: travelTranslations.travelWithGroupTransport,
+                                mass_transit: travelTranslations.travelWithGroupTransport,
                                 train: travelTranslations.travelWithTrain
                             };
                             return travelWithMap[data] || data || '-';
@@ -821,6 +884,12 @@
                         }
                     },
                     {
+                        data: 'created_meta',
+                        name: 'created_meta',
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
                         data: 'actions',
                         name: 'actions',
                         orderable: false,
@@ -850,9 +919,32 @@
         function currentTravelQueryString() {
             const params = new URLSearchParams();
             params.set('search', $('#search_text').val() || '');
+            params.set('order_id', $('#order_id').val() || '');
             params.set('travel_type', $('#travel_type').val() || '');
+            params.set('travel_with', $('#travel_with').val() || '');
             params.set('status', $('#status').val() || '');
+            params.set('travel_date', $('#travel_date').val() || '');
+            params.set('created_date', $('#created_date').val() || '');
+            params.set('created_by', $('#created_by').val() || '');
+            params.set('arrival_airport', $('#arrival_airport').val() || '');
+            params.set('flight_company', $('#flight_company').val() || '');
+            params.set('flight_number', $('#flight_number').val() || '');
             return params.toString();
+        }
+
+        function resetTravelFilters() {
+            $('#search_text').val('');
+            $('#order_id').val('');
+            $('#travel_type').val('');
+            $('#travel_with').val('');
+            $('#status').val('');
+            $('#travel_date').val('');
+            $('#created_date').val('');
+            $('#created_by').val('');
+            $('#arrival_airport').val('');
+            $('#flight_company').val('');
+            $('#flight_number').val('');
+            loadTable();
         }
 
         function exportTravelTable() {

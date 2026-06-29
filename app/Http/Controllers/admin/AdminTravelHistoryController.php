@@ -24,6 +24,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Response;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Spatie\Activitylog\Models\Activity;
 
 class AdminTravelHistoryController extends Controller
 {
@@ -107,6 +108,16 @@ class AdminTravelHistoryController extends Controller
                     }
                     $html .= '</div>';
                     return $html;
+                })
+                ->addColumn('created_meta', function ($row) {
+                    $createdAt = data_get($row, 'created_at');
+                    $createdAtLabel = $createdAt ? Carbon::parse($createdAt)->format('Y-m-d H:i') : '-';
+                    $creatorName = data_get($row, 'creator_name') ?: 'غير محدد';
+
+                    return '<div class="small">'
+                        . '<div><i class="fa fa-calendar-plus"></i> ' . e($createdAtLabel) . '</div>'
+                        . '<div class="text-muted"><i class="fa fa-user"></i> ' . e($creatorName) . '</div>'
+                        . '</div>';
                 })
                 ->addColumn('travel_details', function($row) {
                     $html = '<div class="travel-details">';
@@ -199,12 +210,17 @@ class AdminTravelHistoryController extends Controller
                                 . implode('', $menuItems) .
                                 '</ul></div>';
                 })
-                ->rawColumns(['user_data', 'maid_data', 'travel_details', 'order_id', 'actions'])
+                ->rawColumns(['user_data', 'maid_data', 'created_meta', 'travel_details', 'order_id', 'actions'])
                 ->make(true);
         }
 
         // For non-AJAX requests (initial page load)
-        return view('admin.travel_history.index');
+        return view('admin.travel_history.index', [
+            'travelCreators' => Admin::query()
+                ->notSuspended()
+                ->orderBy('name')
+                ->get(['id', 'name']),
+        ]);
     }
 
     public function export(Request $request)
@@ -1305,9 +1321,12 @@ class AdminTravelHistoryController extends Controller
 
     private function buildGroupedTripsCollection(Collection $trips): Collection
     {
-        return $trips
-            ->groupBy(fn (TravelHistory $trip) => $this->resolveTripGroupKey($trip))
-            ->map(function (Collection $group) {
+        $tripGroups = $trips->groupBy(fn (TravelHistory $trip) => $this->resolveTripGroupKey($trip));
+        $primaryTrips = $tripGroups->map(fn (Collection $group) => $group->sortByDesc('id')->first());
+        $creatorNames = $this->resolveTravelCreatorNames($primaryTrips->pluck('id')->filter()->all());
+
+        return $tripGroups
+            ->map(function (Collection $group) use ($creatorNames) {
                 $primaryTrip = $group->sortByDesc('id')->first();
                 $orderIds = $group->pluck('order_id')->filter()->unique()->values();
                 $users = $group->map(fn (TravelHistory $trip) => $trip->user)
@@ -1325,6 +1344,8 @@ class AdminTravelHistoryController extends Controller
                     'contracts_count' => $orderIds->count(),
                     'order_ids' => $orderIds->all(),
                     'order_id' => $orderIds->implode(', '),
+                    'created_at' => $primaryTrip->created_at,
+                    'creator_name' => $creatorNames->get($primaryTrip->id),
                     'travel_type' => $primaryTrip->travel_type,
                     'travel_with' => $primaryTrip->travel_with,
                     'arrival_airport' => $primaryTrip->arrival_airport,
@@ -1366,6 +1387,18 @@ class AdminTravelHistoryController extends Controller
                     ->orWhere('flight_company', 'like', '%' . $search . '%')
                     ->orWhere('flight_number', 'like', '%' . $search . '%')
                     ->orWhere('order_id', 'like', '%' . $search . '%')
+                    ->orWhere('created_at', 'like', '%' . $search . '%')
+                    ->orWhereExists(function ($subQuery) use ($search) {
+                        $activityTable = config('activitylog.table_name', 'activity_log');
+                        $subQuery->selectRaw('1')
+                            ->from($activityTable)
+                            ->join('admins', 'admins.id', '=', $activityTable . '.causer_id')
+                            ->whereColumn($activityTable . '.subject_id', 'travel_histories.id')
+                            ->where($activityTable . '.subject_type', TravelHistory::class)
+                            ->where($activityTable . '.causer_type', Admin::class)
+                            ->where($activityTable . '.event', 'created')
+                            ->where('admins.name', 'like', '%' . $search . '%');
+                    })
                     ->orWhereHas('user', function ($q) use ($search) {
                         $q->where('name', 'like', '%' . $search . '%');
                     })
@@ -1378,6 +1411,47 @@ class AdminTravelHistoryController extends Controller
 
         if ($request->filled('travel_type')) {
             $query->where('travel_type', $request->travel_type);
+        }
+
+        if ($request->filled('travel_with')) {
+            $query->where('travel_with', $request->travel_with);
+        }
+
+        if ($request->filled('arrival_airport')) {
+            $query->where('arrival_airport', $request->arrival_airport);
+        }
+
+        if ($request->filled('travel_date')) {
+            $query->whereDate('arrival_date', $request->travel_date);
+        }
+
+        if ($request->filled('created_date')) {
+            $query->whereDate('created_at', $request->created_date);
+        }
+
+        if ($request->filled('created_by')) {
+            $activityTable = config('activitylog.table_name', 'activity_log');
+            $query->whereExists(function ($subQuery) use ($activityTable, $request) {
+                $subQuery->selectRaw('1')
+                    ->from($activityTable)
+                    ->whereColumn($activityTable . '.subject_id', 'travel_histories.id')
+                    ->where($activityTable . '.subject_type', TravelHistory::class)
+                    ->where($activityTable . '.causer_type', Admin::class)
+                    ->where($activityTable . '.event', 'created')
+                    ->where($activityTable . '.causer_id', $request->created_by);
+            });
+        }
+
+        if ($request->filled('flight_company')) {
+            $query->where('flight_company', 'like', '%' . $request->flight_company . '%');
+        }
+
+        if ($request->filled('flight_number')) {
+            $query->where('flight_number', 'like', '%' . $request->flight_number . '%');
+        }
+
+        if ($request->filled('order_id')) {
+            $query->where('order_id', 'like', '%' . $request->order_id . '%');
         }
 
         return $query;
@@ -1395,6 +1469,8 @@ class AdminTravelHistoryController extends Controller
             __('admin.flight_company'),
             __('admin.flight_number'),
             __('admin.status'),
+            'تاريخ الإنشاء',
+            'المنشئ',
             helperTrans('ingaz.arrival_datetime_prefix'),
             'المطار',
         ];
@@ -1419,6 +1495,8 @@ class AdminTravelHistoryController extends Controller
             $row->flight_company ?: '-',
             $row->flight_number ?: '-',
             $statuses[$row->status] ?? $row->status ?? '-',
+            optional($row->created_at)->format('Y-m-d H:i') ?: '-',
+            $row->creator_name ?: '-',
             trim(($row->arrival_date ?: '-') . ' ' . ($row->arrival_time ?: '')),
             $this->travelAirportLabel($row->arrival_airport),
         ];
@@ -1442,6 +1520,27 @@ class AdminTravelHistoryController extends Controller
         ];
 
         return $airports[$airport] ?? $airport ?? 'غير محدد';
+    }
+
+    private function resolveTravelCreatorNames(array $tripIds): Collection
+    {
+        $tripIds = array_values(array_unique(array_filter($tripIds)));
+        if ($tripIds === [] || !Schema::hasTable(config('activitylog.table_name', 'activity_log'))) {
+            return collect();
+        }
+
+        return Activity::query()
+            ->with('causer')
+            ->where('subject_type', TravelHistory::class)
+            ->whereIn('subject_id', $tripIds)
+            ->where('causer_type', Admin::class)
+            ->where('event', 'created')
+            ->orderBy('subject_id')
+            ->orderBy('id')
+            ->get()
+            ->groupBy('subject_id')
+            ->map(fn (Collection $activities) => optional($activities->first()?->causer)->name)
+            ->filter();
     }
 
     private function csvDownload(string $filename, array $headings, Collection $rows)
