@@ -1468,14 +1468,18 @@ class DataImportExecutionService
     {
         $idNumber = $this->normalizeIdNumber($row['client_id_number'] ?? $row['id_number'] ?? $row['national_num'] ?? null);
         $phone = $this->normalizeImportPhone($row['client_phone'] ?? $row['phone'] ?? '');
+        $clientName = trim((string) ($row['client_name'] ?? ''));
+
+        if ($phone === '' && $idNumber === '' && $clientName !== '') {
+            $phone = $this->generatedImportClientPhone($row, $clientName);
+        }
+
         $userById = $idNumber !== '' ? User::where('national_num', $idNumber)->first() : null;
         $userByPhone = $phone !== '' ? $this->findUserByPhone($phone) : null;
 
-        if ($userById && $userByPhone && (int) $userById->id !== (int) $userByPhone->id) {
-            throw new \InvalidArgumentException('رقم هوية العميل ورقم جواله يعودان لعميلين مختلفين.');
-        }
-
         if ($userById) {
+            $this->syncImportedClientContact($userById, $phone, $idNumber, $userByPhone);
+
             return $userById;
         }
 
@@ -1484,7 +1488,7 @@ class DataImportExecutionService
                 $userByPhone->update(['national_num' => $idNumber]);
             }
 
-            if (blank($userByPhone->national_num)) {
+            if (blank($userByPhone->national_num) && !$this->isGeneratedImportClientPhone($phone)) {
                 throw new \InvalidArgumentException('رقم هوية العميل مطلوب لإكمال الربط.');
             }
 
@@ -1495,7 +1499,7 @@ class DataImportExecutionService
             throw new \InvalidArgumentException('جوال العميل مطلوب وغير صحيح.');
         }
 
-        if ($idNumber === '') {
+        if ($idNumber === '' && !$this->isGeneratedImportClientPhone($phone)) {
             throw new \InvalidArgumentException('رقم هوية العميل مطلوب لإنشاء العميل وربطه.');
         }
 
@@ -1508,6 +1512,45 @@ class DataImportExecutionService
             'register_from' => 'data_import',
             'is_blocked' => 0,
         ]));
+    }
+
+    private function generatedImportClientPhone(array $row, string $clientName): string
+    {
+        $reference = trim((string) ($row['contract_number'] ?? ''))
+            ?: trim((string) ($row['maid_passport'] ?? $row['passport_num'] ?? ''))
+            ?: substr(sha1($clientName), 0, 12);
+
+        $reference = preg_replace('/[^A-Za-z0-9]+/', '-', $this->normalizeDigits($reference));
+        $reference = trim((string) $reference, '-');
+
+        return 'data-import-client-' . ($reference !== '' ? $reference : substr(sha1($clientName), 0, 12));
+    }
+
+    private function isGeneratedImportClientPhone(string $phone): bool
+    {
+        return str_starts_with($phone, 'data-import-client-');
+    }
+
+    private function syncImportedClientContact(User $user, string $phone, string $idNumber, ?User $userByPhone): void
+    {
+        $payload = [];
+
+        if ($idNumber !== '' && blank($user->national_num)) {
+            $payload['national_num'] = $idNumber;
+        }
+
+        if ($phone !== '' && (string) $user->phone !== $phone) {
+            if (!$userByPhone || (int) $userByPhone->id === (int) $user->id) {
+                $payload['phone'] = $phone;
+                $payload['phone_code'] = '+966';
+            } elseif (Schema::hasColumn('users', 'phone2') && blank($user->phone2)) {
+                $payload['phone2'] = $phone;
+            }
+        }
+
+        if ($payload !== []) {
+            $user->update($payload);
+        }
     }
 
     private function maidFromRow(array $row, bool $required): ?Maid
