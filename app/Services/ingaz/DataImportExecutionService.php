@@ -13,6 +13,7 @@ use App\Models\SponsorshipTransfer;
 use App\Models\auth\Admin;
 use App\Models\ingaz\JobTitle;
 use App\Models\ingaz\JobType;
+use App\Models\ingaz\Invoice;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\Nationality;
 use App\Models\ingaz\NationalitiesTranslation;
@@ -79,6 +80,10 @@ class DataImportExecutionService
 
         if ($type === 'finance_accounts') {
             return $this->importFinanceAccountsFile($storedPath, $columns, $adminId, $result);
+        }
+
+        if ($type === 'legacy_invoices') {
+            return $this->importLegacyInvoicesFile($storedPath, $columns, $adminId, $result);
         }
 
         foreach ($this->readRows(Storage::path($storedPath), $columns) as $rowNumber => $row) {
@@ -414,6 +419,310 @@ class DataImportExecutionService
         }
 
         return $result;
+    }
+
+    private function importLegacyInvoicesFile(string $storedPath, array $columns, ?int $adminId, array $result): array
+    {
+        if (!Schema::hasTable('invoices')) {
+            $result['error_count']++;
+            $result['errors'][] = 'جدول الفواتير غير موجود.';
+
+            return $result;
+        }
+
+        $context = [
+            'users_by_legacy_number' => [],
+            'users_by_phone' => [],
+            'users_by_name' => [],
+            // العقد رقمه هو نفسه id العقد، فنحمّل كل أرقام العقود مرة واحدة للمطابقة في الذاكرة.
+            'contract_ids' => Contract::query()->pluck('id')->flip()->all(),
+            'existing_invoice_ids' => Invoice::query()->pluck('id')->flip()->all(),
+            'invoice_columns' => array_flip(Schema::getColumnListing('invoices')),
+            'user_columns' => array_flip(Schema::getColumnListing('users')),
+        ];
+
+        foreach ($this->readLegacyInvoiceRows(Storage::path($storedPath), $columns) as $rowLabel => $row) {
+            $result['total']++;
+
+            try {
+                DB::transaction(function () use ($row, $adminId, &$result, &$context) {
+                    $outcome = $this->importLegacyInvoice($row, $adminId, $context);
+                    $result[$outcome]++;
+                });
+            } catch (\Throwable $exception) {
+                $result['skipped']++;
+                $result['error_count']++;
+
+                if (count($result['errors']) < self::MAX_ERROR_DETAILS) {
+                    $result['errors'][] = "{$rowLabel}: " . $exception->getMessage();
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    private function readLegacyInvoiceRows(string $path, array $columns): \Generator
+    {
+        $spreadsheet = $this->loadSpreadsheetForImport($path);
+
+        $labelMap = [];
+        foreach ($columns as $column) {
+            $labelMap[$this->normalizeHeader($column['label'])] = $column['key'];
+            $labelMap[$this->normalizeHeader($column['key'])] = $column['key'];
+        }
+
+        foreach ($spreadsheet->getWorksheetIterator() as $sheet) {
+            $sheetTitle = (string) $sheet->getTitle();
+            if ($this->normalizeArabicText($sheetTitle) === $this->normalizeArabicText('الملخص')) {
+                continue;
+            }
+
+            $highestRow = $sheet->getHighestDataRow();
+            $highestColumn = $sheet->getHighestDataColumn();
+
+            // قراءة صف العناوين دفعة واحدة بدل خلية بخلية (أسرع بكثير للملفات الكبيرة).
+            $headerCells = $sheet->rangeToArray("A1:{$highestColumn}1", null, false, false, false)[0] ?? [];
+            $headers = [];
+            foreach ($headerCells as $offset => $headerValue) {
+                $header = $this->cellValue($headerValue);
+                $headers[$offset] = $labelMap[$this->normalizeHeader($header)] ?? null;
+            }
+
+            if (!in_array('invoice_number', $headers, true)) {
+                continue;
+            }
+
+            // قراءة الصفوف على دفعات لتقليل عدد استدعاءات المكتبة مع الحفاظ على الذاكرة.
+            $chunkSize = 2000;
+            for ($startRow = 2; $startRow <= $highestRow; $startRow += $chunkSize) {
+                $endRow = min($startRow + $chunkSize - 1, $highestRow);
+                $rows = $sheet->rangeToArray("A{$startRow}:{$highestColumn}{$endRow}", null, false, false, false);
+
+                foreach ($rows as $rowOffset => $cells) {
+                    $rowNumber = $startRow + $rowOffset;
+                    $row = [
+                        'source_sheet' => $sheetTitle,
+                        'source_row' => $rowNumber,
+                    ];
+
+                    foreach ($cells as $offset => $cellValue) {
+                        $key = $headers[$offset] ?? null;
+                        if (!$key) {
+                            continue;
+                        }
+
+                        $row[$key] = $this->cellValue($cellValue);
+                    }
+
+                    $values = collect($row)
+                        ->except(['source_sheet', 'source_row'])
+                        ->filter(fn ($value) => $value !== null && $value !== '');
+
+                    if ($values->isNotEmpty()) {
+                        yield "شيت {$sheetTitle} صف {$rowNumber}" => $row;
+                    }
+                }
+            }
+        }
+    }
+
+    private function importLegacyInvoice(array $row, ?int $adminId, array &$context): string
+    {
+        $invoiceNumber = $this->optionalInteger($row['invoice_number'] ?? null);
+        if (!$invoiceNumber) {
+            throw new \InvalidArgumentException('رقم الفاتورة مطلوب وغير صحيح.');
+        }
+
+        $invoiceDate = $this->parseDateTime($row['invoice_date'] ?? null) ?: now();
+        $subtotal = $this->decimal($row['subtotal'] ?? null);
+        $totalDue = $this->decimal($row['total_due'] ?? null);
+        $vatAmount = $this->decimal($row['vat_amount'] ?? null) ?? 0.0;
+
+        if ($subtotal === null && $totalDue === null) {
+            throw new \InvalidArgumentException('المبلغ أو المبلغ شامل الضريبة مطلوب.');
+        }
+
+        $subtotal ??= $this->roundMoney((float) $totalDue - (float) $vatAmount);
+        $totalDue ??= $this->roundMoney((float) $subtotal + (float) $vatAmount);
+
+        // مطابقة الفاتورة مع العقد عن طريق رقم العقد (وهو نفسه id العقد في النظام).
+        $contractId = $this->resolveLegacyInvoiceContract($row, $context);
+        $client = $contractId ? null : $this->resolveLegacyInvoiceClient($row, $adminId, $context);
+
+        $payload = array_intersect_key([
+            'contract_id' => $contractId,
+            'ingaz_delegation_id' => null,
+            'client_id' => $contractId ? null : $client?->id,
+            'insurance_company' => null,
+            'general_description' => $this->legacyInvoiceDescription($row),
+            'general_direct_label' => $this->legacyInvoiceItemLabel($row),
+            'general_external_label' => null,
+            'general_government_label' => null,
+            'general_ticket_label' => null,
+            'direct_recruitment_cost' => $subtotal,
+            'external_recruitment_cost' => 0,
+            'government_cost' => 0,
+            'internal_ticket_cost' => 0,
+            'visa_recruited_count' => 0,
+            'direct_recruitment_count' => $subtotal != 0.0 ? 1 : 0,
+            'external_recruitment_count' => 0,
+            'insured_count' => 0,
+            'government_cost_count' => 0,
+            'internal_ticket_count' => 0,
+            'subtotal' => $subtotal,
+            'discount' => 0,
+            'vat_amount' => $vatAmount,
+            'total_due' => $totalDue,
+            'is_paid' => 1,
+            'paid_at' => $invoiceDate,
+            'send_to_zatca' => 0,
+            'created_at' => $invoiceDate,
+            'updated_at' => $invoiceDate,
+        ], $context['invoice_columns']);
+
+        // نعتمد على قائمة أرقام الفواتير المحمّلة مسبقاً بدل استعلام لكل صف.
+        if (isset($context['existing_invoice_ids'][$invoiceNumber])) {
+            Invoice::query()->whereKey($invoiceNumber)->update($payload);
+
+            return 'updated';
+        }
+
+        Invoice::query()->create(['id' => $invoiceNumber] + $payload);
+        $context['existing_invoice_ids'][$invoiceNumber] = true;
+
+        return 'created';
+    }
+
+    private function resolveLegacyInvoiceClient(array $row, ?int $adminId, array &$context): ?User
+    {
+        $legacyClientNumber = $this->optionalInteger($row['legacy_client_number'] ?? null);
+        $name = trim((string) ($row['client_name'] ?? ''));
+        $phone = $this->legacyInvoicePhone($row['client_phone'] ?? null);
+
+        if ($legacyClientNumber && array_key_exists($legacyClientNumber, $context['users_by_legacy_number'])) {
+            return $context['users_by_legacy_number'][$legacyClientNumber];
+        }
+
+        if ($phone !== '' && array_key_exists($phone, $context['users_by_phone'])) {
+            return $context['users_by_phone'][$phone];
+        }
+
+        if ($name !== '' && array_key_exists($name, $context['users_by_name'])) {
+            return $context['users_by_name'][$name];
+        }
+
+        if ($legacyClientNumber) {
+            $user = User::query()->whereKey($legacyClientNumber)->first();
+            if ($user) {
+                $this->rememberLegacyInvoiceUser($context, $user, $legacyClientNumber, $phone, $name);
+                return $user;
+            }
+        }
+
+        if ($phone !== '') {
+            $user = $this->findUserByPhone($phone);
+            if ($user) {
+                $this->rememberLegacyInvoiceUser($context, $user, $legacyClientNumber, $phone, $name);
+                return $user;
+            }
+        }
+
+        if ($name !== '') {
+            $user = User::query()->where('name', $name)->first();
+            if ($user) {
+                $this->rememberLegacyInvoiceUser($context, $user, $legacyClientNumber, $phone, $name);
+                return $user;
+            }
+        }
+
+        if ($name === '' && $phone === '') {
+            if ($legacyClientNumber) {
+                $context['users_by_legacy_number'][$legacyClientNumber] = null;
+            }
+
+            return null;
+        }
+
+        $fallbackPhone = $phone !== ''
+            ? $phone
+            : 'legacy-invoice-client-' . ($legacyClientNumber ?: substr(sha1($name), 0, 16));
+
+        $payload = [
+            'name' => $name !== '' ? $name : ('عميل فاتورة قديمة #' . ($legacyClientNumber ?: 'بدون رقم')),
+            'phone_code' => '+966',
+            'phone' => $fallbackPhone,
+            'register_from' => 'legacy_invoices_import',
+            'created_by' => $adminId,
+        ];
+
+        if (Schema::hasColumn('users', 'password')) {
+            $payload['password'] = $this->defaultImportPasswordHash();
+        }
+
+        $user = User::query()->create(array_intersect_key($payload, $context['user_columns']));
+        $this->rememberLegacyInvoiceUser($context, $user, $legacyClientNumber, $phone, $name);
+
+        return $user;
+    }
+
+    private function rememberLegacyInvoiceUser(array &$context, ?User $user, ?int $legacyClientNumber, string $phone, string $name): void
+    {
+        if ($legacyClientNumber) {
+            $context['users_by_legacy_number'][$legacyClientNumber] = $user;
+        }
+
+        if ($phone !== '') {
+            $context['users_by_phone'][$phone] = $user;
+        }
+
+        if ($name !== '') {
+            $context['users_by_name'][$name] = $user;
+        }
+    }
+
+    private function resolveLegacyInvoiceContract(array $row, array &$context): ?int
+    {
+        // رقم العقد في ملف الفواتير (عمود "رقم الطلب") هو نفسه id العقد في النظام.
+        $contractNumber = $this->optionalInteger($row['legacy_order_number'] ?? null);
+
+        return $contractNumber !== null && isset($context['contract_ids'][$contractNumber])
+            ? $contractNumber
+            : null;
+    }
+
+    private function legacyInvoiceDescription(array $row): string
+    {
+        return collect([
+            'استيراد فواتير ',
+            'نوع الفاتورة: ' . trim((string) ($row['invoice_type'] ?? '-')),
+            'نوع المستند: ' . trim((string) ($row['document_type'] ?? '-')),
+            'رقم العميل القديم: ' . trim((string) ($row['legacy_client_number'] ?? '-')),
+            'رقم الطلب القديم: ' . trim((string) ($row['legacy_order_number'] ?? '-')),
+            'بواسطة: ' . trim((string) ($row['created_by_name'] ?? '-')),
+            'مشارك Zatca في الملف القديم: ' . trim((string) ($row['legacy_zatca_shared'] ?? '-')),
+            'مصدر الصف: ' . trim((string) ($row['source_sheet'] ?? '-')) . ' / ' . trim((string) ($row['source_row'] ?? '-')),
+        ])->implode("\n");
+    }
+
+    private function legacyInvoiceItemLabel(array $row): string
+    {
+        $type = trim((string) ($row['invoice_type'] ?? ''));
+        $documentType = trim((string) ($row['document_type'] ?? ''));
+
+        return trim(collect([$documentType, $type])->filter()->implode(' - ')) ?: 'فاتورة مستوردة';
+    }
+
+    private function legacyInvoicePhone($phone): string
+    {
+        $raw = trim((string) $phone);
+        if ($raw === '' || str_contains($raw, '*')) {
+            return '';
+        }
+
+        $normalized = $this->normalizeImportPhone($raw);
+
+        return in_array($normalized, ['0', '00', '966'], true) ? '' : $normalized;
     }
 
     private function resolveImportedFinanceAccountParent(array $row, $accountsByCode, array $accountsByLevelName): ?Account
@@ -807,7 +1116,10 @@ class DataImportExecutionService
 
         $order = $this->ensureOrder($user, $maid, $row, OrderEnum::Completed->value);
 
-        $contract = $this->findContract($row['contract_number'] ?? null, $maid?->id, $user->id);
+        $contractId = $this->optionalInteger($row['contract_number'] ?? null);
+
+        $contract = ($contractId ? Contract::whereKey($contractId)->first() : null)
+            ?: $this->findContract($row['contract_number'] ?? null, $maid?->id, $user->id);
         $payload = $this->filterColumns('contracts', [
             'user_id' => $user->id,
             'maid_id' => $maid->id,
@@ -824,7 +1136,7 @@ class DataImportExecutionService
         if ($contract) {
             $contract->update(array_filter($payload, fn ($value) => $value !== null && $value !== ''));
         } else {
-            $contract = Contract::create($payload);
+            $contract = Contract::create($contractId ? ['id' => $contractId] + $payload : $payload);
             $created = true;
         }
 
@@ -2727,6 +3039,51 @@ class DataImportExecutionService
         } catch (\Throwable) {
             return null;
         }
+    }
+
+    private function parseDateTime($value): ?Carbon
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $value = $this->normalizeDigits((string) $value);
+
+        if (is_numeric($value)) {
+            return Carbon::instance(ExcelDate::excelToDateTimeObject((float) $value));
+        }
+
+        foreach ([
+            'Y-m-d H:i:s',
+            'Y-m-d H:i',
+            'Y/m/d H:i:s',
+            'Y/m/d H:i',
+            'd/m/Y H:i:s',
+            'd/m/Y H:i',
+            'd-m-Y H:i:s',
+            'd-m-Y H:i',
+            'Y-m-d',
+            'Y/m/d',
+            'd/m/Y',
+            'd-m-Y',
+        ] as $format) {
+            try {
+                return Carbon::createFromFormat($format, trim($value));
+            } catch (\Throwable) {
+                // Try the next common import format.
+            }
+        }
+
+        try {
+            return Carbon::parse($value);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function roundMoney(float $amount): float
+    {
+        return round($amount, 2);
     }
 
     private function decimal($value): ?float
