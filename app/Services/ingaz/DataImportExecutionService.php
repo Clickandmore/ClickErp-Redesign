@@ -278,11 +278,11 @@ class DataImportExecutionService
             $creditorTotal += $line['creditor_value'];
         }
 
-        if ($debtorTotal <= 0 || round($debtorTotal, 2) !== round($creditorTotal, 2)) {
+        if (round($debtorTotal, 2) !== round($creditorTotal, 2)) {
             throw new \InvalidArgumentException('إجمالي المدين يجب أن يساوي إجمالي الدائن.');
         }
 
-        if (!collect($details)->contains('type', 'debtor') || !collect($details)->contains('type', 'creditor')) {
+        if (round($debtorTotal, 2) > 0 && (!collect($details)->contains('type', 'debtor') || !collect($details)->contains('type', 'creditor'))) {
             throw new \InvalidArgumentException('القيد يجب أن يحتوي على طرف مدين وطرف دائن.');
         }
 
@@ -1779,28 +1779,32 @@ class DataImportExecutionService
 
     private function resolveFinanceConstraintLine(array $row): array
     {
+        $hasDebtorValue = $this->hasImportCellValue($row['debtor_value'] ?? null);
+        $hasCreditorValue = $this->hasImportCellValue($row['creditor_value'] ?? null);
         $debtorValue = (float) ($this->decimal($row['debtor_value'] ?? null) ?? 0);
         $creditorValue = (float) ($this->decimal($row['creditor_value'] ?? null) ?? 0);
         $amount = $this->decimal($row['amount'] ?? null);
         $type = $this->normalizeFinanceLineType($row['line_type'] ?? $row['account_type'] ?? null);
 
-        if ($amount !== null && $amount > 0 && $debtorValue <= 0 && $creditorValue <= 0) {
+        if ($amount !== null && !$hasDebtorValue && !$hasCreditorValue) {
             if (!$type) {
                 throw new \InvalidArgumentException('عند استخدام amount يجب تحديد line_type بقيمة debtor أو creditor.');
             }
 
             if ($type === 'debtor') {
                 $debtorValue = $amount;
+                $hasDebtorValue = true;
             } else {
                 $creditorValue = $amount;
+                $hasCreditorValue = true;
             }
         }
 
-        if ($debtorValue > 0 && $creditorValue > 0) {
+        if ($hasDebtorValue && $hasCreditorValue) {
             throw new \InvalidArgumentException('لا يمكن أن يكون السطر مدينا ودائنا في نفس الوقت.');
         }
 
-        if ($debtorValue > 0) {
+        if ($hasDebtorValue) {
             if ($type && $type !== 'debtor') {
                 throw new \InvalidArgumentException('نوع السطر لا يطابق قيمة المدين.');
             }
@@ -1812,7 +1816,7 @@ class DataImportExecutionService
             ];
         }
 
-        if ($creditorValue > 0) {
+        if ($hasCreditorValue) {
             if ($type && $type !== 'creditor') {
                 throw new \InvalidArgumentException('نوع السطر لا يطابق قيمة الدائن.');
             }
@@ -1825,6 +1829,11 @@ class DataImportExecutionService
         }
 
         throw new \InvalidArgumentException('يجب إدخال قيمة مدين أو دائن لكل سطر.');
+    }
+
+    private function hasImportCellValue($value): bool
+    {
+        return trim($this->normalizeDigits((string) $value)) !== '';
     }
 
     private function normalizeFinanceLineType($value): ?string
