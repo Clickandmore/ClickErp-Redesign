@@ -3,6 +3,7 @@
 namespace Nami\Finance\Services;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Facades\DB;
 use Nami\Finance\Enums\AccountTypesEnum;
 use Nami\Finance\Enums\OperationTypeEnum;
@@ -133,17 +134,116 @@ class AccountService extends MainService
     public function getAccountTree()
     {
         $accounts = $this->model
-            ->with(['constraintDetails', 'childrenRecursive'])
-            ->whereNull('parent_id')
+            ->select([
+                'id',
+                'name',
+                'code',
+                'type',
+                'status',
+                'level',
+                'parent_id',
+                'operation_type',
+                'statement_type',
+                'created_by_id',
+            ])
+            ->withCount('constraintDetails')
             ->orderBy('code')
+            ->orderBy('id')
             ->get();
 
+        $accountsById = $accounts->keyBy('id');
+        $childrenByParent = [];
+        $roots = new EloquentCollection();
+
         foreach ($accounts as $account) {
-            $this->addDescendantIdsToAccount($account);
+            $this->normalizeAccountEnumValuesForTree($account);
+            $account->setRelation(
+                'constraintDetails',
+                (int) ($account->constraint_details_count ?? 0) > 0
+                    ? new EloquentCollection([new ConstraintDetails()])
+                    : new EloquentCollection()
+            );
+            $account->setRelation('childrenRecursive', new EloquentCollection());
         }
+
+        foreach ($accounts as $account) {
+            $parentId = $account->parent_id ? (int) $account->parent_id : null;
+
+            if (!$parentId || !$accountsById->has($parentId) || $this->accountTreeHasParentCycle($account, $accountsById)) {
+                $roots->push($account);
+                continue;
+            }
+
+            $childrenByParent[$parentId][] = $account;
+        }
+
+        $this->attachAccountTreeChildren($roots, $childrenByParent);
+
+        foreach ($roots as $account) {
+            $account->all_children_ids = $this->accountTreeDescendantIds($account);
+        }
+
         $data['constraintDetails'] = $this->getConDetails();
-        $data['accounts'] = $accounts;
+        $data['accounts'] = $roots;
         return $data;
+    }
+
+    private function normalizeAccountEnumValuesForTree(Account $account): void
+    {
+        $validTypes = array_map(static fn ($case) => $case->value, AccountTypesEnum::cases());
+        $type = $account->getRawOriginal('type');
+        if (!is_numeric($type) || !in_array((int) $type, $validTypes, true)) {
+            $account->setAttribute('type', AccountTypesEnum::NormalAccount->value);
+        }
+
+        $status = (string) $account->getRawOriginal('status');
+        if (!in_array($status, ['debtor', 'creditor'], true)) {
+            $account->setAttribute('status', 'debtor');
+        }
+    }
+
+    private function accountTreeHasParentCycle(Account $account, EloquentCollection $accountsById): bool
+    {
+        $seen = [(int) $account->id => true];
+        $parentId = $account->parent_id ? (int) $account->parent_id : null;
+
+        while ($parentId) {
+            if (isset($seen[$parentId])) {
+                return true;
+            }
+
+            $seen[$parentId] = true;
+            $parent = $accountsById->get($parentId);
+            if (!$parent) {
+                return false;
+            }
+
+            $parentId = $parent->parent_id ? (int) $parent->parent_id : null;
+        }
+
+        return false;
+    }
+
+    private function attachAccountTreeChildren(EloquentCollection $accounts, array $childrenByParent): void
+    {
+        foreach ($accounts as $account) {
+            $children = new EloquentCollection($childrenByParent[(int) $account->id] ?? []);
+            $this->attachAccountTreeChildren($children, $childrenByParent);
+            $account->setRelation('childrenRecursive', $children);
+        }
+    }
+
+    private function accountTreeDescendantIds(Account $account): array
+    {
+        $ids = [];
+
+        foreach ($account->childrenRecursive as $child) {
+            $ids[] = (int) $child->id;
+            $child->all_children_ids = $this->accountTreeDescendantIds($child);
+            $ids = array_merge($ids, $child->all_children_ids);
+        }
+
+        return $ids;
     }
 
     protected function addDescendantIdsToAccount($account)
