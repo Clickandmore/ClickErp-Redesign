@@ -1900,11 +1900,40 @@ class DataImportExecutionService
             return null;
         }
 
-        return FnYear::query()
+        $year = FnYear::query()
             ->where('status', 1)
             ->whereDate('from_date', '<=', $date)
             ->whereDate('to_date', '>=', $date)
             ->first();
+
+        if ($year) {
+            return $year;
+        }
+
+        $year = FnYear::query()
+            ->whereDate('from_date', '<=', $date)
+            ->whereDate('to_date', '>=', $date)
+            ->first();
+
+        if ($year) {
+            $year->update(['status' => 1]);
+
+            return $year->fresh();
+        }
+
+        $date = Carbon::parse($date);
+        $payload = [
+            'title' => (string) $date->year,
+            'from_date' => $date->copy()->startOfYear()->toDateString(),
+            'to_date' => $date->copy()->endOfYear()->toDateString(),
+            'status' => 1,
+        ];
+
+        if (Schema::hasColumn('fn_years', 'created_by_id')) {
+            $payload['created_by_id'] = auth('admin')->id() ?? auth()->id() ?? 1;
+        }
+
+        return FnYear::query()->create($payload);
     }
 
     private function nextFinanceConstraintCode(): int
