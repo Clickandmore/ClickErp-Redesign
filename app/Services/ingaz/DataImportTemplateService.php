@@ -271,6 +271,24 @@ class DataImportTemplateService
                     ['key' => 'notes', 'label' => 'ملاحظات', 'required' => false, 'example' => 'تفويض مستورد'],
                 ],
             ],
+            'finance_accounts' => [
+                'label' => 'الحسابات المالية',
+                'route_hint' => '/finance/accounts',
+                'icon' => 'fas fa-sitemap',
+                'description' => 'استيراد شجرة الحسابات المالية مع الحفاظ على أرقام الحسابات وربط الحسابات بالأب حسب المستوى واسم الحساب الأصل.',
+                'filename' => 'finance-accounts-import-template.xlsx',
+                'columns' => [
+                    ['key' => 'level', 'label' => 'المستوى', 'required' => true, 'example' => '1'],
+                    ['key' => 'account_code', 'label' => 'رقم الحساب', 'required' => true, 'example' => '1'],
+                    ['key' => 'account_name', 'label' => 'اسم الحساب', 'required' => true, 'example' => 'الأصول'],
+                    ['key' => 'parent_name', 'label' => 'الحساب الأصل', 'required' => false, 'example' => ''],
+                    ['key' => 'account_status', 'label' => 'طبيعة الحساب', 'required' => true, 'example' => 'مدين', 'valid_values' => ['مدين', 'دائن', 'debtor', 'creditor']],
+                    ['key' => 'statement_type', 'label' => 'نوع الحساب', 'required' => false, 'example' => 'ميزانية', 'valid_values' => ['ميزانية', 'قائمة دخل', 'balance_sheet', 'income_statement']],
+                    ['key' => 'balance', 'label' => 'الرصيد', 'required' => false, 'example' => '0.00'],
+                    ['key' => 'opening_balance', 'label' => 'رصيد افتتاحي', 'required' => false, 'example' => '0.00'],
+                    ['key' => 'cost_center_name', 'label' => 'مركز التكلفة', 'required' => false, 'example' => ''],
+                ],
+            ],
             'finance_constraints' => [
                 'label' => 'القيود المالية',
                 'route_hint' => '/finance/constraints',
@@ -298,6 +316,15 @@ class DataImportTemplateService
             ],
         ];
 
+        $templates['legacy_invoices'] = [
+            'label' => 'فواتير',
+            'route_hint' => '/admin/invoices',
+            'icon' => 'fas fa-file-invoice-dollar',
+            'description' => 'استيراد ملف جميع فواتير. يتم تجاهل شيت الملخص وقراءة كل شيتات الفواتير مع الحفاظ على رقم الفاتورة القديم كرقم الفاتورة في النظام.',
+            'filename' => 'legacy-invoices-import-template.xlsx',
+            'columns' => $this->legacyInvoiceColumns(),
+        ];
+
         $templates['recruitment_contracts_clients_maids'] = [
             'label' => 'عقود استقدام-عملاء-عاملات',
             'route_hint' => '/admin/RecruitmentContract',
@@ -322,6 +349,26 @@ class DataImportTemplateService
     public function template(string $type): ?array
     {
         return $this->templates()[$type] ?? null;
+    }
+
+    private function legacyInvoiceColumns(): array
+    {
+        return [
+            ['key' => 'sequence', 'label' => 'م', 'required' => false, 'example' => '1'],
+            ['key' => 'invoice_number', 'label' => 'رقم الفاتورة', 'required' => true, 'example' => '1'],
+            ['key' => 'invoice_date', 'label' => 'التاريخ', 'required' => true, 'example' => '2017-12-26 19:00:46'],
+            ['key' => 'invoice_type', 'label' => 'النوع', 'required' => false, 'example' => 'فاتورة ايراد / طلب استقدام'],
+            ['key' => 'subtotal', 'label' => 'المبلغ', 'required' => true, 'example' => '17000.00'],
+            ['key' => 'total_due', 'label' => 'المبلغ شامل الضريبة', 'required' => true, 'example' => '17000.00'],
+            ['key' => 'vat_amount', 'label' => 'الضريبة', 'required' => false, 'example' => '0.00'],
+            ['key' => 'client_name', 'label' => 'اسم العميل', 'required' => false, 'example' => 'محمد أحمد علي'],
+            ['key' => 'client_phone', 'label' => 'موبايل العميل', 'required' => false, 'example' => '0500000000'],
+            ['key' => 'legacy_client_number', 'label' => 'رقم العميل', 'required' => false, 'example' => '21'],
+            ['key' => 'legacy_order_number', 'label' => 'رقم الطلب', 'required' => false, 'example' => '22'],
+            ['key' => 'created_by_name', 'label' => 'بواسطة', 'required' => false, 'example' => 'admin / System Admin'],
+            ['key' => 'document_type', 'label' => 'نوع مستند الفاتورة', 'required' => false, 'example' => 'فاتورة'],
+            ['key' => 'legacy_zatca_shared', 'label' => 'مشارك Zatca', 'required' => false, 'example' => 'لا', 'valid_values' => ['نعم', 'لا']],
+        ];
     }
 
     private function recruitmentBundleColumns(): array
