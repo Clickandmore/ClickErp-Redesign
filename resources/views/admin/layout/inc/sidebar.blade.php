@@ -1171,6 +1171,9 @@
                             'skills.index',
                             'countries.index',
                             'cities.index',
+                            'airports.index',
+                            'airports.create',
+                            'airports.edit',
                             'social-statuses.index',
                             'recruitment-contract-stages.edit',
                             'recruitment-contract-stages.update',
@@ -1553,6 +1556,13 @@
                                                     href="{{ route('cities.index') }}">
                                                     <i class="fa fa-city"></i>
                                                     <span class="ms-2">{{ __('admin.sidebar.cities') }}</span>
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="m-link {{ request()->routeIs('airports.*') ? 'active' : '' }}"
+                                                    href="{{ route('airports.index') }}">
+                                                    <i class="fa fa-plane"></i>
+                                                    <span class="ms-2">المطارات</span>
                                                 </a>
                                             </li>
                                         @endif

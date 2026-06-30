@@ -1028,14 +1028,14 @@
                                 </li>
                             </ul>
                         </li>
-                        <li class="{{ in_array(Route::currentRouteName(), ['job-titles.index', 'packages.index', 'nationalities.index', 'religions.index', 'skills.index', 'countries.index', 'cities.index', 'social-statuses.index']) ? '' : 'collapsed' }}">
+                        <li class="{{ in_array(Route::currentRouteName(), ['job-titles.index', 'packages.index', 'nationalities.index', 'religions.index', 'skills.index', 'countries.index', 'cities.index', 'airports.index', 'airports.create', 'airports.edit', 'social-statuses.index']) ? '' : 'collapsed' }}">
                             <a class="m-link" data-bs-toggle="collapse" data-bs-target="#my_dashboard3"
                                 href="#">
                                 <i class="fa fa-cog"></i>
                                 <span class="ms-2">{{ helperTrans('ingaz.recruitment-settings') }}</span>
                                 <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                             </a>
-                            <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['job-titles.index', 'packages.index', 'nationalities.index', 'religions.index', 'skills.index', 'countries.index', 'cities.index', 'social-statuses.index']) ? 'show' : '' }}"
+                            <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['job-titles.index', 'packages.index', 'nationalities.index', 'religions.index', 'skills.index', 'countries.index', 'cities.index', 'airports.index', 'airports.create', 'airports.edit', 'social-statuses.index']) ? 'show' : '' }}"
                                 id="my_dashboard3">
                                 @if (@AdminGuardHasPerm(\App\PermKeys::JOB_TITLES_VIEW))
                                     <li>
@@ -1076,6 +1076,13 @@
                                             href="{{ route('cities.index') }}">
                                             <i class="fa fa-city"></i>
                                             <span class="ms-2">المدن</span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="m-link {{ request()->routeIs('airports.*') ? 'active' : '' }}"
+                                            href="{{ route('airports.index') }}">
+                                            <i class="fa fa-plane"></i>
+                                            <span class="ms-2">المطارات</span>
                                         </a>
                                     </li>
                                     {{--                            <li> --}}

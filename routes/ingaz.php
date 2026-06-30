@@ -13,6 +13,7 @@ use App\Http\Controllers\admin\office\OfficeController;
 use App\Http\Controllers\admin\PrintContractController;
 use App\Http\Controllers\admin\ShelterWorkersController;
 use App\Http\Controllers\ingaz\AboutUsController;
+use App\Http\Controllers\ingaz\AirportController;
 use App\Http\Controllers\ingaz\ArrivalWorkerController;
 use App\Http\Controllers\ingaz\ClientController;
 use App\Http\Controllers\ingaz\ComplaintController;
@@ -456,6 +457,7 @@ Route::group(
             Route::get('return_requests/export/excel', [ReturnRequestController::class, 'exportExcel'])->name('return_requests.export.excel');
             Route::resource('recruitment-offices', OfficeController::class)
                 ->parameters(['recruitment-offices' => 'office']);
+            Route::resource('airports', AirportController::class);
             Route::resource('shelter-places', ShelterPlaces::class);
             // Route::resource('roles', RoleController::class);
 

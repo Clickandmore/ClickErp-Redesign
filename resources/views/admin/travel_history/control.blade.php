@@ -124,22 +124,6 @@
         $selectedTravelType = old('travel_type') ?: (@$data->travel_type ?: 'international');
         $selectedTravelWith = 'airport';
         $selectedAssignedTo = old('assigned_to') ?: (@$data->assigned_to ?? '');
-        $arrivalAirports = [
-            ['value' => 'RUH', 'label' => __('ingaz.airport_ruh')],
-            ['value' => 'JED', 'label' => __('ingaz.airport_jed')],
-            ['value' => 'DMM', 'label' => __('ingaz.airport_dmm')],
-            ['value' => 'MED', 'label' => __('ingaz.airport_med')],
-            ['value' => 'TUU', 'label' => __('ingaz.airport_tuu')],
-            ['value' => 'AHB', 'label' => __('ingaz.airport_ahb')],
-            ['value' => 'TIF', 'label' => __('ingaz.airport_tif')],
-            ['value' => 'ELQ', 'label' => __('ingaz.airport_elq')],
-            ['value' => 'URY', 'label' => __('ingaz.airport_ury')],
-            ['value' => 'HAS', 'label' => __('ingaz.airport_has')],
-            ['value' => 'BHH', 'label' => __('ingaz.airport_bhh')],
-            ['value' => 'GIZ', 'label' => __('ingaz.airport_giz')],
-            ['value' => 'URY', 'label' => __('ingaz.airport_najran')],
-            ['value' => 'URY', 'label' => __('ingaz.airport_qurayyat')],
-        ];
     @endphp
 
     {{-- اختيار العقود (يدعم متعدد) --}}
@@ -263,13 +247,17 @@
     <div class="mb-3 row">
         <label for="" class="col-sm-3 col-form-label">{{ __('admin.arrival_airport') }}</label>
         <div class="col-sm-5">
+            @php
+                $rawArrivalAirport = old('arrival_airport', @$data->arrival_airport);
+                $selectedArrivalAirport = filled($rawArrivalAirport)
+                    ? \App\Support\TravelAirports::label($rawArrivalAirport)
+                    : '';
+            @endphp
             <select name="arrival_airport" id="arrival_airport" class="form-control cu-form-design select2">
                 <option value="">{{ helperTrans('ingaz.select_arrival_airport') }}</option>
-                <optgroup>
-                    @foreach ($arrivalAirports as $airport)
-                        <option value="{{ $airport['value'] }}" @if (@$data->arrival_airport == $airport['value']) selected @endif>{{ $airport['label'] }}</option>
-                    @endforeach
-                </optgroup>
+                @foreach (($arrivalAirports ?? []) as $airport)
+                    <option value="{{ $airport['value'] }}" @selected($selectedArrivalAirport == $airport['value'])>{{ $airport['label'] }}</option>
+                @endforeach
             </select>
             <div>
                 @error('arrival_airport')

@@ -15,6 +15,7 @@ use App\Models\TravelHistoryFiles;
 use App\Services\ingaz\RecruitmentTripAccountingService;
 use App\Support\AutomationSettings;
 use App\Support\CommunicationSettings;
+use App\Support\TravelAirports;
 use Carbon\Carbon;
 use DataTables;
 use Illuminate\Http\Request;
@@ -122,24 +123,8 @@ class AdminTravelHistoryController extends Controller
                 ->addColumn('travel_details', function($row) {
                     $html = '<div class="travel-details">';
 
-                    // المطار
-                    $airports = [
-                        'RUH' => 'الرياض',
-                        'JED' => 'جدة',
-                        'DMM' => 'الدمام',
-                        'MED' => 'المدينة المنورة',
-                        'TUU' => 'تبوك',
-                        'AHB' => 'أبها',
-                        'TIF' => 'الطائف',
-                        'ELQ' => 'القصيم',
-                        'URY' => 'الجوف',
-                        'HAS' => 'حائل',
-                        'BHH' => 'الباحة',
-                        'GIZ' => 'جازان',
-                    ];
-
                     $arrivalAirport = data_get($row, 'arrival_airport');
-                    $airport = $airports[$arrivalAirport] ?? $arrivalAirport ?? 'غير محدد';
+                    $airport = $this->travelAirportLabel($arrivalAirport);
                     $html .= '<i class="fa fa-plane"></i> ' . e($airport) . '<br>';
 
                     // التاريخ
@@ -220,6 +205,7 @@ class AdminTravelHistoryController extends Controller
                 ->notSuspended()
                 ->orderBy('name')
                 ->get(['id', 'name']),
+            'arrivalAirports' => $this->travelAirportOptions(),
         ]);
     }
 
@@ -616,7 +602,7 @@ class AdminTravelHistoryController extends Controller
         $maidName = $maidNames->isNotEmpty() ? $maidNames->take(4)->implode('، ') : 'غير محدد';
         $arrivalDate = $trip->arrival_date ?: 'غير محدد';
         $arrivalTime = $trip->arrival_time ?: 'غير محدد';
-        $airport = $trip->arrival_airport ?: 'غير محدد';
+        $airport = $this->travelAirportLabel($trip->arrival_airport);
         $flightCompany = $trip->flight_company ?: 'غير محدد';
         $flightNumber = $trip->flight_number ?: 'غير محدد';
         $contractsText = $contractIds->isNotEmpty()
@@ -792,7 +778,7 @@ class AdminTravelHistoryController extends Controller
                 'travel_type' => $notificationTrip->travel_type,
                 'arrival_date' => $notificationTrip->arrival_date,
                 'arrival_time' => $notificationTrip->arrival_time,
-                'arrival_airport' => $notificationTrip->arrival_airport,
+                'arrival_airport' => $this->travelAirportLabel($notificationTrip->arrival_airport),
                 'flight_company' => $notificationTrip->flight_company,
                 'flight_number' => $notificationTrip->flight_number,
                 'order_id' => $notificationTrip->order_id,
@@ -1094,7 +1080,19 @@ class AdminTravelHistoryController extends Controller
         $assignableStaff = $this->assignableStaffCollection()
             ->map(fn (Admin $admin) => $this->formatAssignableStaff($admin));
 
-        return view('admin.travel_history.control', compact('data', 'clientsList', 'maidsList', 'ordersList', 'contracts', 'id', 'userId', 'maidId', 'order', 'orderId', 'selectedOrderIds', 'assignableStaff'));
+        $arrivalAirports = $this->travelAirportOptions();
+        $currentArrivalAirport = $data && $data->arrival_airport
+            ? $this->travelAirportLabel($data->arrival_airport)
+            : null;
+
+        if ($currentArrivalAirport && !collect($arrivalAirports)->contains('value', $currentArrivalAirport)) {
+            array_unshift($arrivalAirports, [
+                'value' => $currentArrivalAirport,
+                'label' => $currentArrivalAirport,
+            ]);
+        }
+
+        return view('admin.travel_history.control', compact('data', 'clientsList', 'maidsList', 'ordersList', 'contracts', 'id', 'userId', 'maidId', 'order', 'orderId', 'selectedOrderIds', 'assignableStaff', 'arrivalAirports'));
     }
 
     public function store(Request $request, $id = null)
@@ -1418,7 +1416,7 @@ class AdminTravelHistoryController extends Controller
         }
 
         if ($request->filled('arrival_airport')) {
-            $query->where('arrival_airport', $request->arrival_airport);
+            $query->whereIn('arrival_airport', TravelAirports::valuesFor($request->arrival_airport));
         }
 
         if ($request->filled('travel_date')) {
@@ -1504,22 +1502,16 @@ class AdminTravelHistoryController extends Controller
 
     private function travelAirportLabel(?string $airport): string
     {
-        $airports = [
-            'RUH' => 'الرياض',
-            'JED' => 'جدة',
-            'DMM' => 'الدمام',
-            'MED' => 'المدينة المنورة',
-            'TUU' => 'تبوك',
-            'AHB' => 'أبها',
-            'TIF' => 'الطائف',
-            'ELQ' => 'القصيم',
-            'URY' => 'الجوف',
-            'HAS' => 'حائل',
-            'BHH' => 'الباحة',
-            'GIZ' => 'جازان',
-        ];
+        if (!$airport) {
+            return 'غير محدد';
+        }
 
-        return $airports[$airport] ?? $airport ?? 'غير محدد';
+        return TravelAirports::label($airport);
+    }
+
+    private function travelAirportOptions(): array
+    {
+        return TravelAirports::options();
     }
 
     private function resolveTravelCreatorNames(array $tripIds): Collection

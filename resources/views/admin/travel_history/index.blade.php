@@ -1,22 +1,5 @@
 @extends('admin.layout.indexs.index')
 
-@php
-    $airports = [
-        'RUH' => __('ingaz.airport_ruh'),
-        'JED' => __('ingaz.airport_jed'),
-        'DMM' => __('ingaz.airport_dmm'),
-        'MED' => __('ingaz.airport_med'),
-        'TUU' => __('ingaz.airport_tuu'),
-        'AHB' => __('ingaz.airport_ahb'),
-        'TIF' => __('ingaz.airport_tif'),
-        'ELQ' => __('ingaz.airport_elq'),
-        'URY' => __('ingaz.airport_ury'),
-        'HAS' => __('ingaz.airport_has'),
-        'BHH' => __('ingaz.airport_bhh'),
-        'GIZ' => __('ingaz.airport_giz'),
-    ];
-@endphp
-
 @section('title')
     {{ __('admin.travel') }}
 @endsection
@@ -352,8 +335,8 @@
                                         <label class="form-label">المطار</label>
                                         <select id="arrival_airport" class="form-control">
                                             <option value="">الكل</option>
-                                            @foreach ($airports as $airportCode => $airportName)
-                                                <option value="{{ $airportCode }}">{{ $airportName }}</option>
+                                            @foreach (($arrivalAirports ?? []) as $airport)
+                                                <option value="{{ $airport['value'] }}">{{ $airport['label'] }}</option>
                                             @endforeach
                                         </select>
                                     </div>
