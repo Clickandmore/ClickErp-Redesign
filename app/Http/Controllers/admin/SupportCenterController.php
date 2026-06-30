@@ -18,7 +18,7 @@ class SupportCenterController extends Controller
             ->withCount('attachments');
 
         if ($request->filled('q')) {
-            $search = $request->string('q')->toString();
+            $search = $request->input('q', '');
             $query->where(function ($inner) use ($search) {
                 $inner->where('title', 'like', "%{$search}%")
                     ->orWhere('summary', 'like', "%{$search}%")
@@ -28,7 +28,7 @@ class SupportCenterController extends Controller
         }
 
         if ($request->filled('category')) {
-            $query->where('category', $request->string('category')->toString());
+            $query->where('category', $request->input('category', ''));
         }
 
         $articles = $query->orderBy('sort_order')
@@ -133,15 +133,15 @@ class SupportCenterController extends Controller
             ->latest();
 
         if ($request->filled('status')) {
-            $query->where('status', $request->string('status')->toString());
+            $query->where('status', $request->input('status', ''));
         }
 
         if ($request->filled('priority')) {
-            $query->where('priority', $request->string('priority')->toString());
+            $query->where('priority', $request->input('priority', ''));
         }
 
         if ($request->filled('q')) {
-            $search = $request->string('q')->toString();
+            $search = $request->input('q', '');
             $query->where(function ($inner) use ($search) {
                 $inner->where('subject', 'like', "%{$search}%")
                     ->orWhere('message', 'like', "%{$search}%")
