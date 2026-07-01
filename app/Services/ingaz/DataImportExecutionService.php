@@ -949,6 +949,7 @@ class DataImportExecutionService
 
         $payload = $this->filterColumns('complaints', [
             'complaint_type_id' => $complaintType->id,
+            'external_ref' => $this->nullableImportString($externalRef),
             'address' => trim((string) ($row['submission_method'] ?? '')) ?: 'استيراد الشكاوي',
             'message' => Str::limit($content, 1000, ''),
             'details' => $details,
@@ -3202,13 +3203,19 @@ class DataImportExecutionService
         }
 
         if ($externalRef !== '') {
-            $complaint = Complaint::query()
-                ->where('subject', 'like', "[{$externalRef}]%")
-                ->first();
+            $complaint = Schema::hasColumn('complaints', 'external_ref')
+                ? Complaint::query()->where('external_ref', $externalRef)->first()
+                : null;
 
             if ($complaint) {
                 return $complaint;
             }
+
+            $complaint = Complaint::query()
+                ->where('subject', 'like', "[{$externalRef}]%")
+                ->first();
+
+            return $complaint ?: null;
         }
 
         $query = Complaint::query()->where('subject', $subject);
