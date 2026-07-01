@@ -15,6 +15,8 @@ use App\Models\ingaz\JobTitle;
 use App\Models\ingaz\JobType;
 use App\Models\ingaz\Invoice;
 use App\Models\ingaz\Maid;
+use App\Models\ingaz\Complaint;
+use App\Models\ingaz\ComplaintType;
 use App\Models\ingaz\Nationality;
 use App\Models\ingaz\NationalitiesTranslation;
 use App\Models\ingaz\Order;
@@ -103,6 +105,7 @@ class DataImportExecutionService
                         'rent_contracts_clients_rental_maids' => $this->importRentBundle($row, $adminId),
                         'sponsorship_transfers' => $this->importSponsorshipTransfer($row, $adminId),
                         'ingaz_delegations' => $this->importIngazDelegation($row, $adminId),
+                        'complaints' => $this->importComplaint($row, $adminId),
                         default => 'skipped',
                     };
 
@@ -906,6 +909,75 @@ class DataImportExecutionService
         }
 
         User::create($payload);
+
+        return 'created';
+    }
+
+    private function importComplaint(array $row, ?int $adminId): string
+    {
+        $externalRef = trim((string) ($row['external_ref'] ?? ''));
+        $typeName = trim((string) ($row['complaint_type'] ?? '')) ?: 'شكوى مستوردة';
+        $complainantName = trim((string) ($row['complainant_name'] ?? '')) ?: 'غير محدد';
+        $complainantPhone = $this->normalizeImportPhone($row['complainant_phone'] ?? '');
+        $content = trim((string) ($row['details'] ?? $row['content'] ?? $row['message'] ?? ''));
+        $subjectValue = trim((string) ($row['subject'] ?? ''));
+
+        if ($content === '') {
+            $content = $typeName;
+        }
+
+        if ($subjectValue === '') {
+            $subjectValue = $externalRef !== '' ? "[{$externalRef}] {$typeName}" : $typeName;
+        }
+
+        $user = $this->resolveComplaintUser($row, $complainantPhone);
+
+        $complaintType = $this->resolveComplaintType($row, $typeName);
+        $createdAt = $this->parseDateTime($row['created_at'] ?? null)
+            ?: $this->parseDateTime($row['complaint_date'] ?? null)
+            ?: now();
+        $resolvedAt = null;
+        $status = $this->normalizeComplaintStatus($row['status'] ?? null);
+
+        if ($status === 'resolved' || $status === 'closed') {
+            $resolvedAt = $createdAt;
+        }
+
+        $details = $this->buildImportedComplaintDetails($row, $content, $externalRef);
+        $subject = Str::limit($subjectValue, 255, '');
+        $complaint = $this->findExistingImportedComplaint($row, $subject, $externalRef, $user?->id);
+
+        $payload = $this->filterColumns('complaints', [
+            'complaint_type_id' => $complaintType->id,
+            'address' => trim((string) ($row['submission_method'] ?? '')) ?: 'استيراد الشكاوي',
+            'message' => Str::limit($content, 1000, ''),
+            'details' => $details,
+            'response' => $this->nullableImportString($row['response'] ?? $row['last_response'] ?? null),
+            'against_name' => $this->nullableImportString($row['against_name'] ?? null),
+            'last_response' => $this->nullableImportString($row['last_response'] ?? $row['response'] ?? null),
+            'submission_method' => $this->nullableImportString($row['submission_method'] ?? null),
+            'related_to' => $this->nullableImportString($row['related_to'] ?? null),
+            'status' => $status,
+            'priority' => $this->normalizeComplaintPriority($row['priority'] ?? null),
+            'assigned_to' => $this->resolveAdminId($row['assigned_to'] ?? $row['created_by'] ?? null),
+            'user_id' => $user?->id,
+            'complainant_name' => $complainantName,
+            'complainant_phone' => $complainantPhone,
+            'maid_nationality_id' => $this->resolveNationalityId($row['maid_nationality'] ?? null),
+            'subject' => $subject,
+            'created_at' => $createdAt,
+            'resolved_at' => $resolvedAt,
+            'resolved_by' => $resolvedAt ? $adminId : null,
+        ]);
+
+        if ($complaint) {
+            unset($payload['created_at']);
+            $complaint->update(array_filter($payload, fn ($value) => $value !== null && $value !== ''));
+
+            return 'updated';
+        }
+
+        Complaint::query()->create($payload);
 
         return 'created';
     }
@@ -3037,6 +3109,119 @@ class DataImportExecutionService
         return in_array(trim((string) $status), ['محظور', 'موقوف', 'blocked'], true) ? 'blocked' : 'active';
     }
 
+    private function normalizeComplaintStatus($status): string
+    {
+        $normalized = $this->normalizeArabicText($status);
+
+        return match ($normalized) {
+            'closed', 'close', 'مغلقه', 'مغلق', 'مقفله', 'مقفل' => 'closed',
+            'resolved', 'done', 'محلوله', 'تم الحل', 'تم حلها' => 'resolved',
+            'rejected', 'مرفوضه', 'مرفوض' => 'rejected',
+            'in progress', 'in_progress', 'قيد المعالجه', 'تحت المعالجه', 'جاري المعالجه' => 'in_progress',
+            default => 'pending',
+        };
+    }
+
+    private function normalizeComplaintPriority($priority): string
+    {
+        $normalized = $this->normalizeArabicText($priority);
+
+        return match ($normalized) {
+            'low', 'منخفضه', 'منخفض' => 'low',
+            'high', 'عاليه', 'عالي' => 'high',
+            'urgent', 'عاجله', 'عاجل' => 'urgent',
+            default => 'medium',
+        };
+    }
+
+    private function buildImportedComplaintDetails(array $row, string $content, string $externalRef): string
+    {
+        $details = [
+            "محتوى الشكوى: {$content}",
+        ];
+
+        if ($externalRef !== '') {
+            array_unshift($details, "رقم التعريف: {$externalRef}");
+        }
+
+        $extraFields = [
+            'against_name' => 'اسم المشتكى عليه',
+            'against_phone' => 'هاتف المشتكى عليه',
+            'related_to' => 'متعلق',
+            'submission_method' => 'طريقة التقديم',
+            'maid_nationality' => 'الدولة',
+            'created_by' => 'أنشئ بواسطة',
+            'complaint_date' => 'تاريخ الشكوى',
+            'created_at' => 'أنشئ في',
+        ];
+
+        foreach ($extraFields as $key => $label) {
+            $value = trim((string) ($row[$key] ?? ''));
+            if ($value !== '') {
+                $details[] = "{$label}: {$value}";
+            }
+        }
+
+        return implode("\n", $details);
+    }
+
+    private function resolveComplaintUser(array $row, string $complainantPhone): ?User
+    {
+        $userId = $this->optionalInteger($row['user_id'] ?? null);
+        if ($userId) {
+            $user = User::query()->whereKey($userId)->first();
+            if ($user) {
+                return $user;
+            }
+        }
+
+        return $complainantPhone !== '' ? $this->findUserByPhone($complainantPhone) : null;
+    }
+
+    private function resolveComplaintType(array $row, string $typeName): ComplaintType
+    {
+        $typeId = $this->optionalInteger($row['complaint_type_id'] ?? null);
+        if ($typeId) {
+            $type = ComplaintType::query()->whereKey($typeId)->first();
+            if ($type) {
+                return $type;
+            }
+        }
+
+        return ComplaintType::query()->firstOrCreate(['name' => $typeName]);
+    }
+
+    private function findExistingImportedComplaint(array $row, string $subject, string $externalRef, ?int $userId): ?Complaint
+    {
+        $complaintId = $this->optionalInteger($row['id'] ?? $row['complaint_id'] ?? null);
+        if ($complaintId) {
+            $complaint = Complaint::query()->whereKey($complaintId)->first();
+            if ($complaint) {
+                return $complaint;
+            }
+        }
+
+        if ($externalRef !== '') {
+            $complaint = Complaint::query()
+                ->where('subject', 'like', "[{$externalRef}]%")
+                ->first();
+
+            if ($complaint) {
+                return $complaint;
+            }
+        }
+
+        $query = Complaint::query()->where('subject', $subject);
+
+        if ($userId) {
+            $query->where('user_id', $userId);
+        } else {
+            $query->whereNull('user_id');
+        }
+
+        return $query->first();
+    }
+
     private function normalizeEmployeeStatus($status): int
     {
         $normalized = $this->normalizeArabicText($status);
@@ -3212,6 +3397,39 @@ class DataImportExecutionService
             'بيان السطر' => 'line_statement',
             'تاريخ' => 'date',
             'تاريخ القيد' => 'date',
+            'م' => 'sequence',
+            'رقم تعريف' => 'external_ref',
+            'نوع الشكوى' => 'complaint_type',
+            'اسم الشاكي' => 'complainant_name',
+            'هاتف الشاكي' => 'complainant_phone',
+            'اسم المشتكى عليه' => 'against_name',
+            'هاتف المشتكى عليه' => 'against_phone',
+            'محتوى الشكوى' => 'content',
+            'آخر رد' => 'last_response',
+            'اخر رد' => 'last_response',
+            'تاريخ الشكوى' => 'complaint_date',
+            'أنشئ بواسطة' => 'created_by',
+            'انشئ بواسطة' => 'created_by',
+            'حالة' => 'status',
+            'متعلق' => 'related_to',
+            'طريقة التقديم' => 'submission_method',
+            'الدولة' => 'maid_nationality',
+            'الدوله' => 'maid_nationality',
+            'أنشئ في' => 'created_at',
+            'انشئ في' => 'created_at',
+            'ID العميل المسجل' => 'user_id',
+            'رقم جواز العاملة' => 'maid_passport',
+            'جنسية العاملة' => 'maid_nationality',
+            'موضوع الشكوى' => 'subject',
+            'الأولوية' => 'priority',
+            'الاولوية' => 'priority',
+            'الموظف المختص' => 'assigned_to',
+            'الحالة' => 'status',
+            'تفاصيل الشكوى' => 'details',
+            'الرد' => 'response',
+            'رقم تعريف خارجي' => 'external_ref',
+            'تاريخ الإنشاء' => 'created_at',
+            'تاريخ الانشاء' => 'created_at',
         ];
     }
 
