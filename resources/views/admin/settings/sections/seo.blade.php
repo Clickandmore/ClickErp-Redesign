@@ -61,6 +61,26 @@
                     <textarea name="tag_manager_footer" class="form-control" rows="8" dir="ltr"
                               placeholder="<!-- Google Tag Manager body/footer code -->">{{ old('tag_manager_footer', $settings->tag_manager_footer ?? '') }}</textarea>
                 </div>
+                <div class="col-12">
+                    <label class="form-label">{{ __('admin.settings_tiktok_tag') }}</label>
+                    <textarea name="tiktok_tag" class="form-control" rows="6" dir="ltr"
+                              placeholder="<!-- TikTok Pixel code -->">{{ old('tiktok_tag', $settings->tiktok_tag ?? '') }}</textarea>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">{{ __('admin.settings_snapchat_tag') }}</label>
+                    <textarea name="snapchat_tag" class="form-control" rows="6" dir="ltr"
+                              placeholder="<!-- Snapchat Pixel code -->">{{ old('snapchat_tag', $settings->snapchat_tag ?? '') }}</textarea>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">{{ __('admin.settings_zoho_tag') }}</label>
+                    <textarea name="zoho_tag" class="form-control" rows="6" dir="ltr"
+                              placeholder="<!-- Zoho code -->">{{ old('zoho_tag', $settings->zoho_tag ?? '') }}</textarea>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">{{ __('admin.settings_live_chat_tag') }}</label>
+                    <textarea name="live_chat_tag" class="form-control" rows="6" dir="ltr"
+                              placeholder="<!-- Live chat widget code -->">{{ old('live_chat_tag', $settings->live_chat_tag ?? '') }}</textarea>
+                </div>
             </div>
         </div>
 

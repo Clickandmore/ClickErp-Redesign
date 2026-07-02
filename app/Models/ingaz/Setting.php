@@ -66,7 +66,7 @@ class Setting extends Model
 //        $this->translatedAttributes = array_diff($this->fillable, ['setting_id','locale','created_at','updated_at']);
 //    }
 
-    protected $fillable = ['logo_header', 'document_logo', 'admin_logo', 'light_image', 'cover_image', 'admin_login_background', 'dashboard_footer_url', 'there_are_offer', 'logo_footer', 'favicon', 'about_image', 'twitter', 'facebook', 'instagram', 'snapchat', 'linkedin', 'youtube', 'tiktok', 'whatsapp', 'email', 'phone', 'other_phone', 'map_link', 'header_link_1_title', 'header_link_1_url', 'header_link_2_title', 'header_link_2_url', 'live_chat_title', 'live_chat_url', 'admin_quick_links', 'tag_manager_head', 'tag_manager_footer', 'show_public_site'
+    protected $fillable = ['logo_header', 'document_logo', 'admin_logo', 'light_image', 'cover_image', 'admin_login_background', 'dashboard_footer_url', 'there_are_offer', 'logo_footer', 'favicon', 'about_image', 'twitter', 'facebook', 'instagram', 'snapchat', 'linkedin', 'youtube', 'tiktok', 'whatsapp', 'email', 'phone', 'other_phone', 'map_link', 'header_link_1_title', 'header_link_1_url', 'header_link_2_title', 'header_link_2_url', 'live_chat_title', 'live_chat_url', 'admin_quick_links', 'tag_manager_head', 'tag_manager_footer', 'tiktok_tag', 'snapchat_tag', 'zoho_tag', 'live_chat_tag', 'show_public_site'
         , 'qr_image', 'experience_image', 'second_qr_image', 'tax_number', 'zatch_logo'
     ];
 
