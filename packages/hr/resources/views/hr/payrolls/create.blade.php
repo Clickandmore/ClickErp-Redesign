@@ -22,7 +22,7 @@
             </div>
 
             <div class="d-flex align-items-end gap-2 flex-wrap">
-                <form method="GET" action="{{ route('payrolls.create') }}">
+                <form method="GET" action="{{ route('payrolls.create') }}" class="d-flex align-items-end gap-2 flex-wrap">
                     <label for="month" class="form-label mb-1">اختيار الشهر</label>
                     <input
                         id="month"
@@ -32,6 +32,28 @@
                         value="{{ $selectedMonth }}"
                         onchange="this.form.submit()"
                     >
+                    <div>
+                        <label for="passport_num" class="form-label mb-1">رقم جواز العاملة</label>
+                        <input
+                            id="passport_num"
+                            name="passport_num"
+                            type="text"
+                            class="form-control"
+                            value="{{ $passportNumber }}"
+                        >
+                    </div>
+                    <div>
+                        <label for="residence_num" class="form-label mb-1">رقم الإقامة</label>
+                        <input
+                            id="residence_num"
+                            name="residence_num"
+                            type="text"
+                            class="form-control"
+                            value="{{ $residenceNumber }}"
+                        >
+                    </div>
+                    <button type="submit" class="btn btn-primary">بحث</button>
+                    <a href="{{ route('payrolls.create', ['month' => $selectedMonth]) }}" class="btn btn-outline-secondary">إعادة ضبط</a>
                 </form>
 
                 <a href="{{ $indexRoute }}" class="btn btn-outline-secondary">
@@ -66,6 +88,8 @@
                         <thead>
                         <tr>
                             <th>#</th>
+                            <th>رقم الجواز</th>
+                            <th>رقم الإقامة</th>
                             <th>اختيار</th>
                             <th>الاسم</th>
                             <th>الجنسية</th>
@@ -87,6 +111,8 @@
                         @forelse($rows as $row)
                             <tr class="payroll-row" data-month-days="{{ $row['month_days'] }}">
                                 <td class="fw-bold">{{ $loop->iteration }}</td>
+                                <td>{{ $row['passport_num'] ?: '-' }}</td>
+                                <td>{{ $row['residence_num'] ?: '-' }}</td>
                                 <td>
                                     <input class="form-check-input payroll-row-selector" type="checkbox" name="selected_rows[{{ $loop->index }}]" value="1" checked>
                                     <input type="hidden" name="employee_id[]" value="{{ $row['employee_id'] }}">
@@ -111,7 +137,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="16" class="payroll-empty">
+                                <td colspan="18" class="payroll-empty">
                                     لا توجد عاملات إيجار متاحات بهذا الشهر، أو تم إنشاء مسير لهن مسبقًا.
                                 </td>
                             </tr>

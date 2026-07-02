@@ -90,6 +90,7 @@ Route::group(
         Route::resource('employeeShifts', EmployeeShiftController::class);
         Route::resource('employeeAttendances', EmployeeAttendancesController::class);
         Route::resource('salaries', SalariesController::class);
+        Route::get('payrolls/export', [PayrollController::class, 'export'])->name('payrolls.export');
         Route::resource('payrolls', PayrollController::class)->only(['index', 'create', 'store', 'show']);
         Route::resource('employeeProfile', UserDashboardController::class);
         Route::resource('employeeExecelFile', EmployeeExecelFileController::class);

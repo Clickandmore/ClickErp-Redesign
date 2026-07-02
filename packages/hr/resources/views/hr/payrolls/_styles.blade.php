@@ -118,4 +118,185 @@
     .table-responsive{
         overflow-x: auto !important;
     }
+
+    .payroll-print-sheet {
+        display: none;
+    }
+
+    @page {
+        size: A4 landscape;
+        margin: 4mm;
+    }
+
+    @media print {
+        body {
+            background: #fff !important;
+            margin: 0 !important;
+        }
+
+        body * {
+            visibility: hidden !important;
+        }
+
+        .payroll-print-sheet,
+        .payroll-print-sheet * {
+            visibility: visible !important;
+            box-sizing: border-box;
+        }
+
+        .payroll-print-sheet {
+            display: block !important;
+            position: absolute;
+            top: 0;
+            right: 0;
+            left: 0;
+            width: 100%;
+            max-width: none !important;
+            min-height: 100%;
+            box-sizing: border-box;
+            color: #111827;
+            background: #fff;
+            font-family: "DejaVu Sans", Tahoma, Arial, sans-serif;
+        }
+
+        .payroll-print-header {
+            display: grid;
+            grid-template-columns: 155px 1fr 155px;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 2px solid #0f172a;
+            padding-bottom: 6px;
+            margin-bottom: 8px;
+        }
+
+        .payroll-print-logo img {
+            max-width: 135px;
+            max-height: 48px;
+            object-fit: contain;
+        }
+
+        .payroll-print-title {
+            text-align: center;
+        }
+
+        .payroll-print-title h2 {
+            margin: 0 0 4px;
+            font-size: 18px;
+            font-weight: 800;
+        }
+
+        .payroll-print-title div,
+        .payroll-print-date {
+            font-size: 11px;
+            color: #374151;
+        }
+
+        .payroll-print-date {
+            text-align: left;
+        }
+
+        .payroll-print-summary {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 5px;
+            margin-bottom: 7px;
+        }
+
+        .payroll-print-summary div,
+        .payroll-print-notes {
+            border: 1px solid #cbd5e1;
+            padding: 4px 6px;
+            background: #f8fafc;
+        }
+
+        .payroll-print-summary span {
+            display: block;
+            color: #64748b;
+            font-size: 8px;
+            margin-bottom: 2px;
+        }
+
+        .payroll-print-summary strong {
+            display: block;
+            font-size: 10px;
+            color: #111827;
+        }
+
+        .payroll-print-notes {
+            margin-bottom: 8px;
+            font-size: 10px;
+        }
+
+        .payroll-print-table {
+            width: 100%;
+            max-width: none !important;
+            border-collapse: collapse;
+            table-layout: fixed;
+            font-size: 7.8px;
+            line-height: 1.25;
+        }
+
+        .payroll-print-table th,
+        .payroll-print-table td {
+            border: 0.7px solid #94a3b8;
+            padding: 3px 2px;
+            text-align: center;
+            vertical-align: middle;
+            word-break: normal;
+            overflow-wrap: normal;
+        }
+
+        .payroll-print-table th {
+            background: #e2e8f0 !important;
+            color: #111827 !important;
+            font-weight: 800;
+            white-space: nowrap;
+            font-size: 7px;
+            padding-top: 4px;
+            padding-bottom: 4px;
+        }
+
+        .payroll-print-table td {
+            white-space: nowrap;
+        }
+
+        .payroll-print-table td:nth-child(2),
+        .payroll-print-table td:nth-child(17) {
+            white-space: normal;
+            overflow-wrap: anywhere;
+        }
+
+        .payroll-print-table .print-col-index {
+            width: 3.5%;
+        }
+
+        .payroll-print-table .print-col-name {
+            width: 11%;
+        }
+
+        .payroll-print-table .print-col-passport,
+        .payroll-print-table .print-col-id {
+            width: 7.5%;
+        }
+
+        .payroll-print-table .print-col-nationality {
+            width: 6.5%;
+        }
+
+        .payroll-print-table .print-col-days {
+            width: 4.2%;
+        }
+
+        .payroll-print-table .print-col-money {
+            width: 5.4%;
+        }
+
+        .payroll-print-table .print-col-notes {
+            width: 7%;
+        }
+
+        .payroll-print-table tbody tr:nth-child(even) td {
+            background: #f8fafc !important;
+        }
+    }
 </style>

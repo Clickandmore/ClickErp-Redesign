@@ -80,6 +80,12 @@
                                 <a href="{{ route('payrolls.show', $payroll->id) }}" class="btn btn-sm btn-outline-primary">
                                     عرض
                                 </a>
+                                <a href="{{ route('payrolls.export', ['payroll_id' => $payroll->id]) }}" class="btn btn-sm btn-outline-success">
+                                    Excel
+                                </a>
+                                <a href="{{ route('payrolls.show', ['payroll' => $payroll->id, 'print' => 1]) }}" class="btn btn-sm btn-outline-dark" target="_blank">
+                                    طباعة
+                                </a>
                             </td>
                         </tr>
                     @empty
