@@ -52,6 +52,18 @@
                             value="{{ $residenceNumber }}"
                         >
                     </div>
+                    <div>
+                        <label for="worker_scope" class="form-label mb-1">نطاق العاملات</label>
+                        <select
+                            id="worker_scope"
+                            name="worker_scope"
+                            class="form-control"
+                            onchange="this.form.submit()"
+                        >
+                            <option value="current" {{ ($workerScope ?? 'current') === 'current' ? 'selected' : '' }}>الحالة الحالية لمسير الرواتب</option>
+                            <option value="all" {{ ($workerScope ?? 'current') === 'all' ? 'selected' : '' }}>جميع عاملات التأجير</option>
+                        </select>
+                    </div>
                     <button type="submit" class="btn btn-primary">بحث</button>
                     <a href="{{ route('payrolls.create', ['month' => $selectedMonth]) }}" class="btn btn-outline-secondary">إعادة ضبط</a>
                 </form>
