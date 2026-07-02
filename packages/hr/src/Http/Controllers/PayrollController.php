@@ -45,6 +45,7 @@ class PayrollController extends Controller
         [$monthYear, $monthDate, $monthDays] = $this->resolveMonthContext($request->input('month'));
         $passportNumber = trim((string) $request->input('passport_num', ''));
         $residenceNumber = trim((string) $request->input('residence_num', ''));
+        $workerScope = $request->input('worker_scope') === 'all' ? 'all' : 'current';
 
         $rows = Employee::query()
             ->onlyMaids()
@@ -59,16 +60,23 @@ class PayrollController extends Controller
                     $maidQuery->where('id_number', 'like', '%' . $residenceNumber . '%');
                 });
             })
-            ->whereHas('maid.rentalContracts', function ($query) {
-                $query->active();
+            ->when($workerScope === 'current', function ($query) {
+                $query->whereHas('maid.rentalContracts', function ($contractQuery) {
+                    $contractQuery->active();
+                });
+            })
+            ->when($workerScope === 'all', function ($query) {
+                $query->whereHas('maid');
             })
             ->whereDoesntHave('payrollItems.payroll', function ($query) use ($monthYear) {
                 $query->where('month_year', $monthYear);
             })
             ->with([
                 'maid.nationality',
-                'maid.rentalContracts' => function ($query) {
-                    $query->active()
+                'maid.rentalContracts' => function ($query) use ($workerScope) {
+                    $query->when($workerScope === 'current', function ($contractQuery) {
+                            $contractQuery->active();
+                        })
                         ->with('info')
                         ->latest('contract_date');
                 },
@@ -86,6 +94,7 @@ class PayrollController extends Controller
             'selectedMonth' => $monthYear,
             'passportNumber' => $passportNumber,
             'residenceNumber' => $residenceNumber,
+            'workerScope' => $workerScope,
             'monthLabel' => $monthDate->locale(app()->getLocale())->translatedFormat('F Y'),
             'monthDays' => $monthDays,
             'rows' => $rows,
