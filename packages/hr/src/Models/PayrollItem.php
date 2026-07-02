@@ -40,4 +40,9 @@ class PayrollItem extends Model
     {
         return $this->belongsTo(Employee::class, 'employee_id');
     }
+
+    public function maid()
+    {
+        return $this->belongsTo(\App\Models\ingaz\Maid::class, 'maid_id');
+    }
 }
