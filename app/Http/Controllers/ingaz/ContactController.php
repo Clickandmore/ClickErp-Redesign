@@ -105,11 +105,17 @@ class ContactController extends Controller
                     ';
                 })
                 ->addColumn('actions', function ($row) {
+                    $actions = '
+                        <a href="' . route($this->mainRoute . ".show", $row->id) . '" class="btn btn-sm btn-outline-primary" title="' . e(helperTrans('ingaz.view_details')) . '">
+                            <i class="fa fa-eye"></i>
+                        </a>
+                    ';
+
                     if (@AdminGuardHasPerm(\App\PermKeys::CONTACT_DELETE)) {
-                        return deleteButton(route($this->mainRoute . ".destroy", $row->id));
+                        $actions .= ' ' . deleteButton(route($this->mainRoute . ".destroy", $row->id));
                     }
 
-                    return '<span class="text-muted">-</span>';
+                    return '<div class="d-flex align-items-center gap-2">' . $actions . '</div>';
                 })
                 ->escapeColumns([])
                 ->make(true);
@@ -157,6 +163,13 @@ class ContactController extends Controller
         }
 
         return $query;
+    }
+
+    public function show($id, ContactAction $action)
+    {
+        $contact = $action->find($id);
+
+        return view($this->folderPath . '.show', compact('contact'));
     }
 
     public function destroy($id, ContactAction $action)
