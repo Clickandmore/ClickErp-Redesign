@@ -82,6 +82,15 @@
             color: #0f172a;
         }
 
+        .report-filter-note {
+            border-radius: 12px;
+            background: #fff7ed;
+            border: 1px solid #fed7aa;
+            color: #9a3412;
+            padding: 10px 12px;
+            font-size: 0.92rem;
+        }
+
         .report-filter-section .form-label {
             font-weight: 600;
             color: #334155;
@@ -171,6 +180,12 @@
                                         </option>
                                     @endforeach
                                 </select>
+                            </div>
+                            <div class="col-lg-8 d-flex align-items-end">
+                                <div class="report-filter-note w-100">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    يتم تطبيق الفلاتر عند تصدير PDF أو Excel، ولا يتم تحديث الصفحة كمعاينة مباشرة.
+                                </div>
                             </div>
                         </div>
 
@@ -687,6 +702,67 @@
                                     <label for="shelter-quick-tag" class="form-label">تصنيف سريع</label>
                                     <input type="text" class="form-control" id="shelter-quick-tag" name="quick_tag"
                                         placeholder="مثال: ترغب بالعمل">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="report-filter-section {{ $selectedReport === 'sponsorship_transfers' ? '' : 'd-none' }}"
+                            data-report-section="sponsorship_transfers">
+                            <div class="report-section-title">فلاتر نقل الكفالة</div>
+                            <div class="row g-3">
+                                <div class="col-lg-3">
+                                    <label for="sponsor-transfer-status" class="form-label">الحالة</label>
+                                    <select class="form-select" id="sponsor-transfer-status" name="status">
+                                        <option value="">كل الحالات</option>
+                                        @foreach ($sponsorshipTransferStatusOptions as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="sponsor-transfer-date-from" class="form-label">من تاريخ</label>
+                                    <input type="date" class="form-control" id="sponsor-transfer-date-from" name="date_from">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="sponsor-transfer-date-to" class="form-label">إلى تاريخ</label>
+                                    <input type="date" class="form-control" id="sponsor-transfer-date-to" name="date_to">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="sponsor-transfer-contract-number" class="form-label">رقم العقد</label>
+                                    <input type="text" class="form-control" id="sponsor-transfer-contract-number"
+                                        name="contract_number" placeholder="رقم العقد">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="sponsor-transfer-old-sponsor" class="form-label">الكفيل السابق</label>
+                                    <input type="text" class="form-control" id="sponsor-transfer-old-sponsor"
+                                        name="old_sponsor" placeholder="الاسم أو الجوال">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="sponsor-transfer-new-sponsor" class="form-label">الكفيل الجديد</label>
+                                    <input type="text" class="form-control" id="sponsor-transfer-new-sponsor"
+                                        name="new_sponsor" placeholder="الاسم أو الجوال">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="sponsor-transfer-trial-days" class="form-label">أيام التجربة</label>
+                                    <select class="form-select" id="sponsor-transfer-trial-days" name="trial_days">
+                                        <option value="">كل المدد</option>
+                                        <option value="7">7 أيام</option>
+                                        <option value="14">14 يوم</option>
+                                        <option value="21">21 يوم</option>
+                                        <option value="30">30 يوم</option>
+                                        <option value="60">60 يوم</option>
+                                        <option value="90">90 يوم</option>
+                                    </select>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="sponsor-transfer-amount" class="form-label">قيمة العقد</label>
+                                    <select class="form-select" id="sponsor-transfer-amount" name="amount">
+                                        <option value="">كل المبالغ</option>
+                                        <option value="0-5000">0 - 5,000 ريال</option>
+                                        <option value="5000-10000">5,000 - 10,000 ريال</option>
+                                        <option value="10000-15000">10,000 - 15,000 ريال</option>
+                                        <option value="15000+">15,000 ريال فأكثر</option>
+                                    </select>
                                 </div>
                             </div>
                         </div>

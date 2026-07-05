@@ -21,6 +21,7 @@ use App\Models\ingaz\User;
 use App\NewPermKeys;
 use App\PermKeys;
 use App\Support\AutomationSettings;
+use App\Support\SystemModuleManager;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -216,6 +217,24 @@ class ReportExportService
         return is_array($options) ? $options : [];
     }
 
+    public function sponsorshipTransferStatusOptions(): array
+    {
+        return [
+            'pending' => 'في الانتظار',
+            'waiting_contract_send' => 'بانتظار تسجيل استلام العاملة',
+            'contract_sent' => 'تم إرسال العقد',
+            'contract_signed' => 'تم توقيع العقد',
+            'maid_delivered' => 'تم تسليم العاملة',
+            'trial_period' => 'فترة التجربة',
+            'trial_started' => 'بدأت التجربة',
+            'approved' => 'موافق عليه',
+            'transferred' => 'تم النقل',
+            'failed' => 'فشل النقل',
+            'rejected' => 'مرفوض',
+            'completed' => 'مكتمل',
+        ];
+    }
+
     public function export(string $reportKey, string $format, Request $request)
     {
         $this->ensureReportAccess($reportKey);
@@ -261,6 +280,11 @@ class ReportExportService
                 'label' => 'عقود الإيواء',
                 'icon' => 'fas fa-house-user',
                 'description' => 'تقرير الإيواء الموحّد مع الضمان والرغبة في العمل ومكان الإيواء.',
+            ],
+            'sponsorship_transfers' => [
+                'label' => 'نقل الكفالة',
+                'icon' => 'fas fa-exchange-alt',
+                'description' => 'تقرير معاملات نقل الكفالة مع بيانات الكفلاء والعاملة والحالة والمدفوعات.',
             ],
         ];
     }
@@ -315,6 +339,11 @@ class ReportExportService
                 PermKeys::SHELTER_CONTRACT_VIEW,
                 NewPermKeys::REPORTS_EXPORT,
             ]),
+            'sponsorship_transfers' => AdminGuardHasAnyPerm([
+                PermKeys::SPONSOR_TRANSFER_VIEW,
+                PermKeys::SPONSOR_TRANSFER_CONTROL,
+                NewPermKeys::REPORTS_EXPORT,
+            ]),
             default => false,
         };
     }
@@ -340,6 +369,7 @@ class ReportExportService
             'recruitment_contracts' => $this->buildRecruitmentContractsReportPayload($request),
             'rent_contracts' => $this->buildRentContractsReportPayload($request),
             'shelter_contracts' => $this->buildShelterContractsReportPayload($request),
+            'sponsorship_transfers' => $this->buildSponsorshipTransfersReportPayload($request),
         };
     }
 
@@ -704,6 +734,75 @@ class ReportExportService
                     $this->resolveShelterReceiptSourceLabel($contract->info?->receipt_source),
                     $this->formatShelterInstantReceiptLabel($contract),
                     !empty($quickTags) ? implode('، ', $quickTags) : '-',
+                ];
+            })->all(),
+        ];
+    }
+
+    private function buildSponsorshipTransfersReportPayload(Request $request): array
+    {
+        $query = SponsorshipTransfer::query()
+            ->with([
+                'contract.maid.nationality',
+                'oldSponsor',
+                'newSponsor',
+                'approvedBy',
+                'transferredBy',
+                'failedBy',
+                'paymentConfirmedBy',
+            ])
+            ->orderByDesc('created_at');
+
+        $this->applyAdminBranchFilter($query, 'sponsorship_transfers');
+        $this->applySponsorshipTransferFilters($request, $query);
+
+        $transfers = $query->get();
+
+        return [
+            'title' => 'تقرير نقل الكفالة',
+            'filename_prefix' => 'sponsorship_transfers_report',
+            'headings' => [
+                'رقم النقل',
+                'رقم العقد',
+                'الكفيل السابق',
+                'الكفيل الجديد',
+                'العاملة',
+                'رقم الجواز',
+                'الجنسية',
+                'الحالة',
+                'أيام التجربة',
+                'بداية التجربة',
+                'نهاية التجربة',
+                'قيمة العقد',
+                'المدفوع',
+                'المتبقي',
+                'طريقة الدفع',
+                'حالة الدفع',
+                'تاريخ الإنشاء',
+                'تاريخ النقل',
+                'تاريخ الفشل',
+            ],
+            'rows' => $transfers->map(function (SponsorshipTransfer $transfer) {
+                return [
+                    $transfer->id,
+                    $transfer->contract?->id ?: '-',
+                    $transfer->oldSponsor?->name ?: '-',
+                    $transfer->newSponsor?->name ?: '-',
+                    $transfer->contract?->maid?->name ?: '-',
+                    $transfer->contract?->maid?->passport_num ?: '-',
+                    $this->modelLabel($transfer->contract?->maid?->nationality, ['sub_title', 'title', 'name']),
+                    $transfer->status_text,
+                    $transfer->trial_days ? $transfer->trial_days . ' يوم' : '-',
+                    $this->formatDateValue($transfer->effective_trial_start_date, true),
+                    $this->formatDateValue($transfer->trial_end_date),
+                    $this->formatMoney($transfer->contract_value),
+                    $this->formatMoney($transfer->paid_amount),
+                    $this->formatMoney($transfer->remaining_amount),
+                    $transfer->payment_type_text,
+                    $transfer->payment_status_text,
+                    $this->formatDateValue($transfer->created_at, true),
+                    $this->formatDateValue($transfer->transferred_at, true),
+                    $this->formatDateValue($transfer->failed_at, true),
                 ];
             })->all(),
         ];
@@ -1366,6 +1465,81 @@ class ReportExportService
                 $maidQuery->ofRequestType($request->request_type);
             });
         }
+    }
+
+    private function applySponsorshipTransferFilters(Request $request, $query): void
+    {
+        if ($request->filled('status')) {
+            if ($request->status === 'trial_period') {
+                $query->whereIn('status', ['trial', 'trial_started']);
+            } else {
+                $query->where('status', $request->status);
+            }
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        if ($request->filled('contract_number')) {
+            $query->whereHas('contract', function ($contractQuery) use ($request) {
+                $contractQuery->where('id', 'like', '%' . $request->contract_number . '%');
+            });
+        }
+
+        if ($request->filled('old_sponsor')) {
+            $oldSponsor = trim((string) $request->old_sponsor);
+            $query->whereHas('oldSponsor', function ($sponsorQuery) use ($oldSponsor) {
+                $sponsorQuery->where('name', 'like', '%' . $oldSponsor . '%')
+                    ->orWhere('phone', 'like', '%' . $oldSponsor . '%');
+            });
+        }
+
+        if ($request->filled('new_sponsor')) {
+            $newSponsor = trim((string) $request->new_sponsor);
+            $query->whereHas('newSponsor', function ($sponsorQuery) use ($newSponsor) {
+                $sponsorQuery->where('name', 'like', '%' . $newSponsor . '%')
+                    ->orWhere('phone', 'like', '%' . $newSponsor . '%');
+            });
+        }
+
+        if ($request->filled('trial_days')) {
+            $query->where('trial_days', (int) $request->trial_days);
+        }
+
+        if ($request->filled('amount')) {
+            if ($request->amount === '15000+') {
+                $query->where('contract_value', '>=', 15000);
+                return;
+            }
+
+            $amountRange = explode('-', (string) $request->amount);
+            if (count($amountRange) === 2) {
+                $query->whereBetween('contract_value', [(float) $amountRange[0], (float) $amountRange[1]]);
+            }
+        }
+    }
+
+    private function applyAdminBranchFilter($query, string $table): void
+    {
+        $adminBranchId = (int) (auth('admin')->user()?->branch_id ?? 0);
+
+        if ($adminBranchId <= 0 || !$this->branchesEnabledFor($table)) {
+            return;
+        }
+
+        $query->where($table . '.branch_id', $adminBranchId);
+    }
+
+    private function branchesEnabledFor(string $table): bool
+    {
+        return SystemModuleManager::isEnabled('branches')
+            && Schema::hasTable($table)
+            && Schema::hasColumn($table, 'branch_id');
     }
 
     private function applyRecruitmentMaidsScope($query): void
