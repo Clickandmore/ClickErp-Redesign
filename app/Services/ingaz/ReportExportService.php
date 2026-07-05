@@ -248,33 +248,6 @@ class ReportExportService
             : $this->exportPdf($payload, $request);
     }
 
-    public function preview(string $reportKey, Request $request): array
-    {
-        $this->ensureReportAccess($reportKey);
-        $this->configureRuntime();
-
-        $payload = $this->buildReportPayload($reportKey, $request);
-        $rows = collect($payload['rows']);
-        $perPage = max(5, min(100, (int) $request->query('per_page', 25)));
-        $total = $rows->count();
-        $lastPage = max(1, (int) ceil($total / $perPage));
-        $page = max(1, min((int) $request->query('page', 1), $lastPage));
-
-        return [
-            'title' => $payload['title'],
-            'headings' => $payload['headings'],
-            'rows' => $rows->slice(($page - 1) * $perPage, $perPage)->values()->all(),
-            'pagination' => [
-                'total' => $total,
-                'per_page' => $perPage,
-                'current_page' => $page,
-                'last_page' => $lastPage,
-                'from' => $total > 0 ? (($page - 1) * $perPage) + 1 : 0,
-                'to' => min($page * $perPage, $total),
-            ],
-        ];
-    }
-
     private function definitions(): array
     {
         return [
