@@ -48,6 +48,7 @@ class SponsorshipTransfer extends Model
         'failure_clear_remaining_amount',
         'failure_client_iban',
         'failure_client_iban_attachment_path',
+        'visa_fee_amount',
         'transferred_by',
         'failed_by',
         'signature',
@@ -70,6 +71,7 @@ class SponsorshipTransfer extends Model
         'remaining_amount' => 'decimal:2',
         'failure_settlement_amount' => 'decimal:2',
         'failure_clear_remaining_amount' => 'decimal:2',
+        'visa_fee_amount' => 'decimal:2',
         'attachments' => 'array',
         'branch_id' => 'integer',
     ];

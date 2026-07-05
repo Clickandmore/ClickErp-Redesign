@@ -9,6 +9,9 @@ use App\Models\Contract;
 use App\Models\ingaz\Order;
 use App\Models\ingaz\User;
 use App\Models\SponsorshipTransfer;
+use App\Services\ingaz\SponsorshipTransferCompletionService;
+use App\Services\ingaz\SponsorshipTransferFailureService;
+use App\Services\ingaz\SponsorshipTransferTrialStartService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -1239,6 +1242,12 @@ class SponsorshipTransferController extends Controller
 
             DB::commit();
 
+            try {
+                app(SponsorshipTransferCompletionService::class)->record($transfer);
+            } catch (\Throwable $accountingEx) {
+                \Log::warning('SponsorshipTransferCompletionService: ' . $accountingEx->getMessage(), ['transfer_id' => $transfer->id]);
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'تم تأكيد نقل الكفالة بنجاح'
@@ -1352,6 +1361,12 @@ class SponsorshipTransferController extends Controller
             ]);
 
             DB::commit();
+
+            try {
+                app(SponsorshipTransferFailureService::class)->record($transfer);
+            } catch (\Throwable $accountingEx) {
+                \Log::warning('SponsorshipTransferFailureService: ' . $accountingEx->getMessage(), ['transfer_id' => $transfer->id]);
+            }
 
             return response()->json([
                 'success' => true,
@@ -1937,6 +1952,12 @@ class SponsorshipTransferController extends Controller
             }
 
             \DB::commit();
+
+            try {
+                app(SponsorshipTransferTrialStartService::class)->record($transfer);
+            } catch (\Throwable $accountingEx) {
+                \Log::warning('SponsorshipTransferTrialStartService: ' . $accountingEx->getMessage(), ['transfer_id' => $transfer->id]);
+            }
 
             return response()->json([
                 'success' => true,
