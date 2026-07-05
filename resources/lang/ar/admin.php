@@ -1726,6 +1726,7 @@ return array (
   'settings_tiktok_tag' => 'كود TikTok',
   'settings_snapchat_tag' => 'كود Snapchat',
   'settings_zoho_tag' => 'كود Zoho',
+  'settings_hotjar_tag' => 'كود Hotjar',
   'settings_live_chat_tag' => 'كود Live Chat',
   'recruitment_contract_stages' => 'مراحل عقود الاستقدام',
   'recruitment_contract_stages_hint' => 'تظهر أسماء المراحل في صفحة عقود الاستقدام، الفلاتر، وسجل مراحل العقد.',

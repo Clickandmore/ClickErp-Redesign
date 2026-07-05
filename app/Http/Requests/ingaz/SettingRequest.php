@@ -67,6 +67,7 @@ class SettingRequest extends MainRequest
             'tiktok_tag' => 'nullable|string',
             'snapchat_tag' => 'nullable|string',
             'zoho_tag' => 'nullable|string',
+            'hotjar_tag' => 'nullable|string',
             'live_chat_tag' => 'nullable|string',
             'location:ar' => 'nullable|string',
             'location:en' => 'nullable|string',

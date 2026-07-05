@@ -45,6 +45,9 @@
     @if (isset($settings) && !empty($settings->zoho_tag))
         {!! $settings->zoho_tag !!}
     @endif
+    @if (isset($settings) && !empty($settings->hotjar_tag))
+        {!! $settings->hotjar_tag !!}
+    @endif
 
 </head>
 

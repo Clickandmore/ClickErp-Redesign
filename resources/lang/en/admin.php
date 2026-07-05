@@ -1607,6 +1607,7 @@ return array (
   'settings_tiktok_tag' => 'TikTok Tag',
   'settings_snapchat_tag' => 'Snapchat Tag',
   'settings_zoho_tag' => 'Zoho Tag',
+  'settings_hotjar_tag' => 'Hotjar Tag',
   'settings_live_chat_tag' => 'Live Chat Tag',
   'settings_dashboard_identity' => 'Dashboard Identity',
   'settings_dashboard_logo' => 'Dashboard Logo',
