@@ -1402,7 +1402,7 @@ class DataImportExecutionService
             'client_source_type' => filled($row['existing_user_id'] ?? null) ? 'existing_in_program' : 'separate_client',
             'visa_type' => 'electronic_ingaz_delegation',
             'worker_name' => $this->nullableImportString($row['worker_name'] ?? null),
-            'worker_passport_number' => $this->nullableImportString($row['worker_passport_number'] ?? null),
+            'worker_passport_number' => $this->nullableImportString($row['worker_passport_number'] ?? $row['maid_passport'] ?? null),
             'worker_passport_issue_date' => $this->parseDate($row['worker_passport_issue_date'] ?? null),
             'visa_number' => $visaNumber,
             'visa_date' => $this->parseDate($row['visa_date'] ?? null),
@@ -1910,7 +1910,13 @@ class DataImportExecutionService
 
     private function resolveIngazDelegationCountry(array $row): ?Country
     {
-        $countryId = $this->resolveCountryId($row['country_id'] ?? $row['country'] ?? null);
+        $countryId = $this->resolveCountryId(
+            $row['country_id']
+                ?? $row['country']
+                ?? $row['maid_nationality']
+                ?? $row['nationality']
+                ?? null
+        );
 
         return $countryId ? Country::query()->find($countryId) : null;
     }
@@ -2128,10 +2134,23 @@ class DataImportExecutionService
             return (int) $value;
         }
 
-        return Country::query()
+        $exactMatch = Country::query()
             ->where('name_ar', $value)
             ->orWhere('name_en', $value)
             ->value('id');
+
+        if ($exactMatch) {
+            return (int) $exactMatch;
+        }
+
+        $normalizedValue = $this->normalizeComparableText($value);
+
+        return Country::query()
+            ->get(['id', 'name_ar', 'name_en'])
+            ->first(function (Country $country) use ($normalizedValue) {
+                return $this->normalizeComparableText($country->name_ar) === $normalizedValue
+                    || $this->normalizeComparableText($country->name_en) === $normalizedValue;
+            })?->id;
     }
 
     private function resolveAccountId($value): ?int
