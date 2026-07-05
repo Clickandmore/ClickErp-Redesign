@@ -11,6 +11,7 @@ use App\Models\RentalContract;
 use App\Models\RecruitmentOffices;
 use App\Models\ShelterPlaces;
 use App\Models\SponsorshipTransfer;
+use App\Models\TravelHistory;
 use App\Models\auth\Admin;
 use App\Models\ingaz\JobType;
 use App\Models\ingaz\Maid;
@@ -22,8 +23,10 @@ use App\NewPermKeys;
 use App\PermKeys;
 use App\Services\BranchAccessService;
 use App\Support\AutomationSettings;
+use App\Support\TravelAirports;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -31,6 +34,7 @@ use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PDF;
+use Spatie\Activitylog\Models\Activity;
 
 class ReportExportService
 {
@@ -235,6 +239,35 @@ class ReportExportService
         ];
     }
 
+    public function travelTypeOptions(): array
+    {
+        $options = __('travel_types.travel_types');
+
+        return is_array($options) ? $options : [];
+    }
+
+    public function travelWithOptions(): array
+    {
+        $options = __('travel_types.travel_with');
+        $options = is_array($options) ? $options : [];
+
+        return $options + [
+            'group_transport' => helperTrans('ingaz.travel_with_group_transport'),
+        ];
+    }
+
+    public function travelStatusOptions(): array
+    {
+        $options = __('travel_types.status');
+
+        return is_array($options) ? $options : [];
+    }
+
+    public function travelAirportOptions(): array
+    {
+        return TravelAirports::options();
+    }
+
     public function export(string $reportKey, string $format, Request $request)
     {
         $this->ensureReportAccess($reportKey);
@@ -285,6 +318,16 @@ class ReportExportService
                 'label' => 'نقل الكفالة',
                 'icon' => 'fas fa-exchange-alt',
                 'description' => 'تقرير معاملات نقل الكفالة مع بيانات الكفلاء والعاملة والحالة والمدفوعات.',
+            ],
+            'deportation_travel' => [
+                'label' => 'رحلات الترحيل',
+                'icon' => 'fas fa-plane-departure',
+                'description' => 'تقرير رحلات الترحيل مع بيانات العقد والعاملة والعميل والرحلة.',
+            ],
+            'travel_trips' => [
+                'label' => 'رحلات الاستقدام',
+                'icon' => 'fas fa-plane-arrival',
+                'description' => 'تقرير رحلات الاستقدام مجمعة حسب الرحلة كما تظهر في قسم السفر.',
             ],
         ];
     }
@@ -344,6 +387,11 @@ class ReportExportService
                 PermKeys::SPONSOR_TRANSFER_CONTROL,
                 NewPermKeys::REPORTS_EXPORT,
             ]),
+            'deportation_travel', 'travel_trips' => AdminGuardHasAnyPerm([
+                PermKeys::TRAVEL_VIEW,
+                PermKeys::TRAVEL_CONTROL,
+                NewPermKeys::REPORTS_EXPORT,
+            ]),
             default => false,
         };
     }
@@ -370,6 +418,8 @@ class ReportExportService
             'rent_contracts' => $this->buildRentContractsReportPayload($request),
             'shelter_contracts' => $this->buildShelterContractsReportPayload($request),
             'sponsorship_transfers' => $this->buildSponsorshipTransfersReportPayload($request),
+            'deportation_travel' => $this->buildDeportationTravelReportPayload($request),
+            'travel_trips' => $this->buildTravelTripsReportPayload($request),
         };
     }
 
@@ -803,6 +853,113 @@ class ReportExportService
                     $this->formatDateValue($transfer->created_at, true),
                     $this->formatDateValue($transfer->transferred_at, true),
                     $this->formatDateValue($transfer->failed_at, true),
+                ];
+            })->all(),
+        ];
+    }
+
+    private function buildDeportationTravelReportPayload(Request $request): array
+    {
+        $query = TravelHistory::query()
+            ->with([
+                'user',
+                'maid',
+                'maid.nationality.translations',
+                'order',
+            ])
+            ->where('travel_type', 'deportation')
+            ->orderByDesc('id');
+
+        $this->applyReportBranchFilter($query, $request, 'travel_histories');
+        $this->applyDeportationTravelFilters($request, $query);
+
+        $trips = $query->get();
+        $statuses = $this->travelStatusOptions();
+
+        return [
+            'title' => 'تقرير رحلات الترحيل',
+            'filename_prefix' => 'deportation_travel_report',
+            'headings' => [
+                '#',
+                'رقم العقد',
+                'العاملة',
+                'العميل',
+                'الجوال',
+                'المطار',
+                'تاريخ السفر',
+                'وقت السفر',
+                'نوع السفر',
+                'شركة الطيران',
+                'رقم الرحلة',
+                'الحالة',
+            ],
+            'rows' => $trips->map(function (TravelHistory $trip) use ($statuses) {
+                return [
+                    $trip->id,
+                    $trip->order_id ? '#' . $trip->order_id : 'غير محدد',
+                    $trip->maid?->name ?: 'غير محدد',
+                    $trip->user?->name ?: 'غير محدد',
+                    $this->resolveUserPhone($trip->user),
+                    $this->travelAirportLabel($trip->arrival_airport),
+                    $this->formatDateValue($trip->arrival_date),
+                    $trip->arrival_time ?: 'غير محدد',
+                    $trip->travel_with ?: '-',
+                    $trip->flight_company ?: '-',
+                    $trip->flight_number ?: '-',
+                    $statuses[$trip->status] ?? ($trip->status === 'completed' ? 'مكتملة' : 'مجدولة'),
+                ];
+            })->all(),
+        ];
+    }
+
+    private function buildTravelTripsReportPayload(Request $request): array
+    {
+        $query = TravelHistory::query()
+            ->with(['user', 'maid', 'maid.nationality', 'maid.nationality.translations'])
+            ->where('travel_type', '!=', 'deportation')
+            ->orderByDesc('id');
+
+        $this->applyReportBranchFilter($query, $request, 'travel_histories');
+        $this->applyTravelTripFilters($request, $query);
+
+        $trips = $this->buildGroupedTravelTripsCollection($query->get());
+        $types = $this->travelTypeOptions();
+        $statuses = $this->travelStatusOptions();
+        $travelWith = $this->travelWithOptions();
+
+        return [
+            'title' => 'تقرير رحلات الاستقدام',
+            'filename_prefix' => 'travel_trips_report',
+            'headings' => [
+                '#',
+                __('admin.client_id'),
+                __('admin.maid_id'),
+                helperTrans('ingaz.contracts'),
+                __('admin.travel_type'),
+                __('admin.travel_with'),
+                __('admin.flight_company'),
+                __('admin.flight_number'),
+                __('admin.status'),
+                'تاريخ الإنشاء',
+                'المنشئ',
+                helperTrans('ingaz.arrival_datetime_prefix'),
+                'المطار',
+            ],
+            'rows' => $trips->map(function ($trip) use ($types, $statuses, $travelWith) {
+                return [
+                    $trip->id,
+                    collect($trip->users)->pluck('name')->filter()->implode('، ') ?: 'غير محدد',
+                    collect($trip->maids)->pluck('name')->filter()->implode('، ') ?: 'غير محدد',
+                    collect($trip->order_ids)->map(fn ($id) => '#' . $id)->implode('، ') ?: '-',
+                    $types[$trip->travel_type] ?? $trip->travel_type ?? '-',
+                    $travelWith[$trip->travel_with] ?? $trip->travel_with ?? '-',
+                    $trip->flight_company ?: '-',
+                    $trip->flight_number ?: '-',
+                    $statuses[$trip->status] ?? $trip->status ?? '-',
+                    $this->formatDateValue($trip->created_at, true),
+                    $trip->creator_name ?: '-',
+                    trim(($trip->arrival_date ?: '-') . ' ' . ($trip->arrival_time ?: '')),
+                    $this->travelAirportLabel($trip->arrival_airport),
                 ];
             })->all(),
         ];
@@ -1524,6 +1681,124 @@ class ReportExportService
         }
     }
 
+    private function applyDeportationTravelFilters(Request $request, $query): void
+    {
+        if (!$request->filled('status') || $request->status === '') {
+            $query->whereIn('status', ['new', 'active', 'scheduled', 'in_progress', 'pending', 'confirmed']);
+        } elseif ($request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('contract_number')) {
+            $contractNumber = (int) $request->contract_number;
+            $query->where(function ($contractQuery) use ($contractNumber) {
+                $contractQuery->whereHas('order', function ($orderQuery) use ($contractNumber) {
+                    $orderQuery->where('id', $contractNumber);
+                })->orWhere('order_id', $contractNumber);
+            });
+        }
+
+        if ($request->filled('maid_name')) {
+            $maidName = trim((string) $request->maid_name);
+            $query->whereHas('maid', function ($maidQuery) use ($maidName) {
+                $maidQuery->where('name', 'like', '%' . $maidName . '%');
+            });
+        }
+
+        if ($request->filled('travel_date')) {
+            $query->whereDate('arrival_date', $request->travel_date);
+        }
+    }
+
+    private function applyTravelTripFilters(Request $request, $query): void
+    {
+        if (!$request->filled('status') || $request->status === '') {
+            $query->whereIn('status', ['new', 'active', 'scheduled', 'in_progress', 'pending', 'confirmed']);
+        } elseif ($request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('search')) {
+            $search = trim((string) $request->search);
+            $query->where(function ($searchQuery) use ($search) {
+                $searchQuery->where('travel_type', 'like', '%' . $search . '%')
+                    ->orWhere('travel_with', 'like', '%' . $search . '%')
+                    ->orWhere('notes', 'like', '%' . $search . '%')
+                    ->orWhere('status', 'like', '%' . $search . '%')
+                    ->orWhere('arrival_airport', 'like', '%' . $search . '%')
+                    ->orWhere('arrival_date', 'like', '%' . $search . '%')
+                    ->orWhere('arrival_time', 'like', '%' . $search . '%')
+                    ->orWhere('flight_company', 'like', '%' . $search . '%')
+                    ->orWhere('flight_number', 'like', '%' . $search . '%')
+                    ->orWhere('order_id', 'like', '%' . $search . '%')
+                    ->orWhere('created_at', 'like', '%' . $search . '%')
+                    ->orWhereExists(function ($activityQuery) use ($search) {
+                        $activityTable = config('activitylog.table_name', 'activity_log');
+                        $activityQuery->selectRaw('1')
+                            ->from($activityTable)
+                            ->join('admins', 'admins.id', '=', $activityTable . '.causer_id')
+                            ->whereColumn($activityTable . '.subject_id', 'travel_histories.id')
+                            ->where($activityTable . '.subject_type', TravelHistory::class)
+                            ->where($activityTable . '.causer_type', Admin::class)
+                            ->where($activityTable . '.event', 'created')
+                            ->where('admins.name', 'like', '%' . $search . '%');
+                    })
+                    ->orWhereHas('user', function ($userQuery) use ($search) {
+                        $userQuery->where('name', 'like', '%' . $search . '%');
+                    })
+                    ->orWhereHas('maid', function ($maidQuery) use ($search) {
+                        $maidQuery->where('passport_num', 'like', '%' . $search . '%')
+                            ->orWhere('name', 'like', '%' . $search . '%');
+                    });
+            });
+        }
+
+        if ($request->filled('travel_type')) {
+            $query->where('travel_type', $request->travel_type);
+        }
+
+        if ($request->filled('travel_with')) {
+            $query->where('travel_with', $request->travel_with);
+        }
+
+        if ($request->filled('arrival_airport')) {
+            $query->whereIn('arrival_airport', TravelAirports::valuesFor($request->arrival_airport));
+        }
+
+        if ($request->filled('travel_date')) {
+            $query->whereDate('arrival_date', $request->travel_date);
+        }
+
+        if ($request->filled('created_date')) {
+            $query->whereDate('created_at', $request->created_date);
+        }
+
+        if ($request->filled('created_by')) {
+            $activityTable = config('activitylog.table_name', 'activity_log');
+            $query->whereExists(function ($activityQuery) use ($activityTable, $request) {
+                $activityQuery->selectRaw('1')
+                    ->from($activityTable)
+                    ->whereColumn($activityTable . '.subject_id', 'travel_histories.id')
+                    ->where($activityTable . '.subject_type', TravelHistory::class)
+                    ->where($activityTable . '.causer_type', Admin::class)
+                    ->where($activityTable . '.event', 'created')
+                    ->where($activityTable . '.causer_id', $request->created_by);
+            });
+        }
+
+        if ($request->filled('flight_company')) {
+            $query->where('flight_company', 'like', '%' . $request->flight_company . '%');
+        }
+
+        if ($request->filled('flight_number')) {
+            $query->where('flight_number', 'like', '%' . $request->flight_number . '%');
+        }
+
+        if ($request->filled('order_id')) {
+            $query->where('order_id', 'like', '%' . $request->order_id . '%');
+        }
+    }
+
     private function applyReportBranchFilter($query, Request $request, string $table, ?string $qualifiedColumn = null): void
     {
         app(BranchAccessService::class)->applyToQuery($query, $request, $table, $qualifiedColumn);
@@ -2042,6 +2317,107 @@ class ReportExportService
             'transfer' => 'نقل خدمات',
             default => 'استقدام',
         };
+    }
+
+    private function buildGroupedTravelTripsCollection(Collection $trips): Collection
+    {
+        $tripGroups = $trips->groupBy(fn (TravelHistory $trip) => $this->resolveTravelTripGroupKey($trip));
+        $primaryTrips = $tripGroups->map(fn (Collection $group) => $group->sortByDesc('id')->first());
+        $creatorNames = $this->resolveTravelCreatorNames($primaryTrips->pluck('id')->filter()->all());
+
+        return $tripGroups
+            ->map(function (Collection $group) use ($creatorNames) {
+                $primaryTrip = $group->sortByDesc('id')->first();
+                $orderIds = $group->pluck('order_id')->filter()->unique()->values();
+                $users = $group->map(fn (TravelHistory $trip) => $trip->user)
+                    ->filter()
+                    ->unique('id')
+                    ->values();
+                $maids = $group->map(fn (TravelHistory $trip) => $trip->maid)
+                    ->filter()
+                    ->unique('id')
+                    ->values();
+
+                return (object) [
+                    'id' => $primaryTrip->id,
+                    'trip_group_code' => $primaryTrip->trip_group_code,
+                    'contracts_count' => $orderIds->count(),
+                    'order_ids' => $orderIds->all(),
+                    'order_id' => $orderIds->implode(', '),
+                    'created_at' => $primaryTrip->created_at,
+                    'creator_name' => $creatorNames->get($primaryTrip->id),
+                    'travel_type' => $primaryTrip->travel_type,
+                    'travel_with' => $primaryTrip->travel_with,
+                    'arrival_airport' => $primaryTrip->arrival_airport,
+                    'arrival_date' => $primaryTrip->arrival_date,
+                    'arrival_time' => $primaryTrip->arrival_time,
+                    'flight_company' => $primaryTrip->flight_company,
+                    'flight_number' => $primaryTrip->flight_number,
+                    'status' => $this->resolveTravelGroupStatus($group),
+                    'users' => $users,
+                    'maids' => $maids,
+                ];
+            })
+            ->sortByDesc('id')
+            ->values();
+    }
+
+    private function resolveTravelTripGroupKey(TravelHistory $trip): string
+    {
+        if (!empty($trip->trip_group_code)) {
+            return 'group:' . $trip->trip_group_code;
+        }
+
+        return 'single:' . $trip->id;
+    }
+
+    private function resolveTravelGroupStatus(Collection $group): string
+    {
+        if ($group->isEmpty()) {
+            return 'pending';
+        }
+
+        if ($group->every(fn (TravelHistory $trip) => $trip->status === 'completed')) {
+            return 'completed';
+        }
+
+        foreach (['in_progress', 'active', 'scheduled', 'confirmed', 'pending', 'new'] as $status) {
+            if ($group->contains(fn (TravelHistory $trip) => $trip->status === $status)) {
+                return $status;
+            }
+        }
+
+        return (string) ($group->first()->status ?? 'pending');
+    }
+
+    private function resolveTravelCreatorNames(array $tripIds): Collection
+    {
+        $tripIds = array_values(array_unique(array_filter($tripIds)));
+        if ($tripIds === [] || !Schema::hasTable(config('activitylog.table_name', 'activity_log'))) {
+            return collect();
+        }
+
+        return Activity::query()
+            ->with('causer')
+            ->where('subject_type', TravelHistory::class)
+            ->whereIn('subject_id', $tripIds)
+            ->where('causer_type', Admin::class)
+            ->where('event', 'created')
+            ->orderBy('subject_id')
+            ->orderBy('id')
+            ->get()
+            ->groupBy('subject_id')
+            ->map(fn (Collection $activities) => optional($activities->first()?->causer)->name)
+            ->filter();
+    }
+
+    private function travelAirportLabel(?string $airport): string
+    {
+        if (!$airport) {
+            return 'غير محدد';
+        }
+
+        return TravelAirports::label($airport);
     }
 
     private function resolveUserPhone($user): string

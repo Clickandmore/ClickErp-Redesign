@@ -44,6 +44,10 @@ class ReportController extends Controller
             'shelterServiceCategoryOptions' => $this->reportService->shelterServiceCategoryOptions(),
             'shelterReceiptSourceOptions' => $this->reportService->shelterReceiptSourceOptions(),
             'sponsorshipTransferStatusOptions' => $this->reportService->sponsorshipTransferStatusOptions(),
+            'travelTypeOptions' => $this->reportService->travelTypeOptions(),
+            'travelWithOptions' => $this->reportService->travelWithOptions(),
+            'travelStatusOptions' => $this->reportService->travelStatusOptions(),
+            'travelAirportOptions' => $this->reportService->travelAirportOptions(),
         ]);
     }
 

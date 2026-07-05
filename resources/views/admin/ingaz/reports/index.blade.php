@@ -752,6 +752,116 @@
                             </div>
                         </div>
 
+                        <div class="report-filter-section {{ $selectedReport === 'deportation_travel' ? '' : 'd-none' }}"
+                            data-report-section="deportation_travel">
+                            <div class="report-section-title">فلاتر رحلات الترحيل</div>
+                            <div class="row g-3">
+                                <div class="col-lg-3">
+                                    <label for="deportation-contract-number" class="form-label">رقم العقد</label>
+                                    <input type="text" class="form-control" id="deportation-contract-number"
+                                        name="contract_number" placeholder="رقم العقد">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="deportation-maid-name" class="form-label">اسم العاملة</label>
+                                    <input type="text" class="form-control" id="deportation-maid-name"
+                                        name="maid_name" placeholder="اسم العاملة">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="deportation-travel-date" class="form-label">تاريخ السفر</label>
+                                    <input type="date" class="form-control" id="deportation-travel-date" name="travel_date">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="deportation-status" class="form-label">حالة الرحلة</label>
+                                    <select class="form-select" id="deportation-status" name="status">
+                                        <option value="">الرحلات النشطة والمجدولة</option>
+                                        <option value="all">جميع الرحلات</option>
+                                        @foreach ($travelStatusOptions as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="report-filter-section {{ $selectedReport === 'travel_trips' ? '' : 'd-none' }}"
+                            data-report-section="travel_trips">
+                            <div class="report-section-title">فلاتر رحلات الاستقدام</div>
+                            <div class="row g-3">
+                                <div class="col-lg-3">
+                                    <label for="travel-search" class="form-label">بحث</label>
+                                    <input type="text" class="form-control" id="travel-search" name="search"
+                                        placeholder="عميل، عاملة، عقد، رحلة">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="travel-order-id" class="form-label">رقم العقد</label>
+                                    <input type="text" class="form-control" id="travel-order-id" name="order_id"
+                                        placeholder="#123">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="travel-type" class="form-label">{{ __('admin.travel_type') }}</label>
+                                    <select class="form-select" id="travel-type" name="travel_type">
+                                        <option value="">الكل</option>
+                                        @foreach ($travelTypeOptions as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="travel-with" class="form-label">{{ __('admin.travel_with') }}</label>
+                                    <select class="form-select" id="travel-with" name="travel_with">
+                                        <option value="">الكل</option>
+                                        @foreach ($travelWithOptions as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="travel-status" class="form-label">{{ __('admin.status') }}</label>
+                                    <select class="form-select" id="travel-status" name="status">
+                                        <option value="">الرحلات النشطة والمجدولة</option>
+                                        <option value="all">جميع الرحلات</option>
+                                        @foreach ($travelStatusOptions as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="travel-date" class="form-label">تاريخ الرحلة</label>
+                                    <input type="date" class="form-control" id="travel-date" name="travel_date">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="travel-created-date" class="form-label">تاريخ الإنشاء</label>
+                                    <input type="date" class="form-control" id="travel-created-date" name="created_date">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="travel-created-by" class="form-label">المنشئ</label>
+                                    <select class="form-select" id="travel-created-by" name="created_by">
+                                        <option value="">الكل</option>
+                                        @foreach ($filterOptions['admins'] as $admin)
+                                            <option value="{{ $admin->id }}">{{ $admin->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="travel-arrival-airport" class="form-label">المطار</label>
+                                    <select class="form-select" id="travel-arrival-airport" name="arrival_airport">
+                                        <option value="">الكل</option>
+                                        @foreach ($travelAirportOptions as $airport)
+                                            <option value="{{ $airport['value'] }}">{{ $airport['label'] }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="travel-flight-company" class="form-label">{{ __('admin.flight_company') }}</label>
+                                    <input type="text" class="form-control" id="travel-flight-company" name="flight_company">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="travel-flight-number" class="form-label">{{ __('admin.flight_number') }}</label>
+                                    <input type="text" class="form-control" id="travel-flight-number" name="flight_number">
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="d-flex flex-wrap gap-2 pt-4 mt-4 border-top">
                             <button type="button" class="btn btn-outline-danger export-trigger" data-format="pdf">
                                 <i class="fas fa-file-pdf me-1"></i>
