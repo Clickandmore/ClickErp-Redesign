@@ -128,6 +128,9 @@ class RentalContractTermsController extends Controller
             'default_working_hours',
             'daily_deduction',
             'notice_period',
+            'expiry_reminder_enabled',
+            'expiry_reminder_days',
+            'expiry_reminder_channel',
             'logo',
             'company_signature'
         ];
@@ -150,6 +153,9 @@ class RentalContractTermsController extends Controller
         $request->validate([
             'logo' => ['nullable', 'image', 'max:2048'],
             'company_signature' => ['nullable', 'image', 'max:2048'],
+            'expiry_reminder_enabled' => ['nullable', 'in:0,1'],
+            'expiry_reminder_days' => ['nullable', 'integer', 'min:1', 'max:60'],
+            'expiry_reminder_channel' => ['nullable', 'in:sms,whatsapp,both'],
         ]);
 
         $data = $request->except(['_token', '_method', 'logo', 'company_signature']);

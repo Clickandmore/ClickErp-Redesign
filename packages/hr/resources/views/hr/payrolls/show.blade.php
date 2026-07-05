@@ -30,7 +30,7 @@
 
         <div class="payroll-note mb-4">
             <strong>ملاحظة:</strong><br>
-           إجمالي الراتب = (أيام العمل × (الراتب الأساسي ÷ 30)) + حافز + إضافات أخرى = أيام الشهر - أيام الغياب
+           إجمالي الراتب = (أيام العمل × (الراتب الأساسي ÷ {{ $payroll->month_days }})) + حافز + إضافات أخرى، وأيام الغياب = أيام الشهر - أيام العمل
             <br>
             إجمالي الخصومات = سلفة + جزاء + خصومات أخرى
             <br>
@@ -47,6 +47,10 @@
                     <div class="col-md-3">
                         <label class="form-label">عدد العاملات</label>
                         <input type="text" class="form-control" value="{{ $payroll->workers_count }}" readonly>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">أيام الشهر</label>
+                        <input type="text" class="form-control" value="{{ $payroll->month_days }}" readonly>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">إجمالي الراتب</label>

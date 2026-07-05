@@ -33,6 +33,20 @@
                         onchange="this.form.submit()"
                     >
                     <div>
+                        <label for="month_days_display_option" class="form-label mb-1">خيار عرض الشهر</label>
+                        <select
+                            id="month_days_display_option"
+                            name="month_days_display_option"
+                            class="form-control"
+                            onchange="this.form.submit()"
+                        >
+                            <option value="30" {{ ($monthDaysDisplayOption ?? 'current') === '30' ? 'selected' : '' }}>صيغة 30</option>
+                            <option value="28" {{ ($monthDaysDisplayOption ?? 'current') === '28' ? 'selected' : '' }}>صيغة 28</option>
+                            <option value="31" {{ ($monthDaysDisplayOption ?? 'current') === '31' ? 'selected' : '' }}>صيغة 31</option>
+                            <option value="current" {{ ($monthDaysDisplayOption ?? 'current') === 'current' ? 'selected' : '' }}>حسب الشهر الحالي ({{ $actualMonthDays }} يوم)</option>
+                        </select>
+                    </div>
+                    <div>
                         <label for="passport_num" class="form-label mb-1">رقم جواز العاملة</label>
                         <input
                             id="passport_num"
@@ -76,7 +90,7 @@
 
         <div class="payroll-note mb-4">
             <strong>ملاحظة:</strong> <br>
-           إجمالي الراتب = (أيام العمل × (الراتب الأساسي ÷ 30)) + حافز + إضافات أخرى = أيام الشهر - أيام الغياب
+           إجمالي الراتب = (أيام العمل × (الراتب الأساسي ÷ {{ $monthDays }})) + حافز + إضافات أخرى، وأيام الغياب = أيام الشهر - أيام العمل
             <br>
             إجمالي الخصومات = سلفة + جزاء + خصومات أخرى
             <br>
@@ -86,6 +100,7 @@
         <form class="from-submit-global" method="POST" action="{{ $storeRoute }}">
             @csrf
             <input type="hidden" name="month_year" value="{{ $selectedMonth }}">
+            <input type="hidden" name="month_days_display_option" value="{{ $monthDaysDisplayOption }}">
 
             <div class="card payroll-card mb-3">
                 <div class="card-body">
@@ -203,7 +218,7 @@
                 const penalty = parseNumber(penaltyInput.value);
                 const otherDeductions = parseNumber(otherDeductionsInput.value);
 
-                const grossSalary = ((workDays * (basicSalary / 30)) + incentive + otherAdditions);
+                const grossSalary = ((workDays * (basicSalary / monthDays)) + incentive + otherAdditions);
                 const totalDeductions = advance + penalty + otherDeductions;
                 const netSalary = grossSalary - totalDeductions;
                 const absenceDays = monthDays - workDays;

@@ -24,6 +24,7 @@ use App\Models\RentalContractInfo;
 use App\Models\RentalContractTerm;
 use App\Services\ingaz\RentalContractFinanceService;
 use App\Services\MoyasarService;
+use App\Services\RentalContractExpiryReminderService;
 use App\Support\MoyasarSettings;
 use App\Support\SystemModuleManager;
 use Carbon\Carbon;
@@ -64,6 +65,7 @@ class RentContractController extends Controller
                 'transferSponsorship',
                 'sendContract',
                 'sendPaymentLink',
+                'sendExpiryReminder',
                 'signContract',
                 'deliverMaid',
                 'activateContract',
@@ -436,6 +438,23 @@ class RentContractController extends Controller
                     if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CONTROL) && $row->canResume()) {
                         $actions .= '<li><button class="dropdown-item text-success resume-contract" data-id="' . $row->id . '">
                                         <i class="fas fa-play-circle"></i> استئناف العقد
+                                    </button></li>';
+                    }
+
+                    if (
+                        @AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CONTROL)
+                        && $row->info?->ingaz_to
+                        && $row->status === 'active'
+                        && in_array(
+                            now()->startOfDay()->diffInDays(Carbon::parse($row->info->ingaz_to)->startOfDay(), false),
+                            [2, 3],
+                            true
+                        )
+                    ) {
+                        $actions .= '<li><button class="dropdown-item text-warning send-expiry-reminder"
+                                        data-id="' . $row->id . '"
+                                        data-url="' . route('RentContract.sendExpiryReminder', $row->id) . '">
+                                        <i class="fas fa-bell"></i> إرسال تنبيه انتهاء العقد
                                     </button></li>';
                     }
 
@@ -4136,6 +4155,50 @@ class RentContractController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'حدث خطأ أثناء إرسال رابط الدفع: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function sendExpiryReminder(Request $request, $id, RentalContractExpiryReminderService $reminderService)
+    {
+        try {
+            $contract = RentalContract::with(['user', 'info', 'marketer'])->findOrFail($id);
+
+            if (!$contract->info?->ingaz_to) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'لا يمكن إرسال التنبيه لأن تاريخ نهاية العقد غير محدد.',
+                ], 422);
+            }
+
+            $reminder = $reminderService->createAndSendReminder($contract);
+
+            if (!$reminder) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'تعذر إنشاء تنبيه انتهاء العقد.',
+                ], 422);
+            }
+
+            $sent = $reminder->sms_sent || $reminder->whatsapp_sent;
+
+            return response()->json([
+                'success' => true,
+                'message_sent' => $sent,
+                'message' => $sent
+                    ? 'تم إرسال تنبيه انتهاء العقد للعميل.'
+                    : 'تم إنشاء التنبيه، لكن تعذر إرساله للعميل: ' . ($reminder->send_error ?: 'سبب غير معروف.'),
+                'reminder_url' => route('rental-contract-reminders.show', $reminder->token),
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Rental contract expiry reminder action failed', [
+                'contract_id' => $id,
+                'message' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'حدث خطأ أثناء إرسال تنبيه انتهاء العقد: ' . $e->getMessage(),
             ], 500);
         }
     }
