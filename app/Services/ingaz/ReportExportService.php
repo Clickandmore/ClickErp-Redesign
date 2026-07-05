@@ -4,9 +4,11 @@ namespace App\Services\ingaz;
 
 use App\Enums\ingaz\ContractStatusEnum;
 use App\Enums\ingaz\OrderEnum;
+use App\Enums\Office\OfficesStatusEnum;
 use App\Models\City;
 use App\Models\Contract;
 use App\Models\Country;
+use App\Models\FinancialRequest;
 use App\Models\RentalContract;
 use App\Models\RecruitmentOffices;
 use App\Models\ShelterPlaces;
@@ -21,6 +23,7 @@ use App\Models\ingaz\Nationality;
 use App\Models\ingaz\Order;
 use App\Models\ingaz\Religion;
 use App\Models\ingaz\User;
+use App\Models\office\Office;
 use App\NewPermKeys;
 use App\PermKeys;
 use App\Services\BranchAccessService;
@@ -29,6 +32,7 @@ use App\Support\TravelAirports;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -292,6 +296,53 @@ class ReportExportService
         ];
     }
 
+    public function officeStatusOptions(): array
+    {
+        return [
+            OfficesStatusEnum::Active->value => __('ingaz.active'),
+            OfficesStatusEnum::DisActive->value => __('ingaz.dis_active'),
+        ];
+    }
+
+    public function officeLinkedStateOptions(): array
+    {
+        return [
+            'with_links' => __('ingaz.has_linked_cvs'),
+            'without_links' => __('ingaz.without_linked_cvs'),
+        ];
+    }
+
+    public function officeCostStateOptions(): array
+    {
+        return [
+            'with_cost' => __('ingaz.has_cost_of_dollar'),
+            'without_cost' => __('ingaz.without_cost_of_dollar'),
+        ];
+    }
+
+    public function financialRequestTypeOptions(): array
+    {
+        return FinancialRequest::types();
+    }
+
+    public function financialRequestStatusOptions(): array
+    {
+        return FinancialRequest::statuses();
+    }
+
+    public function financialRequestPriorityOptions(): array
+    {
+        return FinancialRequest::priorities();
+    }
+
+    public function financialRequestScopeOptions(): array
+    {
+        return [
+            'incomplete' => 'غير مكتملة',
+            'paid' => 'مكتملة / تم سدادها',
+        ];
+    }
+
     public function export(string $reportKey, string $format, Request $request)
     {
         $this->ensureReportAccess($reportKey);
@@ -357,6 +408,16 @@ class ReportExportService
                 'label' => 'الشكاوى',
                 'icon' => 'fas fa-headset',
                 'description' => 'تقرير الشكاوى والتذاكر مع الحالة والأولوية والتعيين والردود.',
+            ],
+            'offices' => [
+                'label' => 'المكاتب',
+                'icon' => 'fas fa-building',
+                'description' => 'تقرير المكاتب الخارجية مع الجنسية والحساب والمدير والارتباطات.',
+            ],
+            'financial_requests' => [
+                'label' => 'الطلبات المالية',
+                'icon' => 'fas fa-money-check-alt',
+                'description' => 'تقرير الطلبات المالية التشغيلية حسب النوع والحالة والتصعيد.',
             ],
         ];
     }
@@ -426,6 +487,18 @@ class ReportExportService
                 PermKeys::COMPLAINT_CONTROL,
                 NewPermKeys::REPORTS_EXPORT,
             ]),
+            'offices' => AdminGuardHasAnyPerm([
+                PermKeys::OFFICE_VIEW,
+                PermKeys::OFFICE_CONTROL,
+                NewPermKeys::REPORTS_EXPORT,
+            ]),
+            'financial_requests' => AdminGuardHasAnyPerm([
+                PermKeys::FINANCIAL_REQUESTS_VIEW,
+                PermKeys::FINANCIAL_REQUESTS_CREATE,
+                PermKeys::FINANCIAL_REQUESTS_EXPORT,
+                PermKeys::FINANCIAL_REQUESTS_CONTROL,
+                NewPermKeys::REPORTS_EXPORT,
+            ]),
             default => false,
         };
     }
@@ -455,6 +528,8 @@ class ReportExportService
             'deportation_travel' => $this->buildDeportationTravelReportPayload($request),
             'travel_trips' => $this->buildTravelTripsReportPayload($request),
             'complaints' => $this->buildComplaintsReportPayload($request),
+            'offices' => $this->buildOfficesReportPayload($request),
+            'financial_requests' => $this->buildFinancialRequestsReportPayload($request),
         };
     }
 
@@ -1057,6 +1132,131 @@ class ReportExportService
                     $this->formatDateValue($complaint->resolved_at, true),
                     $complaint->resolvedBy?->name ?: '-',
                     $complaint->response ?: ($complaint->last_response ?: '-'),
+                ];
+            })->all(),
+        ];
+    }
+
+    private function buildOfficesReportPayload(Request $request): array
+    {
+        $linkedContractsCountSubquery = $this->officeLinkedContractsCountSubquery();
+
+        $query = Office::query()
+            ->select('recruitment_offices.*')
+            ->with(['nationality', 'account', 'officeManager.admin'])
+            ->selectSub($linkedContractsCountSubquery, 'linked_contracts_count')
+            ->selectSub($this->officePreviousSponsorshipsCountSubquery(), 'previous_sponsorships_count')
+            ->selectSub($this->officeExternalDispatchesCountSubquery(), 'external_dispatches_count')
+            ->withCount(['maids as linked_cvs_count']);
+
+        $this->applyOfficeFilters($request, $query);
+
+        $offices = $query->get()
+            ->sortBy(fn (Office $office) => mb_strtolower((string) ($office->title ?? '')))
+            ->values();
+
+        return [
+            'title' => 'تقرير المكاتب',
+            'filename_prefix' => 'offices_report',
+            'headings' => [
+                'رقم المكتب',
+                'اسم المكتب',
+                'الجنسية',
+                'الهاتف',
+                'رقم الترخيص',
+                'مدير المكتب',
+                'هاتف المدير',
+                'بريد المدير',
+                'حالة المدير',
+                'كود الحساب',
+                'السير المرتبطة',
+                'العقود المرتبطة',
+                'إرساليات المكتب الخارجي',
+                'قيمة الدولار',
+                'تكلفة أخرى',
+                'الحالة',
+            ],
+            'rows' => $offices->map(function (Office $office) {
+                $manager = $office->officeManager?->admin;
+
+                return [
+                    $office->id,
+                    $office->title ?: '-',
+                    $this->modelLabel($office->nationality, ['sub_title', 'title', 'name']),
+                    $office->phone_office ?: '-',
+                    $office->license_number ?: '-',
+                    $office->manager_name ?: ($manager?->name ?: '-'),
+                    $office->manager_phone ?: '-',
+                    $office->manager_email ?: '-',
+                    $this->officeManagerStatusLabel($office),
+                    $office->account?->code ?: '-',
+                    (int) ($office->linked_cvs_count ?? 0),
+                    (int) ($office->linked_contracts_count ?? 0),
+                    (int) ($office->external_dispatches_count ?? 0),
+                    $this->formatMoney($office->cost_of_dollar),
+                    $this->formatMoney($office->cost_of_other),
+                    $this->officeStatusLabel($office->status),
+                ];
+            })->all(),
+        ];
+    }
+
+    private function buildFinancialRequestsReportPayload(Request $request): array
+    {
+        $query = FinancialRequest::query()
+            ->with(['creator', 'approver', 'financeBond'])
+            ->latest();
+
+        if (!$this->canViewAllFinancialRequestsForReport()) {
+            $query->where('created_by_id', auth('admin')->id());
+        }
+
+        $this->applyReportBranchFilter($query, $request, 'financial_requests');
+        $this->applyFinancialRequestFilters($request, $query);
+
+        $requests = $query->get();
+
+        return [
+            'title' => 'تقرير الطلبات المالية',
+            'filename_prefix' => 'financial_requests_report',
+            'headings' => [
+                'رقم الطلب',
+                'نوع الطلب',
+                'الحالة',
+                'التصعيد',
+                'المبلغ',
+                'تاريخ الطلب',
+                'رقم العقد',
+                'نوع العقد',
+                'العميل',
+                'هوية العميل',
+                'العاملة',
+                'جواز العاملة',
+                'مقدم الطلب',
+                'المعتمد بواسطة',
+                'تاريخ السداد',
+                'رقم السند',
+                'الوصف',
+            ],
+            'rows' => $requests->map(function (FinancialRequest $requestItem) {
+                return [
+                    $requestItem->request_no ?: $requestItem->id,
+                    $requestItem->type_label,
+                    $requestItem->status_label,
+                    $requestItem->priority_label,
+                    $this->formatMoney($requestItem->amount),
+                    $this->formatDateValue($requestItem->request_date),
+                    $requestItem->contract_number ?: '-',
+                    $requestItem->contract_type_label,
+                    $requestItem->client_name ?: '-',
+                    $requestItem->client_identity ?: '-',
+                    $requestItem->maid_name ?: '-',
+                    $requestItem->maid_passport ?: '-',
+                    $requestItem->creator?->name ?: '-',
+                    $requestItem->approver?->name ?: '-',
+                    $this->formatDateValue($requestItem->paid_at, true),
+                    $requestItem->financeBond?->code ?: ($requestItem->finance_bond_id ?: '-'),
+                    $requestItem->description ?: '-',
                 ];
             })->all(),
         ];
@@ -1964,6 +2164,85 @@ class ReportExportService
         }
     }
 
+    private function applyOfficeFilters(Request $request, $query): void
+    {
+        if ($request->filled('office_name')) {
+            $officeName = trim((string) $request->office_name);
+            $query->whereHas('translations', function ($translationQuery) use ($officeName) {
+                $translationQuery->where('title', 'like', '%' . $officeName . '%');
+            });
+        }
+
+        if ($request->filled('nationality_id')) {
+            $query->where('nationality_id', $request->nationality_id);
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('cost_state')) {
+            if ($request->cost_state === 'with_cost') {
+                $query->whereNotNull('cost_of_dollar')->where('cost_of_dollar', '!=', '');
+            } elseif ($request->cost_state === 'without_cost') {
+                $query->where(function ($costQuery) {
+                    $costQuery->whereNull('cost_of_dollar')
+                        ->orWhere('cost_of_dollar', '');
+                });
+            }
+        }
+
+        if ($request->filled('linked_state')) {
+            $linkedContractsCountSubquery = $this->officeLinkedContractsCountSubquery();
+            $linkedContractsSql = '(' . $linkedContractsCountSubquery->toSql() . ')';
+            $linkedContractsBindings = $linkedContractsCountSubquery->getBindings();
+
+            if ($request->linked_state === 'with_links') {
+                $query->where(function ($linkedQuery) use ($linkedContractsSql, $linkedContractsBindings) {
+                    $linkedQuery->has('maids')
+                        ->orWhereRaw($linkedContractsSql . ' > 0', $linkedContractsBindings);
+                });
+            } elseif ($request->linked_state === 'without_links') {
+                $query->doesntHave('maids')
+                    ->whereRaw($linkedContractsSql . ' = 0', $linkedContractsBindings);
+            }
+        }
+    }
+
+    private function applyFinancialRequestFilters(Request $request, $query): void
+    {
+        if ($request->input('scope') === 'incomplete') {
+            $query->whereIn('status', [
+                FinancialRequest::STATUS_PENDING_REVIEW,
+                FinancialRequest::STATUS_IN_PROGRESS,
+            ]);
+        } elseif ($request->input('scope') === 'paid') {
+            $query->where('status', FinancialRequest::STATUS_PAID);
+        }
+
+        if ($request->filled('q')) {
+            $term = trim((string) $request->input('q'));
+            $query->where(function ($searchQuery) use ($term) {
+                $searchQuery->where('request_no', 'like', '%' . $term . '%')
+                    ->orWhere('contract_number', 'like', '%' . $term . '%')
+                    ->orWhere('client_identity', 'like', '%' . $term . '%')
+                    ->orWhere('client_name', 'like', '%' . $term . '%')
+                    ->orWhere('maid_name', 'like', '%' . $term . '%')
+                    ->orWhere('maid_passport', 'like', '%' . $term . '%');
+            });
+        }
+
+        foreach (['type', 'status', 'priority', 'created_by_id'] as $field) {
+            if ($request->filled($field)) {
+                $query->where($field, $request->input($field));
+            }
+        }
+
+        if ($request->filled('date')) {
+            $query->whereDate('request_date', $request->input('date'));
+        }
+    }
+
     private function applyReportBranchFilter($query, Request $request, string $table, ?string $qualifiedColumn = null): void
     {
         app(BranchAccessService::class)->applyToQuery($query, $request, $table, $qualifiedColumn);
@@ -2605,6 +2884,80 @@ class ReportExportService
         $options = $this->complaintPriorityOptions();
 
         return $options[$priority] ?? $priority;
+    }
+
+    private function officeLinkedContractsCountSubquery()
+    {
+        return DB::table('contracts')
+            ->leftJoin('maids', 'maids.id', '=', 'contracts.maid_id')
+            ->leftJoin('contract_infos', 'contract_infos.contract_id', '=', 'contracts.id')
+            ->selectRaw('COUNT(DISTINCT contracts.id)')
+            ->whereIn('contracts.type', ['recruitment', 'maid'])
+            ->where(function ($query) {
+                $query->where(function ($maidQuery) {
+                    $maidQuery->whereColumn('maids.office_id', 'recruitment_offices.id')
+                        ->whereNull('maids.deleted_at');
+                })->orWhereColumn('contract_infos.manual_maid_office_id', 'recruitment_offices.id');
+            });
+    }
+
+    private function officePreviousSponsorshipsCountSubquery()
+    {
+        return DB::table('contract_infos')
+            ->selectRaw('COUNT(*)')
+            ->whereColumn('contract_infos.previous_sponsorship', 'recruitment_offices.id');
+    }
+
+    private function officeExternalDispatchesCountSubquery()
+    {
+        if (!Schema::hasTable('contract_external_office_dispatches')) {
+            return DB::query()->selectRaw('0');
+        }
+
+        return DB::table('contract_external_office_dispatches')
+            ->selectRaw('COUNT(*)')
+            ->whereColumn('contract_external_office_dispatches.recruitment_office_id', 'recruitment_offices.id');
+    }
+
+    private function officeStatusLabel(?string $status): string
+    {
+        if (!$status) {
+            return '-';
+        }
+
+        $options = $this->officeStatusOptions();
+
+        return $options[$status] ?? $status;
+    }
+
+    private function officeManagerStatusLabel(Office $office): string
+    {
+        $manager = $office->officeManager?->admin;
+
+        if (!$manager) {
+            return 'بدون مدير';
+        }
+
+        if (($manager->status ?? 'active') === 'suspended') {
+            return 'مدير موقوف';
+        }
+
+        if (method_exists($manager, 'isExternalOfficeAgent') && !$manager->isExternalOfficeAgent()) {
+            return 'غير مرتبط بلوحة الوكيل';
+        }
+
+        return 'لديه مدير';
+    }
+
+    private function canViewAllFinancialRequestsForReport(): bool
+    {
+        return AdminGuardHasAnyPerm([
+            PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS,
+            PermKeys::FINANCIAL_REQUESTS_APPROVE,
+            PermKeys::FINANCIAL_REQUESTS_CONTROL,
+            PermKeys::FINANCIAL_REQUESTS_EXPORT,
+            NewPermKeys::REPORTS_EXPORT,
+        ]);
     }
 
     private function resolveUserPhone($user): string

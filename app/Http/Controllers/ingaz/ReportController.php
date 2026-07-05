@@ -50,6 +50,13 @@ class ReportController extends Controller
             'travelAirportOptions' => $this->reportService->travelAirportOptions(),
             'complaintStatusOptions' => $this->reportService->complaintStatusOptions(),
             'complaintPriorityOptions' => $this->reportService->complaintPriorityOptions(),
+            'officeStatusOptions' => $this->reportService->officeStatusOptions(),
+            'officeLinkedStateOptions' => $this->reportService->officeLinkedStateOptions(),
+            'officeCostStateOptions' => $this->reportService->officeCostStateOptions(),
+            'financialRequestTypeOptions' => $this->reportService->financialRequestTypeOptions(),
+            'financialRequestStatusOptions' => $this->reportService->financialRequestStatusOptions(),
+            'financialRequestPriorityOptions' => $this->reportService->financialRequestPriorityOptions(),
+            'financialRequestScopeOptions' => $this->reportService->financialRequestScopeOptions(),
         ]);
     }
 

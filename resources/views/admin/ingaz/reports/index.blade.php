@@ -934,6 +934,117 @@
                             </div>
                         </div>
 
+                        <div class="report-filter-section {{ $selectedReport === 'offices' ? '' : 'd-none' }}"
+                            data-report-section="offices">
+                            <div class="report-section-title">فلاتر المكاتب</div>
+                            <div class="row g-3">
+                                <div class="col-lg-3">
+                                    <label for="offices-name" class="form-label">اسم المكتب</label>
+                                    <input type="text" class="form-control" id="offices-name" name="office_name"
+                                        placeholder="اسم المكتب">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="offices-nationality" class="form-label">الجنسية</label>
+                                    <select class="form-select" id="offices-nationality" name="nationality_id">
+                                        <option value="">كل الجنسيات</option>
+                                        @foreach ($filterOptions['nationalities'] as $nationality)
+                                            <option value="{{ $nationality->id }}">
+                                                {{ $nationality->sub_title ?? ($nationality->title ?? $nationality->name ?? '-') }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="offices-status" class="form-label">الحالة</label>
+                                    <select class="form-select" id="offices-status" name="status">
+                                        <option value="">كل الحالات</option>
+                                        @foreach ($officeStatusOptions as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="offices-linked-state" class="form-label">حالة السير المرتبطة</label>
+                                    <select class="form-select" id="offices-linked-state" name="linked_state">
+                                        <option value="">كل الحالات</option>
+                                        @foreach ($officeLinkedStateOptions as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="offices-cost-state" class="form-label">حالة قيمة الدولار</label>
+                                    <select class="form-select" id="offices-cost-state" name="cost_state">
+                                        <option value="">كل الحالات</option>
+                                        @foreach ($officeCostStateOptions as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="report-filter-section {{ $selectedReport === 'financial_requests' ? '' : 'd-none' }}"
+                            data-report-section="financial_requests">
+                            <div class="report-section-title">فلاتر الطلبات المالية</div>
+                            <div class="row g-3">
+                                <div class="col-lg-3">
+                                    <label for="financial-scope" class="form-label">النطاق</label>
+                                    <select class="form-select" id="financial-scope" name="scope">
+                                        <option value="">كل الطلبات</option>
+                                        @foreach ($financialRequestScopeOptions as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="financial-search" class="form-label">بحث</label>
+                                    <input type="text" class="form-control" id="financial-search" name="q"
+                                        placeholder="رقم طلب، عقد، عميل، هوية">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="financial-type" class="form-label">نوع الطلب</label>
+                                    <select class="form-select" id="financial-type" name="type">
+                                        <option value="">الكل</option>
+                                        @foreach ($financialRequestTypeOptions as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="financial-status" class="form-label">الحالة</label>
+                                    <select class="form-select" id="financial-status" name="status">
+                                        <option value="">الكل</option>
+                                        @foreach ($financialRequestStatusOptions as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="financial-priority" class="form-label">التصعيد</label>
+                                    <select class="form-select" id="financial-priority" name="priority">
+                                        <option value="">الكل</option>
+                                        @foreach ($financialRequestPriorityOptions as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="financial-date" class="form-label">التاريخ</label>
+                                    <input type="date" class="form-control" id="financial-date" name="date">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="financial-created-by" class="form-label">مقدم الطلب</label>
+                                    <select class="form-select" id="financial-created-by" name="created_by_id">
+                                        <option value="">الكل</option>
+                                        @foreach ($filterOptions['admins'] as $admin)
+                                            <option value="{{ $admin->id }}">{{ $admin->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="d-flex flex-wrap gap-2 pt-4 mt-4 border-top">
                             <button type="button" class="btn btn-outline-danger export-trigger" data-format="pdf">
                                 <i class="fas fa-file-pdf me-1"></i>
