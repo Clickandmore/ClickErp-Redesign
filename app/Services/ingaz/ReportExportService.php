@@ -13,6 +13,8 @@ use App\Models\ShelterPlaces;
 use App\Models\SponsorshipTransfer;
 use App\Models\TravelHistory;
 use App\Models\auth\Admin;
+use App\Models\ingaz\Complaint;
+use App\Models\ingaz\ComplaintType;
 use App\Models\ingaz\JobType;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\Nationality;
@@ -84,6 +86,7 @@ class ReportExportService
                 ->orderBy('name')
                 ->get(),
             'shelters' => ShelterPlaces::with('translations')->orderBy('id')->get(['id']),
+            'complaint_types' => ComplaintType::query()->orderBy('name')->get(['id', 'name']),
         ];
     }
 
@@ -268,6 +271,27 @@ class ReportExportService
         return TravelAirports::options();
     }
 
+    public function complaintStatusOptions(): array
+    {
+        return [
+            'pending' => __('ingaz.complaint_status_pending'),
+            'in_progress' => __('ingaz.complaint_status_in_progress'),
+            'resolved' => __('ingaz.complaint_status_resolved'),
+            'closed' => __('ingaz.complaint_status_closed'),
+            'rejected' => __('ingaz.complaint_status_rejected'),
+        ];
+    }
+
+    public function complaintPriorityOptions(): array
+    {
+        return [
+            'urgent' => __('ingaz.priority_urgent'),
+            'high' => __('ingaz.priority_high'),
+            'medium' => __('ingaz.priority_medium'),
+            'low' => __('ingaz.priority_low'),
+        ];
+    }
+
     public function export(string $reportKey, string $format, Request $request)
     {
         $this->ensureReportAccess($reportKey);
@@ -328,6 +352,11 @@ class ReportExportService
                 'label' => 'رحلات الاستقدام',
                 'icon' => 'fas fa-plane-arrival',
                 'description' => 'تقرير رحلات الاستقدام مجمعة حسب الرحلة كما تظهر في قسم السفر.',
+            ],
+            'complaints' => [
+                'label' => 'الشكاوى',
+                'icon' => 'fas fa-headset',
+                'description' => 'تقرير الشكاوى والتذاكر مع الحالة والأولوية والتعيين والردود.',
             ],
         ];
     }
@@ -392,6 +421,11 @@ class ReportExportService
                 PermKeys::TRAVEL_CONTROL,
                 NewPermKeys::REPORTS_EXPORT,
             ]),
+            'complaints' => AdminGuardHasAnyPerm([
+                PermKeys::COMPLAINT_VIEW,
+                PermKeys::COMPLAINT_CONTROL,
+                NewPermKeys::REPORTS_EXPORT,
+            ]),
             default => false,
         };
     }
@@ -420,6 +454,7 @@ class ReportExportService
             'sponsorship_transfers' => $this->buildSponsorshipTransfersReportPayload($request),
             'deportation_travel' => $this->buildDeportationTravelReportPayload($request),
             'travel_trips' => $this->buildTravelTripsReportPayload($request),
+            'complaints' => $this->buildComplaintsReportPayload($request),
         };
     }
 
@@ -960,6 +995,68 @@ class ReportExportService
                     $trip->creator_name ?: '-',
                     trim(($trip->arrival_date ?: '-') . ' ' . ($trip->arrival_time ?: '')),
                     $this->travelAirportLabel($trip->arrival_airport),
+                ];
+            })->all(),
+        ];
+    }
+
+    private function buildComplaintsReportPayload(Request $request): array
+    {
+        $query = Complaint::query()
+            ->with([
+                'user',
+                'complaintType',
+                'assignedTo',
+                'maidNationality',
+                'contract',
+                'resolvedBy',
+            ])
+            ->orderByDesc('id');
+
+        $this->applyReportBranchFilter($query, $request, 'complaints');
+        $this->applyComplaintFilters($request, $query);
+
+        $complaints = $query->get();
+
+        return [
+            'title' => 'تقرير الشكاوى',
+            'filename_prefix' => 'complaints_report',
+            'headings' => [
+                'رقم التذكرة',
+                'العميل',
+                'اسم مقدم الشكوى',
+                'جوال مقدم الشكوى',
+                'الموضوع',
+                'نوع الشكوى',
+                'الأولوية',
+                'الحالة',
+                'الموظف المسؤول',
+                'عقد الإيواء',
+                'جواز العاملة',
+                'جنسية العاملة',
+                'تاريخ الإنشاء',
+                'تاريخ الحل',
+                'تم الحل بواسطة',
+                'الرد',
+            ],
+            'rows' => $complaints->map(function (Complaint $complaint) {
+                return [
+                    '#' . str_pad((string) $complaint->id, 6, '0', STR_PAD_LEFT),
+                    $complaint->user?->name ?: '-',
+                    $complaint->complainant_name ?: '-',
+                    $complaint->complainant_phone ?: $this->resolveUserPhone($complaint->user),
+                    $complaint->subject ?: '-',
+                    $complaint->complaintType?->name ?: '-',
+                    $this->complaintPriorityLabel($complaint->priority),
+                    $this->complaintStatusLabel($complaint->status),
+                    $complaint->assignedTo?->name ?: '-',
+                    $complaint->contract?->id ? '#' . $complaint->contract->id : '-',
+                    $complaint->maid_passport ?: '-',
+                    $this->modelLabel($complaint->maidNationality, ['sub_title', 'title', 'name']),
+                    $this->formatDateValue($complaint->created_at, true),
+                    $this->formatDateValue($complaint->resolved_at, true),
+                    $complaint->resolvedBy?->name ?: '-',
+                    $complaint->response ?: ($complaint->last_response ?: '-'),
                 ];
             })->all(),
         ];
@@ -1799,6 +1896,74 @@ class ReportExportService
         }
     }
 
+    private function applyComplaintFilters(Request $request, $query): void
+    {
+        if ($request->filled('ticket_number')) {
+            $ticketNumber = ltrim((string) $request->ticket_number, '#0');
+            $ticketNumber = $ticketNumber === '' ? 0 : $ticketNumber;
+            $query->where('id', 'like', '%' . $ticketNumber . '%');
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('priority')) {
+            $query->where('priority', $request->priority);
+        }
+
+        if ($request->filled('type')) {
+            $query->where('complaint_type_id', $request->type);
+        }
+
+        if ($request->filled('assigned_to')) {
+            $query->where('assigned_to', $request->assigned_to);
+        }
+
+        if ($request->filled('keyword')) {
+            $keyword = trim((string) $request->keyword);
+            $query->where(function ($keywordQuery) use ($keyword) {
+                $keywordQuery->where('subject', 'like', '%' . $keyword . '%')
+                    ->orWhere('message', 'like', '%' . $keyword . '%')
+                    ->orWhere('details', 'like', '%' . $keyword . '%')
+                    ->orWhere('complainant_name', 'like', '%' . $keyword . '%')
+                    ->orWhere('complainant_phone', 'like', '%' . $keyword . '%')
+                    ->orWhere('maid_passport', 'like', '%' . $keyword . '%')
+                    ->orWhereHas('user', function ($userQuery) use ($keyword) {
+                        $userQuery->where('name', 'like', '%' . $keyword . '%')
+                            ->orWhere('phone', 'like', '%' . $keyword . '%');
+                    })
+                    ->orWhereHas('complaintType', function ($typeQuery) use ($keyword) {
+                        $typeQuery->where('name', 'like', '%' . $keyword . '%');
+                    })
+                    ->orWhereHas('assignedTo', function ($adminQuery) use ($keyword) {
+                        $adminQuery->where('name', 'like', '%' . $keyword . '%');
+                    });
+            });
+        }
+
+        if ($request->filled('period')) {
+            match ($request->period) {
+                'today' => $query->whereDate('created_at', today()),
+                'yesterday' => $query->whereDate('created_at', today()->subDay()),
+                'week' => $query->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]),
+                'month' => $query->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()]),
+                'custom' => null,
+                default => null,
+            };
+        }
+
+        if ($request->input('period') === 'custom' || $request->filled('date_from') || $request->filled('date_to')) {
+            if ($request->filled('date_from')) {
+                $query->whereDate('created_at', '>=', $request->date_from);
+            }
+
+            if ($request->filled('date_to')) {
+                $query->whereDate('created_at', '<=', $request->date_to);
+            }
+        }
+    }
+
     private function applyReportBranchFilter($query, Request $request, string $table, ?string $qualifiedColumn = null): void
     {
         app(BranchAccessService::class)->applyToQuery($query, $request, $table, $qualifiedColumn);
@@ -2418,6 +2583,28 @@ class ReportExportService
         }
 
         return TravelAirports::label($airport);
+    }
+
+    private function complaintStatusLabel(?string $status): string
+    {
+        if (!$status) {
+            return '-';
+        }
+
+        $options = $this->complaintStatusOptions();
+
+        return $options[$status] ?? $status;
+    }
+
+    private function complaintPriorityLabel(?string $priority): string
+    {
+        if (!$priority) {
+            return '-';
+        }
+
+        $options = $this->complaintPriorityOptions();
+
+        return $options[$priority] ?? $priority;
     }
 
     private function resolveUserPhone($user): string

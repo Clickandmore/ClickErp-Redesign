@@ -862,6 +862,78 @@
                             </div>
                         </div>
 
+                        <div class="report-filter-section {{ $selectedReport === 'complaints' ? '' : 'd-none' }}"
+                            data-report-section="complaints">
+                            <div class="report-section-title">فلاتر الشكاوى</div>
+                            <div class="row g-3">
+                                <div class="col-lg-3">
+                                    <label for="complaints-keyword" class="form-label">بحث</label>
+                                    <input type="text" class="form-control" id="complaints-keyword" name="keyword"
+                                        placeholder="العميل، الموضوع، الجوال، جواز العاملة">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="complaints-ticket-number" class="form-label">رقم التذكرة</label>
+                                    <input type="text" class="form-control" id="complaints-ticket-number"
+                                        name="ticket_number" placeholder="#000001">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="complaints-status" class="form-label">الحالة</label>
+                                    <select class="form-select" id="complaints-status" name="status">
+                                        <option value="">كل الحالات</option>
+                                        @foreach ($complaintStatusOptions as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="complaints-priority" class="form-label">الأولوية</label>
+                                    <select class="form-select" id="complaints-priority" name="priority">
+                                        <option value="">كل الأولويات</option>
+                                        @foreach ($complaintPriorityOptions as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="complaints-type" class="form-label">نوع الشكوى</label>
+                                    <select class="form-select" id="complaints-type" name="type">
+                                        <option value="">كل الأنواع</option>
+                                        @foreach ($filterOptions['complaint_types'] as $type)
+                                            <option value="{{ $type->id }}">{{ $type->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="complaints-assigned-to" class="form-label">الموظف المسؤول</label>
+                                    <select class="form-select" id="complaints-assigned-to" name="assigned_to">
+                                        <option value="">كل الموظفين</option>
+                                        @foreach ($filterOptions['admins'] as $admin)
+                                            <option value="{{ $admin->id }}">{{ $admin->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="complaints-period" class="form-label">الفترة الزمنية</label>
+                                    <select class="form-select" id="complaints-period" name="period">
+                                        <option value="">كل الأوقات</option>
+                                        <option value="today">اليوم</option>
+                                        <option value="yesterday">أمس</option>
+                                        <option value="week">هذا الأسبوع</option>
+                                        <option value="month">هذا الشهر</option>
+                                        <option value="custom">تاريخ مخصص</option>
+                                    </select>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="complaints-date-from" class="form-label">من تاريخ</label>
+                                    <input type="date" class="form-control" id="complaints-date-from" name="date_from">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="complaints-date-to" class="form-label">إلى تاريخ</label>
+                                    <input type="date" class="form-control" id="complaints-date-to" name="date_to">
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="d-flex flex-wrap gap-2 pt-4 mt-4 border-top">
                             <button type="button" class="btn btn-outline-danger export-trigger" data-format="pdf">
                                 <i class="fas fa-file-pdf me-1"></i>

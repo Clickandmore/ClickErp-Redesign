@@ -48,6 +48,8 @@ class ReportController extends Controller
             'travelWithOptions' => $this->reportService->travelWithOptions(),
             'travelStatusOptions' => $this->reportService->travelStatusOptions(),
             'travelAirportOptions' => $this->reportService->travelAirportOptions(),
+            'complaintStatusOptions' => $this->reportService->complaintStatusOptions(),
+            'complaintPriorityOptions' => $this->reportService->complaintPriorityOptions(),
         ]);
     }
 
