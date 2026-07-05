@@ -77,6 +77,11 @@
                               placeholder="<!-- Zoho code -->">{{ old('zoho_tag', $settings->zoho_tag ?? '') }}</textarea>
                 </div>
                 <div class="col-12">
+                    <label class="form-label">{{ __('admin.settings_hotjar_tag') }}</label>
+                    <textarea name="hotjar_tag" class="form-control" rows="6" dir="ltr"
+                              placeholder="<!-- Hotjar code -->">{{ old('hotjar_tag', $settings->hotjar_tag ?? '') }}</textarea>
+                </div>
+                <div class="col-12">
                     <label class="form-label">{{ __('admin.settings_live_chat_tag') }}</label>
                     <textarea name="live_chat_tag" class="form-control" rows="6" dir="ltr"
                               placeholder="<!-- Live chat widget code -->">{{ old('live_chat_tag', $settings->live_chat_tag ?? '') }}</textarea>

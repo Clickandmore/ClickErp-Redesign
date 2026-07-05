@@ -22,7 +22,10 @@ class PayrollService
         }
 
         $monthYear = $request->input('month_year');
-        $monthDays = Carbon::createFromFormat('Y-m', $monthYear)->daysInMonth;
+        $monthDays = $this->resolveMonthDays(
+            $request->input('month_days_display_option'),
+            Carbon::createFromFormat('Y-m', $monthYear)->daysInMonth
+        );
 
         if (Payroll::query()->where('month_year', $monthYear)->exists()) {
             return [
@@ -62,7 +65,7 @@ class PayrollService
                 $otherDeductions = $this->toFloat($request->input("other_deductions.$key"));
                 $absenceDays = max($monthDays - $workDays, 0);
 
-                $grossSalary = round(($workDays * ($basicSalary / 30)) + $incentive + $otherAdditions, 2);
+                $grossSalary = round(($workDays * ($basicSalary / $monthDays)) + $incentive + $otherAdditions, 2);
                 $rowTotalDeductions = round($advance + $penalty + $otherDeductions, 2);
                 $netSalary = round($grossSalary - $rowTotalDeductions, 2);
 
@@ -118,5 +121,14 @@ class PayrollService
         }
 
         return (float) $value;
+    }
+
+    private function resolveMonthDays(?string $option, int $actualMonthDays): int
+    {
+        if (in_array($option, ['30', '28', '31'], true)) {
+            return (int) $option;
+        }
+
+        return $actualMonthDays;
     }
 }

@@ -42,7 +42,11 @@ class PayrollController extends Controller
     {
         $maidAction->syncAllRentalMaidsToHr();
 
-        [$monthYear, $monthDate, $monthDays] = $this->resolveMonthContext($request->input('month'));
+        [$monthYear, $monthDate, $actualMonthDays] = $this->resolveMonthContext($request->input('month'));
+        [$monthDaysDisplayOption, $monthDays] = $this->resolveMonthDaysDisplayOption(
+            $request->input('month_days_display_option'),
+            $actualMonthDays
+        );
         $passportNumber = trim((string) $request->input('passport_num', ''));
         $residenceNumber = trim((string) $request->input('residence_num', ''));
         $workerScope = $request->input('worker_scope') === 'all' ? 'all' : 'current';
@@ -95,8 +99,10 @@ class PayrollController extends Controller
             'passportNumber' => $passportNumber,
             'residenceNumber' => $residenceNumber,
             'workerScope' => $workerScope,
+            'monthDaysDisplayOption' => $monthDaysDisplayOption,
             'monthLabel' => $monthDate->locale(app()->getLocale())->translatedFormat('F Y'),
             'monthDays' => $monthDays,
+            'actualMonthDays' => $actualMonthDays,
             'rows' => $rows,
             'storeRoute' => route('payrolls.store'),
             'indexRoute' => route('payrolls.index'),
@@ -258,6 +264,17 @@ class PayrollController extends Controller
         ];
     }
 
+    private function resolveMonthDaysDisplayOption(?string $option, int $actualMonthDays): array
+    {
+        $allowedOptions = ['30', '28', '31', 'current'];
+        $option = in_array($option, $allowedOptions, true) ? $option : 'current';
+
+        return [
+            $option,
+            $option === 'current' ? $actualMonthDays : (int) $option,
+        ];
+    }
+
     private function resolveHeaderLogoUrl(): ?string
     {
         $settings = Setting::query()->first();
@@ -275,7 +292,7 @@ class PayrollController extends Controller
         $advance = 0.0;
         $penalty = 0.0;
         $otherDeductions = 0.0;
-        $grossSalary = $this->calculateGrossSalary($workDays, $basicSalary, $incentive, $otherAdditions);
+        $grossSalary = $this->calculateGrossSalary($workDays, $basicSalary, $incentive, $otherAdditions, $monthDays);
         $totalDeductions = $this->calculateTotalDeductions($advance, $penalty, $otherDeductions);
 
         return [
@@ -330,9 +347,9 @@ class PayrollController extends Controller
         return $employee->nationality?->name ?? '-';
     }
 
-    private function calculateGrossSalary(float $workingDays, float $basicSalary, float $incentive, float $otherAdditions): float
+    private function calculateGrossSalary(float $workingDays, float $basicSalary, float $incentive, float $otherAdditions, int $monthDays): float
     {
-        return round(($workingDays * ($basicSalary / 30)) + $incentive + $otherAdditions, 2);
+        return round(($workingDays * ($basicSalary / $monthDays)) + $incentive + $otherAdditions, 2);
     }
 
     private function calculateTotalDeductions(float $advance, float $penalty, float $otherDeductions): float

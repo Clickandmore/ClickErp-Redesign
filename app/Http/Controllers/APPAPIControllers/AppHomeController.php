@@ -529,6 +529,7 @@ class AppHomeController extends Controller
             'tiktok_tag' => $seo['tiktok_tag'],
             'snapchat_tag' => $seo['snapchat_tag'],
             'zoho_tag' => $seo['zoho_tag'],
+            'hotjar_tag' => $seo['hotjar_tag'],
             'live_chat_tag' => $seo['live_chat_tag'],
             'phone1' => $phone,
             'phone2' => $whatsapp !== '' ? $whatsapp : $otherPhone,
@@ -611,6 +612,7 @@ class AppHomeController extends Controller
             'tiktok_tag' => (string) ($setting->tiktok_tag ?? ''),
             'snapchat_tag' => (string) ($setting->snapchat_tag ?? ''),
             'zoho_tag' => (string) ($setting->zoho_tag ?? ''),
+            'hotjar_tag' => (string) ($setting->hotjar_tag ?? ''),
             'live_chat_tag' => (string) ($setting->live_chat_tag ?? ''),
         ];
     }

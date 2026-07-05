@@ -113,6 +113,11 @@ class RentalContract extends Model
         return $this->hasMany(RentalContractExtension::class, 'rental_contract_id');
     }
 
+    public function expiryReminders()
+    {
+        return $this->hasMany(RentalContractExpiryReminder::class, 'rental_contract_id');
+    }
+
     public function statusLogs()
     {
         return $this->hasMany(RentalContractStatusLog::class, 'rental_contract_id');

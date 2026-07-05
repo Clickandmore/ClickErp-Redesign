@@ -43,6 +43,20 @@ class ReportController extends Controller
             'shelterInstantReceiptOptions' => $this->reportService->shelterInstantReceiptOptions(),
             'shelterServiceCategoryOptions' => $this->reportService->shelterServiceCategoryOptions(),
             'shelterReceiptSourceOptions' => $this->reportService->shelterReceiptSourceOptions(),
+            'sponsorshipTransferStatusOptions' => $this->reportService->sponsorshipTransferStatusOptions(),
+            'travelTypeOptions' => $this->reportService->travelTypeOptions(),
+            'travelWithOptions' => $this->reportService->travelWithOptions(),
+            'travelStatusOptions' => $this->reportService->travelStatusOptions(),
+            'travelAirportOptions' => $this->reportService->travelAirportOptions(),
+            'complaintStatusOptions' => $this->reportService->complaintStatusOptions(),
+            'complaintPriorityOptions' => $this->reportService->complaintPriorityOptions(),
+            'officeStatusOptions' => $this->reportService->officeStatusOptions(),
+            'officeLinkedStateOptions' => $this->reportService->officeLinkedStateOptions(),
+            'officeCostStateOptions' => $this->reportService->officeCostStateOptions(),
+            'financialRequestTypeOptions' => $this->reportService->financialRequestTypeOptions(),
+            'financialRequestStatusOptions' => $this->reportService->financialRequestStatusOptions(),
+            'financialRequestPriorityOptions' => $this->reportService->financialRequestPriorityOptions(),
+            'financialRequestScopeOptions' => $this->reportService->financialRequestScopeOptions(),
         ]);
     }
 

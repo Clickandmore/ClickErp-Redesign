@@ -691,6 +691,360 @@
                             </div>
                         </div>
 
+                        <div class="report-filter-section {{ $selectedReport === 'sponsorship_transfers' ? '' : 'd-none' }}"
+                            data-report-section="sponsorship_transfers">
+                            <div class="report-section-title">فلاتر نقل الكفالة</div>
+                            <div class="row g-3">
+                                <div class="col-lg-3">
+                                    <label for="sponsor-transfer-status" class="form-label">الحالة</label>
+                                    <select class="form-select" id="sponsor-transfer-status" name="status">
+                                        <option value="">كل الحالات</option>
+                                        @foreach ($sponsorshipTransferStatusOptions as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="sponsor-transfer-date-from" class="form-label">من تاريخ</label>
+                                    <input type="date" class="form-control" id="sponsor-transfer-date-from" name="date_from">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="sponsor-transfer-date-to" class="form-label">إلى تاريخ</label>
+                                    <input type="date" class="form-control" id="sponsor-transfer-date-to" name="date_to">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="sponsor-transfer-contract-number" class="form-label">رقم العقد</label>
+                                    <input type="text" class="form-control" id="sponsor-transfer-contract-number"
+                                        name="contract_number" placeholder="رقم العقد">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="sponsor-transfer-old-sponsor" class="form-label">الكفيل السابق</label>
+                                    <input type="text" class="form-control" id="sponsor-transfer-old-sponsor"
+                                        name="old_sponsor" placeholder="الاسم أو الجوال">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="sponsor-transfer-new-sponsor" class="form-label">الكفيل الجديد</label>
+                                    <input type="text" class="form-control" id="sponsor-transfer-new-sponsor"
+                                        name="new_sponsor" placeholder="الاسم أو الجوال">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="sponsor-transfer-trial-days" class="form-label">أيام التجربة</label>
+                                    <select class="form-select" id="sponsor-transfer-trial-days" name="trial_days">
+                                        <option value="">كل المدد</option>
+                                        <option value="7">7 أيام</option>
+                                        <option value="14">14 يوم</option>
+                                        <option value="21">21 يوم</option>
+                                        <option value="30">30 يوم</option>
+                                        <option value="60">60 يوم</option>
+                                        <option value="90">90 يوم</option>
+                                    </select>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="sponsor-transfer-amount" class="form-label">قيمة العقد</label>
+                                    <select class="form-select" id="sponsor-transfer-amount" name="amount">
+                                        <option value="">كل المبالغ</option>
+                                        <option value="0-5000">0 - 5,000 ريال</option>
+                                        <option value="5000-10000">5,000 - 10,000 ريال</option>
+                                        <option value="10000-15000">10,000 - 15,000 ريال</option>
+                                        <option value="15000+">15,000 ريال فأكثر</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="report-filter-section {{ $selectedReport === 'deportation_travel' ? '' : 'd-none' }}"
+                            data-report-section="deportation_travel">
+                            <div class="report-section-title">فلاتر رحلات الترحيل</div>
+                            <div class="row g-3">
+                                <div class="col-lg-3">
+                                    <label for="deportation-contract-number" class="form-label">رقم العقد</label>
+                                    <input type="text" class="form-control" id="deportation-contract-number"
+                                        name="contract_number" placeholder="رقم العقد">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="deportation-maid-name" class="form-label">اسم العاملة</label>
+                                    <input type="text" class="form-control" id="deportation-maid-name"
+                                        name="maid_name" placeholder="اسم العاملة">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="deportation-travel-date" class="form-label">تاريخ السفر</label>
+                                    <input type="date" class="form-control" id="deportation-travel-date" name="travel_date">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="deportation-status" class="form-label">حالة الرحلة</label>
+                                    <select class="form-select" id="deportation-status" name="status">
+                                        <option value="">الرحلات النشطة والمجدولة</option>
+                                        <option value="all">جميع الرحلات</option>
+                                        @foreach ($travelStatusOptions as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="report-filter-section {{ $selectedReport === 'travel_trips' ? '' : 'd-none' }}"
+                            data-report-section="travel_trips">
+                            <div class="report-section-title">فلاتر رحلات الاستقدام</div>
+                            <div class="row g-3">
+                                <div class="col-lg-3">
+                                    <label for="travel-search" class="form-label">بحث</label>
+                                    <input type="text" class="form-control" id="travel-search" name="search"
+                                        placeholder="عميل، عاملة، عقد، رحلة">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="travel-order-id" class="form-label">رقم العقد</label>
+                                    <input type="text" class="form-control" id="travel-order-id" name="order_id"
+                                        placeholder="#123">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="travel-type" class="form-label">{{ __('admin.travel_type') }}</label>
+                                    <select class="form-select" id="travel-type" name="travel_type">
+                                        <option value="">الكل</option>
+                                        @foreach ($travelTypeOptions as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="travel-with" class="form-label">{{ __('admin.travel_with') }}</label>
+                                    <select class="form-select" id="travel-with" name="travel_with">
+                                        <option value="">الكل</option>
+                                        @foreach ($travelWithOptions as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="travel-status" class="form-label">{{ __('admin.status') }}</label>
+                                    <select class="form-select" id="travel-status" name="status">
+                                        <option value="">الرحلات النشطة والمجدولة</option>
+                                        <option value="all">جميع الرحلات</option>
+                                        @foreach ($travelStatusOptions as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="travel-date" class="form-label">تاريخ الرحلة</label>
+                                    <input type="date" class="form-control" id="travel-date" name="travel_date">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="travel-created-date" class="form-label">تاريخ الإنشاء</label>
+                                    <input type="date" class="form-control" id="travel-created-date" name="created_date">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="travel-created-by" class="form-label">المنشئ</label>
+                                    <select class="form-select" id="travel-created-by" name="created_by">
+                                        <option value="">الكل</option>
+                                        @foreach ($filterOptions['admins'] as $admin)
+                                            <option value="{{ $admin->id }}">{{ $admin->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="travel-arrival-airport" class="form-label">المطار</label>
+                                    <select class="form-select" id="travel-arrival-airport" name="arrival_airport">
+                                        <option value="">الكل</option>
+                                        @foreach ($travelAirportOptions as $airport)
+                                            <option value="{{ $airport['value'] }}">{{ $airport['label'] }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="travel-flight-company" class="form-label">{{ __('admin.flight_company') }}</label>
+                                    <input type="text" class="form-control" id="travel-flight-company" name="flight_company">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="travel-flight-number" class="form-label">{{ __('admin.flight_number') }}</label>
+                                    <input type="text" class="form-control" id="travel-flight-number" name="flight_number">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="report-filter-section {{ $selectedReport === 'complaints' ? '' : 'd-none' }}"
+                            data-report-section="complaints">
+                            <div class="report-section-title">فلاتر الشكاوى</div>
+                            <div class="row g-3">
+                                <div class="col-lg-3">
+                                    <label for="complaints-keyword" class="form-label">بحث</label>
+                                    <input type="text" class="form-control" id="complaints-keyword" name="keyword"
+                                        placeholder="العميل، الموضوع، الجوال، جواز العاملة">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="complaints-ticket-number" class="form-label">رقم التذكرة</label>
+                                    <input type="text" class="form-control" id="complaints-ticket-number"
+                                        name="ticket_number" placeholder="#000001">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="complaints-status" class="form-label">الحالة</label>
+                                    <select class="form-select" id="complaints-status" name="status">
+                                        <option value="">كل الحالات</option>
+                                        @foreach ($complaintStatusOptions as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="complaints-priority" class="form-label">الأولوية</label>
+                                    <select class="form-select" id="complaints-priority" name="priority">
+                                        <option value="">كل الأولويات</option>
+                                        @foreach ($complaintPriorityOptions as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="complaints-type" class="form-label">نوع الشكوى</label>
+                                    <select class="form-select" id="complaints-type" name="type">
+                                        <option value="">كل الأنواع</option>
+                                        @foreach ($filterOptions['complaint_types'] as $type)
+                                            <option value="{{ $type->id }}">{{ $type->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="complaints-assigned-to" class="form-label">الموظف المسؤول</label>
+                                    <select class="form-select" id="complaints-assigned-to" name="assigned_to">
+                                        <option value="">كل الموظفين</option>
+                                        @foreach ($filterOptions['admins'] as $admin)
+                                            <option value="{{ $admin->id }}">{{ $admin->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="complaints-period" class="form-label">الفترة الزمنية</label>
+                                    <select class="form-select" id="complaints-period" name="period">
+                                        <option value="">كل الأوقات</option>
+                                        <option value="today">اليوم</option>
+                                        <option value="yesterday">أمس</option>
+                                        <option value="week">هذا الأسبوع</option>
+                                        <option value="month">هذا الشهر</option>
+                                        <option value="custom">تاريخ مخصص</option>
+                                    </select>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="complaints-date-from" class="form-label">من تاريخ</label>
+                                    <input type="date" class="form-control" id="complaints-date-from" name="date_from">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="complaints-date-to" class="form-label">إلى تاريخ</label>
+                                    <input type="date" class="form-control" id="complaints-date-to" name="date_to">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="report-filter-section {{ $selectedReport === 'offices' ? '' : 'd-none' }}"
+                            data-report-section="offices">
+                            <div class="report-section-title">فلاتر المكاتب</div>
+                            <div class="row g-3">
+                                <div class="col-lg-3">
+                                    <label for="offices-name" class="form-label">اسم المكتب</label>
+                                    <input type="text" class="form-control" id="offices-name" name="office_name"
+                                        placeholder="اسم المكتب">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="offices-nationality" class="form-label">الجنسية</label>
+                                    <select class="form-select" id="offices-nationality" name="nationality_id">
+                                        <option value="">كل الجنسيات</option>
+                                        @foreach ($filterOptions['nationalities'] as $nationality)
+                                            <option value="{{ $nationality->id }}">
+                                                {{ $nationality->sub_title ?? ($nationality->title ?? $nationality->name ?? '-') }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="offices-status" class="form-label">الحالة</label>
+                                    <select class="form-select" id="offices-status" name="status">
+                                        <option value="">كل الحالات</option>
+                                        @foreach ($officeStatusOptions as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="offices-linked-state" class="form-label">حالة السير المرتبطة</label>
+                                    <select class="form-select" id="offices-linked-state" name="linked_state">
+                                        <option value="">كل الحالات</option>
+                                        @foreach ($officeLinkedStateOptions as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="offices-cost-state" class="form-label">حالة قيمة الدولار</label>
+                                    <select class="form-select" id="offices-cost-state" name="cost_state">
+                                        <option value="">كل الحالات</option>
+                                        @foreach ($officeCostStateOptions as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="report-filter-section {{ $selectedReport === 'financial_requests' ? '' : 'd-none' }}"
+                            data-report-section="financial_requests">
+                            <div class="report-section-title">فلاتر الطلبات المالية</div>
+                            <div class="row g-3">
+                                <div class="col-lg-3">
+                                    <label for="financial-scope" class="form-label">النطاق</label>
+                                    <select class="form-select" id="financial-scope" name="scope">
+                                        <option value="">كل الطلبات</option>
+                                        @foreach ($financialRequestScopeOptions as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="financial-search" class="form-label">بحث</label>
+                                    <input type="text" class="form-control" id="financial-search" name="q"
+                                        placeholder="رقم طلب، عقد، عميل، هوية">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="financial-type" class="form-label">نوع الطلب</label>
+                                    <select class="form-select" id="financial-type" name="type">
+                                        <option value="">الكل</option>
+                                        @foreach ($financialRequestTypeOptions as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="financial-status" class="form-label">الحالة</label>
+                                    <select class="form-select" id="financial-status" name="status">
+                                        <option value="">الكل</option>
+                                        @foreach ($financialRequestStatusOptions as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="financial-priority" class="form-label">التصعيد</label>
+                                    <select class="form-select" id="financial-priority" name="priority">
+                                        <option value="">الكل</option>
+                                        @foreach ($financialRequestPriorityOptions as $value => $label)
+                                            <option value="{{ $value }}">{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="financial-date" class="form-label">التاريخ</label>
+                                    <input type="date" class="form-control" id="financial-date" name="date">
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="financial-created-by" class="form-label">مقدم الطلب</label>
+                                    <select class="form-select" id="financial-created-by" name="created_by_id">
+                                        <option value="">الكل</option>
+                                        @foreach ($filterOptions['admins'] as $admin)
+                                            <option value="{{ $admin->id }}">{{ $admin->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="d-flex flex-wrap gap-2 pt-4 mt-4 border-top">
                             <button type="button" class="btn btn-outline-danger export-trigger" data-format="pdf">
                                 <i class="fas fa-file-pdf me-1"></i>
@@ -708,6 +1062,7 @@
                     </form>
                 </div>
             </div>
+
         </div>
     </div>
 @endsection

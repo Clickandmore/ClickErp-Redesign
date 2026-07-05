@@ -50,6 +50,7 @@ class SettingController extends Controller
         'tiktok_tag',
         'snapchat_tag',
         'zoho_tag',
+        'hotjar_tag',
         'live_chat_tag',
         'there_are_offer',
         'location:ar',

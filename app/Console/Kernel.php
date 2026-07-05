@@ -153,6 +153,12 @@ class Kernel extends ConsoleKernel
             ->cron($ordersExpiredHandlerCron)
             ->withoutOverlapping()
             ->runInBackground();
+
+        $schedule->command('rental-contracts:send-expiry-reminders')
+            ->dailyAt('09:00')
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/rental-contract-expiry-reminders.log'));
     }
 
     /**

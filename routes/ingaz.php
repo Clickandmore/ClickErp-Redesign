@@ -397,6 +397,7 @@ Route::group(
             // Routes Ø¬Ø¯ÙŠØ¯Ø© Ù„Ù€ workflow Ø¹Ù‚ÙˆØ¯ Ø§Ù„Ø¥ÙŠØ¬Ø§Ø±
             Route::post('RentContract/{id}/send-contract', [RentContractController::class, 'sendContract'])->name('RentContract.sendContract');
             Route::post('RentContract/{id}/send-payment-link', [RentContractController::class, 'sendPaymentLink'])->name('RentContract.sendPaymentLink');
+            Route::post('RentContract/{id}/send-expiry-reminder', [RentContractController::class, 'sendExpiryReminder'])->name('RentContract.sendExpiryReminder');
             Route::post('RentContract/{id}/sign-contract', [RentContractController::class, 'signContract'])->name('RentContract.signContract');
             Route::post('RentContract/{id}/deliver-maid', [RentContractController::class, 'deliverMaid'])->name('RentContract.deliverMaid');
             Route::post('RentContract/{id}/activate-contract', [RentContractController::class, 'activateContract'])->name('RentContract.activateContract');

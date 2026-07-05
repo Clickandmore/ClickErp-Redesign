@@ -365,6 +365,7 @@ class AdminRoutePermissionMatrix
                 'known-service-requests.update' => [PermKeys::ORDERS_EDIT],
                 'known-service-requests.destroy' => [PermKeys::ORDERS_DELETE],
                 'contact.index' => [PermKeys::CONTACT_VIEW],
+                'contact.show' => [PermKeys::CONTACT_VIEW],
                 'financial-requests.index' => [PermKeys::FINANCIAL_REQUESTS_VIEW, PermKeys::FINANCIAL_REQUESTS_CREATE, PermKeys::FINANCIAL_REQUESTS_CONTROL],
                 'financial-requests.create' => [PermKeys::FINANCIAL_REQUESTS_CREATE, PermKeys::FINANCIAL_REQUESTS_CONTROL],
                 'financial-requests.store' => [PermKeys::FINANCIAL_REQUESTS_CREATE, PermKeys::FINANCIAL_REQUESTS_CONTROL],
@@ -491,6 +492,7 @@ class AdminRoutePermissionMatrix
         return [
             'RentContract.index' => [PermKeys::RENT_CONTRACT_VIEW, PermKeys::RENT_CONTRACT_CONTROL],
             'RentContract.create' => [PermKeys::RENT_CONTRACT_CREATE, PermKeys::RENT_CONTRACT_CONTROL],
+            'RentContract.sendExpiryReminder' => [PermKeys::RENT_CONTRACT_CONTROL],
             'rental-orders.index' => [PermKeys::RENTAL_ORDERS_VIEW, PermKeys::ORDERS_VIEW],
             'rent-contract.settings' => [PermKeys::CONTRACT_SETTINGS],
             'rent-contract.settings.update' => [PermKeys::CONTRACT_SETTINGS],
