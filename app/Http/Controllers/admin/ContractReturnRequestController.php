@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\admin;
 
 use App\Models\ContractReturnRequest;
+use App\Services\ingaz\RecruitmentContractWarrantyReturnService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -53,6 +54,19 @@ class ContractReturnRequestController extends Controller
             "processed_by" => Auth::id(),
             "processed_at" => now()
         ]);
+
+        if ($request->status === 'approved') {
+            $returnRequest->loadMissing('contract');
+            try {
+                app(RecruitmentContractWarrantyReturnService::class)
+                    ->record($returnRequest->contract, $returnRequest);
+            } catch (\RuntimeException $e) {
+                return response()->json([
+                    "success" => false,
+                    "message" => "تمت الموافقة على الطلب لكن فشل إنشاء القيد المحاسبي: " . $e->getMessage(),
+                ], 422);
+            }
+        }
 
         return response()->json([
             "success" => true,

@@ -136,20 +136,11 @@ class RecruitmentContractRefundService
 
             /** @var MusanedTransferItem|null $transferItem */
             $transferItem = $summary['transfer_item'];
-            $bankAccountId = (int) ($transferItem?->transfer?->bank_account_id ?: 0);
-            if (!$bankAccountId) {
-                throw new \RuntimeException('تحويل مساند لا يحتوي حساب بنك صالح لإنشاء قيد الاسترداد.');
-            }
 
             $clientAccountId = (int) ($contract->user?->account_id ?: 0);
             if (!$clientAccountId) {
                 throw new \RuntimeException('لا يوجد حساب محاسبي للعميل المرتبط بالعقد.');
             }
-
-            $paymentLines = [];
-            $this->appendLine($paymentLines, $clientAccountId, 'debtor', (float) $summary['refund_amount'], $statement, null);
-            $this->appendLine($paymentLines, $bankAccountId, 'creditor', (float) $summary['refund_amount'], $statement, null);
-            $lines = array_merge($lines, $this->withSection($paymentLines, 'المبلغ المدفوع للعميل'));
 
             if (($summary['cancelled_by'] ?? null) === 'client' && (float) $summary['penalty_amount'] > 0) {
                 $penaltyAccount = $this->findPenaltyIncomeAccount();
@@ -233,11 +224,6 @@ class RecruitmentContractRefundService
         }
 
         $invoice = $contract->invoice;
-        $bankAccountId = (int) $transferItem->transfer->bank_account_id;
-        if (!$bankAccountId) {
-            throw new \RuntimeException('تحويل مساند لا يحتوي حساب بنك صالح لإنشاء قيد الاسترداد.');
-        }
-
         $clientAccountId = (int) ($contract->user?->account_id ?: 0);
         if (!$clientAccountId) {
             throw new \RuntimeException('لا يوجد حساب محاسبي للعميل المرتبط بالعقد.');
@@ -245,9 +231,6 @@ class RecruitmentContractRefundService
 
         $statement = $this->buildStatement($contract, $summary);
         $lines = $this->buildReverseInvoiceLines($invoice->arrival_revenue_constraint_id ?: $invoice->constraint_id, $statement);
-
-        $this->appendLine($lines, $clientAccountId, 'debtor', (float) $summary['refund_amount'], $statement, null);
-        $this->appendLine($lines, $bankAccountId, 'creditor', (float) $summary['refund_amount'], $statement, null);
 
         if (($summary['cancelled_by'] ?? null) === 'client' && (float) $summary['penalty_amount'] > 0) {
             $penaltyIncomeAccountId = $this->ensurePenaltyIncomeAccountId();

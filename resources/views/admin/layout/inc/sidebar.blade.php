@@ -571,13 +571,13 @@
                                                     class="badge bg-primary ms-2">{{ $contractsCount['under_warranty'] ?? 0 }}</span>
                                             </a>
                                         </li> --}}
-                                                {{-- <li>
+                                                <li>
                                             <a class="m-link {{ Route::currentRouteName() == 'contract-return-requests.index' ? 'active' : '' }}"
                                                 href="{{ route('contract-return-requests.index') }}">
-                                                <i class="fa fa-list"></i>
+                                                <i class="fa fa-undo"></i>
                                                 <span class="ms-2">{{ __('admin.sidebar.contract_return_requests') }}</span>
                                             </a>
-                                        </li> --}}
+                                        </li>
                                             @endif
                                         @endif
 
