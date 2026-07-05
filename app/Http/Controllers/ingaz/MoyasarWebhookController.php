@@ -6,6 +6,7 @@ use App\Http\Controllers\admin\Controller;
 use App\Models\RentalContractInfo;
 use App\Services\ingaz\RentalContractFinanceService;
 use App\Services\MoyasarService;
+use App\Services\RentalContractExpiryReminderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -15,7 +16,12 @@ class MoyasarWebhookController extends Controller
      * صفحة نتيجة الدفع — يعود إليها العميل بعد إتمام الدفع أو فشله
      * لا تثق بالـ query string: تحقق دائماً من API ميسر مباشرةً
      */
-    public function callback(Request $request, MoyasarService $moyasar, RentalContractFinanceService $financeService)
+    public function callback(
+        Request $request,
+        MoyasarService $moyasar,
+        RentalContractFinanceService $financeService,
+        RentalContractExpiryReminderService $reminderService
+    )
     {
         $contractId = $request->query('contract_id');
         $paymentId  = $request->query('id'); // ميسر تُرسل معرّف الدفعة في الـ callback
@@ -46,6 +52,19 @@ class MoyasarWebhookController extends Controller
 
         if ($status === 'paid') {
             $this->confirmMoyasarPayment($info, null, $financeService);
+            try {
+                $reminderService->applyPaidExtensionForMoyasarPayment(
+                    $info->fresh(),
+                    (string) $paymentId,
+                    $request->query('reminder_id') ? (int) $request->query('reminder_id') : null
+                );
+            } catch (\Throwable $exception) {
+                Log::error('Moyasar callback: payment confirmed but rental contract extension failed', [
+                    'contract_id' => $info->rental_contract_id,
+                    'payment_id' => $paymentId,
+                    'message' => $exception->getMessage(),
+                ]);
+            }
 
             return $this->callbackView('success', 'تم الدفع بنجاح. شكراً لك!');
         }
@@ -61,7 +80,12 @@ class MoyasarWebhookController extends Controller
     /**
      * Webhook من ميسر — يُرسل تلقائياً عند كل تغيير في حالة الدفع
      */
-    public function webhook(Request $request, MoyasarService $moyasar, RentalContractFinanceService $financeService)
+    public function webhook(
+        Request $request,
+        MoyasarService $moyasar,
+        RentalContractFinanceService $financeService,
+        RentalContractExpiryReminderService $reminderService
+    )
     {
         $rawBody  = $request->getContent();
         $signature = $request->header('X-Moyasar-Signature', '');
@@ -77,6 +101,7 @@ class MoyasarWebhookController extends Controller
         $paymentId = $payment['id'] ?? null;
         $invoiceId = $payment['invoice_id'] ?? data_get($payment, 'source.invoice_id');
         $contractId = data_get($payment, 'metadata.contract_id');
+        $reminderId = data_get($payment, 'metadata.reminder_id');
         $status    = $payment['status'] ?? null;
 
         Log::info('Moyasar webhook received', [
@@ -99,6 +124,19 @@ class MoyasarWebhookController extends Controller
             $amountInRiyals = ($payment['amount'] ?? 0) / 100;
 
             $this->confirmMoyasarPayment($info, $amountInRiyals, $financeService);
+            try {
+                $reminderService->applyPaidExtensionForMoyasarPayment(
+                    $info->fresh(),
+                    $paymentId ? (string) $paymentId : null,
+                    $reminderId ? (int) $reminderId : null
+                );
+            } catch (\Throwable $exception) {
+                Log::error('Moyasar webhook: payment confirmed but rental contract extension failed', [
+                    'contract_id' => $info->rental_contract_id,
+                    'payment_id' => $paymentId,
+                    'message' => $exception->getMessage(),
+                ]);
+            }
 
             Log::info('Moyasar webhook: payment confirmed', [
                 'payment_id'  => $paymentId,

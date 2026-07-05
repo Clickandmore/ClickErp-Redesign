@@ -2980,6 +2980,59 @@
                 });
             });
 
+            $(document).on('click', '.send-expiry-reminder', function() {
+                const url = $(this).data('url');
+
+                Swal.fire({
+                    title: 'إرسال تنبيه انتهاء العقد',
+                    text: 'هل تريد إرسال رابط اختيار التمديد أو التسليم للعميل الآن؟',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#ffc107',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'نعم، أرسل التنبيه',
+                    cancelButtonText: 'إلغاء'
+                }).then((result) => {
+                    if (!result.isConfirmed) {
+                        return;
+                    }
+
+                    $.ajax({
+                        url: url,
+                        type: 'POST',
+                        data: {
+                            _token: '{{ csrf_token() }}'
+                        },
+                        beforeSend: function() {
+                            Swal.fire({
+                                title: 'جارٍ إرسال التنبيه...',
+                                allowOutsideClick: false,
+                                didOpen: function() {
+                                    Swal.showLoading();
+                                }
+                            });
+                        },
+                        success: function(response) {
+                            dataTable.ajax.reload(null, false);
+                            Swal.fire({
+                                icon: response.message_sent === false ? 'warning' : 'success',
+                                title: response.message_sent === false ? 'تم إنشاء التنبيه' : 'تم إرسال التنبيه',
+                                text: response.message || 'تم تنفيذ العملية.',
+                                confirmButtonText: 'موافق'
+                            });
+                        },
+                        error: function(xhr) {
+                            const response = xhr.responseJSON || {};
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'تعذر إرسال التنبيه',
+                                text: response.message || 'حدث خطأ أثناء إرسال تنبيه انتهاء العقد.'
+                            });
+                        }
+                    });
+                });
+            });
+
             function executeWorkflowAction(contractId, action, successMessage, extraData = {}) {
                 $.ajax({
                     url: `{{ url('/admin') }}/RentContract/${contractId}/${action}`,

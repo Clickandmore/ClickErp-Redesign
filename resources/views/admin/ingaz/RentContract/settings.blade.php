@@ -161,6 +161,38 @@
                                     </div>
                                 </div>
 
+                                <div class="row mb-4">
+                                    <div class="col-12">
+                                        <h4 class="border-bottom pb-2 mb-3">
+                                            <i class="fas fa-bell me-2"></i>
+                                            تنبيه انتهاء عقد التأجير
+                                        </h4>
+                                    </div>
+
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">تفعيل التنبيه</label>
+                                        <select name="expiry_reminder_enabled" class="form-control">
+                                            <option value="1" {{ (string)($settings['expiry_reminder_enabled'] ?? '1') === '1' ? 'selected' : '' }}>مفعل</option>
+                                            <option value="0" {{ (string)($settings['expiry_reminder_enabled'] ?? '1') === '0' ? 'selected' : '' }}>غير مفعل</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">إرسال التنبيه قبل الانتهاء بـ (يوم)</label>
+                                        <input type="number" name="expiry_reminder_days" class="form-control"
+                                               value="{{ $settings['expiry_reminder_days'] ?? '2' }}" min="1" max="60">
+                                    </div>
+
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label">قناة إرسال التنبيه</label>
+                                        <select name="expiry_reminder_channel" class="form-control">
+                                            <option value="sms" {{ ($settings['expiry_reminder_channel'] ?? 'sms') === 'sms' ? 'selected' : '' }}>رسالة نصية</option>
+                                            <option value="whatsapp" {{ ($settings['expiry_reminder_channel'] ?? 'sms') === 'whatsapp' ? 'selected' : '' }}>واتساب</option>
+                                            <option value="both" {{ ($settings['expiry_reminder_channel'] ?? 'sms') === 'both' ? 'selected' : '' }}>رسالة نصية وواتساب</option>
+                                        </select>
+                                    </div>
+                                </div>
+
                                 <!-- الشعار والتوقيع -->
                                 <div class="row mb-4">
                                     <div class="col-12">

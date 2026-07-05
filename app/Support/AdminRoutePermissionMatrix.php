@@ -492,6 +492,7 @@ class AdminRoutePermissionMatrix
         return [
             'RentContract.index' => [PermKeys::RENT_CONTRACT_VIEW, PermKeys::RENT_CONTRACT_CONTROL],
             'RentContract.create' => [PermKeys::RENT_CONTRACT_CREATE, PermKeys::RENT_CONTRACT_CONTROL],
+            'RentContract.sendExpiryReminder' => [PermKeys::RENT_CONTRACT_CONTROL],
             'rental-orders.index' => [PermKeys::RENTAL_ORDERS_VIEW, PermKeys::ORDERS_VIEW],
             'rent-contract.settings' => [PermKeys::CONTRACT_SETTINGS],
             'rent-contract.settings.update' => [PermKeys::CONTRACT_SETTINGS],
