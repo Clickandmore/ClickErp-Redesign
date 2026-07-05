@@ -63,6 +63,24 @@
             border-bottom: 1px solid #edf2f7;
         }
 
+        .report-preview-card {
+            border: 1px solid #e8edf5;
+            border-radius: 18px;
+            background: #fff;
+            box-shadow: 0 14px 40px rgba(15, 23, 42, 0.05);
+        }
+
+        .report-preview-table th {
+            white-space: nowrap;
+            background: #f8fafc;
+            color: #334155;
+        }
+
+        .report-preview-table td {
+            vertical-align: top;
+            min-width: 140px;
+        }
+
         .report-section-title {
             font-size: 1rem;
             font-weight: 700;
@@ -784,6 +802,56 @@
                     </form>
                 </div>
             </div>
+
+            <div class="card report-preview-card mt-4">
+                <div class="card-header bg-transparent py-3">
+                    <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+                        <div>
+                            <h6 class="mb-1">
+                                <i class="fas fa-table me-2"></i>
+                                معاينة البيانات
+                            </h6>
+                            <div class="text-muted small" id="reportPreviewInfo">جاري تحميل البيانات...</div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <label for="reportPreviewPerPage" class="form-label mb-0 small text-muted">عدد الصفوف</label>
+                            <select id="reportPreviewPerPage" class="form-select form-select-sm" style="width: 90px;">
+                                <option value="10">10</option>
+                                <option value="25" selected>25</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="reportPreviewLoading" class="text-center text-muted py-5 d-none">
+                        <i class="fas fa-spinner fa-spin me-2"></i>
+                        جاري تحميل البيانات...
+                    </div>
+                    <div id="reportPreviewError" class="alert alert-danger d-none"></div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle report-preview-table mb-0">
+                            <thead id="reportPreviewHead"></thead>
+                            <tbody id="reportPreviewBody"></tbody>
+                        </table>
+                    </div>
+                    <div id="reportPreviewEmpty" class="text-center text-muted py-5 d-none">
+                        لا توجد بيانات مطابقة للفلاتر المحددة.
+                    </div>
+                    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 pt-3 border-top mt-3">
+                        <div class="text-muted small" id="reportPreviewPageInfo"></div>
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="reportPreviewPrev">
+                                السابق
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="reportPreviewNext">
+                                التالي
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 @endsection
@@ -804,6 +872,125 @@
             const reportSections = document.querySelectorAll('[data-report-section]');
             const resetButton = document.getElementById('resetReportFilters');
             const exportButtons = document.querySelectorAll('.export-trigger');
+            const previewHead = document.getElementById('reportPreviewHead');
+            const previewBody = document.getElementById('reportPreviewBody');
+            const previewInfo = document.getElementById('reportPreviewInfo');
+            const previewPageInfo = document.getElementById('reportPreviewPageInfo');
+            const previewLoading = document.getElementById('reportPreviewLoading');
+            const previewError = document.getElementById('reportPreviewError');
+            const previewEmpty = document.getElementById('reportPreviewEmpty');
+            const previewPrev = document.getElementById('reportPreviewPrev');
+            const previewNext = document.getElementById('reportPreviewNext');
+            const previewPerPage = document.getElementById('reportPreviewPerPage');
+            let previewPage = 1;
+            let previewLastPage = 1;
+            let previewRequestId = 0;
+            let previewDebounceTimer = null;
+
+            function escapeHtml(value) {
+                return String(value ?? '')
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+            }
+
+            function activeFilterFields() {
+                const activeSection = document.querySelector('[data-report-section="' + reportSelector.value + '"]');
+
+                return activeSection ? activeSection.querySelectorAll('input, select, textarea') : [];
+            }
+
+            function previewParams(page) {
+                const params = new URLSearchParams();
+                params.set('preview', '1');
+                params.set('report', reportSelector.value);
+                params.set('page', page);
+                params.set('per_page', previewPerPage.value);
+
+                activeFilterFields().forEach((field) => {
+                    if (field.disabled || !field.name || field.value === '') {
+                        return;
+                    }
+
+                    params.append(field.name, field.value);
+                });
+
+                return params;
+            }
+
+            function renderPreview(data) {
+                const pagination = data.pagination || {};
+                const headings = data.headings || [];
+                const rows = data.rows || [];
+
+                previewLastPage = pagination.last_page || 1;
+                previewHead.innerHTML = '<tr>' + headings.map((heading) => '<th>' + escapeHtml(heading) + '</th>').join('') + '</tr>';
+                previewBody.innerHTML = rows.map((row) => {
+                    return '<tr>' + row.map((cell) => '<td>' + escapeHtml(cell) + '</td>').join('') + '</tr>';
+                }).join('');
+
+                previewEmpty.classList.toggle('d-none', rows.length > 0);
+                previewInfo.textContent = 'إجمالي النتائج: ' + Number(pagination.total || 0).toLocaleString();
+                previewPageInfo.textContent = rows.length > 0
+                    ? 'عرض ' + Number(pagination.from || 0).toLocaleString() + ' إلى ' + Number(pagination.to || 0).toLocaleString() + ' من ' + Number(pagination.total || 0).toLocaleString()
+                    : 'لا توجد نتائج';
+                previewPrev.disabled = (pagination.current_page || 1) <= 1;
+                previewNext.disabled = (pagination.current_page || 1) >= previewLastPage;
+            }
+
+            function loadPreview(page = 1) {
+                previewPage = page;
+                const requestId = ++previewRequestId;
+                previewLoading.classList.remove('d-none');
+                previewError.classList.add('d-none');
+                previewError.textContent = '';
+
+                fetch("{{ route('reports.index') }}?" + previewParams(page).toString(), {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                })
+                    .then((response) => {
+                        if (!response.ok) {
+                            throw new Error('تعذر تحميل بيانات التقرير.');
+                        }
+
+                        return response.json();
+                    })
+                    .then((data) => {
+                        if (requestId !== previewRequestId) {
+                            return;
+                        }
+
+                        renderPreview(data);
+                    })
+                    .catch((error) => {
+                        if (requestId !== previewRequestId) {
+                            return;
+                        }
+
+                        previewHead.innerHTML = '';
+                        previewBody.innerHTML = '';
+                        previewEmpty.classList.add('d-none');
+                        previewInfo.textContent = 'تعذر تحميل البيانات';
+                        previewPageInfo.textContent = '';
+                        previewError.textContent = error.message || 'تعذر تحميل بيانات التقرير.';
+                        previewError.classList.remove('d-none');
+                    })
+                    .finally(() => {
+                        if (requestId === previewRequestId) {
+                            previewLoading.classList.add('d-none');
+                        }
+                    });
+            }
+
+            function schedulePreviewReload() {
+                window.clearTimeout(previewDebounceTimer);
+                previewDebounceTimer = window.setTimeout(() => loadPreview(1), 350);
+            }
 
             function updateExportButtons(reportKey) {
                 exportButtons.forEach((button) => {
@@ -847,6 +1034,8 @@
                 const nextUrl = new URL(window.location.href);
                 nextUrl.searchParams.set('report', reportKey);
                 window.history.replaceState({}, '', nextUrl);
+
+                loadPreview(1);
             }
 
             reportCards.forEach((card) => {
@@ -877,6 +1066,29 @@
                 form.reset();
                 reportFormat.value = 'pdf';
                 setActiveReport(activeReport);
+            });
+
+            reportSections.forEach((section) => {
+                section.querySelectorAll('input, select, textarea').forEach((field) => {
+                    field.addEventListener('change', schedulePreviewReload);
+                    field.addEventListener('input', schedulePreviewReload);
+                });
+            });
+
+            previewPerPage.addEventListener('change', function() {
+                loadPreview(1);
+            });
+
+            previewPrev.addEventListener('click', function() {
+                if (previewPage > 1) {
+                    loadPreview(previewPage - 1);
+                }
+            });
+
+            previewNext.addEventListener('click', function() {
+                if (previewPage < previewLastPage) {
+                    loadPreview(previewPage + 1);
+                }
             });
 
             setActiveReport(reportSelector.value);

@@ -25,6 +25,10 @@ class ReportController extends Controller
             $selectedReport = array_key_first($reports);
         }
 
+        if ($request->ajax() && $request->boolean('preview')) {
+            return response()->json($this->reportService->preview($selectedReport, $request));
+        }
+
         return view('admin.ingaz.reports.index', [
             'reports' => $reports,
             'selectedReport' => $selectedReport,
