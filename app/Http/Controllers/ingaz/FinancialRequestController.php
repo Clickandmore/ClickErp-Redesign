@@ -541,7 +541,13 @@ class FinancialRequestController extends Controller
 
     private function canView(): bool
     {
-        return AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_VIEW, \App\PermKeys::FINANCIAL_REQUESTS_CREATE, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]);
+        return AdminGuardHasAnyPerm([
+            \App\PermKeys::FINANCIAL_REQUESTS_VIEW,
+            \App\PermKeys::FINANCIAL_REQUESTS_CREATE,
+            \App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS,
+            \App\PermKeys::FINANCIAL_REQUESTS_APPROVE,
+            \App\PermKeys::FINANCIAL_REQUESTS_CONTROL,
+        ]);
     }
 
     private function canViewAll(): bool
