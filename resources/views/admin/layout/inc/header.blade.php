@@ -381,24 +381,25 @@ $quickLinks = collect([
 
             <ul class="header-right justify-content-end d-flex align-items-center mb-0">
                 <li>
-                    <div class="dropdown morphing {{$scaleDirection}} notifications">
+                    <div class="dropdown morphing {{$scaleDirection}} notifications cm-notifications">
                         <a class="nav-link dropdown-toggle after-none cm-header-action" href="#" role="button" data-bs-toggle="dropdown" title="{{ __('admin.layout.notifications') }}">
 
                             <i class="fa fa-bell"></i>
-                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger notification-badge" style="display: none;">
+                            <span class="notification-badge" style="display: none;">
                                 0
                             </span>
                         </a>
-                        <div class="dropdown-menu shadow rounded-4 border-0 p-0 m-0" style="width: 300px; max-height: 400px; overflow-y: auto;">
-                            <div class="card">
-                                <div class="card-header p-3 d-flex justify-content-between align-items-center">
-                                    <h6 class="card-title mb-0">{{ __('admin.layout.notifications') }}</h6>
-                                    <button class="btn btn-sm btn-link mark-all-read">{{ __('admin.layout.mark_all_read') }}</button>
-                                </div>
-                                <div class="card-body">
-                                    <div class="notification-list">
-                                        <!-- Notifications will be loaded here -->
+                        <div class="dropdown-menu cm-notifications-menu shadow border-0 p-0 m-0">
+                            <div class="cm-notifications-panel">
+                                <div class="cm-notifications-head">
+                                    <div>
+                                        <h6 class="mb-0">{{ __('admin.layout.notifications') }}</h6>
+                                        <small class="cm-notifications-subtitle notification-summary">لا توجد إشعارات غير مقروءة</small>
                                     </div>
+                                    <button type="button" class="btn btn-sm mark-all-read">{{ __('admin.layout.mark_all_read') }}</button>
+                                </div>
+                                <div class="notification-list cm-notifications-list">
+                                    <!-- Notifications will be loaded here -->
                                 </div>
                             </div>
                         </div>

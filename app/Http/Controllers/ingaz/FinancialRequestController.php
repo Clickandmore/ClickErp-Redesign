@@ -8,6 +8,8 @@ use App\Models\FinancialRequest;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\User;
 use App\Models\RentalContract;
+use App\Services\AdminNotificationService;
+use App\Support\SystemModuleManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -141,6 +143,9 @@ class FinancialRequestController extends Controller
 
         abort_unless($this->canAccessRequest($financialRequest) && $this->canUpdateStatus($financialRequest, $data), 403);
 
+        $previousStatus = $financialRequest->status;
+        $previousPriority = $financialRequest->priority;
+
         DB::transaction(function () use ($financialRequest, $data, $bondService, $yearService) {
             $payload = [
                 'status' => $data['status'],
@@ -158,6 +163,9 @@ class FinancialRequestController extends Controller
             $financialRequest->update($payload);
             $this->updateLinkedContract($financialRequest);
         });
+
+        $financialRequest->refresh();
+        $this->notifyFinancialRequestChanged($financialRequest, $previousStatus, $previousPriority);
 
         return back()->with('success', 'تم تحديث حالة الطلب المالي.');
     }
@@ -539,6 +547,41 @@ class FinancialRequestController extends Controller
             ->all();
     }
 
+    private function notifyFinancialRequestChanged(FinancialRequest $financialRequest, ?string $previousStatus, ?string $previousPriority): void
+    {
+        $statusChanged = (string) $previousStatus !== (string) $financialRequest->status;
+        $priorityChanged = (string) $previousPriority !== (string) $financialRequest->priority;
+
+        if (!$statusChanged && !$priorityChanged) {
+            return;
+        }
+
+        $changes = [];
+        if ($statusChanged) {
+            $changes[] = 'الحالة من "' . FinancialRequest::labelFromMap(FinancialRequest::statuses(), $previousStatus) . '" إلى "' . $financialRequest->status_label . '"';
+        }
+
+        if ($priorityChanged) {
+            $changes[] = 'التصعيد من "' . FinancialRequest::labelFromMap(FinancialRequest::priorities(), $previousPriority) . '" إلى "' . $financialRequest->priority_label . '"';
+        }
+
+        app(AdminNotificationService::class)->sendToAdmin(
+            $financialRequest->created_by_id,
+            'تم تحديث طلبك المالي ' . ($financialRequest->request_no ?: '#' . $financialRequest->id),
+            'تم تغيير ' . implode(' و', $changes) . '.',
+            'financial_request_updated',
+            route('financial-requests.show', $financialRequest),
+            [
+                'model' => FinancialRequest::class,
+                'model_id' => $financialRequest->id,
+                'old_status' => $previousStatus,
+                'new_status' => $financialRequest->status,
+                'old_priority' => $previousPriority,
+                'new_priority' => $financialRequest->priority,
+            ]
+        );
+    }
+
     private function canView(): bool
     {
         return AdminGuardHasAnyPerm([
@@ -569,9 +612,11 @@ class FinancialRequestController extends Controller
 
     private function canAccessRequest(FinancialRequest $financialRequest): bool
     {
+        $branchesEnabled = SystemModuleManager::isEnabled('branches')
+            && Schema::hasColumn('financial_requests', 'branch_id');
         $adminBranchId = (int) (auth('admin')->user()?->branch_id ?? 0);
 
-        if ($adminBranchId > 0 && (int) $financialRequest->branch_id !== $adminBranchId) {
+        if ($branchesEnabled && $adminBranchId > 0 && (int) $financialRequest->branch_id !== $adminBranchId) {
             return false;
         }
 

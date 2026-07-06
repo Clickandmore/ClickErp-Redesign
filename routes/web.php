@@ -431,9 +431,9 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin', 'admin.route.p
 
 // Notification routes
 Route::prefix('admin')->middleware(['auth:admin', 'admin.route.permission'])->group(function () {
-    Route::get('/notifications', [App\Http\Controllers\admin\NotificationController::class, 'index']);
-    Route::post('/notifications/{id}/mark-as-read', [App\Http\Controllers\admin\NotificationController::class, 'markAsRead']);
-    Route::post('/notifications/mark-all-read', [App\Http\Controllers\admin\NotificationController::class, 'markAllAsRead']);
+    Route::get('/notifications', [App\Http\Controllers\admin\NotificationController::class, 'index'])->name('admin.notifications.dropdown');
+    Route::post('/notifications/{id}/mark-as-read', [App\Http\Controllers\admin\NotificationController::class, 'markAsRead'])->name('admin.notifications.mark-as-read');
+    Route::post('/notifications/mark-all-read', [App\Http\Controllers\admin\NotificationController::class, 'markAllAsRead'])->name('admin.notifications.mark-all-read');
 
     // SMS Templates Management
     Route::get('sms-templates', [\App\Http\Controllers\admin\SmsTemplateController::class, 'index'])->name('admin.sms-templates.index');

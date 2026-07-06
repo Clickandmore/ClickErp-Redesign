@@ -12,6 +12,7 @@ use App\Models\SponsorshipTransfer;
 use App\Services\ingaz\SponsorshipTransferCompletionService;
 use App\Services\ingaz\SponsorshipTransferFailureService;
 use App\Services\ingaz\SponsorshipTransferTrialStartService;
+use App\Services\AdminNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -955,12 +956,15 @@ class SponsorshipTransferController extends Controller
                 ], 400);
             }
 
+            $previousStatus = $transfer->status;
             $transfer->update([
                 'status' => 'trial',
                 'approved_by' => auth()->guard('admin')->id(),
                 'approved_at' => now(),
                 'trial_started_at' => now(),
             ]);
+            $transfer->refresh();
+            $this->notifySponsorshipTransferStatusChanged($transfer, $previousStatus);
 
             return response()->json([
                 'success' => true,
@@ -991,10 +995,13 @@ class SponsorshipTransferController extends Controller
                 ], 400);
             }
 
+            $previousStatus = $transfer->status;
             $transfer->update([
                 'status' => 'rejected',
                 'rejection_reason' => $request->rejection_reason ?? 'لم يتم تحديد سبب الرفض',
             ]);
+            $transfer->refresh();
+            $this->notifySponsorshipTransferStatusChanged($transfer, $previousStatus);
 
             return response()->json([
                 'success' => true,
@@ -1025,9 +1032,12 @@ class SponsorshipTransferController extends Controller
                 ], 400);
             }
 
+            $previousStatus = $transfer->status;
             $transfer->update([
                 'status' => 'completed'
             ]);
+            $transfer->refresh();
+            $this->notifySponsorshipTransferStatusChanged($transfer, $previousStatus);
 
             // يمكن إضافة منطق إضافي هنا لتحديث العقد أو العاملة
 
@@ -1212,6 +1222,7 @@ class SponsorshipTransferController extends Controller
                 ], 400);
             }
 
+            $previousStatus = $transfer->status;
             DB::beginTransaction();
 
             $confirmedAt = now();
@@ -1241,6 +1252,8 @@ class SponsorshipTransferController extends Controller
             ]);
 
             DB::commit();
+            $transfer->refresh();
+            $this->notifySponsorshipTransferStatusChanged($transfer, $previousStatus);
 
             try {
                 app(SponsorshipTransferCompletionService::class)->record($transfer);
@@ -1293,6 +1306,7 @@ class SponsorshipTransferController extends Controller
                 ], 400);
             }
 
+            $previousStatus = $transfer->status;
             DB::beginTransaction();
 
             $failedAt = now();
@@ -1361,6 +1375,8 @@ class SponsorshipTransferController extends Controller
             ]);
 
             DB::commit();
+            $transfer->refresh();
+            $this->notifySponsorshipTransferStatusChanged($transfer, $previousStatus);
 
             try {
                 app(SponsorshipTransferFailureService::class)->record($transfer);
@@ -1834,6 +1850,8 @@ class SponsorshipTransferController extends Controller
 
             \DB::beginTransaction();
 
+            $previousStatus = $transfer->status;
+
             // تحديث حالة طلب النقل
             $transfer->update([
                 'status' => 'contract_sent',
@@ -1842,6 +1860,8 @@ class SponsorshipTransferController extends Controller
             ]);
 
             \DB::commit();
+            $transfer->refresh();
+            $this->notifySponsorshipTransferStatusChanged($transfer, $previousStatus);
 
             return response()->json([
                 'success' => true,
@@ -1878,6 +1898,8 @@ class SponsorshipTransferController extends Controller
 
             \DB::beginTransaction();
 
+            $previousStatus = $transfer->status;
+
             // تحديث حالة طلب النقل
             $transfer->update([
                 'status' => 'contract_signed',
@@ -1887,6 +1909,8 @@ class SponsorshipTransferController extends Controller
 
 
             \DB::commit();
+            $transfer->refresh();
+            $this->notifySponsorshipTransferStatusChanged($transfer, $previousStatus);
 
             return response()->json([
                 'success' => true,
@@ -1924,6 +1948,7 @@ class SponsorshipTransferController extends Controller
             \DB::beginTransaction();
 
             $activatedAt = now();
+            $previousStatus = $transfer->status;
 
             // تسجيل استلام العاملة وتفعيل التجربة مباشرة
             $transfer->update([
@@ -1952,6 +1977,8 @@ class SponsorshipTransferController extends Controller
             }
 
             \DB::commit();
+            $transfer->refresh();
+            $this->notifySponsorshipTransferStatusChanged($transfer, $previousStatus);
 
             try {
                 app(SponsorshipTransferTrialStartService::class)->record($transfer);
@@ -1995,6 +2022,59 @@ class SponsorshipTransferController extends Controller
             'date' => now(),
             'notes' => 'تم إخراج العاملة من داخل الإيواء بسبب بدء فترة تجربة نقل كفالة رقم ' . $transfer->id,
         ]);
+    }
+
+    private function notifySponsorshipTransferStatusChanged(SponsorshipTransfer $transfer, ?string $previousStatus): void
+    {
+        if ((string) $previousStatus === (string) $transfer->status) {
+            return;
+        }
+
+        $recipients = collect([
+            $transfer->payment_confirmed_by,
+            $transfer->approved_by,
+            $transfer->contract_sent_by,
+            $transfer->contract_signed_by,
+            $transfer->maid_delivered_by,
+            $transfer->transferred_by,
+            $transfer->failed_by,
+        ])->filter()->unique()->values();
+
+        if ($recipients->isEmpty()) {
+            return;
+        }
+
+        app(AdminNotificationService::class)->sendToAdmins(
+            $recipients,
+            'تم تحديث نقل الكفالة #' . $transfer->id,
+            'تغيرت حالة نقل الكفالة من "' . $this->sponsorshipTransferStatusLabel($previousStatus) . '" إلى "' . $transfer->status_text . '".',
+            'sponsorship_transfer_status_changed',
+            route('SponsorshipTransfer.show', $transfer->id),
+            [
+                'model' => SponsorshipTransfer::class,
+                'model_id' => $transfer->id,
+                'old_status' => $previousStatus,
+                'new_status' => $transfer->status,
+            ]
+        );
+    }
+
+    private function sponsorshipTransferStatusLabel(?string $status): string
+    {
+        return [
+            'pending' => 'في الانتظار',
+            'waiting_contract_send' => 'بانتظار تسجيل استلام العاملة',
+            'contract_sent' => 'تم إرسال العقد',
+            'contract_signed' => 'تم توقيع العقد',
+            'maid_delivered' => 'تم تسليم العاملة',
+            'trial' => 'فترة التجربة',
+            'trial_started' => 'بدأت التجربة',
+            'approved' => 'موافق عليه',
+            'transferred' => 'تم النقل',
+            'failed' => 'فشل النقل',
+            'rejected' => 'مرفوض',
+            'completed' => 'مكتمل',
+        ][$status] ?? ($status ?: 'غير محدد');
     }
 
     private function returnShelterContractInsideForTransfer(SponsorshipTransfer $transfer, ?string $reason = null): void
@@ -2048,6 +2128,7 @@ class SponsorshipTransferController extends Controller
             \DB::beginTransaction();
 
             $startedAt = now();
+            $previousStatus = $transfer->status;
 
             // تحديث حالة طلب النقل
             $transfer->update([
@@ -2075,6 +2156,8 @@ class SponsorshipTransferController extends Controller
             }
 
             \DB::commit();
+            $transfer->refresh();
+            $this->notifySponsorshipTransferStatusChanged($transfer, $previousStatus);
 
             return response()->json([
                 'success' => true,
@@ -2188,6 +2271,8 @@ class SponsorshipTransferController extends Controller
 
             \DB::beginTransaction();
 
+            $previousStatus = $transfer->status;
+
             // إنشاء اسم فريد للملف
             $fileName = 'transfer_signature_' . $id . '_' . time() . '.png';
 
@@ -2207,6 +2292,7 @@ class SponsorshipTransferController extends Controller
 
             // إعادة تحميل النقل للتأكد من التحديث
             $transfer->refresh();
+            $this->notifySponsorshipTransferStatusChanged($transfer, $previousStatus);
 
             return response()->json([
                 'success' => true,

@@ -13,6 +13,7 @@ use App\Models\ingaz\ComplaintComment;
 use App\Models\ingaz\ComplaintType;
 use App\Models\ingaz\Nationality;
 use App\Models\ingaz\User;
+use App\Services\AdminNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -411,6 +412,7 @@ class ComplaintController extends Controller
     {
         $complaint = objModel::findOrFail($request->complaint_id);
         $this->assertCanAccessBranchModel($complaint);
+        $previousStatus = $complaint->status;
 
         if ($request->response) {
             $complaint->response = $request->response;
@@ -426,6 +428,11 @@ class ComplaintController extends Controller
         }
 
         $complaint->save();
+        $this->notifyComplaintStatusChanged($complaint, $previousStatus);
+
+        if ($request->response && $previousStatus === $complaint->status) {
+            $this->notifyComplaintUpdated($complaint, 'تم إضافة رد على الشكوى');
+        }
 
         return response()->json(['success' => true, 'message' => 'تم إرسال الرد بنجاح']);
     }
@@ -434,6 +441,8 @@ class ComplaintController extends Controller
     {
         $complaint = objModel::findOrFail($request->complaint_id);
         $this->assertCanAccessBranchModel($complaint);
+        $previousStatus = $complaint->status;
+        $previousAssignedTo = $complaint->assigned_to;
 
         // إضافة التعليق إلى سجل التحديثات
         // يمكن إنشاء جدول منفصل للتعليقات إذا لزم الأمر
@@ -462,6 +471,13 @@ class ComplaintController extends Controller
             'attachments' => $request->attachments ?? null
         ]);
 
+        $this->notifyComplaintStatusChanged($complaint, $previousStatus);
+        $this->notifyComplaintAssignmentChanged($complaint, $previousAssignedTo);
+
+        if ($previousStatus === $complaint->status && (int) $previousAssignedTo === (int) $complaint->assigned_to) {
+            $this->notifyComplaintUpdated($complaint, 'تم إضافة تحديث على الشكوى');
+        }
+
         return response()->json(['success' => true, 'message' => 'تم إضافة التحديث بنجاح']);
     }
 
@@ -488,6 +504,7 @@ class ComplaintController extends Controller
         }
 
         $complaint->save();
+        $this->notifyComplaintStatusChanged($complaint, $previousStatus);
 
         return response()->json(['success' => true, 'message' => 'تم تحديث الحالة بنجاح']);
     }
@@ -496,8 +513,10 @@ class ComplaintController extends Controller
     {
         $complaint = objModel::findOrFail($request->complaint_id);
         $this->assertCanAccessBranchModel($complaint);
+        $previousAssignedTo = $complaint->assigned_to;
         $complaint->assigned_to = $request->assigned_to;
         $complaint->save();
+        $this->notifyComplaintAssignmentChanged($complaint, $previousAssignedTo);
 
         return response()->json(['success' => true, 'message' => 'تم تحويل التذكرة بنجاح']);
     }
@@ -506,8 +525,10 @@ class ComplaintController extends Controller
     {
         $complaint = objModel::findOrFail($request->complaint_id);
         $this->assertCanAccessBranchModel($complaint);
+        $previousPriority = $complaint->priority;
         $complaint->priority = $request->priority;
         $complaint->save();
+        $this->notifyComplaintPriorityChanged($complaint, $previousPriority);
 
         return response()->json(['success' => true, 'message' => 'تم تغيير الأولوية بنجاح']);
     }
@@ -554,13 +575,139 @@ class ComplaintController extends Controller
         return $badges[$priority] ?? '<span class="badge text-bg-light text-dark">' . $priority . '</span>';
     }
 
+    private function notifyComplaintStatusChanged(objModel $complaint, ?string $previousStatus): void
+    {
+        if ((string) $previousStatus === (string) $complaint->status) {
+            return;
+        }
+
+        $this->notificationService()->sendToAdmins(
+            [$complaint->assigned_to],
+            'تم تحديث حالة الشكوى #' . str_pad((string) $complaint->id, 6, '0', STR_PAD_LEFT),
+            'تغيرت حالة الشكوى من "' . $this->complaintStatusLabel($previousStatus) . '" إلى "' . $this->complaintStatusLabel($complaint->status) . '".',
+            'complaint_status_changed',
+            route('complaints.show', $complaint->id),
+            [
+                'model' => objModel::class,
+                'model_id' => $complaint->id,
+                'old_status' => $previousStatus,
+                'new_status' => $complaint->status,
+            ]
+        );
+    }
+
+    private function notifyComplaintAssignmentChanged(objModel $complaint, $previousAssignedTo): void
+    {
+        if ((int) $previousAssignedTo === (int) $complaint->assigned_to) {
+            return;
+        }
+
+        $ticketNumber = str_pad((string) $complaint->id, 6, '0', STR_PAD_LEFT);
+        $link = route('complaints.show', $complaint->id);
+
+        $this->notificationService()->sendToAdmin(
+            $complaint->assigned_to,
+            'تم إسناد شكوى إليك #' . $ticketNumber,
+            'تم تحويل الشكوى "' . ($complaint->subject ?: 'بدون عنوان') . '" إليك للمتابعة.',
+            'complaint_assigned',
+            $link,
+            [
+                'model' => objModel::class,
+                'model_id' => $complaint->id,
+                'old_assigned_to' => $previousAssignedTo,
+                'new_assigned_to' => $complaint->assigned_to,
+            ]
+        );
+
+        $this->notificationService()->sendToAdmin(
+            $previousAssignedTo,
+            'تم تحويل شكوى من عهدتك #' . $ticketNumber,
+            'تم تحويل الشكوى "' . ($complaint->subject ?: 'بدون عنوان') . '" إلى موظف آخر.',
+            'complaint_reassigned',
+            $link,
+            [
+                'model' => objModel::class,
+                'model_id' => $complaint->id,
+                'old_assigned_to' => $previousAssignedTo,
+                'new_assigned_to' => $complaint->assigned_to,
+            ]
+        );
+    }
+
+    private function notifyComplaintPriorityChanged(objModel $complaint, ?string $previousPriority): void
+    {
+        if ((string) $previousPriority === (string) $complaint->priority) {
+            return;
+        }
+
+        $this->notificationService()->sendToAdmins(
+            [$complaint->assigned_to],
+            'تم تغيير أولوية الشكوى #' . str_pad((string) $complaint->id, 6, '0', STR_PAD_LEFT),
+            'تغيرت أولوية الشكوى من "' . $this->complaintPriorityLabel($previousPriority) . '" إلى "' . $this->complaintPriorityLabel($complaint->priority) . '".',
+            'complaint_priority_changed',
+            route('complaints.show', $complaint->id),
+            [
+                'model' => objModel::class,
+                'model_id' => $complaint->id,
+                'old_priority' => $previousPriority,
+                'new_priority' => $complaint->priority,
+            ]
+        );
+    }
+
+    private function notifyComplaintUpdated(objModel $complaint, string $title): void
+    {
+        $this->notificationService()->sendToAdmins(
+            [$complaint->assigned_to],
+            $title . ' #' . str_pad((string) $complaint->id, 6, '0', STR_PAD_LEFT),
+            'تم تحديث الشكوى "' . ($complaint->subject ?: 'بدون عنوان') . '".',
+            'complaint_updated',
+            route('complaints.show', $complaint->id),
+            [
+                'model' => objModel::class,
+                'model_id' => $complaint->id,
+            ]
+        );
+    }
+
+    private function complaintStatusLabel(?string $status): string
+    {
+        return [
+            'pending' => 'قيد الانتظار',
+            'in_progress' => 'قيد المعالجة',
+            'resolved' => 'تم الحل',
+            'closed' => 'مغلقة',
+            'rejected' => 'مرفوضة',
+        ][$status] ?? ($status ?: 'غير محدد');
+    }
+
+    private function complaintPriorityLabel(?string $priority): string
+    {
+        return [
+            'urgent' => 'عاجلة',
+            'high' => 'عالية',
+            'medium' => 'متوسطة',
+            'low' => 'منخفضة',
+        ][$priority] ?? ($priority ?: 'غير محدد');
+    }
+
+    private function notificationService(): AdminNotificationService
+    {
+        return app(AdminNotificationService::class);
+    }
+
     public function response(Request $request)
     {
         $complaint = objModel::findOrFail($request->complaint_id);
         $this->assertCanAccessBranchModel($complaint);
+        $previousStatus = $complaint->status;
         $complaint->response = $request->response;
         $complaint->status = $request->status;
         $complaint->save();
+        $this->notifyComplaintStatusChanged($complaint, $previousStatus);
+        if ($request->response && $previousStatus === $complaint->status) {
+            $this->notifyComplaintUpdated($complaint, 'تم إضافة رد على الشكوى');
+        }
 
         // Send SMS notification to the user
         if ($complaint->user && $complaint->user->phone) {

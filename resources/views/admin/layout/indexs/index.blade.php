@@ -50,19 +50,9 @@
 @include("admin.layout.inc._js_custom")
 <script src="{{ asset('admin/assets/js/clickmore-loader.js') }}?v=2"></script>
 <script src="{{ asset('admin/assets/js/clickmore-sidebar-state.js') }}?v=5"></script>
+<script src="{{ asset('admin/assets/js/notifications.js') }}?v=2"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-@section('js')
-    <script src="{{asset('admin/assets/js/notifications.js')}}"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
-    @if (app()->getLocale() === 'ar')
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/locale/ar.js"></script>
-    @endif
-    <script>
-        moment.locale('{{ app()->getLocale() }}');
-    </script>
-@endsection
 
 @yield("js")
 @stack("js")

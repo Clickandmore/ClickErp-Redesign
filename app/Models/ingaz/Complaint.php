@@ -2,11 +2,12 @@
 
 namespace App\Models\ingaz;
 
-use App\Models\AdminNotification;
+use App\PermKeys;
 use App\Models\Concerns\AssignsBranch;
 use App\Models\Contract;
 use App\Models\ingaz\User;
 use App\Models\auth\Admin;
+use App\Services\AdminNotificationService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Activitylog\LogOptions;
@@ -38,23 +39,29 @@ class Complaint extends Model
     protected static function booted()
     {
         static::created(function ($complaint) {
-            $admins = Admin::query()->get();
+            $recipientIds = Admin::query()
+                ->activeForOperations()
+                ->get()
+                ->filter(fn (Admin $admin) => $admin->hasAnyPermission([
+                    PermKeys::COMPLAINT_VIEW,
+                    PermKeys::COMPLAINT_EDIT,
+                    PermKeys::COMPLAINT_CONTROL,
+                    PermKeys::COMPLAINT_RESPONSE,
+                ]))
+                ->pluck('id');
 
-            foreach ($admins as $admin) {
-                AdminNotification::create([
-                    'admin_id' => $admin->id,
-                    'created_by' => auth('admin')->id(),
-                    'title' => 'شكوى جديدة',
-                    'message' => 'تم استلام شكوى جديدة من ' . ($complaint->user?->name ?? 'مستخدم'),
-                    'type' => 'new_complaint',
-                    'link' => route('complaints.show', $complaint->id),
-                    'data' => [
-                        'complaint_id' => $complaint->id,
-                        'user_id' => $complaint->user_id,
-                        'complaint_type_id' => $complaint->complaint_type_id,
-                    ],
-                ]);
-            }
+            app(AdminNotificationService::class)->sendToAdmins(
+                $recipientIds,
+                'شكوى جديدة',
+                'تم استلام شكوى جديدة من ' . ($complaint->user?->name ?? 'مستخدم'),
+                'new_complaint',
+                route('complaints.show', $complaint->id),
+                [
+                    'complaint_id' => $complaint->id,
+                    'user_id' => $complaint->user_id,
+                    'complaint_type_id' => $complaint->complaint_type_id,
+                ]
+            );
         });
     }
 

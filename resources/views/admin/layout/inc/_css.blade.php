@@ -21,6 +21,204 @@
         display: none !important;
     }
 
+    .cm-notifications {
+        position: relative;
+    }
+
+    .cm-notifications .notification-badge {
+        position: absolute;
+        top: -4px;
+        inset-inline-end: -6px;
+        min-width: 18px;
+        height: 18px;
+        padding: 0 5px;
+        border-radius: 999px;
+        background: #dc3545;
+        color: #fff;
+        border: 2px solid #fff;
+        font-size: 10px;
+        font-weight: 700;
+        line-height: 14px;
+        text-align: center;
+        box-shadow: 0 6px 14px rgba(220, 53, 69, .28);
+    }
+
+    .cm-notifications-menu {
+        width: min(390px, calc(100vw - 24px));
+        overflow: hidden;
+        border-radius: 14px !important;
+    }
+
+    .cm-notifications-panel {
+        background: #fff;
+        overflow: hidden;
+    }
+
+    .cm-notifications-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 16px 16px 12px;
+        border-bottom: 1px solid #eef1f5;
+        background: linear-gradient(180deg, #f8fafc 0%, #fff 100%);
+    }
+
+    .cm-notifications-head h6 {
+        font-weight: 800;
+        color: #172033;
+    }
+
+    .cm-notifications-subtitle {
+        display: block;
+        margin-top: 4px;
+        color: #7a8599;
+        font-size: 12px;
+    }
+
+    .cm-notifications-head .mark-all-read {
+        flex: 0 0 auto;
+        color: #2563eb;
+        background: #eff6ff;
+        border: 1px solid #dbeafe;
+        border-radius: 999px;
+        padding: 5px 10px;
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .cm-notifications-head .mark-all-read:hover {
+        color: #1d4ed8;
+        background: #dbeafe;
+    }
+
+    .cm-notifications-list {
+        max-height: 430px;
+        overflow-y: auto;
+        padding: 6px;
+    }
+
+    .cm-notification-item {
+        position: relative;
+        display: flex;
+        gap: 12px;
+        padding: 12px;
+        border-radius: 12px;
+        color: #172033;
+        text-decoration: none;
+        transition: background .15s ease, transform .15s ease;
+    }
+
+    .cm-notification-item:hover {
+        background: #f8fafc;
+        color: #172033;
+        transform: translateY(-1px);
+    }
+
+    .cm-notification-item.is-unread {
+        background: #f0f7ff;
+    }
+
+    .cm-notification-item.is-unread:hover {
+        background: #e7f1ff;
+    }
+
+    .cm-notification-icon {
+        width: 36px;
+        height: 36px;
+        flex: 0 0 36px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        color: #2563eb;
+        background: #dbeafe;
+    }
+
+    .cm-notification-body {
+        min-width: 0;
+        flex: 1 1 auto;
+        padding-inline-end: 28px;
+    }
+
+    .cm-notification-title {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 3px;
+        font-weight: 800;
+        color: #172033;
+        line-height: 1.35;
+    }
+
+    .cm-notification-unread-dot {
+        width: 8px;
+        height: 8px;
+        flex: 0 0 8px;
+        border-radius: 50%;
+        background: #dc3545;
+        box-shadow: 0 0 0 3px rgba(220, 53, 69, .12);
+    }
+
+    .cm-notification-message {
+        margin: 0;
+        color: #4b5565;
+        font-size: 13px;
+        line-height: 1.5;
+    }
+
+    .cm-notification-time {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        margin-top: 7px;
+        color: #8b95a7;
+        font-size: 11px;
+    }
+
+    .cm-notification-read-action {
+        position: absolute;
+        top: 10px;
+        inset-inline-end: 10px;
+        width: 26px;
+        height: 26px;
+        border: 0;
+        border-radius: 50%;
+        color: #2563eb;
+        background: #fff;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, .08);
+    }
+
+    .cm-notification-read-action:hover {
+        color: #fff;
+        background: #2563eb;
+    }
+
+    .cm-notification-state {
+        padding: 32px 18px;
+        text-align: center;
+        color: #7a8599;
+    }
+
+    .cm-notification-state i {
+        width: 42px;
+        height: 42px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 10px;
+        border-radius: 14px;
+        color: #64748b;
+        background: #f1f5f9;
+        font-size: 18px;
+    }
+
+    .cm-notification-state strong {
+        display: block;
+        color: #334155;
+        margin-bottom: 4px;
+    }
+
     /* .toggle-pin,
     .btn-edit,
     .btn-view,
