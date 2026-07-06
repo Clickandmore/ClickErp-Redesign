@@ -114,6 +114,8 @@ class SponsorshipTransferFailureService
         $this->constraintService->storeConstraintDetails($data['account_id'], $constraint->id, $data);
         $this->constraintService->storeFiles($constraint, $data);
 
+        $transfer->updateQuietly(['failure_constraint_id' => $constraint->id]);
+
         return $constraint;
     }
 

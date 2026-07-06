@@ -115,6 +115,8 @@ class SponsorshipTransferTrialStartService
         $this->constraintService->storeConstraintDetails($data['account_id'], $constraint->id, $data);
         $this->constraintService->storeFiles($constraint, $data);
 
+        $transfer->updateQuietly(['trial_start_constraint_id' => $constraint->id]);
+
         return $constraint;
     }
 
