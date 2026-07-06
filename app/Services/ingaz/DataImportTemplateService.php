@@ -343,6 +343,34 @@ class DataImportTemplateService
             'columns' => $this->rentBundleColumns(),
         ];
 
+        $templates['complaints'] = [
+            'label' => 'الشكاوي',
+            'route_hint' => '/admin/complaints',
+            'icon' => 'fas fa-headset',
+            'description' => 'استيراد الشكاوي بنفس حقول شاشة الشكوى في النظام، مع دعم ملف تقرير الشكاوي القديم كأسماء أعمدة بديلة.',
+            'filename' => 'complaints-import-template.xlsx',
+            'columns' => [
+                ['key' => 'complainant_name', 'label' => 'اسم الشاكي', 'required' => true, 'example' => 'محمد أحمد'],
+                ['key' => 'complainant_phone', 'label' => 'هاتف الشاكي', 'required' => true, 'example' => '0500000000'],
+                ['key' => 'user_id', 'label' => 'ID العميل المسجل', 'required' => false, 'example' => '172'],
+                ['key' => 'maid_passport', 'label' => 'رقم جواز العاملة', 'required' => false, 'example' => 'P0000001'],
+                ['key' => 'maid_nationality', 'label' => 'جنسية العاملة', 'required' => false, 'example' => 'اثيوبيا'],
+                ['key' => 'subject', 'label' => 'موضوع الشكوى', 'required' => true, 'example' => 'شكوى عميل ضد عاملة'],
+                ['key' => 'complaint_type', 'label' => 'نوع الشكوى', 'required' => true, 'example' => 'شكوى عميل ضد عاملة'],
+                ['key' => 'against_name', 'label' => 'اسم المشتكى عليه', 'required' => false, 'example' => 'MAID NAME'],
+                ['key' => 'last_response', 'label' => 'آخر رد', 'required' => false, 'example' => 'تم التواصل مع العميل'],
+                ['key' => 'submission_method', 'label' => 'طريقة التقديم', 'required' => false, 'example' => 'زيارة مقر'],
+                ['key' => 'related_to', 'label' => 'متعلق', 'required' => false, 'example' => 'طلب استقدام 2476'],
+                ['key' => 'priority', 'label' => 'الأولوية', 'required' => true, 'example' => 'متوسطة', 'valid_values' => ['منخفضة', 'متوسطة', 'عالية', 'عاجلة', 'low', 'medium', 'high', 'urgent']],
+                ['key' => 'assigned_to', 'label' => 'الموظف المختص', 'required' => false, 'example' => 'باسم علي'],
+                ['key' => 'status', 'label' => 'الحالة', 'required' => false, 'example' => 'قيد الانتظار', 'valid_values' => ['قيد الانتظار', 'قيد المعالجة', 'تم الحل', 'مغلقة', 'مرفوضة', 'pending', 'in_progress', 'resolved', 'closed', 'rejected']],
+                ['key' => 'details', 'label' => 'تفاصيل الشكوى', 'required' => true, 'example' => 'تفاصيل الشكوى'],
+                ['key' => 'response', 'label' => 'الرد', 'required' => false, 'example' => 'تم التواصل مع العميل'],
+                ['key' => 'external_ref', 'label' => 'رقم تعريف خارجي', 'required' => false, 'example' => 'CW-327'],
+                ['key' => 'created_at', 'label' => 'تاريخ الإنشاء', 'required' => false, 'example' => now()->format('Y-m-d')],
+            ],
+        ];
+
         return $templates;
     }
 

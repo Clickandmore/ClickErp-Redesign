@@ -718,7 +718,39 @@
                 </div>
             @endif
         </div>
+
+        {{-- القيود المحاسبية --}}
+        @if ($transfer->trial_start_constraint_id || $transfer->completion_constraint_id || $transfer->failure_constraint_id)
+            <div class="col-12 mt-3">
+                <div class="info-card" style="border-right: 4px solid #6f42c1;">
+                    <div class="card-title">
+                        <i class="fas fa-book-open" style="color:#6f42c1;"></i> القيود المحاسبية
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                        @if ($transfer->trial_start_constraint_id)
+                            <a href="{{ route('finance.add-constraint.show', ['add_constraint' => $transfer->trial_start_constraint_id]) }}"
+                               class="btn btn-sm btn-outline-primary" target="_blank">
+                                <i class="fas fa-eye me-1"></i> قيد خروج العاملة للتجربة
+                            </a>
+                        @endif
+                        @if ($transfer->completion_constraint_id)
+                            <a href="{{ route('finance.add-constraint.show', ['add_constraint' => $transfer->completion_constraint_id]) }}"
+                               class="btn btn-sm btn-outline-success" target="_blank">
+                                <i class="fas fa-eye me-1"></i> قيد إتمام النقل
+                            </a>
+                        @endif
+                        @if ($transfer->failure_constraint_id)
+                            <a href="{{ route('finance.add-constraint.show', ['add_constraint' => $transfer->failure_constraint_id]) }}"
+                               class="btn btn-sm btn-outline-danger" target="_blank">
+                                <i class="fas fa-eye me-1"></i> قيد فشل التجربة
+                            </a>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        @endif
     </div>
+</div>
 @endsection
 
 @section('script')

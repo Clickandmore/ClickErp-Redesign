@@ -16,6 +16,7 @@ use App\Http\Controllers\Web\HomeController;
 use App\Http\Controllers\Web\MaidController;
 use App\Http\Controllers\Web\NotificationController;
 use App\Http\Controllers\Web\OrderController;
+use App\Http\Controllers\Web\RentalContractExpiryReminderController;
 use App\Http\Controllers\Web\ReturnRequestController;
 use App\Http\Controllers\Web\UserAddressController;
 use App\Services\Zoho\SalesIqClient;
@@ -69,6 +70,8 @@ Route::get('/getMaidDetails/{maidId}', [IngazMaidController::class, 'getMaidDeta
 Route::get('/maidsLoopContractsAndSetAvailableWhenDoneCronJob', [AdminContractController::class, 'maidsLoopContractsAndSetAvailableWhenDoneCronJob'])->name('maidsLoopContractsAndSetAvailableWhenDoneCronJob');
 Route::get('/check-tazker-contracts', [AdminContractController::class, 'checkTazkerContracts'])->name('check.tazker.contracts');
 Route::get('/check-warranty-contracts', [AdminContractController::class, 'checkWarrantyContracts'])->name('check.warranty.contracts');
+Route::get('/rental-contract-reminders/{token}', [RentalContractExpiryReminderController::class, 'show'])->name('rental-contract-reminders.show');
+Route::post('/rental-contract-reminders/{token}', [RentalContractExpiryReminderController::class, 'respond'])->name('rental-contract-reminders.respond');
 
 /** END NEW ROUTES */
 Route::get('/zoho/salesiq/oauth/callback', function (Request $request, SalesIqClient $salesIq) {

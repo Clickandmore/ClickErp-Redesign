@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\ingaz\User;
 use App\Models\auth\Admin;
+use Nami\Finance\Models\Constraint;
 
 class SponsorshipTransfer extends Model
 {
@@ -48,6 +49,10 @@ class SponsorshipTransfer extends Model
         'failure_clear_remaining_amount',
         'failure_client_iban',
         'failure_client_iban_attachment_path',
+        'visa_fee_amount',
+        'trial_start_constraint_id',
+        'completion_constraint_id',
+        'failure_constraint_id',
         'transferred_by',
         'failed_by',
         'signature',
@@ -70,6 +75,7 @@ class SponsorshipTransfer extends Model
         'remaining_amount' => 'decimal:2',
         'failure_settlement_amount' => 'decimal:2',
         'failure_clear_remaining_amount' => 'decimal:2',
+        'visa_fee_amount' => 'decimal:2',
         'attachments' => 'array',
         'branch_id' => 'integer',
     ];
@@ -103,6 +109,21 @@ class SponsorshipTransfer extends Model
     public function failedBy()
     {
         return $this->belongsTo(Admin::class, 'failed_by');
+    }
+
+    public function trialStartConstraint()
+    {
+        return $this->belongsTo(Constraint::class, 'trial_start_constraint_id');
+    }
+
+    public function completionConstraint()
+    {
+        return $this->belongsTo(Constraint::class, 'completion_constraint_id');
+    }
+
+    public function failureConstraint()
+    {
+        return $this->belongsTo(Constraint::class, 'failure_constraint_id');
     }
 
     public function contractSentBy()

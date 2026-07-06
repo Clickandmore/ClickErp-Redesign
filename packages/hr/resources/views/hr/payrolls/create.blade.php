@@ -22,7 +22,7 @@
             </div>
 
             <div class="d-flex align-items-end gap-2 flex-wrap">
-                <form method="GET" action="{{ route('payrolls.create') }}">
+                <form method="GET" action="{{ route('payrolls.create') }}" class="d-flex align-items-end gap-2 flex-wrap">
                     <label for="month" class="form-label mb-1">اختيار الشهر</label>
                     <input
                         id="month"
@@ -32,6 +32,54 @@
                         value="{{ $selectedMonth }}"
                         onchange="this.form.submit()"
                     >
+                    <div>
+                        <label for="month_days_display_option" class="form-label mb-1">خيار عرض الشهر</label>
+                        <select
+                            id="month_days_display_option"
+                            name="month_days_display_option"
+                            class="form-control"
+                            onchange="this.form.submit()"
+                        >
+                            <option value="30" {{ ($monthDaysDisplayOption ?? 'current') === '30' ? 'selected' : '' }}>صيغة 30</option>
+                            <option value="28" {{ ($monthDaysDisplayOption ?? 'current') === '28' ? 'selected' : '' }}>صيغة 28</option>
+                            <option value="31" {{ ($monthDaysDisplayOption ?? 'current') === '31' ? 'selected' : '' }}>صيغة 31</option>
+                            <option value="current" {{ ($monthDaysDisplayOption ?? 'current') === 'current' ? 'selected' : '' }}>حسب الشهر الحالي ({{ $actualMonthDays }} يوم)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="passport_num" class="form-label mb-1">رقم جواز العاملة</label>
+                        <input
+                            id="passport_num"
+                            name="passport_num"
+                            type="text"
+                            class="form-control"
+                            value="{{ $passportNumber }}"
+                        >
+                    </div>
+                    <div>
+                        <label for="residence_num" class="form-label mb-1">رقم الإقامة</label>
+                        <input
+                            id="residence_num"
+                            name="residence_num"
+                            type="text"
+                            class="form-control"
+                            value="{{ $residenceNumber }}"
+                        >
+                    </div>
+                    <div>
+                        <label for="worker_scope" class="form-label mb-1">نطاق العاملات</label>
+                        <select
+                            id="worker_scope"
+                            name="worker_scope"
+                            class="form-control"
+                            onchange="this.form.submit()"
+                        >
+                            <option value="current" {{ ($workerScope ?? 'current') === 'current' ? 'selected' : '' }}>الحالة الحالية لمسير الرواتب</option>
+                            <option value="all" {{ ($workerScope ?? 'current') === 'all' ? 'selected' : '' }}>جميع عاملات التأجير</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">بحث</button>
+                    <a href="{{ route('payrolls.create', ['month' => $selectedMonth]) }}" class="btn btn-outline-secondary">إعادة ضبط</a>
                 </form>
 
                 <a href="{{ $indexRoute }}" class="btn btn-outline-secondary">
@@ -42,7 +90,7 @@
 
         <div class="payroll-note mb-4">
             <strong>ملاحظة:</strong> <br>
-           إجمالي الراتب = (أيام العمل × (الراتب الأساسي ÷ 30)) + حافز + إضافات أخرى = أيام الشهر - أيام الغياب
+           إجمالي الراتب = (أيام العمل × (الراتب الأساسي ÷ {{ $monthDays }})) + حافز + إضافات أخرى، وأيام الغياب = أيام الشهر - أيام العمل
             <br>
             إجمالي الخصومات = سلفة + جزاء + خصومات أخرى
             <br>
@@ -52,6 +100,7 @@
         <form class="from-submit-global" method="POST" action="{{ $storeRoute }}">
             @csrf
             <input type="hidden" name="month_year" value="{{ $selectedMonth }}">
+            <input type="hidden" name="month_days_display_option" value="{{ $monthDaysDisplayOption }}">
 
             <div class="card payroll-card mb-3">
                 <div class="card-body">
@@ -66,6 +115,8 @@
                         <thead>
                         <tr>
                             <th>#</th>
+                            <th>رقم الجواز</th>
+                            <th>رقم الإقامة</th>
                             <th>اختيار</th>
                             <th>الاسم</th>
                             <th>الجنسية</th>
@@ -87,6 +138,8 @@
                         @forelse($rows as $row)
                             <tr class="payroll-row" data-month-days="{{ $row['month_days'] }}">
                                 <td class="fw-bold">{{ $loop->iteration }}</td>
+                                <td>{{ $row['passport_num'] ?: '-' }}</td>
+                                <td>{{ $row['residence_num'] ?: '-' }}</td>
                                 <td>
                                     <input class="form-check-input payroll-row-selector" type="checkbox" name="selected_rows[{{ $loop->index }}]" value="1" checked>
                                     <input type="hidden" name="employee_id[]" value="{{ $row['employee_id'] }}">
@@ -111,7 +164,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="16" class="payroll-empty">
+                                <td colspan="18" class="payroll-empty">
                                     لا توجد عاملات إيجار متاحات بهذا الشهر، أو تم إنشاء مسير لهن مسبقًا.
                                 </td>
                             </tr>
@@ -165,7 +218,7 @@
                 const penalty = parseNumber(penaltyInput.value);
                 const otherDeductions = parseNumber(otherDeductionsInput.value);
 
-                const grossSalary = ((workDays * (basicSalary / 30)) + incentive + otherAdditions);
+                const grossSalary = ((workDays * (basicSalary / monthDays)) + incentive + otherAdditions);
                 const totalDeductions = advance + penalty + otherDeductions;
                 const netSalary = grossSalary - totalDeductions;
                 const absenceDays = monthDays - workDays;

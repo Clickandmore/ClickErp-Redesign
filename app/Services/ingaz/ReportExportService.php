@@ -4,25 +4,35 @@ namespace App\Services\ingaz;
 
 use App\Enums\ingaz\ContractStatusEnum;
 use App\Enums\ingaz\OrderEnum;
+use App\Enums\Office\OfficesStatusEnum;
 use App\Models\City;
 use App\Models\Contract;
 use App\Models\Country;
+use App\Models\FinancialRequest;
 use App\Models\RentalContract;
 use App\Models\RecruitmentOffices;
 use App\Models\ShelterPlaces;
 use App\Models\SponsorshipTransfer;
+use App\Models\TravelHistory;
 use App\Models\auth\Admin;
+use App\Models\ingaz\Complaint;
+use App\Models\ingaz\ComplaintType;
 use App\Models\ingaz\JobType;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\Nationality;
 use App\Models\ingaz\Order;
 use App\Models\ingaz\Religion;
 use App\Models\ingaz\User;
+use App\Models\office\Office;
 use App\NewPermKeys;
 use App\PermKeys;
+use App\Services\BranchAccessService;
 use App\Support\AutomationSettings;
+use App\Support\TravelAirports;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -30,6 +40,7 @@ use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PDF;
+use Spatie\Activitylog\Models\Activity;
 
 class ReportExportService
 {
@@ -79,6 +90,7 @@ class ReportExportService
                 ->orderBy('name')
                 ->get(),
             'shelters' => ShelterPlaces::with('translations')->orderBy('id')->get(['id']),
+            'complaint_types' => ComplaintType::query()->orderBy('name')->get(['id', 'name']),
         ];
     }
 
@@ -216,6 +228,121 @@ class ReportExportService
         return is_array($options) ? $options : [];
     }
 
+    public function sponsorshipTransferStatusOptions(): array
+    {
+        return [
+            'pending' => 'في الانتظار',
+            'waiting_contract_send' => 'بانتظار تسجيل استلام العاملة',
+            'contract_sent' => 'تم إرسال العقد',
+            'contract_signed' => 'تم توقيع العقد',
+            'maid_delivered' => 'تم تسليم العاملة',
+            'trial_period' => 'فترة التجربة',
+            'trial_started' => 'بدأت التجربة',
+            'approved' => 'موافق عليه',
+            'transferred' => 'تم النقل',
+            'failed' => 'فشل النقل',
+            'rejected' => 'مرفوض',
+            'completed' => 'مكتمل',
+        ];
+    }
+
+    public function travelTypeOptions(): array
+    {
+        $options = __('travel_types.travel_types');
+
+        return is_array($options) ? $options : [];
+    }
+
+    public function travelWithOptions(): array
+    {
+        $options = __('travel_types.travel_with');
+        $options = is_array($options) ? $options : [];
+
+        return $options + [
+            'group_transport' => helperTrans('ingaz.travel_with_group_transport'),
+        ];
+    }
+
+    public function travelStatusOptions(): array
+    {
+        $options = __('travel_types.status');
+
+        return is_array($options) ? $options : [];
+    }
+
+    public function travelAirportOptions(): array
+    {
+        return TravelAirports::options();
+    }
+
+    public function complaintStatusOptions(): array
+    {
+        return [
+            'pending' => __('ingaz.complaint_status_pending'),
+            'in_progress' => __('ingaz.complaint_status_in_progress'),
+            'resolved' => __('ingaz.complaint_status_resolved'),
+            'closed' => __('ingaz.complaint_status_closed'),
+            'rejected' => __('ingaz.complaint_status_rejected'),
+        ];
+    }
+
+    public function complaintPriorityOptions(): array
+    {
+        return [
+            'urgent' => __('ingaz.priority_urgent'),
+            'high' => __('ingaz.priority_high'),
+            'medium' => __('ingaz.priority_medium'),
+            'low' => __('ingaz.priority_low'),
+        ];
+    }
+
+    public function officeStatusOptions(): array
+    {
+        return [
+            OfficesStatusEnum::Active->value => __('ingaz.active'),
+            OfficesStatusEnum::DisActive->value => __('ingaz.dis_active'),
+        ];
+    }
+
+    public function officeLinkedStateOptions(): array
+    {
+        return [
+            'with_links' => __('ingaz.has_linked_cvs'),
+            'without_links' => __('ingaz.without_linked_cvs'),
+        ];
+    }
+
+    public function officeCostStateOptions(): array
+    {
+        return [
+            'with_cost' => __('ingaz.has_cost_of_dollar'),
+            'without_cost' => __('ingaz.without_cost_of_dollar'),
+        ];
+    }
+
+    public function financialRequestTypeOptions(): array
+    {
+        return FinancialRequest::types();
+    }
+
+    public function financialRequestStatusOptions(): array
+    {
+        return FinancialRequest::statuses();
+    }
+
+    public function financialRequestPriorityOptions(): array
+    {
+        return FinancialRequest::priorities();
+    }
+
+    public function financialRequestScopeOptions(): array
+    {
+        return [
+            'incomplete' => 'غير مكتملة',
+            'paid' => 'مكتملة / تم سدادها',
+        ];
+    }
+
     public function export(string $reportKey, string $format, Request $request)
     {
         $this->ensureReportAccess($reportKey);
@@ -261,6 +388,36 @@ class ReportExportService
                 'label' => 'عقود الإيواء',
                 'icon' => 'fas fa-house-user',
                 'description' => 'تقرير الإيواء الموحّد مع الضمان والرغبة في العمل ومكان الإيواء.',
+            ],
+            'sponsorship_transfers' => [
+                'label' => 'نقل الكفالة',
+                'icon' => 'fas fa-exchange-alt',
+                'description' => 'تقرير معاملات نقل الكفالة مع بيانات الكفلاء والعاملة والحالة والمدفوعات.',
+            ],
+            'deportation_travel' => [
+                'label' => 'رحلات الترحيل',
+                'icon' => 'fas fa-plane-departure',
+                'description' => 'تقرير رحلات الترحيل مع بيانات العقد والعاملة والعميل والرحلة.',
+            ],
+            'travel_trips' => [
+                'label' => 'رحلات الاستقدام',
+                'icon' => 'fas fa-plane-arrival',
+                'description' => 'تقرير رحلات الاستقدام مجمعة حسب الرحلة كما تظهر في قسم السفر.',
+            ],
+            'complaints' => [
+                'label' => 'الشكاوى',
+                'icon' => 'fas fa-headset',
+                'description' => 'تقرير الشكاوى والتذاكر مع الحالة والأولوية والتعيين والردود.',
+            ],
+            'offices' => [
+                'label' => 'المكاتب',
+                'icon' => 'fas fa-building',
+                'description' => 'تقرير المكاتب الخارجية مع الجنسية والحساب والمدير والارتباطات.',
+            ],
+            'financial_requests' => [
+                'label' => 'الطلبات المالية',
+                'icon' => 'fas fa-money-check-alt',
+                'description' => 'تقرير الطلبات المالية التشغيلية حسب النوع والحالة والتصعيد.',
             ],
         ];
     }
@@ -315,6 +472,33 @@ class ReportExportService
                 PermKeys::SHELTER_CONTRACT_VIEW,
                 NewPermKeys::REPORTS_EXPORT,
             ]),
+            'sponsorship_transfers' => AdminGuardHasAnyPerm([
+                PermKeys::SPONSOR_TRANSFER_VIEW,
+                PermKeys::SPONSOR_TRANSFER_CONTROL,
+                NewPermKeys::REPORTS_EXPORT,
+            ]),
+            'deportation_travel', 'travel_trips' => AdminGuardHasAnyPerm([
+                PermKeys::TRAVEL_VIEW,
+                PermKeys::TRAVEL_CONTROL,
+                NewPermKeys::REPORTS_EXPORT,
+            ]),
+            'complaints' => AdminGuardHasAnyPerm([
+                PermKeys::COMPLAINT_VIEW,
+                PermKeys::COMPLAINT_CONTROL,
+                NewPermKeys::REPORTS_EXPORT,
+            ]),
+            'offices' => AdminGuardHasAnyPerm([
+                PermKeys::OFFICE_VIEW,
+                PermKeys::OFFICE_CONTROL,
+                NewPermKeys::REPORTS_EXPORT,
+            ]),
+            'financial_requests' => AdminGuardHasAnyPerm([
+                PermKeys::FINANCIAL_REQUESTS_VIEW,
+                PermKeys::FINANCIAL_REQUESTS_CREATE,
+                PermKeys::FINANCIAL_REQUESTS_EXPORT,
+                PermKeys::FINANCIAL_REQUESTS_CONTROL,
+                NewPermKeys::REPORTS_EXPORT,
+            ]),
             default => false,
         };
     }
@@ -340,6 +524,12 @@ class ReportExportService
             'recruitment_contracts' => $this->buildRecruitmentContractsReportPayload($request),
             'rent_contracts' => $this->buildRentContractsReportPayload($request),
             'shelter_contracts' => $this->buildShelterContractsReportPayload($request),
+            'sponsorship_transfers' => $this->buildSponsorshipTransfersReportPayload($request),
+            'deportation_travel' => $this->buildDeportationTravelReportPayload($request),
+            'travel_trips' => $this->buildTravelTripsReportPayload($request),
+            'complaints' => $this->buildComplaintsReportPayload($request),
+            'offices' => $this->buildOfficesReportPayload($request),
+            'financial_requests' => $this->buildFinancialRequestsReportPayload($request),
         };
     }
 
@@ -704,6 +894,369 @@ class ReportExportService
                     $this->resolveShelterReceiptSourceLabel($contract->info?->receipt_source),
                     $this->formatShelterInstantReceiptLabel($contract),
                     !empty($quickTags) ? implode('، ', $quickTags) : '-',
+                ];
+            })->all(),
+        ];
+    }
+
+    private function buildSponsorshipTransfersReportPayload(Request $request): array
+    {
+        $query = SponsorshipTransfer::query()
+            ->with([
+                'contract.maid.nationality',
+                'oldSponsor',
+                'newSponsor',
+                'approvedBy',
+                'transferredBy',
+                'failedBy',
+                'paymentConfirmedBy',
+            ])
+            ->orderByDesc('created_at');
+
+        $this->applyReportBranchFilter($query, $request, 'sponsorship_transfers');
+        $this->applySponsorshipTransferFilters($request, $query);
+
+        $transfers = $query->get();
+
+        return [
+            'title' => 'تقرير نقل الكفالة',
+            'filename_prefix' => 'sponsorship_transfers_report',
+            'headings' => [
+                'رقم النقل',
+                'رقم العقد',
+                'الكفيل السابق',
+                'الكفيل الجديد',
+                'العاملة',
+                'رقم الجواز',
+                'الجنسية',
+                'الحالة',
+                'أيام التجربة',
+                'بداية التجربة',
+                'نهاية التجربة',
+                'قيمة العقد',
+                'المدفوع',
+                'المتبقي',
+                'طريقة الدفع',
+                'حالة الدفع',
+                'تاريخ الإنشاء',
+                'تاريخ النقل',
+                'تاريخ الفشل',
+            ],
+            'rows' => $transfers->map(function (SponsorshipTransfer $transfer) {
+                return [
+                    $transfer->id,
+                    $transfer->contract?->id ?: '-',
+                    $transfer->oldSponsor?->name ?: '-',
+                    $transfer->newSponsor?->name ?: '-',
+                    $transfer->contract?->maid?->name ?: '-',
+                    $transfer->contract?->maid?->passport_num ?: '-',
+                    $this->modelLabel($transfer->contract?->maid?->nationality, ['sub_title', 'title', 'name']),
+                    $transfer->status_text,
+                    $transfer->trial_days ? $transfer->trial_days . ' يوم' : '-',
+                    $this->formatDateValue($transfer->effective_trial_start_date, true),
+                    $this->formatDateValue($transfer->trial_end_date),
+                    $this->formatMoney($transfer->contract_value),
+                    $this->formatMoney($transfer->paid_amount),
+                    $this->formatMoney($transfer->remaining_amount),
+                    $transfer->payment_type_text,
+                    $transfer->payment_status_text,
+                    $this->formatDateValue($transfer->created_at, true),
+                    $this->formatDateValue($transfer->transferred_at, true),
+                    $this->formatDateValue($transfer->failed_at, true),
+                ];
+            })->all(),
+        ];
+    }
+
+    private function buildDeportationTravelReportPayload(Request $request): array
+    {
+        $query = TravelHistory::query()
+            ->with([
+                'user',
+                'maid',
+                'maid.nationality.translations',
+                'order',
+            ])
+            ->where('travel_type', 'deportation')
+            ->orderByDesc('id');
+
+        $this->applyReportBranchFilter($query, $request, 'travel_histories');
+        $this->applyDeportationTravelFilters($request, $query);
+
+        $trips = $query->get();
+        $statuses = $this->travelStatusOptions();
+
+        return [
+            'title' => 'تقرير رحلات الترحيل',
+            'filename_prefix' => 'deportation_travel_report',
+            'headings' => [
+                '#',
+                'رقم العقد',
+                'العاملة',
+                'العميل',
+                'الجوال',
+                'المطار',
+                'تاريخ السفر',
+                'وقت السفر',
+                'نوع السفر',
+                'شركة الطيران',
+                'رقم الرحلة',
+                'الحالة',
+            ],
+            'rows' => $trips->map(function (TravelHistory $trip) use ($statuses) {
+                return [
+                    $trip->id,
+                    $trip->order_id ? '#' . $trip->order_id : 'غير محدد',
+                    $trip->maid?->name ?: 'غير محدد',
+                    $trip->user?->name ?: 'غير محدد',
+                    $this->resolveUserPhone($trip->user),
+                    $this->travelAirportLabel($trip->arrival_airport),
+                    $this->formatDateValue($trip->arrival_date),
+                    $trip->arrival_time ?: 'غير محدد',
+                    $trip->travel_with ?: '-',
+                    $trip->flight_company ?: '-',
+                    $trip->flight_number ?: '-',
+                    $statuses[$trip->status] ?? ($trip->status === 'completed' ? 'مكتملة' : 'مجدولة'),
+                ];
+            })->all(),
+        ];
+    }
+
+    private function buildTravelTripsReportPayload(Request $request): array
+    {
+        $query = TravelHistory::query()
+            ->with(['user', 'maid', 'maid.nationality', 'maid.nationality.translations'])
+            ->where('travel_type', '!=', 'deportation')
+            ->orderByDesc('id');
+
+        $this->applyReportBranchFilter($query, $request, 'travel_histories');
+        $this->applyTravelTripFilters($request, $query);
+
+        $trips = $this->buildGroupedTravelTripsCollection($query->get());
+        $types = $this->travelTypeOptions();
+        $statuses = $this->travelStatusOptions();
+        $travelWith = $this->travelWithOptions();
+
+        return [
+            'title' => 'تقرير رحلات الاستقدام',
+            'filename_prefix' => 'travel_trips_report',
+            'headings' => [
+                '#',
+                __('admin.client_id'),
+                __('admin.maid_id'),
+                helperTrans('ingaz.contracts'),
+                __('admin.travel_type'),
+                __('admin.travel_with'),
+                __('admin.flight_company'),
+                __('admin.flight_number'),
+                __('admin.status'),
+                'تاريخ الإنشاء',
+                'المنشئ',
+                helperTrans('ingaz.arrival_datetime_prefix'),
+                'المطار',
+            ],
+            'rows' => $trips->map(function ($trip) use ($types, $statuses, $travelWith) {
+                return [
+                    $trip->id,
+                    collect($trip->users)->pluck('name')->filter()->implode('، ') ?: 'غير محدد',
+                    collect($trip->maids)->pluck('name')->filter()->implode('، ') ?: 'غير محدد',
+                    collect($trip->order_ids)->map(fn ($id) => '#' . $id)->implode('، ') ?: '-',
+                    $types[$trip->travel_type] ?? $trip->travel_type ?? '-',
+                    $travelWith[$trip->travel_with] ?? $trip->travel_with ?? '-',
+                    $trip->flight_company ?: '-',
+                    $trip->flight_number ?: '-',
+                    $statuses[$trip->status] ?? $trip->status ?? '-',
+                    $this->formatDateValue($trip->created_at, true),
+                    $trip->creator_name ?: '-',
+                    trim(($trip->arrival_date ?: '-') . ' ' . ($trip->arrival_time ?: '')),
+                    $this->travelAirportLabel($trip->arrival_airport),
+                ];
+            })->all(),
+        ];
+    }
+
+    private function buildComplaintsReportPayload(Request $request): array
+    {
+        $query = Complaint::query()
+            ->with([
+                'user',
+                'complaintType',
+                'assignedTo',
+                'maidNationality',
+                'contract',
+                'resolvedBy',
+            ])
+            ->orderByDesc('id');
+
+        $this->applyReportBranchFilter($query, $request, 'complaints');
+        $this->applyComplaintFilters($request, $query);
+
+        $complaints = $query->get();
+
+        return [
+            'title' => 'تقرير الشكاوى',
+            'filename_prefix' => 'complaints_report',
+            'headings' => [
+                'رقم التذكرة',
+                'العميل',
+                'اسم مقدم الشكوى',
+                'جوال مقدم الشكوى',
+                'الموضوع',
+                'نوع الشكوى',
+                'الأولوية',
+                'الحالة',
+                'الموظف المسؤول',
+                'عقد الإيواء',
+                'جواز العاملة',
+                'جنسية العاملة',
+                'تاريخ الإنشاء',
+                'تاريخ الحل',
+                'تم الحل بواسطة',
+                'الرد',
+            ],
+            'rows' => $complaints->map(function (Complaint $complaint) {
+                return [
+                    '#' . str_pad((string) $complaint->id, 6, '0', STR_PAD_LEFT),
+                    $complaint->user?->name ?: '-',
+                    $complaint->complainant_name ?: '-',
+                    $complaint->complainant_phone ?: $this->resolveUserPhone($complaint->user),
+                    $complaint->subject ?: '-',
+                    $complaint->complaintType?->name ?: '-',
+                    $this->complaintPriorityLabel($complaint->priority),
+                    $this->complaintStatusLabel($complaint->status),
+                    $complaint->assignedTo?->name ?: '-',
+                    $complaint->contract?->id ? '#' . $complaint->contract->id : '-',
+                    $complaint->maid_passport ?: '-',
+                    $this->modelLabel($complaint->maidNationality, ['sub_title', 'title', 'name']),
+                    $this->formatDateValue($complaint->created_at, true),
+                    $this->formatDateValue($complaint->resolved_at, true),
+                    $complaint->resolvedBy?->name ?: '-',
+                    $complaint->response ?: ($complaint->last_response ?: '-'),
+                ];
+            })->all(),
+        ];
+    }
+
+    private function buildOfficesReportPayload(Request $request): array
+    {
+        $linkedContractsCountSubquery = $this->officeLinkedContractsCountSubquery();
+
+        $query = Office::query()
+            ->select('recruitment_offices.*')
+            ->with(['nationality', 'account', 'officeManager.admin'])
+            ->selectSub($linkedContractsCountSubquery, 'linked_contracts_count')
+            ->selectSub($this->officePreviousSponsorshipsCountSubquery(), 'previous_sponsorships_count')
+            ->selectSub($this->officeExternalDispatchesCountSubquery(), 'external_dispatches_count')
+            ->withCount(['maids as linked_cvs_count']);
+
+        $this->applyOfficeFilters($request, $query);
+
+        $offices = $query->get()
+            ->sortBy(fn (Office $office) => mb_strtolower((string) ($office->title ?? '')))
+            ->values();
+
+        return [
+            'title' => 'تقرير المكاتب',
+            'filename_prefix' => 'offices_report',
+            'headings' => [
+                'رقم المكتب',
+                'اسم المكتب',
+                'الجنسية',
+                'الهاتف',
+                'رقم الترخيص',
+                'مدير المكتب',
+                'هاتف المدير',
+                'بريد المدير',
+                'حالة المدير',
+                'كود الحساب',
+                'السير المرتبطة',
+                'العقود المرتبطة',
+                'إرساليات المكتب الخارجي',
+                'قيمة الدولار',
+                'تكلفة أخرى',
+                'الحالة',
+            ],
+            'rows' => $offices->map(function (Office $office) {
+                $manager = $office->officeManager?->admin;
+
+                return [
+                    $office->id,
+                    $office->title ?: '-',
+                    $this->modelLabel($office->nationality, ['sub_title', 'title', 'name']),
+                    $office->phone_office ?: '-',
+                    $office->license_number ?: '-',
+                    $office->manager_name ?: ($manager?->name ?: '-'),
+                    $office->manager_phone ?: '-',
+                    $office->manager_email ?: '-',
+                    $this->officeManagerStatusLabel($office),
+                    $office->account?->code ?: '-',
+                    (int) ($office->linked_cvs_count ?? 0),
+                    (int) ($office->linked_contracts_count ?? 0),
+                    (int) ($office->external_dispatches_count ?? 0),
+                    $this->formatMoney($office->cost_of_dollar),
+                    $this->formatMoney($office->cost_of_other),
+                    $this->officeStatusLabel($office->status),
+                ];
+            })->all(),
+        ];
+    }
+
+    private function buildFinancialRequestsReportPayload(Request $request): array
+    {
+        $query = FinancialRequest::query()
+            ->with(['creator', 'approver', 'financeBond'])
+            ->latest();
+
+        if (!$this->canViewAllFinancialRequestsForReport()) {
+            $query->where('created_by_id', auth('admin')->id());
+        }
+
+        $this->applyReportBranchFilter($query, $request, 'financial_requests');
+        $this->applyFinancialRequestFilters($request, $query);
+
+        $requests = $query->get();
+
+        return [
+            'title' => 'تقرير الطلبات المالية',
+            'filename_prefix' => 'financial_requests_report',
+            'headings' => [
+                'رقم الطلب',
+                'نوع الطلب',
+                'الحالة',
+                'التصعيد',
+                'المبلغ',
+                'تاريخ الطلب',
+                'رقم العقد',
+                'نوع العقد',
+                'العميل',
+                'هوية العميل',
+                'العاملة',
+                'جواز العاملة',
+                'مقدم الطلب',
+                'المعتمد بواسطة',
+                'تاريخ السداد',
+                'رقم السند',
+                'الوصف',
+            ],
+            'rows' => $requests->map(function (FinancialRequest $requestItem) {
+                return [
+                    $requestItem->request_no ?: $requestItem->id,
+                    $requestItem->type_label,
+                    $requestItem->status_label,
+                    $requestItem->priority_label,
+                    $this->formatMoney($requestItem->amount),
+                    $this->formatDateValue($requestItem->request_date),
+                    $requestItem->contract_number ?: '-',
+                    $requestItem->contract_type_label,
+                    $requestItem->client_name ?: '-',
+                    $requestItem->client_identity ?: '-',
+                    $requestItem->maid_name ?: '-',
+                    $requestItem->maid_passport ?: '-',
+                    $requestItem->creator?->name ?: '-',
+                    $requestItem->approver?->name ?: '-',
+                    $this->formatDateValue($requestItem->paid_at, true),
+                    $requestItem->financeBond?->code ?: ($requestItem->finance_bond_id ?: '-'),
+                    $requestItem->description ?: '-',
                 ];
             })->all(),
         ];
@@ -1368,6 +1921,333 @@ class ReportExportService
         }
     }
 
+    private function applySponsorshipTransferFilters(Request $request, $query): void
+    {
+        if ($request->filled('status')) {
+            if ($request->status === 'trial_period') {
+                $query->whereIn('status', ['trial', 'trial_started']);
+            } else {
+                $query->where('status', $request->status);
+            }
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        if ($request->filled('contract_number')) {
+            $query->whereHas('contract', function ($contractQuery) use ($request) {
+                $contractQuery->where('id', 'like', '%' . $request->contract_number . '%');
+            });
+        }
+
+        if ($request->filled('old_sponsor')) {
+            $oldSponsor = trim((string) $request->old_sponsor);
+            $query->whereHas('oldSponsor', function ($sponsorQuery) use ($oldSponsor) {
+                $sponsorQuery->where('name', 'like', '%' . $oldSponsor . '%')
+                    ->orWhere('phone', 'like', '%' . $oldSponsor . '%');
+            });
+        }
+
+        if ($request->filled('new_sponsor')) {
+            $newSponsor = trim((string) $request->new_sponsor);
+            $query->whereHas('newSponsor', function ($sponsorQuery) use ($newSponsor) {
+                $sponsorQuery->where('name', 'like', '%' . $newSponsor . '%')
+                    ->orWhere('phone', 'like', '%' . $newSponsor . '%');
+            });
+        }
+
+        if ($request->filled('trial_days')) {
+            $query->where('trial_days', (int) $request->trial_days);
+        }
+
+        if ($request->filled('amount')) {
+            if ($request->amount === '15000+') {
+                $query->where('contract_value', '>=', 15000);
+                return;
+            }
+
+            $amountRange = explode('-', (string) $request->amount);
+            if (count($amountRange) === 2) {
+                $query->whereBetween('contract_value', [(float) $amountRange[0], (float) $amountRange[1]]);
+            }
+        }
+    }
+
+    private function applyDeportationTravelFilters(Request $request, $query): void
+    {
+        if (!$request->filled('status') || $request->status === '') {
+            $query->whereIn('status', ['new', 'active', 'scheduled', 'in_progress', 'pending', 'confirmed']);
+        } elseif ($request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('contract_number')) {
+            $contractNumber = (int) $request->contract_number;
+            $query->where(function ($contractQuery) use ($contractNumber) {
+                $contractQuery->whereHas('order', function ($orderQuery) use ($contractNumber) {
+                    $orderQuery->where('id', $contractNumber);
+                })->orWhere('order_id', $contractNumber);
+            });
+        }
+
+        if ($request->filled('maid_name')) {
+            $maidName = trim((string) $request->maid_name);
+            $query->whereHas('maid', function ($maidQuery) use ($maidName) {
+                $maidQuery->where('name', 'like', '%' . $maidName . '%');
+            });
+        }
+
+        if ($request->filled('travel_date')) {
+            $query->whereDate('arrival_date', $request->travel_date);
+        }
+    }
+
+    private function applyTravelTripFilters(Request $request, $query): void
+    {
+        if (!$request->filled('status') || $request->status === '') {
+            $query->whereIn('status', ['new', 'active', 'scheduled', 'in_progress', 'pending', 'confirmed']);
+        } elseif ($request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('search')) {
+            $search = trim((string) $request->search);
+            $query->where(function ($searchQuery) use ($search) {
+                $searchQuery->where('travel_type', 'like', '%' . $search . '%')
+                    ->orWhere('travel_with', 'like', '%' . $search . '%')
+                    ->orWhere('notes', 'like', '%' . $search . '%')
+                    ->orWhere('status', 'like', '%' . $search . '%')
+                    ->orWhere('arrival_airport', 'like', '%' . $search . '%')
+                    ->orWhere('arrival_date', 'like', '%' . $search . '%')
+                    ->orWhere('arrival_time', 'like', '%' . $search . '%')
+                    ->orWhere('flight_company', 'like', '%' . $search . '%')
+                    ->orWhere('flight_number', 'like', '%' . $search . '%')
+                    ->orWhere('order_id', 'like', '%' . $search . '%')
+                    ->orWhere('created_at', 'like', '%' . $search . '%')
+                    ->orWhereExists(function ($activityQuery) use ($search) {
+                        $activityTable = config('activitylog.table_name', 'activity_log');
+                        $activityQuery->selectRaw('1')
+                            ->from($activityTable)
+                            ->join('admins', 'admins.id', '=', $activityTable . '.causer_id')
+                            ->whereColumn($activityTable . '.subject_id', 'travel_histories.id')
+                            ->where($activityTable . '.subject_type', TravelHistory::class)
+                            ->where($activityTable . '.causer_type', Admin::class)
+                            ->where($activityTable . '.event', 'created')
+                            ->where('admins.name', 'like', '%' . $search . '%');
+                    })
+                    ->orWhereHas('user', function ($userQuery) use ($search) {
+                        $userQuery->where('name', 'like', '%' . $search . '%');
+                    })
+                    ->orWhereHas('maid', function ($maidQuery) use ($search) {
+                        $maidQuery->where('passport_num', 'like', '%' . $search . '%')
+                            ->orWhere('name', 'like', '%' . $search . '%');
+                    });
+            });
+        }
+
+        if ($request->filled('travel_type')) {
+            $query->where('travel_type', $request->travel_type);
+        }
+
+        if ($request->filled('travel_with')) {
+            $query->where('travel_with', $request->travel_with);
+        }
+
+        if ($request->filled('arrival_airport')) {
+            $query->whereIn('arrival_airport', TravelAirports::valuesFor($request->arrival_airport));
+        }
+
+        if ($request->filled('travel_date')) {
+            $query->whereDate('arrival_date', $request->travel_date);
+        }
+
+        if ($request->filled('created_date')) {
+            $query->whereDate('created_at', $request->created_date);
+        }
+
+        if ($request->filled('created_by')) {
+            $activityTable = config('activitylog.table_name', 'activity_log');
+            $query->whereExists(function ($activityQuery) use ($activityTable, $request) {
+                $activityQuery->selectRaw('1')
+                    ->from($activityTable)
+                    ->whereColumn($activityTable . '.subject_id', 'travel_histories.id')
+                    ->where($activityTable . '.subject_type', TravelHistory::class)
+                    ->where($activityTable . '.causer_type', Admin::class)
+                    ->where($activityTable . '.event', 'created')
+                    ->where($activityTable . '.causer_id', $request->created_by);
+            });
+        }
+
+        if ($request->filled('flight_company')) {
+            $query->where('flight_company', 'like', '%' . $request->flight_company . '%');
+        }
+
+        if ($request->filled('flight_number')) {
+            $query->where('flight_number', 'like', '%' . $request->flight_number . '%');
+        }
+
+        if ($request->filled('order_id')) {
+            $query->where('order_id', 'like', '%' . $request->order_id . '%');
+        }
+    }
+
+    private function applyComplaintFilters(Request $request, $query): void
+    {
+        if ($request->filled('ticket_number')) {
+            $ticketNumber = ltrim((string) $request->ticket_number, '#0');
+            $ticketNumber = $ticketNumber === '' ? 0 : $ticketNumber;
+            $query->where('id', 'like', '%' . $ticketNumber . '%');
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('priority')) {
+            $query->where('priority', $request->priority);
+        }
+
+        if ($request->filled('type')) {
+            $query->where('complaint_type_id', $request->type);
+        }
+
+        if ($request->filled('assigned_to')) {
+            $query->where('assigned_to', $request->assigned_to);
+        }
+
+        if ($request->filled('keyword')) {
+            $keyword = trim((string) $request->keyword);
+            $query->where(function ($keywordQuery) use ($keyword) {
+                $keywordQuery->where('subject', 'like', '%' . $keyword . '%')
+                    ->orWhere('message', 'like', '%' . $keyword . '%')
+                    ->orWhere('details', 'like', '%' . $keyword . '%')
+                    ->orWhere('complainant_name', 'like', '%' . $keyword . '%')
+                    ->orWhere('complainant_phone', 'like', '%' . $keyword . '%')
+                    ->orWhere('maid_passport', 'like', '%' . $keyword . '%')
+                    ->orWhereHas('user', function ($userQuery) use ($keyword) {
+                        $userQuery->where('name', 'like', '%' . $keyword . '%')
+                            ->orWhere('phone', 'like', '%' . $keyword . '%');
+                    })
+                    ->orWhereHas('complaintType', function ($typeQuery) use ($keyword) {
+                        $typeQuery->where('name', 'like', '%' . $keyword . '%');
+                    })
+                    ->orWhereHas('assignedTo', function ($adminQuery) use ($keyword) {
+                        $adminQuery->where('name', 'like', '%' . $keyword . '%');
+                    });
+            });
+        }
+
+        if ($request->filled('period')) {
+            match ($request->period) {
+                'today' => $query->whereDate('created_at', today()),
+                'yesterday' => $query->whereDate('created_at', today()->subDay()),
+                'week' => $query->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]),
+                'month' => $query->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()]),
+                'custom' => null,
+                default => null,
+            };
+        }
+
+        if ($request->input('period') === 'custom' || $request->filled('date_from') || $request->filled('date_to')) {
+            if ($request->filled('date_from')) {
+                $query->whereDate('created_at', '>=', $request->date_from);
+            }
+
+            if ($request->filled('date_to')) {
+                $query->whereDate('created_at', '<=', $request->date_to);
+            }
+        }
+    }
+
+    private function applyOfficeFilters(Request $request, $query): void
+    {
+        if ($request->filled('office_name')) {
+            $officeName = trim((string) $request->office_name);
+            $query->whereHas('translations', function ($translationQuery) use ($officeName) {
+                $translationQuery->where('title', 'like', '%' . $officeName . '%');
+            });
+        }
+
+        if ($request->filled('nationality_id')) {
+            $query->where('nationality_id', $request->nationality_id);
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('cost_state')) {
+            if ($request->cost_state === 'with_cost') {
+                $query->whereNotNull('cost_of_dollar')->where('cost_of_dollar', '!=', '');
+            } elseif ($request->cost_state === 'without_cost') {
+                $query->where(function ($costQuery) {
+                    $costQuery->whereNull('cost_of_dollar')
+                        ->orWhere('cost_of_dollar', '');
+                });
+            }
+        }
+
+        if ($request->filled('linked_state')) {
+            $linkedContractsCountSubquery = $this->officeLinkedContractsCountSubquery();
+            $linkedContractsSql = '(' . $linkedContractsCountSubquery->toSql() . ')';
+            $linkedContractsBindings = $linkedContractsCountSubquery->getBindings();
+
+            if ($request->linked_state === 'with_links') {
+                $query->where(function ($linkedQuery) use ($linkedContractsSql, $linkedContractsBindings) {
+                    $linkedQuery->has('maids')
+                        ->orWhereRaw($linkedContractsSql . ' > 0', $linkedContractsBindings);
+                });
+            } elseif ($request->linked_state === 'without_links') {
+                $query->doesntHave('maids')
+                    ->whereRaw($linkedContractsSql . ' = 0', $linkedContractsBindings);
+            }
+        }
+    }
+
+    private function applyFinancialRequestFilters(Request $request, $query): void
+    {
+        if ($request->input('scope') === 'incomplete') {
+            $query->whereIn('status', [
+                FinancialRequest::STATUS_PENDING_REVIEW,
+                FinancialRequest::STATUS_IN_PROGRESS,
+            ]);
+        } elseif ($request->input('scope') === 'paid') {
+            $query->where('status', FinancialRequest::STATUS_PAID);
+        }
+
+        if ($request->filled('q')) {
+            $term = trim((string) $request->input('q'));
+            $query->where(function ($searchQuery) use ($term) {
+                $searchQuery->where('request_no', 'like', '%' . $term . '%')
+                    ->orWhere('contract_number', 'like', '%' . $term . '%')
+                    ->orWhere('client_identity', 'like', '%' . $term . '%')
+                    ->orWhere('client_name', 'like', '%' . $term . '%')
+                    ->orWhere('maid_name', 'like', '%' . $term . '%')
+                    ->orWhere('maid_passport', 'like', '%' . $term . '%');
+            });
+        }
+
+        foreach (['type', 'status', 'priority', 'created_by_id'] as $field) {
+            if ($request->filled($field)) {
+                $query->where($field, $request->input($field));
+            }
+        }
+
+        if ($request->filled('date')) {
+            $query->whereDate('request_date', $request->input('date'));
+        }
+    }
+
+    private function applyReportBranchFilter($query, Request $request, string $table, ?string $qualifiedColumn = null): void
+    {
+        app(BranchAccessService::class)->applyToQuery($query, $request, $table, $qualifiedColumn);
+    }
+
     private function applyRecruitmentMaidsScope($query): void
     {
         $rentalJobTypeId = $this->getRentalJobTypeId();
@@ -1881,6 +2761,203 @@ class ReportExportService
             'transfer' => 'نقل خدمات',
             default => 'استقدام',
         };
+    }
+
+    private function buildGroupedTravelTripsCollection(Collection $trips): Collection
+    {
+        $tripGroups = $trips->groupBy(fn (TravelHistory $trip) => $this->resolveTravelTripGroupKey($trip));
+        $primaryTrips = $tripGroups->map(fn (Collection $group) => $group->sortByDesc('id')->first());
+        $creatorNames = $this->resolveTravelCreatorNames($primaryTrips->pluck('id')->filter()->all());
+
+        return $tripGroups
+            ->map(function (Collection $group) use ($creatorNames) {
+                $primaryTrip = $group->sortByDesc('id')->first();
+                $orderIds = $group->pluck('order_id')->filter()->unique()->values();
+                $users = $group->map(fn (TravelHistory $trip) => $trip->user)
+                    ->filter()
+                    ->unique('id')
+                    ->values();
+                $maids = $group->map(fn (TravelHistory $trip) => $trip->maid)
+                    ->filter()
+                    ->unique('id')
+                    ->values();
+
+                return (object) [
+                    'id' => $primaryTrip->id,
+                    'trip_group_code' => $primaryTrip->trip_group_code,
+                    'contracts_count' => $orderIds->count(),
+                    'order_ids' => $orderIds->all(),
+                    'order_id' => $orderIds->implode(', '),
+                    'created_at' => $primaryTrip->created_at,
+                    'creator_name' => $creatorNames->get($primaryTrip->id),
+                    'travel_type' => $primaryTrip->travel_type,
+                    'travel_with' => $primaryTrip->travel_with,
+                    'arrival_airport' => $primaryTrip->arrival_airport,
+                    'arrival_date' => $primaryTrip->arrival_date,
+                    'arrival_time' => $primaryTrip->arrival_time,
+                    'flight_company' => $primaryTrip->flight_company,
+                    'flight_number' => $primaryTrip->flight_number,
+                    'status' => $this->resolveTravelGroupStatus($group),
+                    'users' => $users,
+                    'maids' => $maids,
+                ];
+            })
+            ->sortByDesc('id')
+            ->values();
+    }
+
+    private function resolveTravelTripGroupKey(TravelHistory $trip): string
+    {
+        if (!empty($trip->trip_group_code)) {
+            return 'group:' . $trip->trip_group_code;
+        }
+
+        return 'single:' . $trip->id;
+    }
+
+    private function resolveTravelGroupStatus(Collection $group): string
+    {
+        if ($group->isEmpty()) {
+            return 'pending';
+        }
+
+        if ($group->every(fn (TravelHistory $trip) => $trip->status === 'completed')) {
+            return 'completed';
+        }
+
+        foreach (['in_progress', 'active', 'scheduled', 'confirmed', 'pending', 'new'] as $status) {
+            if ($group->contains(fn (TravelHistory $trip) => $trip->status === $status)) {
+                return $status;
+            }
+        }
+
+        return (string) ($group->first()->status ?? 'pending');
+    }
+
+    private function resolveTravelCreatorNames(array $tripIds): Collection
+    {
+        $tripIds = array_values(array_unique(array_filter($tripIds)));
+        if ($tripIds === [] || !Schema::hasTable(config('activitylog.table_name', 'activity_log'))) {
+            return collect();
+        }
+
+        return Activity::query()
+            ->with('causer')
+            ->where('subject_type', TravelHistory::class)
+            ->whereIn('subject_id', $tripIds)
+            ->where('causer_type', Admin::class)
+            ->where('event', 'created')
+            ->orderBy('subject_id')
+            ->orderBy('id')
+            ->get()
+            ->groupBy('subject_id')
+            ->map(fn (Collection $activities) => optional($activities->first()?->causer)->name)
+            ->filter();
+    }
+
+    private function travelAirportLabel(?string $airport): string
+    {
+        if (!$airport) {
+            return 'غير محدد';
+        }
+
+        return TravelAirports::label($airport);
+    }
+
+    private function complaintStatusLabel(?string $status): string
+    {
+        if (!$status) {
+            return '-';
+        }
+
+        $options = $this->complaintStatusOptions();
+
+        return $options[$status] ?? $status;
+    }
+
+    private function complaintPriorityLabel(?string $priority): string
+    {
+        if (!$priority) {
+            return '-';
+        }
+
+        $options = $this->complaintPriorityOptions();
+
+        return $options[$priority] ?? $priority;
+    }
+
+    private function officeLinkedContractsCountSubquery()
+    {
+        return DB::table('contracts')
+            ->leftJoin('maids', 'maids.id', '=', 'contracts.maid_id')
+            ->leftJoin('contract_infos', 'contract_infos.contract_id', '=', 'contracts.id')
+            ->selectRaw('COUNT(DISTINCT contracts.id)')
+            ->whereIn('contracts.type', ['recruitment', 'maid'])
+            ->where(function ($query) {
+                $query->where(function ($maidQuery) {
+                    $maidQuery->whereColumn('maids.office_id', 'recruitment_offices.id')
+                        ->whereNull('maids.deleted_at');
+                })->orWhereColumn('contract_infos.manual_maid_office_id', 'recruitment_offices.id');
+            });
+    }
+
+    private function officePreviousSponsorshipsCountSubquery()
+    {
+        return DB::table('contract_infos')
+            ->selectRaw('COUNT(*)')
+            ->whereColumn('contract_infos.previous_sponsorship', 'recruitment_offices.id');
+    }
+
+    private function officeExternalDispatchesCountSubquery()
+    {
+        if (!Schema::hasTable('contract_external_office_dispatches')) {
+            return DB::query()->selectRaw('0');
+        }
+
+        return DB::table('contract_external_office_dispatches')
+            ->selectRaw('COUNT(*)')
+            ->whereColumn('contract_external_office_dispatches.recruitment_office_id', 'recruitment_offices.id');
+    }
+
+    private function officeStatusLabel(?string $status): string
+    {
+        if (!$status) {
+            return '-';
+        }
+
+        $options = $this->officeStatusOptions();
+
+        return $options[$status] ?? $status;
+    }
+
+    private function officeManagerStatusLabel(Office $office): string
+    {
+        $manager = $office->officeManager?->admin;
+
+        if (!$manager) {
+            return 'بدون مدير';
+        }
+
+        if (($manager->status ?? 'active') === 'suspended') {
+            return 'مدير موقوف';
+        }
+
+        if (method_exists($manager, 'isExternalOfficeAgent') && !$manager->isExternalOfficeAgent()) {
+            return 'غير مرتبط بلوحة الوكيل';
+        }
+
+        return 'لديه مدير';
+    }
+
+    private function canViewAllFinancialRequestsForReport(): bool
+    {
+        return AdminGuardHasAnyPerm([
+            PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS,
+            PermKeys::FINANCIAL_REQUESTS_APPROVE,
+            PermKeys::FINANCIAL_REQUESTS_CONTROL,
+            PermKeys::FINANCIAL_REQUESTS_EXPORT,
+            NewPermKeys::REPORTS_EXPORT,
+        ]);
     }
 
     private function resolveUserPhone($user): string

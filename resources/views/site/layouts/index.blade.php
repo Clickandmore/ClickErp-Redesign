@@ -36,6 +36,18 @@
     @if (isset($settings) && !empty($settings->tag_manager_head))
         {!! $settings->tag_manager_head !!}
     @endif
+    @if (isset($settings) && !empty($settings->tiktok_tag))
+        {!! $settings->tiktok_tag !!}
+    @endif
+    @if (isset($settings) && !empty($settings->snapchat_tag))
+        {!! $settings->snapchat_tag !!}
+    @endif
+    @if (isset($settings) && !empty($settings->zoho_tag))
+        {!! $settings->zoho_tag !!}
+    @endif
+    @if (isset($settings) && !empty($settings->hotjar_tag))
+        {!! $settings->hotjar_tag !!}
+    @endif
 
 </head>
 
@@ -96,6 +108,9 @@
     @endif
     @if (isset($settings) && !empty($settings->tag_manager_footer))
         {!! $settings->tag_manager_footer !!}
+    @endif
+    @if (isset($settings) && !empty($settings->live_chat_tag))
+        {!! $settings->live_chat_tag !!}
     @endif
 
 

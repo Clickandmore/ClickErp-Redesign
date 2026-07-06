@@ -460,6 +460,34 @@
                         </div>
                     @endif
 
+                    @if ($complaint->against_name)
+                        <div class="info-row">
+                            <div class="info-label">اسم المشتكى عليه:</div>
+                            <div class="info-value">{{ $complaint->against_name }}</div>
+                        </div>
+                    @endif
+
+                    @if ($complaint->submission_method)
+                        <div class="info-row">
+                            <div class="info-label">طريقة التقديم:</div>
+                            <div class="info-value">{{ $complaint->submission_method }}</div>
+                        </div>
+                    @endif
+
+                    @if ($complaint->related_to)
+                        <div class="info-row">
+                            <div class="info-label">متعلق:</div>
+                            <div class="info-value">{{ $complaint->related_to }}</div>
+                        </div>
+                    @endif
+
+                    @if ($complaint->last_response)
+                        <div class="info-row">
+                            <div class="info-label">آخر رد:</div>
+                            <div class="info-value">{{ $complaint->last_response }}</div>
+                        </div>
+                    @endif
+
                     <div class="info-row">
                         <div class="info-label">{{ __('ingaz.description') }}:</div>
                         <div class="info-value">

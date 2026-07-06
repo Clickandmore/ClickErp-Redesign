@@ -15,6 +15,7 @@ class PayrollRequest extends MainRequest
     {
         return [
             'month_year' => 'required|date_format:Y-m',
+            'month_days_display_option' => 'required|in:30,28,31,current',
             'employee_id' => 'required|array|min:1',
             'employee_id.*' => 'required|integer|exists:hr_employee,id',
             'maid_id' => 'nullable|array',

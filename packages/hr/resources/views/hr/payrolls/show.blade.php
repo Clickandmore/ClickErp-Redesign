@@ -22,13 +22,15 @@
             </div>
 
             <div class="d-flex align-items-end gap-2 flex-wrap">
+                <a href="{{ $exportRoute }}" class="btn btn-outline-success">Excel</a>
+                <button type="button" class="btn btn-outline-dark" onclick="window.print()">طباعة</button>
                 <a href="{{ route('payrolls.index') }}" class="btn btn-outline-secondary">رجوع</a>
             </div>
         </div>
 
         <div class="payroll-note mb-4">
             <strong>ملاحظة:</strong><br>
-           إجمالي الراتب = (أيام العمل × (الراتب الأساسي ÷ 30)) + حافز + إضافات أخرى = أيام الشهر - أيام الغياب
+           إجمالي الراتب = (أيام العمل × (الراتب الأساسي ÷ {{ $payroll->month_days }})) + حافز + إضافات أخرى، وأيام الغياب = أيام الشهر - أيام العمل
             <br>
             إجمالي الخصومات = سلفة + جزاء + خصومات أخرى
             <br>
@@ -45,6 +47,10 @@
                     <div class="col-md-3">
                         <label class="form-label">عدد العاملات</label>
                         <input type="text" class="form-control" value="{{ $payroll->workers_count }}" readonly>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">أيام الشهر</label>
+                        <input type="text" class="form-control" value="{{ $payroll->month_days }}" readonly>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">إجمالي الراتب</label>
@@ -113,4 +119,138 @@
             </div>
         </div>
     </div>
+
+    <div class="payroll-print-sheet" dir="rtl">
+        <div class="payroll-print-header">
+            <div class="payroll-print-logo">
+                @if($headerLogoUrl)
+                    <img src="{{ $headerLogoUrl }}" alt="company logo">
+                @endif
+            </div>
+            <div class="payroll-print-title">
+                <h2>مسير الرواتب</h2>
+                <div>مسير شهر {{ $monthLabel }}</div>
+            </div>
+            <div class="payroll-print-date">
+                {{ now()->format('Y-m-d H:i') }}
+            </div>
+        </div>
+
+        <div class="payroll-print-summary">
+            <div>
+                <span>الشهر</span>
+                <strong>{{ $monthLabel }}</strong>
+            </div>
+            <div>
+                <span>عدد العاملات</span>
+                <strong>{{ $payroll->workers_count }}</strong>
+            </div>
+            <div>
+                <span>إجمالي الراتب</span>
+                <strong>{{ number_format((float) $payroll->total_gross_salary, 2) }}</strong>
+            </div>
+            <div>
+                <span>إجمالي الخصومات</span>
+                <strong>{{ number_format((float) $payroll->total_deductions, 2) }}</strong>
+            </div>
+            <div>
+                <span>صافي الرواتب</span>
+                <strong>{{ number_format((float) $payroll->total_net_salary, 2) }}</strong>
+            </div>
+        </div>
+
+        @if($payroll->notes)
+            <div class="payroll-print-notes">
+                <strong>ملاحظة عامة:</strong>
+                <span>{{ $payroll->notes }}</span>
+            </div>
+        @endif
+
+        <table class="payroll-print-table">
+            <colgroup>
+                <col class="print-col-index">
+                <col class="print-col-name">
+                <col class="print-col-passport">
+                <col class="print-col-id">
+                <col class="print-col-nationality">
+                <col class="print-col-days">
+                <col class="print-col-money">
+                <col class="print-col-money">
+                <col class="print-col-money">
+                <col class="print-col-money">
+                <col class="print-col-days">
+                <col class="print-col-money">
+                <col class="print-col-money">
+                <col class="print-col-money">
+                <col class="print-col-money">
+                <col class="print-col-money">
+                <col class="print-col-notes">
+            </colgroup>
+            <thead>
+            <tr>
+                <th>#</th>
+                <th>الاسم</th>
+                <th>رقم الجواز</th>
+                <th>رقم الإقامة</th>
+                <th>الجنسية</th>
+                <th>أيام</th>
+                <th>أساسي</th>
+                <th>حافز</th>
+                <th>إضافات</th>
+                <th>إجمالي</th>
+                <th>غياب</th>
+                <th>سلفة</th>
+                <th>جزاء</th>
+                <th>خصومات</th>
+                <th>إجمالي خصم</th>
+                <th>الصافي</th>
+                <th>ملاحظة</th>
+            </tr>
+            </thead>
+            <tbody>
+            @forelse($payroll->items as $item)
+                <tr>
+                    <td>{{ $loop->iteration }}</td>
+                    <td>{{ $item->employee_name }}</td>
+                    <td>{{ $item->maid?->passport_num ?: '-' }}</td>
+                    <td>{{ $item->maid?->id_number ?: '-' }}</td>
+                    <td>{{ $item->nationality_name }}</td>
+                    <td>{{ $item->work_days + 0 }}</td>
+                    <td>{{ number_format((float) $item->basic_salary, 2) }}</td>
+                    <td>{{ number_format((float) $item->incentive, 2) }}</td>
+                    <td>{{ number_format((float) $item->other_additions, 2) }}</td>
+                    <td>{{ number_format((float) $item->gross_salary, 2) }}</td>
+                    <td>{{ $item->absence_days + 0 }}</td>
+                    <td>{{ number_format((float) $item->advance, 2) }}</td>
+                    <td>{{ number_format((float) $item->penalty, 2) }}</td>
+                    <td>{{ number_format((float) $item->other_deductions, 2) }}</td>
+                    <td>{{ number_format((float) $item->total_deductions, 2) }}</td>
+                    <td>{{ number_format((float) $item->net_salary, 2) }}</td>
+                    <td>{{ $item->notes ?: '-' }}</td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="17">لا توجد تفاصيل لهذا المسير.</td>
+                </tr>
+            @endforelse
+            </tbody>
+        </table>
+    </div>
+@endsection
+
+@section('js')
+    <script>
+        (function () {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('print') === '1') {
+                if (document.readyState === 'complete') {
+                    window.print();
+                } else {
+                    window.addEventListener('load', function () {
+                        window.print();
+                    });
+                }
+            }
+        })();
+    </script>
 @endsection

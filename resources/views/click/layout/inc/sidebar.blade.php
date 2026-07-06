@@ -174,7 +174,7 @@
                                 <span class="ms-2">{{ helperTrans('ingaz.orders') }} </span>
                                 <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                             </a>
-                            <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['orders.index', 'return_requests.index', 'orders.current', 'orders.ended', 'professional_application.index', 'recruitment_requests.index', 'renew-contracts.index', 'known-service-requests.index', 'contact.index']) ? 'show' : '' }}"
+                            <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['orders.index', 'return_requests.index', 'orders.current', 'orders.ended', 'professional_application.index', 'recruitment_requests.index', 'renew-contracts.index', 'known-service-requests.index', 'contact.index', 'contact.show']) ? 'show' : '' }}"
                                 id="my_dashboard2">
                                 @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_VIEW))
                                     <li>
@@ -247,7 +247,7 @@
                                 @endif
                                 @if (@AdminGuardHasPerm(\App\PermKeys::CONTACT_VIEW))
                                     <li>
-                                        <a class="m-link {{ Route::currentRouteName() == 'contact.index' ? 'active' : '' }}"
+                                        <a class="m-link {{ in_array(Route::currentRouteName(), ['contact.index', 'contact.show']) ? 'active' : '' }}"
                                             href="{{ route('contact.index') }}">
                                             <i class="fa fa-comments"></i>
                                             <span class="ms-2">طلبات التواصل</span>
@@ -965,7 +965,7 @@
 
                                         @if (@AdminGuardHasPerm(\App\PermKeys::CONTACT_VIEW))
                                             <li>
-                                                <a class="m-link {{ Route::currentRouteName() == 'contact.index' ? 'active' : '' }}"
+                                                <a class="m-link {{ in_array(Route::currentRouteName(), ['contact.index', 'contact.show']) ? 'active' : '' }}"
                                                     href="{{ route('contact.index') }}">
                                                     <i class="fa fa-envelope"></i>
                                                     <span class="ms-2">{{ helperTrans('ingaz.contact_us') }}</span>

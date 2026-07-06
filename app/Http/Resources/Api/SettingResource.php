@@ -64,6 +64,11 @@ class SettingResource extends JsonResource
             'meta_keywords' => $seo['meta_keywords'],
             'tag_manager_head' => $seo['tag_manager_head'],
             'tag_manager_footer' => $seo['tag_manager_footer'],
+            'tiktok_tag' => $seo['tiktok_tag'],
+            'snapchat_tag' => $seo['snapchat_tag'],
+            'zoho_tag' => $seo['zoho_tag'],
+            'hotjar_tag' => $seo['hotjar_tag'],
+            'live_chat_tag' => $seo['live_chat_tag'],
 
             'privacy_policy' => (string)$this->privacy_policy,
             'terms_conditions' => (string)$this->terms_conditions,
@@ -90,6 +95,11 @@ class SettingResource extends JsonResource
             'meta_keywords' => $this->translatedValue($locale, 'meta_keywords'),
             'tag_manager_head' => (string) ($this->tag_manager_head ?? ''),
             'tag_manager_footer' => (string) ($this->tag_manager_footer ?? ''),
+            'tiktok_tag' => (string) ($this->tiktok_tag ?? ''),
+            'snapchat_tag' => (string) ($this->snapchat_tag ?? ''),
+            'zoho_tag' => (string) ($this->zoho_tag ?? ''),
+            'hotjar_tag' => (string) ($this->hotjar_tag ?? ''),
+            'live_chat_tag' => (string) ($this->live_chat_tag ?? ''),
         ];
     }
 
