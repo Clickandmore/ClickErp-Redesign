@@ -38,6 +38,7 @@ use App\Http\Controllers\ingaz\MusanedTransferController;
 use App\Http\Controllers\ingaz\NationalityController;
 use App\Http\Controllers\ingaz\NotificationController;
 use App\Http\Controllers\ingaz\NotificationSettingsController;
+use App\Http\Controllers\ingaz\OfferController;
 use App\Http\Controllers\ingaz\OrderController;
 use App\Http\Controllers\ingaz\PackageController;
 use App\Http\Controllers\ingaz\PoliceSettingController;
@@ -208,6 +209,8 @@ Route::group(
             Route::resource('job-titles', JobTitleController::class);
             Route::post('nationalities/{id}/generate-financial-accounts', [NationalityController::class, 'generateFinancialAccounts'])->name('nationalities.generate-financial-accounts');
             Route::resource('nationalities', NationalityController::class);
+            Route::post('offers/{id}/toggle-status', [OfferController::class, 'toggleStatus'])->name('offers.toggle-status');
+            Route::resource('offers', OfferController::class);
             Route::resource('sliders', SliderController::class);
             Route::resource('religions', ReligionController::class);
             Route::resource('social-statuses', SocialStatusController::class);
