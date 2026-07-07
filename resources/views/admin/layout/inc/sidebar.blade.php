@@ -123,9 +123,9 @@
                 $canViewZohoSalesIq = @AdminGuardHasAnyPerm([\App\PermKeys::CRM_MODULE, \App\PermKeys::NOTIFICATIONS_CONTROL, \App\PermKeys::SETTINGS_VIEW]);
                 $canViewSms = @AdminGuardHasAnyPerm([\App\PermKeys::NOTIFICATIONS_CONTROL, \App\PermKeys::NOTIFICATIONS_VIEW]) || $canViewZohoSalesIq;
 
-                $canViewWebsiteManagement = @SystemModuleEnabled('website') && @AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_VIEW, \App\PermKeys::FAQ_VIEW, \App\PermKeys::STATISTICS_VIEW, \App\PermKeys::DEVELOPERS_PERMS]);
+                $canViewWebsiteManagement = @SystemModuleEnabled('website') && @AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_VIEW, \App\PermKeys::FAQ_VIEW, \App\PermKeys::STATISTICS_VIEW, \App\PermKeys::OFFERS_VIEW, \App\PermKeys::OFFERS_CONTROL, \App\PermKeys::DEVELOPERS_PERMS]);
 
-                $canViewHomeSettings = @AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_VIEW, \App\PermKeys::SLIDERS_VIEW, \App\PermKeys::ABOUT_US_VIEW, \App\PermKeys::FAQ_VIEW, \App\PermKeys::STATISTICS_VIEW, \App\PermKeys::STEPS_VIEW, \App\PermKeys::SERVICES_VIEW, \App\PermKeys::PARTENR_VIEW]);
+                $canViewHomeSettings = @AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_VIEW, \App\PermKeys::SLIDERS_VIEW, \App\PermKeys::OFFERS_VIEW, \App\PermKeys::OFFERS_CONTROL, \App\PermKeys::ABOUT_US_VIEW, \App\PermKeys::FAQ_VIEW, \App\PermKeys::STATISTICS_VIEW, \App\PermKeys::STEPS_VIEW, \App\PermKeys::SERVICES_VIEW, \App\PermKeys::PARTENR_VIEW]);
 
                 $canViewBranches = @SystemModuleEnabled('branches') && @AdminGuardHasAnyPerm([\App\PermKeys::BRANCHES_VIEW, \App\PermKeys::BRANCHES_CREATE, \App\PermKeys::BRANCHES_EDIT, \App\PermKeys::BRANCHES_DELETE, \App\PermKeys::BRANCHES_CONTROL]);
                 $canViewMaidsData = @AdminGuardHasAnyPerm([\App\PermKeys::NATIONALITIES_VIEW, \App\PermKeys::REC_OFFICES_VIEW, \App\PermKeys::JOB_TITLES_VIEW, \App\PermKeys::RELIGIONS_VIEW, \App\PermKeys::SKILLS_VIEW, \App\PermKeys::COUNTRIES_VIEW, \App\PermKeys::SOCIAL_STATUS_VIEW, \App\PermKeys::USERS_VIEW, \App\PermKeys::MAIDS_VIEW]);
@@ -1155,6 +1155,7 @@
                             request()->routeIs('select-workers.*') || request()->routeIs('select-workers-settings.*');
                         $isHomeSettingsRoute =
                             request()->routeIs('fast-news.*') ||
+                            request()->routeIs('offers.*') ||
                             request()->routeIs('sliders.*') ||
                             request()->routeIs('what-do.*') ||
                             request()->routeIs('what-do-setting.*') ||
@@ -1288,6 +1289,16 @@
                                                                 href="{{ route('fast-news.index') }}">
                                                                 <i class="fa fa-newspaper"></i>
                                                                 <span class="ms-2">{{ __('web.fast_news') }}</span>
+                                                            </a>
+                                                        </li>
+                                                    @endif
+
+                                                    @if (@AdminGuardHasAnyPerm([\App\PermKeys::OFFERS_VIEW, \App\PermKeys::OFFERS_CONTROL]))
+                                                        <li>
+                                                            <a class="m-link {{ request()->routeIs('offers.*') ? 'active' : '' }}"
+                                                                href="{{ route('offers.index') }}">
+                                                                <i class="fa fa-percent"></i>
+                                                                <span class="ms-2">العروض</span>
                                                             </a>
                                                         </li>
                                                     @endif

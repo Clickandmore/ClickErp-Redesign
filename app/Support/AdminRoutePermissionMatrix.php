@@ -640,6 +640,18 @@ class AdminRoutePermissionMatrix
                 'edit' => [PermKeys::SLIDERS_EDIT, PermKeys::SLIDERS_CONTROL],
                 'destroy' => [PermKeys::SLIDERS_DELETE, PermKeys::SLIDERS_CONTROL],
             ]),
+            self::resource('offers', [
+                'index' => [PermKeys::OFFERS_VIEW, PermKeys::OFFERS_CONTROL],
+                'show' => [PermKeys::OFFERS_VIEW, PermKeys::OFFERS_CONTROL],
+                'create' => [PermKeys::OFFERS_CREATE, PermKeys::OFFERS_CONTROL],
+                'store' => [PermKeys::OFFERS_CREATE, PermKeys::OFFERS_CONTROL],
+                'edit' => [PermKeys::OFFERS_EDIT, PermKeys::OFFERS_CONTROL],
+                'update' => [PermKeys::OFFERS_EDIT, PermKeys::OFFERS_CONTROL],
+                'destroy' => [PermKeys::OFFERS_DELETE, PermKeys::OFFERS_CONTROL],
+            ]),
+            [
+                'offers.toggle-status' => [PermKeys::OFFERS_EDIT, PermKeys::OFFERS_CONTROL],
+            ],
             self::resource('about-us', [
                 'index' => [PermKeys::ABOUT_US_VIEW],
                 'show' => [PermKeys::ABOUT_US_VIEW],

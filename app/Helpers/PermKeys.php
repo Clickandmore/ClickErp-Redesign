@@ -315,6 +315,12 @@ const PARTENR_CONTROL = 'partenr_control';
     const SLIDERS_DELETE = 'sliders_delete';
     const SLIDERS_CONTROL = 'sliders_control';
 
+    const OFFERS_VIEW = 'offers_view';
+    const OFFERS_CREATE = 'offers_create';
+    const OFFERS_EDIT = 'offers_edit';
+    const OFFERS_DELETE = 'offers_delete';
+    const OFFERS_CONTROL = 'offers_control';
+
     const FAQ_VIEW = 'faq_view';
     const FAQ_CREATE = 'faq_create';
     const FAQ_EDIT = 'faq_edit';

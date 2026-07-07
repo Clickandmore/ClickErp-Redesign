@@ -683,6 +683,7 @@ class PermissionsController extends Controller
             'stat_' => ['section' => 'content_management', 'group' => 'statistics'],
             'notifications_' => ['section' => 'content_management', 'group' => 'notifications'],
             'sliders_' => ['section' => 'content_management', 'group' => 'sliders'],
+            'offers_' => ['section' => 'content_management', 'group' => 'offers'],
             'faq_' => ['section' => 'content_management', 'group' => 'faq'],
             'about_us_' => ['section' => 'content_management', 'group' => 'about_us'],
             'contact_' => ['section' => 'orders', 'group' => 'contact'],
