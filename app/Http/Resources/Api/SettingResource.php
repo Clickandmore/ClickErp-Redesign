@@ -68,6 +68,7 @@ class SettingResource extends JsonResource
             'snapchat_tag' => $seo['snapchat_tag'],
             'zoho_tag' => $seo['zoho_tag'],
             'hotjar_tag' => $seo['hotjar_tag'],
+            'meta_pixel_tag' => $seo['meta_pixel_tag'],
             'live_chat_tag' => $seo['live_chat_tag'],
 
             'privacy_policy' => (string)$this->privacy_policy,
@@ -99,6 +100,7 @@ class SettingResource extends JsonResource
             'snapchat_tag' => (string) ($this->snapchat_tag ?? ''),
             'zoho_tag' => (string) ($this->zoho_tag ?? ''),
             'hotjar_tag' => (string) ($this->hotjar_tag ?? ''),
+            'meta_pixel_tag' => (string) ($this->meta_pixel_tag ?? ''),
             'live_chat_tag' => (string) ($this->live_chat_tag ?? ''),
         ];
     }

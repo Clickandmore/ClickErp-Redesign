@@ -48,6 +48,9 @@
     @if (isset($settings) && !empty($settings->hotjar_tag))
         {!! $settings->hotjar_tag !!}
     @endif
+    @if (isset($settings) && !empty($settings->meta_pixel_tag))
+        {!! $settings->meta_pixel_tag !!}
+    @endif
 
 </head>
 

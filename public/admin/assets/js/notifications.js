@@ -29,7 +29,12 @@ $(document).ready(function() {
             complaint_reassigned: 'fa-user-clock',
             complaint_priority_changed: 'fa-flag',
             complaint_updated: 'fa-message',
-            new_complaint: 'fa-circle-exclamation'
+            new_complaint: 'fa-circle-exclamation',
+            financial_request_updated: 'fa-money-bill-transfer',
+            sponsorship_transfer_created: 'fa-right-left',
+            sponsorship_transfer_status_changed: 'fa-right-left',
+            travel_assignment: 'fa-plane',
+            rental_contract_expiry_response: 'fa-file-signature'
         };
 
         return icons[type] || 'fa-bell';
