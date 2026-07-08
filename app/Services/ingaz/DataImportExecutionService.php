@@ -2164,7 +2164,15 @@ class DataImportExecutionService
             return null;
         }
 
-        return Account::query()->whereKey($id)->exists() ? $id : null;
+        if (Account::query()->whereKey($id)->exists()) {
+            return $id;
+        }
+
+        $accountIdByCode = Account::query()
+            ->where('code', $this->normalizeDigits((string) $value))
+            ->value('id');
+
+        return $accountIdByCode ? (int) $accountIdByCode : null;
     }
 
     private function resolveFinanceAccountId(array $row): ?int
