@@ -537,7 +537,7 @@ class UserController extends Controller
             'tax_number' => 'nullable|required_if:client_type,company|string|max:50|unique:users,tax_number',
             'license_number' => 'nullable|required_if:client_type,company|string|max:100',
             'birthdate' => 'nullable|date',
-            'marital_status' => 'nullable|required_if:client_type,person|string|in:single,married,divorced,widowed',
+            'marital_status' => 'nullable|string|in:single,married,divorced,widowed',
             'phone2' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:255',
             'city' => 'nullable|string|max:100',

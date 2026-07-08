@@ -226,12 +226,14 @@
                             <div class="d-flex flex-wrap gap-3">
                                 <div class="form-check">
                                     <input class="form-check-input client-type-radio" type="radio" name="client_type"
-                                           id="client_type_person" value="person" @checked(old('client_type', 'person') === 'person')>
+                                           id="client_type_person" value="person"
+                                           {{ old('client_type', 'person') === 'person' ? 'checked' : '' }} required>
                                     <label class="form-check-label" for="client_type_person">{{ helperTrans('ingaz.person_client') }}</label>
                                 </div>
                                 <div class="form-check">
                                     <input class="form-check-input client-type-radio" type="radio" name="client_type"
-                                           id="client_type_company" value="company" @checked(old('client_type') === 'company')>
+                                           id="client_type_company" value="company"
+                                           {{ old('client_type') === 'company' ? 'checked' : '' }}>
                                     <label class="form-check-label" for="client_type_company">{{ helperTrans('ingaz.company') }}</label>
                                 </div>
                             </div>
@@ -269,7 +271,10 @@
                         </div>
 
                         <div class="col-lg-6 person-client-field">
-                            <label class="form-label" for="national_num">{{ helperTrans('ingaz.national_num') }}</label>
+                            <label class="form-label" for="national_num">
+                                {{ helperTrans('ingaz.national_num') }}
+                                <span class="text-danger">({{ helperTrans('ingaz.required') }})</span>
+                            </label>
                             <input type="text" id="national_num" name="national_num" class="form-control"
                                    value="{{ old('national_num') }}" required>
                         </div>
@@ -293,13 +298,15 @@
                         </div>
 
                         <div class="col-lg-6 person-client-field">
-                            <label class="form-label d-block">{{ helperTrans('ingaz.marital_status') ?: 'الحالة الاجتماعية' }}</label>
+                            <label class="form-label d-block">
+                                {{ helperTrans('ingaz.marital_status') ?: 'الحالة الاجتماعية' }}
+                            </label>
                             <div class="d-flex flex-wrap gap-3">
                                 @foreach(['single' => 'أعزب', 'married' => 'متزوج', 'divorced' => 'مطلق', 'widowed' => 'أرمل'] as $value => $label)
                                     <div class="form-check">
                                         <input class="form-check-input" type="radio" name="marital_status"
                                                id="marital_status_{{ $value }}" value="{{ $value }}"
-                                               {{ old('marital_status') === $value ? 'checked' : '' }} required>
+                                               {{ old('marital_status') === $value ? 'checked' : '' }}>
                                         <label class="form-check-label" for="marital_status_{{ $value }}">{{ $label }}</label>
                                     </div>
                                 @endforeach
@@ -417,6 +424,10 @@
             }
 
             function toggleClientTypeFields() {
+                if (!$('input[name="client_type"]:checked').length) {
+                    $('#client_type_person').prop('checked', true);
+                }
+
                 const type = $('input[name="client_type"]:checked').val() || 'person';
                 const isCompany = type === 'company';
 
@@ -427,7 +438,7 @@
                     .find('input, select, textarea').prop('disabled', !isCompany);
 
                 $('#national_num').prop('required', !isCompany);
-                $('input[name="marital_status"]').prop('required', !isCompany);
+                $('input[name="marital_status"]').prop('required', false);
                 $('#tax_number, #license_number').prop('required', isCompany);
             }
 
