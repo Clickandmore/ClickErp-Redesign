@@ -873,7 +873,7 @@ class DataImportExecutionService
 
         $user = $userByDatabaseId ?: $userById ?: $userByPhone;
         $createdBy = $this->resolveAdminId($row['created_by'] ?? null) ?: $adminId;
-        $accountId = $this->resolveAccountId($row['account_id'] ?? null);
+        $accountId = $this->resolveOrCreateClientAccountId($row['account_id'] ?? null, $name, $adminId);
         $payload = $this->filterColumns('users', [
             'id' => $databaseId,
             'name' => $name,
@@ -2173,6 +2173,53 @@ class DataImportExecutionService
             ->value('id');
 
         return $accountIdByCode ? (int) $accountIdByCode : null;
+    }
+
+    private function resolveOrCreateClientAccountId($value, string $clientName, ?int $adminId): ?int
+    {
+        $code = $this->normalizeFinanceAccountCode($value);
+
+        if (!$code || !class_exists(Account::class) || !Schema::hasTable('fn_accounts')) {
+            return null;
+        }
+
+        $existingAccountId = Account::query()
+            ->where('code', $code)
+            ->value('id');
+
+        if ($existingAccountId) {
+            return (int) $existingAccountId;
+        }
+
+        $parentAccount = Account::query()
+            ->where('type', AccountTypesEnum::Clients->value)
+            ->lockForUpdate()
+            ->first();
+
+        if (!$parentAccount) {
+            throw new \InvalidArgumentException('لا يوجد حساب رئيسي للعملاء في جدول الحسابات. يرجى إنشاء حساب من نوع Clients أولا.');
+        }
+
+        $existingAccountId = Account::query()
+            ->where('code', $code)
+            ->value('id');
+
+        if ($existingAccountId) {
+            return (int) $existingAccountId;
+        }
+
+        $account = Account::query()->create([
+            'name' => $clientName,
+            'operation_type' => $parentAccount->operation_type,
+            'status' => $parentAccount->status,
+            'level' => $parentAccount->level + 1,
+            'type' => AccountTypesEnum::Client->value,
+            'parent_id' => $parentAccount->id,
+            'code' => $code,
+            'created_by_id' => $adminId ?? auth('admin')->id() ?? 1,
+        ]);
+
+        return (int) $account->id;
     }
 
     private function resolveFinanceAccountId(array $row): ?int
