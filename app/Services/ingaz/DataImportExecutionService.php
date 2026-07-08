@@ -3383,6 +3383,11 @@ class DataImportExecutionService
         return trim(preg_replace('/\s+/u', ' ', $value));
     }
 
+    private function normalizeComparableText(?string $value): string
+    {
+        return $this->normalizeArabicText($value);
+    }
+
     private function normalizeHeader(string $value): string
     {
         $value = $this->normalizeDigits($value);
