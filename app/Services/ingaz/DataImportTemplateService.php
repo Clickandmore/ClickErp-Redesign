@@ -178,6 +178,7 @@ class DataImportTemplateService
                     ['key' => 'video_link', 'label' => 'رابط الفيديو', 'required' => false, 'example' => 'https://example.com/video'],
                     ['key' => 'finance_income', 'label' => 'إيرادات التأجير', 'required' => false, 'example' => '0'],
                     ['key' => 'finance_expense', 'label' => 'مصروفات التأجير', 'required' => false, 'example' => '0'],
+                    ['key' => 'added_by', 'label' => 'أضيف بواسطة', 'required' => false, 'example' => 'System Admin'],
                     ['key' => 'notes', 'label' => 'ملاحظات إضافية', 'required' => false, 'example' => 'سيرة مخصصة للتأجير'],
                 ],
             ],
@@ -201,6 +202,7 @@ class DataImportTemplateService
                     ['key' => 'status', 'label' => 'حالة العقد', 'required' => true, 'example' => 'عقود مساند', 'valid_values' => $this->recruitmentContractStatusLabels()],
                     ['key' => 'amount', 'label' => 'قيمة العقد', 'required' => false, 'example' => '12000'],
                     ['key' => 'paid_amount', 'label' => 'المدفوع', 'required' => false, 'example' => '5000'],
+                    ['key' => 'created_by', 'label' => 'أضيف بواسطة', 'required' => false, 'example' => 'System Admin'],
                     ['key' => 'notes', 'label' => 'ملاحظات', 'required' => false, 'example' => 'عقد مستورد'],
                 ],
             ],
@@ -339,6 +341,7 @@ class DataImportTemplateService
                     ['key' => 'cost_center_id', 'label' => 'Cost Center ID', 'required' => false, 'example' => ''],
                     ['key' => 'cost_center_code', 'label' => 'كود مركز التكلفة', 'required' => false, 'example' => ''],
                     ['key' => 'cost_center_name', 'label' => 'اسم مركز التكلفة', 'required' => false, 'example' => ''],
+                    ['key' => 'created_by', 'label' => 'أضيف بواسطة', 'required' => false, 'example' => 'System Admin'],
                 ],
             ],
             'receipt_bonds' => [
@@ -491,6 +494,7 @@ class DataImportTemplateService
                 ['key' => 'recruitment_contract_status', 'label' => 'حالة عقد الاستقدام', 'required' => true, 'example' => 'عقود مساند', 'valid_values' => $this->recruitmentContractStatusLabels()],
                 ['key' => 'contract_amount', 'label' => 'قيمة عقد الاستقدام', 'required' => false, 'example' => '12000'],
                 ['key' => 'contract_paid_amount', 'label' => 'المدفوع من عقد الاستقدام', 'required' => false, 'example' => '5000'],
+                ['key' => 'contract_created_by', 'label' => 'أضيف عقد الاستقدام بواسطة', 'required' => false, 'example' => 'System Admin'],
                 ['key' => 'contract_notes', 'label' => 'ملاحظات عقد الاستقدام', 'required' => false, 'example' => 'عقد مستورد من القالب المجمع'],
             ]
         );
@@ -575,6 +579,7 @@ class DataImportTemplateService
             ['key' => 'maid_is_pinned', 'label' => 'تثبيت السيرة', 'required' => false, 'example' => 'لا'],
             ['key' => 'maid_video_link', 'label' => 'رابط فيديو العاملة', 'required' => false, 'example' => 'https://example.com/video'],
             ['key' => 'maid_notes', 'label' => 'ملاحظات العاملة', 'required' => false, 'example' => 'سيرة مستوردة من القالب المجمع'],
+            ['key' => 'maid_added_by', 'label' => 'أضيفت السيرة بواسطة', 'required' => false, 'example' => 'System Admin'],
         ];
 
         if ($rental) {

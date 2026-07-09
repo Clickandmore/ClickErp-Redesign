@@ -18,6 +18,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
@@ -1368,13 +1369,21 @@ class MaidBulkImportService
         }
 
         if (is_numeric($value)) {
-            return (string) (int) $value;
+            $adminId = DB::table('admins')->where('id', (int) $value)->value('id');
+
+            return $adminId ? (string) $adminId : null;
         }
 
         try {
             $adminId = DB::table('admins')
-                ->where('name', $value)
-                ->orWhere('email', $value)
+                ->where(function ($query) use ($value) {
+                    $query->where('name', $value)
+                        ->orWhere('email', $value);
+
+                    if (Schema::hasColumn('admins', 'username')) {
+                        $query->orWhere('username', $value);
+                    }
+                })
                 ->value('id');
 
             return $adminId ? (string) $adminId : null;
