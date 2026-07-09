@@ -268,6 +268,10 @@ class DataImportExecutionService
 
         $statement = $this->buildReceiptBondStatement($row, $defaultStatement);
         $paymentType = $this->resolveReceiptBondPaymentType($row['payment_type'] ?? null);
+        $createdById = $this->resolveImportedAdminId(
+            $row['created_by_name'] ?? $row['created_by'] ?? null,
+            $adminId
+        );
         $constraintId = $this->upsertReceiptBondConstraint(
             $row,
             $code,
@@ -277,7 +281,7 @@ class DataImportExecutionService
             $debitAccountId,
             $creditAccountId,
             (int) $year->id,
-            $adminId,
+            $createdById,
             $bondType,
             $constraintType
         );
@@ -294,11 +298,7 @@ class DataImportExecutionService
             'statement' => $statement,
             'constraint_id' => $constraintId,
             'is_confirm' => 1,
-            'created_by_id' => $this->resolveAdminId($row['created_by_name'] ?? $row['created_by'] ?? null)
-                ?? $adminId
-                ?? auth('admin')->id()
-                ?? auth()->id()
-                ?? 1,
+            'created_by_id' => $createdById,
             'year_id' => $year->id,
             'cost_center_id' => $this->resolveFinanceCostCenterId($row),
         ];
@@ -592,6 +592,9 @@ class DataImportExecutionService
 
         $statement = trim((string) ($firstRow['statement'] ?? ''))
             ?: (trim((string) ($firstRow['line_statement'] ?? '')) ?: '-');
+        $createdByValue = collect($rows)
+            ->map(fn ($item) => $item['row']['created_by'] ?? $item['row']['created_by_name'] ?? null)
+            ->first(fn ($value) => trim((string) $value) !== '');
         $code = $this->resolveFinanceConstraintCode($rows);
         $type = $this->resolveFinanceConstraintType($firstRow['type'] ?? null);
         $details = [];
@@ -647,7 +650,7 @@ class DataImportExecutionService
             'statement' => $statement,
             'year_id' => $year->id,
             'code' => $code ?: $this->nextFinanceConstraintCode(),
-            'created_by_id' => $adminId,
+            'created_by_id' => $this->resolveImportedAdminId($createdByValue, $adminId),
         ];
 
         if ($constraint) {
@@ -925,6 +928,10 @@ class DataImportExecutionService
             'is_paid' => 1,
             'paid_at' => $invoiceDate,
             'send_to_zatca' => 0,
+            'created_by' => $this->resolveImportedAdminId(
+                $row['created_by_name'] ?? $row['created_by'] ?? null,
+                $adminId
+            ),
             'created_at' => $invoiceDate,
             'updated_at' => $invoiceDate,
         ], $context['invoice_columns']);
@@ -1217,7 +1224,10 @@ class DataImportExecutionService
         }
 
         $user = $userByDatabaseId ?: $userById ?: $userByPhone;
-        $createdBy = $this->resolveAdminId($row['created_by'] ?? null) ?: $adminId;
+        $createdBy = $this->resolveImportedAdminId(
+            $row['created_by'] ?? $row['created_by_name'] ?? null,
+            $adminId
+        );
         $accountId = $this->resolveOrCreateClientAccountId($row['account_id'] ?? null, $name, $adminId);
         $payload = $this->filterColumns('users', [
             'id' => $databaseId,
@@ -1701,7 +1711,10 @@ class DataImportExecutionService
             'user_id' => $user->id,
             'maid_id' => $maid->id,
             'order_id' => $order?->id,
-            'marketer_id' => $adminId,
+            'marketer_id' => $this->resolveImportedAdminId(
+                $row['created_by'] ?? $row['created_by_name'] ?? null,
+                $adminId
+            ),
             'status' => $status,
             'contract_number' => $row['contract_number'] ?? null,
             'msaned_number' => $row['msaned_number'] ?? null,
@@ -2003,6 +2016,7 @@ class DataImportExecutionService
             'finance_expense' => $row['maid_finance_expense'] ?? null,
             'notes' => $row['maid_notes'] ?? $row['additional_notes'] ?? null,
             'additional_notes' => $row['maid_notes'] ?? $row['additional_notes'] ?? null,
+            'added_by' => $row['maid_added_by'] ?? $row['added_by'] ?? null,
         ]);
     }
 
@@ -2022,6 +2036,7 @@ class DataImportExecutionService
             'status' => $row['recruitment_contract_status'] ?? $row['contract_status'] ?? null,
             'amount' => $row['contract_amount'] ?? $row['amount'] ?? null,
             'paid_amount' => $row['contract_paid_amount'] ?? $row['paid_amount'] ?? null,
+            'created_by' => $row['contract_created_by'] ?? $row['created_by'] ?? null,
             'notes' => $row['contract_notes'] ?? null,
         ]);
     }
@@ -2189,7 +2204,10 @@ class DataImportExecutionService
             'request_type' => $rental
                 ? $this->normalizeRequestType($row['request_type'] ?? null)
                 : Maid::REQUEST_TYPE_SPECIFIC,
-            'added_by' => $adminId,
+            'added_by' => $this->resolveImportedAdminId(
+                $row['added_by'] ?? $row['created_by'] ?? $row['created_by_name'] ?? null,
+                $adminId
+            ),
             'is_show' => $this->truthy($row['is_show'] ?? null, true) ? 1 : 0,
             'is_pinned' => $this->truthy($row['is_pinned'] ?? null, false) ? 1 : 0,
             'additional_notes' => $row['notes'] ?? $row['additional_notes'] ?? null,
@@ -2962,8 +2980,24 @@ class DataImportExecutionService
         }
 
         return Admin::query()
-            ->where('name', $value)
+            ->where(function ($query) use ($value) {
+                $query->where('name', $value)
+                    ->orWhere('email', $value);
+
+                if (Schema::hasColumn('admins', 'username')) {
+                    $query->orWhere('username', $value);
+                }
+            })
             ->value('id');
+    }
+
+    private function resolveImportedAdminId($value, ?int $fallbackAdminId): int
+    {
+        return $this->resolveAdminId($value)
+            ?? $fallbackAdminId
+            ?? auth('admin')->id()
+            ?? auth()->id()
+            ?? 1;
     }
 
     private function findEmployee(?int $databaseId, string $code, string $nationalNumber, string $email): ?HrEmployee
