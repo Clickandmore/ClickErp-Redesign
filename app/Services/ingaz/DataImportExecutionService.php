@@ -38,7 +38,10 @@ use Nami\Finance\Models\Constraint;
 use Nami\Finance\Models\ConstraintDetails;
 use Nami\Finance\Models\CostCenter;
 use Nami\Finance\Models\FnYear;
+use Nami\Finance\Models\Bond;
 use Nami\Finance\Enums\AccountTypesEnum;
+use Nami\Finance\Enums\BondPaymentTypes;
+use Nami\Finance\Enums\BondTypes;
 use Nami\Finance\Enums\ConstraintTypiesEnum;
 use Nami\Hr\Models\Department as HrDepartment;
 use Nami\Hr\Models\Employee as HrEmployee;
@@ -78,6 +81,14 @@ class DataImportExecutionService
 
         if ($type === 'finance_constraints') {
             return $this->importFinanceConstraintsFile($storedPath, $columns, $adminId, $result);
+        }
+
+        if ($type === 'receipt_bonds') {
+            return $this->importReceiptBondsFile($storedPath, $columns, $adminId, $result);
+        }
+
+        if ($type === 'disbursement_bonds') {
+            return $this->importDisbursementBondsFile($storedPath, $columns, $adminId, $result);
         }
 
         if ($type === 'finance_accounts') {
@@ -122,6 +133,337 @@ class DataImportExecutionService
         }
 
         return $result;
+    }
+
+    private function importReceiptBondsFile(string $storedPath, array $columns, ?int $adminId, array $result): array
+    {
+        if (!class_exists(Bond::class) || !Schema::hasTable('fn_bonds')) {
+            $result['error_count']++;
+            $result['errors'][] = 'جدول سندات القبض غير موجود.';
+
+            return $result;
+        }
+
+        foreach ($this->readRows(Storage::path($storedPath), $columns) as $rowNumber => $row) {
+            $result['total']++;
+
+            try {
+                DB::transaction(function () use ($row, $adminId, &$result) {
+                    $outcome = $this->importReceiptBond($row, $adminId);
+                    $result[$outcome]++;
+                });
+            } catch (\Throwable $exception) {
+                $result['skipped']++;
+                $result['error_count']++;
+
+                if (count($result['errors']) < self::MAX_ERROR_DETAILS) {
+                    $result['errors'][] = "صف {$rowNumber}: " . $exception->getMessage();
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    private function importReceiptBond(array $row, ?int $adminId): string
+    {
+        if ($this->hasImportCellValue($row['paid_amount'] ?? null) || $this->hasImportCellValue($row['spent_amount'] ?? null)) {
+            return $this->importDisbursementBond($row, $adminId);
+        }
+
+        return $this->importFinanceBondRow(
+            $row,
+            $adminId,
+            BondTypes::Qabd->value,
+            ConstraintTypiesEnum::QapdBond,
+            ['received_amount', 'total', 'financial_movement'],
+            'سند قبض مستورد'
+        );
+    }
+
+    private function importDisbursementBondsFile(string $storedPath, array $columns, ?int $adminId, array $result): array
+    {
+        if (!class_exists(Bond::class) || !Schema::hasTable('fn_bonds')) {
+            $result['error_count']++;
+            $result['errors'][] = 'جدول سندات الصرف غير موجود.';
+
+            return $result;
+        }
+
+        foreach ($this->readRows(Storage::path($storedPath), $columns) as $rowNumber => $row) {
+            $result['total']++;
+
+            try {
+                DB::transaction(function () use ($row, $adminId, &$result) {
+                    $outcome = $this->importDisbursementBond($row, $adminId);
+                    $result[$outcome]++;
+                });
+            } catch (\Throwable $exception) {
+                $result['skipped']++;
+                $result['error_count']++;
+
+                if (count($result['errors']) < self::MAX_ERROR_DETAILS) {
+                    $result['errors'][] = "صف {$rowNumber}: " . $exception->getMessage();
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    private function importDisbursementBond(array $row, ?int $adminId): string
+    {
+        return $this->importFinanceBondRow(
+            $row,
+            $adminId,
+            BondTypes::Sarf->value,
+            ConstraintTypiesEnum::SarfBond,
+            ['paid_amount', 'spent_amount', 'total', 'financial_movement'],
+            'سند صرف مستورد'
+        );
+    }
+
+    private function importFinanceBondRow(
+        array $row,
+        ?int $adminId,
+        string $bondType,
+        ConstraintTypiesEnum $constraintType,
+        array $amountKeys,
+        string $defaultStatement
+    ): string
+    {
+        $code = $this->optionalInteger($row['bond_code'] ?? $row['code'] ?? null);
+        if (!$code) {
+            throw new \InvalidArgumentException('رقم السند مطلوب.');
+        }
+
+        $date = $this->parseDate($row['date'] ?? null);
+        if (!$date) {
+            throw new \InvalidArgumentException('تاريخ السند مطلوب أو غير صحيح.');
+        }
+
+        $year = $this->resolveFinanceYear($date);
+        if (!$year) {
+            throw new \InvalidArgumentException('لا توجد سنة مالية صالحة لتاريخ السند.');
+        }
+
+        $debitAccountId = $this->resolveReceiptBondAccountId($row, 'debit');
+        $creditAccountId = $this->resolveReceiptBondAccountId($row, 'credit');
+
+        if (!$debitAccountId || !$creditAccountId) {
+            throw new \InvalidArgumentException('تعذر تحديد حساب المدين أو الدائن من أرقام الحسابات الموجودة في الشيت.');
+        }
+
+        $value = null;
+        foreach ($amountKeys as $amountKey) {
+            $value = $this->decimal($row[$amountKey] ?? null);
+            if ($value !== null) {
+                break;
+            }
+        }
+        $value ??= 0.0;
+
+        $statement = $this->buildReceiptBondStatement($row, $defaultStatement);
+        $paymentType = $this->resolveReceiptBondPaymentType($row['payment_type'] ?? null);
+        $constraintId = $this->upsertReceiptBondConstraint(
+            $row,
+            $code,
+            $date,
+            (float) $value,
+            $statement,
+            $debitAccountId,
+            $creditAccountId,
+            (int) $year->id,
+            $adminId,
+            $bondType,
+            $constraintType
+        );
+
+        $payload = [
+            'code' => $code,
+            'type' => $bondType,
+            'payment_type' => $paymentType,
+            'bond_book_num' => (string) $code,
+            'debit_account_id' => $debitAccountId,
+            'credit_account_id' => $creditAccountId,
+            'value' => round((float) $value, 2),
+            'date' => $date,
+            'statement' => $statement,
+            'constraint_id' => $constraintId,
+            'is_confirm' => 1,
+            'created_by_id' => $this->resolveAdminId($row['created_by_name'] ?? $row['created_by'] ?? null)
+                ?? $adminId
+                ?? auth('admin')->id()
+                ?? auth()->id()
+                ?? 1,
+            'year_id' => $year->id,
+            'cost_center_id' => $this->resolveFinanceCostCenterId($row),
+        ];
+
+        foreach ([
+            'is_tax' => 0,
+            'net' => round((float) $value, 2),
+            'account_text' => $this->resolveImportedBondAccountText($row, $bondType),
+            'general_type' => 0,
+            'transfer_number' => $this->extractReceiptBondTransferNumber($row),
+        ] as $column => $columnValue) {
+            if (Schema::hasColumn('fn_bonds', $column)) {
+                $payload[$column] = $columnValue;
+            }
+        }
+
+        $bond = Bond::query()
+            ->where('type', $bondType)
+            ->where('code', $code)
+            ->first();
+
+        if ($bond) {
+            $bond->update($payload);
+            return 'updated';
+        }
+
+        Bond::query()->create($payload);
+
+        return 'created';
+    }
+
+    private function upsertReceiptBondConstraint(
+        array $row,
+        int $code,
+        string $date,
+        float $value,
+        string $statement,
+        int $debitAccountId,
+        int $creditAccountId,
+        int $yearId,
+        ?int $adminId,
+        string $bondType,
+        ConstraintTypiesEnum $constraintType
+    ): int {
+        $constraint = null;
+        $existingBond = Bond::query()
+            ->where('type', $bondType)
+            ->where('code', $code)
+            ->first();
+
+        if ($existingBond?->constraint_id) {
+            $constraint = Constraint::query()->whereKey($existingBond->constraint_id)->first();
+        }
+
+        $payload = [
+            'type' => $constraintType->value,
+            'value' => round($value, 2),
+            'date' => $date,
+            'statement' => $statement,
+            'year_id' => $yearId,
+            'code' => $constraint?->code ?: $this->nextFinanceConstraintCode(),
+            'created_by_id' => $adminId ?? auth('admin')->id() ?? auth()->id() ?? 1,
+        ];
+
+        if ($constraint) {
+            $constraint->update($payload);
+            ConstraintDetails::query()->where('constraint_id', $constraint->id)->delete();
+        } else {
+            $constraint = Constraint::query()->create($payload);
+        }
+
+        $costCenterId = $this->resolveFinanceCostCenterId($row);
+        foreach ([
+            ['type' => 'debtor', 'account_id' => $debitAccountId, 'debtor_value' => round($value, 2), 'creditor_value' => 0],
+            ['type' => 'creditor', 'account_id' => $creditAccountId, 'debtor_value' => 0, 'creditor_value' => round($value, 2)],
+        ] as $detail) {
+            ConstraintDetails::query()->create($detail + [
+                'constraint_id' => $constraint->id,
+                'date' => $date,
+                'cost_center_id' => $costCenterId,
+                'statement' => $statement,
+                'year_id' => $yearId,
+            ]);
+        }
+
+        return (int) $constraint->id;
+    }
+
+    private function resolveReceiptBondAccountId(array $row, string $side): ?int
+    {
+        $prefix = $side === 'debit' ? 'debit' : 'credit';
+
+        return $this->resolveFinanceAccountId([
+            'account_id' => $row[$prefix . '_account_id'] ?? null,
+            'account_code' => $row[$prefix . '_account_code'] ?? null,
+            'account_name' => $row[$prefix . '_account_name'] ?? null,
+        ]);
+    }
+
+    private function resolveReceiptBondPaymentType($value): int
+    {
+        $value = trim((string) $value);
+        $normalized = $this->normalizeArabicText($value);
+
+        if (str_contains($normalized, 'شيك') || str_contains($normalized, 'check')) {
+            return BondPaymentTypes::Check->value;
+        }
+
+        if (str_contains($normalized, 'شبكه') || str_contains($normalized, 'شبكة') || str_contains($normalized, 'نقاط بيع') || str_contains($normalized, 'network')) {
+            return BondPaymentTypes::Network->value;
+        }
+
+        if (str_contains($normalized, 'تحويل') || str_contains($normalized, 'بنك') || str_contains($normalized, 'bank')) {
+            return BondPaymentTypes::BankTransfer->value;
+        }
+
+        if (str_contains($normalized, 'الكتروني') || str_contains($normalized, 'محفظه') || str_contains($normalized, 'wallet')) {
+            return BondPaymentTypes::ElectronicWallet->value;
+        }
+
+        return BondPaymentTypes::Cash->value;
+    }
+
+    private function resolveImportedBondAccountText(array $row, string $bondType): string
+    {
+        $preferredKey = $bondType === BondTypes::Sarf->value ? 'debit_account_name' : 'credit_account_name';
+        $fallbackKey = $bondType === BondTypes::Sarf->value ? 'credit_account_name' : 'debit_account_name';
+
+        return trim((string) ($row[$preferredKey] ?? $row['account_text'] ?? $row[$fallbackKey] ?? ''));
+    }
+
+    private function buildReceiptBondStatement(array $row, string $defaultStatement): string
+    {
+        $statement = trim((string) ($row['statement'] ?? ''));
+        if ($statement === '') {
+            $statement = $defaultStatement;
+        }
+
+        $extras = [];
+        foreach ([
+            'client_number' => 'رقم العميل',
+            'order_number' => 'رقم الطلب',
+            'payment_type' => 'طريقة الدفع',
+            'created_by_name' => 'أنشئ بواسطة',
+        ] as $key => $label) {
+            $value = trim((string) ($row[$key] ?? ''));
+            if ($value !== '' && $value !== '0') {
+                $extras[] = "{$label}: {$value}";
+            }
+        }
+
+        $statement = $extras ? $statement . ' | ' . implode(' | ', $extras) : $statement;
+
+        return mb_substr($statement, 0, 500);
+    }
+
+    private function extractReceiptBondTransferNumber(array $row): string
+    {
+        $statement = trim((string) ($row['statement'] ?? ''));
+        $paymentType = trim((string) ($row['payment_type'] ?? ''));
+
+        foreach ([$statement, $paymentType] as $value) {
+            if (preg_match('/(?:رقم\s*(?:تحويل|شيك)?\s*[:：]?\s*)?(\d{4,})/u', $value, $matches)) {
+                return $matches[1];
+            }
+        }
+
+        return 'nothing';
     }
 
     private function readRows(string $path, array $columns): \Generator
@@ -3456,6 +3798,24 @@ class DataImportExecutionService
     private function importHeaderAliases(): array
     {
         return [
+            'رقم السند' => 'bond_code',
+            'رقم حساب مدين' => 'debit_account_code',
+            'اسم مدين' => 'debit_account_name',
+            'رقم حساب دائن' => 'credit_account_code',
+            'اسم دائن' => 'credit_account_name',
+            'التاريخ' => 'date',
+            'التاريخ هـ' => 'hijri_date',
+            'طريقة الدفع' => 'payment_type',
+            'الإجمالي' => 'total',
+            'المبلغ المقبوض' => 'received_amount',
+            'المبلغ المصروف' => 'paid_amount',
+            'عملة' => 'currency',
+            'الحركة المالية' => 'financial_movement',
+            'عملة الحركة المالية' => 'financial_movement_currency',
+            'ذلك مقابل' => 'statement',
+            'رقم العميل' => 'client_number',
+            'رقم الطلب' => 'order_number',
+            'أنشئ بواسطة' => 'created_by_name',
             'قيد محاسبي رقم' => 'constraint_ref',
             'رقم القيد' => 'constraint_ref',
             'رقم مجموعة القيد' => 'constraint_ref',
