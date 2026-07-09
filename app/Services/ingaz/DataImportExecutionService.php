@@ -5,6 +5,7 @@ namespace App\Services\ingaz;
 use App\Enums\ingaz\ContractStatusEnum;
 use App\Enums\ingaz\OrderEnum;
 use App\Models\Contract;
+use App\Models\Branch;
 use App\Models\RentalContract;
 use App\Models\RecruitmentOffices;
 use App\Models\RentalFinancialAdjustment;
@@ -50,6 +51,7 @@ use Nami\Hr\Models\Job as HrJob;
 use Nami\Hr\Models\Shift as HrShift;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
+use Spatie\Permission\Models\Role;
 
 class DataImportExecutionService
 {
@@ -106,6 +108,7 @@ class DataImportExecutionService
                 DB::transaction(function () use ($type, $row, $adminId, &$result) {
                     $outcome = match ($type) {
                         'clients' => $this->importClient($row, $adminId),
+                        'admins' => $this->importAdmin($row),
                         'recruitment_offices' => $this->importRecruitmentOffice($row),
                         'employees' => $this->importEmployee($row),
                         'rental_maids' => $this->importRentalMaid($row, $adminId),
@@ -1446,6 +1449,165 @@ class DataImportExecutionService
         }
 
         return $outcome;
+    }
+
+    private function importAdmin(array $row): string
+    {
+        $databaseId = $this->optionalInteger($row['id'] ?? null);
+        $name = trim((string) ($row['name'] ?? ''));
+        $username = trim((string) ($row['username'] ?? ''));
+        $email = mb_strtolower(trim((string) ($row['email'] ?? '')));
+        $phone = trim((string) ($row['phone'] ?? ''));
+        $password = (string) ($row['password'] ?? '');
+
+        if ($name === '' || $email === '' || $phone === '') {
+            throw new \InvalidArgumentException('اسم المستخدم والبريد الإلكتروني ورقم الجوال مطلوبة.');
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new \InvalidArgumentException('البريد الإلكتروني غير صالح.');
+        }
+
+        if ($username !== '' && !preg_match('/^[A-Za-z0-9._@-]+$/', $username)) {
+            throw new \InvalidArgumentException('اسم الدخول يقبل الحروف الإنجليزية والأرقام والرموز . _ @ - فقط.');
+        }
+
+        $admin = Admin::query()
+            ->when($databaseId, fn ($query) => $query->whereKey($databaseId))
+            ->when(!$databaseId, function ($query) use ($email, $username) {
+                $query->where(function ($query) use ($email, $username) {
+                    $query->whereRaw('LOWER(email) = ?', [$email]);
+                    if ($username !== '') {
+                        $query->orWhere('username', $username);
+                    }
+                });
+            })
+            ->first();
+        $creating = !$admin;
+
+        if ($creating && strlen($password) < 6) {
+            throw new \InvalidArgumentException('كلمة المرور مطلوبة للمستخدم الجديد ويجب ألا تقل عن 6 أحرف.');
+        }
+
+        $adminType = trim((string) ($row['admin_type'] ?? ''));
+        if (!in_array($adminType, ['super_admin', 'customer_service'], true)) {
+            throw new \InvalidArgumentException('نوع المستخدم يجب أن يكون super_admin أو customer_service.');
+        }
+
+        $role = $this->resolveImportedAdminRole($row['role'] ?? $row['role_id'] ?? null);
+        $branchId = $this->resolveImportedAdminBranchId($row['branch'] ?? $row['branch_id'] ?? null);
+        $sexType = $this->normalizeImportedAdminSex($row['sex_type'] ?? null);
+        $status = $this->normalizeImportedAdminStatus($row['status'] ?? null);
+
+        foreach (['email' => $email, 'username' => $username, 'identity_number' => trim((string) ($row['identity_number'] ?? ''))] as $column => $value) {
+            if ($value !== '' && Admin::query()->where($column, $value)->when($admin, fn ($query) => $query->where('id', '<>', $admin->id))->exists()) {
+                throw new \InvalidArgumentException("القيمة {$value} مستخدمة مسبقًا في حقل {$column}.");
+            }
+        }
+
+        $payload = $this->filterColumns('admins', [
+            'name' => $name,
+            'username' => $username !== '' ? $username : null,
+            'email' => $email,
+            'phone' => $phone,
+            'whatsapp' => trim((string) ($row['whatsapp'] ?? '')) ?: $phone,
+            'verification_phone' => trim((string) ($row['verification_phone'] ?? '')) ?: $phone,
+            'identity_number' => trim((string) ($row['identity_number'] ?? '')) ?: null,
+            'identity_expiry_date' => $this->parseDate($row['identity_expiry_date'] ?? null),
+            'admin_type' => $adminType,
+            'sex_type' => $sexType,
+            'role_id' => $role->id,
+            'branch_id' => $branchId,
+            'sort' => $this->optionalInteger($row['sort'] ?? null) ?? 999,
+            'status' => $status,
+            'note' => trim((string) ($row['note'] ?? '')) ?: null,
+        ]);
+
+        if ($password !== '') {
+            if (strlen($password) < 6) {
+                throw new \InvalidArgumentException('كلمة المرور يجب ألا تقل عن 6 أحرف.');
+            }
+            $payload['password'] = Hash::make($password);
+        }
+
+        if ($admin) {
+            $admin->update($payload);
+            $outcome = 'updated';
+        } else {
+            $admin = Admin::create($payload);
+            $outcome = 'created';
+        }
+
+        $admin->syncRoles([$role]);
+
+        return $outcome;
+    }
+
+    private function resolveImportedAdminRole($value): Role
+    {
+        $value = trim((string) $value);
+        $role = Role::query()
+            ->where('guard_name', 'admin')
+            ->where(function ($query) use ($value) {
+                if (ctype_digit($value)) {
+                    $query->whereKey((int) $value)->orWhere('name', $value);
+                } else {
+                    $query->where('name', $value);
+                }
+            })
+            ->first();
+
+        if (!$role) {
+            throw new \InvalidArgumentException('الدور مطلوب أو غير موجود ضمن أدوار المستخدمين.');
+        }
+
+        return $role;
+    }
+
+    private function resolveImportedAdminBranchId($value): ?int
+    {
+        $value = trim((string) $value);
+        if ($value === '' || !Schema::hasColumn('admins', 'branch_id')) {
+            return null;
+        }
+
+        $branch = Branch::query()
+            ->where(function ($query) use ($value) {
+                if (ctype_digit($value)) {
+                    $query->whereKey((int) $value);
+                } else {
+                    $query->where('code', $value)
+                        ->orWhere('name_ar', $value)
+                        ->orWhere('name_en', $value);
+                }
+            })
+            ->first();
+
+        if (!$branch) {
+            throw new \InvalidArgumentException('الفرع المحدد غير موجود.');
+        }
+
+        return (int) $branch->id;
+    }
+
+    private function normalizeImportedAdminSex($value): int
+    {
+        $value = $this->normalizeComparableText((string) $value);
+        return match ($value) {
+            '0', 'ذكر', 'male' => 0,
+            '1', 'انثى', 'female' => 1,
+            default => throw new \InvalidArgumentException('الجنس يجب أن يكون ذكر أو أنثى أو 0 أو 1.'),
+        };
+    }
+
+    private function normalizeImportedAdminStatus($value): string
+    {
+        $value = $this->normalizeComparableText((string) ($value ?: 'active'));
+        return match ($value) {
+            'active', 'نشط' => 'active',
+            'suspended', 'موقوف', 'غير نشط' => 'suspended',
+            default => throw new \InvalidArgumentException('حالة المستخدم يجب أن تكون active أو suspended.'),
+        };
     }
 
     private function importRentalMaid(array $row, ?int $adminId): string
