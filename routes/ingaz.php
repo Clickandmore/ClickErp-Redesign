@@ -227,7 +227,7 @@ Route::group(
             Route::get('clients/{id}/attachments/{attachment}/view', [UserController::class, 'viewAttachment'])->name('clients.attachments.view');
             Route::get('clients/{id}/attachments/{attachment}/download', [UserController::class, 'downloadAttachment'])->name('clients.attachments.download.single');
             Route::delete('clients/{id}/attachments/{attachment}', [UserController::class, 'deleteAttachment'])->name('clients.attachments.delete');
-            Route::resource('make-accounts-for-clients', MakeAccountsForClientsController::class);
+            Route::resource('make-accounts-for-clients', MakeAccountsForClientsController::class)->only(['store']);
             Route::resource('skills', SkillController::class);
             Route::get('reports', [ReportController::class, 'index'])->name('reports.index');
             Route::get('reports/import', [DataImportController::class, 'index'])->name('reports.import.index');

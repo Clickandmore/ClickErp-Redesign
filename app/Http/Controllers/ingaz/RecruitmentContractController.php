@@ -3532,7 +3532,7 @@ class RecruitmentContractController extends Controller
 
         $search = trim((string) $request->input('term', $request->input('q', '')));
         $page = max((int) $request->input('page', 1), 1);
-        $perPage = 20;
+        $perPage = 10;
 
         $clients = User::query()
             ->select([
@@ -3592,7 +3592,7 @@ class RecruitmentContractController extends Controller
                     'city' => $client->city,
                     'beds_num' => $client->rooms_num,
                     'family_num' => $client->family_num,
-                    'children' => $client->children,
+                    'children_count' => $client->children,
                     'job' => $client->job,
                 ];
             })->values(),
@@ -4406,7 +4406,7 @@ class RecruitmentContractController extends Controller
                     });
 
                 $page = max((int) $request->input('page', 1), 1);
-                $maids = $query->latest()->paginate(20, ['*'], 'page', $page);
+                $maids = $query->latest()->paginate(10, ['*'], 'page', $page);
 
                 return response()->json([
                     'results' => $maids->getCollection()->map(function ($maid) {
