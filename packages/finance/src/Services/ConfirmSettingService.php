@@ -29,7 +29,10 @@ class ConfirmSettingService extends MainService
     {
         return Account::query()
             ->whereDoesntHave('children')
-            ->whereIn('parent_id', [122, 156])
+            ->where(function ($query) {
+                $query->whereIn('parent_id', [122, 156])
+                    ->orWhere('name', 'like', '%مساند%');
+            })
             ->orderBy('code')
             ->get();
     }
@@ -38,10 +41,8 @@ class ConfirmSettingService extends MainService
     {
         return Account::query()
             ->where(function ($query) {
-                $query->where(function ($nestedQuery) {
-                    $nestedQuery->whereIn('parent_id', [122, 156])
-                        ->where('name', 'like', '%مساند%');
-                })->orWhere('name', 'like', '%حساب%مساند%');
+                $query->whereIn('parent_id', [122, 156])
+                    ->orWhere('name', 'like', '%مساند%');
             })
             ->orderBy('code')
             ->get()
