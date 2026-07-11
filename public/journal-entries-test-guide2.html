@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>دليل اختبار القيود المحاسبية — نقل الخدمات</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Tahoma, Arial, sans-serif; background: #f0f2f5; color: #1a1a2e; direction: rtl; }
+
+  .page-header {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    color: #fff; padding: 40px 30px; text-align: center;
+  }
+  .page-header h1 { font-size: 28px; margin-bottom: 8px; }
+  .page-header p  { font-size: 15px; opacity: .8; }
+
+  .container { max-width: 960px; margin: 30px auto; padding: 0 20px 60px; }
+
+  /* Prerequisites */
+  .prereq-box {
+    background: #fff3cd; border: 1px solid #ffc107; border-radius: 12px;
+    padding: 20px 24px; margin-bottom: 30px;
+  }
+  .prereq-box h3 { color: #856404; margin-bottom: 12px; font-size: 16px; }
+  .prereq-box ul { padding-right: 20px; }
+  .prereq-box li { margin-bottom: 6px; font-size: 14px; color: #533f03; }
+
+  /* Scenario cards */
+  .scenario { background: #fff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,.07); margin-bottom: 32px; overflow: hidden; }
+  .scenario-header { padding: 20px 28px; display: flex; align-items: center; gap: 14px; }
+  .scenario-header .badge {
+    width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center;
+    justify-content: center; font-size: 20px; font-weight: 700; flex-shrink: 0;
+  }
+  .scenario-header h2 { font-size: 18px; }
+  .scenario-header small { font-size: 13px; opacity: .75; display: block; margin-top: 2px; }
+  .scenario-body { padding: 24px 28px; }
+
+  /* Colors per scenario */
+  .s1 .scenario-header { background: #e8f4fd; border-bottom: 3px solid #3498db; }
+  .s1 .badge { background: #3498db; color: #fff; }
+  .s2 .scenario-header { background: #e9f7ef; border-bottom: 3px solid #27ae60; }
+  .s2 .badge { background: #27ae60; color: #fff; }
+  .s3 .scenario-header { background: #fdecea; border-bottom: 3px solid #e74c3c; }
+  .s3 .badge { background: #e74c3c; color: #fff; }
+
+  /* Steps */
+  .steps { counter-reset: step; list-style: none; margin-bottom: 24px; }
+  .steps li {
+    counter-increment: step; position: relative; padding: 12px 16px 12px 52px;
+    margin-bottom: 8px; background: #f8f9fa; border-radius: 10px; font-size: 14px; line-height: 1.6;
+  }
+  .steps li::before {
+    content: counter(step); position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+    width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center;
+    justify-content: center; font-weight: 700; font-size: 13px; color: #fff;
+  }
+  .s1 .steps li::before { background: #3498db; }
+  .s2 .steps li::before { background: #27ae60; }
+  .s3 .steps li::before { background: #e74c3c; }
+  .steps li strong { color: #0f3460; }
+  .steps li code {
+    background: #e8ecf0; border-radius: 4px; padding: 1px 6px;
+    font-family: 'Courier New', monospace; font-size: 13px; color: #c0392b;
+  }
+
+  /* Data table */
+  .data-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px; }
+  .data-table th { background: #0f3460; color: #fff; padding: 10px 14px; text-align: right; font-weight: 600; }
+  .data-table td { padding: 9px 14px; border-bottom: 1px solid #e9ecef; }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:nth-child(even) td { background: #f8f9fa; }
+
+  /* Journal table */
+  .journal-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 20px; }
+  .journal-table th { background: #1a1a2e; color: #fff; padding: 9px 12px; text-align: right; }
+  .journal-table td { padding: 8px 12px; border-bottom: 1px solid #e9ecef; }
+  .journal-table tr:nth-child(even) td { background: #f8f9fa; }
+  .debit  { color: #c0392b; font-weight: 600; }
+  .credit { color: #27ae60; font-weight: 600; }
+  .dash   { color: #aaa; }
+
+  /* Labels */
+  .label { display: inline-block; border-radius: 20px; padding: 3px 10px; font-size: 12px; font-weight: 600; }
+  .label-blue   { background: #d6eaf8; color: #1a5276; }
+  .label-green  { background: #d5f5e3; color: #1e8449; }
+  .label-red    { background: #fdecea; color: #922b21; }
+  .label-orange { background: #fef9e7; color: #9a7d0a; }
+
+  /* Result box */
+  .result-box {
+    border-radius: 10px; padding: 16px 20px; margin-top: 16px; font-size: 14px; line-height: 1.7;
+  }
+  .result-box.blue   { background: #eaf4fb; border-right: 4px solid #3498db; }
+  .result-box.green  { background: #eafaf1; border-right: 4px solid #27ae60; }
+  .result-box.red    { background: #fdedec; border-right: 4px solid #e74c3c; }
+  .result-box h4 { margin-bottom: 8px; font-size: 15px; }
+  .result-box ul { padding-right: 18px; }
+  .result-box li { margin-bottom: 4px; }
+
+  /* Formula box */
+  .formula {
+    background: #1a1a2e; color: #a9d9f7; border-radius: 8px;
+    padding: 12px 16px; font-family: 'Courier New', monospace;
+    font-size: 13px; margin: 12px 0; line-height: 1.8;
+  }
+
+  /* Verification */
+  .verify-section { background: #fff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,.07); padding: 28px; }
+  .verify-section h3 { margin-bottom: 16px; font-size: 17px; color: #0f3460; }
+  .check-item { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; font-size: 14px; }
+  .check-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+
+  /* Log box */
+  .log-box {
+    background: #0d1117; color: #58a6ff; border-radius: 8px;
+    padding: 14px 18px; font-family: 'Courier New', monospace; font-size: 13px;
+    margin-top: 12px; line-height: 1.8;
+  }
+
+  .section-title { font-size: 14px; font-weight: 700; color: #555; margin-bottom: 10px; text-transform: uppercase; letter-spacing: .5px; }
+  .divider { border: none; border-top: 1px dashed #ddd; margin: 20px 0; }
+
+  .tip { background: #f0f4ff; border-right: 4px solid #6c5ce7; border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #333; margin-top: 12px; }
+  .tip strong { color: #6c5ce7; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>🧾 دليل اختبار القيود المحاسبية</h1>
+  <p>نقل الخدمات (الفلبين) — خطوات تفصيلية من الداشبورد</p>
+</div>
+
+<div class="container">
+
+  <!-- المتطلبات -->
+  <div class="prereq-box">
+    <h3>⚠️ تأكد من وجود هذه البيانات قبل البدء</h3>
+    <ul>
+      <li>✅ عاملة فلبينية في الإيواء (الحالة: <code>shelter</code>)</li>
+      <li>✅ كفيل قديم وكفيل جديد — كلاهما لديهم <strong>حساب محاسبي</strong> (<code>account_id</code>)</li>
+      <li>✅ الحسابات المحاسبية موجودة: دفعات مقدمة نقل خدمات، إيواء التجربة، إيواء الفلبين، إيرادات نقل خدمات، إيراد استرداد مبيعات</li>
+      <li>✅ سنة مالية نشطة تغطي تاريخ اليوم</li>
+      <li>✅ تخصيصات إيواء للعاملة (<code>ShelterLivingExpenseAllocation</code>) — هذا يحدد قيمة تكلفة الإيواء</li>
+    </ul>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- القيد #15 -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div class="scenario s1">
+    <div class="scenario-header">
+      <div class="badge">15</div>
+      <div>
+        <h2>القيد #15 — خروج العاملة للتجربة</h2>
+        <small>يُولَّد عند الضغط على "تسليم العاملة" ← الحالة تصبح <code>trial_started</code></small>
+      </div>
+    </div>
+    <div class="scenario-body">
+
+      <p class="section-title">📋 بيانات المثال</p>
+      <table class="data-table">
+        <tr><th>البيان</th><th>القيمة</th></tr>
+        <tr><td>الكفيل القديم</td><td>ماجد حمد الحربي</td></tr>
+        <tr><td>الكفيل الجديد</td><td>خالد عبدالله الزهراني</td></tr>
+        <tr><td>قيمة العقد</td><td><strong>20,500 ريال</strong></td></tr>
+        <tr><td>المدفوع مقدماً</td><td><strong>5,000 ريال</strong></td></tr>
+        <tr><td>أيام التجربة</td><td>90 يوم</td></tr>
+        <tr><td>تكلفة الإيواء المخصصة</td><td><strong>11,250 ريال</strong> (من ShelterLivingExpenseAllocation)</td></tr>
+      </table>
+
+      <hr class="divider">
+      <p class="section-title">🖱️ خطوات التنفيذ</p>
+      <ol class="steps">
+        <li>اذهب إلى: <strong>نقل الكفالة</strong> ← <strong>إضافة طلب جديد</strong></li>
+        <li>اختر العاملة (فلبينية في الإيواء)، الكفيل القديم، الكفيل الجديد</li>
+        <li>أدخل: قيمة العقد = <code>20,500</code> — المدفوع مقدماً = <code>5,000</code> — أيام التجربة = <code>90</code></li>
+        <li>احفظ الطلب ← الحالة: <span class="label label-orange">pending</span></li>
+        <li>اضغط <strong>"موافقة"</strong> ← الحالة: <span class="label label-orange">waiting_contract_send</span></li>
+        <li>أكمل المراحل: <strong>إرسال العقد</strong> ← <strong>توقيع العقد</strong></li>
+        <li>اضغط <strong>"تسليم العاملة"</strong> ← الحالة: <span class="label label-blue">trial_started</span></li>
+      </ol>
+
+      <hr class="divider">
+      <p class="section-title">📒 القيد المتوقع</p>
+      <table class="journal-table">
+        <thead><tr><th>م</th><th>الحساب</th><th>مدين</th><th>دائن</th><th>البيان</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>خالد الزهراني (عميل جديد)</td><td class="debit">20,500.00</td><td class="dash">—</td><td>قيمة عقد نقل الخدمات</td></tr>
+          <tr><td>2</td><td>دفعات مقدمة نقل خدمات - الفلبين (2291)</td><td class="dash">—</td><td class="credit">20,500.00</td><td>إيراد مؤجل لحن إتمام النقل</td></tr>
+          <tr><td>3</td><td>مصروفات مدفوعة مقدماً - إيواء التجربة (1541)</td><td class="debit">11,250.00</td><td class="dash">—</td><td>نقل تكلفة الإيواء إلى التجربة</td></tr>
+          <tr><td>4</td><td>مصروفات مدفوعة مقدماً - إيواء الفلبين (1521)</td><td class="dash">—</td><td class="credit">11,250.00</td><td>تخفيض أصل الإيواء</td></tr>
+          <tr><td>5</td><td>البنك الرئيسي</td><td class="debit">5,000.00</td><td class="dash">—</td><td>وارد دفعة مقدمة من العميل الجديد</td></tr>
+          <tr><td>6</td><td>خالد الزهراني (عميل جديد)</td><td class="dash">—</td><td class="credit">5,000.00</td><td>سداد دفعة مقدمة</td></tr>
+        </tbody>
+      </table>
+      <div style="text-align:left; font-size:13px; font-weight:600;">
+        الإجمالي: <span class="debit">36,750.00</span> / <span class="credit">36,750.00</span> ✅
+      </div>
+
+      <div class="result-box blue">
+        <h4>✅ ما يحدث بعد النجاح</h4>
+        <ul>
+          <li>القيد يظهر في <strong>المحاسبة ← القيود</strong></li>
+          <li>في صفحة تفاصيل الطلب يظهر زر 🔵 <strong>"قيد خروج العاملة للتجربة"</strong></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- القيد #16 -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div class="scenario s2">
+    <div class="scenario-header">
+      <div class="badge">16</div>
+      <div>
+        <h2>القيد #16 — إتمام نقل الخدمات</h2>
+        <small>يُولَّد عند الضغط على "تأكيد النقل" ← الحالة تصبح <code>transferred</code></small>
+      </div>
+    </div>
+    <div class="scenario-body">
+
+      <p class="section-title">📋 بيانات المثال</p>
+      <table class="data-table">
+        <tr><th>البيان</th><th>القيمة</th></tr>
+        <tr><td>نفس طلب القيد #15</td><td>بعد وصوله لحالة <code>trial_started</code></td></tr>
+        <tr><td>قيمة العقد</td><td><strong>20,500 ريال</strong></td></tr>
+        <tr><td>تكلفة الإيواء (المحولة في القيد 15)</td><td><strong>11,250 ريال</strong></td></tr>
+        <tr><td>رسوم التأشيرة (اختياري)</td><td><strong>2,000 ريال</strong> — أدخلها في حقل <code>visa_fee_amount</code></td></tr>
+      </table>
+
+      <div class="tip">
+        <strong>💡 رسوم التأشيرة:</strong> إذا أردت اختبار الأسطر 4-7، أضف <code>visa_fee_amount = 2000</code>
+        في قاعدة البيانات مباشرة على الطلب قبل تأكيد النقل.
+      </div>
+
+      <hr class="divider">
+      <p class="section-title">🖱️ خطوات التنفيذ</p>
+      <ol class="steps">
+        <li>افتح نفس طلب القيد #15 (الحالة <span class="label label-blue">trial_started</span>)</li>
+        <li>اضغط <strong>"تأكيد النقل"</strong> (confirmTransfer) ← الحالة: <span class="label label-green">transferred</span></li>
+      </ol>
+
+      <hr class="divider">
+      <p class="section-title">📒 القيد المتوقع (بدون رسوم تأشيرة)</p>
+      <table class="journal-table">
+        <thead><tr><th>م</th><th>الحساب</th><th>مدين</th><th>دائن</th><th>البيان</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>دفعات مقدمة نقل خدمات - الفلبين (2291)</td><td class="debit">20,500.00</td><td class="dash">—</td><td>إتمام النقل</td></tr>
+          <tr><td>2</td><td>مصروفات مدفوعة مقدماً - إيواء التجربة (1541)</td><td class="dash">—</td><td class="credit">11,250.00</td><td>إقفال تكلفة الإيواء</td></tr>
+          <tr><td>3</td><td>إيرادات نقل خدمات الفلبين (4311)</td><td class="dash">—</td><td class="credit">9,250.00</td><td>الاعتراف بإيراد النقل</td></tr>
+        </tbody>
+      </table>
+      <div style="text-align:left; font-size:13px; font-weight:600;">
+        الإجمالي: <span class="debit">20,500.00</span> / <span class="credit">20,500.00</span> ✅
+      </div>
+
+      <p class="section-title" style="margin-top:18px;">📒 القيد المتوقع (مع رسوم تأشيرة = 2,000)</p>
+      <table class="journal-table">
+        <thead><tr><th>م</th><th>الحساب</th><th>مدين</th><th>دائن</th><th>البيان</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>دفعات مقدمة نقل خدمات - الفلبين (2291)</td><td class="debit">20,500.00</td><td class="dash">—</td><td>إتمام النقل</td></tr>
+          <tr><td>2</td><td>مصروفات مدفوعة مقدماً - إيواء التجربة (1541)</td><td class="dash">—</td><td class="credit">11,250.00</td><td>إقفال تكلفة الإيواء</td></tr>
+          <tr><td>3</td><td>إيرادات نقل خدمات الفلبين (4311)</td><td class="dash">—</td><td class="credit">9,250.00</td><td>الاعتراف بإيراد النقل</td></tr>
+          <tr><td>4</td><td>ماجد الحربي - الكفيل القديم</td><td class="debit">2,000.00</td><td class="dash">—</td><td>تسوية رسوم التأشيرة</td></tr>
+          <tr><td>5</td><td>حساب العاملة</td><td class="dash">—</td><td class="credit">2,000.00</td><td>تسوية رسوم التأشيرة</td></tr>
+          <tr><td>6</td><td>رسوم تأشيرات العملاء (5114)</td><td class="dash">—</td><td class="credit">2,000.00</td><td>رسوم التأشيرة</td></tr>
+          <tr><td>7</td><td>ماجد الحربي - الكفيل القديم</td><td class="debit">2,000.00</td><td class="dash">—</td><td>رسوم التأشيرة</td></tr>
+        </tbody>
+      </table>
+      <div style="text-align:left; font-size:13px; font-weight:600;">
+        الإجمالي: <span class="debit">24,500.00</span> / <span class="credit">24,500.00</span> ✅
+      </div>
+
+      <div class="result-box green">
+        <h4>✅ ما يحدث بعد النجاح</h4>
+        <ul>
+          <li>العقد ينتقل للكفيل الجديد (status = Completed)</li>
+          <li>في صفحة تفاصيل الطلب يظهر زر 🟢 <strong>"قيد إتمام النقل"</strong></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- القيد #17 -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div class="scenario s3">
+    <div class="scenario-header">
+      <div class="badge">17</div>
+      <div>
+        <h2>القيد #17 — فشل التجربة</h2>
+        <small>يُولَّد عند الضغط على "إلغاء / فشل التجربة" ← الحالة تصبح <code>failed</code></small>
+      </div>
+    </div>
+    <div class="scenario-body">
+
+      <p class="section-title">📋 بيانات المثال</p>
+      <table class="data-table">
+        <tr><th>البيان</th><th>القيمة</th></tr>
+        <tr><td>طلب جديد منفصل في حالة <code>trial_started</code></td><td>أنشئه بنفس خطوات القيد #15</td></tr>
+        <tr><td>قيمة العقد</td><td><strong>20,500 ريال</strong></td></tr>
+        <tr><td>تكلفة الإيواء</td><td><strong>11,250 ريال</strong></td></tr>
+        <tr><td>أيام التجربة</td><td>90 يوم</td></tr>
+        <tr><td>أيام الاستخدام الفعلية</td><td><strong>3 أيام</strong> (من تاريخ التسليم حتى الإلغاء)</td></tr>
+        <tr><td>سبب الفشل</td><td>"العاملة لا تلائم العمل"</td></tr>
+        <tr><td>مبلغ الاسترجاع</td><td>5,000 ريال (المدفوع مقدماً)</td></tr>
+      </table>
+
+      <hr class="divider">
+      <p class="section-title">🖱️ خطوات التنفيذ</p>
+      <ol class="steps">
+        <li>أنشئ طلباً جديداً وأكمله حتى حالة <span class="label label-blue">trial_started</span> (نفس خطوات القيد #15)</li>
+        <li>انتظر 3 أيام — أو عدل تاريخ <code>trial_started_at</code> في قاعدة البيانات بمقدار 3 أيام للخلف للاختبار السريع</li>
+        <li>افتح صفحة تفاصيل الطلب</li>
+        <li>اضغط <strong>"إلغاء / فشل التجربة"</strong> (cancelTransfer)</li>
+        <li>في النموذج المنبثق أدخل:
+          <ul style="margin-top:8px; padding-right:18px;">
+            <li><strong>السبب:</strong> "العاملة لا تلائم العمل"</li>
+            <li><strong>مبلغ الاسترجاع:</strong> 5,000</li>
+            <li><strong>آيبان العميل:</strong> SA... (مطلوب عند وجود مبلغ استرجاع)</li>
+          </ul>
+        </li>
+        <li>اضغط تأكيد ← الحالة: <span class="label label-red">failed</span></li>
+      </ol>
+
+      <hr class="divider">
+      <p class="section-title">📒 القيد المتوقع (3 أيام استخدام)</p>
+
+      <div class="formula">
+        خصم أيام الاستخدام = قيمة العقد ÷ أيام التجربة × أيام الاستخدام<br>
+        = 20,500 ÷ 90 × 3 = <strong>683.33 ريال</strong>
+      </div>
+
+      <table class="journal-table">
+        <thead><tr><th>م</th><th>الحساب</th><th>مدين</th><th>دائن</th><th>البيان</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>دفعات مقدمة نقل خدمات - الفلبين (2291)</td><td class="debit">20,500.00</td><td class="dash">—</td><td>عكس قيد النقل</td></tr>
+          <tr><td>2</td><td>ماجد الحربي - الكفيل القديم</td><td class="dash">—</td><td class="credit">20,500.00</td><td>رد قيمة عقد النقل</td></tr>
+          <tr><td>3</td><td>مصروفات مدفوعة مقدماً - إيواء الفلبين (1521)</td><td class="debit">11,250.00</td><td class="dash">—</td><td>إعادة التكلفة للإيواء</td></tr>
+          <tr><td>4</td><td>مصروفات مدفوعة مقدماً - إيواء التجربة (1541)</td><td class="dash">—</td><td class="credit">11,250.00</td><td>إقفال إيواء التجربة</td></tr>
+          <tr><td>5</td><td>ماجد الحربي - الكفيل القديم</td><td class="debit">683.33</td><td class="dash">—</td><td>خصم أيام الاستخدام</td></tr>
+          <tr><td>6</td><td>إيراد استرداد مبيعات (4217)</td><td class="dash">—</td><td class="credit">683.33</td><td>خصم أيام الاستخدام</td></tr>
+        </tbody>
+      </table>
+      <div style="text-align:left; font-size:13px; font-weight:600;">
+        الإجمالي: <span class="debit">32,433.33</span> / <span class="credit">32,433.33</span> ✅
+      </div>
+
+      <div class="result-box red">
+        <h4>✅ ما يحدث بعد النجاح</h4>
+        <ul>
+          <li>العاملة تعود للإيواء (حالة العقد = shelter)</li>
+          <li>في صفحة تفاصيل الطلب يظهر زر 🔴 <strong>"قيد فشل التجربة"</strong></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <!-- التحقق -->
+  <!-- ═══════════════════════════════════════════════════════ -->
+  <div class="verify-section">
+    <h3>🔍 خطوات التحقق بعد كل عملية</h3>
+
+    <div class="check-item">
+      <span class="check-icon">1️⃣</span>
+      <div>افتح <strong>صفحة تفاصيل الطلب</strong> ← تحقق من وجود الأزرار في الأسفل (أزرق / أخضر / أحمر)</div>
+    </div>
+    <div class="check-item">
+      <span class="check-icon">2️⃣</span>
+      <div>اضغط الزر ← يفتح القيد في تبويب جديد — تحقق من <strong>الإجمالي متوازن (مدين = دائن)</strong></div>
+    </div>
+    <div class="check-item">
+      <span class="check-icon">3️⃣</span>
+      <div>تحقق من <strong>أسماء الحسابات</strong> مطابقة للجداول أعلاه</div>
+    </div>
+    <div class="check-item">
+      <span class="check-icon">4️⃣</span>
+      <div>اذهب إلى <strong>المحاسبة ← القيود</strong> — الجديد يظهر في آخر القائمة</div>
+    </div>
+
+    <hr class="divider">
+    <h3 style="margin-bottom:14px;">🐛 إذا لم يظهر القيد — فحص اللوج</h3>
+    <div class="log-box">
+      # Windows PowerShell<br>
+      Get-Content storage\logs\laravel.log -Tail 50 | Select-String "SponsorshipTransfer"<br><br>
+      # أو Linux/Mac<br>
+      tail -f storage/logs/laravel.log | grep "SponsorshipTransfer"
+    </div>
+
+    <div class="tip" style="margin-top:16px;">
+      <strong>الأخطاء الشائعة:</strong><br>
+      • <code>لا يوجد حساب دفعات مقدمة نقل خدمات مرتبط بالجنسية: الفلبين</code> ← الحساب غير موجود في شجرة الحسابات<br>
+      • <code>لا يوجد سنة مالية نشطة</code> ← افتح المحاسبة وتأكد من وجود سنة مالية مفعّلة<br>
+      • <code>لا يوجد حساب محاسبي للكفيل الجديد</code> ← العميل بدون <code>account_id</code> في قاعدة البيانات
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

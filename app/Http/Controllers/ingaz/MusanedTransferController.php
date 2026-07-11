@@ -360,7 +360,9 @@ class MusanedTransferController extends Controller
         return Account::query()
             ->whereDoesntHave('children')
             ->whereIn('type', [
+                AccountTypesEnum::Banks->value,
                 AccountTypesEnum::Bank->value,
+                AccountTypesEnum::Boxs->value,
                 AccountTypesEnum::Box->value,
                 AccountTypesEnum::BankName->value,
             ])
@@ -717,7 +719,9 @@ class MusanedTransferController extends Controller
             ->whereKey($accountId)
             ->whereDoesntHave('children')
             ->whereIn('type', [
+                AccountTypesEnum::Banks->value,
                 AccountTypesEnum::Bank->value,
+                AccountTypesEnum::Boxs->value,
                 AccountTypesEnum::Box->value,
                 AccountTypesEnum::BankName->value,
             ])
