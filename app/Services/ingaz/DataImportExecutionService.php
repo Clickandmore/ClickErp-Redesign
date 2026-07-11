@@ -41,7 +41,6 @@ use Nami\Finance\Models\ConstraintDetails;
 use Nami\Finance\Models\CostCenter;
 use Nami\Finance\Models\Bond;
 use Nami\Finance\Models\FnYear;
-use Nami\Finance\Models\Bond;
 use Nami\Finance\Enums\AccountTypesEnum;
 use Nami\Finance\Enums\BondPaymentTypes;
 use Nami\Finance\Enums\BondTypes;
