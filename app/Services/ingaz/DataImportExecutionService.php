@@ -103,7 +103,7 @@ class DataImportExecutionService
         }
 
         if ($type === 'legacy_rental_orders') {
-            return $this->importLegacyRentalOrdersFile($storedPath, $columns, $adminId, $result);
+            return $this->importLegacyRentalOrdersFile($storedPath, $adminId, $result);
         }
 
         foreach ($this->readRows(Storage::path($storedPath), $columns) as $rowNumber => $row) {
@@ -474,9 +474,9 @@ class DataImportExecutionService
         return 'nothing';
     }
 
-    private function importLegacyRentalOrdersFile(string $storedPath, array $columns, ?int $adminId, array $result): array
+    private function importLegacyRentalOrdersFile(string $storedPath, ?int $adminId, array $result): array
     {
-        foreach ($this->readRows(Storage::path($storedPath), $columns) as $rowNumber => $row) {
+        foreach ($this->readLegacyRentalOrderRows(Storage::path($storedPath)) as $rowNumber => $row) {
             $result['total']++;
 
             try {
@@ -495,6 +495,55 @@ class DataImportExecutionService
         }
 
         return $result;
+    }
+
+    private function readLegacyRentalOrderRows(string $path): \Generator
+    {
+        $spreadsheet = $this->loadSpreadsheetForImport($path);
+        $sheet = $spreadsheet->getSheetByName('البيانات') ?: $spreadsheet->getActiveSheet();
+        $highestRow = $sheet->getHighestDataRow();
+        $keys = [
+            1 => 'sequence',
+            2 => 'legacy_order_id',
+            3 => 'status',
+            4 => 'legacy_maid_id',
+            5 => 'maid_name',
+            6 => 'maid_passport',
+            7 => 'legacy_client_id',
+            8 => 'client_name',
+            9 => 'legacy_invoice_id',
+            10 => 'legacy_receipt_id',
+            11 => 'nationality',
+            12 => 'job_title',
+            13 => 'supplier',
+            14 => 'start_date',
+            15 => 'start_date_hijri',
+            16 => 'end_date',
+            17 => 'end_date_hijri',
+            18 => 'duration_days',
+            19 => 'remaining_days',
+            20 => 'used_days',
+            21 => 'total_cost',
+            22 => 'created_by',
+            23 => 'created_at',
+            24 => 'created_at_hijri',
+        ];
+
+        for ($rowNumber = 2; $rowNumber <= $highestRow; $rowNumber++) {
+            $row = [];
+            foreach ($keys as $column => $key) {
+                $row[$key] = $this->cellValue(
+                    $sheet->getCell($this->cellCoordinate($column, $rowNumber))->getValue()
+                );
+            }
+
+            if (collect($row)->contains(fn ($value) => $value !== null && $value !== '')) {
+                yield $rowNumber => $row;
+            }
+        }
+
+        $spreadsheet->disconnectWorksheets();
+        unset($spreadsheet);
     }
 
     private function importLegacyRentalOrder(array $row, ?int $adminId): string
