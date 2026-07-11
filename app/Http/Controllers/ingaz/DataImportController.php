@@ -5,16 +5,18 @@ namespace App\Http\Controllers\ingaz;
 use App\Http\Controllers\admin\Controller;
 use App\Services\ingaz\DataImportExecutionService;
 use App\Services\ingaz\DataImportTemplateService;
+use App\Services\ingaz\FinanceBondGenerationService;
 use App\Services\ingaz\MaidBulkImportService;
 use Illuminate\Http\Request;
 
 class DataImportController extends Controller
 {
-    public function index(DataImportTemplateService $templates)
+    public function index(DataImportTemplateService $templates, FinanceBondGenerationService $bondGenerator)
     {
         return view('admin.ingaz.reports.import', [
             'templates' => $templates->templates(),
             'recentUploads' => $templates->recentUploads(),
+            'bondGenerationStats' => $bondGenerator->statistics(),
         ]);
     }
 
@@ -72,5 +74,17 @@ class DataImportController extends Controller
             ->route('reports.import.index')
             ->with('success', $message)
             ->with('import_errors', $shownErrors);
+    }
+
+    public function generateBonds(FinanceBondGenerationService $bondGenerator)
+    {
+        $result = $bondGenerator->generateFromDailyConstraints(auth('admin')->id() ?? auth()->id());
+
+        $message = "تمت معالجة {$result['processed']} قيد. تم إنشاء {$result['created']} سند، وتم تجاوز {$result['skipped']} قيد.";
+
+        return redirect()
+            ->route('reports.import.index')
+            ->with('success', $message)
+            ->with('bond_generation_errors', $result['errors'] ?? []);
     }
 }

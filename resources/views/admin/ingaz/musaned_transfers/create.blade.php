@@ -101,21 +101,22 @@
                             </div>
                             <div class="col-md-4">
                                 <label for="bank_account_id" class="form-label">الحساب البنكي</label>
-                                <select class="form-control" id="bank_account_id" name="bank_account_id" required>
+                                <select class="form-control select2" id="bank_account_id" name="bank_account_id" required>
                                     <option value="">اختر الحساب البنكي</option>
                                     @foreach ($bankAccounts as $account)
                                         <option value="{{ $account->id }}"
-                                            @selected((string) old('bank_account_id') === (string) $account->id)>
-                                            {{ $account->code }} / {{ $account->name }}
-                                        </option>
+                                            @selected((string) old('bank_account_id') === (string) $account->id)>{{ $account->code }} / {{ $account->name }}</option>
                                     @endforeach
                                 </select>
                             </div>
                             <div class="col-12">
                                 <label for="contract_selector" class="form-label">العقود والتفاويض المشمولة في الحوالة</label>
+                                <input type="search" class="form-control mb-2" id="contract_musaned_search"
+                                    placeholder="ابحث برقم عقد مساند أو اسم العميل أو رقم العقد">
                                 <select class="form-control" id="contract_selector" multiple>
                                     @foreach ($invoiceOptions as $option)
                                         <option value="{{ $option['source_key'] }}"
+                                            data-search-text="{{ $option['label'] }} {{ $option['msaned_number'] }}"
                                             @selected(
                                                 ($option['source_type'] === 'contract' && in_array($option['source_id'], old('selected_contract_ids', $selectedContractIds), true))
                                                 || ($option['source_type'] === 'delegation' && in_array($option['source_id'], old('selected_ingaz_delegation_ids', $selectedIngazDelegationIds ?? []), true))
@@ -204,6 +205,14 @@
             </form>
 
             <script>
+                $(document).ready(function() {
+                    if (window.jQuery && window.jQuery.fn && window.jQuery.fn.select2) {
+                        $('#bank_account_id').select2({ width: '100%' });
+                    }
+                });
+            </script>
+
+            <script>
                 (function() {
                     const expenseTaxRate = {{ json_encode((float) $expenseTaxRate) }};
                     const contractsLookup = @json($invoiceOptions);
@@ -231,6 +240,7 @@
                                 ->all()
                     );
                     const selector = document.getElementById('contract_selector');
+                    const searchInput = document.getElementById('contract_musaned_search');
                     const body = document.getElementById('transfer_items_body');
                     const emptyRow = document.getElementById('empty_transfer_row');
 
@@ -258,6 +268,49 @@
 
                     function formatMoney(value) {
                         return roundMoney(parseFloat(value) || 0).toFixed(2);
+                    }
+
+                    function normalizeDigits(value) {
+                        const arabicDigits = '٠١٢٣٤٥٦٧٨٩';
+                        const persianDigits = '۰۱۲۳۴۵۶۷۸۹';
+
+                        return String(value || '').replace(/[٠-٩۰-۹]/g, function(digit) {
+                            const arabicIndex = arabicDigits.indexOf(digit);
+                            if (arabicIndex !== -1) {
+                                return arabicIndex;
+                            }
+
+                            return persianDigits.indexOf(digit);
+                        });
+                    }
+
+                    function normalizeSearch(value) {
+                        return normalizeDigits(value)
+                            .toLowerCase()
+                            .replace(/[\s\-_/\\.:#]+/g, '');
+                    }
+
+                    function optionMatchesSearch(option, normalizedTerm) {
+                        if (!normalizedTerm) {
+                            return true;
+                        }
+
+                        const searchText = option.dataset.searchText || option.textContent || '';
+                        return normalizeSearch(searchText).includes(normalizedTerm);
+                    }
+
+                    function applyContractSearchFilter() {
+                        const normalizedTerm = normalizeSearch(searchInput ? searchInput.value : '');
+
+                        Array.from(selector.options).forEach(function(option) {
+                            const shouldShow = option.selected || optionMatchesSearch(option, normalizedTerm);
+                            option.hidden = !shouldShow;
+                            option.disabled = !shouldShow;
+                        });
+
+                        if (window.jQuery && window.jQuery.fn && window.jQuery.fn.select2) {
+                            window.jQuery(selector).trigger('change.select2');
+                        }
                     }
 
                     function calculateExpenseTax(commission) {
@@ -389,14 +442,38 @@
                         updateSummary();
                     }
 
+                    function handleSelectorChange() {
+                        applyContractSearchFilter();
+                        renderRows();
+                    }
+
                     if (window.jQuery && window.jQuery.fn && window.jQuery.fn.select2) {
                         window.jQuery(selector).select2({
-                            placeholder: 'اختر العقود أو التفاويض المشمولة في الحوالة'
+                            placeholder: 'اختر العقود أو التفاويض المشمولة في الحوالة',
+                            width: '100%',
+                            closeOnSelect: false,
+                            matcher: function(params, data) {
+                                const term = normalizeSearch(params.term || '');
+                                if (!term) {
+                                    return data;
+                                }
+
+                                const element = data.element;
+                                if (!element || optionMatchesSearch(element, term)) {
+                                    return data;
+                                }
+
+                                return null;
+                            }
                         });
 
-                        window.jQuery(selector).on('change', renderRows);
+                        window.jQuery(selector).on('change', handleSelectorChange);
                     } else {
-                        selector.addEventListener('change', renderRows);
+                        selector.addEventListener('change', handleSelectorChange);
+                    }
+
+                    if (searchInput) {
+                        searchInput.addEventListener('input', applyContractSearchFilter);
                     }
 
                     if (initialSelectedKeys && initialSelectedKeys.length) {
@@ -409,6 +486,7 @@
                         window.jQuery(selector).trigger('change');
                     }
 
+                    applyContractSearchFilter();
                     renderRows();
                 })();
             </script>

@@ -241,6 +241,102 @@
             border-color: #dc3545 !important;
         }
 
+        .select2-container--default .select2-results__option {
+            padding: .55rem .75rem;
+            border-bottom: 1px solid #f0f4f8;
+            transition: background-color .12s ease;
+        }
+
+        .select2-container--default .select2-results__option:last-child {
+            border-bottom: 0;
+        }
+
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background-color: #1f6fb2;
+            color: #fff;
+        }
+
+        .select2-container--default .select2-results__options {
+            max-height: 320px;
+        }
+
+        .select2-container--default .select2-dropdown {
+            border-radius: 14px;
+            border-color: #d5e0eb;
+            overflow: hidden;
+            box-shadow: 0 12px 30px rgba(31, 55, 90, 0.14);
+        }
+
+        .select2-container--default .select2-search--dropdown .select2-search__field {
+            border-radius: 10px;
+            border-color: #d5e0eb;
+            padding: .5rem .75rem;
+        }
+
+        .ajax-result-row {
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+        }
+
+        .ajax-result-row__icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #eaf3fb 0%, #d7e8f6 100%);
+            color: #1f6fb2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 1rem;
+        }
+
+        .ajax-result-row__body {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .ajax-result-row__title {
+            font-weight: 700;
+            color: #223547;
+            font-size: .95rem;
+            margin-bottom: .2rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .ajax-result-row__meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .5rem .85rem;
+            font-size: .82rem;
+            color: #64768a;
+        }
+
+        .ajax-result-row__meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: .3rem;
+        }
+
+        .ajax-result-row__meta i {
+            color: #8fa7bd;
+            font-size: .75rem;
+        }
+
+        .select2-container--default .select2-results__option--highlighted[aria-selected] .ajax-result-row__title,
+        .select2-container--default .select2-results__option--highlighted[aria-selected] .ajax-result-row__meta,
+        .select2-container--default .select2-results__option--highlighted[aria-selected] .ajax-result-row__meta i {
+            color: #fff;
+        }
+
+        .select2-container--default .select2-results__option--highlighted[aria-selected] .ajax-result-row__icon {
+            background: rgba(255, 255, 255, 0.25);
+            color: #fff;
+        }
+
         .contract-submit-card .card-body {
             padding: 1rem;
         }
@@ -339,9 +435,9 @@
                                     <label for="new_existing_client_id" class="form-label">اختر عميل
                                         <small class="text-muted">(اختياري)</small></label>
                                     <select name="new_existing_client_id" id="new_existing_client_id"
-                                        class="form-select select2 ajax-client-select" style="width:100%"
+                                        class="form-select ajax-client-select" style="width:100%"
                                         data-placeholder="ابحث بالاسم أو الجوال أو الهوية">
-                                        <option value="" selected disabled>اختر عميل...</option>
+                                        <option value=""></option>
                                     </select>
                                 </div>
                                 <div class="col-lg-3">
@@ -538,9 +634,9 @@
                                             <div class="col-12 mb-3" id="new-existing-maid-picker">
                                                 <label for="new_new_maid_id" class="form-label">{{ __('ingaz.select_worker') }}</label>
                                                 <select name="new_new_maid_id" id="new_new_maid_id"
-                                                    class="form-select select2 ajax-maid-select" style="width:100%"
+                                                    class="form-select ajax-maid-select" style="width:100%"
                                                     data-placeholder="{{ __('ingaz.worker_search_placeholder') }}">
-                                                    <option value="" selected>{{ __('ingaz.select_worker_placeholder') }}</option>
+                                                    <option value=""></option>
                                                 </select>
                                             </div>
                                         </div>
@@ -1435,15 +1531,123 @@
                 });
             });
 
+            function escapeSelect2Text(value) {
+                if (value === null || value === undefined) return '';
+                return String(value)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+            }
+
+            function formatClientResult(client) {
+                if (client.loading) return client.text;
+                if (!client.id) return client.text;
+                var name = escapeSelect2Text(client.name || client.text || '');
+                var phone = client.phone ? escapeSelect2Text(client.phone) : '';
+                var doc = client.document_number || client.national_num || client.tax_number;
+                doc = doc ? escapeSelect2Text(doc) : '';
+                var $row = $('<div class="ajax-result-row"></div>');
+                $row.append('<div class="ajax-result-row__icon"><i class="fas fa-user"></i></div>');
+                var body = '<div class="ajax-result-row__body">' +
+                    '<div class="ajax-result-row__title">' + name + '</div>' +
+                    '<div class="ajax-result-row__meta">' +
+                    (phone ? '<span><i class="fas fa-phone"></i> ' + phone + '</span>' : '') +
+                    (doc ? '<span><i class="fas fa-id-card"></i> ' + doc + '</span>' : '') +
+                    '</div></div>';
+                $row.append(body);
+                return $row;
+            }
+
+            function formatClientSelection(client) {
+                if (!client.id) return client.text || 'اختر عميل...';
+                var parts = [client.name || client.text];
+                if (client.phone) parts.push(client.phone);
+                var doc = client.document_number || client.national_num || client.tax_number;
+                if (doc) parts.push(doc);
+                return parts.filter(Boolean).join(' - ');
+            }
+
+            function formatMaidResult(maid) {
+                if (maid.loading) return maid.text;
+                if (!maid.id) return maid.text;
+                var name = escapeSelect2Text(maid.name || maid.text || '');
+                var passport = maid.passport ? escapeSelect2Text(maid.passport) : '';
+                var nationality = maid.nationality ? escapeSelect2Text(maid.nationality) : '';
+                var job = maid.job ? escapeSelect2Text(maid.job) : '';
+                var age = maid.age ? escapeSelect2Text(maid.age) + ' سنة' : '';
+                var $row = $('<div class="ajax-result-row"></div>');
+                $row.append('<div class="ajax-result-row__icon"><i class="fas fa-user-tie"></i></div>');
+                var body = '<div class="ajax-result-row__body">' +
+                    '<div class="ajax-result-row__title">' + name + '</div>' +
+                    '<div class="ajax-result-row__meta">' +
+                    (passport ? '<span><i class="fas fa-passport"></i> ' + passport + '</span>' : '') +
+                    (nationality ? '<span><i class="fas fa-flag"></i> ' + nationality + '</span>' : '') +
+                    (job ? '<span><i class="fas fa-briefcase"></i> ' + job + '</span>' : '') +
+                    (age ? '<span><i class="fas fa-birthday-cake"></i> ' + age + '</span>' : '') +
+                    '</div></div>';
+                $row.append(body);
+                return $row;
+            }
+
+            function formatMaidSelection(maid) {
+                if (!maid.id) return maid.text || 'اختر عامل/ة...';
+                var parts = [maid.name || maid.text];
+                if (maid.passport) parts.push(maid.passport);
+                if (maid.nationality) parts.push(maid.nationality);
+                return parts.filter(Boolean).join(' - ');
+            }
+
+            // Remove any pre-selected state before opening so every result is clickable (including the one currently selected)
+            function clearStaleOptionsOnOpen($select) {
+                $select.on('select2:opening', function() {
+                    var $s = $(this);
+                    $s.find('option').each(function() {
+                        if (this.value !== '') {
+                            $(this).remove();
+                        }
+                    });
+                });
+            }
+
+            // Force clickability on any result option Select2 has marked as aria-selected.
+            // This handles the case where Select2's internal state considers an option already selected
+            // but we still want the user to be able to re-select it (to re-fill the form).
+            $(document).on('mouseup touchend', '.select2-results__option[aria-selected="true"]', function(e) {
+                var $option = $(this);
+                var data = $option.data('data');
+                if (!data || !data.id) return;
+                var $container = $option.closest('.select2-container');
+                var selectId = ($container.attr('id') || '').replace(/^select2-/, '').replace(/-container$/, '');
+                if (!selectId) return;
+                var $select = $('#' + selectId);
+                if (!$select.length) return;
+                if (!$select.hasClass('ajax-client-select') && !$select.hasClass('ajax-maid-select')) return;
+
+                // Ensure the option exists in the underlying select then trigger change
+                if (!$select.find('option[value="' + data.id + '"]').length) {
+                    var $opt = $('<option></option>').val(data.id).text(data.text || '');
+                    $select.append($opt);
+                }
+                $select.val(data.id);
+                $select.select2('close');
+                $select.trigger('change');
+                e.preventDefault();
+                e.stopPropagation();
+            });
+
             $('.ajax-client-select').each(function() {
                 destroySelect2IfInitialized($(this));
 
                 $(this).select2({
-                    placeholder: $(this).data('placeholder') || 'ابحث عن العميل...',
+                    placeholder: $(this).data('placeholder') || 'ابحث عن العميل أو اختر من القائمة...',
                     allowClear: true,
                     dir: select2Direction,
                     width: '100%',
-                    minimumInputLength: 1,
+                    minimumInputLength: 0,
+                    templateResult: formatClientResult,
+                    templateSelection: formatClientSelection,
                     ajax: {
                         url: searchClientsRoute,
                         dataType: 'json',
@@ -1455,22 +1659,36 @@
                             };
                         },
                         processResults: function(data) {
-                            return data;
+                            return {
+                                results: data.results || [],
+                                pagination: {
+                                    more: !!(data.pagination && data.pagination.more)
+                                }
+                            };
                         },
-                        cache: true
+                        cache: false
+                    },
+                    language: {
+                        inputTooShort: function() { return ''; },
+                        searching: function() { return 'جاري البحث...'; },
+                        noResults: function() { return 'لا توجد نتائج'; },
+                        loadingMore: function() { return 'تحميل المزيد...'; }
                     }
                 });
+                clearStaleOptionsOnOpen($(this));
             });
 
             $('.ajax-maid-select').each(function() {
                 destroySelect2IfInitialized($(this));
 
                 $(this).select2({
-                    placeholder: $(this).data('placeholder') || 'ابحث عن العامل/ة...',
+                    placeholder: $(this).data('placeholder') || 'ابحث عن العامل/ة أو اختر من القائمة...',
                     allowClear: true,
                     dir: select2Direction,
                     width: '100%',
-                    minimumInputLength: 1,
+                    minimumInputLength: 0,
+                    templateResult: formatMaidResult,
+                    templateSelection: formatMaidSelection,
                     ajax: {
                         url: availableMaidsRoute,
                         dataType: 'json',
@@ -1483,12 +1701,25 @@
                             };
                         },
                         processResults: function(data) {
-                            return data;
+                            return {
+                                results: data.results || [],
+                                pagination: {
+                                    more: !!(data.pagination && data.pagination.more)
+                                }
+                            };
                         },
-                        cache: true
+                        cache: false
+                    },
+                    language: {
+                        inputTooShort: function() { return ''; },
+                        searching: function() { return 'جاري البحث...'; },
+                        noResults: function() { return 'لا توجد عاملات متاحات'; },
+                        loadingMore: function() { return 'تحميل المزيد...'; }
                     }
                 });
+                clearStaleOptionsOnOpen($(this));
             });
+
 
             // If we have a selected order, populate the form fields
             if (selectedOrder) {
@@ -1919,7 +2150,7 @@
                         city: optionOrAjaxData(selectedOption, selectedClient, 'city'),
                         beds_num: optionOrAjaxData(selectedOption, selectedClient, 'beds_num', 'beds-num'),
                         family_num: optionOrAjaxData(selectedOption, selectedClient, 'family_num', 'family-num'),
-                        children: optionOrAjaxData(selectedOption, selectedClient, 'children'),
+                        children: optionOrAjaxData(selectedOption, selectedClient, 'children_count', 'children'),
                         job: optionOrAjaxData(selectedOption, selectedClient, 'job')
                     });
 
@@ -1945,7 +2176,7 @@
                     // تعبئة الحقول الاختيارية
                     $('#new_client_beds_num').val(optionOrAjaxData(selectedOption, selectedClient, 'beds_num', 'beds-num'));
                     $('#new_client_family_num').val(optionOrAjaxData(selectedOption, selectedClient, 'family_num', 'family-num'));
-                    $('#new_client_children').val(optionOrAjaxData(selectedOption, selectedClient, 'children'));
+                    $('#new_client_children').val(optionOrAjaxData(selectedOption, selectedClient, 'children_count', 'children'));
                     $('#new_client_job').val(sanitizeTextValue(optionOrAjaxData(selectedOption, selectedClient, 'job')));
                     applyRecruitmentClientDocumentMode({
                         clientType: optionOrAjaxData(selectedOption, selectedClient, 'client_type', 'account-client-type') || 'person',

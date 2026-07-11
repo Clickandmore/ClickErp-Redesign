@@ -411,10 +411,17 @@ class RecruitmentContractRefundService
         $parent = Account::query()
             ->whereIn('type', [AccountTypesEnum::CompanyIncome->value, AccountTypesEnum::GeneralIncome->value])
             ->orderBy('id')
+            ->lockForUpdate()
             ->first();
 
         if (!$parent) {
             throw new \RuntimeException('لا يوجد حساب إيرادات رئيسي لإنشاء حساب غرامات الاسترداد.');
+        }
+
+        // Re-check after acquiring lock to avoid duplicate creation under concurrency
+        $account = $this->findPenaltyIncomeAccount();
+        if ($account) {
+            return (int) $account->id;
         }
 
         return (int) Account::query()->create([
@@ -444,8 +451,31 @@ class RecruitmentContractRefundService
 
     private function nextAccountCode(Account $parent): int
     {
-        $maxChildCode = Account::query()->where('parent_id', $parent->id)->max('code');
-        return $maxChildCode ? ((int) $maxChildCode + 1) : (((int) $parent->code * 10) + 1);
+        $base = ((int) $parent->code) * 100;
+
+        $siblingCodes = Account::query()
+            ->where('parent_id', $parent->id)
+            ->orderBy('code')
+            ->pluck('code')
+            ->map(fn ($c) => (int) $c)
+            ->all();
+
+        $code = $base;
+        foreach ($siblingCodes as $siblingCode) {
+            if ($siblingCode < $code) {
+                continue;
+            }
+            if ($siblingCode !== $code) {
+                break;
+            }
+            $code++;
+        }
+
+        while (Account::query()->where('code', $code)->exists()) {
+            $code++;
+        }
+
+        return $code;
     }
 
     private function buildStatement(Contract $contract, array $summary): string

@@ -31,3 +31,5 @@ yarn-error.log
 /packages/*/.idea/
 /packages/*/.vscode/
 /.package-backups/
+public/upload/
+error_log

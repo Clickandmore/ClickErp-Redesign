@@ -51,6 +51,7 @@ class SettingController extends Controller
         'snapchat_tag',
         'zoho_tag',
         'hotjar_tag',
+        'meta_pixel_tag',
         'live_chat_tag',
         'there_are_offer',
         'location:ar',

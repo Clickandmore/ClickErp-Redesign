@@ -82,6 +82,11 @@
                               placeholder="<!-- Hotjar code -->">{{ old('hotjar_tag', $settings->hotjar_tag ?? '') }}</textarea>
                 </div>
                 <div class="col-12">
+                    <label class="form-label">{{ __('admin.settings_meta_pixel_tag') }}</label>
+                    <textarea name="meta_pixel_tag" class="form-control" rows="6" dir="ltr"
+                              placeholder="<!-- Meta Pixel code -->">{{ old('meta_pixel_tag', $settings->meta_pixel_tag ?? '') }}</textarea>
+                </div>
+                <div class="col-12">
                     <label class="form-label">{{ __('admin.settings_live_chat_tag') }}</label>
                     <textarea name="live_chat_tag" class="form-control" rows="6" dir="ltr"
                               placeholder="<!-- Live chat widget code -->">{{ old('live_chat_tag', $settings->live_chat_tag ?? '') }}</textarea>

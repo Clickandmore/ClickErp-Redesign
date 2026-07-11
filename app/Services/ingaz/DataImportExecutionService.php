@@ -5,6 +5,7 @@ namespace App\Services\ingaz;
 use App\Enums\ingaz\ContractStatusEnum;
 use App\Enums\ingaz\OrderEnum;
 use App\Models\Contract;
+use App\Models\Branch;
 use App\Models\RentalContract;
 use App\Models\RentalContractInvoice;
 use App\Models\RecruitmentOffices;
@@ -40,7 +41,10 @@ use Nami\Finance\Models\ConstraintDetails;
 use Nami\Finance\Models\CostCenter;
 use Nami\Finance\Models\Bond;
 use Nami\Finance\Models\FnYear;
+use Nami\Finance\Models\Bond;
 use Nami\Finance\Enums\AccountTypesEnum;
+use Nami\Finance\Enums\BondPaymentTypes;
+use Nami\Finance\Enums\BondTypes;
 use Nami\Finance\Enums\ConstraintTypiesEnum;
 use Nami\Hr\Models\Department as HrDepartment;
 use Nami\Hr\Models\Employee as HrEmployee;
@@ -49,6 +53,7 @@ use Nami\Hr\Models\Job as HrJob;
 use Nami\Hr\Models\Shift as HrShift;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Shared\Date as ExcelDate;
+use Spatie\Permission\Models\Role;
 
 class DataImportExecutionService
 {
@@ -82,6 +87,14 @@ class DataImportExecutionService
             return $this->importFinanceConstraintsFile($storedPath, $columns, $adminId, $result);
         }
 
+        if ($type === 'receipt_bonds') {
+            return $this->importReceiptBondsFile($storedPath, $columns, $adminId, $result);
+        }
+
+        if ($type === 'disbursement_bonds') {
+            return $this->importDisbursementBondsFile($storedPath, $columns, $adminId, $result);
+        }
+
         if ($type === 'finance_accounts') {
             return $this->importFinanceAccountsFile($storedPath, $columns, $adminId, $result);
         }
@@ -101,6 +114,7 @@ class DataImportExecutionService
                 DB::transaction(function () use ($type, $row, $adminId, &$result) {
                     $outcome = match ($type) {
                         'clients' => $this->importClient($row, $adminId),
+                        'admins' => $this->importAdmin($row),
                         'recruitment_offices' => $this->importRecruitmentOffice($row),
                         'employees' => $this->importEmployee($row),
                         'rental_maids' => $this->importRentalMaid($row, $adminId),
@@ -128,6 +142,337 @@ class DataImportExecutionService
         }
 
         return $result;
+    }
+
+    private function importReceiptBondsFile(string $storedPath, array $columns, ?int $adminId, array $result): array
+    {
+        if (!class_exists(Bond::class) || !Schema::hasTable('fn_bonds')) {
+            $result['error_count']++;
+            $result['errors'][] = 'جدول سندات القبض غير موجود.';
+
+            return $result;
+        }
+
+        foreach ($this->readRows(Storage::path($storedPath), $columns) as $rowNumber => $row) {
+            $result['total']++;
+
+            try {
+                DB::transaction(function () use ($row, $adminId, &$result) {
+                    $outcome = $this->importReceiptBond($row, $adminId);
+                    $result[$outcome]++;
+                });
+            } catch (\Throwable $exception) {
+                $result['skipped']++;
+                $result['error_count']++;
+
+                if (count($result['errors']) < self::MAX_ERROR_DETAILS) {
+                    $result['errors'][] = "صف {$rowNumber}: " . $exception->getMessage();
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    private function importReceiptBond(array $row, ?int $adminId): string
+    {
+        if ($this->hasImportCellValue($row['paid_amount'] ?? null) || $this->hasImportCellValue($row['spent_amount'] ?? null)) {
+            return $this->importDisbursementBond($row, $adminId);
+        }
+
+        return $this->importFinanceBondRow(
+            $row,
+            $adminId,
+            BondTypes::Qabd->value,
+            ConstraintTypiesEnum::QapdBond,
+            ['received_amount', 'total', 'financial_movement'],
+            'سند قبض مستورد'
+        );
+    }
+
+    private function importDisbursementBondsFile(string $storedPath, array $columns, ?int $adminId, array $result): array
+    {
+        if (!class_exists(Bond::class) || !Schema::hasTable('fn_bonds')) {
+            $result['error_count']++;
+            $result['errors'][] = 'جدول سندات الصرف غير موجود.';
+
+            return $result;
+        }
+
+        foreach ($this->readRows(Storage::path($storedPath), $columns) as $rowNumber => $row) {
+            $result['total']++;
+
+            try {
+                DB::transaction(function () use ($row, $adminId, &$result) {
+                    $outcome = $this->importDisbursementBond($row, $adminId);
+                    $result[$outcome]++;
+                });
+            } catch (\Throwable $exception) {
+                $result['skipped']++;
+                $result['error_count']++;
+
+                if (count($result['errors']) < self::MAX_ERROR_DETAILS) {
+                    $result['errors'][] = "صف {$rowNumber}: " . $exception->getMessage();
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    private function importDisbursementBond(array $row, ?int $adminId): string
+    {
+        return $this->importFinanceBondRow(
+            $row,
+            $adminId,
+            BondTypes::Sarf->value,
+            ConstraintTypiesEnum::SarfBond,
+            ['paid_amount', 'spent_amount', 'total', 'financial_movement'],
+            'سند صرف مستورد'
+        );
+    }
+
+    private function importFinanceBondRow(
+        array $row,
+        ?int $adminId,
+        string $bondType,
+        ConstraintTypiesEnum $constraintType,
+        array $amountKeys,
+        string $defaultStatement
+    ): string
+    {
+        $code = $this->optionalInteger($row['bond_code'] ?? $row['code'] ?? null);
+        if (!$code) {
+            throw new \InvalidArgumentException('رقم السند مطلوب.');
+        }
+
+        $date = $this->parseDate($row['date'] ?? null);
+        if (!$date) {
+            throw new \InvalidArgumentException('تاريخ السند مطلوب أو غير صحيح.');
+        }
+
+        $year = $this->resolveFinanceYear($date);
+        if (!$year) {
+            throw new \InvalidArgumentException('لا توجد سنة مالية صالحة لتاريخ السند.');
+        }
+
+        $debitAccountId = $this->resolveReceiptBondAccountId($row, 'debit');
+        $creditAccountId = $this->resolveReceiptBondAccountId($row, 'credit');
+
+        if (!$debitAccountId || !$creditAccountId) {
+            throw new \InvalidArgumentException('تعذر تحديد حساب المدين أو الدائن من أرقام الحسابات الموجودة في الشيت.');
+        }
+
+        $value = null;
+        foreach ($amountKeys as $amountKey) {
+            $value = $this->decimal($row[$amountKey] ?? null);
+            if ($value !== null) {
+                break;
+            }
+        }
+        $value ??= 0.0;
+
+        $statement = $this->buildReceiptBondStatement($row, $defaultStatement);
+        $paymentType = $this->resolveReceiptBondPaymentType($row['payment_type'] ?? null);
+        $createdById = $this->resolveImportedAdminId(
+            $row['created_by_name'] ?? $row['created_by'] ?? null,
+            $adminId
+        );
+        $constraintId = $this->upsertReceiptBondConstraint(
+            $row,
+            $code,
+            $date,
+            (float) $value,
+            $statement,
+            $debitAccountId,
+            $creditAccountId,
+            (int) $year->id,
+            $createdById,
+            $bondType,
+            $constraintType
+        );
+
+        $payload = [
+            'code' => $code,
+            'type' => $bondType,
+            'payment_type' => $paymentType,
+            'bond_book_num' => (string) $code,
+            'debit_account_id' => $debitAccountId,
+            'credit_account_id' => $creditAccountId,
+            'value' => round((float) $value, 2),
+            'date' => $date,
+            'statement' => $statement,
+            'constraint_id' => $constraintId,
+            'is_confirm' => 1,
+            'created_by_id' => $createdById,
+            'year_id' => $year->id,
+            'cost_center_id' => $this->resolveFinanceCostCenterId($row),
+        ];
+
+        foreach ([
+            'is_tax' => 0,
+            'net' => round((float) $value, 2),
+            'account_text' => $this->resolveImportedBondAccountText($row, $bondType),
+            'general_type' => 0,
+            'transfer_number' => $this->extractReceiptBondTransferNumber($row),
+        ] as $column => $columnValue) {
+            if (Schema::hasColumn('fn_bonds', $column)) {
+                $payload[$column] = $columnValue;
+            }
+        }
+
+        $bond = Bond::query()
+            ->where('type', $bondType)
+            ->where('code', $code)
+            ->first();
+
+        if ($bond) {
+            $bond->update($payload);
+            return 'updated';
+        }
+
+        Bond::query()->create($payload);
+
+        return 'created';
+    }
+
+    private function upsertReceiptBondConstraint(
+        array $row,
+        int $code,
+        string $date,
+        float $value,
+        string $statement,
+        int $debitAccountId,
+        int $creditAccountId,
+        int $yearId,
+        ?int $adminId,
+        string $bondType,
+        ConstraintTypiesEnum $constraintType
+    ): int {
+        $constraint = null;
+        $existingBond = Bond::query()
+            ->where('type', $bondType)
+            ->where('code', $code)
+            ->first();
+
+        if ($existingBond?->constraint_id) {
+            $constraint = Constraint::query()->whereKey($existingBond->constraint_id)->first();
+        }
+
+        $payload = [
+            'type' => $constraintType->value,
+            'value' => round($value, 2),
+            'date' => $date,
+            'statement' => $statement,
+            'year_id' => $yearId,
+            'code' => $constraint?->code ?: $this->nextFinanceConstraintCode(),
+            'created_by_id' => $adminId ?? auth('admin')->id() ?? auth()->id() ?? 1,
+        ];
+
+        if ($constraint) {
+            $constraint->update($payload);
+            ConstraintDetails::query()->where('constraint_id', $constraint->id)->delete();
+        } else {
+            $constraint = Constraint::query()->create($payload);
+        }
+
+        $costCenterId = $this->resolveFinanceCostCenterId($row);
+        foreach ([
+            ['type' => 'debtor', 'account_id' => $debitAccountId, 'debtor_value' => round($value, 2), 'creditor_value' => 0],
+            ['type' => 'creditor', 'account_id' => $creditAccountId, 'debtor_value' => 0, 'creditor_value' => round($value, 2)],
+        ] as $detail) {
+            ConstraintDetails::query()->create($detail + [
+                'constraint_id' => $constraint->id,
+                'date' => $date,
+                'cost_center_id' => $costCenterId,
+                'statement' => $statement,
+                'year_id' => $yearId,
+            ]);
+        }
+
+        return (int) $constraint->id;
+    }
+
+    private function resolveReceiptBondAccountId(array $row, string $side): ?int
+    {
+        $prefix = $side === 'debit' ? 'debit' : 'credit';
+
+        return $this->resolveFinanceAccountId([
+            'account_id' => $row[$prefix . '_account_id'] ?? null,
+            'account_code' => $row[$prefix . '_account_code'] ?? null,
+            'account_name' => $row[$prefix . '_account_name'] ?? null,
+        ]);
+    }
+
+    private function resolveReceiptBondPaymentType($value): int
+    {
+        $value = trim((string) $value);
+        $normalized = $this->normalizeArabicText($value);
+
+        if (str_contains($normalized, 'شيك') || str_contains($normalized, 'check')) {
+            return BondPaymentTypes::Check->value;
+        }
+
+        if (str_contains($normalized, 'شبكه') || str_contains($normalized, 'شبكة') || str_contains($normalized, 'نقاط بيع') || str_contains($normalized, 'network')) {
+            return BondPaymentTypes::Network->value;
+        }
+
+        if (str_contains($normalized, 'تحويل') || str_contains($normalized, 'بنك') || str_contains($normalized, 'bank')) {
+            return BondPaymentTypes::BankTransfer->value;
+        }
+
+        if (str_contains($normalized, 'الكتروني') || str_contains($normalized, 'محفظه') || str_contains($normalized, 'wallet')) {
+            return BondPaymentTypes::ElectronicWallet->value;
+        }
+
+        return BondPaymentTypes::Cash->value;
+    }
+
+    private function resolveImportedBondAccountText(array $row, string $bondType): string
+    {
+        $preferredKey = $bondType === BondTypes::Sarf->value ? 'debit_account_name' : 'credit_account_name';
+        $fallbackKey = $bondType === BondTypes::Sarf->value ? 'credit_account_name' : 'debit_account_name';
+
+        return trim((string) ($row[$preferredKey] ?? $row['account_text'] ?? $row[$fallbackKey] ?? ''));
+    }
+
+    private function buildReceiptBondStatement(array $row, string $defaultStatement): string
+    {
+        $statement = trim((string) ($row['statement'] ?? ''));
+        if ($statement === '') {
+            $statement = $defaultStatement;
+        }
+
+        $extras = [];
+        foreach ([
+            'client_number' => 'رقم العميل',
+            'order_number' => 'رقم الطلب',
+            'payment_type' => 'طريقة الدفع',
+            'created_by_name' => 'أنشئ بواسطة',
+        ] as $key => $label) {
+            $value = trim((string) ($row[$key] ?? ''));
+            if ($value !== '' && $value !== '0') {
+                $extras[] = "{$label}: {$value}";
+            }
+        }
+
+        $statement = $extras ? $statement . ' | ' . implode(' | ', $extras) : $statement;
+
+        return mb_substr($statement, 0, 500);
+    }
+
+    private function extractReceiptBondTransferNumber(array $row): string
+    {
+        $statement = trim((string) ($row['statement'] ?? ''));
+        $paymentType = trim((string) ($row['payment_type'] ?? ''));
+
+        foreach ([$statement, $paymentType] as $value) {
+            if (preg_match('/(?:رقم\s*(?:تحويل|شيك)?\s*[:：]?\s*)?(\d{4,})/u', $value, $matches)) {
+                return $matches[1];
+            }
+        }
+
+        return 'nothing';
     }
 
     private function importLegacyRentalOrdersFile(string $storedPath, array $columns, ?int $adminId, array $result): array
@@ -460,6 +805,9 @@ class DataImportExecutionService
 
         $statement = trim((string) ($firstRow['statement'] ?? ''))
             ?: (trim((string) ($firstRow['line_statement'] ?? '')) ?: '-');
+        $createdByValue = collect($rows)
+            ->map(fn ($item) => $item['row']['created_by'] ?? $item['row']['created_by_name'] ?? null)
+            ->first(fn ($value) => trim((string) $value) !== '');
         $code = $this->resolveFinanceConstraintCode($rows);
         $type = $this->resolveFinanceConstraintType($firstRow['type'] ?? null);
         $details = [];
@@ -515,7 +863,7 @@ class DataImportExecutionService
             'statement' => $statement,
             'year_id' => $year->id,
             'code' => $code ?: $this->nextFinanceConstraintCode(),
-            'created_by_id' => $adminId,
+            'created_by_id' => $this->resolveImportedAdminId($createdByValue, $adminId),
         ];
 
         if ($constraint) {
@@ -793,6 +1141,10 @@ class DataImportExecutionService
             'is_paid' => 1,
             'paid_at' => $invoiceDate,
             'send_to_zatca' => 0,
+            'created_by' => $this->resolveImportedAdminId(
+                $row['created_by_name'] ?? $row['created_by'] ?? null,
+                $adminId
+            ),
             'created_at' => $invoiceDate,
             'updated_at' => $invoiceDate,
         ], $context['invoice_columns']);
@@ -1085,8 +1437,11 @@ class DataImportExecutionService
         }
 
         $user = $userByDatabaseId ?: $userById ?: $userByPhone;
-        $createdBy = $this->resolveAdminId($row['created_by'] ?? null) ?: $adminId;
-        $accountId = $this->resolveAccountId($row['account_id'] ?? null);
+        $createdBy = $this->resolveImportedAdminId(
+            $row['created_by'] ?? $row['created_by_name'] ?? null,
+            $adminId
+        );
+        $accountId = $this->resolveOrCreateClientAccountId($row['account_id'] ?? null, $name, $adminId);
         $payload = $this->filterColumns('users', [
             'id' => $databaseId,
             'name' => $name,
@@ -1319,6 +1674,165 @@ class DataImportExecutionService
         return $outcome;
     }
 
+    private function importAdmin(array $row): string
+    {
+        $databaseId = $this->optionalInteger($row['id'] ?? null);
+        $name = trim((string) ($row['name'] ?? ''));
+        $username = trim((string) ($row['username'] ?? ''));
+        $email = mb_strtolower(trim((string) ($row['email'] ?? '')));
+        $phone = trim((string) ($row['phone'] ?? ''));
+        $password = (string) ($row['password'] ?? '');
+
+        if ($name === '' || $email === '' || $phone === '') {
+            throw new \InvalidArgumentException('اسم المستخدم والبريد الإلكتروني ورقم الجوال مطلوبة.');
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new \InvalidArgumentException('البريد الإلكتروني غير صالح.');
+        }
+
+        if ($username !== '' && !preg_match('/^[A-Za-z0-9._@-]+$/', $username)) {
+            throw new \InvalidArgumentException('اسم الدخول يقبل الحروف الإنجليزية والأرقام والرموز . _ @ - فقط.');
+        }
+
+        $admin = Admin::query()
+            ->when($databaseId, fn ($query) => $query->whereKey($databaseId))
+            ->when(!$databaseId, function ($query) use ($email, $username) {
+                $query->where(function ($query) use ($email, $username) {
+                    $query->whereRaw('LOWER(email) = ?', [$email]);
+                    if ($username !== '') {
+                        $query->orWhere('username', $username);
+                    }
+                });
+            })
+            ->first();
+        $creating = !$admin;
+
+        if ($creating && strlen($password) < 6) {
+            throw new \InvalidArgumentException('كلمة المرور مطلوبة للمستخدم الجديد ويجب ألا تقل عن 6 أحرف.');
+        }
+
+        $adminType = trim((string) ($row['admin_type'] ?? ''));
+        if (!in_array($adminType, ['super_admin', 'customer_service'], true)) {
+            throw new \InvalidArgumentException('نوع المستخدم يجب أن يكون super_admin أو customer_service.');
+        }
+
+        $role = $this->resolveImportedAdminRole($row['role'] ?? $row['role_id'] ?? null);
+        $branchId = $this->resolveImportedAdminBranchId($row['branch'] ?? $row['branch_id'] ?? null);
+        $sexType = $this->normalizeImportedAdminSex($row['sex_type'] ?? null);
+        $status = $this->normalizeImportedAdminStatus($row['status'] ?? null);
+
+        foreach (['email' => $email, 'username' => $username, 'identity_number' => trim((string) ($row['identity_number'] ?? ''))] as $column => $value) {
+            if ($value !== '' && Admin::query()->where($column, $value)->when($admin, fn ($query) => $query->where('id', '<>', $admin->id))->exists()) {
+                throw new \InvalidArgumentException("القيمة {$value} مستخدمة مسبقًا في حقل {$column}.");
+            }
+        }
+
+        $payload = $this->filterColumns('admins', [
+            'name' => $name,
+            'username' => $username !== '' ? $username : null,
+            'email' => $email,
+            'phone' => $phone,
+            'whatsapp' => trim((string) ($row['whatsapp'] ?? '')) ?: $phone,
+            'verification_phone' => trim((string) ($row['verification_phone'] ?? '')) ?: $phone,
+            'identity_number' => trim((string) ($row['identity_number'] ?? '')) ?: null,
+            'identity_expiry_date' => $this->parseDate($row['identity_expiry_date'] ?? null),
+            'admin_type' => $adminType,
+            'sex_type' => $sexType,
+            'role_id' => $role->id,
+            'branch_id' => $branchId,
+            'sort' => $this->optionalInteger($row['sort'] ?? null) ?? 999,
+            'status' => $status,
+            'note' => trim((string) ($row['note'] ?? '')) ?: null,
+        ]);
+
+        if ($password !== '') {
+            if (strlen($password) < 6) {
+                throw new \InvalidArgumentException('كلمة المرور يجب ألا تقل عن 6 أحرف.');
+            }
+            $payload['password'] = Hash::make($password);
+        }
+
+        if ($admin) {
+            $admin->update($payload);
+            $outcome = 'updated';
+        } else {
+            $admin = Admin::create($payload);
+            $outcome = 'created';
+        }
+
+        $admin->syncRoles([$role]);
+
+        return $outcome;
+    }
+
+    private function resolveImportedAdminRole($value): Role
+    {
+        $value = trim((string) $value);
+        $role = Role::query()
+            ->where('guard_name', 'admin')
+            ->where(function ($query) use ($value) {
+                if (ctype_digit($value)) {
+                    $query->whereKey((int) $value)->orWhere('name', $value);
+                } else {
+                    $query->where('name', $value);
+                }
+            })
+            ->first();
+
+        if (!$role) {
+            throw new \InvalidArgumentException('الدور مطلوب أو غير موجود ضمن أدوار المستخدمين.');
+        }
+
+        return $role;
+    }
+
+    private function resolveImportedAdminBranchId($value): ?int
+    {
+        $value = trim((string) $value);
+        if ($value === '' || !Schema::hasColumn('admins', 'branch_id')) {
+            return null;
+        }
+
+        $branch = Branch::query()
+            ->where(function ($query) use ($value) {
+                if (ctype_digit($value)) {
+                    $query->whereKey((int) $value);
+                } else {
+                    $query->where('code', $value)
+                        ->orWhere('name_ar', $value)
+                        ->orWhere('name_en', $value);
+                }
+            })
+            ->first();
+
+        if (!$branch) {
+            throw new \InvalidArgumentException('الفرع المحدد غير موجود.');
+        }
+
+        return (int) $branch->id;
+    }
+
+    private function normalizeImportedAdminSex($value): int
+    {
+        $value = $this->normalizeComparableText((string) $value);
+        return match ($value) {
+            '0', 'ذكر', 'male' => 0,
+            '1', 'انثى', 'female' => 1,
+            default => throw new \InvalidArgumentException('الجنس يجب أن يكون ذكر أو أنثى أو 0 أو 1.'),
+        };
+    }
+
+    private function normalizeImportedAdminStatus($value): string
+    {
+        $value = $this->normalizeComparableText((string) ($value ?: 'active'));
+        return match ($value) {
+            'active', 'نشط' => 'active',
+            'suspended', 'موقوف', 'غير نشط' => 'suspended',
+            default => throw new \InvalidArgumentException('حالة المستخدم يجب أن تكون active أو suspended.'),
+        };
+    }
+
     private function importRentalMaid(array $row, ?int $adminId): string
     {
         return $this->importMaid($row, $adminId, true);
@@ -1410,9 +1924,13 @@ class DataImportExecutionService
             'user_id' => $user->id,
             'maid_id' => $maid->id,
             'order_id' => $order?->id,
-            'marketer_id' => $adminId,
+            'marketer_id' => $this->resolveImportedAdminId(
+                $row['created_by'] ?? $row['created_by_name'] ?? null,
+                $adminId
+            ),
             'status' => $status,
             'contract_number' => $row['contract_number'] ?? null,
+            'msaned_number' => $row['msaned_number'] ?? null,
             'visa_number' => $row['visa_number'] ?? null,
             'contract_date' => $this->parseDate($row['contract_date'] ?? null),
             'type' => 'recruitment',
@@ -1431,6 +1949,7 @@ class DataImportExecutionService
         $this->upsertContractInfo($contract, [
             'contract_date' => $this->parseDate($row['contract_date'] ?? null),
             'visa_number' => $row['visa_number'] ?? null,
+            'msaned_number' => $row['msaned_number'] ?? null,
             'arrival_date' => $arrivalDate,
             'contract_value' => $this->decimal($row['amount'] ?? null),
             'notes' => $row['notes'] ?? null,
@@ -1710,6 +2229,7 @@ class DataImportExecutionService
             'finance_expense' => $row['maid_finance_expense'] ?? null,
             'notes' => $row['maid_notes'] ?? $row['additional_notes'] ?? null,
             'additional_notes' => $row['maid_notes'] ?? $row['additional_notes'] ?? null,
+            'added_by' => $row['maid_added_by'] ?? $row['added_by'] ?? null,
         ]);
     }
 
@@ -1717,6 +2237,7 @@ class DataImportExecutionService
     {
         return array_merge($row, [
             'contract_number' => $row['contract_number'] ?? null,
+            'msaned_number' => $row['msaned_number'] ?? null,
             'visa_number' => $row['visa_number'] ?? null,
             'client_phone' => $row['client_phone'] ?? $row['phone'] ?? null,
             'client_id_number' => $row['client_id_number'] ?? $row['id_number'] ?? null,
@@ -1728,6 +2249,7 @@ class DataImportExecutionService
             'status' => $row['recruitment_contract_status'] ?? $row['contract_status'] ?? null,
             'amount' => $row['contract_amount'] ?? $row['amount'] ?? null,
             'paid_amount' => $row['contract_paid_amount'] ?? $row['paid_amount'] ?? null,
+            'created_by' => $row['contract_created_by'] ?? $row['created_by'] ?? null,
             'notes' => $row['contract_notes'] ?? null,
         ]);
     }
@@ -1895,7 +2417,10 @@ class DataImportExecutionService
             'request_type' => $rental
                 ? $this->normalizeRequestType($row['request_type'] ?? null)
                 : Maid::REQUEST_TYPE_SPECIFIC,
-            'added_by' => $adminId,
+            'added_by' => $this->resolveImportedAdminId(
+                $row['added_by'] ?? $row['created_by'] ?? $row['created_by_name'] ?? null,
+                $adminId
+            ),
             'is_show' => $this->truthy($row['is_show'] ?? null, true) ? 1 : 0,
             'is_pinned' => $this->truthy($row['is_pinned'] ?? null, false) ? 1 : 0,
             'additional_notes' => $row['notes'] ?? $row['additional_notes'] ?? null,
@@ -2374,7 +2899,62 @@ class DataImportExecutionService
             return null;
         }
 
-        return Account::query()->whereKey($id)->exists() ? $id : null;
+        if (Account::query()->whereKey($id)->exists()) {
+            return $id;
+        }
+
+        $accountIdByCode = Account::query()
+            ->where('code', $this->normalizeDigits((string) $value))
+            ->value('id');
+
+        return $accountIdByCode ? (int) $accountIdByCode : null;
+    }
+
+    private function resolveOrCreateClientAccountId($value, string $clientName, ?int $adminId): ?int
+    {
+        $code = $this->normalizeFinanceAccountCode($value);
+
+        if (!$code || !class_exists(Account::class) || !Schema::hasTable('fn_accounts')) {
+            return null;
+        }
+
+        $existingAccountId = Account::query()
+            ->where('code', $code)
+            ->value('id');
+
+        if ($existingAccountId) {
+            return (int) $existingAccountId;
+        }
+
+        $parentAccount = Account::query()
+            ->where('type', AccountTypesEnum::Clients->value)
+            ->lockForUpdate()
+            ->first();
+
+        if (!$parentAccount) {
+            throw new \InvalidArgumentException('لا يوجد حساب رئيسي للعملاء في جدول الحسابات. يرجى إنشاء حساب من نوع Clients أولا.');
+        }
+
+        $existingAccountId = Account::query()
+            ->where('code', $code)
+            ->value('id');
+
+        if ($existingAccountId) {
+            return (int) $existingAccountId;
+        }
+
+        $account = Account::query()->create([
+            'name' => $clientName,
+            'operation_type' => $parentAccount->operation_type,
+            'status' => $parentAccount->status,
+            'level' => $parentAccount->level + 1,
+            'type' => AccountTypesEnum::Client->value,
+            'parent_id' => $parentAccount->id,
+            'code' => $code,
+            'created_by_id' => $adminId ?? auth('admin')->id() ?? 1,
+        ]);
+
+        return (int) $account->id;
     }
 
     private function resolveFinanceAccountId(array $row): ?int
@@ -2613,8 +3193,24 @@ class DataImportExecutionService
         }
 
         return Admin::query()
-            ->where('name', $value)
+            ->where(function ($query) use ($value) {
+                $query->where('name', $value)
+                    ->orWhere('email', $value);
+
+                if (Schema::hasColumn('admins', 'username')) {
+                    $query->orWhere('username', $value);
+                }
+            })
             ->value('id');
+    }
+
+    private function resolveImportedAdminId($value, ?int $fallbackAdminId): int
+    {
+        return $this->resolveAdminId($value)
+            ?? $fallbackAdminId
+            ?? auth('admin')->id()
+            ?? auth()->id()
+            ?? 1;
     }
 
     private function findEmployee(?int $databaseId, string $code, string $nationalNumber, string $email): ?HrEmployee
@@ -3593,6 +4189,11 @@ class DataImportExecutionService
         return trim(preg_replace('/\s+/u', ' ', $value));
     }
 
+    private function normalizeComparableText(?string $value): string
+    {
+        return $this->normalizeArabicText($value);
+    }
+
     private function normalizeHeader(string $value): string
     {
         $value = $this->normalizeDigits($value);
@@ -3606,6 +4207,24 @@ class DataImportExecutionService
     private function importHeaderAliases(): array
     {
         return [
+            'رقم السند' => 'bond_code',
+            'رقم حساب مدين' => 'debit_account_code',
+            'اسم مدين' => 'debit_account_name',
+            'رقم حساب دائن' => 'credit_account_code',
+            'اسم دائن' => 'credit_account_name',
+            'التاريخ' => 'date',
+            'التاريخ هـ' => 'hijri_date',
+            'طريقة الدفع' => 'payment_type',
+            'الإجمالي' => 'total',
+            'المبلغ المقبوض' => 'received_amount',
+            'المبلغ المصروف' => 'paid_amount',
+            'عملة' => 'currency',
+            'الحركة المالية' => 'financial_movement',
+            'عملة الحركة المالية' => 'financial_movement_currency',
+            'ذلك مقابل' => 'statement',
+            'رقم العميل' => 'client_number',
+            'رقم الطلب' => 'order_number',
+            'أنشئ بواسطة' => 'created_by_name',
             'قيد محاسبي رقم' => 'constraint_ref',
             'رقم القيد' => 'constraint_ref',
             'رقم مجموعة القيد' => 'constraint_ref',

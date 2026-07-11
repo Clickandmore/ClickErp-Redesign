@@ -5,16 +5,20 @@ namespace App\Http\Controllers\ingaz;
 use App\Enums\ingaz\ContractStatusEnum;
 use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\makeTransferRequest;
+use App\Models\auth\Admin;
 use App\Models\Contract;
 use App\Models\ingaz\Order;
 use App\Models\ingaz\User;
 use App\Models\SponsorshipTransfer;
+use App\PermKeys;
 use App\Services\ingaz\SponsorshipTransferCompletionService;
 use App\Services\ingaz\SponsorshipTransferFailureService;
 use App\Services\ingaz\SponsorshipTransferTrialStartService;
 use App\Services\AdminNotificationService;
+use App\Support\SystemModuleManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Yajra\DataTables\Facades\DataTables;
@@ -663,9 +667,11 @@ class SponsorshipTransferController extends Controller
             ];
 
             // إنشاء طلب نقل كفالة جديد
-            SponsorshipTransfer::create($transferData);
+            $transfer = SponsorshipTransfer::create($transferData);
 
             DB::commit();
+            $transfer->refresh();
+            $this->notifySponsorshipTransferCreated($transfer);
 
             return response()->json([
                 'success' => true,
@@ -2057,6 +2063,63 @@ class SponsorshipTransferController extends Controller
                 'new_status' => $transfer->status,
             ]
         );
+    }
+
+    private function notifySponsorshipTransferCreated(SponsorshipTransfer $transfer): void
+    {
+        $recipientIds = $this->sponsorshipTransferNotificationAdminIds($transfer);
+
+        if ($recipientIds->isEmpty()) {
+            return;
+        }
+
+        app(AdminNotificationService::class)->sendToAdmins(
+            $recipientIds,
+            'طلب نقل كفالة جديد #' . $transfer->id,
+            'تم إنشاء طلب نقل كفالة جديد من "' . ($transfer->oldSponsor?->name ?? 'كفيل غير محدد') . '" إلى "' . ($transfer->newSponsor?->name ?? 'كفيل غير محدد') . '".',
+            'sponsorship_transfer_created',
+            route('SponsorshipTransfer.show', $transfer->id),
+            [
+                'model' => SponsorshipTransfer::class,
+                'model_id' => $transfer->id,
+                'contract_id' => $transfer->contract_id,
+                'old_sponsor_id' => $transfer->old_sponsor_id,
+                'new_sponsor_id' => $transfer->new_sponsor_id,
+                'status' => $transfer->status,
+            ]
+        );
+    }
+
+    private function sponsorshipTransferNotificationAdminIds(SponsorshipTransfer $transfer)
+    {
+        $branchesEnabled = SystemModuleManager::isEnabled('branches')
+            && Schema::hasColumn('admins', 'branch_id')
+            && Schema::hasColumn('sponsorship_transfers', 'branch_id');
+        $transferBranchId = (int) ($transfer->branch_id ?? 0);
+
+        return Admin::query()
+            ->activeForOperations()
+            ->get()
+            ->filter(function (Admin $admin) use ($branchesEnabled, $transferBranchId) {
+                if (! $admin->hasAnyPermission([
+                    PermKeys::SPONSOR_TRANSFER_VIEW,
+                    PermKeys::SPONSOR_TRANSFER_CREATE,
+                    PermKeys::SPONSOR_TRANSFER_EDIT,
+                    PermKeys::SPONSOR_TRANSFER_CONTROL,
+                ])) {
+                    return false;
+                }
+
+                if (! $branchesEnabled || $transferBranchId < 1) {
+                    return true;
+                }
+
+                $adminBranchId = (int) ($admin->branch_id ?? 0);
+
+                return $adminBranchId < 1 || $adminBranchId === $transferBranchId;
+            })
+            ->pluck('id')
+            ->values();
     }
 
     private function sponsorshipTransferStatusLabel(?string $status): string

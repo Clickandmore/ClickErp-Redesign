@@ -52,6 +52,7 @@ return [
         'description' => 'إعدادات وبيانات واجهة العميل والمحتوى العام.',
         'route_patterns' => [
             'settings.*',
+            'offers.*',
             'sliders.*',
             'about-us.*',
             'questions.*',

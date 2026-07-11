@@ -91,6 +91,15 @@
                 </div>
             @endif
 
+            @if (session('bond_generation_errors'))
+                <div class="alert alert-warning">
+                    <div class="fw-bold mb-2">ملاحظات توليد سندات القبض والصرف:</div>
+                    @foreach (session('bond_generation_errors') as $error)
+                        <div>{{ $error }}</div>
+                    @endforeach
+                </div>
+            @endif
+
             @if ($errors->any())
                 <div class="alert alert-danger">
                     @foreach ($errors->all() as $error)
@@ -131,6 +140,41 @@
                                     </button>
                                 </div>
                             </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="import-panel p-3 p-lg-4 mb-4">
+                <div class="row g-4 align-items-center">
+                    <div class="col-lg-8">
+                        <h5 class="mb-2">توليد سندات القبض والصرف من القيود المحاسبية</h5>
+                        <p class="text-muted mb-2">
+                            يتم توليد السندات من القيود اليومية غير المرتبطة بسند، بشرط أن يحتوي القيد على طرف مدين واحد وطرف دائن واحد وأن يكون أحد الطرفين حساب صندوق أو بنك.
+                        </p>
+                        @if (!empty($bondGenerationStats['ready']))
+                            <div class="d-flex flex-wrap gap-2 small">
+                                <span class="badge bg-light text-dark border">
+                                    قيود مرشحة: {{ number_format($bondGenerationStats['candidate_constraints'] ?? 0) }}
+                                </span>
+                                <span class="badge bg-light text-dark border">
+                                    سندات مرتبطة بقيود: {{ number_format($bondGenerationStats['existing_bonds'] ?? 0) }}
+                                </span>
+                            </div>
+                        @else
+                            <div class="alert alert-warning py-2 mb-0">
+                                جداول المالية المطلوبة غير جاهزة لتوليد السندات.
+                            </div>
+                        @endif
+                    </div>
+                    <div class="col-lg-4">
+                        <form action="{{ route('reports.import.generate-bonds') }}" method="POST"
+                              onsubmit="return confirm('سيتم إنشاء سندات قبض وصرف من القيود اليومية المؤهلة وغير المرتبطة بسند. هل تريد المتابعة؟')">
+                            @csrf
+                            <button type="submit" class="btn btn-warning w-100" {{ empty($bondGenerationStats['ready']) ? 'disabled' : '' }}>
+                                <i class="fas fa-receipt me-1"></i>
+                                توليد سندات القبض والصرف
+                            </button>
                         </form>
                     </div>
                 </div>
