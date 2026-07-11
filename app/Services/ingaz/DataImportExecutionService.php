@@ -499,6 +499,7 @@ class DataImportExecutionService
 
     private function importLegacyRentalOrder(array $row, ?int $adminId): string
     {
+        $row = $this->normalizeLegacyRentalOrderRow($row);
         $requestId = $this->optionalInteger($row['legacy_order_id'] ?? null);
         $clientLegacyId = $this->optionalInteger($row['legacy_client_id'] ?? null);
         $maidLegacyId = $this->optionalInteger($row['legacy_maid_id'] ?? null);
@@ -614,6 +615,52 @@ class DataImportExecutionService
         $this->upsertLegacyRentalInvoice($contract, $row, $total, $hasReceipt);
 
         return $created ? 'created' : 'updated';
+    }
+
+    private function normalizeLegacyRentalOrderRow(array $row): array
+    {
+        $aliases = [
+            'م' => 'sequence',
+            'رقم الطلب' => 'legacy_order_id',
+            'الحالة' => 'status',
+            'رقم العامل' => 'legacy_maid_id',
+            'اسم العامل / ه' => 'maid_name',
+            'اسم العاملـ / ـة' => 'maid_name',
+            'باسبور العامل / ه' => 'maid_passport',
+            'باسبور العاملـ / ـة' => 'maid_passport',
+            'رقم العميل' => 'legacy_client_id',
+            'العميل' => 'client_name',
+            'رقم الفاتورة' => 'legacy_invoice_id',
+            'سند قبض' => 'legacy_receipt_id',
+            'الجنسية' => 'nationality',
+            'المهنة' => 'job_title',
+            'الشركة المزودة' => 'supplier',
+            'تاريخ البدء' => 'start_date',
+            'تاريخ البدء ه' => 'start_date_hijri',
+            'تاريخ الانتهاء' => 'end_date',
+            'تاريخ الانتهاء ه' => 'end_date_hijri',
+            'مدة الايام' => 'duration_days',
+            'المتبقي' => 'remaining_days',
+            'الايام المستفادة' => 'used_days',
+            'التكلفة' => 'total_cost',
+            'بواسطة المستخدم' => 'created_by',
+            'في تاريخ' => 'created_at',
+            'في تاريخ ه' => 'created_at_hijri',
+        ];
+
+        $normalizedAliases = [];
+        foreach ($aliases as $header => $key) {
+            $normalizedAliases[$this->normalizeHeader($header)] = $key;
+        }
+
+        foreach ($row as $header => $value) {
+            $key = $normalizedAliases[$this->normalizeHeader((string) $header)] ?? null;
+            if ($key && (!array_key_exists($key, $row) || $row[$key] === null || $row[$key] === '')) {
+                $row[$key] = $value;
+            }
+        }
+
+        return $row;
     }
 
     private function upsertLegacyRentalInvoice(RentalContract $contract, array $row, float $total, bool $hasReceipt): void
