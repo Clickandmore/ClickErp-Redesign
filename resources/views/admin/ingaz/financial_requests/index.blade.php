@@ -125,7 +125,7 @@
                                 <td>{{ $item->creator?->name ?: '-' }}</td>
                                 <td class="text-end">
                                     <a class="btn btn-sm btn-outline-primary" href="{{ route('financial-requests.show', $item) }}"><i class="fa fa-eye"></i></a>
-                                    @if ($item->status !== 'paid' && @AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_EDIT, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]))
+                                    @if (in_array($item->status, ['preparing', 'rejected'], true) && (int) $item->created_by_id === (int) auth('admin')->id() && @AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_CREATE, \App\PermKeys::FINANCIAL_REQUESTS_EDIT, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]))
                                         <a class="btn btn-sm btn-outline-dark" href="{{ route('financial-requests.edit', $item) }}"><i class="fa fa-edit"></i></a>
                                     @endif
                                 </td>

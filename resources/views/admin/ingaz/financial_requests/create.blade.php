@@ -4,21 +4,6 @@
     $isEdit = isset($requestItem);
     $payload = old('payload', $isEdit ? ($requestItem->payload ?? []) : []);
 
-    $optionText = static function ($label, $key) {
-        $label = trim((string) $label);
-        $key = trim((string) $key);
-
-        if ($label === '' || $label === $key) {
-            return '';
-        }
-
-        return trim(str_replace([
-            $key . ' - ',
-            $key . ': ',
-            '(' . $key . ')',
-            '[' . $key . ']',
-        ], '', $label));
-    };
 @endphp
 
 @section('content')
@@ -37,15 +22,32 @@
             <div class="row g-3">
                 <div class="col-lg-8">
                     <div class="card mb-3">
-                        <div class="card-header fw-bold">بيانات الطلب</div>
+                        <div class="card-header fw-bold"><i class="fa fa-file-invoice me-1"></i> البيانات الأساسية</div>
                         <div class="card-body">
                             <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">المدفوع له <span class="text-danger">*</span></label>
+                                    <input type="text" name="payload[paid_to]" class="form-control" required value="{{ old('payload.paid_to', $payload['paid_to'] ?? '') }}">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">الفرع <span class="text-danger">*</span></label>
+                                    <select name="branch_id" class="form-select" required>
+                                        <option value="">اختر الفرع</option>
+                                        @foreach($branches as $branch)
+                                            <option value="{{ $branch->id }}" @selected((string) old('branch_id', $requestItem->branch_id ?? auth('admin')->user()?->branch_id) === (string) $branch->id)>{{ $branch->name_ar }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">الاسم المحاسبي <span class="text-danger">*</span></label>
+                                    <input type="text" name="payload[accounting_name]" class="form-control" required value="{{ old('payload.accounting_name', $payload['accounting_name'] ?? ((($requestItem->type ?? '') === 'client_refund') ? 'مردودات المبيعات' : '')) }}">
+                                </div>
                                 <div class="col-md-4">
                                     <label class="form-label">نوع الطلب</label>
                                     <select name="type" id="requestType" class="form-select" required>
                                         <option value="" disabled @selected(!old('type', $requestItem->type ?? null))>اختر نوع الطلب</option>
                                         @foreach ($types as $key => $label)
-                                            <option value="{{ $key }}" label="{{ $optionText($label, $key) }}" @selected(old('type', $requestItem->type ?? '') === $key)>{{ $optionText($label, $key) }}</option>
+                                            <option value="{{ $key }}" @selected(old('type', $requestItem->type ?? '') === $key)>{{ $label }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -53,7 +55,7 @@
                                     <label class="form-label">التصعيد</label>
                                     <select name="priority" class="form-select" required>
                                         @foreach ($priorities as $key => $label)
-                                            <option value="{{ $key }}" label="{{ $optionText($label, $key) }}" @selected(old('priority', $requestItem->priority ?? 'normal') === $key)>{{ $optionText($label, $key) }}</option>
+                                            <option value="{{ $key }}" @selected(old('priority', $requestItem->priority ?? 'normal') === $key)>{{ $label }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -63,11 +65,25 @@
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">المبلغ</label>
-                                    <input type="number" step="0.01" min="0" name="amount" class="form-control" value="{{ old('amount', $requestItem->amount ?? '') }}">
+                                    <input type="number" step="0.01" min="0" name="amount" class="form-control" required value="{{ old('amount', $requestItem->amount ?? '') }}">
                                 </div>
-                                <div class="col-md-8">
-                                    <label class="form-label">الوصف</label>
-                                    <input type="text" name="description" class="form-control" value="{{ old('description', $requestItem->description ?? '') }}">
+                                <div class="col-md-4">
+                                    <label class="form-label">مدين / دائن <span class="text-danger">*</span></label>
+                                    <select name="payload[debit_credit]" class="form-select" required>
+                                        <option value="debit" @selected(old('payload.debit_credit', $payload['debit_credit'] ?? 'debit') === 'debit')>مدين</option>
+                                        <option value="credit" @selected(old('payload.debit_credit', $payload['debit_credit'] ?? '') === 'credit')>دائن</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">طريقة الدفع <span class="text-danger">*</span></label>
+                                    <select name="payload[payment_method]" id="paymentMethod" class="form-select" required>
+                                        <option value="bank_transfer" @selected(old('payload.payment_method', $payload['payment_method'] ?? 'bank_transfer') === 'bank_transfer')>تحويل بنكي</option>
+                                        <option value="cash" @selected(old('payload.payment_method', $payload['payment_method'] ?? '') === 'cash')>نقدي</option>
+                                    </select>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">وصف الدفع / الغرض منه</label>
+                                    <textarea name="description" class="form-control" required>{{ old('description', $requestItem->description ?? '') }}</textarea>
                                 </div>
                             </div>
                             <hr>
@@ -75,8 +91,42 @@
                         </div>
                     </div>
 
+                    <div class="card mb-3" id="bankTransferCard">
+                        <div class="card-header fw-bold"><i class="fa fa-university me-1"></i> بيانات التحويل البنكي <small class="text-muted fw-normal">(اختيارية)</small></div>
+                        <div class="card-body">
+                            <div class="alert alert-light border small">يمكن اختيار حساب من الدليل المحاسبي أو إدخال بيانات المستفيد يدويًا، وجميع الحقول هنا اختيارية.</div>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">الحساب المحاسبي</label>
+                                    <select name="payload[account_id]" id="accountId" class="form-select js-create-account-select" data-placeholder="ابحث بالكود أو اسم الحساب">
+                                        <option value=""></option>
+                                        @if(old('payload.account_id', $payload['account_id'] ?? null))
+                                            <option value="{{ old('payload.account_id', $payload['account_id'] ?? '') }}" selected>الحساب المحدد #{{ old('payload.account_id', $payload['account_id'] ?? '') }}</option>
+                                        @endif
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">اسم البنك</label>
+                                    <input type="text" name="payload[bank_name]" class="form-control" value="{{ old('payload.bank_name', $payload['bank_name'] ?? '') }}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">اسم صاحب الحساب</label>
+                                    <input type="text" name="payload[account_holder_name]" class="form-control" value="{{ old('payload.account_holder_name', $payload['account_holder_name'] ?? '') }}">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">رقم الحساب</label>
+                                    <input type="text" name="payload[account_number]" class="form-control" value="{{ old('payload.account_number', $payload['account_number'] ?? '') }}">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">رقم الآيبان</label>
+                                    <input type="text" name="payload[iban]" class="form-control text-uppercase" maxlength="34" dir="ltr" value="{{ old('payload.iban', $payload['iban'] ?? '') }}" placeholder="SA00 0000 0000 0000 0000 0000">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="card mb-3">
-                        <div class="card-header fw-bold">المرفقات</div>
+                        <div class="card-header fw-bold"><i class="fa fa-paperclip me-1"></i> المرفقات</div>
                         <div class="card-body">
                             <div class="row g-3">
                                 <div class="col-md-6">
@@ -105,7 +155,7 @@
 
                 <div class="col-lg-4">
                     <div class="card mb-3">
-                        <div class="card-header fw-bold">الربط</div>
+                        <div class="card-header fw-bold"><i class="fa fa-link me-1"></i> ربط العميل والعقد</div>
                         <div class="card-body">
                             <label class="form-label">العميل</label>
                             <div class="input-group mb-2">
@@ -153,7 +203,7 @@
                         </div>
                     </div>
 
-                    <button class="btn btn-primary w-100" type="submit">حفظ الطلب</button>
+                    <button class="btn btn-primary w-100" type="submit">{{ $isEdit ? 'تحديث وإعادة الإرسال' : 'إرسال طلب الاعتماد' }}</button>
                 </div>
             </div>
         </form>
@@ -281,6 +331,29 @@
         let maids = [];
         document.getElementById('requestType').addEventListener('change', renderDynamicFields);
         renderDynamicFields();
+
+        function toggleBankDetails() {
+            const isBankTransfer = document.getElementById('paymentMethod').value === 'bank_transfer';
+            document.getElementById('bankTransferCard').classList.toggle('d-none', !isBankTransfer);
+        }
+
+        document.getElementById('paymentMethod').addEventListener('change', toggleBankDetails);
+        toggleBankDetails();
+
+        if (window.jQuery && window.jQuery.fn && window.jQuery.fn.select2) {
+            window.jQuery('.js-create-account-select').select2({
+                width: '100%',
+                allowClear: true,
+                placeholder: 'ابحث بالكود أو اسم الحساب',
+                ajax: {
+                    url: '{{ route('financial-requests.search-accounts') }}',
+                    dataType: 'json',
+                    delay: 250,
+                    data: params => ({q: params.term || ''}),
+                    processResults: data => data,
+                },
+            });
+        }
 
         async function searchClients() {
             clients = await searchRows('{{ route('financial-requests.search-clients') }}', clientSearch.value);

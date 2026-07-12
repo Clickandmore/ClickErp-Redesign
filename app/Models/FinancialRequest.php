@@ -14,11 +14,18 @@ class FinancialRequest extends Model
 {
     use AssignsBranch, SoftDeletes;
 
-    public const STATUS_PENDING_REVIEW = 'pending_review';
-    public const STATUS_IN_PROGRESS = 'in_progress';
+    public const STATUS_PREPARING = 'preparing';
+    public const STATUS_FOR_APPROVAL = 'for_approval';
+    public const STATUS_APPROVED = 'approved';
     public const STATUS_PAID = 'paid';
+    public const STATUS_REQUEST_CLOSING = 'request_closing';
+    public const STATUS_RECEIPT_ATTACHED = 'receipt_attached';
     public const STATUS_REJECTED = 'rejected';
     public const STATUS_CLOSED = 'closed';
+
+    // Legacy aliases kept for reports and older integrations.
+    public const STATUS_PENDING_REVIEW = self::STATUS_FOR_APPROVAL;
+    public const STATUS_IN_PROGRESS = self::STATUS_APPROVED;
 
     public const PRIORITY_NORMAL = 'normal';
     public const PRIORITY_IMPORTANT = 'important';
@@ -30,6 +37,7 @@ class FinancialRequest extends Model
         'payload' => 'array',
         'request_date' => 'date',
         'paid_at' => 'datetime',
+        'closed_at' => 'datetime',
         'amount' => 'decimal:2',
         'contract_cost' => 'decimal:2',
         'contract_salary' => 'decimal:2',
@@ -61,7 +69,7 @@ class FinancialRequest extends Model
             'work_permit_fee' => ['permit_number' => 'رقم رخصة العمل', 'period' => 'المدة'],
             'medical_insurance' => ['policy_number' => 'رقم الوثيقة', 'insurance_company' => 'شركة التأمين'],
             'salary_payment' => ['salary_month' => 'شهر الراتب', 'salary_days' => 'عدد الأيام'],
-            'client_refund' => ['refund_reason' => 'سبب الاسترداد', 'iban' => 'آيبان العميل'],
+            'client_refund' => ['refund_reason' => 'سبب الاسترداد'],
             'other_financial' => ['subject' => 'موضوع الطلب', 'reference_no' => 'رقم مرجعي'],
         ];
     }
@@ -91,10 +99,13 @@ class FinancialRequest extends Model
     public static function statuses(): array
     {
         return [
-            self::STATUS_PENDING_REVIEW => 'قيد المراجعة',
-            self::STATUS_IN_PROGRESS => 'تحت الإجراء',
+            self::STATUS_PREPARING => 'تجهيز',
+            self::STATUS_FOR_APPROVAL => 'بانتظار الاعتماد',
+            self::STATUS_APPROVED => 'معتمد / بانتظار الدفع',
             self::STATUS_PAID => 'تم السداد',
-            self::STATUS_REJECTED => 'مرفوض',
+            self::STATUS_REQUEST_CLOSING => 'طلب إقفال',
+            self::STATUS_RECEIPT_ATTACHED => 'تم إرفاق الإيصال',
+            self::STATUS_REJECTED => 'غير مكتمل',
             self::STATUS_CLOSED => 'مقفلة',
         ];
     }
@@ -169,6 +180,16 @@ class FinancialRequest extends Model
     public function financeBond()
     {
         return $this->belongsTo(Bond::class, 'finance_bond_id');
+    }
+
+    public function statusLogs()
+    {
+        return $this->hasMany(FinancialRequestStatusLog::class)->oldest();
+    }
+
+    public function isCreatorStage(): bool
+    {
+        return in_array($this->status, [self::STATUS_PREPARING, self::STATUS_APPROVED, self::STATUS_REQUEST_CLOSING, self::STATUS_REJECTED], true);
     }
 
     protected function resolveBranchIdForCreate(): ?int

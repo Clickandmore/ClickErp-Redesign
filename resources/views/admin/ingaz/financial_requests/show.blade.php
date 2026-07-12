@@ -7,6 +7,22 @@
         $priorityLabel = $requestItem->priority_label;
         $contractTypeLabel = $requestItem->contract_type_label;
         $financeBondTypeLabel = $bondTypes[$requestItem->finance_bond_type] ?? null;
+        $isCreator = (int) $requestItem->created_by_id === (int) auth('admin')->id();
+        $isAuditor = @AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, \App\PermKeys::FINANCIAL_REQUESTS_APPROVE, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]);
+        $actions = [];
+        if ($isAuditor && $requestItem->status === \App\Models\FinancialRequest::STATUS_FOR_APPROVAL) {
+            $actions = ['approve' => [\App\Models\FinancialRequest::STATUS_APPROVED, 'اعتماد', 'success'], 'reject' => [\App\Models\FinancialRequest::STATUS_PREPARING, 'غير معتمد', 'danger']];
+        } elseif ($isCreator && in_array($requestItem->status, [\App\Models\FinancialRequest::STATUS_PREPARING, \App\Models\FinancialRequest::STATUS_REJECTED], true)) {
+            $actions = ['resubmit' => [\App\Models\FinancialRequest::STATUS_FOR_APPROVAL, 'إعادة الإرسال للاعتماد', 'primary']];
+        } elseif ($isCreator && $requestItem->status === \App\Models\FinancialRequest::STATUS_APPROVED) {
+            $actions = ['paid' => [\App\Models\FinancialRequest::STATUS_PAID, 'تم السداد', 'primary']];
+        } elseif ($isAuditor && $requestItem->status === \App\Models\FinancialRequest::STATUS_PAID) {
+            $actions = ['verify' => [\App\Models\FinancialRequest::STATUS_REQUEST_CLOSING, 'طلب الإقفال', 'warning']];
+        } elseif ($isCreator && $requestItem->status === \App\Models\FinancialRequest::STATUS_REQUEST_CLOSING) {
+            $actions = ['receipt' => [\App\Models\FinancialRequest::STATUS_RECEIPT_ATTACHED, 'تم إرفاق الإيصال', 'info']];
+        } elseif ($isAuditor && $requestItem->status === \App\Models\FinancialRequest::STATUS_RECEIPT_ATTACHED) {
+            $actions = ['close' => [\App\Models\FinancialRequest::STATUS_CLOSED, 'مكتمل وإقفال', 'success'], 'incomplete' => [\App\Models\FinancialRequest::STATUS_REQUEST_CLOSING, 'غير مكتمل', 'danger']];
+        }
     @endphp
 
     <div class="container-fluid">
@@ -24,6 +40,8 @@
                     <div class="card-body">
                         <dl class="row mb-0">
                             <dt class="col-sm-3">الحالة</dt><dd class="col-sm-9">{{ $statusLabel }}</dd>
+                            <dt class="col-sm-3">المدفوع له</dt><dd class="col-sm-9">{{ data_get($requestItem->payload, 'paid_to', '-') }}</dd>
+                            <dt class="col-sm-3">الفرع</dt><dd class="col-sm-9">{{ $requestItem->branch_id ?: '-' }}</dd>
                             <dt class="col-sm-3">التصعيد</dt><dd class="col-sm-9">{{ $priorityLabel }}</dd>
                             <dt class="col-sm-3">المبلغ</dt><dd class="col-sm-9">{{ $requestItem->amount ? number_format((float) $requestItem->amount, 2) : '-' }}</dd>
                             <dt class="col-sm-3">العميل</dt><dd class="col-sm-9">{{ $requestItem->client_name ?: '-' }} / {{ $requestItem->client_identity ?: '-' }}</dd>
@@ -57,6 +75,22 @@
                 </div>
 
                 <div class="card mt-3">
+                    <div class="card-header fw-bold">سجل الحالات</div>
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <thead><tr><th>الحالة</th><th>بواسطة</th><th>التاريخ</th><th>الوقت</th><th>الملاحظات</th></tr></thead>
+                            <tbody>
+                            @forelse($requestItem->statusLogs as $log)
+                                <tr><td>{{ $statuses[$log->to_status] ?? $log->to_status }}</td><td>{{ $log->performer?->name ?: '-' }}</td><td>{{ $log->created_at->format('Y-m-d') }}</td><td>{{ $log->created_at->format('H:i') }}</td><td>{{ $log->remarks ?: '-' }}</td></tr>
+                            @empty
+                                <tr><td colspan="5" class="text-center text-muted">لا يوجد سجل سابق.</td></tr>
+                            @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card mt-3">
                     <div class="card-header fw-bold">المرفقات</div>
                     <div class="card-body">
                         @forelse($requestItem->attachments as $attachment)
@@ -71,25 +105,31 @@
             </div>
 
             <div class="col-lg-4">
-                @if (@AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, \App\PermKeys::FINANCIAL_REQUESTS_APPROVE, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]))
+                @if ($actions)
                     <div class="card">
                         <div class="card-header fw-bold">تحديث الحالة</div>
                         <div class="card-body">
-                            <form method="POST" action="{{ route('financial-requests.status', $requestItem) }}">
+                            <form method="POST" enctype="multipart/form-data" action="{{ route('financial-requests.status', $requestItem) }}">
                                 @csrf
-                                <label class="form-label">الحالة</label>
-                                <select name="status" class="form-select mb-2" required>
-                                    @foreach($statuses as $key => $label)
-                                        <option value="{{ $key }}" {{ $requestItem->status === $key ? 'selected' : '' }}>{{ $label }}</option>
-                                    @endforeach
-                                </select>
+                                <input type="hidden" name="priority" value="{{ $requestItem->priority }}">
                                 <label class="form-label">التصعيد</label>
                                 <select name="priority" class="form-select mb-2">
                                     @foreach($priorities as $key => $label)
                                         <option value="{{ $key }}" {{ $requestItem->priority === $key ? 'selected' : '' }}>{{ $label }}</option>
                                     @endforeach
                                 </select>
-                                <label class="form-label">نوع السند عند السداد</label>
+                                @if(isset($actions['paid']))
+                                    <label class="form-label">إثبات التحويل البنكي <span class="text-danger">*</span></label>
+                                    <input type="hidden" name="attachment_labels[payment_proof]" value="إثبات التحويل البنكي">
+                                    <input type="file" name="attachments[payment_proof][]" class="form-control mb-2" required multiple>
+                                @endif
+                                @if(isset($actions['receipt']))
+                                    <label class="form-label">الإيصال الرسمي <span class="text-danger">*</span></label>
+                                    <input type="hidden" name="attachment_labels[official_receipt]" value="الإيصال الرسمي">
+                                    <input type="file" name="attachments[official_receipt][]" class="form-control mb-2" required multiple>
+                                @endif
+                                @if(isset($actions['close']))
+                                <label class="form-label">نوع السند عند الإقفال</label>
                                 <select name="bond_type" class="form-select mb-2">
                                     <option value="">بدون</option>
                                     @foreach($bondTypes as $key => $label)
@@ -110,7 +150,14 @@
                                 <select name="credit_account_id" class="form-select js-account-select mb-2" data-placeholder="ابحث بالكود أو اسم الحساب">
                                     <option value=""></option>
                                 </select>
-                                <button class="btn btn-primary w-100" type="submit">حفظ الحالة</button>
+                                @endif
+                                <label class="form-label">الملاحظات</label>
+                                <textarea name="remarks" class="form-control mb-3" placeholder="إلزامية عند الرفض أو عدم الاكتمال"></textarea>
+                                <div class="d-grid gap-2">
+                                    @foreach($actions as $action)
+                                        <button class="btn btn-{{ $action[2] }}" name="status" value="{{ $action[0] }}" type="submit">{{ $action[1] }}</button>
+                                    @endforeach
+                                </div>
                             </form>
                         </div>
                     </div>
