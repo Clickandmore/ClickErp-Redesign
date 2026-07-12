@@ -17,7 +17,7 @@
     };
 
     $findRoot = function ($type) use ($data) {
-        return collect($data)->first(fn ($row) => $row['account']->type === $type);
+        return collect($data)->first(fn ($row) => ($row['report_type'] ?? $row['account']->type) === $type);
     };
 
     $incomeRoot = $findRoot(AccountTypesEnum::GeneralIncome);

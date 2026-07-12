@@ -648,11 +648,7 @@ class AccountService extends MainService
 
     public function getIncomeAccounts()
     {
-        return $this->model->whereIn('type', [
-            AccountTypesEnum::GeneralOutcome,
-            AccountTypesEnum::GeneralIncome,
-        ])
-            ->whereNull('parent_id')
+        return $this->incomeStatementRootsQuery()
             ->orderBy('type', 'asc')
             ->with(['children', 'childrenRecursive' => function ($query) {
                 $query->select('id', 'parent_id', 'type', 'status');
@@ -663,11 +659,7 @@ class AccountService extends MainService
 
     public function getIncomeReportLevels(): array
     {
-        $roots = $this->model->whereIn('type', [
-            AccountTypesEnum::GeneralOutcome,
-            AccountTypesEnum::GeneralIncome,
-        ])
-            ->whereNull('parent_id')
+        $roots = $this->incomeStatementRootsQuery()
             ->with('children.children.children.children.children')
             ->get();
 
@@ -683,11 +675,7 @@ class AccountService extends MainService
     public function getIncomeAccountsChildrens($constraints_ids, ?int $level = null)
     {
         // Load all accounts with their nested children in one query
-        $accounts = $this->model->whereIn('type', [
-            AccountTypesEnum::GeneralOutcome,
-            AccountTypesEnum::GeneralIncome
-        ])
-            ->whereNull('parent_id')
+        $accounts = $this->incomeStatementRootsQuery()
             ->with('children.children.children.children.children') // Adjust depth as needed
             ->get();
 
@@ -710,6 +698,7 @@ class AccountService extends MainService
 
             $main_list[] = [
                 'account' => $account,
+                'report_type' => $this->incomeStatementRootType($account),
                 'list' => $list,
                 'account_total_price' => $account_total_price
             ];
@@ -720,6 +709,27 @@ class AccountService extends MainService
         }
 
         return $main_list;
+    }
+
+    private function incomeStatementRootsQuery()
+    {
+        return $this->model
+            ->whereNull('parent_id')
+            ->where(function ($query) {
+                $query->whereIn('type', [
+                    AccountTypesEnum::GeneralOutcome->value,
+                    AccountTypesEnum::GeneralIncome->value,
+                ])->orWhereIn('code', [4, 5]);
+            });
+    }
+
+    private function incomeStatementRootType($account): AccountTypesEnum
+    {
+        if ($account->type === AccountTypesEnum::GeneralIncome || (string) $account->code === '4') {
+            return AccountTypesEnum::GeneralIncome;
+        }
+
+        return AccountTypesEnum::GeneralOutcome;
     }
 
     private function getMaxChildrenDepth($account, int $depth = 0): int

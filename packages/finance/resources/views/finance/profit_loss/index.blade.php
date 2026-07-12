@@ -187,6 +187,9 @@
                     <div class="profit-field">
                         <label for="levelSelect">{{ __('finance::finance.select the level') }}</label>
                         <select name="level" id="levelSelect" class="form-control search_keys">
+                            <option value="all" selected>
+                                {{ __('finance::finance.All levels') }}
+                            </option>
                             @foreach ($levels as $level)
                                 <option value="{{ $level }}">
                                     {{ helperTrans('finance::finance.level') }}
