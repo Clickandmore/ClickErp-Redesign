@@ -46,31 +46,22 @@ class FinancialRequest extends Model
 
     public static function types(): array
     {
-        return [
-            'musaned_payment' => 'سداد مساند',
-            'visa_fee' => 'رسوم تأشيرة',
-            'enjaz_fee' => 'رسوم إنجاز',
-            'iqama_fee' => 'رسوم إقامة',
-            'work_permit_fee' => 'رسوم رخصة عمل',
-            'medical_insurance' => 'تأمين طبي',
-            'salary_payment' => 'صرف راتب عاملة',
-            'client_refund' => 'استرداد عميل',
-            'other_financial' => 'طلب مالي آخر',
-        ];
+        return trans('financial_requests.types');
     }
 
     public static function typeFields(): array
     {
+        $fields = trans('financial_requests.fields');
         return [
-            'musaned_payment' => ['musaned_request_no' => 'رقم طلب مساند', 'musaned_invoice_no' => 'رقم فاتورة مساند'],
-            'visa_fee' => ['visa_number' => 'رقم التأشيرة', 'government_reference' => 'رقم المرجع الحكومي'],
-            'enjaz_fee' => ['enjaz_number' => 'رقم إنجاز', 'authorization_no' => 'رقم التفويض'],
-            'iqama_fee' => ['iqama_number' => 'رقم الإقامة', 'period' => 'المدة'],
-            'work_permit_fee' => ['permit_number' => 'رقم رخصة العمل', 'period' => 'المدة'],
-            'medical_insurance' => ['policy_number' => 'رقم الوثيقة', 'insurance_company' => 'شركة التأمين'],
-            'salary_payment' => ['salary_month' => 'شهر الراتب', 'salary_days' => 'عدد الأيام'],
-            'client_refund' => ['refund_reason' => 'سبب الاسترداد'],
-            'other_financial' => ['subject' => 'موضوع الطلب', 'reference_no' => 'رقم مرجعي'],
+            'musaned_payment' => array_intersect_key($fields, array_flip(['musaned_request_no', 'musaned_invoice_no'])),
+            'visa_fee' => array_intersect_key($fields, array_flip(['visa_number', 'government_reference'])),
+            'enjaz_fee' => array_intersect_key($fields, array_flip(['enjaz_number', 'authorization_no'])),
+            'iqama_fee' => array_intersect_key($fields, array_flip(['iqama_number', 'period'])),
+            'work_permit_fee' => array_intersect_key($fields, array_flip(['permit_number', 'period'])),
+            'medical_insurance' => array_intersect_key($fields, array_flip(['policy_number', 'insurance_company'])),
+            'salary_payment' => array_intersect_key($fields, array_flip(['salary_month', 'salary_days'])),
+            'client_refund' => array_intersect_key($fields, array_flip(['refund_reason'])),
+            'other_financial' => array_intersect_key($fields, array_flip(['subject', 'reference_no'])),
         ];
     }
 
@@ -90,33 +81,17 @@ class FinancialRequest extends Model
 
     public static function contractTypes(): array
     {
-        return [
-            'recruitment' => 'استقدام',
-            'rental' => 'تأجير',
-        ];
+        return trans('financial_requests.contract_types');
     }
 
     public static function statuses(): array
     {
-        return [
-            self::STATUS_PREPARING => 'تجهيز',
-            self::STATUS_FOR_APPROVAL => 'بانتظار الاعتماد',
-            self::STATUS_APPROVED => 'معتمد / بانتظار الدفع',
-            self::STATUS_PAID => 'تم السداد',
-            self::STATUS_REQUEST_CLOSING => 'طلب إقفال',
-            self::STATUS_RECEIPT_ATTACHED => 'تم إرفاق الإيصال',
-            self::STATUS_REJECTED => 'غير مكتمل',
-            self::STATUS_CLOSED => 'مقفلة',
-        ];
+        return trans('financial_requests.statuses');
     }
 
     public static function priorities(): array
     {
-        return [
-            self::PRIORITY_NORMAL => 'عادي',
-            self::PRIORITY_IMPORTANT => 'هام',
-            self::PRIORITY_CRITICAL => 'شديد الأهمية',
-        ];
+        return trans('financial_requests.priorities');
     }
 
     public static function labelFromMap(array $labels, ?string $value): string

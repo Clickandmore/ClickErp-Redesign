@@ -498,11 +498,7 @@ class FinancialRequestController extends Controller
 
     private function requestScopes(): array
     {
-        return [
-            'all' => 'كل الطلبات المالية',
-            'incomplete' => 'غير مكتملة',
-            'paid' => 'مدفوعة / قيد الإقفال',
-        ];
+        return trans('financial_requests.scopes');
     }
 
     private function paidStatuses(): array

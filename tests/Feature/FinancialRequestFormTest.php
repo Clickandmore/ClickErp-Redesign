@@ -55,6 +55,7 @@ class FinancialRequestFormTest extends TestCase
 
     public function test_create_screen_displays_human_readable_branch_and_contract_labels(): void
     {
+        app()->setLocale('ar');
         $response = $this->get(route('financial-requests.create'));
 
         $response->assertOk();
@@ -63,6 +64,20 @@ class FinancialRequestFormTest extends TestCase
         $response->assertSee('تأجير');
         $response->assertDontSee('programming_code');
         $response->assertDontSee('@selected', false);
+    }
+
+    public function test_english_create_and_index_screens_do_not_contain_arabic_ui_text(): void
+    {
+        app()->setLocale('en');
+
+        foreach ([route('financial-requests.create'), route('financial-requests.index')] as $url) {
+            $response = $this->get($url);
+            $response->assertOk();
+            $response->assertSee('Financial Request', false);
+            $response->assertDontSee('إدارة الطلبات المالية');
+            $response->assertDontSee('البيانات الأساسية');
+            $response->assertDontSee('نوع الطلب');
+        }
     }
 
     public function test_invalid_contract_type_is_rejected(): void

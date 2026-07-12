@@ -2,7 +2,7 @@
     $branchFilterData = app(\App\Services\BranchAccessService::class)->selectorData(request());
     $branchFilterId = $id ?? 'branchFilter';
     $branchFilterName = $name ?? 'branch_id';
-    $branchFilterLabel = $label ?? 'الفرع';
+    $branchFilterLabel = $label ?? __('financial_requests.branch');
     $branchFilterContainerClass = $containerClass ?? 'col-md-3';
 @endphp
 
@@ -10,10 +10,10 @@
     <div class="{{ $branchFilterContainerClass }}">
         <label for="{{ $branchFilterId }}" class="form-label">{{ $branchFilterLabel }}</label>
         <select class="form-select" id="{{ $branchFilterId }}" name="{{ $branchFilterName }}" data-branch-filter>
-            <option value="">كل الفروع</option>
+            <option value="">{{ __('financial_requests.all_branches') }}</option>
             @foreach ($branchFilterData['branches'] as $branch)
-                <option value="{{ $branch->id }}" @selected((int) ($branchFilterData['selected_branch_id'] ?? 0) === (int) $branch->id)>
-                    {{ $branch->name_ar ?: $branch->name_en }}{{ $branch->code ? ' - ' . $branch->code : '' }}
+                <option value="{{ $branch->id }}" {{ (int) ($branchFilterData['selected_branch_id'] ?? 0) === (int) $branch->id ? 'selected' : '' }}>
+                    {{ $branch->name }}{{ $branch->code ? ' - ' . $branch->code : '' }}
                 </option>
             @endforeach
         </select>

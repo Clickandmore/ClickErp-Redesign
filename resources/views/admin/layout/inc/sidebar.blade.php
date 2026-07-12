@@ -955,7 +955,7 @@
                                     <a class="m-link" data-bs-toggle="collapse"
                                         data-bs-target="#financial_requests_menu_admin" href="#">
                                         <i class="fa fa-money-bill-wave"></i>
-                                        <span class="ms-2">إدارة الطلبات المالية</span>
+                                        <span class="ms-2">{{ __('financial_requests.manage') }}</span>
                                         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                                     </a>
                                     <ul class="sub-menu collapse {{ request()->routeIs('financial-requests.*') ? 'show' : '' }}"
@@ -964,21 +964,21 @@
                                             <a class="m-link {{ request()->routeIs('financial-requests.index') && !request('scope') ? 'active' : '' }}"
                                                 href="{{ route('financial-requests.index') }}">
                                                 <i class="fa fa-arrow-left"></i>
-                                                <span class="ms-2">كل الطلبات المالية</span>
+                                                <span class="ms-2">{{ __('financial_requests.scopes.all') }}</span>
                                             </a>
                                         </li>
                                         <li>
                                             <a class="m-link {{ request()->routeIs('financial-requests.index') && request('scope') === 'incomplete' ? 'active' : '' }}"
                                                 href="{{ route('financial-requests.index', ['scope' => 'incomplete']) }}">
                                                 <i class="fa fa-arrow-left"></i>
-                                                <span class="ms-2">غير مكتملة</span>
+                                                <span class="ms-2">{{ __('financial_requests.scopes.incomplete') }}</span>
                                             </a>
                                         </li>
                                         <li>
                                             <a class="m-link {{ request()->routeIs('financial-requests.index') && request('scope') === 'paid' ? 'active' : '' }}"
                                                 href="{{ route('financial-requests.index', ['scope' => 'paid']) }}">
                                                 <i class="fa fa-arrow-left"></i>
-                                                <span class="ms-2">مكتملة / تم سدادها</span>
+                                                <span class="ms-2">{{ __('financial_requests.scopes.paid') }}</span>
                                             </a>
                                         </li>
                                         @if (@AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_CREATE, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]))
@@ -986,7 +986,7 @@
                                                 <a class="m-link {{ request()->routeIs('financial-requests.create') ? 'active' : '' }}"
                                                     href="{{ route('financial-requests.create') }}">
                                                     <i class="fa fa-plus"></i>
-                                                    <span class="ms-2">طلب مالي جديد</span>
+                                                    <span class="ms-2">{{ __('financial_requests.new') }}</span>
                                                 </a>
                                             </li>
                                         @endif
