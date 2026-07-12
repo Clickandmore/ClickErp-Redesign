@@ -62,7 +62,7 @@
                             <select name="type" class="form-select">
                                 <option value="">الكل</option>
                                 @foreach ($types as $key => $label)
-                                    <option value="{{ $key }}" @selected(request('type') === $key)>{{ $label }}</option>
+                                    <option value="{{ $key }}" {{ request('type') === $key ? 'selected' : '' }}>{{ $label }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -71,7 +71,7 @@
                             <select name="status" class="form-select">
                                 <option value="">الكل</option>
                                 @foreach ($statuses as $key => $label)
-                                    <option value="{{ $key }}" @selected(request('status') === $key)>{{ $label }}</option>
+                                    <option value="{{ $key }}" {{ request('status') === $key ? 'selected' : '' }}>{{ $label }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -80,7 +80,7 @@
                             <select name="priority" class="form-select">
                                 <option value="">الكل</option>
                                 @foreach ($priorities as $key => $label)
-                                    <option value="{{ $key }}" @selected(request('priority') === $key)>{{ $label }}</option>
+                                    <option value="{{ $key }}" {{ request('priority') === $key ? 'selected' : '' }}>{{ $label }}</option>
                                 @endforeach
                             </select>
                         </div>

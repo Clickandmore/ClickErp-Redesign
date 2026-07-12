@@ -34,7 +34,7 @@
                                     <select name="branch_id" class="form-select" required>
                                         <option value="">اختر الفرع</option>
                                         @foreach($branches as $branch)
-                                            <option value="{{ $branch->id }}" @selected((string) old('branch_id', $requestItem->branch_id ?? auth('admin')->user()?->branch_id) === (string) $branch->id)>{{ $branch->name_ar }}</option>
+                                            <option value="{{ $branch->id }}" {{ (string) old('branch_id', $requestItem->branch_id ?? auth('admin')->user()?->branch_id) === (string) $branch->id ? 'selected' : '' }}>{{ $branch->name_ar }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -45,9 +45,9 @@
                                 <div class="col-md-4">
                                     <label class="form-label">نوع الطلب</label>
                                     <select name="type" id="requestType" class="form-select" required>
-                                        <option value="" disabled @selected(!old('type', $requestItem->type ?? null))>اختر نوع الطلب</option>
+                                        <option value="" disabled {{ !old('type', $requestItem->type ?? null) ? 'selected' : '' }}>اختر نوع الطلب</option>
                                         @foreach ($types as $key => $label)
-                                            <option value="{{ $key }}" @selected(old('type', $requestItem->type ?? '') === $key)>{{ $label }}</option>
+                                            <option value="{{ $key }}" {{ old('type', $requestItem->type ?? '') === $key ? 'selected' : '' }}>{{ $label }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -55,7 +55,7 @@
                                     <label class="form-label">التصعيد</label>
                                     <select name="priority" class="form-select" required>
                                         @foreach ($priorities as $key => $label)
-                                            <option value="{{ $key }}" @selected(old('priority', $requestItem->priority ?? 'normal') === $key)>{{ $label }}</option>
+                                            <option value="{{ $key }}" {{ old('priority', $requestItem->priority ?? 'normal') === $key ? 'selected' : '' }}>{{ $label }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -70,15 +70,15 @@
                                 <div class="col-md-4">
                                     <label class="form-label">مدين / دائن <span class="text-danger">*</span></label>
                                     <select name="payload[debit_credit]" class="form-select" required>
-                                        <option value="debit" @selected(old('payload.debit_credit', $payload['debit_credit'] ?? 'debit') === 'debit')>مدين</option>
-                                        <option value="credit" @selected(old('payload.debit_credit', $payload['debit_credit'] ?? '') === 'credit')>دائن</option>
+                                        <option value="debit" {{ old('payload.debit_credit', $payload['debit_credit'] ?? 'debit') === 'debit' ? 'selected' : '' }}>مدين</option>
+                                        <option value="credit" {{ old('payload.debit_credit', $payload['debit_credit'] ?? '') === 'credit' ? 'selected' : '' }}>دائن</option>
                                     </select>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">طريقة الدفع <span class="text-danger">*</span></label>
                                     <select name="payload[payment_method]" id="paymentMethod" class="form-select" required>
-                                        <option value="bank_transfer" @selected(old('payload.payment_method', $payload['payment_method'] ?? 'bank_transfer') === 'bank_transfer')>تحويل بنكي</option>
-                                        <option value="cash" @selected(old('payload.payment_method', $payload['payment_method'] ?? '') === 'cash')>نقدي</option>
+                                        <option value="bank_transfer" {{ old('payload.payment_method', $payload['payment_method'] ?? 'bank_transfer') === 'bank_transfer' ? 'selected' : '' }}>تحويل بنكي</option>
+                                        <option value="cash" {{ old('payload.payment_method', $payload['payment_method'] ?? '') === 'cash' ? 'selected' : '' }}>نقدي</option>
                                     </select>
                                 </div>
                                 <div class="col-12">
@@ -182,7 +182,7 @@
                                 <select name="contract_type" id="contractType" class="form-select" style="max-width: 140px">
                                     <option value="">تلقائي</option>
                                     @foreach ($contractTypes as $key => $label)
-                                        <option value="{{ $key }}" @selected(old('contract_type', $requestItem->contract_type ?? '') === $key)>{{ $label }}</option>
+                                        <option value="{{ $key }}" {{ old('contract_type', $requestItem->contract_type ?? '') === $key ? 'selected' : '' }}>{{ $label }}</option>
                                     @endforeach
                                 </select>
                                 <input type="text" name="contract_number" id="contractNumber" class="form-control" value="{{ old('contract_number', $requestItem->contract_number ?? '') }}" placeholder="رقم العقد">

@@ -62,6 +62,7 @@ class FinancialRequestFormTest extends TestCase
         $response->assertSee('استقدام');
         $response->assertSee('تأجير');
         $response->assertDontSee('programming_code');
+        $response->assertDontSee('@selected', false);
     }
 
     public function test_invalid_contract_type_is_rejected(): void
