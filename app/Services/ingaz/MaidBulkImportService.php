@@ -568,30 +568,6 @@ class MaidBulkImportService
             ];
         }
 
-        $passportGroups = collect($rows)
-            ->filter(fn ($row) => !empty($row['normalized_data']['passport_num']))
-            ->groupBy(fn ($row) => $row['normalized_data']['passport_num']);
-
-        foreach ($passportGroups as $passport => $passportRows) {
-            if ($passportRows->count() <= 1) {
-                continue;
-            }
-
-            foreach ($passportRows as $duplicatedRow) {
-                $rows = array_map(function ($row) use ($duplicatedRow, $passport) {
-                    if ($row['row_number'] !== $duplicatedRow['row_number']) {
-                        return $row;
-                    }
-
-                    $row['error_messages'][] = "رقم الجواز {$passport} مكرر داخل نفس الملف.";
-                    $row['error_messages'] = array_values(array_unique($row['error_messages']));
-                    $row['status'] = 'invalid';
-
-                    return $row;
-                }, $rows);
-            }
-        }
-
         return $rows;
     }
 
@@ -867,10 +843,6 @@ class MaidBulkImportService
             $errors[] = 'إظهار في الموقع: ' . $isShowError;
         }
         $data['is_show'] = $isShow;
-
-        if ($office && $nationality && $office->nationality_id && (int) $office->nationality_id !== (int) $nationality->id) {
-            $errors[] = 'المكتب الخارجي لا يتبع الجنسية المختارة.';
-        }
 
         if (empty($data['religion_id'])) {
             $data['religion_id'] = $lookups['default_religion_id'];

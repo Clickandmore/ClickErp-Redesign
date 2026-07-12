@@ -1511,43 +1511,26 @@ class DataImportExecutionService
             throw new \InvalidArgumentException('اسم العميل ورقم الجوال ورقم الهوية مطلوبة.');
         }
 
-        $userByDatabaseId = $databaseId ? User::whereKey($databaseId)->first() : null;
-        $userById = User::where('national_num', $idNumber)->first();
-        $userByPhone = $this->findUserByPhone($phone);
-
-        if ($userByDatabaseId && $userById && (int) $userByDatabaseId->id !== (int) $userById->id) {
-            throw new \InvalidArgumentException('ID العميل ورقم الهوية يعودان لعميلين مختلفين.');
-        }
-
-        if ($userByDatabaseId && $userByPhone && (int) $userByDatabaseId->id !== (int) $userByPhone->id) {
-            throw new \InvalidArgumentException('ID العميل ورقم الجوال يعودان لعميلين مختلفين.');
-        }
-
-        if ($userByPhone && $userById && (int) $userByPhone->id !== (int) $userById->id) {
-            throw new \InvalidArgumentException('رقم الهوية مستخدم لعميل ورقم الجوال مستخدم لعميل آخر.');
-        }
-
-        if ($userByPhone && filled($userByPhone->national_num) && (string) $userByPhone->national_num !== $idNumber) {
-            throw new \InvalidArgumentException('رقم الجوال موجود مسبقاً برقم هوية مختلف.');
-        }
-
-        $user = $userByDatabaseId ?: $userById ?: $userByPhone;
+        $phoneIsDuplicate = $this->findUserByPhone($phone) !== null;
+        $databaseIdExists = $databaseId ? User::whereKey($databaseId)->exists() : false;
         $createdBy = $this->resolveImportedAdminId(
             $row['created_by'] ?? $row['created_by_name'] ?? null,
             $adminId
         );
         $accountId = $this->resolveOrCreateClientAccountId($row['account_id'] ?? null, $name, $adminId);
         $payload = $this->filterColumns('users', [
-            'id' => $databaseId,
+            'id' => $databaseIdExists ? null : $databaseId,
             'name' => $name,
             'phone_code' => '+966',
-            'phone' => $phone,
+            'phone' => $phoneIsDuplicate
+                ? $this->uniqueDuplicateClientImportPhone($phone, $idNumber, $databaseId)
+                : $phone,
             'email' => $row['email'] ?? null,
             'national_num' => $idNumber,
             'nationality_id' => $this->resolveCountryId($row['nationality'] ?? null),
             'birthdate' => $this->parseDate($row['birthdate'] ?? null),
             'marital_status' => $this->normalizeClientMaritalStatus($row['marital_status'] ?? null),
-            'phone2' => $this->normalizeOptionalPhone($row['phone2'] ?? null),
+            'phone2' => $this->normalizeOptionalPhone($row['phone2'] ?? null) ?: ($phoneIsDuplicate ? $phone : null),
             'address' => $row['address'] ?? null,
             'city' => $row['city'] ?? null,
             'account_id' => $accountId,
@@ -1561,19 +1544,27 @@ class DataImportExecutionService
             'created_by' => $createdBy,
         ]);
 
-        if ($user) {
-            unset($payload['id']);
-            $user->update(array_filter($payload, fn ($value) => $value !== null && $value !== ''));
-            return 'updated';
-        }
-
         if (Schema::hasColumn('users', 'password')) {
             $payload['password'] = $this->defaultImportPasswordHash();
         }
 
-        User::create($payload);
+        User::create(array_filter($payload, fn ($value) => $value !== null && $value !== ''));
 
         return 'created';
+    }
+
+    private function uniqueDuplicateClientImportPhone(string $phone, string $idNumber, ?int $databaseId): string
+    {
+        $base = 'data-import-duplicate-client-' . substr(sha1($phone . '|' . $idNumber . '|' . ($databaseId ?? '')), 0, 20);
+        $candidate = $base;
+        $suffix = 1;
+
+        while (User::query()->where('phone', $candidate)->exists()) {
+            $candidate = $base . '-' . $suffix;
+            $suffix++;
+        }
+
+        return $candidate;
     }
 
     private function importComplaint(array $row, ?int $adminId): string
