@@ -10,6 +10,7 @@ use App\Models\ingaz\Maid;
 use App\Models\ingaz\User;
 use App\Models\RentalContract;
 use App\Services\AdminNotificationService;
+use App\Services\BranchAccessService;
 use App\Support\SystemModuleManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -679,11 +680,7 @@ class FinancialRequestController extends Controller
 
     private function canAccessRequest(FinancialRequest $financialRequest): bool
     {
-        $branchesEnabled = SystemModuleManager::isEnabled('branches')
-            && Schema::hasColumn('financial_requests', 'branch_id');
-        $adminBranchId = (int) (auth('admin')->user()?->branch_id ?? 0);
-
-        if ($branchesEnabled && $adminBranchId > 0 && (int) $financialRequest->branch_id !== $adminBranchId) {
+        if (! app(BranchAccessService::class)->canAccessModel($financialRequest)) {
             return false;
         }
 

@@ -366,7 +366,6 @@ class AdminRoutePermissionMatrix
                 'known-service-requests.destroy' => [PermKeys::ORDERS_DELETE],
                 'contact.index' => [PermKeys::CONTACT_VIEW],
                 'contact.show' => [PermKeys::CONTACT_VIEW],
-                'financial-requests.index' => [PermKeys::FINANCIAL_REQUESTS_VIEW, PermKeys::FINANCIAL_REQUESTS_CREATE, PermKeys::FINANCIAL_REQUESTS_CONTROL],
                 'financial-requests.index' => [PermKeys::FINANCIAL_REQUESTS_VIEW, PermKeys::FINANCIAL_REQUESTS_CREATE, PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, PermKeys::FINANCIAL_REQUESTS_APPROVE, PermKeys::FINANCIAL_REQUESTS_CONTROL],
                 'financial-requests.create' => [PermKeys::FINANCIAL_REQUESTS_CREATE, PermKeys::FINANCIAL_REQUESTS_CONTROL],
                 'financial-requests.store' => [PermKeys::FINANCIAL_REQUESTS_CREATE, PermKeys::FINANCIAL_REQUESTS_CONTROL],

@@ -91,6 +91,22 @@ class FinancialRequestFormTest extends TestCase
         $response->assertSessionHasErrors('contract_type');
     }
 
+    public function test_request_without_branch_can_be_opened_when_it_is_visible_in_the_list(): void
+    {
+        $requestItem = FinancialRequest::query()->create([
+            'request_no' => 'FR-LEGACY-TEST',
+            'type' => 'other_financial',
+            'priority' => FinancialRequest::PRIORITY_NORMAL,
+            'status' => FinancialRequest::STATUS_FOR_APPROVAL,
+            'request_date' => now()->toDateString(),
+            'created_by_id' => auth('admin')->id(),
+        ]);
+        $requestItem->updateQuietly(['branch_id' => null]);
+
+        $this->get(route('financial-requests.index'))->assertOk()->assertSee('FR-LEGACY-TEST');
+        $this->get(route('financial-requests.show', $requestItem))->assertOk()->assertSee('FR-LEGACY-TEST');
+    }
+
     public static function paymentMethods(): array
     {
         return [

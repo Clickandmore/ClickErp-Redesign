@@ -1,7 +1,7 @@
 @extends('click.layout.indexs.index')
 
 @section('content')
-    @if (@AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_VIEW, \App\PermKeys::FINANCIAL_REQUESTS_CREATE, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]))
+    @if (@AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_VIEW, \App\PermKeys::FINANCIAL_REQUESTS_CREATE, \App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, \App\PermKeys::FINANCIAL_REQUESTS_APPROVE, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]))
         <div class="container-fluid">
             <div class="d-flex align-items-center justify-content-between mb-3">
                 <div>
@@ -138,7 +138,11 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="card-footer">{{ $requests->links() }}</div>
+                @if ($requests->hasPages())
+                    <div class="card-footer d-flex justify-content-center">
+                        {{ $requests->onEachSide(1)->links('pagination::bootstrap-4') }}
+                    </div>
+                @endif
             </div>
         </div>
     @else
