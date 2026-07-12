@@ -104,7 +104,11 @@ class FinancialRequestFormTest extends TestCase
         $requestItem->updateQuietly(['branch_id' => null]);
 
         $this->get(route('financial-requests.index'))->assertOk()->assertSee('FR-LEGACY-TEST');
-        $this->get(route('financial-requests.show', $requestItem))->assertOk()->assertSee('FR-LEGACY-TEST');
+        $this->get(route('financial-requests.show', $requestItem))
+            ->assertOk()
+            ->assertSee('FR-LEGACY-TEST')
+            ->assertSee('تم رفع الطلب المالي.')
+            ->assertSee('الحالة الحالية لطلب قديم لا يحتوي على سجل انتقالات محفوظ.');
     }
 
     public static function paymentMethods(): array

@@ -152,6 +152,16 @@ class FinancialRequest extends Model
         return $this->belongsTo(Admin::class, 'approved_by_id');
     }
 
+    public function updater()
+    {
+        return $this->belongsTo(Admin::class, 'updated_by_id');
+    }
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
+    }
+
     public function financeBond()
     {
         return $this->belongsTo(Bond::class, 'finance_bond_id');

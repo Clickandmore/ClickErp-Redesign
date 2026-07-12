@@ -86,10 +86,35 @@ class FinancialRequestController extends Controller
     {
         abort_unless($this->canAccessRequest($financialRequest), 403);
 
-        $financialRequest->load(['attachments', 'creator', 'approver', 'statusLogs.performer', 'financeBond.debitAccount', 'financeBond.creditAccount']);
+        $financialRequest->load(['attachments', 'branch', 'creator', 'updater', 'approver', 'statusLogs.performer', 'financeBond.debitAccount', 'financeBond.creditAccount']);
+
+        $workflowHistory = collect([[
+            'status' => FinancialRequest::STATUS_PREPARING,
+            'performer' => $financialRequest->creator?->name,
+            'occurred_at' => $financialRequest->created_at,
+            'remarks' => 'تم رفع الطلب المالي.',
+            'inferred' => false,
+        ]])->concat($financialRequest->statusLogs->map(fn ($log) => [
+            'status' => $log->to_status,
+            'performer' => $log->performer?->name,
+            'occurred_at' => $log->created_at,
+            'remarks' => $log->remarks,
+            'inferred' => false,
+        ]));
+
+        if ($financialRequest->statusLogs->isEmpty() && $financialRequest->status !== FinancialRequest::STATUS_PREPARING) {
+            $workflowHistory->push([
+                'status' => $financialRequest->status,
+                'performer' => $financialRequest->updater?->name,
+                'occurred_at' => $financialRequest->updated_at,
+                'remarks' => 'الحالة الحالية لطلب قديم لا يحتوي على سجل انتقالات محفوظ.',
+                'inferred' => true,
+            ]);
+        }
 
         return view('admin.ingaz.financial_requests.show', [
             'requestItem' => $financialRequest,
+            'workflowHistory' => $workflowHistory,
             'types' => FinancialRequest::types(),
             'statuses' => FinancialRequest::statuses(),
             'priorities' => FinancialRequest::priorities(),
