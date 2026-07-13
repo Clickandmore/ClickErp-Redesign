@@ -2000,7 +2000,7 @@ class DataImportExecutionService
     private function importRecruitmentContract(array $row, ?int $adminId): string
     {
         $user = $this->clientFromRow($row);
-        $maid = $this->maidFromRow($row, true);
+        $maid = $this->maidFromRow($row, false);
         $status = $this->normalizeRecruitmentContractStatus($row['status'] ?? null);
 
         if (!$status) {
@@ -2009,7 +2009,9 @@ class DataImportExecutionService
             );
         }
 
-        $order = $this->ensureOrder($user, $maid, $row, OrderEnum::Completed->value);
+        $order = $maid
+            ? $this->ensureOrder($user, $maid, $row, OrderEnum::Completed->value)
+            : null;
 
         $contractId = $this->optionalInteger($row['contract_number'] ?? null);
 
@@ -2017,7 +2019,7 @@ class DataImportExecutionService
             ?: $this->findContract($row['contract_number'] ?? null, $maid?->id, $user->id);
         $payload = $this->filterColumns('contracts', [
             'user_id' => $user->id,
-            'maid_id' => $maid->id,
+            'maid_id' => $maid?->id,
             'order_id' => $order?->id,
             'marketer_id' => $this->resolveImportedAdminId(
                 $row['created_by'] ?? $row['created_by_name'] ?? null,
@@ -2047,6 +2049,11 @@ class DataImportExecutionService
             'msaned_number' => $row['msaned_number'] ?? null,
             'arrival_date' => $arrivalDate,
             'contract_value' => $this->decimal($row['amount'] ?? null),
+            'manual_maid_name' => $maid ? null : ($row['maid_name'] ?? null),
+            'manual_maid_passport_num' => $maid ? null : $this->nullableImportString(
+                $row['maid_passport'] ?? $row['passport_num'] ?? null
+            ),
+            'manual_maid_nationality_id' => $maid ? null : $this->resolveNationalityId($row['nationality'] ?? null),
             'notes' => $row['notes'] ?? null,
         ]);
 
@@ -2468,7 +2475,7 @@ class DataImportExecutionService
         }
 
         $maid = Maid::where('passport_num', $passport)->first();
-        if (!$maid && $required) {
+        if (!$maid) {
             $maid = Maid::create($this->maidPayload([
                 'passport_num' => $passport,
                 'name_en' => $row['maid_name'] ?? 'EDIT_ME_NAME',
@@ -2686,6 +2693,10 @@ class DataImportExecutionService
             if ($contract) {
                 return $contract;
             }
+        }
+
+        if (!$maidId) {
+            return null;
         }
 
         return Contract::where('user_id', $userId)
