@@ -1040,7 +1040,7 @@
                             <li>
                                 <a class="m-link {{ request()->routeIs('commissions.marketers.*') ? 'active' : '' }}"
                                    href="{{ route('commissions.marketers.index') }}">
-                                    <i class="fa fa-arrow-left"></i>
+                                    <i class="fa fa-users me-2"></i>
                                     <span class="ms-2">المسوّقون والأرصدة</span>
                                 </a>
                             </li>
@@ -1049,7 +1049,7 @@
                             <li>
                                 <a class="m-link {{ request()->routeIs('commissions.settings.*') ? 'active' : '' }}"
                                    href="{{ route('commissions.settings.index') }}">
-                                    <i class="fa fa-arrow-left"></i>
+                                    <i class="fa fa-cog me-2"></i>
                                     <span class="ms-2">إعدادات العمولات</span>
                                 </a>
                             </li>

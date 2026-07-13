@@ -743,6 +743,37 @@
                     </ul>
                 </li>
 
+                @if ($canViewCommissions)
+                    @php $isCommissions = request()->routeIs('commissions.*'); @endphp
+                    <li class="{{ $isCommissions ? '' : 'collapsed' }}">
+                        <a class="m-link" data-bs-toggle="collapse" data-bs-target="#commissions_menu_click" href="#">
+                            <i class="fa fa-percent me-2"></i>
+                            <span class="ms-2">نظام العمولات</span>
+                            <span class="arrow fa fa-angle-left ms-auto text-end"></span>
+                        </a>
+                        <ul class="sub-menu collapse {{ $isCommissions ? 'show' : '' }}" id="commissions_menu_click">
+                            @if(@AdminGuardHasAnyPerm([\App\PermKeys::COMMISSIONS_VIEW, \App\PermKeys::COMMISSIONS_CALCULATE, \App\PermKeys::COMMISSIONS_PAY]))
+                            <li>
+                                <a class="m-link {{ request()->routeIs('commissions.marketers.*') ? 'active' : '' }}"
+                                   href="{{ route('commissions.marketers.index') }}">
+                                    <i class="fa fa-users me-2"></i>
+                                    <span class="ms-2">المسوّقون والأرصدة</span>
+                                </a>
+                            </li>
+                            @endif
+                            @if(@AdminGuardHasPerm(\App\PermKeys::COMMISSIONS_SETTINGS))
+                            <li>
+                                <a class="m-link {{ request()->routeIs('commissions.settings.*') ? 'active' : '' }}"
+                                   href="{{ route('commissions.settings.index') }}">
+                                    <i class="fa fa-cog me-2"></i>
+                                    <span class="ms-2">إعدادات العمولات</span>
+                                </a>
+                            </li>
+                            @endif
+                        </ul>
+                    </li>
+                @endif
+
                 @if ($canViewCrm)
                     <li class="{{ $isCrm || request()->routeIs('admin.sms-templates.*') ? '' : 'collapsed' }}">
                         <a class="m-link" data-bs-toggle="collapse" data-bs-target="#crm" href="#">
