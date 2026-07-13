@@ -58,6 +58,11 @@ class RentalContractInfo extends Model
         'moyasar_payment_status',
         'payment_link_sent_at',
         'moyasar_paid_at',
+        'legacy_start_date_hijri',
+        'legacy_end_date_hijri',
+        'legacy_remaining_days',
+        'legacy_used_days',
+        'legacy_source_payload',
     ];
 
     protected $casts = [
@@ -90,6 +95,9 @@ class RentalContractInfo extends Model
         'additional_terms' => 'array',
         'payment_link_sent_at' => 'datetime',
         'moyasar_paid_at' => 'datetime',
+        'legacy_remaining_days' => 'integer',
+        'legacy_used_days' => 'integer',
+        'legacy_source_payload' => 'array',
     ];
 
     // العلاقات

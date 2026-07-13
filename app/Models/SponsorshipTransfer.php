@@ -15,6 +15,8 @@ class SponsorshipTransfer extends Model
     use AssignsBranch, HasFactory, SoftDeletes;
 
     protected $fillable = [
+        'external_source',
+        'external_operation_number',
         'contract_id',
         'branch_id',
         'old_sponsor_id',

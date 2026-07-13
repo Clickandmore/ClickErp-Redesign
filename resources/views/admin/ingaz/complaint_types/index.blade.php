@@ -20,6 +20,9 @@
             <tr>
                 <th>#</th>
                 <th>اسم النوع</th>
+                <th>التصنيف</th>
+                <th>الحالة</th>
+                <th>الترتيب</th>
                 <th>العمليات</th>
             </tr>
             </thead>
@@ -28,6 +31,9 @@
                 <tr>
                     <td>{{ $loop->iteration }}</td>
                     <td>{{ $type->name }}</td>
+                    <td><span class="badge bg-light text-dark border">{{ $type->classification_label }}</span></td>
+                    <td><span class="badge {{ $type->is_active ? 'bg-success' : 'bg-secondary' }}">{{ $type->is_active ? 'نشط' : 'متوقف' }}</span></td>
+                    <td>{{ $type->sort_order }}</td>
                     <td>
                         @if (@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_TYPE_EDIT))
                             <a href="{{ route('complaint-types.edit', $type->id) }}" class="btn btn-primary btn-sm">تعديل</a>

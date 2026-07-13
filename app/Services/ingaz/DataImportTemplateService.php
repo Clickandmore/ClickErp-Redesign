@@ -376,7 +376,7 @@ class DataImportTemplateService
                 'label' => 'سندات القبض',
                 'route_hint' => '/finance/bonds-qabd',
                 'icon' => 'fas fa-receipt',
-                'description' => 'استيراد سندات القبض من ملف الشركة القديم بنفس أعمدته. يتم إنشاء سند قبض مؤكد وقيد محاسبي مرتبط لكل صف.',
+                'description' => 'استيراد سندات القبض من ملف الشركة القديم بنفس أعمدته. يتم إنشاء سند قبض مؤكد وقيد محاسبي مرتبط لكل صف، وتتم مطابقة سندات التأجير تلقائيًا بكود السند مهما كان ترتيب رفع الملفات.',
                 'filename' => 'receipt-bonds-import-template.xlsx',
                 'columns' => [
                     ['key' => 'sequence', 'label' => 'م', 'required' => false, 'example' => '1'],
@@ -436,10 +436,10 @@ class DataImportTemplateService
         ];
 
         $templates['legacy_rental_orders'] = [
-            'label' => 'طلبات وعقود التأجير (اربيا)',
+            'label' => 'طلبات وعقود التأجير (الرافدين/أربيا)',
             'route_hint' => '/admin/RentContract',
             'icon' => 'fas fa-file-invoice-dollar',
-            'description' => 'استيراد تقرير طلبات التأجير وربط الطلب بالعميل وعاملة التأجير وعقد التأجير والفاتورة، مع الحفاظ على الأرقام القديمة ومنع التكرار.',
+            'description' => 'استيراد تقرير طلبات التأجير وربط كل طلب بالعميل وعاملة التأجير وسيرة الإيجار والعقد والفاتورة وسند القبض عند توفره. تُحفظ الأرقام والتواريخ الهجرية والصف الأصلي كاملًا، وتُنشأ سجلات مالية بقيمة صفر عند غياب التكلفة حتى لا تُفقد العقود.',
             'filename' => 'legacy-rental-orders-import-template.xlsx',
             'columns' => [
                 ['key' => 'sequence', 'label' => 'م', 'required' => false, 'example' => '1'],
@@ -466,6 +466,34 @@ class DataImportTemplateService
                 ['key' => 'created_by', 'label' => 'بواسطة المستخدم', 'required' => false, 'example' => 'اسم الموظف'],
                 ['key' => 'created_at', 'label' => 'في تاريخ', 'required' => false, 'example' => now()->format('Y-m-d')],
                 ['key' => 'created_at_hijri', 'label' => 'في تاريخ هـ', 'required' => false, 'example' => '1448-01-01'],
+            ],
+        ];
+
+        $templates['alrafedin_transfer_services'] = [
+            'label' => 'نقل الخدمات والكفالة (الرافدين)',
+            'route_hint' => '/admin/TransferServiceContract',
+            'icon' => 'fas fa-people-arrows',
+            'description' => 'استيراد تقرير الرافدين المدمج أو تقرير نقل الخدمات، وربط العملية بعميل أربيا وطلب الاستقدام والسيرة، وإنشاء طلب نقل وعقد نقل خدمات مكتمل مع حفظ جميع تفاصيل الصف الأصلي ومنع التكرار.',
+            'downloadable' => false,
+            'filename' => 'alrafedin-transfer-services-import-template.xlsx',
+            'columns' => [
+                ['key' => 'sequence', 'label' => 'م', 'required' => false, 'example' => '1'],
+                ['key' => 'operation_number', 'label' => 'رقم العملية', 'required' => true, 'example' => '89'],
+                ['key' => 'worker_number', 'label' => 'رقم العامل', 'required' => true, 'example' => '2362'],
+                ['key' => 'worker_name', 'label' => 'اسم العامل', 'required' => true, 'example' => 'WORKER NAME'],
+                ['key' => 'worker_passport', 'label' => 'جواز سفر العامل', 'required' => true, 'example' => 'X0000000'],
+                ['key' => 'old_client_number', 'label' => 'رقم تعريف: عميل من', 'required' => true, 'example' => '366'],
+                ['key' => 'old_client_name', 'label' => 'عميل من', 'required' => true, 'example' => 'شركة الرافدين الذهبي للاستقدام'],
+                ['key' => 'new_client_number', 'label' => 'رقم تعريف: عميل إلى', 'required' => true, 'example' => '2723'],
+                ['key' => 'new_client_name', 'label' => 'عميل إلى', 'required' => true, 'example' => 'اسم العميل'],
+                ['key' => 'nationality', 'label' => 'الدولة', 'required' => false, 'example' => 'اندونيسيا'],
+                ['key' => 'job_title', 'label' => 'المهنة', 'required' => false, 'example' => 'عاملة منزلية'],
+                ['key' => 'invoice_number', 'label' => 'فاتورة رقم', 'required' => false, 'example' => '8167'],
+                ['key' => 'total_cost', 'label' => 'التكلفة الاجمالية', 'required' => false, 'example' => '29000'],
+                ['key' => 'transfer_date', 'label' => 'تاريخ النقل', 'required' => true, 'example' => now()->format('Y-m-d')],
+                ['key' => 'source_status', 'label' => 'حالة', 'required' => false, 'example' => 'معتمد'],
+                ['key' => 'source_created_by', 'label' => 'أنشئ بواسطة', 'required' => false, 'example' => 'System Admin'],
+                ['key' => 'source_created_at', 'label' => 'أنشئ في', 'required' => false, 'example' => now()->format('Y-m-d')],
             ],
         ];
 
@@ -508,12 +536,15 @@ class DataImportTemplateService
             'columns' => [
                 ['key' => 'complainant_name', 'label' => 'اسم الشاكي', 'required' => true, 'example' => 'محمد أحمد'],
                 ['key' => 'complainant_phone', 'label' => 'هاتف الشاكي', 'required' => true, 'example' => '0500000000'],
+                ['key' => 'complainant_type', 'label' => 'نوع الشاكي', 'required' => false, 'example' => 'عميل'],
                 ['key' => 'user_id', 'label' => 'ID العميل المسجل', 'required' => false, 'example' => '172'],
                 ['key' => 'maid_passport', 'label' => 'رقم جواز العاملة', 'required' => false, 'example' => 'P0000001'],
                 ['key' => 'maid_nationality', 'label' => 'جنسية العاملة', 'required' => false, 'example' => 'اثيوبيا'],
                 ['key' => 'subject', 'label' => 'موضوع الشكوى', 'required' => true, 'example' => 'شكوى عميل ضد عاملة'],
                 ['key' => 'complaint_type', 'label' => 'نوع الشكوى', 'required' => true, 'example' => 'شكوى عميل ضد عاملة'],
                 ['key' => 'against_name', 'label' => 'اسم المشتكى عليه', 'required' => false, 'example' => 'MAID NAME'],
+                ['key' => 'against_type', 'label' => 'نوع المشتكى عليه', 'required' => false, 'example' => 'عاملـ/ـة'],
+                ['key' => 'against_phone', 'label' => 'هاتف المشتكى عليه', 'required' => false, 'example' => '0500000000'],
                 ['key' => 'last_response', 'label' => 'آخر رد', 'required' => false, 'example' => 'تم التواصل مع العميل'],
                 ['key' => 'submission_method', 'label' => 'طريقة التقديم', 'required' => false, 'example' => 'زيارة مقر'],
                 ['key' => 'related_to', 'label' => 'متعلق', 'required' => false, 'example' => 'طلب استقدام 2476'],
@@ -523,7 +554,12 @@ class DataImportTemplateService
                 ['key' => 'details', 'label' => 'تفاصيل الشكوى', 'required' => true, 'example' => 'تفاصيل الشكوى'],
                 ['key' => 'response', 'label' => 'الرد', 'required' => false, 'example' => 'تم التواصل مع العميل'],
                 ['key' => 'external_ref', 'label' => 'رقم تعريف خارجي', 'required' => false, 'example' => 'CW-327'],
-                ['key' => 'created_at', 'label' => 'تاريخ الإنشاء', 'required' => false, 'example' => now()->format('Y-m-d')],
+                ['key' => 'complaint_date', 'label' => 'تاريخ الشكوى', 'required' => false, 'example' => now()->format('Y-m-d')],
+                ['key' => 'source_created_by', 'label' => 'أنشئ بواسطة', 'required' => false, 'example' => 'System Admin'],
+                ['key' => 'source_created_at', 'label' => 'تاريخ الانشاء', 'required' => false, 'example' => now()->format('Y-m-d')],
+                ['key' => 'closed_at', 'label' => 'تاريخ الاغلاق', 'required' => false, 'example' => now()->format('Y-m-d')],
+                ['key' => 'closed_by_name', 'label' => 'أغلق بواسطة', 'required' => false, 'example' => 'System Admin'],
+                ['key' => 'created_at', 'label' => 'أنشئ في', 'required' => false, 'example' => now()->format('Y-m-d')],
             ],
         ];
 

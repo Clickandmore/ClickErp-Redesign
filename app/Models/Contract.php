@@ -319,6 +319,20 @@ class Contract extends Model
             ];
         }
 
+        // Arabia did not allow closing an order before its external-office dispatch.
+        // Historical imports do not carry the office USD cost, so the persisted
+        // dispatch date and arrival station are the authoritative legacy proof.
+        if (filled($this->arabia_order_number)
+            && $this->status === ContractStatusEnum::Completed->value) {
+            return [
+                'code' => 'completed',
+                'label' => 'مكتملة',
+                'message' => 'تمت إرسالية المكتب الخارجي في نظام أربيا بتاريخ '
+                    . optional($dispatch->dispatch_date)->format('Y-m-d') . '.',
+                'is_completed' => true,
+            ];
+        }
+
         if ((float) ($dispatch->office_contract_cost_usd ?? 0) <= 0) {
             return [
                 'code' => 'incomplete',

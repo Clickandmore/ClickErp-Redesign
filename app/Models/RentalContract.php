@@ -47,6 +47,11 @@ class RentalContract extends Model
         'maid_delivered_by',
         'trial_started_by',
         'company_signature',
+        'legacy_order_id',
+        'legacy_created_by',
+        'legacy_created_at',
+        'legacy_created_at_hijri',
+        'legacy_source',
     ];
 
     protected $casts = [
@@ -61,6 +66,8 @@ class RentalContract extends Model
         'frozen_at' => 'datetime',
         'resumed_at' => 'datetime',
         'branch_id' => 'integer',
+        'legacy_order_id' => 'integer',
+        'legacy_created_at' => 'datetime',
     ];
 
     protected function resolveBranchIdForCreate(): ?int

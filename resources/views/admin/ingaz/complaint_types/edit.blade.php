@@ -1,24 +1,10 @@
 @extends('admin.layout.indexs.index')
-
-@section('page-title')
-    تعديل نوع الشكوى
-@endsection
-
+@section('page-title', 'تعديل تصنيف الشكوى')
 @section('content')
-<div class="container mt-4">
-    <h4>تعديل نوع الشكوى</h4>
-    <form action="{{ route('complaint-types.update', $type->id) }}" method="POST">
-        @csrf
-        @method('PUT')
-        <div class="mb-3">
-            <label for="name" class="form-label">اسم النوع</label>
-            <input type="text" name="name" id="name" class="form-control" required value="{{ old('name', $type->name) }}">
-            @error('name')
-                <div class="text-danger">{{ $message }}</div>
-            @enderror
-        </div>
-        <button type="submit" class="btn btn-primary">تحديث</button>
-        <a href="{{ route('complaint-types.index') }}" class="btn btn-secondary">إلغاء</a>
+<div class="container mt-4"><div class="card shadow-sm"><div class="card-header"><h4 class="mb-0">تعديل تصنيف الشكوى</h4></div><div class="card-body">
+    <form action="{{ route('complaint-types.update', $type) }}" method="POST">@csrf @method('PUT')
+        @include('admin.ingaz.complaint_types.form')
+        <button class="btn btn-primary">حفظ التعديلات</button><a href="{{ route('complaint-types.index') }}" class="btn btn-light border">إلغاء</a>
     </form>
-</div>
+</div></div></div>
 @endsection

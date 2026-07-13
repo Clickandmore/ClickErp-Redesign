@@ -5,6 +5,7 @@ namespace App\Models\ingaz;
 use App\PermKeys;
 use App\Models\Concerns\AssignsBranch;
 use App\Models\Contract;
+use App\Models\RecruitmentOffices;
 use App\Models\ingaz\User;
 use App\Models\auth\Admin;
 use App\Services\AdminNotificationService;
@@ -21,6 +22,10 @@ class Complaint extends Model
     
     protected $casts = [
         'attachments' => 'array',
+        'import_payload' => 'array',
+        'complaint_date' => 'date',
+        'source_created_at' => 'datetime',
+        'closed_at' => 'datetime',
         'resolved_at' => 'datetime',
         'branch_id' => 'integer',
     ];
@@ -88,6 +93,21 @@ class Complaint extends Model
     public function contract()
     {
         return $this->belongsTo(Contract::class, 'contract_id');
+    }
+
+    public function order()
+    {
+        return $this->belongsTo(Order::class, 'order_id');
+    }
+
+    public function relatedUser()
+    {
+        return $this->belongsTo(User::class, 'related_user_id');
+    }
+
+    public function recruitmentOffice()
+    {
+        return $this->belongsTo(RecruitmentOffices::class, 'recruitment_office_id');
     }
     
     public function resolvedBy()

@@ -446,8 +446,30 @@
                         <div class="info-label">{{ __('ingaz.complaint_type') }}:</div>
                         <div class="info-value">
                             {{ $complaint->complaintType->name ?? __('ingaz.not_specified') }}
+                            @if ($complaint->complaintType?->complainant_type || $complaint->complaintType?->against_type)
+                                <small class="text-muted d-block">{{ $complaint->complaintType->classification_label }}</small>
+                            @endif
                         </div>
                     </div>
+
+                    @if ($complaint->relation_type)
+                        <div class="info-row">
+                            <div class="info-label">الربط:</div>
+                            <div class="info-value">
+                                @switch($complaint->relation_type)
+                                    @case('order') طلب #{{ $complaint->order?->order_code ?: $complaint->order_id }} @break
+                                    @case('contract') عقد #{{ $complaint->contract_id }} @break
+                                    @case('office') مكتب خارجي: {{ $complaint->recruitmentOffice?->title ?: $complaint->against_name }} @break
+                                    @case('client') عميل: {{ $complaint->relatedUser?->name ?: $complaint->against_name }} @break
+                                    @case('manual') بيانات يدوية: {{ $complaint->against_name }} @break
+                                    @default بدون ربط
+                                @endswitch
+                                @if($complaint->relation_reference)<small class="text-muted d-block">المرجع: {{ $complaint->relation_reference }}</small>@endif
+                                @if($complaint->against_phone)<small class="text-muted d-block">التواصل: {{ $complaint->against_phone }}</small>@endif
+                                @if($complaint->relation_notes)<div class="mt-1">{{ $complaint->relation_notes }}</div>@endif
+                            </div>
+                        </div>
+                    @endif
 
                     @if ($complaint->contract)
                         <div class="info-row">

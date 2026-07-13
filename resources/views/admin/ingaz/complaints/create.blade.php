@@ -1,235 +1,176 @@
 @extends('admin.layout.indexs.index')
 
-@section('page-title')
-{{ __('ingaz.complaint_add_new') }}
-@endsection
+@section('page-title', 'إضافة شكوى جديدة')
 
 @section('links')
-    <li class="breadcrumb-item"><a href="{{ route('dashboard.index') }}">{{ __('ingaz.dashboard_home') }}</a></li>
-    <li class="breadcrumb-item"><a href="{{ route('complaints.index') }}">{{ __('ingaz.complaints') }}</a></li>
-    <li class="breadcrumb-item active">{{ __('ingaz.complaint_add_new') }}</li>
+    <li class="breadcrumb-item"><a href="{{ route('dashboard.index') }}">الرئيسية</a></li>
+    <li class="breadcrumb-item"><a href="{{ route('complaints.index') }}">الشكاوى</a></li>
+    <li class="breadcrumb-item active">إضافة شكوى</li>
 @endsection
 
 @section('style')
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <style>
-    .card-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border-radius: 10px 10px 0 0;
-        padding: 1.5rem;
-    }
-    .section-header {
-        background: #f8f9fa;
-        padding: 1rem;
-        border-radius: 5px;
-        margin-bottom: 1.5rem;
-        border-left: 4px solid #667eea;
-    }
-    .section-header h5 {
-        color: #495057;
-        font-weight: 600;
-    }
-    .form-label {
-        font-weight: 600;
-        color: #495057;
-        margin-bottom: 0.5rem;
-    }
-    .required-star {
-        color: #dc3545;
-    }
-    .form-control:focus, .form-select:focus {
-        border-color: #667eea;
-        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-    }
-    .btn-primary {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border: none;
-    }
-    .btn-primary:hover {
-        background: linear-gradient(135deg, #5569d8 0%, #6a4190 100%);
-    }
-    .is-invalid + .select2-container .select2-selection,
-    select.is-invalid + .select2-container .select2-selection {
-        border-color: #dc3545 !important;
-    }
-    .select2-container--default.select2-invalid .select2-selection {
-        border-color: #dc3545 !important;
-    }
+    .complaint-create { max-width: 1240px; margin: 0 auto; }
+    .complaint-hero { background: linear-gradient(135deg, #19376d, #2f67b2); color: #fff; border-radius: 18px; padding: 28px; box-shadow: 0 14px 34px rgba(25,55,109,.18); }
+    .complaint-hero .hero-icon { width: 54px; height: 54px; display: grid; place-items: center; border-radius: 16px; background: rgba(255,255,255,.14); font-size: 24px; }
+    .form-section { background: #fff; border: 1px solid #e8edf4; border-radius: 16px; margin-top: 18px; overflow: hidden; box-shadow: 0 6px 22px rgba(31,45,61,.05); }
+    .form-section-header { display: flex; gap: 13px; align-items: center; padding: 18px 22px; background: #f8fafc; border-bottom: 1px solid #e8edf4; }
+    .step-number { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; background: #2f67b2; color: #fff; font-weight: 700; }
+    .form-section-body { padding: 22px; }
+    .form-label { color: #344054; font-weight: 700; }
+    .required { color: #dc3545; }
+    .relation-grid { display: grid; grid-template-columns: repeat(6, minmax(120px,1fr)); gap: 10px; }
+    .relation-option input { position: absolute; opacity: 0; pointer-events: none; }
+    .relation-card { min-height: 96px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border: 1px solid #dce3ed; border-radius: 13px; background: #fff; color: #475467; cursor: pointer; transition: .2s ease; }
+    .relation-card i { font-size: 22px; color: #667085; }
+    .relation-option input:checked + .relation-card { border-color: #2f67b2; background: #eef5ff; color: #19376d; box-shadow: 0 0 0 3px rgba(47,103,178,.11); }
+    .relation-option input:checked + .relation-card i { color: #2f67b2; }
+    .relation-panel { margin-top: 18px; padding: 18px; background: #f8fafc; border: 1px dashed #cfd8e6; border-radius: 13px; }
+    .select2-container .select2-selection--single { height: 39px; border-color: #dee2e6; }
+    .select2-container--default .select2-selection--single .select2-selection__rendered { line-height: 37px; }
+    .select2-container--default .select2-selection--single .select2-selection__arrow { height: 37px; }
+    .footer-actions { position: sticky; bottom: 12px; z-index: 5; display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; padding: 14px; border: 1px solid #e8edf4; border-radius: 14px; background: rgba(255,255,255,.95); box-shadow: 0 8px 30px rgba(31,45,61,.11); backdrop-filter: blur(7px); }
+    @media (max-width: 992px) { .relation-grid { grid-template-columns: repeat(3,1fr); } }
+    @media (max-width: 576px) { .relation-grid { grid-template-columns: repeat(2,1fr); } .form-section-body { padding: 16px; } }
 </style>
 @endsection
 
 @section('content')
 @if (@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_CREATE))
-
-<div class="card">
-    <div class="card-header">
-        <h4 class="card-title mb-0">
-            <i class="fas fa-exclamation-triangle me-2"></i>
-            {{ __('ingaz.complaint_register_new') }}
-        </h4>
+<div class="complaint-create">
+    <div class="complaint-hero d-flex align-items-center gap-3">
+        <div class="hero-icon"><i class="fas fa-headset"></i></div>
+        <div>
+            <h3 class="mb-1">تسجيل شكوى جديدة</h3>
+            <div class="opacity-75">صنّف الشكوى واربطها بالسجل الصحيح، أو أدخل بيانات الطرف يدويًا.</div>
+        </div>
     </div>
-    <div class="card-body">
-        <form action="{{ route('complaints.store') }}" method="POST" enctype="multipart/form-data" id="complaintForm" class="from-submit-global" novalidate>
-            @csrf
 
-            <!-- معلومات مقدم الشكوى -->
-            <div class="section-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-user me-2"></i>
-                    {{ __('ingaz.complainant_information') }}
-                </h5>
-            </div>
-            <div class="row mb-4">
-                <div class="col-md-4 mb-3">
-                    <label class="form-label">{{ __('ingaz.complainant_name') }} <span class="required-star">*</span></label>
-                    <input type="text" name="complainant_name" class="form-control {{ $errors->has('complainant_name') ? 'is-invalid' : '' }}" required
-                           placeholder="{{ __('ingaz.complainant_name_placeholder') }}" value="{{ old('complainant_name') }}"
-                           data-validation="required">
-                    <span class="text-danger small d-block mt-1" data-field="complainant_name">{{ $errors->first('complainant_name') }}</span>
-                </div>
+    <form action="{{ route('complaints.store') }}" method="POST" enctype="multipart/form-data" id="complaintForm" class="from-submit-global" novalidate>
+        @csrf
 
-                <div class="col-md-4 mb-3">
-                    <label class="form-label">{{ __('ingaz.phone') }} <span class="required-star">*</span></label>
-                    <input type="tel" name="complainant_phone" class="form-control {{ $errors->has('complainant_phone') ? 'is-invalid' : '' }}" required
-                           placeholder="05XXXXXXXX | 5XXXXXXXX" pattern="^(05|5)[0-9]{8}$" value="{{ old('complainant_phone') }}"
-                           data-validation="required">
-                    <span class="text-danger small d-block mt-1" data-field="complainant_phone">{{ $errors->first('complainant_phone') }}</span>
-                </div>
-
-                <div class="col-md-4 mb-3">
-                    <label class="form-label">{{ __('ingaz.registered_client_optional') }}</label>
-                    <select name="user_id" class="form-select select2 {{ $errors->has('user_id') ? 'is-invalid' : '' }}">
-                        <option value="">{{ __('ingaz.select_registered_client') }}</option>
-                        @foreach($users as $user)
-                            <option value="{{ $user->id }}" {{ old('user_id') == $user->id ? 'selected' : '' }}
-                                    data-name="{{ $user->name }}" data-phone="{{ $user->phone }}">
-                                {{ $user->name }} - {{ $user->phone }}
-                            </option>
-                        @endforeach
-                    </select>
-                    <span class="text-danger small d-block mt-1" data-field="user_id">{{ $errors->first('user_id') }}</span>
-                </div>
-            </div>
-
-            <!-- معلومات العاملة -->
-            <div class="section-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-female me-2"></i>
-                    {{ __('ingaz.worker_information') }}
-                </h5>
-            </div>
-            <div class="row mb-4">
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">{{ __('ingaz.worker_passport_number') }}</label>
-                    <input type="text" name="maid_passport" class="form-control {{ $errors->has('maid_passport') ? 'is-invalid' : '' }}"
-                           placeholder="{{ __('ingaz.passport_number_placeholder') }}" value="{{ old('maid_passport') }}">
-                    <span class="text-danger small d-block mt-1" data-field="maid_passport">{{ $errors->first('maid_passport') }}</span>
-                </div>
-
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">{{ __('ingaz.worker_nationality') }}</label>
-                    <select name="maid_nationality_id" class="form-select select2 {{ $errors->has('maid_nationality_id') ? 'is-invalid' : '' }}">
-                        <option value="">{{ __('ingaz.select_nationality') }}</option>
-                        @foreach($nationalities as $nationality)
-                            <option value="{{ $nationality->id }}" {{ old('maid_nationality_id') == $nationality->id ? 'selected' : '' }}>
-                                {{ $nationality->title }}
-                            </option>
-                        @endforeach
-                    </select>
-                    <span class="text-danger small d-block mt-1" data-field="maid_nationality_id">{{ $errors->first('maid_nationality_id') }}</span>
-                </div>
-            </div>
-
-            <!-- تفاصيل الشكوى -->
-            <div class="section-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-file-alt me-2"></i>
-                    {{ __('ingaz.complaint_details') }}
-                </h5>
-            </div>
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">{{ __('ingaz.complaint_subject') }} <span class="required-star">*</span></label>
-                    <input type="text" name="subject" class="form-control {{ $errors->has('subject') ? 'is-invalid' : '' }}" required
-                           placeholder="{{ __('ingaz.complaint_subject_placeholder') }}" value="{{ old('subject') }}"
-                           data-validation="required">
-                    <span class="text-danger small d-block mt-1" data-field="subject">{{ $errors->first('subject') }}</span>
-                </div>
-
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">{{ __('ingaz.complaint_type') }} <span class="required-star">*</span></label>
-                    <select name="complaint_type_id" class="form-select {{ $errors->has('complaint_type_id') ? 'is-invalid' : '' }}" required data-validation="required">
-                        <option value="">{{ __('ingaz.select_complaint_type') }}</option>
+        <section class="form-section">
+            <div class="form-section-header"><span class="step-number">1</span><div><h5 class="mb-0">تصنيف الشكوى</h5><small class="text-muted">حدد نوع الشكوى ودرجة أهميتها</small></div></div>
+            <div class="form-section-body"><div class="row">
+                <div class="col-lg-6 mb-3">
+                    <label class="form-label">تصنيف الشكوى <span class="required">*</span></label>
+                    <select name="complaint_type_id" id="complaintType" class="form-select select2 @error('complaint_type_id') is-invalid @enderror" required>
+                        <option value="">اختر التصنيف</option>
                         @foreach($complaintTypes as $type)
-                            <option value="{{ $type->id }}" {{ old('complaint_type_id') == $type->id ? 'selected' : '' }}>
-                                {{ $type->name }}
+                            <option value="{{ $type->id }}" data-complainant="{{ $type->complainant_type }}" data-against="{{ $type->against_type }}" {{ old('complaint_type_id') == $type->id ? 'selected' : '' }}>
+                                {{ $type->name }} @if($type->complainant_type || $type->against_type) — {{ $type->classification_label }} @endif
                             </option>
                         @endforeach
                     </select>
-                    <span class="text-danger small d-block mt-1" data-field="complaint_type_id">{{ $errors->first('complaint_type_id') }}</span>
+                    @error('complaint_type_id')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
                 </div>
-
-                <div class="col-md-4 mb-3">
-                    <label class="form-label">{{ __('ingaz.priority') }} <span class="required-star">*</span></label>
-                    <select name="priority" class="form-select {{ $errors->has('priority') ? 'is-invalid' : '' }}" required data-validation="required">
-                        <option value="low" {{ old('priority') == 'low' ? 'selected' : '' }}>
-                            {{ __('ingaz.priority_low') }}
-                        </option>
-                        <option value="medium" {{ old('priority', 'medium') == 'medium' ? 'selected' : '' }}>
-                            {{ __('ingaz.priority_medium') }}
-                        </option>
-                        <option value="high" {{ old('priority') == 'high' ? 'selected' : '' }}>
-                            {{ __('ingaz.priority_high') }}
-                        </option>
-                        <option value="urgent" {{ old('priority') == 'urgent' ? 'selected' : '' }}>
-                            {{ __('ingaz.priority_urgent') }}
-                        </option>
+                <div class="col-lg-6 mb-3">
+                    <label class="form-label">موضوع الشكوى <span class="required">*</span></label>
+                    <input type="text" name="subject" class="form-control @error('subject') is-invalid @enderror" value="{{ old('subject') }}" placeholder="ملخص واضح ومختصر للشكوى" required>
+                    @error('subject')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">الأولوية <span class="required">*</span></label>
+                    <select name="priority" class="form-select" required>
+                        <option value="low" {{ old('priority') === 'low' ? 'selected' : '' }}>منخفضة</option>
+                        <option value="medium" {{ old('priority', 'medium') === 'medium' ? 'selected' : '' }}>متوسطة</option>
+                        <option value="high" {{ old('priority') === 'high' ? 'selected' : '' }}>عالية</option>
+                        <option value="urgent" {{ old('priority') === 'urgent' ? 'selected' : '' }}>عاجلة</option>
                     </select>
-                    <span class="text-danger small d-block mt-1" data-field="priority">{{ $errors->first('priority') }}</span>
                 </div>
-
-                <div class="col-md-8 mb-3">
-                    <label class="form-label">{{ __('ingaz.assigned_employee') }}</label>
-                    <select name="assigned_to" class="form-select select2 {{ $errors->has('assigned_to') ? 'is-invalid' : '' }}">
-                        <option value="">{{ __('ingaz.select_assigned_employee') }}</option>
-                        @foreach($admins as $admin)
-                            <option value="{{ $admin->id }}" {{ old('assigned_to') == $admin->id ? 'selected' : '' }}>
-                                {{ $admin->name }}
-                            </option>
-                        @endforeach
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">الموظف المسؤول</label>
+                    <select name="assigned_to" class="form-select select2">
+                        <option value="">يحدد لاحقًا</option>
+                        @foreach($admins as $admin)<option value="{{ $admin->id }}" {{ old('assigned_to') == $admin->id ? 'selected' : '' }}>{{ $admin->name }}</option>@endforeach
                     </select>
-                    <span class="text-danger small d-block mt-1" data-field="assigned_to">{{ $errors->first('assigned_to') }}</span>
+                </div>
+            </div></div>
+        </section>
+
+        <section class="form-section">
+            <div class="form-section-header"><span class="step-number">2</span><div><h5 class="mb-0">بيانات مقدم الشكوى</h5><small class="text-muted">يمكن اختيار عميل مسجل أو كتابة البيانات يدويًا</small></div></div>
+            <div class="form-section-body"><div class="row">
+                <div class="col-lg-4 mb-3">
+                    <label class="form-label">عميل مسجل <span class="text-muted fw-normal">(اختياري)</span></label>
+                    <select name="user_id" id="complainantUser" class="form-select select2">
+                        <option value="">إدخال يدوي</option>
+                        @foreach($users as $user)<option value="{{ $user->id }}" data-name="{{ $user->name }}" data-phone="{{ $user->phone }}" {{ old('user_id') == $user->id ? 'selected' : '' }}>{{ $user->name }} — {{ $user->phone }}</option>@endforeach
+                    </select>
+                </div>
+                <div class="col-lg-3 mb-3">
+                    <label class="form-label">صفة مقدم الشكوى <span class="required">*</span></label>
+                    <select name="complainant_type" id="complainantType" class="form-select" required>
+                        @foreach($partyTypes as $value => $label)<option value="{{ $value }}" {{ old('complainant_type', 'client') === $value ? 'selected' : '' }}>{{ $label }}</option>@endforeach
+                    </select>
+                </div>
+                <div class="col-lg-3 mb-3">
+                    <label class="form-label">الاسم <span class="required">*</span></label>
+                    <input type="text" name="complainant_name" class="form-control @error('complainant_name') is-invalid @enderror" value="{{ old('complainant_name') }}" required>
+                    @error('complainant_name')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+                </div>
+                <div class="col-lg-2 mb-3">
+                    <label class="form-label">الجوال <span class="required">*</span></label>
+                    <input type="tel" name="complainant_phone" class="form-control @error('complainant_phone') is-invalid @enderror" value="{{ old('complainant_phone') }}" placeholder="05XXXXXXXX" required>
+                    @error('complainant_phone')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+                </div>
+            </div></div>
+        </section>
+
+        <section class="form-section">
+            <div class="form-section-header"><span class="step-number">3</span><div><h5 class="mb-0">ربط الشكوى</h5><small class="text-muted">اختر السجل المرتبط أو أضف بيانات المشتكى عليه يدويًا</small></div></div>
+            <div class="form-section-body">
+                @php($selectedRelation = old('relation_type', 'none'))
+                <div class="relation-grid">
+                    @foreach([
+                        'order' => ['fa-shopping-cart','طلب'], 'contract' => ['fa-file-contract','عقد'],
+                        'office' => ['fa-building','مكتب خارجي'], 'client' => ['fa-user-tie','عميل'],
+                        'manual' => ['fa-keyboard','إدخال يدوي'], 'none' => ['fa-ban','بدون ربط']
+                    ] as $value => $meta)
+                        <label class="relation-option"><input type="radio" name="relation_type" value="{{ $value }}" {{ $selectedRelation === $value ? 'checked' : '' }}><span class="relation-card"><i class="fas {{ $meta[0] }}"></i><strong>{{ $meta[1] }}</strong></span></label>
+                    @endforeach
                 </div>
 
-                <div class="col-12 mb-3">
-                    <label class="form-label">{{ __('ingaz.complaint_details') }} <span class="required-star">*</span></label>
-                    <textarea name="details" class="form-control {{ $errors->has('details') ? 'is-invalid' : '' }}" rows="5" required
-                              placeholder="{{ __('ingaz.complaint_details_placeholder') }}" data-validation="required">{{ old('details') }}</textarea>
-                    <span class="text-danger small d-block mt-1" data-field="details">{{ $errors->first('details') }}</span>
+                <div class="relation-panel" data-relation="order">
+                    <label class="form-label">اختر الطلب <span class="required">*</span></label>
+                    <select name="order_id" class="form-select select2 relation-input"><option value="">ابحث برقم الطلب أو اسم العميل</option>@foreach($orders as $order)<option value="{{ $order->id }}" {{ old('order_id') == $order->id ? 'selected' : '' }}>طلب #{{ $order->order_code ?: $order->id }} — {{ $order->user?->name ?: 'بدون عميل' }}</option>@endforeach</select>
                 </div>
-
-                <div class="col-12 mb-3">
-                    <label class="form-label">{{ __('ingaz.attachments') }}</label>
-                    <input type="file" name="attachments[]" class="form-control {{ $errors->has('attachments') ? 'is-invalid' : '' }}" multiple
-                           accept="image/*,application/pdf,.doc,.docx">
-                    <small class="text-muted">{{ __('ingaz.attachments_hint') }}</small>
-                    <span class="text-danger small d-block mt-1" data-field="attachments">{{ $errors->first('attachments') }}</span>
+                <div class="relation-panel" data-relation="contract">
+                    <label class="form-label">اختر العقد <span class="required">*</span></label>
+                    <select name="contract_id" class="form-select select2 relation-input"><option value="">ابحث برقم العقد أو اسم العميل</option>@foreach($contracts as $contract)<option value="{{ $contract->id }}" {{ old('contract_id') == $contract->id ? 'selected' : '' }}>عقد #{{ $contract->id }} — {{ $contract->user?->name ?: 'بدون عميل' }} @if($contract->maid) — {{ $contract->maid->name }} @endif</option>@endforeach</select>
                 </div>
+                <div class="relation-panel" data-relation="office">
+                    <label class="form-label">اختر المكتب الخارجي <span class="required">*</span></label>
+                    <select name="recruitment_office_id" class="form-select select2 relation-input"><option value="">ابحث باسم المكتب</option>@foreach($recruitmentOffices as $office)<option value="{{ $office->id }}" {{ old('recruitment_office_id') == $office->id ? 'selected' : '' }}>{{ $office->title ?: 'مكتب #' . $office->id }}</option>@endforeach</select>
+                </div>
+                <div class="relation-panel" data-relation="client">
+                    <label class="form-label">اختر العميل المرتبط <span class="required">*</span></label>
+                    <select name="related_user_id" class="form-select select2 relation-input"><option value="">ابحث بالاسم أو الجوال</option>@foreach($users as $user)<option value="{{ $user->id }}" {{ old('related_user_id') == $user->id ? 'selected' : '' }}>{{ $user->name }} — {{ $user->phone }}</option>@endforeach</select>
+                </div>
+                <div class="relation-panel" data-relation="manual"><div class="row">
+                    <div class="col-md-4 mb-3"><label class="form-label">اسم المشتكى عليه <span class="required">*</span></label><input type="text" name="against_name" class="form-control relation-input" value="{{ old('against_name') }}"></div>
+                    <div class="col-md-4 mb-3"><label class="form-label">الجوال / وسيلة التواصل</label><input type="text" name="against_phone" class="form-control relation-input" value="{{ old('against_phone') }}"></div>
+                    <div class="col-md-4 mb-3"><label class="form-label">رقم أو مرجع خارجي</label><input type="text" name="relation_reference" class="form-control relation-input" value="{{ old('relation_reference') }}"></div>
+                </div></div>
+                <div class="relation-panel" data-relation="none"><div class="text-muted"><i class="fas fa-info-circle me-2"></i>ستُحفظ الشكوى دون ربط بسجل، ويمكن ربطها لاحقًا.</div></div>
+                <div class="mt-3"><label class="form-label">ملاحظات الربط <span class="text-muted fw-normal">(اختياري)</span></label><textarea name="relation_notes" class="form-control" rows="2" placeholder="أي معلومات تساعد في تحديد الطلب أو العقد أو الطرف المرتبط">{{ old('relation_notes') }}</textarea></div>
             </div>
+        </section>
 
-            <div class="text-end mt-4">
-                <a href="{{ route('complaints.index') }}" class="btn btn-secondary">
-                    <i class="fas fa-times me-2"></i>{{ __('buttons.cancel') }}
-                </a>
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-save me-2"></i>{{ __('ingaz.save_complaint') }}
-                </button>
-            </div>
-        </form>
-    </div>
+        <section class="form-section">
+            <div class="form-section-header"><span class="step-number">4</span><div><h5 class="mb-0">تفاصيل الشكوى والمرفقات</h5><small class="text-muted">اكتب وصفًا كاملًا وأرفق المستندات المتاحة</small></div></div>
+            <div class="form-section-body"><div class="row">
+                <div class="col-12 mb-3"><label class="form-label">تفاصيل الشكوى <span class="required">*</span></label><textarea name="details" class="form-control @error('details') is-invalid @enderror" rows="6" required placeholder="اكتب الوقائع والتواريخ والإجراء المطلوب بوضوح">{{ old('details') }}</textarea>@error('details')<div class="text-danger small mt-1">{{ $message }}</div>@enderror</div>
+                <div class="col-md-6 mb-3"><label class="form-label">رقم جواز العاملة</label><input type="text" name="maid_passport" class="form-control" value="{{ old('maid_passport') }}"></div>
+                <div class="col-md-6 mb-3"><label class="form-label">جنسية العاملة</label><select name="maid_nationality_id" class="form-select select2"><option value="">غير محدد</option>@foreach($nationalities as $nationality)<option value="{{ $nationality->id }}" {{ old('maid_nationality_id') == $nationality->id ? 'selected' : '' }}>{{ $nationality->title }}</option>@endforeach</select></div>
+                <div class="col-12"><label class="form-label">المرفقات</label><input type="file" name="attachments[]" class="form-control" multiple accept="image/*,application/pdf,.doc,.docx"><small class="text-muted">صور أو PDF أو Word، بحد أقصى 5MB لكل ملف.</small></div>
+            </div></div>
+        </section>
+
+        <div class="footer-actions"><a href="{{ route('complaints.index') }}" class="btn btn-light border">إلغاء</a><button type="submit" class="btn btn-primary px-4"><i class="fas fa-save me-2"></i>حفظ الشكوى</button></div>
+    </form>
 </div>
-
 @else
     @include('components.no_permissions')
 @endif
@@ -238,125 +179,50 @@
 @section('js')
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
-$(document).ready(function() {
-    const complaintFormTranslations = {
-        selectPlaceholder: @json(__('ingaz.select_placeholder')),
-        noResults: @json(__('ingaz.no_results')),
-        searching: @json(__('ingaz.searching')),
-        phoneInvalid: @json(__('ingaz.complaint_phone_invalid')),
-    };
+$(function () {
+    $('.select2').select2({ dir: 'rtl', width: '100%', allowClear: true, placeholder: 'اختر أو ابحث' });
 
-    // تهيئة Select2
-    $('.select2').select2({
-        placeholder: complaintFormTranslations.selectPlaceholder,
-        allowClear: true,
-        dir: 'rtl',
-        width: '100%',
-        language: {
-            noResults: function() {
-                return complaintFormTranslations.noResults;
-            },
-            searching: function() {
-                return complaintFormTranslations.searching;
-            }
-        }
-    });
-
-    // عند اختيار عميل مسجل، املأ البيانات تلقائياً
-    $('select[name="user_id"]').on('change', function() {
-        var selectedOption = $(this).find('option:selected');
-        if (selectedOption.val()) {
-            var userName = selectedOption.data('name');
-            var userPhone = selectedOption.data('phone');
-
-            $('input[name="complainant_name"]').val(userName);
-            $('input[name="complainant_phone"]').val(userPhone);
-        }
-    });
-
-    // تحقق من رقم الجوال
-    $('input[name="complainant_phone"]').on('blur', function() {
-        var phone = $(this).val();
-        if (phone && !phone.match(/^(05|5)[0-9]{8}$/)) {
-            toastr.warning(complaintFormTranslations.phoneInvalid);
-            $(this).focus();
-        }
-    });
-
-    // تغيير لون الأولوية
-    $('select[name="priority"]').on('change', function() {
-        var priority = $(this).val();
-        $(this).removeClass('text-info text-warning text-danger');
-
-        switch(priority) {
-            case 'low':
-                $(this).addClass('text-info');
-                break;
-            case 'medium':
-                $(this).addClass('text-warning');
-                break;
-            case 'high':
-            case 'urgent':
-                $(this).addClass('text-danger');
-                break;
-        }
-    });
-
-    function setFieldInvalid(fieldName, message) {
-        var $input = $('#complaintForm [name="' + fieldName + '"]');
-        $input.addClass('is-invalid');
-        // select2: لون الحد على الـ container
-        $input.next('.select2-container').find('.select2-selection').css('border-color', '#dc3545');
-        $('#complaintForm [data-field="' + fieldName + '"]').text(message);
-    }
-
-    function clearFieldInvalid(fieldName) {
-        var $input = $('#complaintForm [name="' + fieldName + '"]');
-        $input.removeClass('is-invalid');
-        $input.next('.select2-container').find('.select2-selection').css('border-color', '');
-        $('#complaintForm [data-field="' + fieldName + '"]').text('');
-    }
-
-    // إزالة is-invalid عند الكتابة أو التغيير
-    $('#complaintForm').on('input change', 'input, select, textarea', function() {
-        clearFieldInvalid($(this).attr('name'));
-    });
-
-    // التحقق من الحقول المطلوبة قبل الإرسال
-    var requiredFields = [
-        { name: 'complainant_name',  label: 'اسم مقدم الشكوى' },
-        { name: 'complainant_phone', label: 'رقم الجوال' },
-        { name: 'subject',           label: 'موضوع الشكوى' },
-        { name: 'complaint_type_id', label: 'نوع الشكوى' },
-        { name: 'details',           label: 'تفاصيل الشكوى' },
-        { name: 'priority',          label: 'الأولوية' },
-    ];
-
-    $('#complaintForm').on('submit', function(e) {
-        var hasError = false;
-
-        $.each(requiredFields, function(i, field) {
-            var val = $('#complaintForm [name="' + field.name + '"]').val();
-            if (!val || val.toString().trim() === '') {
-                setFieldInvalid(field.name, 'حقل ' + field.label + ' مطلوب');
-                hasError = true;
-            }
+    function refreshRelationPanels() {
+        const type = $('[name="relation_type"]:checked').val();
+        $('.relation-panel').each(function () {
+            const active = $(this).data('relation') === type;
+            $(this).toggle(active).find('.relation-input').prop('disabled', !active);
         });
+        $('[name="relation_notes"]').closest('.mt-3').toggle(type !== 'none');
+    }
+    $('[name="relation_type"]').on('change', refreshRelationPanels);
+    refreshRelationPanels();
 
-        // تحقق إضافي من صيغة رقم الجوال
-        var phoneVal = $('input[name="complainant_phone"]').val();
-        if (phoneVal && !phoneVal.match(/^(05|5)[0-9]{8}$/)) {
-            setFieldInvalid('complainant_phone', 'صيغة رقم الجوال غير صحيحة (مثال: 0512345678)');
-            hasError = true;
+    $('#complainantUser').on('change', function () {
+        const option = $(this).find(':selected');
+        if (option.val()) {
+            $('[name="complainant_name"]').val(option.data('name'));
+            $('[name="complainant_phone"]').val(option.data('phone'));
+            $('#complainantType').val('client');
         }
+    }).trigger('change');
 
-        if (hasError) {
-            e.preventDefault();
-            e.stopImmediatePropagation();
-            var $firstInvalid = $('#complaintForm .is-invalid').first();
-            if ($firstInvalid.length) {
-                $('html, body').animate({ scrollTop: $firstInvalid.offset().top - 120 }, 400);
-            }
+    $('#complaintType').on('change', function () {
+        const option = $(this).find(':selected');
+        if (option.data('complainant')) $('#complainantType').val(option.data('complainant'));
+    });
+
+    $('#complaintForm').on('submit', function (event) {
+        let valid = true;
+        $(this).find('[required]:enabled').each(function () {
+            const empty = !String($(this).val() || '').trim();
+            $(this).toggleClass('is-invalid', empty);
+            valid = valid && !empty;
+        });
+        const phone = $('[name="complainant_phone"]').val();
+        if (phone && !/^(05|5)[0-9]{8}$/.test(phone)) {
+            $('[name="complainant_phone"]').addClass('is-invalid');
+            valid = false;
+        }
+        if (!valid) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            $('html,body').animate({scrollTop: $('.is-invalid').first().offset().top - 120}, 300);
         }
     });
 });

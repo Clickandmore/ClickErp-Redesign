@@ -10,37 +10,53 @@ class ComplaintTypeController extends Controller
 {
     public function index()
     {
-        $types = ComplaintType::all();
+        $types = ComplaintType::query()->orderBy('sort_order')->orderBy('name')->get();
         return view('admin.ingaz.complaint_types.index', compact('types'));
     }
 
     public function create()
     {
-        return view('admin.ingaz.complaint_types.create');
+        $partyTypes = ComplaintType::partyTypes();
+        return view('admin.ingaz.complaint_types.create', compact('partyTypes'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => 'required|string|max:255|unique:complaint_types,name',
+            'complainant_type' => 'required|in:' . implode(',', array_keys(ComplaintType::partyTypes())),
+            'against_type' => 'required|in:' . implode(',', array_keys(ComplaintType::partyTypes())),
+            'description' => 'nullable|string|max:1000',
+            'sort_order' => 'nullable|integer|min:0',
+            'is_active' => 'nullable|boolean',
         ]);
-        ComplaintType::create(['name' => $request->name]);
+        ComplaintType::create($request->only('name', 'complainant_type', 'against_type', 'description', 'sort_order') + [
+            'is_active' => $request->boolean('is_active'),
+        ]);
         return redirect()->route('complaint-types.index')->with('success', 'تمت إضافة النوع بنجاح');
     }
 
     public function edit($id)
     {
         $type = ComplaintType::findOrFail($id);
-        return view('admin.ingaz.complaint_types.edit', compact('type'));
+        $partyTypes = ComplaintType::partyTypes();
+        return view('admin.ingaz.complaint_types.edit', compact('type', 'partyTypes'));
     }
 
     public function update(Request $request, $id)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => 'required|string|max:255|unique:complaint_types,name,' . $id,
+            'complainant_type' => 'required|in:' . implode(',', array_keys(ComplaintType::partyTypes())),
+            'against_type' => 'required|in:' . implode(',', array_keys(ComplaintType::partyTypes())),
+            'description' => 'nullable|string|max:1000',
+            'sort_order' => 'nullable|integer|min:0',
+            'is_active' => 'nullable|boolean',
         ]);
         $type = ComplaintType::findOrFail($id);
-        $type->update(['name' => $request->name]);
+        $type->update($request->only('name', 'complainant_type', 'against_type', 'description', 'sort_order') + [
+            'is_active' => $request->boolean('is_active'),
+        ]);
         return redirect()->route('complaint-types.index')->with('success', 'تم تعديل النوع بنجاح');
     }
 

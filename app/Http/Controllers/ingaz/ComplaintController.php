@@ -8,10 +8,13 @@ use App\Http\Controllers\admin\Controller;
 use App\Http\Traits\SendSMSTrait;
 use App\Http\Traits\StoreMessageTrait;
 use App\Models\auth\Admin;
+use App\Models\Contract;
+use App\Models\RecruitmentOffices;
 use App\Models\ingaz\Complaint as objModel;
 use App\Models\ingaz\ComplaintComment;
 use App\Models\ingaz\ComplaintType;
 use App\Models\ingaz\Nationality;
+use App\Models\ingaz\Order;
 use App\Models\ingaz\User;
 use App\Services\AdminNotificationService;
 use Illuminate\Http\Request;
@@ -170,12 +173,23 @@ class ComplaintController extends Controller
 
     public function create()
     {
-        $users = \App\Models\ingaz\User::orderBy('name')->get();
+        $users = User::orderBy('name')->get(['id', 'name', 'phone']);
         $nationalities = Nationality::with('translations')->get()->sortBy('title');
-        $complaintTypes = ComplaintType::orderBy('name')->get();
+        $complaintTypes = ComplaintType::query()
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
         $admins = Admin::query()->activeForOperations()->orderBy('name')->get();
+        $orders = Order::query()->with('user')->latest('id')->limit(1000)->get(['id', 'order_code', 'user_id', 'status']);
+        $contracts = Contract::query()->with(['user', 'maid'])->latest('id')->limit(1000)->get(['id', 'user_id', 'maid_id', 'order_id', 'status']);
+        $recruitmentOffices = RecruitmentOffices::query()->with('translations')->orderBy('id')->get();
+        $partyTypes = ComplaintType::partyTypes();
 
-        return view($this->folderPath . '.create', compact('users', 'nationalities', 'complaintTypes', 'admins'));
+        return view($this->folderPath . '.create', compact(
+            'users', 'nationalities', 'complaintTypes', 'admins', 'orders', 'contracts',
+            'recruitmentOffices', 'partyTypes'
+        ));
     }
 
     public function store(Request $request, UserAction $userAction)
@@ -186,13 +200,8 @@ class ComplaintController extends Controller
                 'complainant_phone' => [
                     'required',
                     'regex:/^(05|5)[0-9]{8}$/',
-                    function ($attribute, $value, $fail) {
-                        $phoneWithout0 = ltrim($value, '0');
-                        if (!User::whereIn('phone', [$phoneWithout0, $value])->exists()) {
-                            $fail('رقم الجوال غير مسجل في النظام، يرجى التحقق من الرقم أو اختر عميلاً من القائمة');
-                        }
-                    },
                 ],
+                'complainant_type' => 'required|in:client,worker,internal_office,external_office,employee,other',
                 'subject' => 'required|string|max:255',
                 'complaint_type_id' => 'required|exists:complaint_types,id',
                 'details' => 'required|string',
@@ -201,6 +210,15 @@ class ComplaintController extends Controller
                 'maid_passport' => 'nullable|string|max:50',
                 'maid_nationality_id' => 'nullable|exists:nationalities,id',
                 'assigned_to' => 'nullable|exists:admins,id',
+                'relation_type' => 'required|in:none,order,contract,office,client,manual',
+                'order_id' => 'nullable|required_if:relation_type,order|exists:orders,id',
+                'contract_id' => 'nullable|required_if:relation_type,contract|exists:contracts,id',
+                'recruitment_office_id' => 'nullable|required_if:relation_type,office|exists:recruitment_offices,id',
+                'related_user_id' => 'nullable|required_if:relation_type,client|exists:users,id',
+                'against_name' => 'nullable|required_if:relation_type,manual|string|max:255',
+                'against_phone' => 'nullable|string|max:50',
+                'relation_reference' => 'nullable|string|max:255',
+                'relation_notes' => 'nullable|string|max:2000',
                 'attachments.*' => 'nullable|file|max:5120|mimes:jpg,jpeg,png,pdf,doc,docx'
             ]);
 
@@ -230,13 +248,11 @@ class ComplaintController extends Controller
                     ->orWhere('phone', $rawPhone)
                     ->first();
             }
-            if (!$user) {
-                throw ValidationException::withMessages([
-                    'complainant_phone' => ['رقم الجوال غير مسجل في النظام، يرجى التحقق من الرقم أو اختر عميلاً من القائمة'],
-                ]);
-            }
-
-            $data['user_id'] = $user->id;
+            $data['user_id'] = $user?->id;
+            $complaintType = ComplaintType::findOrFail($data['complaint_type_id']);
+            $data['complainant_type'] = $complaintType->complainant_type ?: $data['complainant_type'];
+            $data['against_type'] = $complaintType->against_type ?: ($data['against_type'] ?? null);
+            $this->applyComplaintRelation($data);
             $complaint = objModel::create($data);
 
             // إرسال إشعار للموظف المختص إذا تم تحديده
@@ -277,9 +293,55 @@ class ComplaintController extends Controller
         }
     }
 
+    private function applyComplaintRelation(array &$data): void
+    {
+        $relationType = $data['relation_type'] ?? 'none';
+        $data['order_id'] = $relationType === 'order' ? ($data['order_id'] ?? null) : null;
+        $data['contract_id'] = $relationType === 'contract' ? ($data['contract_id'] ?? null) : null;
+        $data['recruitment_office_id'] = $relationType === 'office' ? ($data['recruitment_office_id'] ?? null) : null;
+        $data['related_user_id'] = $relationType === 'client' ? ($data['related_user_id'] ?? null) : null;
+
+        if ($relationType === 'order') {
+            $order = Order::with('user')->findOrFail($data['order_id']);
+            $data['against_name'] = $order->user?->name;
+            $data['against_phone'] = $order->user?->phone;
+            $data['relation_reference'] = ($data['relation_reference'] ?? null) ?: ($order->order_code ?: (string) $order->id);
+        } elseif ($relationType === 'contract') {
+            $contract = Contract::with('user')->findOrFail($data['contract_id']);
+            $data['against_name'] = $contract->user?->name;
+            $data['against_phone'] = $contract->user?->phone;
+            $data['relation_reference'] = ($data['relation_reference'] ?? null) ?: (string) $contract->id;
+        } elseif ($relationType === 'office') {
+            $office = RecruitmentOffices::findOrFail($data['recruitment_office_id']);
+            $data['against_name'] = $office->title;
+            $data['against_phone'] = $office->phone_office ?: ($data['against_phone'] ?? null);
+            $data['relation_reference'] = ($data['relation_reference'] ?? null) ?: (string) $office->id;
+        } elseif ($relationType === 'client') {
+            $relatedUser = User::findOrFail($data['related_user_id']);
+            $data['against_name'] = $relatedUser->name;
+            $data['against_phone'] = $relatedUser->phone;
+            $data['relation_reference'] = ($data['relation_reference'] ?? null) ?: (string) $relatedUser->id;
+        } elseif ($relationType === 'none') {
+            $data['against_name'] = null;
+            $data['against_phone'] = null;
+            $data['relation_reference'] = null;
+            $data['relation_notes'] = null;
+        } else {
+            $data['against_type'] = $data['against_type'] ?? 'other';
+        }
+
+        $labels = ['order' => 'طلب', 'contract' => 'عقد', 'office' => 'مكتب خارجي', 'client' => 'عميل', 'manual' => 'بيانات يدوية'];
+        $data['related_to'] = isset($labels[$relationType])
+            ? $labels[$relationType] . (!empty($data['relation_reference']) ? ' #' . $data['relation_reference'] : '')
+            : null;
+    }
+
     public function show($id)
     {
-        $complaint = objModel::with(['user', 'complaintType', 'assignedTo', 'resolvedBy', 'maidNationality', 'contract'])
+        $complaint = objModel::with([
+            'user', 'complaintType', 'assignedTo', 'resolvedBy', 'maidNationality', 'contract',
+            'order.user', 'relatedUser', 'recruitmentOffice',
+        ])
             ->findOrFail($id);
         $this->assertCanAccessBranchModel($complaint);
 

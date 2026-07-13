@@ -336,12 +336,58 @@ class DataImportExecutionService
 
         if ($bond) {
             $bond->update($payload);
+            $this->syncRentalInvoicesForReceiptBond($bond->fresh());
             return 'updated';
         }
 
-        Bond::query()->create($payload);
+        $bond = Bond::query()->create($payload);
+        $this->syncRentalInvoicesForReceiptBond($bond->fresh());
 
         return 'created';
+    }
+
+    private function syncRentalInvoicesForReceiptBond(Bond $bond): void
+    {
+        if (
+            $bond->type !== BondTypes::Qabd->value
+            || !Schema::hasTable('rental_contract_invoices')
+            || !Schema::hasColumn('rental_contract_invoices', 'legacy_receipt_code')
+        ) {
+            return;
+        }
+
+        $invoices = RentalContractInvoice::query()
+            ->where('legacy_receipt_code', $bond->code)
+            ->get();
+
+        foreach ($invoices as $invoice) {
+            $total = max(0, (float) $invoice->total_due);
+            $paidAmount = min($total, max(0, (float) $bond->value));
+            $remainingAmount = round(max(0, $total - $paidAmount), 2);
+            $paymentStatus = $paidAmount <= 0
+                ? 'pending'
+                : ($remainingAmount <= 0 ? 'paid' : 'partial');
+
+            $invoice->update([
+                'paid_amount' => $paidAmount,
+                'remaining_amount' => $remainingAmount,
+                'payment_status' => $paymentStatus,
+                'is_paid' => $paymentStatus === 'paid',
+                'paid_at' => $paidAmount > 0 ? $bond->date : null,
+                'receipt_bond_id' => $bond->id,
+                'receipt_constraint_id' => $bond->constraint_id,
+                'receipt_account_id' => $bond->debit_account_id,
+            ]);
+
+            DB::table('rental_contract_infos')
+                ->where('rental_contract_id', $invoice->rental_contract_id)
+                ->update([
+                    'paid_amount' => $paidAmount,
+                    'remaining_amount' => $remainingAmount,
+                    'payment_status' => $paymentStatus,
+                    'payment_confirmed_at' => $paidAmount > 0 ? $bond->date : null,
+                ]);
+        }
     }
 
     private function upsertReceiptBondConstraint(
@@ -485,13 +531,48 @@ class DataImportExecutionService
 
     private function importLegacyRentalOrdersFile(string $storedPath, ?int $adminId, array $result): array
     {
+        $result += [
+            'rental_maids' => 0,
+            'rental_contracts' => 0,
+            'rental_invoices' => 0,
+            'receipt_links' => 0,
+            'pending_receipt_links' => 0,
+            'archived_rows' => 0,
+            'unchanged_rows' => 0,
+        ];
+        $maidIds = [];
+        $existingRows = $this->legacyRentalExistingRowsForResume();
+
         foreach ($this->readLegacyRentalOrderRows(Storage::path($storedPath)) as $rowNumber => $row) {
             $result['total']++;
+            $normalizedRow = $this->normalizeLegacyRentalOrderRow($row);
+            $requestId = $this->optionalInteger($normalizedRow['legacy_order_id'] ?? null);
+            $existing = $requestId ? ($existingRows[$requestId] ?? null) : null;
+
+            if ($existing && $this->legacyRentalSourcePayload($normalizedRow) == $existing['source_payload']) {
+                $result['updated']++;
+                $result['rental_contracts']++;
+                $result['rental_invoices']++;
+                $result['archived_rows']++;
+                $result['unchanged_rows']++;
+                $maidIds[(int) $existing['maid_id']] = true;
+
+                if ($existing['receipt_code']) {
+                    $result[$existing['receipt_linked'] ? 'receipt_links' : 'pending_receipt_links']++;
+                }
+
+                continue;
+            }
 
             try {
-                DB::transaction(function () use ($row, $adminId, &$result) {
-                    $outcome = $this->importLegacyRentalOrder($row, $adminId);
-                    $result[$outcome]++;
+                DB::transaction(function () use ($row, $adminId, &$result, &$maidIds) {
+                    $imported = $this->importLegacyRentalOrder($row, $adminId);
+                    $result[$imported['outcome']]++;
+                    $result['rental_contracts']++;
+                    $result['rental_invoices']++;
+                    $result['archived_rows']++;
+                    $result[$imported['receipt_linked'] ? 'receipt_links' : 'pending_receipt_links'] += $imported['has_receipt_reference'] ? 1 : 0;
+                    $maidIds[(int) $imported['maid_id']] = true;
                 });
             } catch (\Throwable $exception) {
                 $result['skipped']++;
@@ -503,7 +584,103 @@ class DataImportExecutionService
             }
         }
 
+        $result['rental_maids'] = count($maidIds);
+        $this->backfillLegacyRentalBranches($adminId);
+
         return $result;
+    }
+
+    private function legacyRentalExistingRowsForResume(): array
+    {
+        if (
+            !Schema::hasColumn('rental_contracts', 'legacy_order_id')
+            || !Schema::hasColumn('rental_contract_infos', 'legacy_source_payload')
+            || !Schema::hasColumn('rental_contract_invoices', 'legacy_receipt_code')
+        ) {
+            return [];
+        }
+
+        return DB::table('rental_contracts as contracts')
+            ->join('rental_contract_infos as infos', 'infos.rental_contract_id', '=', 'contracts.id')
+            ->join('rental_contract_invoices as invoices', 'invoices.rental_contract_id', '=', 'contracts.id')
+            ->where('contracts.legacy_source', 'alrafedin_rental_orders')
+            ->whereNotNull('contracts.legacy_order_id')
+            ->get([
+                'contracts.legacy_order_id',
+                'contracts.maid_id',
+                'infos.legacy_source_payload',
+                'invoices.legacy_receipt_code',
+                'invoices.receipt_bond_id',
+            ])
+            ->mapWithKeys(function ($row) {
+                $sourcePayload = json_decode((string) $row->legacy_source_payload, true);
+
+                return [(int) $row->legacy_order_id => [
+                    'maid_id' => (int) $row->maid_id,
+                    'source_payload' => is_array($sourcePayload) ? $sourcePayload : [],
+                    'receipt_code' => $this->optionalInteger($row->legacy_receipt_code),
+                    'receipt_linked' => $row->receipt_bond_id !== null,
+                ]];
+            })
+            ->all();
+    }
+
+    private function backfillLegacyRentalBranches(?int $fallbackAdminId): void
+    {
+        if (!Schema::hasColumn('rental_contracts', 'branch_id')) {
+            return;
+        }
+
+        $marketerBranches = Admin::query()
+            ->whereNotNull('branch_id')
+            ->pluck('branch_id', 'id');
+        $fallbackBranchId = $fallbackAdminId ? ($marketerBranches[$fallbackAdminId] ?? null) : null;
+        $fallbackBranchId ??= Branch::query()->value('id');
+
+        foreach ($marketerBranches->groupBy(fn ($branchId) => (int) $branchId, true) as $branchId => $adminBranchIds) {
+            DB::table('rental_contracts')
+                ->where('legacy_source', 'alrafedin_rental_orders')
+                ->whereNull('branch_id')
+                ->whereIn('marketer_id', $adminBranchIds->keys())
+                ->update(['branch_id' => (int) $branchId]);
+        }
+
+        if ($fallbackBranchId) {
+            DB::table('rental_contracts')
+                ->where('legacy_source', 'alrafedin_rental_orders')
+                ->whereNull('branch_id')
+                ->update(['branch_id' => (int) $fallbackBranchId]);
+        }
+
+        $branches = DB::table('rental_contracts')
+            ->where('legacy_source', 'alrafedin_rental_orders')
+            ->whereNotNull('branch_id')
+            ->select('branch_id')
+            ->distinct()
+            ->pluck('branch_id');
+
+        foreach ($branches as $branchId) {
+            $contractIds = DB::table('rental_contracts')
+                ->where('legacy_source', 'alrafedin_rental_orders')
+                ->where('branch_id', $branchId)
+                ->pluck('id');
+            $orderIds = DB::table('rental_contracts')
+                ->where('legacy_source', 'alrafedin_rental_orders')
+                ->where('branch_id', $branchId)
+                ->whereNotNull('order_id')
+                ->pluck('order_id');
+
+            if (Schema::hasColumn('orders', 'branch_id') && $orderIds->isNotEmpty()) {
+                DB::table('orders')->whereIn('id', $orderIds)->whereNull('branch_id')->update(['branch_id' => $branchId]);
+            }
+
+            if (Schema::hasColumn('rental_contract_invoices', 'branch_id') && $contractIds->isNotEmpty()) {
+                DB::table('rental_contract_invoices')
+                    ->whereIn('rental_contract_id', $contractIds)
+                    ->whereNull('branch_id')
+                    ->update(['branch_id' => $branchId]);
+            }
+        }
     }
 
     private function readLegacyRentalOrderRows(string $path): \Generator
@@ -555,7 +732,7 @@ class DataImportExecutionService
         unset($spreadsheet);
     }
 
-    private function importLegacyRentalOrder(array $row, ?int $adminId): string
+    private function importLegacyRentalOrder(array $row, ?int $adminId): array
     {
         $row = $this->normalizeLegacyRentalOrderRow($row);
         $requestId = $this->optionalInteger($row['legacy_order_id'] ?? null);
@@ -566,21 +743,25 @@ class DataImportExecutionService
         if (!$requestId) {
             throw new \InvalidArgumentException('رقم الطلب مطلوب.');
         }
-        if (!$clientLegacyId && trim((string) ($row['client_name'] ?? '')) === '') {
-            throw new \InvalidArgumentException('رقم العميل أو اسم العميل مطلوب.');
-        }
         if (!$maidLegacyId && $passport === '') {
             throw new \InvalidArgumentException('رقم العامل أو رقم الجواز مطلوب.');
         }
 
+        $sourceClientName = trim((string) ($row['client_name'] ?? ''));
+        $placeholderClientPhone = 'data-import-rental-order-' . $requestId;
         $user = $clientLegacyId ? User::query()->find($clientLegacyId) : null;
+        if (!$user && !$clientLegacyId && $sourceClientName === '') {
+            $user = User::query()->where('phone', $placeholderClientPhone)->first();
+        }
         if (!$user) {
-            $clientName = trim((string) ($row['client_name'] ?? 'عميل مستورد'));
+            $clientName = $sourceClientName ?: ('عميل تأجير غير محدد - طلب ' . $requestId);
             $user = User::query()->create(array_filter($this->filterColumns('users', [
                 'id' => $clientLegacyId,
                 'name' => $clientName ?: 'عميل مستورد',
                 'phone_code' => '+966',
-                'phone' => 'data-import-client-' . ($clientLegacyId ?: substr(sha1($clientName), 0, 12)),
+                'phone' => $sourceClientName === ''
+                    ? $placeholderClientPhone
+                    : 'data-import-client-' . ($clientLegacyId ?: substr(sha1($clientName), 0, 12)),
                 'password' => $this->defaultImportPasswordHash(),
                 'register_from' => 'data_import',
                 'is_blocked' => 0,
@@ -617,6 +798,9 @@ class DataImportExecutionService
         ], true);
 
         $status = $this->legacyRentalStatus($row['status'] ?? null, $row['end_date'] ?? null);
+        $sourceCreatedAt = $this->parseDateTime($row['created_at'] ?? null);
+        $marketerId = $this->resolveAdminId($row['created_by'] ?? null) ?: $adminId;
+        $branchId = $marketerId ? Admin::query()->whereKey($marketerId)->value('branch_id') : null;
         $order = Order::query()->find($requestId);
         $jobTypeId = $maid->job_types()->value('job_type_id') ?: JobType::query()->value('id');
         if (!$jobTypeId) {
@@ -629,25 +813,39 @@ class DataImportExecutionService
             'order_code' => (string) $requestId,
             'job_type_id' => $jobTypeId,
             'status' => $status === 'cancelled' ? OrderEnum::Refused->value : OrderEnum::Completed->value,
-            'customer_id' => $this->resolveAdminId($row['created_by'] ?? null) ?: $adminId,
+            'customer_id' => $marketerId,
+            'branch_id' => $branchId,
+            'created_at' => $sourceCreatedAt,
+            'updated_at' => $sourceCreatedAt,
         ];
         $order ? $order->update($this->filterColumns('orders', $orderPayload)) : $order = Order::query()->create(['id' => $requestId] + $this->filterColumns('orders', $orderPayload));
 
-        $contract = RentalContract::query()->where('contract_number', (string) $requestId)->first()
+        $contract = Schema::hasColumn('rental_contracts', 'legacy_order_id')
+            ? RentalContract::query()->where('legacy_order_id', $requestId)->first()
+            : null;
+        $contract = $contract ?: RentalContract::query()->where('contract_number', (string) $requestId)->first()
             ?: RentalContract::query()->where('order_id', $order->id)->first();
         $contractPayload = $this->filterColumns('rental_contracts', [
             'user_id' => $user->id,
             'maid_id' => $maid->id,
             'order_id' => $order->id,
-            'marketer_id' => $this->resolveAdminId($row['created_by'] ?? null) ?: $adminId,
+            'marketer_id' => $marketerId,
+            'branch_id' => $branchId,
             'contract_number' => (string) $requestId,
             'contract_date' => $this->parseDate($row['start_date'] ?? $row['created_at'] ?? null),
             'status' => $status,
+            'legacy_order_id' => $requestId,
+            'legacy_created_by' => $this->nullableImportString($row['created_by'] ?? null),
+            'legacy_created_at' => $sourceCreatedAt,
+            'legacy_created_at_hijri' => $this->nullableImportString($row['created_at_hijri'] ?? null),
+            'legacy_source' => 'alrafedin_rental_orders',
+            'created_at' => $sourceCreatedAt,
+            'updated_at' => $sourceCreatedAt,
         ]);
         $created = !$contract;
         $contract ? $contract->update($contractPayload) : $contract = RentalContract::query()->create($contractPayload);
 
-        $total = $this->decimal($row['total_cost'] ?? null) ?: 0.0;
+        $total = max(0, $this->decimal($row['total_cost'] ?? null) ?: 0.0);
         $durationDays = $this->optionalInteger($row['duration_days'] ?? null);
         if (!$durationDays) {
             $startDate = $this->parseDate($row['start_date'] ?? null);
@@ -656,23 +854,70 @@ class DataImportExecutionService
                 $durationDays = Carbon::parse($startDate)->diffInDays(Carbon::parse($endDate)) + 1;
             }
         }
-        $hasReceipt = $this->optionalInteger($row['legacy_receipt_id'] ?? null) !== null;
+        $durationDays = max(1, (int) ($durationDays ?: 1));
+        $durationMonths = max(1, (int) ceil($durationDays / 30));
+        $receiptCode = $this->optionalInteger($row['legacy_receipt_id'] ?? null);
+        $receiptBond = $this->resolveLegacyRentalReceiptBond($receiptCode);
+        $hasReceiptReference = $receiptCode !== null;
+        $paidAmount = $hasReceiptReference ? $total : 0.0;
+
+        if ($receiptBond) {
+            $paidAmount = min($total, max(0, (float) $receiptBond->value));
+        }
+
+        $remainingAmount = round(max(0, $total - $paidAmount), 2);
+        $paymentStatus = $paidAmount <= 0
+            ? 'pending'
+            : ($remainingAmount <= 0 ? 'paid' : 'partial');
+        $amounts = $this->legacyRentalInvoiceAmounts($total);
         $contract->info()->updateOrCreate([], $this->filterColumns('rental_contract_infos', [
+            'package_original_price' => $amounts['subtotal'],
+            'package_discount_amount' => 0,
+            'package_price_after_discount' => $amounts['subtotal'],
+            'package_vat_amount' => $amounts['vat_amount'],
+            'package_total_with_tax' => $total,
+            'working_hours_per_day' => 8,
+            'monthly_salary' => $this->decimal($maid->salary ?? null),
+            'rental_type' => 'monthly',
+            'monthly_cost' => round($total / $durationMonths, 2),
             'contract_duration_days' => $durationDays,
-            'contract_duration_months' => $durationDays ? max(1, (int) ceil($durationDays / 30)) : 1,
+            'contract_duration_months' => $durationMonths,
             'contract_value' => $total,
-            'paid_amount' => $hasReceipt ? $total : 0,
-            'remaining_amount' => $hasReceipt ? 0 : $total,
+            'paid_amount' => $paidAmount,
+            'remaining_amount' => $remainingAmount,
             'ingaz_from' => $this->parseDate($row['start_date'] ?? null),
             'ingaz_to' => $this->parseDate($row['end_date'] ?? null),
             'payment_type' => 'cash',
-            'payment_status' => $hasReceipt ? 'paid' : 'pending',
-            'notes' => 'مستورد من تقرير طلبات التأجير؛ رقم الفاتورة القديم: ' . ($row['legacy_invoice_id'] ?? '-'),
+            'payment_status' => $paymentStatus,
+            'payment_confirmed_at' => $paidAmount > 0 ? $sourceCreatedAt : null,
+            'payment_confirmed_by' => $paidAmount > 0 ? $marketerId : null,
+            'legacy_start_date_hijri' => $this->nullableImportString($row['start_date_hijri'] ?? null),
+            'legacy_end_date_hijri' => $this->nullableImportString($row['end_date_hijri'] ?? null),
+            'legacy_remaining_days' => $this->legacyRentalDayCount($row['remaining_days'] ?? null),
+            'legacy_used_days' => $this->legacyRentalDayCount($row['used_days'] ?? null),
+            'legacy_source_payload' => $this->legacyRentalSourcePayload($row),
+            'notes' => $this->legacyRentalNotes($row, $receiptBond !== null),
+            'created_at' => $sourceCreatedAt,
+            'updated_at' => $sourceCreatedAt,
         ]));
 
-        $this->upsertLegacyRentalInvoice($contract, $row, $total, $hasReceipt);
+        $this->upsertLegacyRentalInvoice(
+            $contract,
+            $row,
+            $amounts,
+            $paidAmount,
+            $remainingAmount,
+            $paymentStatus,
+            $receiptBond,
+            $sourceCreatedAt
+        );
 
-        return $created ? 'created' : 'updated';
+        return [
+            'outcome' => $created ? 'created' : 'updated',
+            'maid_id' => $maid->id,
+            'has_receipt_reference' => $hasReceiptReference,
+            'receipt_linked' => $receiptBond !== null,
+        ];
     }
 
     private function normalizeLegacyRentalOrderRow(array $row): array
@@ -721,14 +966,23 @@ class DataImportExecutionService
         return $row;
     }
 
-    private function upsertLegacyRentalInvoice(RentalContract $contract, array $row, float $total, bool $hasReceipt): void
+    private function upsertLegacyRentalInvoice(
+        RentalContract $contract,
+        array $row,
+        array $amounts,
+        float $paidAmount,
+        float $remainingAmount,
+        string $paymentStatus,
+        ?Bond $receiptBond,
+        ?Carbon $sourceCreatedAt
+    ): void
     {
         $invoiceId = $this->optionalInteger($row['legacy_invoice_id'] ?? null);
-        if (!$invoiceId) {
-            return;
-        }
-
-        $invoice = RentalContractInvoice::query()->find($invoiceId);
+        $invoice = $contract->financeInvoice()->first();
+        $invoice = $invoice ?: ($invoiceId && Schema::hasColumn('rental_contract_invoices', 'legacy_invoice_id')
+            ? RentalContractInvoice::query()->where('legacy_invoice_id', $invoiceId)->first()
+            : null);
+        $invoice = $invoice ?: ($invoiceId ? RentalContractInvoice::query()->find($invoiceId) : null);
         if ($invoice && (int) $invoice->rental_contract_id !== (int) $contract->id) {
             throw new \InvalidArgumentException("رقم الفاتورة {$invoiceId} مرتبط بعقد إيجار آخر.");
         }
@@ -736,20 +990,92 @@ class DataImportExecutionService
         $receiptId = $this->optionalInteger($row['legacy_receipt_id'] ?? null);
         $payload = $this->filterColumns('rental_contract_invoices', [
             'rental_contract_id' => $contract->id,
-            'subtotal' => $total,
+            'branch_id' => $contract->branch_id,
+            'legacy_invoice_id' => $invoiceId,
+            'legacy_receipt_code' => $receiptId,
+            'subtotal' => $amounts['subtotal'],
             'discount' => 0,
-            'vat_amount' => 0,
-            'total_due' => $total,
-            'paid_amount' => $hasReceipt ? $total : 0,
-            'remaining_amount' => $hasReceipt ? 0 : $total,
+            'vat_amount' => $amounts['vat_amount'],
+            'total_due' => $amounts['total_due'],
+            'paid_amount' => $paidAmount,
+            'remaining_amount' => $remainingAmount,
             'payment_type' => 'cash',
-            'payment_status' => $hasReceipt ? 'paid' : 'pending',
-            'is_paid' => $hasReceipt,
-            'paid_at' => $hasReceipt ? $this->parseDate($row['created_at'] ?? null) : null,
-            'service_description' => 'طلب تأجير مستورد رقم ' . ($row['legacy_order_id'] ?? $contract->contract_number),
-            'receipt_bond_id' => $receiptId && Bond::query()->whereKey($receiptId)->exists() ? $receiptId : null,
+            'payment_status' => $paymentStatus,
+            'is_paid' => $paymentStatus === 'paid',
+            'paid_at' => $paidAmount > 0 ? $sourceCreatedAt : null,
+            'service_description' => 'طلب تأجير مستورد رقم ' . ($row['legacy_order_id'] ?? $contract->contract_number)
+                . '؛ الفاتورة القديمة: ' . ($invoiceId ?: 'غير متوفرة')
+                . '؛ سند القبض القديم: ' . ($receiptId ?: 'غير متوفر'),
+            'receipt_bond_id' => $receiptBond?->id,
+            'receipt_constraint_id' => $receiptBond?->constraint_id,
+            'receipt_account_id' => $receiptBond?->debit_account_id,
+            'created_at' => $sourceCreatedAt,
+            'updated_at' => $sourceCreatedAt,
         ]);
-        $invoice ? $invoice->update($payload) : RentalContractInvoice::query()->create(['id' => $invoiceId] + $payload);
+        if ($invoice) {
+            $invoice->update($payload);
+            return;
+        }
+
+        $identity = $invoiceId && !RentalContractInvoice::query()->whereKey($invoiceId)->exists()
+            ? ['id' => $invoiceId]
+            : [];
+        RentalContractInvoice::query()->create($identity + $payload);
+    }
+
+    private function resolveLegacyRentalReceiptBond(?int $receiptCode): ?Bond
+    {
+        if (!$receiptCode || !Schema::hasTable('fn_bonds')) {
+            return null;
+        }
+
+        return Bond::query()
+            ->where('type', BondTypes::Qabd->value)
+            ->where('code', $receiptCode)
+            ->first();
+    }
+
+    private function legacyRentalInvoiceAmounts(float $total): array
+    {
+        $total = round(max(0, $total), 2);
+        $subtotal = $total > 0
+            ? round($total / (1 + InvoiceCalculationService::VAT_RATE), 2)
+            : 0.0;
+
+        return [
+            'subtotal' => $subtotal,
+            'vat_amount' => round(max(0, $total - $subtotal), 2),
+            'total_due' => $total,
+        ];
+    }
+
+    private function legacyRentalDayCount($value): ?int
+    {
+        $value = trim((string) $value);
+        if ($value === '' || str_contains($this->normalizeArabicText($value), 'لا يوجد')) {
+            return null;
+        }
+
+        return preg_match('/\d+/u', $value, $matches) ? (int) $matches[0] : null;
+    }
+
+    private function legacyRentalSourcePayload(array $row): array
+    {
+        return collect($row)
+            ->map(fn ($value) => is_string($value) ? trim($value) : $value)
+            ->reject(fn ($value) => $value === null || $value === '')
+            ->all();
+    }
+
+    private function legacyRentalNotes(array $row, bool $receiptLinked): string
+    {
+        $invoice = $row['legacy_invoice_id'] ?? '-';
+        $receipt = $row['legacy_receipt_id'] ?? '-';
+        $linkStatus = filled($row['legacy_receipt_id'] ?? null)
+            ? ($receiptLinked ? 'مرتبط بالسند المالي' : 'بانتظار استيراد/مطابقة سند القبض')
+            : 'لا يوجد سند قبض في المصدر';
+
+        return "مستورد من تقرير طلبات التأجير؛ رقم الفاتورة القديم: {$invoice}؛ رقم سند القبض القديم: {$receipt}؛ {$linkStatus}.";
     }
 
     private function legacyRentalStatus($value, $endDate): string
@@ -1597,12 +1923,14 @@ class DataImportExecutionService
 
         $complaintType = $this->resolveComplaintType($row, $typeName);
         $createdAt = $this->parseDateTime($row['created_at'] ?? null)
+            ?: $this->parseDateTime($row['source_created_at'] ?? null)
             ?: $this->parseDateTime($row['complaint_date'] ?? null)
             ?: now();
-        $resolvedAt = null;
+        $closedAt = $this->parseDateTime($row['closed_at'] ?? null);
+        $resolvedAt = $closedAt;
         $status = $this->normalizeComplaintStatus($row['status'] ?? null);
 
-        if ($status === 'resolved' || $status === 'closed') {
+        if (!$resolvedAt && ($status === 'resolved' || $status === 'closed')) {
             $resolvedAt = $createdAt;
         }
 
@@ -1613,25 +1941,38 @@ class DataImportExecutionService
         $payload = $this->filterColumns('complaints', [
             'complaint_type_id' => $complaintType->id,
             'external_ref' => $this->nullableImportString($externalRef),
+            'source_sequence' => $this->nullableImportString($row['source_sequence'] ?? null),
             'address' => trim((string) ($row['submission_method'] ?? '')) ?: 'استيراد الشكاوي',
             'message' => Str::limit($content, 1000, ''),
             'details' => $details,
             'response' => $this->nullableImportString($row['response'] ?? $row['last_response'] ?? null),
             'against_name' => $this->nullableImportString($row['against_name'] ?? null),
+            'against_type' => $this->nullableImportString($row['against_type'] ?? null),
+            'against_phone' => $this->nullableImportString($row['against_phone'] ?? null),
             'last_response' => $this->nullableImportString($row['last_response'] ?? $row['response'] ?? null),
             'submission_method' => $this->nullableImportString($row['submission_method'] ?? null),
             'related_to' => $this->nullableImportString($row['related_to'] ?? null),
             'status' => $status,
             'priority' => $this->normalizeComplaintPriority($row['priority'] ?? null),
-            'assigned_to' => $this->resolveAdminId($row['assigned_to'] ?? $row['created_by'] ?? null),
+            'assigned_to' => $this->resolveAdminId($row['assigned_to'] ?? $row['source_created_by'] ?? $row['created_by'] ?? null),
             'user_id' => $user?->id,
             'complainant_name' => $complainantName,
             'complainant_phone' => $complainantPhone,
+            'complainant_type' => $this->nullableImportString($row['complainant_type'] ?? null),
             'maid_nationality_id' => $this->resolveNationalityId($row['maid_nationality'] ?? null),
             'subject' => $subject,
+            'complaint_date' => $this->parseDate($row['complaint_date'] ?? null),
+            'source_created_by' => $this->nullableImportString($row['source_created_by'] ?? $row['created_by'] ?? null),
+            'source_created_at' => $this->parseDateTime($row['source_created_at'] ?? null),
+            'source_status' => $this->nullableImportString($row['status'] ?? null),
+            'closed_at' => $closedAt,
+            'closed_by_name' => $this->nullableImportString($row['closed_by_name'] ?? null),
+            'import_payload' => $this->complaintImportPayload($row),
             'created_at' => $createdAt,
             'resolved_at' => $resolvedAt,
-            'resolved_by' => $resolvedAt ? $adminId : null,
+            'resolved_by' => $resolvedAt
+                ? ($this->resolveAdminId($row['closed_by_name'] ?? null) ?: $adminId)
+                : null,
         ]);
 
         if ($complaint) {
@@ -4081,13 +4422,20 @@ class DataImportExecutionService
         }
 
         $extraFields = [
+            'source_sequence' => 'م',
+            'complainant_type' => 'نوع الشاكي',
+            'against_type' => 'نوع المشتكى عليه',
             'against_name' => 'اسم المشتكى عليه',
             'against_phone' => 'هاتف المشتكى عليه',
             'related_to' => 'متعلق',
             'submission_method' => 'طريقة التقديم',
             'maid_nationality' => 'الدولة',
-            'created_by' => 'أنشئ بواسطة',
+            'source_created_by' => 'أنشئ بواسطة',
             'complaint_date' => 'تاريخ الشكوى',
+            'source_created_at' => 'تاريخ الانشاء',
+            'status' => 'الحالة الأصلية',
+            'closed_at' => 'تاريخ الاغلاق',
+            'closed_by_name' => 'أغلق بواسطة',
             'created_at' => 'أنشئ في',
         ];
 
@@ -4099,6 +4447,14 @@ class DataImportExecutionService
         }
 
         return implode("\n", $details);
+    }
+
+    private function complaintImportPayload(array $row): array
+    {
+        return collect($row)
+            ->map(fn ($value) => is_string($value) ? trim($value) : $value)
+            ->reject(fn ($value) => $value === null || $value === '')
+            ->all();
     }
 
     private function resolveComplaintUser(array $row, string $complainantPhone): ?User
@@ -4362,26 +4718,33 @@ class DataImportExecutionService
             'بيان السطر' => 'line_statement',
             'تاريخ' => 'date',
             'تاريخ القيد' => 'date',
-            'م' => 'sequence',
+            'م' => 'source_sequence',
             'رقم تعريف' => 'external_ref',
             'نوع الشكوى' => 'complaint_type',
+            'نوع الشاكي' => 'complainant_type',
             'اسم الشاكي' => 'complainant_name',
             'هاتف الشاكي' => 'complainant_phone',
             'اسم المشتكى عليه' => 'against_name',
+            'نوع المشتكى عليه' => 'against_type',
             'هاتف المشتكى عليه' => 'against_phone',
             'محتوى الشكوى' => 'content',
             'آخر رد' => 'last_response',
             'اخر رد' => 'last_response',
             'تاريخ الشكوى' => 'complaint_date',
-            'أنشئ بواسطة' => 'created_by',
-            'انشئ بواسطة' => 'created_by',
+            'أنشئ بواسطة' => 'source_created_by',
+            'انشئ بواسطة' => 'source_created_by',
             'حالة' => 'status',
             'متعلق' => 'related_to',
             'طريقة التقديم' => 'submission_method',
             'الدولة' => 'maid_nationality',
             'الدوله' => 'maid_nationality',
+            'تاريخ الانشاء' => 'source_created_at',
             'أنشئ في' => 'created_at',
             'انشئ في' => 'created_at',
+            'تاريخ الاغلاق' => 'closed_at',
+            'تاريخ الإغلاق' => 'closed_at',
+            'أغلق بواسطة' => 'closed_by_name',
+            'اغلق بواسطة' => 'closed_by_name',
             'ID العميل المسجل' => 'user_id',
             'رقم جواز العاملة' => 'maid_passport',
             'جنسية العاملة' => 'maid_nationality',
@@ -4393,8 +4756,8 @@ class DataImportExecutionService
             'تفاصيل الشكوى' => 'details',
             'الرد' => 'response',
             'رقم تعريف خارجي' => 'external_ref',
-            'تاريخ الإنشاء' => 'created_at',
-            'تاريخ الانشاء' => 'created_at',
+            'تاريخ الإنشاء' => 'source_created_at',
+            'رقم تسلسلي' => 'source_sequence',
         ];
     }
 

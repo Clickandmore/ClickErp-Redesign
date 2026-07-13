@@ -8,6 +8,7 @@ use App\Services\ingaz\DataImportTemplateService;
 use App\Services\ingaz\FinanceBondGenerationService;
 use App\Services\ingaz\MaidBulkImportService;
 use App\Services\ingaz\ArabiaClientsImportService;
+use App\Services\ingaz\AlrafedinTransferServicesImportService;
 use Illuminate\Http\Request;
 
 class DataImportController extends Controller
@@ -25,7 +26,7 @@ class DataImportController extends Controller
     {
         $template = $templates->template($type);
 
-        abort_if(!$template, 404);
+        abort_if(!$template || ($template['downloadable'] ?? true) === false, 404);
 
         if (!empty($template['external_template_route'])) {
             return redirect()->route($template['external_template_route']);
@@ -39,14 +40,16 @@ class DataImportController extends Controller
         DataImportTemplateService $templates,
         MaidBulkImportService $maidImportService,
         DataImportExecutionService $importer,
-        ArabiaClientsImportService $arabiaClientsImport
+        ArabiaClientsImportService $arabiaClientsImport,
+        AlrafedinTransferServicesImportService $alrafedinTransferImport
     )
     {
         $availableTypes = array_keys($templates->templates());
 
         $data = $request->validate([
             'type' => ['required', 'string', 'in:' . implode(',', $availableTypes)],
-            'file' => ['required', 'file', 'mimes:xlsx,xls,csv', 'max:51200'],
+            // Legacy Alrafedin .xls reports are HTML tables with an .xls extension.
+            'file' => ['required', 'file', 'mimes:xlsx,xls,csv,html,txt', 'max:51200'],
         ], [
             'type.required' => 'اختر نوع البيانات.',
             'type.in' => 'نوع البيانات المحدد غير مدعوم.',
@@ -75,16 +78,32 @@ class DataImportController extends Controller
                 ->with('success', 'تم رفع ملف السير وتحليل البيانات بنجاح. راجع الصفوف قبل الاعتماد.');
         }
 
-        $result = $data['type'] === 'arabia_clients'
-            ? $arabiaClientsImport->import($request->file('file'), $adminId)
-            : $importer->import($data['type'], $request->file('file'), $adminId);
+        $result = match ($data['type']) {
+            'arabia_clients' => $arabiaClientsImport->import($request->file('file'), $adminId),
+            'alrafedin_transfer_services' => $alrafedinTransferImport->import($request->file('file'), $adminId),
+            default => $importer->import($data['type'], $request->file('file'), $adminId),
+        };
         $shownErrors = array_slice($result['errors'] ?? [], 0, 10);
         $message = "تمت معالجة {$result['total']} صف. جديد: {$result['created']}، محدث: {$result['updated']}، متجاوز: {$result['skipped']}.";
         if ($data['type'] === 'arabia_recruitment_orders') {
             $message .= " ملاحظات جديدة: " . ($result['notes_created'] ?? 0)
                 . "، مراجع مالية: " . ($result['financial_references'] ?? 0)
+                . "، إرساليات العقود المكتملة: " . ($result['completed_dispatches'] ?? 0)
                 . "، عاملات تمت مصالحة توفرهن: " . ($result['reconciled_maids'] ?? 0)
                 . "، وصفوف أصلية محفوظة: " . ($result['archived_rows'] ?? 0) . ".";
+        }
+        if ($data['type'] === 'alrafedin_transfer_services') {
+            $message .= ' نقل كفالة سابق: ' . ($result['legacy_sponsorship'] ?? 0)
+                . '، نقل خدمات: ' . ($result['transfer_service'] ?? 0) . '.';
+        }
+        if ($data['type'] === 'legacy_rental_orders') {
+            $message .= ' عاملات مرتبطة بسير الإيجار: ' . ($result['rental_maids'] ?? 0)
+                . '، عقود تشغيلية ومالية: ' . ($result['rental_contracts'] ?? 0)
+                . '، فواتير تأجير: ' . ($result['rental_invoices'] ?? 0)
+                . '، سندات قبض مرتبطة: ' . ($result['receipt_links'] ?? 0)
+                . '، بانتظار استيراد سندات القبض: ' . ($result['pending_receipt_links'] ?? 0)
+                . '، صفوف أصلية محفوظة: ' . ($result['archived_rows'] ?? 0)
+                . '، مكتملة سابقًا دون تغيير: ' . ($result['unchanged_rows'] ?? 0) . '.';
         }
         if (($result['error_count'] ?? 0) > count($shownErrors)) {
             $message .= " تم عرض أول " . count($shownErrors) . " خطأ من إجمالي {$result['error_count']} خطأ.";

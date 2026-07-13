@@ -259,10 +259,16 @@
                             @endif
 
                             <div class="d-flex flex-wrap gap-2">
-                                <a href="{{ route('reports.import.template', $key) }}" class="btn btn-success btn-sm">
-                                    <i class="fas fa-file-excel me-1"></i>
-                                    تحميل التمبلت
-                                </a>
+                                @if (($template['downloadable'] ?? true) !== false)
+                                    <a href="{{ route('reports.import.template', $key) }}" class="btn btn-success btn-sm">
+                                        <i class="fas fa-file-excel me-1"></i>
+                                        تحميل التمبلت
+                                    </a>
+                                @else
+                                    <span class="badge bg-info text-dark align-self-center">
+                                        ارفع تقرير النظام القديم مباشرة
+                                    </span>
+                                @endif
                                 @if (in_array($key, ['maids', 'arabia_cvs'], true))
                                     <a href="{{ route('maids.bulk-import.create') }}" class="btn btn-outline-primary btn-sm">
                                         <i class="fas fa-check-double me-1"></i>
@@ -424,11 +430,12 @@
                     const validationMessage = response.errors
                         ? Object.values(response.errors).flat().join(' ')
                         : response.message;
-                    showError(validationMessage || 'فشل رفع الملف أو معالجته. يرجى التحقق من الملف والمحاولة مرة أخرى.');
+                    const statusSuffix = request.status ? ' (HTTP ' + request.status + ')' : '';
+                    showError(validationMessage || ('انقطعت معالجة الملف على الخادم' + statusSuffix + '. يمكنك إعادة رفع الملف نفسه؛ سيستأنف النظام من العقود المكتملة دون تكرار.'));
                 });
 
                 request.addEventListener('error', function () {
-                    showError('تعذر الاتصال بالخادم أثناء رفع الملف. تحقق من الاتصال ثم حاول مرة أخرى.');
+                    showError('انقطع الاتصال بالخادم أثناء المعالجة. أعد رفع الملف نفسه؛ سيستأنف النظام من آخر عقد مكتمل دون تكرار.');
                 });
 
                 request.addEventListener('abort', function () {

@@ -119,6 +119,11 @@ class ArabiaRecruitmentOrdersImportService
             [now(), $this->fileHash]
         );
         $result['reconciled_maids'] = $this->reconcileActiveContractMaids();
+        $result['completed_dispatches'] = Contract::query()
+            ->whereNotNull('arabia_order_number')
+            ->where('status', ContractStatusEnum::Completed->value)
+            ->whereHas('externalOfficeDispatch')
+            ->count();
 
         return $result;
     }
@@ -204,6 +209,11 @@ class ArabiaRecruitmentOrdersImportService
                 ->whereNotNull('contract_id')
                 ->select('contract_id')
                 ->distinct())
+            ->count();
+        $result['completed_dispatches'] = Contract::query()
+            ->whereNotNull('arabia_order_number')
+            ->where('status', ContractStatusEnum::Completed->value)
+            ->whereHas('externalOfficeDispatch')
             ->count();
 
         return $result;
@@ -481,17 +491,26 @@ class ArabiaRecruitmentOrdersImportService
     private function upsertDispatch(Contract $contract, array $bundle, array $dispatches): void
     {
         $dispatchNumber = $this->integer($this->first($bundle, 'رقم الارسالية'));
-        if (!$dispatchNumber) {
+        $isCompletedArabiaOrder = $contract->status === ContractStatusEnum::Completed->value
+            && filled($contract->arabia_order_number);
+
+        if (!$dispatchNumber && !$isCompletedArabiaOrder) {
             return;
         }
 
-        $master = $dispatches[$dispatchNumber] ?? [];
+        $master = $dispatchNumber ? ($dispatches[$dispatchNumber] ?? []) : [];
         $source = $contract->buildExternalOfficeDispatchSourceData();
+        $dispatchDate = $this->date($master['تاريخ'] ?? $this->first($bundle, 'تاريخ الارسالية'))
+            ?: $this->date($contract->completed_at)
+            ?: $this->date($contract->info?->contract_date)
+            ?: $this->date($contract->created_at);
+        $arrivalStation = trim((string) ($this->first($bundle, 'محطة الوصول') ?: $this->first($bundle, 'مطار')))
+            ?: $contract->resolveExternalOfficeDispatchArrivalStation();
         $payload = array_merge($source, [
             'created_by_admin_id' => $this->adminId,
             'updated_by_admin_id' => $this->adminId,
-            'dispatch_date' => $this->date($master['تاريخ'] ?? $this->first($bundle, 'تاريخ الارسالية')),
-            'arrival_station' => trim((string) ($this->first($bundle, 'محطة الوصول') ?: $this->first($bundle, 'مطار'))) ?: null,
+            'dispatch_date' => $dispatchDate,
+            'arrival_station' => $arrivalStation ?: null,
         ]);
         $payload['source_hash'] = sha1(json_encode($source, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
 

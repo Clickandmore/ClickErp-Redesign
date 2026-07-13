@@ -1,23 +1,10 @@
 @extends('admin.layout.indexs.index')
-
-@section('page-title')
-    إضافة نوع شكوى جديد
-@endsection
-
+@section('page-title', 'إضافة تصنيف شكوى')
 @section('content')
-<div class="container mt-4">
-    <h4>إضافة نوع شكوى جديد</h4>
-    <form action="{{ route('complaint-types.store') }}" method="POST">
-        @csrf
-        <div class="mb-3">
-            <label for="name" class="form-label">اسم النوع</label>
-            <input type="text" name="name" id="name" class="form-control" required value="{{ old('name') }}">
-            @error('name')
-                <div class="text-danger">{{ $message }}</div>
-            @enderror
-        </div>
-        <button type="submit" class="btn btn-success">حفظ</button>
-        <a href="{{ route('complaint-types.index') }}" class="btn btn-secondary">إلغاء</a>
+<div class="container mt-4"><div class="card shadow-sm"><div class="card-header"><h4 class="mb-0">إضافة تصنيف شكوى</h4></div><div class="card-body">
+    <form action="{{ route('complaint-types.store') }}" method="POST">@csrf
+        @include('admin.ingaz.complaint_types.form')
+        <button class="btn btn-success">حفظ التصنيف</button><a href="{{ route('complaint-types.index') }}" class="btn btn-light border">إلغاء</a>
     </form>
-</div>
+</div></div></div>
 @endsection
