@@ -83,6 +83,7 @@ class DataImportController extends Controller
         if ($data['type'] === 'arabia_recruitment_orders') {
             $message .= " ملاحظات جديدة: " . ($result['notes_created'] ?? 0)
                 . "، مراجع مالية: " . ($result['financial_references'] ?? 0)
+                . "، عاملات تمت مصالحة توفرهن: " . ($result['reconciled_maids'] ?? 0)
                 . "، وصفوف أصلية محفوظة: " . ($result['archived_rows'] ?? 0) . ".";
         }
         if (($result['error_count'] ?? 0) > count($shownErrors)) {

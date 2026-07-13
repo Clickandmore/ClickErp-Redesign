@@ -175,6 +175,7 @@
                 ->first(fn ($path) => $path && in_array(strtolower(pathinfo($path, PATHINFO_EXTENSION)), $imageExtensions, true) && showFile($path));
             $imageUrl = $imagePath ? showFile($imagePath) : null;
             $cvFileUrl = $maid->cv_file ? showFile($maid->cv_file) : null;
+            $cvPreviewUrl = $cvFileUrl ? route('maids.cv.preview', $maid->id) : null;
         @endphp
 
         <div class="container-fluid py-3 py-lg-4">
@@ -208,7 +209,7 @@
                             <img src="{{ $imageUrl }}" alt="maid-avatar" class="rounded-circle border"
                                 style="width:88px;height:88px;object-fit:cover;">
                         @elseif ($cvFileUrl)
-                            <button type="button" data-cv-preview-url="{{ $cvFileUrl }}"
+                            <button type="button" data-cv-preview-url="{{ $cvPreviewUrl }}"
                                 class="rounded-circle border bg-light d-inline-flex flex-column align-items-center justify-content-center text-decoration-none flex-shrink-0"
                                 style="width:88px;height:88px" title="فتح ملف السيرة PDF">
                                 <i class="fas fa-file-pdf text-danger fs-2"></i>
@@ -651,7 +652,7 @@
                                         </div>
                                     </div>
                                     <div class="d-flex gap-2 mt-3">
-                                        <button type="button" data-cv-preview-url="{{ $cvFileUrl }}"
+                                        <button type="button" data-cv-preview-url="{{ $cvPreviewUrl }}"
                                             class="btn btn-outline-primary btn-sm">
                                             <i class="fas fa-eye me-1"></i>عرض داخل الموقع
                                         </button>
@@ -960,7 +961,7 @@
 
             const frame = document.getElementById('maidCvPreviewFrame');
             const modalElement = document.getElementById('maidCvPreviewModal');
-            frame.src = trigger.dataset.cvPreviewUrl + '#toolbar=1&navpanes=0&view=FitH';
+            frame.src = trigger.dataset.cvPreviewUrl;
             bootstrap.Modal.getOrCreateInstance(modalElement).show();
         });
 

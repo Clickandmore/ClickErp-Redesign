@@ -195,6 +195,18 @@
                         </div>
                     </div>
                     <div class="col-xl-2 col-md-4 col-sm-6">
+                        <div class="card stats-card h-100 filter-stat-card" data-card="contracted" data-status="contracted">
+                            <div class="card-body d-flex align-items-center justify-content-between">
+                                <div>
+                                    <div class="text-muted small fw-semibold">{{ helperTrans('ingaz.maid_status_contracted') }}</div>
+                                    <div class="fs-4 fw-bold text-primary" data-stat-value="contracted">
+                                        {{ number_format($stats['contracted']) }}</div>
+                                </div>
+                                <span class="stats-icon bg-primary-subtle text-primary"><i class="fas fa-file-signature"></i></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-2 col-md-4 col-sm-6">
                         <div class="card stats-card h-100 filter-stat-card" data-card="accommodation"
                             data-status="in_accommodation">
                             <div class="card-body d-flex align-items-center justify-content-between">
@@ -561,7 +573,7 @@
 
             const frame = document.getElementById('maidCvPreviewFrame');
             const modalElement = document.getElementById('maidCvPreviewModal');
-            frame.src = trigger.dataset.cvPreviewUrl + '#toolbar=1&navpanes=0&view=FitH';
+            frame.src = trigger.dataset.cvPreviewUrl;
             bootstrap.Modal.getOrCreateInstance(modalElement).show();
         });
 

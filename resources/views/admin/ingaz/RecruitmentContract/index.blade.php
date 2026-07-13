@@ -14,6 +14,8 @@
             background: #fff;
             text-align: start;
             transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+            cursor: pointer;
+            min-height: 86px;
         }
 
         .stat-card:hover {
@@ -37,12 +39,14 @@
             font-size: 20px;
             color: #fff;
             flex-shrink: 0;
+            background: #334155;
         }
 
         .stat-body {
             display: flex;
             flex-direction: column;
             line-height: 1.2;
+            min-width: 0;
         }
 
         .stat-title {
@@ -59,6 +63,14 @@
 
         .stat-card-current {
             background: linear-gradient(135deg, #f8fafc, #eef2ff);
+        }
+
+        .stat-card-all {
+            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+        }
+
+        .stat-card-refunded {
+            background: linear-gradient(135deg, #fff7ed, #ffedd5);
         }
 
         .stat-card-pending {
@@ -167,6 +179,123 @@
 
         .stat-card-back .stat-icon {
             background: #dc2626;
+        }
+
+        .stat-card-all .stat-icon {
+            background: #334155;
+        }
+
+        .stat-card-refunded .stat-icon {
+            background: #c2410c;
+        }
+
+        .stats-overview .stat-card {
+            min-height: 104px;
+            border-width: 0 4px 0 0;
+        }
+
+        .stats-overview .stat-card-all {
+            border-right-color: #334155;
+        }
+
+        .stats-overview .stat-card-current {
+            border-right-color: #64748b;
+        }
+
+        .stats-overview .stat-card-completed {
+            border-right-color: #16a34a;
+        }
+
+        .stats-overview .stat-card-back {
+            border-right-color: #dc2626;
+        }
+
+        .stats-group {
+            height: 100%;
+            padding: 18px;
+            border: 1px solid #e5e7eb;
+            border-radius: 16px;
+            background: #f8fafc;
+        }
+
+        .stats-group-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 14px;
+            color: #1f2937;
+            font-weight: 700;
+        }
+
+        .stats-group-header .stats-group-icon {
+            width: 32px;
+            height: 32px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 9px;
+            background: #e0e7ff;
+            color: #4338ca;
+        }
+
+        .stats-group .stat-card {
+            background-color: #fff;
+            min-height: 82px;
+            padding: 13px 14px;
+        }
+
+        .stats-group .stat-icon {
+            width: 40px;
+            height: 40px;
+            font-size: 17px;
+        }
+
+        .stats-help {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #64748b;
+            font-size: 0.82rem;
+        }
+
+        .contract-stats-header {
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .contract-stats-heading {
+            min-width: 0;
+        }
+
+        .stats-collapse-toggle {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            min-width: 132px;
+            white-space: nowrap;
+        }
+
+        #contractStatsToggleIcon {
+            transition: transform 0.2s ease;
+        }
+
+        .stats-collapse-toggle[aria-expanded="false"] #contractStatsToggleIcon {
+            transform: rotate(180deg);
+        }
+
+        @media (max-width: 767.98px) {
+            .stats-group {
+                padding: 14px;
+            }
+
+            .stat-card {
+                padding: 13px;
+            }
+
+            .stat-value {
+                font-size: 1.3rem;
+            }
         }
 
         .bulk-update-card {
@@ -319,7 +448,7 @@
     @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_VIEW))
         @php
             $requestedStatus = request()->get('status');
-            $showBackStatsInitially = $requestedStatus === 'back';
+            $showBackStatsInitially = !$requestedStatus || $requestedStatus === 'back';
             $showCurrentStatsInitially = !$requestedStatus || in_array($requestedStatus, [
                 'current',
                 'pending_maid_selection',
@@ -371,182 +500,182 @@
         <div class="row mb-3" id="contractStatsSection">
             <div class="col-12">
                 <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0">
-                            <i class="fas fa-chart-bar me-2"></i>
-                            احصائيات مراحل العقود
-                        </h6>
-                        <small class="text-muted">الأرقام تتبع فلاتر البحث وتعرض توزيع النتائج على المراحل</small>
+                    <div class="card-header d-flex justify-content-between align-items-center contract-stats-header">
+                        <div class="contract-stats-heading">
+                            <h6 class="mb-1">
+                                <i class="fas fa-chart-bar me-2"></i>
+                                إحصائيات مراحل العقود
+                            </h6>
+                            <small class="text-muted">الأرقام تتبع فلاتر البحث وتعرض توزيع النتائج على المراحل</small>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-secondary stats-collapse-toggle"
+                            id="contractStatsToggle" data-bs-toggle="collapse" data-bs-target="#contractStatsCollapse"
+                            aria-expanded="true" aria-controls="contractStatsCollapse">
+                            <span id="contractStatsToggleLabel">طي الإحصائيات</span>
+                            <i class="fas fa-chevron-up" id="contractStatsToggleIcon"></i>
+                        </button>
                     </div>
+                    <div class="collapse show" id="contractStatsCollapse">
                     <div class="card-body">
-                        <div id="currentStatsSection" @if (!$showCurrentStatsInitially) style="display: none;" @endif>
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                                <span class="fw-semibold">احصائيات العقود السارية</span>
+                        <div class="stats-help mb-3">
+                            <i class="fas fa-circle-info"></i>
+                            اضغط على أي بطاقة لعرض العقود التابعة لها مباشرة
+                        </div>
+
+                        <div class="row g-3 stats-overview mb-4">
+                            <div class="col-12 col-sm-6 col-xl-3">
+                                <button type="button" class="stat-card stat-filter stat-card-all" data-status="">
+                                    <div class="stat-icon"><i class="fas fa-list-check"></i></div>
+                                    <div class="stat-body">
+                                        <div class="stat-title">جميع العقود والطلبات</div>
+                                        <div class="stat-value" data-stat-key="total">0</div>
+                                    </div>
+                                </button>
                             </div>
-                            <div class="row g-2">
-                                <div class="col-12 col-md-6 col-lg-3">
-                                    <button type="button" class="stat-card stat-filter stat-card-current"
-                                        data-status="current">
-                                        <div class="stat-icon">
-                                            <i class="fas fa-layer-group"></i>
-                                        </div>
-                                        <div class="stat-body">
-                                            <div class="stat-title">السارية (إجمالي)</div>
-                                            <div class="stat-value" data-stat-key="current_total">0</div>
-                                        </div>
-                                    </button>
-                                </div>
-                                <div class="col-12 col-md-6 col-lg-3">
-                                    <button type="button" class="stat-card stat-filter stat-card-pending"
-                                        data-status="pending_maid_selection">
-                                        <div class="stat-icon">
-                                            <i class="fas fa-user-clock"></i>
-                                        </div>
-                                        <div class="stat-body">
-                                            <div class="stat-title">{{ $contractStageLabel('pending_maid_selection') }}</div>
-                                            <div class="stat-value" data-stat-key="stage_pending_maid_selection">0</div>
-                                        </div>
-                                    </button>
-                                </div>
-                                <div class="col-12 col-md-6 col-lg-3">
-                                    <button type="button" class="stat-card stat-filter stat-card-new" data-status="new">
-                                        <div class="stat-icon">
-                                            <i class="fas fa-file"></i>
-                                        </div>
-                                        <div class="stat-body">
-                                            <div class="stat-title">{{ $contractStageLabel('new') }}</div>
-                                            <div class="stat-value" data-stat-key="stage_new">0</div>
-                                        </div>
-                                    </button>
-                                </div>
-                                <div class="col-12 col-md-6 col-lg-3">
-                                    <button type="button" class="stat-card stat-filter stat-card-msaned"
-                                        data-status="msaned">
-                                        <div class="stat-icon">
-                                            <i class="fas fa-handshake"></i>
-                                        </div>
-                                        <div class="stat-body">
-                                            <div class="stat-title">{{ $contractStageLabel('msaned') }}</div>
-                                            <div class="stat-value" data-stat-key="stage_msaned">0</div>
-                                        </div>
-                                    </button>
-                                </div>
-                                <div class="col-12 col-md-6 col-lg-3">
-                                    <button type="button" class="stat-card stat-filter stat-card-tafwed"
-                                        data-status="tafwed">
-                                        <div class="stat-icon">
-                                            <i class="fas fa-file-signature"></i>
-                                        </div>
-                                        <div class="stat-body">
-                                            <div class="stat-title">{{ $contractStageLabel('tafwed') }}</div>
-                                            <div class="stat-value" data-stat-key="stage_tafwed">0</div>
-                                        </div>
-                                    </button>
-                                </div>
-                                <div class="col-12 col-md-6 col-lg-3">
-                                    <button type="button" class="stat-card stat-filter stat-card-taffez"
-                                        data-status="taffez">
-                                        <div class="stat-icon">
-                                            <i class="fas fa-passport"></i>
-                                        </div>
-                                        <div class="stat-body">
-                                            <div class="stat-title">{{ $contractStageLabel('taffez') }}</div>
-                                            <div class="stat-value" data-stat-key="stage_taffez">0</div>
-                                        </div>
-                                    </button>
-                                </div>
-                                <div class="col-12 col-md-6 col-lg-3">
-                                    <button type="button" class="stat-card stat-filter stat-card-tazker"
-                                        data-status="tazker">
-                                        <div class="stat-icon">
-                                            <i class="fas fa-ticket"></i>
-                                        </div>
-                                        <div class="stat-body">
-                                            <div class="stat-title">{{ $contractStageLabel('tazker') }}</div>
-                                            <div class="stat-value" data-stat-key="stage_tazker">0</div>
-                                        </div>
-                                    </button>
-                                </div>
+                            <div class="col-12 col-sm-6 col-xl-3">
+                                <button type="button" class="stat-card stat-filter stat-card-current" data-status="current">
+                                    <div class="stat-icon"><i class="fas fa-spinner"></i></div>
+                                    <div class="stat-body">
+                                        <div class="stat-title">العقود السارية</div>
+                                        <div class="stat-value" data-stat-key="current_total">0</div>
+                                    </div>
+                                </button>
+                            </div>
+                            <div class="col-12 col-sm-6 col-xl-3">
+                                <button type="button" class="stat-card stat-filter stat-card-completed" data-status="completed_stage">
+                                    <div class="stat-icon"><i class="fas fa-circle-check"></i></div>
+                                    <div class="stat-body">
+                                        <div class="stat-title">العقود المكتملة</div>
+                                        <div class="stat-value" data-stat-key="completed_total">0</div>
+                                    </div>
+                                </button>
+                            </div>
+                            <div class="col-12 col-sm-6 col-xl-3">
+                                <button type="button" class="stat-card stat-filter stat-card-back" data-status="back">
+                                    <div class="stat-icon"><i class="fas fa-arrow-rotate-left"></i></div>
+                                    <div class="stat-body">
+                                        <div class="stat-title">العقود المرتجعة</div>
+                                        <div class="stat-value" data-stat-key="stage_back">0</div>
+                                    </div>
+                                </button>
                             </div>
                         </div>
 
-                        {{-- <hr> --}}
+                        <div class="row g-3">
+                            <div class="col-12" id="currentStatsSection" @if (!$showCurrentStatsInitially) style="display: none;" @endif>
+                                <div class="stats-group">
+                                    <div class="stats-group-header">
+                                        <span class="stats-group-icon"><i class="fas fa-route"></i></span>
+                                        <span>مراحل تنفيذ العقود السارية</span>
+                                    </div>
+                                    <div class="row g-2">
+                                        <div class="col-12 col-sm-6 col-lg-4 col-xl-2">
+                                            <button type="button" class="stat-card stat-filter stat-card-pending" data-status="pending_maid_selection">
+                                                <div class="stat-icon"><i class="fas fa-user-clock"></i></div>
+                                                <div class="stat-body"><div class="stat-title">{{ $contractStageLabel('pending_maid_selection') }}</div><div class="stat-value" data-stat-key="stage_pending_maid_selection">0</div></div>
+                                            </button>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-lg-4 col-xl-2">
+                                            <button type="button" class="stat-card stat-filter stat-card-new" data-status="new">
+                                                <div class="stat-icon"><i class="fas fa-file-circle-plus"></i></div>
+                                                <div class="stat-body"><div class="stat-title">{{ $contractStageLabel('new') }}</div><div class="stat-value" data-stat-key="stage_new">0</div></div>
+                                            </button>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-lg-4 col-xl-2">
+                                            <button type="button" class="stat-card stat-filter stat-card-msaned" data-status="msaned">
+                                                <div class="stat-icon"><i class="fas fa-handshake"></i></div>
+                                                <div class="stat-body"><div class="stat-title">{{ $contractStageLabel('msaned') }}</div><div class="stat-value" data-stat-key="stage_msaned">0</div></div>
+                                            </button>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-lg-4 col-xl-2">
+                                            <button type="button" class="stat-card stat-filter stat-card-tafwed" data-status="tafwed">
+                                                <div class="stat-icon"><i class="fas fa-file-signature"></i></div>
+                                                <div class="stat-body"><div class="stat-title">{{ $contractStageLabel('tafwed') }}</div><div class="stat-value" data-stat-key="stage_tafwed">0</div></div>
+                                            </button>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-lg-4 col-xl-2">
+                                            <button type="button" class="stat-card stat-filter stat-card-taffez" data-status="taffez">
+                                                <div class="stat-icon"><i class="fas fa-passport"></i></div>
+                                                <div class="stat-body"><div class="stat-title">{{ $contractStageLabel('taffez') }}</div><div class="stat-value" data-stat-key="stage_taffez">0</div></div>
+                                            </button>
+                                        </div>
+                                        <div class="col-12 col-sm-6 col-lg-4 col-xl-2">
+                                            <button type="button" class="stat-card stat-filter stat-card-tazker" data-status="tazker">
+                                                <div class="stat-icon"><i class="fas fa-plane-departure"></i></div>
+                                                <div class="stat-body"><div class="stat-title">{{ $contractStageLabel('tazker') }}</div><div class="stat-value" data-stat-key="stage_tazker">0</div></div>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
 
-                        <div id="completedStatsSection" @if (!$showCompletedStatsInitially) style="display: none;" @endif>
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                                <span class="fw-semibold">احصائيات العقود المكتملة</span>
-                            </div>
-                            <div class="row g-2">
-                                <div class="col-12 col-md-6 col-lg-3">
-                                    <button type="button" class="stat-card stat-filter stat-card-completed"
-                                        data-status="completed_stage">
-                                        <div class="stat-icon">
-                                            <i class="fas fa-clipboard-check"></i>
+                            <div class="col-12 col-xl-7" id="completedStatsSection" @if (!$showCompletedStatsInitially) style="display: none;" @endif>
+                                <div class="stats-group">
+                                    <div class="stats-group-header">
+                                        <span class="stats-group-icon"><i class="fas fa-flag-checkered"></i></span>
+                                        <span>الوصول والنتائج النهائية</span>
+                                    </div>
+                                    <div class="row g-2">
+                                        <div class="col-12 col-sm-6">
+                                            <button type="button" class="stat-card stat-filter stat-card-arrival" data-status="arrival">
+                                                <div class="stat-icon"><i class="fas fa-plane-arrival"></i></div>
+                                                <div class="stat-body"><div class="stat-title">{{ $contractStageLabel('arrival') }}</div><div class="stat-value" data-stat-key="stage_arrival">0</div></div>
+                                            </button>
                                         </div>
-                                        <div class="stat-body">
-                                            <div class="stat-title">المكتملة (إجمالي)</div>
-                                            <div class="stat-value" data-stat-key="completed_total">0</div>
+                                        <div class="col-12 col-sm-6">
+                                            <button type="button" class="stat-card stat-filter stat-card-completed" data-status="completed">
+                                                <div class="stat-icon"><i class="fas fa-circle-check"></i></div>
+                                                <div class="stat-body"><div class="stat-title">{{ $contractStageLabel('completed') }}</div><div class="stat-value" data-stat-key="stage_completed">0</div></div>
+                                            </button>
                                         </div>
-                                    </button>
-                                </div>
-                                <div class="col-12 col-md-6 col-lg-3">
-                                    <button type="button" class="stat-card stat-filter stat-card-warranty-active"
-                                        data-status="arrival" data-warranty="active">
-                                        <div class="stat-icon">
-                                            <i class="fas fa-shield"></i>
+                                        <div class="col-12 col-sm-6">
+                                            <button type="button" class="stat-card stat-filter stat-card-refunded" data-status="refunded">
+                                                <div class="stat-icon"><i class="fas fa-money-bill-transfer"></i></div>
+                                                <div class="stat-body"><div class="stat-title">{{ $contractStageLabel('refunded') }}</div><div class="stat-value" data-stat-key="stage_refunded">0</div></div>
+                                            </button>
                                         </div>
-                                        <div class="stat-body">
-                                            <div class="stat-title">{{ $contractStageLabel('arrival') }} داخل الضمان</div>
-                                            <div class="stat-value" data-stat-key="warranty_active">0</div>
+                                        <div class="col-12 col-sm-6">
+                                            <button type="button" class="stat-card stat-filter stat-card-shelter" data-status="shelter">
+                                                <div class="stat-icon"><i class="fas fa-house-user"></i></div>
+                                                <div class="stat-body"><div class="stat-title">{{ $contractStageLabel('shelter') }}</div><div class="stat-value" data-stat-key="stage_shelter">0</div></div>
+                                            </button>
                                         </div>
-                                    </button>
-                                </div>
-                                <div class="col-12 col-md-6 col-lg-3">
-                                    <button type="button" class="stat-card stat-filter stat-card-warranty-expired"
-                                        data-status="completed" data-warranty="expired">
-                                        <div class="stat-icon">
-                                            <i class="fas fa-times-circle"></i>
-                                        </div>
-                                        <div class="stat-body">
-                                            <div class="stat-title">{{ $contractStageLabel('completed') }} منتهي الضمان</div>
-                                            <div class="stat-value" data-stat-key="warranty_expired">0</div>
-                                        </div>
-                                    </button>
-                                </div>
-                                <div class="col-12 col-md-6 col-lg-3">
-                                    <button type="button" class="stat-card stat-filter stat-card-shelter"
-                                        data-status="shelter">
-                                        <div class="stat-icon">
-                                            <i class="fas fa-house-user"></i>
-                                        </div>
-                                        <div class="stat-body">
-                                            <div class="stat-title">{{ $contractStageLabel('shelter') }}</div>
-                                            <div class="stat-value" data-stat-key="stage_shelter">0</div>
-                                        </div>
-                                    </button>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div id="backStatsSection" @if (!$showBackStatsInitially) style="display: none;" @endif>
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                                <span class="fw-semibold">احصائيات العقود المرتجعة</span>
-                            </div>
-                            <div class="row g-2">
-                                <div class="col-12 col-md-6 col-lg-3">
-                                    <button type="button" class="stat-card stat-filter stat-card-back"
-                                        data-status="back">
-                                        <div class="stat-icon">
-                                            <i class="fas fa-undo"></i>
+                            <div class="col-12 col-xl-5" id="warrantyStatsSection" @if (!$showCompletedStatsInitially) style="display: none;" @endif>
+                                <div class="stats-group">
+                                    <div class="stats-group-header">
+                                        <span class="stats-group-icon"><i class="fas fa-shield-halved"></i></span>
+                                        <span>حالة الضمان</span>
+                                    </div>
+                                    <div class="row g-2">
+                                        <div class="col-12">
+                                            <button type="button" class="stat-card stat-filter stat-card-warranty-active" data-status="arrival" data-warranty="active">
+                                                <div class="stat-icon"><i class="fas fa-shield"></i></div>
+                                                <div class="stat-body"><div class="stat-title">داخل الضمان</div><div class="stat-value" data-stat-key="warranty_active">0</div></div>
+                                            </button>
                                         </div>
-                                        <div class="stat-body">
-                                            <div class="stat-title">غير مكتملة ({{ $contractStageLabel('back') }})</div>
-                                            <div class="stat-value" data-stat-key="stage_back">0</div>
+                                        <div class="col-12 col-sm-6">
+                                            <button type="button" class="stat-card stat-filter stat-card-warranty-expired" data-status="completed" data-warranty="expired">
+                                                <div class="stat-icon"><i class="fas fa-shield-circle-xmark"></i></div>
+                                                <div class="stat-body"><div class="stat-title">منتهي الضمان</div><div class="stat-value" data-stat-key="warranty_expired">0</div></div>
+                                            </button>
                                         </div>
-                                    </button>
+                                        <div class="col-12 col-sm-6">
+                                            <button type="button" class="stat-card stat-filter stat-card-warranty-na" data-status="completed" data-warranty="not_applicable">
+                                                <div class="stat-icon"><i class="fas fa-shield-slash"></i></div>
+                                                <div class="stat-body"><div class="stat-title">بدون ضمان</div><div class="stat-value" data-stat-key="warranty_not_applicable">0</div></div>
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
+
+                            <div class="d-none" id="backStatsSection"></div>
                         </div>
+                    </div>
                     </div>
                 </div>
             </div>
@@ -1226,6 +1355,48 @@
 
     <script>
         $(document).ready(function() {
+            const statsCollapsePreferenceKey = 'recruitmentContractStatsCollapsed';
+            const statsCollapseElement = document.getElementById('contractStatsCollapse');
+            const statsToggleButton = document.getElementById('contractStatsToggle');
+            const statsToggleLabel = document.getElementById('contractStatsToggleLabel');
+
+            function updateStatsCollapseButton(isExpanded) {
+                if (!statsToggleButton || !statsToggleLabel) {
+                    return;
+                }
+
+                statsToggleButton.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
+                statsToggleLabel.textContent = isExpanded ? 'طي الإحصائيات' : 'عرض الإحصائيات';
+            }
+
+            if (statsCollapseElement && statsToggleButton) {
+                let shouldStartCollapsed = false;
+                try {
+                    shouldStartCollapsed = localStorage.getItem(statsCollapsePreferenceKey) === '1';
+                } catch (error) {
+                    shouldStartCollapsed = false;
+                }
+
+                if (shouldStartCollapsed) {
+                    statsCollapseElement.classList.remove('show');
+                }
+                updateStatsCollapseButton(!shouldStartCollapsed);
+
+                statsCollapseElement.addEventListener('shown.bs.collapse', function() {
+                    updateStatsCollapseButton(true);
+                    try {
+                        localStorage.setItem(statsCollapsePreferenceKey, '0');
+                    } catch (error) {}
+                });
+
+                statsCollapseElement.addEventListener('hidden.bs.collapse', function() {
+                    updateStatsCollapseButton(false);
+                    try {
+                        localStorage.setItem(statsCollapsePreferenceKey, '1');
+                    } catch (error) {}
+                });
+            }
+
             // دالة لقراءة الـ status من الـ URL
             function getStatusFromUrl() {
                 const urlParams = new URLSearchParams(window.location.search);
@@ -1278,34 +1449,34 @@
 
                 if (!statusValue) {
                     $('#currentStatsSection').show();
-                    $('#completedStatsSection').show();
-                    $('#backStatsSection').hide();
+                    $('#completedStatsSection, #warrantyStatsSection').show();
+                    $('#backStatsSection').show();
                     return;
                 }
 
                 if (statusValue === 'back') {
                     $('#currentStatsSection').hide();
-                    $('#completedStatsSection').hide();
+                    $('#completedStatsSection, #warrantyStatsSection').hide();
                     $('#backStatsSection').show();
                     return;
                 }
 
                 if (currentStatuses.includes(statusValue)) {
                     $('#currentStatsSection').show();
-                    $('#completedStatsSection').hide();
+                    $('#completedStatsSection, #warrantyStatsSection').hide();
                     $('#backStatsSection').hide();
                     return;
                 }
 
                 if (completedStatuses.includes(statusValue)) {
                     $('#currentStatsSection').hide();
-                    $('#completedStatsSection').show();
+                    $('#completedStatsSection, #warrantyStatsSection').show();
                     $('#backStatsSection').hide();
                     return;
                 }
 
                 $('#currentStatsSection').show();
-                $('#completedStatsSection').show();
+                $('#completedStatsSection, #warrantyStatsSection').show();
                 $('#backStatsSection').hide();
             }
 
@@ -1331,6 +1502,8 @@
                     }
                     return;
                 }
+
+                $('.stat-card.stat-filter[data-status=""]').first().addClass('active');
             }
 
             // تطبيق الـ status من الـ URL على الفلتر أولاً
@@ -2009,6 +2182,19 @@
 
                 toggleStatsSections();
                 syncStatSelection();
+
+                const statsUrl = new URL(window.location.href);
+                if (statusValue) {
+                    statsUrl.searchParams.set('status', statusValue);
+                } else {
+                    statsUrl.searchParams.delete('status');
+                }
+                if (warrantyValue !== undefined && warrantyValue !== '') {
+                    statsUrl.searchParams.set('warranty_status', warrantyValue);
+                } else {
+                    statsUrl.searchParams.delete('warranty_status');
+                }
+                window.history.replaceState({}, '', statsUrl.toString());
 
                 clearBulkSelection();
                 $('#dataTableObject').addClass('loading');

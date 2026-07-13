@@ -2,6 +2,7 @@
 
 namespace App\Services\ingaz;
 
+use App\Enums\ingaz\ContractStatusEnum;
 use App\Http\Actions\ingaz\MaidAction;
 use App\Models\RecruitmentOffices;
 use App\Models\ingaz\JobTitle;
@@ -354,6 +355,11 @@ class MaidBulkImportService
                                 $maid = Maid::find((int) $data['id']);
                             }
 
+                            if ($maid && $this->maidHasActiveArabiaContract($maid)) {
+                                $data['status'] = 'contracted';
+                                $data['available'] = '0';
+                            }
+
                             if ($maid) {
                                 // updateMaid expects browser UploadedFile objects for media. Arabia
                                 // assets have already been saved locally, so persist their paths after it.
@@ -361,6 +367,7 @@ class MaidBulkImportService
                                 unset(
                                     $data['preserve_null_arrival_date'],
                                     $data['job_id'],
+                                    $data['office_id'],
                                     $data['create_shelter_contract'],
                                     $data['rental_finance_items'],
                                     $data['rental_finance_items_confirmed']
@@ -376,12 +383,21 @@ class MaidBulkImportService
 
                             if (!empty($data['arabia_worker_number'])) {
                                 if (!$maid->arabia_worker_number) {
+                                    Maid::withTrashed()
+                                        ->where('arabia_worker_number', $data['arabia_worker_number'])
+                                        ->where('id', '!=', $maid->id)
+                                        ->update(['arabia_worker_number' => null]);
                                     $maid->update(['arabia_worker_number' => (int) $data['arabia_worker_number']]);
                                 }
                                 MaidExternalReference::updateOrCreate(
                                     ['source' => 'arabia', 'external_id' => (string) $data['arabia_worker_number']],
                                     ['maid_id' => $maid->id]
                                 );
+                            }
+
+                            if ($this->maidHasActiveArabiaContract($maid)
+                                && ((int) $maid->available !== 0 || $maid->status === 'available')) {
+                                $maid->forceFill(['available' => 0, 'status' => 'contracted'])->save();
                             }
 
                             $row->update([
@@ -684,6 +700,15 @@ class MaidBulkImportService
             throw ValidationException::withMessages(['file' => ['لا يوجد نوع سيرة مسجل في النظام.']]);
         }
 
+        try {
+            $sourceMetadata = DB::table('alrafedain_erp.maids')
+                ->select('id', 'added_by', 'created_at')
+                ->get()
+                ->keyBy(fn ($row) => (string) $row->id);
+        } catch (\Throwable $exception) {
+            $sourceMetadata = collect();
+        }
+
         $rows = [];
         for ($rowIndex = 2; $rowIndex <= $sheet->getHighestDataRow(); $rowIndex++) {
             $value = function (string $label) use ($headers, $sheet, $rowIndex) {
@@ -694,6 +719,7 @@ class MaidBulkImportService
             };
 
             $workerNumber = $value('رقم العامل');
+            $sourceRow = $sourceMetadata->get((string) $workerNumber);
             $name = $value('الاسم');
             $passport = strtoupper(trim((string) $value('رقم الجواز'), " .\t\n\r\0\x0B"));
             if (!$workerNumber && !$name && !$passport) {
@@ -724,6 +750,8 @@ class MaidBulkImportService
                 'arabia_worker_number' => $workerNumber,
                 'arabia_image_url' => $value('رابط الصورة'),
                 'arabia_pdf_url' => $value('رابط ملف السيرة (PDF)'),
+                'added_by' => $sourceRow?->added_by,
+                'created_at' => $sourceRow?->created_at,
             ];
 
             $normalized = $this->normalizeRow($raw, $lookups);
@@ -1649,6 +1677,27 @@ class MaidBulkImportService
             || str_contains($title, 'ايجار')
             || str_contains($title, 'تاجير')
             || str_contains($title, 'rent');
+    }
+
+    private function maidHasActiveArabiaContract(?Maid $maid): bool
+    {
+        if (!$maid) {
+            return false;
+        }
+
+        return $maid->contracts()
+            ->whereNotNull('arabia_order_number')
+            ->whereIn('status', [
+                ContractStatusEnum::PendingMaidSelection->value,
+                ContractStatusEnum::New->value,
+                ContractStatusEnum::Msaned->value,
+                ContractStatusEnum::Tafwed->value,
+                ContractStatusEnum::Taffez->value,
+                ContractStatusEnum::Tazker->value,
+                ContractStatusEnum::Arrival->value,
+                ContractStatusEnum::InProgress->value,
+            ])
+            ->exists();
     }
 
     private function extractErrors(\Throwable $exception): array

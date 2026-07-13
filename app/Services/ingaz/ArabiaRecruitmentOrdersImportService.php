@@ -46,6 +46,83 @@ class ArabiaRecruitmentOrdersImportService
     private array $referenceModels = [];
     private array $adminCache = [];
 
+    public function retryArchivedFailures(?int $adminId = null, ?string $fileHash = null): array
+    {
+        $this->adminId = $adminId ?: Admin::query()->value('id');
+        $this->fileHash = $fileHash ?: DB::table('arabia_recruitment_import_rows')
+            ->where('sheet_name', 'تقرير_الطلبات')
+            ->latest('id')
+            ->value('source_file_hash');
+        $this->fileName = 'archived-retry';
+
+        if (!$this->fileHash) {
+            throw new \RuntimeException('لا توجد صفوف طلبات أربيا مؤرشفة لإعادة المحاولة.');
+        }
+
+        $rows = DB::table('arabia_recruitment_import_rows')
+            ->where('source_file_hash', $this->fileHash)
+            ->get(['sheet_name', 'source_row_number', 'arabia_order_number', 'payload']);
+        $sheets = $rows->groupBy('sheet_name');
+        $indexed = [];
+        foreach (['التفويض', 'مواعيد_الوصول', 'طلبات_وصلت', 'مدة_الوصول', 'العاملون', 'رحلات_مخصص'] as $sheet) {
+            $indexed[$sheet] = ($sheets->get($sheet) ?? collect())->mapWithKeys(
+                fn ($row) => [$row->arabia_order_number => json_decode($row->payload, true) ?: []]
+            );
+        }
+        $dispatches = ($sheets->get('الإرساليات') ?? collect())->mapWithKeys(function ($row) {
+            $payload = json_decode($row->payload, true) ?: [];
+            return [$this->integer($payload['رقم الإرسالية'] ?? null) => $payload];
+        })->filter(fn ($row, $key) => $key);
+
+        $result = ['total' => 0, 'created' => 0, 'updated' => 0, 'skipped' => 0, 'errors' => [], 'error_count' => 0];
+        foreach (($sheets->get('تقرير_الطلبات') ?? collect()) as $source) {
+            $orderNumber = (int) $source->arabia_order_number;
+            if (Contract::query()->where('arabia_order_number', $orderNumber)->exists()) {
+                continue;
+            }
+            $result['total']++;
+            $main = json_decode($source->payload, true) ?: [];
+
+            try {
+                DB::transaction(function () use ($orderNumber, $main, $indexed, $dispatches) {
+                    $bundle = [
+                        'main' => $main,
+                        'delegations' => $indexed['التفويض']->get($orderNumber),
+                        'arrival_schedule' => $indexed['مواعيد_الوصول']->get($orderNumber),
+                        'arrivals' => $indexed['طلبات_وصلت']->get($orderNumber),
+                        'durations' => $indexed['مدة_الوصول']->get($orderNumber),
+                        'workers' => $indexed['العاملون']->get($orderNumber),
+                        'trips' => $indexed['رحلات_مخصص']->get($orderNumber),
+                    ];
+                    $client = $this->upsertClient($orderNumber, $bundle);
+                    $maid = $this->upsertMaid($bundle);
+                    $status = $this->resolveStatus($bundle);
+                    $order = $maid ? $this->upsertOrder($orderNumber, $client, $maid, $status) : null;
+                    $contract = $this->upsertContract(null, $orderNumber, $client, $maid, $order, $status, $bundle);
+                    $this->upsertTravel($contract, $client, $maid, $bundle);
+                    $this->upsertDispatch($contract, $bundle, $dispatches->all());
+                    $this->syncFinancialReferences($contract, $bundle);
+                });
+                $result['created']++;
+            } catch (\Throwable $exception) {
+                $result['skipped']++;
+                $result['error_count']++;
+                $result['errors'][] = "طلب أربيا {$orderNumber}: {$exception->getMessage()}";
+            }
+        }
+
+        DB::statement(
+            'UPDATE arabia_recruitment_import_rows source_rows '
+            . 'INNER JOIN contracts ON contracts.arabia_order_number = source_rows.arabia_order_number '
+            . 'SET source_rows.contract_id = contracts.id, source_rows.updated_at = ? '
+            . 'WHERE source_rows.source_file_hash = ?',
+            [now(), $this->fileHash]
+        );
+        $result['reconciled_maids'] = $this->reconcileActiveContractMaids();
+
+        return $result;
+    }
+
     public function import(string $path, string $fileName, ?int $adminId, array $result): array
     {
         @ini_set('memory_limit', '2048M');
@@ -71,6 +148,8 @@ class ArabiaRecruitmentOrdersImportService
             }
 
             $result['total']++;
+            // Preserve the source even when creating one of its linked records fails.
+            $this->archiveRow('تقرير_الطلبات', $rowNumber, $main, $orderNumber);
 
             try {
                 $outcome = DB::transaction(function () use ($orderNumber, $main, $auxiliary, $dispatches, $rowNumber) {
@@ -113,6 +192,7 @@ class ArabiaRecruitmentOrdersImportService
         );
 
         $notesResult = $this->importNotes($path);
+        $result['reconciled_maids'] = $this->reconcileActiveContractMaids();
         $result['notes_created'] = $notesResult['created'];
         $result['notes_skipped'] = $notesResult['skipped'];
         $result['archived_rows'] = DB::table('arabia_recruitment_import_rows')
@@ -127,6 +207,33 @@ class ArabiaRecruitmentOrdersImportService
             ->count();
 
         return $result;
+    }
+
+    private function reconcileActiveContractMaids(): int
+    {
+        $activeStatuses = [
+            ContractStatusEnum::PendingMaidSelection->value,
+            ContractStatusEnum::New->value,
+            ContractStatusEnum::Msaned->value,
+            ContractStatusEnum::Tafwed->value,
+            ContractStatusEnum::Taffez->value,
+            ContractStatusEnum::Tazker->value,
+            ContractStatusEnum::Arrival->value,
+            ContractStatusEnum::InProgress->value,
+        ];
+
+        return Maid::query()
+            ->where(function ($query) {
+                $query->where('available', 1)->orWhere('status', 'available');
+            })
+            ->whereHas('contracts', function ($query) use ($activeStatuses) {
+                $query->whereNotNull('arabia_order_number')->whereIn('status', $activeStatuses);
+            })
+            ->update([
+                'available' => 0,
+                'status' => 'contracted',
+                'updated_at' => now(),
+            ]);
     }
 
     private function assertReady(string $path): void
@@ -179,14 +286,21 @@ class ArabiaRecruitmentOrdersImportService
 
         $client = ($clientNumber ? User::query()->where('arabia_client_number', $clientNumber)->first() : null)
             ?: ($identity !== '' ? User::query()->where('national_num', $identity)->first() : null)
-            ?: ($phone !== '' ? User::query()->where('phone', $phone)->first() : null);
+            ?: (!$clientNumber && $phone !== '' ? User::query()->where('phone', $phone)->first() : null);
+
+        $phoneOwner = $phone !== '' ? User::query()->where('phone', $phone)->first() : null;
+        $phoneConflict = $phoneOwner && (!$client || (int) $phoneOwner->id !== (int) $client->id);
+        $safePrimaryPhone = $phoneConflict
+            ? ($client?->phone ?: 'arabia-client-' . ($clientNumber ?: $orderNumber))
+            : ($phone ?: ($client?->phone ?: 'arabia-client-' . ($clientNumber ?: $orderNumber)));
 
         $payload = [
             'arabia_client_number' => $clientNumber,
             'name' => $name,
             'national_num' => $identity ?: null,
             'phone_code' => '+966',
-            'phone' => $phone ?: 'arabia-client-' . ($clientNumber ?: $orderNumber),
+            'phone' => $safePrimaryPhone,
+            'phone2' => $phoneConflict && blank($client?->phone2) ? $phone : ($client?->phone2),
             'birthdate' => $this->date($row['ميلاد العميل'] ?? null),
             'register_from' => 'arabia_recruitment_import',
             'is_blocked' => 0,
@@ -601,9 +715,9 @@ class ArabiaRecruitmentOrdersImportService
         if ($rows === []) {
             return;
         }
-        DB::table('arabia_recruitment_import_rows')->upsert($rows, ['source_file_hash', 'sheet_name', 'source_row_number'], [
-            'source_file_name', 'arabia_order_number', 'contract_id', 'row_hash', 'payload', 'updated_at',
-        ]);
+        // A matching file hash means the source row is byte-for-byte identical.
+        // Contract links are refreshed in one set-based UPDATE after contracts finish.
+        DB::table('arabia_recruitment_import_rows')->insertOrIgnore($rows);
     }
 
     private function noteKey(int $contractId, string $note, $date): string
@@ -622,13 +736,14 @@ class ArabiaRecruitmentOrdersImportService
         $book = $reader->load($path);
         $sheet = $book->getSheetByName($sheetName);
         $highestColumn = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($sheet->getHighestDataColumn());
+        $highestRow = $sheet->getHighestDataRow();
         $headers = [];
         for ($column = 1; $column <= $highestColumn; $column++) {
             $headers[$column] = trim((string) $sheet->getCell([$column, 1])->getValue());
         }
 
         try {
-            for ($rowNumber = 2; $rowNumber <= $sheet->getHighestDataRow(); $rowNumber++) {
+            for ($rowNumber = 2; $rowNumber <= $highestRow; $rowNumber++) {
                 $row = [];
                 for ($column = 1; $column <= $highestColumn; $column++) {
                     if (($headers[$column] ?? '') !== '') {

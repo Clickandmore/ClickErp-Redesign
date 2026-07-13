@@ -4820,6 +4820,7 @@ class RecruitmentContractController extends Controller
                 $completedStageStatuses,
                 [
                     ContractStatusEnum::Back->value,
+                    ContractStatusEnum::Refunded->value,
                     ContractStatusEnum::PendingMaidSelection->value,
                     ContractStatusEnum::New->value,
                     ContractStatusEnum::Msaned->value,
@@ -4843,6 +4844,7 @@ class RecruitmentContractController extends Controller
                     SUM(CASE WHEN status IN (' . implode(',', array_fill(0, count($currentStatuses), '?')) . ') THEN 1 ELSE 0 END) as current_total,
                     SUM(CASE WHEN status IN (' . implode(',', array_fill(0, count($completedStageStatuses), '?')) . ') THEN 1 ELSE 0 END) as completed_total,
                     SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as stage_back,
+                    SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as stage_refunded,
                     SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as stage_pending_maid_selection,
                     SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as stage_new,
                     SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as stage_msaned,
@@ -4864,6 +4866,7 @@ class RecruitmentContractController extends Controller
                 'current_total' => (int) ($aggregate->current_total ?? 0),
                 'completed_total' => (int) ($aggregate->completed_total ?? 0),
                 'stage_back' => (int) ($aggregate->stage_back ?? 0),
+                'stage_refunded' => (int) ($aggregate->stage_refunded ?? 0),
                 'stage_pending_maid_selection' => (int) ($aggregate->stage_pending_maid_selection ?? 0),
                 'stage_new' => (int) ($aggregate->stage_new ?? 0),
                 'stage_msaned' => (int) ($aggregate->stage_msaned ?? 0),

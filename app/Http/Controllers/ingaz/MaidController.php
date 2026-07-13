@@ -122,7 +122,8 @@ class MaidController extends Controller
 
                     $cvUrl = $row->cv_file ? showFile($row->cv_file) : null;
                     if ($cvUrl) {
-                        return '<button type="button" data-cv-preview-url="' . e($cvUrl) . '" '
+                        $previewUrl = route('maids.cv.preview', $row->id);
+                        return '<button type="button" data-cv-preview-url="' . e($previewUrl) . '" '
                             . 'class="btn p-0 d-inline-flex flex-column align-items-center justify-content-center border rounded text-decoration-none bg-light" '
                             . 'style="width:85px;height:110px" title="عرض ملف السيرة داخل النظام">'
                             . '<i class="fas fa-file-pdf text-danger" style="font-size:34px"></i>'
@@ -515,6 +516,7 @@ class MaidController extends Controller
 
         $statsBase = objModel::query();
         $this->applyRecruitmentMaidsScope($statsBase);
+        $this->applyUniquePassportDisplayScope($statsBase);
         $stats = $this->buildRecruitmentMaidStats($statsBase);
 
         $filters = [
@@ -1307,6 +1309,39 @@ class MaidController extends Controller
             'hrEmployeeRecord',
             'maidImages'
         ));
+    }
+
+    public function previewCv($id)
+    {
+        $maid = objModel::withTrashed()->findOrFail($id);
+        abort_unless($this->maidHasPreviewablePdf($maid), 404, 'ملف السيرة غير موجود.');
+
+        return view($this->folderPath . '.cv_preview', [
+            'maid' => $maid,
+            'pdfUrl' => route('maids.cv.preview.data', $maid->id),
+        ]);
+    }
+
+    public function previewCvData($id)
+    {
+        $maid = objModel::withTrashed()->findOrFail($id);
+        abort_unless($this->maidHasPreviewablePdf($maid), 404, 'ملف السيرة غير موجود.');
+
+        $absolutePath = Storage::disk('public')->path($maid->cv_file);
+
+        return response()->file($absolutePath, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="maid-cv-' . $maid->id . '.pdf"',
+            'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control' => 'private, max-age=3600',
+        ]);
+    }
+
+    private function maidHasPreviewablePdf(Maid $maid): bool
+    {
+        return filled($maid->cv_file)
+            && strtolower(pathinfo((string) $maid->cv_file, PATHINFO_EXTENSION)) === 'pdf'
+            && Storage::disk('public')->exists($maid->cv_file);
     }
 
     public function storeAttachments(Request $request, $id)
@@ -2702,6 +2737,7 @@ class MaidController extends Controller
             'total' => (clone $baseQuery)->count(),
             'available' => $this->countRecruitmentMaidsByEffectiveStatus($baseQuery, 'available'),
             'reserved' => $this->countRecruitmentMaidsByEffectiveStatus($baseQuery, 'reserved'),
+            'contracted' => $this->countRecruitmentMaidsByEffectiveStatus($baseQuery, 'contracted'),
             'in_accommodation' => $this->countRecruitmentMaidsByEffectiveStatus($baseQuery, 'in_accommodation'),
             'backout' => $this->countRecruitmentMaidsByEffectiveStatus($baseQuery, 'backout'),
             'suspended' => $this->countRecruitmentMaidsByEffectiveStatus($baseQuery, 'suspended'),
@@ -2779,8 +2815,11 @@ class MaidController extends Controller
             case 'contracted':
                 $query->where('maid_accommodation_type', '!=', 2)
                     ->whereNotIn('status', ['backout', 'suspended', 'deported'])
-                    ->whereHas('contracts', function ($contractQuery) use ($recruitmentContractStatuses) {
-                        $contractQuery->whereIn('status', $recruitmentContractStatuses);
+                    ->where(function ($contractedQuery) use ($recruitmentContractStatuses) {
+                        $contractedQuery->where('status', 'contracted')
+                            ->orWhereHas('contracts', function ($contractQuery) use ($recruitmentContractStatuses) {
+                                $contractQuery->whereIn('status', $recruitmentContractStatuses);
+                            });
                     });
                 break;
 
