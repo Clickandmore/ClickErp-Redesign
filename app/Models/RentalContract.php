@@ -229,7 +229,8 @@ class RentalContract extends Model
     public function calculateRemainingDays()
     {
         if ($this->info && $this->info->ingaz_to) {
-            return now()->diffInDays($this->info->ingaz_to, false);
+            //  return now()->diffInDays($this->info->ingaz_to, false);
+            return now()->startOfDay()->diffInDays(\Carbon\Carbon::parse($this->info->ingaz_to)->startOfDay(), false);
         }
         return null;
     }
