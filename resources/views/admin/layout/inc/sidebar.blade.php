@@ -994,37 +994,6 @@
                                     </ul>
                                 </li>
                             @endif
-                            @if ($canViewCommissions)
-                                <li class="{{ request()->routeIs('commissions.*') ? '' : 'collapsed' }}">
-                                    <a class="m-link {{ request()->routeIs('commissions.*') ? 'active' : '' }}"
-                                       data-bs-toggle="collapse" data-bs-target="#commissions_menu" href="#">
-                                        <i class="fa fa-percent"></i>
-                                        <span class="ms-2">نظام العمولات</span>
-                                        <span class="arrow fa fa-angle-left ms-auto text-end"></span>
-                                    </a>
-                                    <ul class="sub-menu collapse {{ request()->routeIs('commissions.*') ? 'show' : '' }}"
-                                        id="commissions_menu">
-                                        @if(@AdminGuardHasAnyPerm([\App\PermKeys::COMMISSIONS_VIEW, \App\PermKeys::COMMISSIONS_CALCULATE, \App\PermKeys::COMMISSIONS_PAY]))
-                                        <li>
-                                            <a class="m-link {{ request()->routeIs('commissions.marketers.*') ? 'active' : '' }}"
-                                               href="{{ route('commissions.marketers.index') }}">
-                                                <i class="fa fa-arrow-left"></i>
-                                                <span class="ms-2">المسوّقون والأرصدة</span>
-                                            </a>
-                                        </li>
-                                        @endif
-                                        @if(@AdminGuardHasPerm(\App\PermKeys::COMMISSIONS_SETTINGS))
-                                        <li>
-                                            <a class="m-link {{ request()->routeIs('commissions.settings.*') ? 'active' : '' }}"
-                                               href="{{ route('commissions.settings.index') }}">
-                                                <i class="fa fa-arrow-left"></i>
-                                                <span class="ms-2">إعدادات العمولات</span>
-                                            </a>
-                                        </li>
-                                        @endif
-                                    </ul>
-                                </li>
-                            @endif
                             <!-- طلبات استرجاع العقود -->
                             {{--                        <li class="collapsed"> --}}
                             {{--                            <a class="m-link" data-bs-toggle="collapse" data-bs-target="#returnRequestsMenu" href="#"> --}}
@@ -1053,6 +1022,39 @@
                             <!-- Content Management Section -->
                             {{-- <li class="divider py-2 lh-sm"><span class="small">إدارة المحتوى</span></li> --}}
                             <!-- Website Management Section -->
+                        </ul>
+                    </li>
+                @endif
+
+                <!-- DEBUG_COMMISSIONS: {{ $canViewCommissions ? 'true' : 'false' }} | admin={{ auth('admin')->id() }} -->
+                @if ($canViewCommissions)
+                    <li class="{{ request()->routeIs('commissions.*') ? '' : 'collapsed' }}">
+                        <a class="m-link {{ request()->routeIs('commissions.*') ? 'active' : '' }}"
+                           data-bs-toggle="collapse" data-bs-target="#commissions_menu" href="#">
+                            <i class="fa fa-percent me-2"></i>
+                            <span class="ms-2">نظام العمولات</span>
+                            <span class="arrow fa fa-angle-left ms-auto text-end"></span>
+                        </a>
+                        <ul class="sub-menu collapse {{ request()->routeIs('commissions.*') ? 'show' : '' }}"
+                            id="commissions_menu">
+                            @if(@AdminGuardHasAnyPerm([\App\PermKeys::COMMISSIONS_VIEW, \App\PermKeys::COMMISSIONS_CALCULATE, \App\PermKeys::COMMISSIONS_PAY]))
+                            <li>
+                                <a class="m-link {{ request()->routeIs('commissions.marketers.*') ? 'active' : '' }}"
+                                   href="{{ route('commissions.marketers.index') }}">
+                                    <i class="fa fa-arrow-left"></i>
+                                    <span class="ms-2">المسوّقون والأرصدة</span>
+                                </a>
+                            </li>
+                            @endif
+                            @if(@AdminGuardHasPerm(\App\PermKeys::COMMISSIONS_SETTINGS))
+                            <li>
+                                <a class="m-link {{ request()->routeIs('commissions.settings.*') ? 'active' : '' }}"
+                                   href="{{ route('commissions.settings.index') }}">
+                                    <i class="fa fa-arrow-left"></i>
+                                    <span class="ms-2">إعدادات العمولات</span>
+                                </a>
+                            </li>
+                            @endif
                         </ul>
                     </li>
                 @endif
