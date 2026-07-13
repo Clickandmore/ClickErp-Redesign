@@ -1026,16 +1026,15 @@
                     </li>
                 @endif
 
-                <!-- DEBUG_COMMISSIONS: {{ $canViewCommissions ? 'true' : 'false' }} | admin={{ auth('admin')->id() }} -->
                 @if ($canViewCommissions)
-                    <li class="{{ request()->routeIs('commissions.*') ? '' : 'collapsed' }}">
-                        <a class="m-link {{ request()->routeIs('commissions.*') ? 'active' : '' }}"
-                           data-bs-toggle="collapse" data-bs-target="#commissions_menu" href="#">
+                    @php $isCommissions = request()->routeIs('commissions.*'); @endphp
+                    <li class="sidebar-module sidebar-module--commissions {{ $isCommissions ? '' : 'collapsed' }}">
+                        <a class="m-link" data-bs-toggle="collapse" data-bs-target="#commissions_menu" href="#">
                             <i class="fa fa-percent me-2"></i>
                             <span class="ms-2">نظام العمولات</span>
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
-                        <ul class="sub-menu collapse {{ request()->routeIs('commissions.*') ? 'show' : '' }}"
+                        <ul class="sub-menu collapse {{ $isCommissions ? 'show' : '' }}"
                             id="commissions_menu">
                             @if(@AdminGuardHasAnyPerm([\App\PermKeys::COMMISSIONS_VIEW, \App\PermKeys::COMMISSIONS_CALCULATE, \App\PermKeys::COMMISSIONS_PAY]))
                             <li>
