@@ -77,8 +77,7 @@ class OrderController extends Controller
 
             // Apply status filter
             if ($request->has('status') && $request->status != '') {
-                $statusFilter = $this->getSelectedStatus($request->status);
-                $query->whereIn('status', $statusFilter);
+                $this->applyEffectiveStatusFilter($query, $request->status);
             }
 
             // Apply date range filter
@@ -173,9 +172,9 @@ class OrderController extends Controller
                     return $row->created_at->format('Y-m-d H:i:s');
                 })
                 ->editColumn('status', function ($row) {
-                    $statusHtml = $this->getStatusHtml($row->status);
+                    $statusHtml = $this->getStatusHtml($this->effectiveOrderStatus($row));
 
-                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT)) {
+                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT) && !$this->isCompletedOrder($row)) {
                         $statusHtml .= ' <button type="button" class="edit-status" data-id="' . $row->id . '" title="تعديل الحالة">
                                 <i class="fa fa-pen"></i>
                             </button>';
@@ -268,8 +267,8 @@ class OrderController extends Controller
                     }
 
 
-                    // Edit status button (show for all orders)
-                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT)) {
+                    // A linked contract makes the order complete and locks its status.
+                    if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT) && !$isCompletedOrder) {
                         $actions .= '<li><button class="dropdown-item edit-status" data-id="' . $row->id . '">
                             <i class="fa fa-edit"></i> تعديل الحالة
                         </button></li>';
@@ -356,26 +355,30 @@ class OrderController extends Controller
             OrderEnum::CanceledBySystem->value,
         ];
 
-        // Get statistics with optimized queries (cache for 1 minute) - Recruitment orders only
-        $data['totalOrders'] = \Cache::remember('recruitment_orders_count', 60, function () {
-            return objModel::where('job_type_id', 1)->count();
-        });
+        // Use the same branch scope as the DataTable so the summary cards always
+        // describe the records that the current admin can actually see.
+        $statisticsQuery = objModel::query()->where('job_type_id', 1);
+        $this->applyRequestBranchFilter($statisticsQuery, $request, 'orders');
 
-        $data['newOrders'] = \Cache::remember('recruitment_new_orders_count', 60, function () {
-            return objModel::where('job_type_id', 1)->where('status', OrderEnum::New->value)->count();
-        });
-
-        $data['underProcessOrders'] = \Cache::remember('recruitment_under_process_orders_count', 60, function () {
-            return objModel::where('job_type_id', 1)->where('status', OrderEnum::UnderProcess->value)->count();
-        });
-
-        $data['completedOrders'] = \Cache::remember('recruitment_completed_orders_count', 60, function () use ($completedStatuses) {
-            return objModel::where('job_type_id', 1)->whereIn('status', $completedStatuses)->count();
-        });
-
-        $data['notCompletedOrders'] = \Cache::remember('recruitment_not_completed_orders_count', 60, function () use ($notCompletedStatuses) {
-            return objModel::where('job_type_id', 1)->whereIn('status', $notCompletedStatuses)->count();
-        });
+        $data['totalOrders'] = (clone $statisticsQuery)->count();
+        $data['newOrders'] = (clone $statisticsQuery)
+            ->where('status', OrderEnum::New->value)
+            ->whereDoesntHave('contracts')
+            ->count();
+        $data['underProcessOrders'] = (clone $statisticsQuery)
+            ->where('status', OrderEnum::UnderProcess->value)
+            ->whereDoesntHave('contracts')
+            ->count();
+        $data['completedOrders'] = (clone $statisticsQuery)
+            ->where(function ($query) use ($completedStatuses) {
+                $query->whereIn('status', $completedStatuses)
+                    ->orWhereHas('contracts');
+            })
+            ->count();
+        $data['notCompletedOrders'] = (clone $statisticsQuery)
+            ->whereIn('status', $notCompletedStatuses)
+            ->whereDoesntHave('contracts')
+            ->count();
 
         return view($this->folderPath . '.index', $data);
     }
@@ -432,9 +435,9 @@ class OrderController extends Controller
         ]);
     }
 
-    private function getSelectedStatus($status)
+    private function applyEffectiveStatusFilter($query, string $status): void
     {
-        return match ($status) {
+        $selectedStatuses = match ($status) {
             'current' => [OrderEnum::New->value, OrderEnum::UnderProcess->value],
             'ended', 'completed' => [
                 OrderEnum::Completed->value,
@@ -447,6 +450,18 @@ class OrderController extends Controller
                 ? [$status]
                 : array_map(fn($case) => $case->value, OrderEnum::cases()),
         };
+
+        if (in_array($status, ['ended', 'completed'], true)) {
+            $query->where(function ($query) use ($selectedStatuses) {
+                $query->whereIn('status', $selectedStatuses)
+                    ->orWhereHas('contracts');
+            });
+
+            return;
+        }
+
+        $query->whereIn('status', $selectedStatuses)
+            ->whereDoesntHave('contracts');
     }
 
     private function normalizeSaudiPhone(string $phone): ?string
@@ -471,10 +486,17 @@ class OrderController extends Controller
 
     private function isCompletedOrder(Order $order): bool
     {
-        return in_array($order->status, [
+        return $this->hasRecruitmentContract($order) || in_array($order->status, [
             OrderEnum::Completed->value,
             OrderEnum::Done->value,
         ], true);
+    }
+
+    private function effectiveOrderStatus(Order $order): string
+    {
+        return $this->hasRecruitmentContract($order)
+            ? OrderEnum::Completed->value
+            : $order->status;
     }
 
     private function completedOrderLockedResponse()

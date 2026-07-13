@@ -73,6 +73,10 @@ class IngazDelegationController extends Controller
             $query->where('client_source_type', $request->client_source_type);
         }
 
+        if ($request->filled('marketer_id')) {
+            $query->where('marketer_id', (int) $request->marketer_id);
+        }
+
         if ($request->filled('from_date')) {
             $query->whereDate('delegation_date_gregorian', '>=', $request->from_date);
         }

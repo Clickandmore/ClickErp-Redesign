@@ -249,6 +249,22 @@
     min-width: 0;
 }
 
+.stat-card.is-clickable {
+    cursor: pointer;
+}
+
+.stat-card.is-clickable:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--stat-accent-from) 55%, #ffffff);
+    outline-offset: 3px;
+}
+
+.stat-icon-action {
+    position: absolute;
+    top: 76px;
+    inset-inline-end: 16px;
+    z-index: 3;
+}
+
 .stat-card::before {
     content: "";
     position: absolute;
@@ -402,7 +418,8 @@
     gap: 8px;
 }
 
-.stat-chip-list span {
+.stat-chip-list span,
+.stat-chip-list a {
     display: inline-flex;
     align-items: center;
     max-width: 100%;
@@ -691,6 +708,12 @@
 .operations-column-head small {
     color: var(--muted);
     font-size: 12px;
+    text-decoration: none;
+}
+
+.stat-chip-list a:hover {
+    border-color: var(--stat-accent-from);
+    color: var(--text);
 }
 
 .mini-operation-card {

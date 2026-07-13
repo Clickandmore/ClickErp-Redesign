@@ -1,7 +1,7 @@
 @extends('admin.layout.indexs.index')
 
 @section('style')
-    <link rel="stylesheet" href="{{ asset('admin/assets/css/dashboard-new.css') }}?v=14">
+    <link rel="stylesheet" href="{{ asset('admin/assets/css/dashboard-new.css') }}?v=15">
     <link rel="stylesheet" href="{{ asset('admin/assets/cssbundle/fullcalendar.min.css') }}">
 @endsection
 
@@ -72,23 +72,32 @@
             true,
         );
         $canViewCvCard = $canViewDashboardSection(\App\PermKeys::DASHBOARD_CV_COUNT, [], true);
-        $canViewCompletedCvCard = $canViewDashboardSection(\App\PermKeys::DASHBOARD_COMPLETED_CV_COUNT, [], true);
         $canViewClientsCard = $canViewDashboardSection(\App\PermKeys::DASHBOARD_CLIENTS_COUNT, [], true);
-        $canViewContactsCard = $canViewDashboardSection(\App\PermKeys::DASHBOARD_CONTACTS_COUNT, [], true);
-        $canViewTopStatsRow =
-            $canViewRecruitmentOrdersCard ||
-            $canViewRecruitmentContractsCard ||
-            $canViewCvCard ||
-            $canViewCompletedCvCard ||
-            $canViewClientsCard ||
-            $canViewContactsCard;
-
         $canViewRentalContractsCard = $canViewDashboardSection(
             \App\PermKeys::DASHBOARD_RENTAL_CONTRACTS_COUNT,
             [\App\PermKeys::RENT_CONTRACT_VIEW],
             true,
         );
+        $canViewRentalMaidsCard = $canViewDashboardSection(\App\PermKeys::MAIDS_RENTAL_VIEW, [], true);
+        $canViewTopStatsRow =
+            $canViewRecruitmentOrdersCard ||
+            $canViewRecruitmentContractsCard ||
+            $canViewCvCard ||
+            $canViewRentalContractsCard ||
+            $canViewClientsCard ||
+            $canViewRentalMaidsCard;
+
         $canViewRentalOrdersCard = $canViewDashboardSection(\App\PermKeys::DASHBOARD_RENTAL_ORDERS_COUNT, [], true);
+        $canViewRequestGenderCard = $canViewDashboardSection(
+            \App\PermKeys::DASHBOARD_ORDERS_TYPES,
+            [\App\PermKeys::INGAZ_DELEGATIONS_VIEW],
+            true,
+        );
+        $canViewComplaintsCard = $canViewDashboardSection(
+            \App\PermKeys::COMPLAINT_VIEW,
+            [\App\PermKeys::COMPLAINT_CONTROL],
+            true,
+        );
         $canViewSponsorshipTransfersCard = $canViewDashboardSection(
             \App\PermKeys::DASHBOARD_SPONSORSHIP_TRANSFERS_COUNT,
             [\App\PermKeys::SPONSOR_TRANSFER_VIEW],
@@ -101,8 +110,9 @@
         );
         $canViewShelterCard = $canViewDashboardSection(\App\PermKeys::DASHBOARD_SHELTER_COUNT, [], true);
         $canViewSecondStatsRow =
-            $canViewRentalContractsCard ||
             $canViewRentalOrdersCard ||
+            $canViewRequestGenderCard ||
+            $canViewComplaintsCard ||
             $canViewSponsorshipTransfersCard ||
             $canViewSponsorshipTransferRequestsCard ||
             $canViewShelterCard;
@@ -264,43 +274,15 @@
 
         @if ($canViewTopStatsRow)
             <div class="stat-row">
-                @if ($canViewRecruitmentOrdersCard)
-                    <div class="stat-card is-1">
-                        <div class="stat-card-icon"><i class="fas fa-shopping-cart"></i></div>
-                        <div class="stat-head d-flex justify-content-between align-items-center">
-                            <div>
-                                <small class="stat-label">{{ __('admin.dashboard_new.recruitment_orders') }}</small>
-                                <h3 class="mb-0">{{ number_format($ordersStats['total'] ?? 0) }}</h3>
-                            </div>
-                            <a href="{{ route('orders.index', $dashboardBranchQuery) }}" class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
-                        </div>
-                        <div class="mt-3 stat-meta">{{ __('admin.dashboard_new.new') }}: {{ number_format($ordersStats['new'] ?? 0) }} | {{ __('admin.dashboard_new.under_process') }}:
-                            {{ number_format($ordersStats['under_process'] ?? 0) }} | {{ __('admin.dashboard_new.contracted') }}:
-                            {{ number_format($ordersStats['contracted'] ?? 0) }}</div>
-                        <div class="progress mt-2" style="height:6px;">
-                            @php $orderTotal = max($ordersStats['total'] ?? 1, 1); @endphp
-                            <div class="progress-bar bg-success"
-                                style="width: {{ round((($ordersStats['contracted'] ?? 0) / $orderTotal) * 100) }}%"></div>
-                            <div class="progress-bar bg-warning"
-                                style="width: {{ round((($ordersStats['under_process'] ?? 0) / $orderTotal) * 100) }}%">
-                            </div>
-                        </div>
-                    </div>
-                @endif
-
                 @if ($canViewRecruitmentContractsCard)
-                    <div class="stat-card is-2">
+                    <div class="stat-card is-1" style="order: 1;">
                         <div class="stat-card-icon"><i class="fas fa-handshake"></i></div>
                         <div class="stat-head d-flex justify-content-between align-items-center">
                             <div>
-                                <small class="stat-label">{{ __('admin.dashboard_new.recruitment_contracts_this_month') }}</small>
+                                <small class="stat-label">{{ __('admin.dashboard_new.recruitment_contracts') }}</small>
                                 <h3 class="mb-0">{{ number_format($contractsStats['total'] ?? 0) }}</h3>
                             </div>
-                            <a href="{{ route('RecruitmentContract.index', $withDashboardBranch([
-                                'date_from' => $contractMonthStartDate ?? now()->startOfMonth()->toDateString(),
-                                'date_to' => $contractMonthEndDate ?? now()->endOfMonth()->toDateString(),
-                                'exclude_back' => 1,
-                            ])) }}"
+                            <a href="{{ route('RecruitmentContract.index', $dashboardBranchQuery) }}"
                                 class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
                         </div>
                         <div class="mt-3 stat-meta">{{ __('admin.dashboard_new.pre_arrival') }}: {{ number_format($contractsPipeline['pre_arrival'] ?? 0) }}
@@ -318,8 +300,43 @@
                     </div>
                 @endif
 
+                @if ($canViewRecruitmentOrdersCard)
+                    <div class="stat-card is-2" style="order: 2;">
+                        <div class="stat-card-icon"><i class="fas fa-shopping-cart"></i></div>
+                        <div class="stat-head d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="stat-label">{{ __('admin.dashboard_new.recruitment_orders') }}</small>
+                                <h3 class="mb-0">{{ number_format($ordersStats['total'] ?? 0) }}</h3>
+                            </div>
+                            <a href="{{ route('orders.index', $dashboardBranchQuery) }}" class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
+                        </div>
+                        <div class="stat-chip-list mt-3">
+                            <a href="{{ route('orders.index', $withDashboardBranch(['status' => \App\Enums\ingaz\OrderEnum::New->value])) }}">
+                                {{ __('admin.dashboard_new.new') }}: {{ number_format($ordersStats['new'] ?? 0) }}
+                            </a>
+                            <a href="{{ route('orders.index', $withDashboardBranch(['status' => \App\Enums\ingaz\OrderEnum::UnderProcess->value])) }}">
+                                {{ __('admin.dashboard_new.under_process') }}: {{ number_format($ordersStats['under_process'] ?? 0) }}
+                            </a>
+                            <a href="{{ route('orders.index', $withDashboardBranch(['status' => 'completed'])) }}">
+                                {{ __('admin.dashboard_new.completed') }}: {{ number_format($ordersStats['completed'] ?? 0) }}
+                            </a>
+                            <a href="{{ route('orders.index', $withDashboardBranch(['status' => 'not_completed'])) }}">
+                                {{ __('admin.dashboard_new.canceled') }}: {{ number_format($ordersStats['canceled'] ?? 0) }}
+                            </a>
+                        </div>
+                        <div class="progress mt-2" style="height:6px;">
+                            @php $orderTotal = max($ordersStats['total'] ?? 1, 1); @endphp
+                            <div class="progress-bar bg-success"
+                                style="width: {{ round((($ordersStats['contracted'] ?? 0) / $orderTotal) * 100) }}%"></div>
+                            <div class="progress-bar bg-warning"
+                                style="width: {{ round((($ordersStats['under_process'] ?? 0) / $orderTotal) * 100) }}%">
+                            </div>
+                        </div>
+                    </div>
+                @endif
+
                 @if ($canViewCvCard)
-                    <div class="stat-card is-3">
+                    <div class="stat-card is-3" style="order: 5;">
                         <div class="stat-card-icon"><i class="fas fa-id-card-alt"></i></div>
                         <div class="stat-head d-flex justify-content-between align-items-center">
                             <div>
@@ -340,28 +357,28 @@
                     </div>
                 @endif
 
-                @if ($canViewCompletedCvCard)
-                    <div class="stat-card is-3">
-                        <div class="stat-card-icon"><i class="fas fa-check-circle"></i></div>
+                @if ($canViewRentalContractsCard)
+                    <div class="stat-card is-3" style="order: 3;">
+                        <div class="stat-card-icon"><i class="fas fa-home"></i></div>
                         <div class="stat-head d-flex justify-content-between align-items-center">
                             <div>
-                                <small class="stat-label">{{ __('admin.dashboard_new.completed_cvs') }}</small>
-                                <h3 class="mb-0">{{ number_format($cvStats['completed'] ?? 0) }}</h3>
+                                <small class="stat-label">{{ __('admin.dashboard_new.rental_contracts') }}</small>
+                                <h3 class="mb-0">{{ number_format($rentalStats['total'] ?? 0) }}</h3>
                             </div>
-                            <a href="{{ url('admin/maids') }}" class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
+                            <a href="{{ route('RentContract.index', $dashboardBranchQuery) }}" class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
                         </div>
-                        <div class="mt-3 stat-meta">{{ __('admin.dashboard_new.total_cvs') }}: {{ number_format($cvStats['total'] ?? 0) }} | {{ __('admin.dashboard_new.available') }}:
-                            {{ number_format($cvStats['available'] ?? 0) }}</div>
-                        <div class="progress mt-2" style="height:6px;">
-                            @php $completedCvTotal = max($cvStats['total'] ?? 1, 1); @endphp
-                            <div class="progress-bar bg-success"
-                                style="width: {{ round((($cvStats['completed'] ?? 0) / $completedCvTotal) * 100) }}%"></div>
+                        <div class="stat-chip-list mt-3">
+                            <span>{{ __('admin.dashboard_new.active') }}: {{ number_format($rentalStats['active'] ?? 0) }}</span>
+                            <span>{{ __('admin.dashboard_new.sent') }}: {{ number_format($rentalStats['sent'] ?? 0) }}</span>
+                            <span>{{ __('admin.dashboard_new.signed') }}: {{ number_format($rentalStats['signed'] ?? 0) }}</span>
+                            <span>{{ __('admin.dashboard_new.delivered') }}: {{ number_format($rentalStats['delivered'] ?? 0) }}</span>
+                            <span>{{ __('admin.dashboard_new.completed') }}: {{ number_format($rentalStats['completed'] ?? 0) }}</span>
                         </div>
                     </div>
                 @endif
 
                 @if ($canViewClientsCard)
-                    <div class="stat-card is-4">
+                    <div class="stat-card is-4" style="order: 6;">
                         <div class="stat-card-icon"><i class="fas fa-users"></i></div>
                         <div class="stat-head d-flex justify-content-between align-items-center">
                             <div>
@@ -382,17 +399,20 @@
                     </div>
                 @endif
 
-                @if ($canViewContactsCard)
-                    <div class="stat-card is-4">
-                        <div class="stat-card-icon"><i class="fas fa-envelope"></i></div>
+                @if ($canViewRentalMaidsCard)
+                    <div class="stat-card is-4" style="order: 4;">
+                        <div class="stat-card-icon"><i class="fas fa-female"></i></div>
                         <div class="stat-head d-flex justify-content-between align-items-center">
                             <div>
-                                <small class="stat-label">{{ __('admin.dashboard_new.contact_messages') }}</small>
-                                <h3 class="mb-0">{{ number_format($contactsStats['total'] ?? 0) }}</h3>
+                                <small class="stat-label">{{ __('admin.dashboard_new.rental_maids') }}</small>
+                                <h3 class="mb-0">{{ number_format($rentalMaidStats['total'] ?? 0) }}</h3>
                             </div>
-                            <a href="{{ route('contact.index') }}" class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
+                            <a href="{{ route('maids.rental.index') }}" class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
                         </div>
-                        <div class="mt-3 stat-meta">{{ __('admin.dashboard_new.contact_messages_hint') }}</div>
+                        <div class="mt-3 stat-meta">
+                            {{ __('admin.dashboard_new.available') }}: {{ number_format($rentalMaidStats['available'] ?? 0) }} |
+                            {{ __('admin.dashboard_new.in_rental') }}: {{ number_format($rentalMaidStats['in_rental'] ?? 0) }}
+                        </div>
                     </div>
                 @endif
             </div>
@@ -650,38 +670,16 @@
 
         @if ($canViewSecondStatsRow)
             <div class="stat-row mt-3">
-                @if ($canViewRentalContractsCard)
-                    <div class="stat-card is-5">
-                        <div class="stat-card-icon"><i class="fas fa-home"></i></div>
-                        <div class="stat-head d-flex justify-content-between align-items-center">
-                            <div>
-                                <small class="stat-label">{{ __('admin.dashboard_new.rental_contracts') }}</small>
-                                <h3 class="mb-0">{{ number_format($rentalStats['total'] ?? 0) }}</h3>
-                            </div>
-                            <a href="{{ route('RentContract.index', $dashboardBranchQuery) }}" class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
-                        </div>
-                        <div class="stat-chip-list mt-3">
-                            <span>{{ __('admin.dashboard_new.active') }}: {{ number_format($rentalStats['active'] ?? 0) }}</span>
-                            <span>{{ __('admin.dashboard_new.sent') }}: {{ number_format($rentalStats['sent'] ?? 0) }}</span>
-                            <span>{{ __('admin.dashboard_new.signed') }}: {{ number_format($rentalStats['signed'] ?? 0) }}</span>
-                            <span>{{ __('admin.dashboard_new.delivered') }}: {{ number_format($rentalStats['delivered'] ?? 0) }}</span>
-                            <span>{{ __('admin.dashboard_new.completed') }}: {{ number_format($rentalStats['completed'] ?? 0) }}</span>
-                        </div>
-                        <a href="{{ route('finance.home.index', $dashboardBranchQuery) }}" class="stat-meta stat-link d-inline-block mt-2">
-                            {{ __('admin.dashboard_new.rental_finance_details') }} <i class="fas fa-arrow-left ms-1"></i>
-                        </a>
-                    </div>
-                @endif
-
                 @if ($canViewRentalOrdersCard)
                     <div class="stat-card is-6">
                         <div class="stat-card-icon"><i class="fas fa-clipboard-list"></i></div>
+                        <a href="{{ route('rental-orders.index', $dashboardBranchQuery) }}"
+                            class="btn btn-sm btn-light text-dark stat-icon-action">{{ __('admin.dashboard_new.view') }}</a>
                         <div class="stat-head d-flex justify-content-between align-items-center">
                             <div>
                                 <small class="stat-label">{{ __('admin.dashboard_new.rental_orders') }}</small>
                                 <h3 class="mb-0">{{ number_format($rentalOrderStats['total'] ?? 0) }}</h3>
                             </div>
-                            <a href="{{ route('rental-orders.index', $dashboardBranchQuery) }}" class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
                         </div>
                         <div class="mt-3 stat-meta">{{ __('admin.dashboard_new.new') }}: {{ number_format($rentalOrderStats['new'] ?? 0) }} | {{ __('admin.dashboard_new.under_process') }}:
                             {{ number_format($rentalOrderStats['under_process'] ?? 0) }} | {{ __('admin.dashboard_new.completed') }}:
@@ -689,6 +687,47 @@
                         <a href="{{ route('RentContract.index', $dashboardBranchQuery) }}" class="stat-meta stat-link d-inline-block mt-2">
                             {{ __('admin.dashboard_new.convert_to_rental_contract') }} <i class="fas fa-arrow-left ms-1"></i>
                         </a>
+                    </div>
+                @endif
+
+                @if ($canViewRequestGenderCard)
+                    <div class="stat-card is-3">
+                        <div class="stat-card-icon"><i class="fas fa-venus-mars"></i></div>
+                        <div class="stat-head d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="stat-label">{{ __('admin.dashboard_new.requests_by_gender') }}</small>
+                                <h3 class="mb-0">{{ number_format($requestGenderStats['total'] ?? 0) }}</h3>
+                            </div>
+                            <a href="{{ route('orders.index', $dashboardBranchQuery) }}"
+                                class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
+                        </div>
+                        <div class="stat-chip-list mt-3">
+                            <span>{{ __('admin.dashboard_new.male') }}: {{ number_format($requestGenderStats['male'] ?? 0) }}</span>
+                            <span>{{ __('admin.dashboard_new.female') }}: {{ number_format($requestGenderStats['female'] ?? 0) }}</span>
+                            <span>{{ __('admin.dashboard_new.unspecified') }}: {{ number_format($requestGenderStats['unknown'] ?? 0) }}</span>
+                        </div>
+                        <a href="{{ route('ingaz-delegations.index', $dashboardBranchQuery) }}" class="stat-meta stat-link d-inline-block mt-2">
+                            {{ __('admin.dashboard_new.includes_ingaz_delegations') }} <i class="fas fa-arrow-left ms-1"></i>
+                        </a>
+                    </div>
+                @endif
+
+                @if ($canViewComplaintsCard)
+                    <div class="stat-card is-4">
+                        <div class="stat-card-icon"><i class="fas fa-headset"></i></div>
+                        <div class="stat-head d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="stat-label">{{ __('admin.dashboard_new.complaints') }}</small>
+                                <h3 class="mb-0">{{ number_format($complaintStats['total'] ?? 0) }}</h3>
+                            </div>
+                            <a href="{{ route('complaints.index', $dashboardBranchQuery) }}"
+                                class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
+                        </div>
+                        <div class="stat-chip-list mt-3">
+                            <span>{{ __('admin.dashboard_new.total') }}: {{ number_format($complaintStats['total'] ?? 0) }}</span>
+                            <span>{{ __('admin.dashboard_new.open') }}: {{ number_format($complaintStats['open'] ?? 0) }}</span>
+                            <span>{{ __('admin.dashboard_new.closed') }}: {{ number_format($complaintStats['closed'] ?? 0) }}</span>
+                        </div>
                     </div>
                 @endif
 
@@ -1233,15 +1272,15 @@
                             <div class="panel-head">
                                 <div>
                                     <p class="section-eyebrow">{{ __('admin.dashboard_new.staff') }}</p>
-                                    <h4 class="mb-0">{{ __('admin.dashboard_new.employee_bookings_contracts') }}</h4>
+                                    <h4 class="mb-0">{{ __('admin.dashboard_new.employee_delegations_contracts') }}</h4>
                                 </div>
                                 <a href="{{ route('admins.index', $dashboardBranchQuery) }}" class="btn btn-outline-primary btn-sm">{{ __('admin.dashboard_new.manage') }}</a>
                             </div>
                             <div class="employee-summary-row">
                                 <span class="employee-summary-pill">{{ __('admin.dashboard_new.active_employees') }}:
                                     {{ number_format($employeeBookingSummary['employees_with_activity'] ?? 0) }}</span>
-                                <span class="employee-summary-pill">{{ __('admin.dashboard_new.bookings') }}:
-                                    {{ number_format($employeeBookingSummary['orders_total'] ?? 0) }}</span>
+                                <span class="employee-summary-pill">{{ __('admin.dashboard_new.ingaz_delegations') }}:
+                                    {{ number_format($employeeBookingSummary['delegations_total'] ?? 0) }}</span>
                                 <span class="employee-summary-pill">{{ __('admin.dashboard_new.contracts') }}:
                                     {{ number_format($employeeBookingSummary['contracts_total'] ?? 0) }}</span>
                             </div>
@@ -1258,16 +1297,12 @@
                                                 {{ __('admin.dashboard_new.followups') }}</span>
                                         </div>
                                         <div class="employee-performance-metrics">
-                                            <span class="employee-metric-chip chip-orders">{{ __('admin.dashboard_new.bookings') }}:
-                                                {{ number_format((int) $emp->orders_count) }}</span>
-                                            <span class="employee-metric-chip">{{ __('admin.dashboard_new.new') }}:
-                                                {{ number_format((int) $emp->orders_new) }}</span>
+                                            <span class="employee-metric-chip chip-orders">{{ __('admin.dashboard_new.ingaz_delegations') }}:
+                                                {{ number_format((int) $emp->delegations_count) }}</span>
                                             <span class="employee-metric-chip">{{ __('admin.dashboard_new.under_process') }}:
-                                                {{ number_format((int) $emp->orders_under_process) }}</span>
-                                            <span class="employee-metric-chip">{{ __('admin.dashboard_new.contracted') }}:
-                                                {{ number_format((int) $emp->orders_contracted) }}</span>
-                                            <span class="employee-metric-chip">{{ __('admin.dashboard_new.closed') }}:
-                                                {{ number_format((int) $emp->orders_completed) }}</span>
+                                                {{ number_format((int) $emp->delegations_under_process) }}</span>
+                                            <span class="employee-metric-chip">{{ __('admin.dashboard_new.executed') }}:
+                                                {{ number_format((int) $emp->delegations_executed) }}</span>
                                             <span class="employee-metric-chip chip-contracts">{{ __('admin.dashboard_new.contracts') }}:
                                                 {{ number_format((int) $emp->contracts_count) }}</span>
                                             <span class="employee-metric-chip">{{ __('admin.dashboard_new.current') }}:
@@ -1278,13 +1313,11 @@
                                                 {{ number_format((int) $emp->contracts_returned) }}</span>
                                         </div>
                                         <div class="employee-performance-footer">
-                                            <small>{{ __('admin.dashboard_new.conversion_rate_from_bookings') }}:
-                                                {{ number_format((int) ($emp->conversion_rate ?? 0)) }}%</small>
+                                            <small>{{ __('admin.dashboard_new.delegation_execution_rate') }}:
+                                                {{ number_format((int) ($emp->execution_rate ?? 0)) }}%</small>
                                             <div class="employee-performance-actions">
-                                                <a href="{{ route('dashboard.employees.show', $withDashboardBranch(['employee' => $emp->id, 'range' => 'all'])) }}"
-                                                    class="btn btn-primary btn-sm">{{ __('admin.dashboard_new.analytics_profile') }}</a>
-                                                <a href="{{ route('orders.index', $withDashboardBranch(['admin_id' => $emp->id])) }}"
-                                                    class="btn btn-outline-primary btn-sm">{{ __('admin.dashboard_new.bookings') }}</a>
+                                                <a href="{{ route('ingaz-delegations.index', $withDashboardBranch(['marketer_id' => $emp->id])) }}"
+                                                    class="btn btn-primary btn-sm">{{ __('admin.dashboard_new.ingaz_delegations') }}</a>
                                                 <a href="{{ route('RecruitmentContract.index', $withDashboardBranch(['marketer_id' => $emp->id])) }}"
                                                     class="btn btn-outline-success btn-sm">{{ __('admin.dashboard_new.contracts') }}</a>
                                             </div>
@@ -1304,6 +1337,26 @@
 @section('js')
     <script>
         $(document).ready(function() {
+            document.querySelectorAll('.stat-card').forEach((card) => {
+                const primaryLink = card.querySelector('.stat-head a[href], .stat-icon-action[href], a[href]');
+                if (!primaryLink) return;
+
+                card.classList.add('is-clickable');
+                card.setAttribute('role', 'link');
+                card.setAttribute('tabindex', '0');
+
+                const openCard = () => window.location.href = primaryLink.href;
+                card.addEventListener('click', (event) => {
+                    if (!event.target.closest('a, button, input, select, textarea')) openCard();
+                });
+                card.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        openCard();
+                    }
+                });
+            });
+
             const rootStyles = getComputedStyle(document.documentElement);
             const getCssVar = (name, fallback) => {
                 const value = rootStyles.getPropertyValue(name).trim();

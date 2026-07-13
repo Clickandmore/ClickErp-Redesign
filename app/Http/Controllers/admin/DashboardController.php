@@ -11,6 +11,8 @@ use App\PermKeys;
 use App\Models\Branch;
 use App\Models\auth\Admin;
 use App\Models\Contract;
+use App\Models\IngazDelegation;
+use App\Models\ingaz\Complaint;
 use App\Models\ingaz\JobType;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\Order;
@@ -98,16 +100,22 @@ class DashboardController extends Controller
                 ->selectRaw('SUM(CASE WHEN DATE(created_at) = ? THEN 1 ELSE 0 END) as today_total', [$todayDate])
                 ->selectRaw('SUM(CASE WHEN created_at BETWEEN ? AND ? THEN 1 ELSE 0 END) as week_total', [$weekStart, $weekEnd])
                 ->selectRaw('SUM(CASE WHEN MONTH(created_at) = ? AND YEAR(created_at) = ? THEN 1 ELSE 0 END) as month_total', [$currentMonth, $currentYear])
-                ->selectRaw('SUM(CASE WHEN status IN (?, ?, ?) THEN 1 ELSE 0 END) as completed_total', [
+                ->selectRaw('SUM(CASE WHEN status IN (?, ?, ?, ?) THEN 1 ELSE 0 END) as completed_total', [
                     OrderEnum::Completed->value,
                     OrderEnum::Done->value,
                     OrderEnum::Contracted->value,
+                    OrderEnum::ContractedWithoutContract->value,
                 ])
                 ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as new_total', [OrderEnum::New->value])
                 ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as under_process_total', [OrderEnum::UnderProcess->value])
                 ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as contracted_total', [OrderEnum::Contracted->value])
                 ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as contracted_without_total', [OrderEnum::ContractedWithoutContract->value])
                 ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as refused_total', [OrderEnum::Refused->value])
+                ->selectRaw('SUM(CASE WHEN status IN (?, ?, ?) THEN 1 ELSE 0 END) as canceled_total', [
+                    OrderEnum::Refused->value,
+                    OrderEnum::Return->value,
+                    OrderEnum::CanceledBySystem->value,
+                ])
                 ->first();
 
             return [
@@ -121,6 +129,7 @@ class DashboardController extends Controller
                 'contracted' => (int) ($row->contracted_total ?? 0),
                 'contracted_without' => (int) ($row->contracted_without_total ?? 0),
                 'refused' => (int) ($row->refused_total ?? 0),
+                'canceled' => (int) ($row->canceled_total ?? 0),
             ];
         };
 
@@ -140,9 +149,6 @@ class DashboardController extends Controller
             'total' => (int) ($cvAggregate->total ?? 0),
             'available' => (int) ($cvAggregate->available_total ?? 0),
             'booked' => (int) ($cvAggregate->booked_total ?? 0),
-            'completed' => Cache::remember('admin_dashboard.ordered_cv_count.v1', now()->addMinutes(5), function () use ($action) {
-                return $action->orderedCvCount();
-            }),
             'newThisWeek' => (int) ($cvAggregate->week_total ?? 0),
             'newThisMonth' => (int) ($cvAggregate->month_total ?? 0),
         ];
@@ -185,11 +191,54 @@ class DashboardController extends Controller
             'no_orders' => max(0, $clientTotal - $clientsWithOrders),
         ];
 
-        $contactsStats = [
-            'total' => $action->getContactsCount(),
+        // الإيجار ونقل الكفالة
+        $rentalMaidActiveContractStatuses = [
+            'new',
+            'waiting_contract_send',
+            'contract_sent',
+            'contract_signed',
+            'maid_delivered',
+            'active',
+            'transferred',
+            'suspended',
+            'frozen',
+        ];
+        $rentalMaidRecruitmentStatuses = array_merge(
+            self::CURRENT_RECRUITMENT_CONTRACT_STATUSES,
+            [ContractStatusEnum::Arrival->value]
+        );
+        $rentalMaidActiveOrderStatuses = [
+            OrderEnum::New->value,
+            OrderEnum::UnderProcess->value,
+            OrderEnum::Contracted->value,
+            OrderEnum::ContractedWithoutContract->value,
+        ];
+        $rentalMaidsQuery = Maid::query()->whereHas('jobTypes', function ($query) {
+            $query->where('job_type_id', 2);
+        });
+        $availableRentalMaidsQuery = (clone $rentalMaidsQuery)
+            ->where('available', true)
+            ->whereIn('status', ['available', 'completed'])
+            ->whereDoesntHave('contracts', function ($query) use ($rentalMaidRecruitmentStatuses) {
+                $query->whereIn('status', $rentalMaidRecruitmentStatuses);
+            })
+            ->whereDoesntHave('orders', function ($query) use ($rentalMaidActiveOrderStatuses) {
+                $query->whereIn('status', $rentalMaidActiveOrderStatuses);
+            })
+            ->whereDoesntHave('rentalContracts', function ($query) use ($rentalMaidActiveContractStatuses) {
+                $query->whereIn('status', $rentalMaidActiveContractStatuses);
+            });
+
+        $rentalMaidStats = [
+            'total' => (clone $rentalMaidsQuery)->count(),
+            'available' => $availableRentalMaidsQuery->count(),
+            'in_rental' => (clone $rentalMaidsQuery)
+                ->whereHas('rentalContracts', function ($query) use ($rentalMaidActiveContractStatuses) {
+                    $query->whereIn('status', $rentalMaidActiveContractStatuses);
+                })
+                ->count(),
         ];
 
-        // الإيجار ونقل الكفالة
         $rentalAggregateQuery = RentalContract::query();
         $this->applyDashboardBranchFilter($rentalAggregateQuery, $activeDashboardBranchId, 'rental_contracts.branch_id', 'rental_contracts');
         $rentalAggregate = $rentalAggregateQuery
@@ -248,6 +297,52 @@ class DashboardController extends Controller
             'new' => (int) ($transferWebAggregate->new_total ?? 0),
             'paid' => (int) ($transferWebAggregate->paid_total ?? 0),
             'completed' => (int) ($transferWebAggregate->completed_total ?? 0),
+        ];
+
+        $genderCaseExpression = "CASE
+            WHEN LOWER(TRIM(m.gender)) IN ('male', 'm', 'ذكر') THEN 'male'
+            WHEN LOWER(TRIM(m.gender)) IN ('female', 'f', 'أنثى', 'انثى') THEN 'female'
+            ELSE 'unknown'
+        END";
+
+        $recruitmentOrderGenderSource = DB::table('orders as gender_orders')
+            ->leftJoin('maids as m', 'm.id', '=', 'gender_orders.maid_id')
+            ->whereNull('gender_orders.deleted_at')
+            ->where('gender_orders.job_type_id', 1)
+            ->selectRaw($genderCaseExpression . ' as gender');
+        $this->applyDashboardBranchFilter($recruitmentOrderGenderSource, $activeDashboardBranchId, 'gender_orders.branch_id', 'orders');
+
+        $delegationGenderSource = DB::table('ingaz_delegations as gender_delegations')
+            ->leftJoin('maids as m', 'm.id', '=', 'gender_delegations.maid_id')
+            ->selectRaw($genderCaseExpression . ' as gender');
+        $this->applyDashboardBranchFilter($delegationGenderSource, $activeDashboardBranchId, 'gender_delegations.branch_id', 'ingaz_delegations');
+
+        $requestsByGender = DB::query()
+            ->fromSub($recruitmentOrderGenderSource->unionAll($delegationGenderSource), 'gender_requests')
+            ->select('gender')
+            ->selectRaw('COUNT(*) as total')
+            ->groupBy('gender')
+            ->pluck('total', 'gender');
+
+        $requestGenderStats = [
+            'total' => (int) $requestsByGender->sum(),
+            'male' => (int) ($requestsByGender['male'] ?? 0),
+            'female' => (int) ($requestsByGender['female'] ?? 0),
+            'unknown' => (int) ($requestsByGender['unknown'] ?? 0),
+        ];
+
+        $complaintsQuery = Complaint::query();
+        $this->applyDashboardBranchFilter($complaintsQuery, $activeDashboardBranchId, 'complaints.branch_id', 'complaints');
+        $complaintsAggregate = $complaintsQuery
+            ->selectRaw('COUNT(*) as total')
+            ->selectRaw("SUM(CASE WHEN status IN ('resolved', 'closed', 'rejected') OR closed_at IS NOT NULL OR source_status IN ('مغلقة', 'closed') THEN 0 ELSE 1 END) as open_total")
+            ->selectRaw("SUM(CASE WHEN status IN ('resolved', 'closed', 'rejected') OR closed_at IS NOT NULL OR source_status IN ('مغلقة', 'closed') THEN 1 ELSE 0 END) as closed_total")
+            ->first();
+
+        $complaintStats = [
+            'total' => (int) ($complaintsAggregate->total ?? 0),
+            'open' => (int) ($complaintsAggregate->open_total ?? 0),
+            'closed' => (int) ($complaintsAggregate->closed_total ?? 0),
         ];
 
         // حسب نوع الخدمة
@@ -378,7 +473,7 @@ class DashboardController extends Controller
         $contractAnalyticsCacheKey = implode('.', [
             'admin_dashboard',
             'contract_analytics',
-            'v4',
+            'v5',
             $dashboardLocale,
             $dashboardBranchCacheSuffix,
             $contractToday,
@@ -407,11 +502,7 @@ class DashboardController extends Controller
                 COALESCE(c.required_maid_nationality_id, m.nationality_id) as contract_nationality_id,
                 COALESCE(c.required_maid_job_title_id, mjt.job_title_id) as contract_profession_id
             ')
-            ->whereIn('c.type', self::RECRUITMENT_CONTRACT_TYPES)
-            ->where(function ($query) {
-                $query->whereNull('c.status')
-                    ->orWhere('c.status', '!=', ContractStatusEnum::Back->value);
-            });
+            ->whereIn('c.type', self::RECRUITMENT_CONTRACT_TYPES);
 
         $this->applyDashboardBranchFilter($contractAnalyticsBaseSource, $activeDashboardBranchId, 'c.branch_id', 'contracts');
 
@@ -511,18 +602,11 @@ class DashboardController extends Controller
                 ->count();
         };
 
-        $applyContractCurrentMonthScope = function ($query) use ($contractMonthStartDate, $contractMonthEndDate) {
-            return $query->whereBetween('contract_reference_date', [$contractMonthStartDate, $contractMonthEndDate]);
-        };
-
         $globalContractAnalyticsAggregateRow = Cache::remember($contractAnalyticsCacheKey . '.global_aggregate', now()->addMinutes(5), function () use (
             $buildContractAnalyticsAggregate,
-            $applyContractCurrentMonthScope,
             $contractAnalyticsBaseQuery
         ) {
-            return $buildContractAnalyticsAggregate(
-                $applyContractCurrentMonthScope($contractAnalyticsBaseQuery())
-            );
+            return $buildContractAnalyticsAggregate($contractAnalyticsBaseQuery());
         });
         $contractAnalyticsAggregateRow = Cache::remember($contractAnalyticsCacheKey . '.filtered_aggregate', now()->addMinutes(5), function () use (
             $buildContractAnalyticsAggregate,
@@ -770,28 +854,20 @@ class DashboardController extends Controller
         $selectedContractNationalityTitle = $selectedContractNationalityOption['title'] ?? null;
         $selectedContractProfessionTitle = $selectedContractProfessionOption['title'] ?? null;
 
-        // حجوزات/عقود الموظفين (تفصيلي)
-        $orderStatsByEmployee = DB::table('order_details as od')
-            ->join('orders as o', 'o.id', '=', 'od.order_id')
-            ->whereNotNull('od.admin_id')
-            ->whereNull('o.deleted_at')
-            ->where('o.job_type_id', 1);
-        $this->applyDashboardBranchFilter($orderStatsByEmployee, $activeDashboardBranchId, 'o.branch_id', 'orders');
-        $orderStatsByEmployee
-            ->groupBy('od.admin_id')
+        // تفاويض إنجاز وعقود الموظفين (تفصيلي)
+        $delegationStatsByEmployee = DB::table('ingaz_delegations as delegations')
+            ->whereNotNull('delegations.marketer_id');
+        $this->applyDashboardBranchFilter($delegationStatsByEmployee, $activeDashboardBranchId, 'delegations.branch_id', 'ingaz_delegations');
+        $delegationStatsByEmployee
+            ->groupBy('delegations.marketer_id')
             ->selectRaw(
-                'od.admin_id,
-                COUNT(DISTINCT o.id) as orders_count,
-                SUM(CASE WHEN o.status = ? THEN 1 ELSE 0 END) as orders_new,
-                SUM(CASE WHEN o.status = ? THEN 1 ELSE 0 END) as orders_under_process,
-                SUM(CASE WHEN o.status = ? THEN 1 ELSE 0 END) as orders_contracted,
-                SUM(CASE WHEN o.status IN (?, ?) THEN 1 ELSE 0 END) as orders_completed',
+                'delegations.marketer_id as admin_id,
+                COUNT(*) as delegations_count,
+                SUM(CASE WHEN delegations.status = ? THEN 1 ELSE 0 END) as delegations_under_process,
+                SUM(CASE WHEN delegations.status = ? THEN 1 ELSE 0 END) as delegations_executed',
                 [
-                    OrderEnum::New->value,
-                    OrderEnum::UnderProcess->value,
-                    OrderEnum::Contracted->value,
-                    OrderEnum::Completed->value,
-                    OrderEnum::Done->value,
+                    IngazDelegation::STATUS_UNDER_PROCESS,
+                    IngazDelegation::STATUS_EXECUTED,
                 ]
             );
 
@@ -855,7 +931,7 @@ class DashboardController extends Controller
             'call_center',
         ];
 
-        $employeeBookingCache = Cache::remember('admin_dashboard.employee_bookings.v3.' . $dashboardBranchCacheSuffix, now()->addMinutes(5), function () use ($orderStatsByEmployee, $contractStatsByEmployee, $employeeAnalyticsAdminTypes, $activeDashboardBranchId) {
+        $employeeBookingCache = Cache::remember('admin_dashboard.employee_delegations.v1.' . $dashboardBranchCacheSuffix, now()->addMinutes(5), function () use ($delegationStatsByEmployee, $contractStatsByEmployee, $employeeAnalyticsAdminTypes, $activeDashboardBranchId) {
             $employeeBookings = Admin::query()
                 ->activeForOperations()
                 ->whereIn('admins.admin_type', $employeeAnalyticsAdminTypes)
@@ -863,31 +939,29 @@ class DashboardController extends Controller
                     $query->where('admins.branch_id', $activeDashboardBranchId);
                 })
                 ->select('admins.id', 'admins.name')
-                ->leftJoinSub($orderStatsByEmployee, 'order_stats', function ($join) {
-                    $join->on('admins.id', '=', 'order_stats.admin_id');
+                ->leftJoinSub($delegationStatsByEmployee, 'delegation_stats', function ($join) {
+                    $join->on('admins.id', '=', 'delegation_stats.admin_id');
                 })
                 ->leftJoinSub($contractStatsByEmployee, 'contract_stats', function ($join) {
                     $join->on('admins.id', '=', 'contract_stats.admin_id');
                 })
-                ->selectRaw('COALESCE(order_stats.orders_count, 0) as orders_count')
-                ->selectRaw('COALESCE(order_stats.orders_new, 0) as orders_new')
-                ->selectRaw('COALESCE(order_stats.orders_under_process, 0) as orders_under_process')
-                ->selectRaw('COALESCE(order_stats.orders_contracted, 0) as orders_contracted')
-                ->selectRaw('COALESCE(order_stats.orders_completed, 0) as orders_completed')
+                ->selectRaw('COALESCE(delegation_stats.delegations_count, 0) as delegations_count')
+                ->selectRaw('COALESCE(delegation_stats.delegations_under_process, 0) as delegations_under_process')
+                ->selectRaw('COALESCE(delegation_stats.delegations_executed, 0) as delegations_executed')
                 ->selectRaw('COALESCE(contract_stats.contracts_count, 0) as contracts_count')
                 ->selectRaw('COALESCE(contract_stats.contracts_current, 0) as contracts_current')
                 ->selectRaw('COALESCE(contract_stats.contracts_completed, 0) as contracts_completed')
                 ->selectRaw('COALESCE(contract_stats.contracts_returned, 0) as contracts_returned')
-                ->selectRaw('(COALESCE(order_stats.orders_count, 0) + COALESCE(contract_stats.contracts_count, 0)) as handled_total')
+                ->selectRaw('(COALESCE(delegation_stats.delegations_count, 0) + COALESCE(contract_stats.contracts_count, 0)) as handled_total')
                 ->orderByDesc('handled_total')
                 ->orderBy('admins.name')
                 ->limit(8)
                 ->get()
                 ->map(function ($employee) {
-                    $ordersCount = (int) $employee->orders_count;
-                    $contractsCount = (int) $employee->contracts_count;
-                    $employee->conversion_rate = $ordersCount > 0
-                        ? round(($contractsCount / $ordersCount) * 100)
+                    $delegationsCount = (int) $employee->delegations_count;
+                    $executedDelegationsCount = (int) $employee->delegations_executed;
+                    $employee->execution_rate = $delegationsCount > 0
+                        ? round(($executedDelegationsCount / $delegationsCount) * 100)
                         : 0;
                     return $employee;
                 })
@@ -895,10 +969,10 @@ class DashboardController extends Controller
 
             $employeeBookingSummary = [
                 'employees_with_activity' => $employeeBookings->filter(function ($employee) {
-                    return ((int) $employee->orders_count + (int) $employee->contracts_count) > 0;
+                    return ((int) $employee->delegations_count + (int) $employee->contracts_count) > 0;
                 })->count(),
-                'orders_total' => (int) $employeeBookings->sum(function ($employee) {
-                    return (int) $employee->orders_count;
+                'delegations_total' => (int) $employeeBookings->sum(function ($employee) {
+                    return (int) $employee->delegations_count;
                 }),
                 'contracts_total' => (int) $employeeBookings->sum(function ($employee) {
                     return (int) $employee->contracts_count;
@@ -1027,11 +1101,8 @@ class DashboardController extends Controller
         $calendarEvents = [];
 
         // تقسيمات إضافية للاستخدام المحتمل
-        $contractStatusBreakdown = Cache::remember($contractAnalyticsCacheKey . '.current_month_status_breakdown', now()->addMinutes(5), function () use (
-            $applyContractCurrentMonthScope,
-            $contractAnalyticsBaseQuery
-        ) {
-            return $applyContractCurrentMonthScope($contractAnalyticsBaseQuery())
+        $contractStatusBreakdown = Cache::remember($contractAnalyticsCacheKey . '.global_status_breakdown', now()->addMinutes(5), function () use ($contractAnalyticsBaseQuery) {
+            return $contractAnalyticsBaseQuery()
                 ->select('status')
                 ->selectRaw('count(*) as total')
                 ->groupBy('status')
@@ -1080,11 +1151,13 @@ class DashboardController extends Controller
             'ordersStats',
             'cvStats',
             'clientsStats',
-            'contactsStats',
+            'rentalMaidStats',
             'rentalStats',
             'rentalOrderStats',
             'transferStats',
             'transferWebRequestStats',
+            'requestGenderStats',
+            'complaintStats',
             'jobTypeCounts',
             'jobTypesList',
             'officeStats',
@@ -1611,7 +1684,18 @@ class DashboardController extends Controller
     protected function applyDashboardBranchFilter($query, ?int $branchId, string $qualifiedColumn, string $table)
     {
         if ($branchId && $this->tableHasBranchColumn($table)) {
-            $query->where($qualifiedColumn, $branchId);
+            $adminBranchId = app(\App\Services\BranchAccessService::class)->adminBranchId();
+
+            if ($adminBranchId === $branchId) {
+                // Legacy records without a branch are visible to branch-bound
+                // admins throughout the detail pages and must be counted here too.
+                $query->where(function ($branchQuery) use ($qualifiedColumn, $branchId) {
+                    $branchQuery->where($qualifiedColumn, $branchId)
+                        ->orWhereNull($qualifiedColumn);
+                });
+            } else {
+                $query->where($qualifiedColumn, $branchId);
+            }
         }
 
         return $query;
