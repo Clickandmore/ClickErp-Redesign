@@ -90,6 +90,7 @@
 
                 $canViewOrders = @AdminGuardHasAnyPerm([\App\PermKeys::ORDERS_VIEW, \App\PermKeys::ORDERS_CREATE, \App\PermKeys::ORDERS_EDIT, \App\PermKeys::ORDERS_DELETE, \App\PermKeys::ORDERS_EXPORT, \App\PermKeys::RETURN_REQUEST_VIEW, \App\PermKeys::RETURN_REQUEST_CREATE, \App\PermKeys::RETURN_REQUEST_EDIT, \App\PermKeys::RETURN_REQUEST_DELETE, \App\PermKeys::PROFESSIONAL_APPLICATION_VIEW, \App\PermKeys::RECRUITMENT_REQUESTS_VIEW, \App\PermKeys::RENEW_CONTRACTS_VIEW]) || $canViewContactRequests;
                 $canViewFinancialRequests = @AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_VIEW, \App\PermKeys::FINANCIAL_REQUESTS_CREATE, \App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, \App\PermKeys::FINANCIAL_REQUESTS_APPROVE, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]);
+                $canViewCommissions = @SystemModuleEnabled('commissions') && @AdminGuardHasAnyPerm([\App\PermKeys::COMMISSIONS_VIEW, \App\PermKeys::COMMISSIONS_CALCULATE, \App\PermKeys::COMMISSIONS_PAY, \App\PermKeys::COMMISSIONS_SETTINGS]);
 
                 $canViewRecruitmentContracts = @AdminGuardHasAnyPerm([\App\NewPermKeys::REC_CONTRACTS_VIEW, \App\NewPermKeys::REC_CONTRACTS_CREATE, \App\NewPermKeys::REC_CONTRACTS_UPDATE, \App\NewPermKeys::REC_CONTRACTS_EDIT, \App\NewPermKeys::REC_CONTRACTS_DELETE, \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_MSANED, \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFWED, \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAFFEZ, \App\NewPermKeys::REC_CONTRACTS_CHANGE_TO_TAZKER, \App\NewPermKeys::REC_CONTRACTS_RETURN, \App\NewPermKeys::REC_CONTRACTS_RETURN_VIEW]);
                 $canViewIngazDelegations = @AdminGuardHasAnyPerm([\App\PermKeys::INGAZ_DELEGATIONS_VIEW, \App\PermKeys::INGAZ_DELEGATIONS_CREATE, \App\PermKeys::INGAZ_DELEGATIONS_EDIT, \App\PermKeys::INGAZ_DELEGATIONS_DELETE, \App\PermKeys::INGAZ_DELEGATIONS_PRINT, \App\PermKeys::INGAZ_DELEGATIONS_CHANGE_STATUS, \App\PermKeys::INGAZ_DELEGATIONS_CONTROL, \App\PermKeys::REC_CONTRACTS_VIEW, \App\PermKeys::REC_CONTRACTS_CREATE, \App\PermKeys::REC_CONTRACTS_EDIT, \App\PermKeys::REC_CONTRACTS_DELETE, \App\PermKeys::REC_CONTRACTS_PRINT, \App\PermKeys::REC_CONTRACTS_MANAGE]);
@@ -989,6 +990,37 @@
                                                     <span class="ms-2">{{ __('financial_requests.new') }}</span>
                                                 </a>
                                             </li>
+                                        @endif
+                                    </ul>
+                                </li>
+                            @endif
+                            @if ($canViewCommissions)
+                                <li class="{{ request()->routeIs('commissions.*') ? '' : 'collapsed' }}">
+                                    <a class="m-link {{ request()->routeIs('commissions.*') ? 'active' : '' }}"
+                                       data-bs-toggle="collapse" data-bs-target="#commissions_menu" href="#">
+                                        <i class="fa fa-percent"></i>
+                                        <span class="ms-2">نظام العمولات</span>
+                                        <span class="arrow fa fa-angle-left ms-auto text-end"></span>
+                                    </a>
+                                    <ul class="sub-menu collapse {{ request()->routeIs('commissions.*') ? 'show' : '' }}"
+                                        id="commissions_menu">
+                                        @if(@AdminGuardHasAnyPerm([\App\PermKeys::COMMISSIONS_VIEW, \App\PermKeys::COMMISSIONS_CALCULATE, \App\PermKeys::COMMISSIONS_PAY]))
+                                        <li>
+                                            <a class="m-link {{ request()->routeIs('commissions.marketers.*') ? 'active' : '' }}"
+                                               href="{{ route('commissions.marketers.index') }}">
+                                                <i class="fa fa-arrow-left"></i>
+                                                <span class="ms-2">المسوّقون والأرصدة</span>
+                                            </a>
+                                        </li>
+                                        @endif
+                                        @if(@AdminGuardHasPerm(\App\PermKeys::COMMISSIONS_SETTINGS))
+                                        <li>
+                                            <a class="m-link {{ request()->routeIs('commissions.settings.*') ? 'active' : '' }}"
+                                               href="{{ route('commissions.settings.index') }}">
+                                                <i class="fa fa-arrow-left"></i>
+                                                <span class="ms-2">إعدادات العمولات</span>
+                                            </a>
+                                        </li>
                                         @endif
                                     </ul>
                                 </li>
