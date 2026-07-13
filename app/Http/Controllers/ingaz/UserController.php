@@ -76,6 +76,9 @@ class UserController extends Controller
                     'clientAttachments as client_attachments_count',
                 ])
                 ->addSelect([
+                    'finance_account_code' => Account::select('code')
+                        ->whereColumn('fn_accounts.id', 'users.account_id')
+                        ->limit(1),
                     'recruitment_contracts_count' => Contract::selectRaw('COUNT(*)')
                         ->whereIn('type', ['recruitment', 'maid'])
                         ->where(function ($contractQuery) {
@@ -116,6 +119,8 @@ class UserController extends Controller
                         ->latest('created_at')
                         ->limit(1),
                 ])
+                ->orderByRaw('arabia_client_number IS NULL ASC')
+                ->orderByDesc('arabia_client_number')
                 ->orderByDesc('id');
 
             $this->applyBranchScope($units);
@@ -182,12 +187,16 @@ class UserController extends Controller
                         ->orWhere('phone2', 'like', '%' . $keyword . '%')
                         ->orWhere('national_num', 'like', '%' . $keyword . '%')
                         ->orWhere('tax_number', 'like', '%' . $keyword . '%')
-                        ->orWhere('license_number', 'like', '%' . $keyword . '%');
+                        ->orWhere('license_number', 'like', '%' . $keyword . '%')
+                        ->orWhere('arabia_client_number', 'like', '%' . $keyword . '%')
+                        ->orWhere('id', 'like', '%' . $keyword . '%')
+                        ->orWhereIn('account_id', Account::query()
+                            ->select('id')
+                            ->where('code', 'like', '%' . $keyword . '%'));
                 });
             }
 
             return DataTables::of($units)
-                ->addIndexColumn()
                 ->addColumn('bulk_select', function ($row) {
                     if (!@AdminGuardHasPerm(\App\PermKeys::CLIENTS_TOGGLE_STATUS)) {
                         return '';
@@ -221,11 +230,19 @@ class UserController extends Controller
                     return '<span class="badge bg-danger rounded-pill px-3">' . helperTrans('ingaz.blocked') . '</span>';
                 })
                 ->editColumn('account_id', function ($row) {
-                    if ($row->account_id != null) {
-                        return '<span class="badge bg-success rounded-pill px-3">' . helperTrans('ingaz.yes') . '</span>';
-                    } else {
-                        return '<span class="badge bg-danger rounded-pill px-3">' . helperTrans('ingaz.no') . '</span>';
+                    if (!$row->account_id || !$row->finance_account_code) {
+                        return '<span class="text-muted">-</span>';
                     }
+
+                    $statementUrl = route('finance.account-statement-clients.index', [
+                        'account_id' => $row->account_id,
+                    ]);
+
+                    return '<a href="' . e($statementUrl) . '" target="_blank" rel="noopener"
+                                class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 text-decoration-none"
+                                title="كشف حساب العميل">
+                                <i class="fas fa-file-invoice-dollar me-1"></i>' . e($row->finance_account_code) . '
+                            </a>';
                 })
                 ->editColumn('client_data', function ($row) {
                     $nationality = $row->nationality ? $row->nationality->title : helperTrans('ingaz.not_specified');
@@ -544,7 +561,14 @@ class UserController extends Controller
             'rooms_num' => 'nullable|integer|min:0',
             'family_num' => 'nullable|integer|min:0',
             'children' => 'nullable|integer|min:0',
-            'job' => 'nullable|string|max:100'
+            'job' => 'nullable|string|max:100',
+            'full_name_en' => 'nullable|string|max:255',
+            'identity_date' => 'nullable|string|max:50',
+            'identity_type' => 'nullable|string|max:100',
+            'workplace' => 'nullable|string|max:255',
+            'po_box' => 'nullable|string|max:50',
+            'postal_code' => 'nullable|string|max:50',
+            'notes' => 'nullable|string|max:5000'
         ];
 
         if ($this->branchesEnabled()) {
@@ -730,6 +754,7 @@ class UserController extends Controller
                 $query->with(['maid', 'info'])->latest();
             },
             'clientAttachments.uploader',
+            'importDetails',
         ]);
 
         $this->applyBranchScope($client);
@@ -1031,6 +1056,13 @@ class UserController extends Controller
             'family_num' => 'nullable|integer|min:0',
             'children' => 'nullable|integer|min:0',
             'job' => 'nullable|string|max:100',
+            'full_name_en' => 'nullable|string|max:255',
+            'identity_date' => 'nullable|string|max:50',
+            'identity_type' => 'nullable|string|max:100',
+            'workplace' => 'nullable|string|max:255',
+            'po_box' => 'nullable|string|max:50',
+            'postal_code' => 'nullable|string|max:50',
+            'notes' => 'nullable|string|max:5000',
             'is_blocked' => 'required|boolean'
         ];
 
@@ -1374,7 +1406,7 @@ class UserController extends Controller
             $statusText = $client->is_blocked ? __('ingaz.blocked') : __('ingaz.active');
 
             $html .= '<tr>
-                <td>' . $client->id . '</td>
+                <td>' . ($client->arabia_client_number ?: $client->id) . '</td>
                 <td>' . $client->name . '</td>
                 <td>' . $client->phone_code . $client->phone . '</td>
                 <td>' . $client->email . '</td>
@@ -1521,7 +1553,7 @@ class UserController extends Controller
             $statusText = $client->is_blocked ? __('ingaz.blocked') : __('ingaz.active');
 
             $html .= '<tr>
-                <td>' . $client->id . '</td>
+                <td>' . ($client->arabia_client_number ?: $client->id) . '</td>
                 <td>' . $client->name . '</td>
                 <td>' . $client->phone_code . $client->phone . '</td>
                 <td>' . $client->email . '</td>
@@ -1600,7 +1632,7 @@ class UserController extends Controller
         // Set data
         $row = 2;
         foreach ($clients as $client) {
-            $sheet->setCellValue('A' . $row, $client->id);
+            $sheet->setCellValue('A' . $row, $client->arabia_client_number ?: $client->id);
             $sheet->setCellValue('B' . $row, $client->name);
             $sheet->setCellValue('C' . $row, $client->phone_code . $client->phone);
             $sheet->setCellValue('D' . $row, $client->email);

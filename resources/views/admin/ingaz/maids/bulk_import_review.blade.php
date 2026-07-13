@@ -49,12 +49,12 @@
                         تحميل التمبلت
                     </a>
                     @if ($import->can_approve)
-                        <form action="{{ route('maids.bulk-import.approve', $import) }}" method="POST">
+                        <form action="{{ route('maids.bulk-import.approve', $import) }}" method="POST" id="maid-import-approve-form">
                             @csrf
                             <button type="submit" class="btn btn-primary"
                                 onclick="return confirm('سيتم إنشاء العاملات من الصفوف السليمة فقط. هل تريد المتابعة؟')">
                                 <i class="fas fa-check-circle me-1"></i>
-                                اعتماد الصفوف السليمة
+                                {{ $import->imported_rows > 0 ? 'استكمال الاعتماد' : 'اعتماد الصفوف السليمة' }}
                             </button>
                         </form>
                     @endif
@@ -108,6 +108,19 @@
                 </div>
             </div>
 
+            @if (request()->boolean('auto_continue') && $import->can_approve)
+                <div class="alert alert-info d-flex align-items-center gap-2" id="auto-import-progress">
+                    <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                    جارٍ استكمال الاستيراد تلقائيًا على دفعات آمنة. تم {{ $import->imported_rows }} من {{ $import->total_rows }}.
+                    يمكنك إغلاق الصفحة والاستكمال لاحقًا دون فقد البيانات.
+                </div>
+                <script>
+                    window.setTimeout(function () {
+                        document.getElementById('maid-import-approve-form')?.submit();
+                    }, 700);
+                </script>
+            @endif
+
             @if (($import->invalid_rows + $import->failed_rows) > 0)
                 <div class="alert alert-warning">
                     أي صف غير سليم لن يتم إنشاؤه. عدّل ملف Excel ثم ارفع ملفاً جديداً إذا احتجت تصحيح هذه الصفوف.
@@ -125,6 +138,7 @@
                             <tr>
                                 <th>الصف</th>
                                 <th>الاسم</th>
+                                <th>رقم عامل أربيا</th>
                                 <th>الجواز</th>
                                 <th>الجنسية</th>
                                 <th>المكتب</th>
@@ -143,6 +157,7 @@
                                 <tr>
                                     <td>{{ $row->row_number }}</td>
                                     <td>{{ $raw['name:en'] ?? '-' }}</td>
+                                    <td>{{ $raw['arabia_worker_number'] ?? '-' }}</td>
                                     <td>{{ $raw['passport_num'] ?? '-' }}</td>
                                     <td>{{ $raw['nationality'] ?? '-' }}</td>
                                     <td>{{ $raw['office'] ?? '-' }}</td>
@@ -183,13 +198,13 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="10" class="text-center text-muted py-4">لا توجد صفوف داخل عملية الاستيراد هذه.</td>
+                                    <td colspan="11" class="text-center text-muted py-4">لا توجد صفوف داخل عملية الاستيراد هذه.</td>
                                 </tr>
                             @endforelse
                         </tbody>
                     </table>
                     <div class="mt-3">
-                        {{ $rows->links() }}
+                        {{ $rows->onEachSide(1)->links('pagination::bootstrap-4') }}
                     </div>
                 </div>
             </div>

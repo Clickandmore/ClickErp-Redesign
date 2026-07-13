@@ -980,6 +980,10 @@ if (!function_exists('getContractStatus')) {
                 'ar' => 'عقد مكتمل',
                 'en' => 'Completed Contract'
             ],
+            'refunded' => [
+                'ar' => 'مسترد',
+                'en' => 'Refunded'
+            ],
             'delegate_selected' => [
                 'ar' => 'تم اختيار أحد المندوبين',
                 'en' => 'Delegate Selected'
@@ -1020,6 +1024,7 @@ if (!function_exists('getContractStatusColor')) {
             'shelter' => 'dark',
             'pending_maid_selection' => 'warning',
             'completed' => 'success',
+            'refunded' => 'secondary',
             'delegate_selected' => 'info',
             'client_contracted' => 'primary',
             'in_progress' => 'warning',

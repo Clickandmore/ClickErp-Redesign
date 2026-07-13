@@ -175,6 +175,7 @@ class RecruitmentContractController extends Controller
             ContractStatusEnum::Tazker->value => 'هذه المرحلة تتطلب إضافة رحلة أو إكمالها قبل الانتقال',
             ContractStatusEnum::Arrival->value => 'هذا العقد في مرحلة الوصول ويتم استكماله تلقائياً حسب حالة الضمان',
             ContractStatusEnum::Completed->value => 'العقد مكتمل ولا يمكن تحديث حالته يدوياً',
+            ContractStatusEnum::Refunded->value => 'العقد مسترد ومكتمل ولا يمكن تحديث حالته يدوياً',
             ContractStatusEnum::Shelter->value => 'العقد موجود في الإيواء ولا يقبل التحديث من هذه الشاشة',
             ContractStatusEnum::Back->value => 'العقد مرتجع ولا يمكن تحديثه من المراحل الجارية',
             ContractStatusEnum::Closed->value => 'العقد مغلق ولا يمكن تحديث حالته يدوياً',
@@ -438,6 +439,7 @@ class RecruitmentContractController extends Controller
         return [
             ContractStatusEnum::Arrival->value,
             ContractStatusEnum::Completed->value,
+            ContractStatusEnum::Refunded->value,
         ];
     }
 
@@ -1479,6 +1481,7 @@ class RecruitmentContractController extends Controller
                     // منع التعديل والحذف للعقود المكتملة والمرتجعة والتي في الإيواء
                     if (
                         $row->status !== ContractStatusEnum::Completed->value &&
+                        $row->status !== ContractStatusEnum::Refunded->value &&
                         $row->status !== ContractStatusEnum::Back->value &&
                         $row->status !== ContractStatusEnum::Shelter->value
                     ) {
@@ -1546,7 +1549,7 @@ class RecruitmentContractController extends Controller
                     }
 
                     // زر الإرجاع - لا يظهر للعقود المكتملة أو التي في الإيواء
-                    if ($row->status !== ContractStatusEnum::Completed->value && $row->status !== ContractStatusEnum::Shelter->value) {
+                    if (!in_array($row->status, [ContractStatusEnum::Completed->value, ContractStatusEnum::Refunded->value, ContractStatusEnum::Shelter->value], true)) {
                         if ($row->status == ContractStatusEnum::Back->value) {
                             $actions .= '<li><span class="dropdown-item disabled">
                                             <span class="badge bg-warning">مرتجع</span>
@@ -1570,6 +1573,7 @@ class RecruitmentContractController extends Controller
                     // إجراء الاسترداد بدلاً من إلغاء العقد
                     if (
                         $row->status !== ContractStatusEnum::Completed->value &&
+                        $row->status !== ContractStatusEnum::Refunded->value &&
                         $row->status !== ContractStatusEnum::Back->value &&
                         $row->status !== ContractStatusEnum::Shelter->value
                     ) {
@@ -2216,6 +2220,7 @@ class RecruitmentContractController extends Controller
     {
         return !in_array($status, [
             ContractStatusEnum::Completed->value,
+            ContractStatusEnum::Refunded->value,
             ContractStatusEnum::Back->value,
             ContractStatusEnum::Closed->value,
             ContractStatusEnum::UnderWarranty->value,
@@ -2287,6 +2292,7 @@ class RecruitmentContractController extends Controller
         $createdAt = $contract->created_at ? Carbon::parse($contract->created_at) : now();
         $isFinalStatus = in_array($contract->status, [
             ContractStatusEnum::Completed->value,
+            ContractStatusEnum::Refunded->value,
             ContractStatusEnum::Back->value,
             ContractStatusEnum::Closed->value,
         ], true);
@@ -2332,6 +2338,7 @@ class RecruitmentContractController extends Controller
     {
         $finalStatuses = [
             ContractStatusEnum::Completed->value,
+            ContractStatusEnum::Refunded->value,
             ContractStatusEnum::Back->value,
             ContractStatusEnum::Closed->value,
         ];
@@ -3112,6 +3119,13 @@ class RecruitmentContractController extends Controller
             }
 
             // منع إرجاع العقود المكتملة
+            if ($contract->status === ContractStatusEnum::Refunded->value) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'العقد مسترد ومكتمل ولا يمكن تغيير حالته',
+                ], 422);
+            }
+
             if ($contract->status === ContractStatusEnum::Completed->value) {
                 return response()->json([
                     'success' => false,
@@ -3170,7 +3184,7 @@ class RecruitmentContractController extends Controller
         $this->assertCanAccessBranchModel($contract, 'contracts');
 
         // منع تعديل العقود المكتملة
-        if ($contract->status === ContractStatusEnum::Completed->value) {
+        if (in_array($contract->status, [ContractStatusEnum::Completed->value, ContractStatusEnum::Refunded->value], true)) {
             return redirect()->back()->with('error', 'لا يمكن تعديل العقد المكتمل');
         }
 
@@ -3313,7 +3327,7 @@ class RecruitmentContractController extends Controller
         $marketerId = (int) $request->marketer_id;
 
         // منع تحديث حالة العقود المكتملة
-        if ($contract->status === ContractStatusEnum::Completed->value) {
+        if (in_array($contract->status, [ContractStatusEnum::Completed->value, ContractStatusEnum::Refunded->value], true)) {
             return response()->json([
                 'success' => false,
                 'message' => 'لا يمكن تحديث حالة العقد المكتمل'
@@ -3455,7 +3469,7 @@ class RecruitmentContractController extends Controller
         $this->assertCanAccessBranchModel($contract, 'contracts');
 
         // منع حذف العقود المكتملة
-        if ($contract->status === ContractStatusEnum::Completed->value) {
+        if (in_array($contract->status, [ContractStatusEnum::Completed->value, ContractStatusEnum::Refunded->value], true)) {
             return response()->json([
                 'success' => false,
                 'message' => 'لا يمكن حذف العقد المكتمل'
@@ -4238,6 +4252,13 @@ class RecruitmentContractController extends Controller
                 return response()->json([
                     'success' => false,
                     'message' => 'الحالة الجديدة مطابقة للحالة الحالية'
+                ], 422);
+            }
+
+            if ($contract->status === ContractStatusEnum::Refunded->value) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'العقد مسترد ومكتمل ولا يمكن تغيير حالته',
                 ], 422);
             }
 
@@ -5108,7 +5129,7 @@ class RecruitmentContractController extends Controller
             $contract = Contract::with(['maid', 'user', 'order'])->findOrFail($contractId);
 
             // منع استبدال العاملة للعقود المكتملة
-            if ($contract->status === ContractStatusEnum::Completed->value) {
+            if (in_array($contract->status, [ContractStatusEnum::Completed->value, ContractStatusEnum::Refunded->value], true)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'لا يمكن استبدال العاملة في العقد المكتمل'
@@ -5378,7 +5399,7 @@ class RecruitmentContractController extends Controller
             $contract = Contract::with(['maid', 'user'])->findOrFail($contractId);
 
             // منع استبدال العاملة للعقود المكتملة
-            if ($contract->status === ContractStatusEnum::Completed->value) {
+            if (in_array($contract->status, [ContractStatusEnum::Completed->value, ContractStatusEnum::Refunded->value], true)) {
                 return redirect()->back()->with('error', 'لا يمكن استبدال العاملة في العقد المكتمل');
             }
 
@@ -5442,7 +5463,7 @@ class RecruitmentContractController extends Controller
             $contract = Contract::with(['maid', 'user'])->findOrFail($request->contract_id);
 
             // منع إلغاء العقود المكتملة
-            if ($contract->status === ContractStatusEnum::Completed->value) {
+            if (in_array($contract->status, [ContractStatusEnum::Completed->value, ContractStatusEnum::Refunded->value], true)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'لا يمكن إلغاء العقد المكتمل'

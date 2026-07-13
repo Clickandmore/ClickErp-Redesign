@@ -39,8 +39,12 @@ class MaidBulkImportController extends Controller
             ->with('success', 'تم رفع الملف وتحليل البيانات بنجاح. راجع الصفوف قبل الاعتماد.');
     }
 
-    public function show(MaidBulkImport $maidBulkImport)
+    public function show(MaidBulkImport $maidBulkImport, MaidBulkImportService $service)
     {
+        // A fatal error can end a previous batch before its cached counters update.
+        // Rebuild them from row statuses whenever the review screen is opened.
+        $service->refreshImportCounters($maidBulkImport);
+        $maidBulkImport->refresh();
         $maidBulkImport->load(['uploadedBy', 'approvedBy']);
         $rows = $maidBulkImport->rows()
             ->with('maid')
@@ -58,7 +62,10 @@ class MaidBulkImportController extends Controller
         $result = $service->approveImport($maidBulkImport, $maidAction, auth('admin')->id() ?? auth()->id());
 
         return redirect()
-            ->route('maids.bulk-import.show', $maidBulkImport)
-            ->with('success', "تم اعتماد {$result['imported']} صف/صفوف بنجاح، وتعذر استيراد {$result['failed']} صف/صفوف.");
+            ->route('maids.bulk-import.show', [
+                'maidBulkImport' => $maidBulkImport,
+                'auto_continue' => ($result['remaining'] ?? 0) > 0 ? 1 : 0,
+            ])
+            ->with('success', "تمت معالجة دفعة: نجح {$result['imported']} وتعذر {$result['failed']}. المتبقي {$result['remaining']} صف.");
     }
 }

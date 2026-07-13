@@ -48,6 +48,7 @@ class Maid extends Model
 
     protected $fillable = [
         'id',
+        'arabia_worker_number',
         'name',
         'gender',
         'nationality_id',
@@ -123,6 +124,11 @@ class Maid extends Model
         'deleted_at' => 'datetime',
         'reviewed_at' => 'datetime',
     ];
+
+    public function externalReferences()
+    {
+        return $this->hasMany(MaidExternalReference::class);
+    }
 
     // ثوابت حالة تقديم السيرة
     const SUBMISSION_PENDING  = 'pending_review';

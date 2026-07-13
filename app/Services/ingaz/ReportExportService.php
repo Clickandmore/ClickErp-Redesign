@@ -148,6 +148,7 @@ class ReportExportService
             ContractStatusEnum::Arrival->value => $this->resolveContractStatusLabel(ContractStatusEnum::Arrival->value),
             ContractStatusEnum::Sari->value => $this->resolveContractStatusLabel(ContractStatusEnum::Sari->value),
             ContractStatusEnum::Completed->value => $this->resolveContractStatusLabel(ContractStatusEnum::Completed->value),
+            ContractStatusEnum::Refunded->value => $this->resolveContractStatusLabel(ContractStatusEnum::Refunded->value),
             ContractStatusEnum::Back->value => $this->resolveContractStatusLabel(ContractStatusEnum::Back->value),
             ContractStatusEnum::Shelter->value => $this->resolveContractStatusLabel(ContractStatusEnum::Shelter->value),
         ];
@@ -2356,6 +2357,7 @@ class ReportExportService
             $query->whereIn('status', [
                 ContractStatusEnum::Arrival->value,
                 ContractStatusEnum::Completed->value,
+                ContractStatusEnum::Refunded->value,
             ]);
             return;
         }

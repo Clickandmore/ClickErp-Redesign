@@ -277,6 +277,7 @@ class MaidAction extends MainAction
         $passportIssueColumnExists = Schema::hasColumn('maids', 'passport_issue_date');
         $passportExpiryColumnExists = Schema::hasColumn('maids', 'passport_expiry_date');
         $genderColumnExists = Schema::hasColumn('maids', 'gender');
+        $arabiaWorkerNumberColumnExists = Schema::hasColumn('maids', 'arabia_worker_number');
 
         // Ensure all required fields are present in the data array
         $createData = [
@@ -320,6 +321,10 @@ class MaidAction extends MainAction
 
         if (!empty($data['created_at'])) {
             $createData['created_at'] = $data['created_at'];
+        }
+
+        if ($arabiaWorkerNumberColumnExists && !empty($data['arabia_worker_number'])) {
+            $createData['arabia_worker_number'] = (int) $data['arabia_worker_number'];
         }
 
         if ($genderColumnExists) {

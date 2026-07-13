@@ -170,8 +170,11 @@
                 'icon' => 'fas fa-question-circle',
                 'text' => helperTrans('ingaz.maid_status_unknown'),
             ];
-            $imagePath = $maid->image ?: ($maid->cv_preview ?: $maid->cv_file);
-            $imageUrl = $imagePath ? showFile($imagePath) : asset('images/no-image.png');
+            $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'];
+            $imagePath = collect([$maid->image, $maid->cv_preview])
+                ->first(fn ($path) => $path && in_array(strtolower(pathinfo($path, PATHINFO_EXTENSION)), $imageExtensions, true) && showFile($path));
+            $imageUrl = $imagePath ? showFile($imagePath) : null;
+            $cvFileUrl = $maid->cv_file ? showFile($maid->cv_file) : null;
         @endphp
 
         <div class="container-fluid py-3 py-lg-4">
@@ -201,8 +204,20 @@
             <div class="card maid-hero mb-4">
                 <div class="card-body d-flex flex-wrap align-items-center justify-content-between gap-3">
                     <div class="d-flex align-items-center gap-3">
-                        <img src="{{ $imageUrl }}" alt="maid-avatar" class="rounded-circle border"
-                            style="width:88px;height:88px;object-fit:cover;">
+                        @if ($imageUrl)
+                            <img src="{{ $imageUrl }}" alt="maid-avatar" class="rounded-circle border"
+                                style="width:88px;height:88px;object-fit:cover;">
+                        @elseif ($cvFileUrl)
+                            <button type="button" data-cv-preview-url="{{ $cvFileUrl }}"
+                                class="rounded-circle border bg-light d-inline-flex flex-column align-items-center justify-content-center text-decoration-none flex-shrink-0"
+                                style="width:88px;height:88px" title="فتح ملف السيرة PDF">
+                                <i class="fas fa-file-pdf text-danger fs-2"></i>
+                                <span class="small">PDF</span>
+                            </button>
+                        @else
+                            <img src="{{ asset('images/no-image.png') }}" alt="maid-avatar" class="rounded-circle border"
+                                style="width:88px;height:88px;object-fit:cover;">
+                        @endif
                         <div class="d-flex flex-column gap-2">
                             <div class="d-flex flex-wrap align-items-center gap-2">
                                 <h2 class="mb-0 fw-bold">{{ $maid->name ?? helperTrans('ingaz.not_specified') }}</h2>
@@ -217,6 +232,10 @@
                             <div class="text-muted small d-flex flex-wrap gap-3">
                                 <span><i
                                         class="fas fa-passport me-1"></i>{{ $maid->passport_num ?? helperTrans('ingaz.not_specified') }}</span>
+                                @if ($maid->arabia_worker_number)
+                                    <span><i class="fas fa-hashtag me-1"></i>رقم عامل أربيا:
+                                        {{ $maid->arabia_worker_number }}</span>
+                                @endif
                                 <span><i
                                         class="fas fa-flag me-1"></i>{{ $maid->nationality?->sub_title ?? helperTrans('ingaz.not_specified') }}</span>
                                 <span><i
@@ -622,6 +641,27 @@
                                 <i class="fas fa-paperclip text-info"></i>{{ helperTrans('ingaz.maid_attachments') }}
                             </h5>
 
+                            @if ($cvFileUrl)
+                                <div class="border rounded-3 p-3 mb-3 bg-light">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <i class="fas fa-file-pdf text-danger fs-2"></i>
+                                        <div class="flex-grow-1">
+                                            <div class="fw-semibold">ملف السيرة الذاتية الأساسي</div>
+                                            <div class="text-muted small">الملف المستورد والمرتبط بهذه العاملة</div>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex gap-2 mt-3">
+                                        <button type="button" data-cv-preview-url="{{ $cvFileUrl }}"
+                                            class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-eye me-1"></i>عرض داخل الموقع
+                                        </button>
+                                        <a href="{{ $cvFileUrl }}" download class="btn btn-light btn-sm border">
+                                            <i class="fas fa-download me-1"></i>تنزيل
+                                        </a>
+                                    </div>
+                                </div>
+                            @endif
+
                             @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT))
                                 <form method="POST" action="{{ route('maids.attachments.store', $maid->id) }}"
                                     enctype="multipart/form-data" class="mb-3">
@@ -898,4 +938,34 @@
     @else
         @include('components.no_permissions')
     @endif
+
+    <div class="modal fade" id="maidCvPreviewModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content" style="height:92vh">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-file-pdf text-danger me-2"></i>معاينة ملف السيرة الذاتية</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                </div>
+                <div class="modal-body p-0 bg-secondary" style="min-height:0">
+                    <iframe id="maidCvPreviewFrame" title="معاينة ملف السيرة" class="w-100 h-100 border-0 bg-white"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('click', function (event) {
+            const trigger = event.target.closest('[data-cv-preview-url]');
+            if (!trigger) return;
+
+            const frame = document.getElementById('maidCvPreviewFrame');
+            const modalElement = document.getElementById('maidCvPreviewModal');
+            frame.src = trigger.dataset.cvPreviewUrl + '#toolbar=1&navpanes=0&view=FitH';
+            bootstrap.Modal.getOrCreateInstance(modalElement).show();
+        });
+
+        document.getElementById('maidCvPreviewModal')?.addEventListener('hidden.bs.modal', function () {
+            document.getElementById('maidCvPreviewFrame').src = 'about:blank';
+        });
+    </script>
 @endsection

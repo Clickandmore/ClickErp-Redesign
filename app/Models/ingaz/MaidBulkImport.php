@@ -49,7 +49,7 @@ class MaidBulkImport extends Model
 
     public function getCanApproveAttribute(): bool
     {
-        return in_array($this->status, ['pending_review', 'completed_with_errors'], true)
+        return in_array($this->status, ['pending_review', 'processing', 'completed_with_errors'], true)
             && $this->rows()->where('status', 'pending')->exists();
     }
 

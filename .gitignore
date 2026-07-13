@@ -25,6 +25,8 @@ yarn-error.log
 /storage/framework/testing
 /finance_tree
 
+migration_system/data
+
 # Local package artifacts
 /packages/*/vendor/
 /packages/*/node_modules/

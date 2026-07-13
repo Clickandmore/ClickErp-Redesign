@@ -387,13 +387,13 @@
                                                 <input class="form-check-input" type="checkbox" id="clientsBulkSelectPage">
                                             @endif
                                         </th>
-                                        <th>#</th>
+                                        <th>{{ helperTrans('ingaz.client_number') }}</th>
                                         <th>{{ helperTrans('ingaz.name') }}</th>
                                         <th>{{ helperTrans('ingaz.client_data') }}</th>
                                         <th>{{ helperTrans('ingaz.client_activity') }}</th>
                                         <th>{{ helperTrans('ingaz.last_activity') }}</th>
                                         <th>{{ helperTrans('ingaz.status') }}</th>
-                                        <th>{{ helperTrans('ingaz.have_account') }}</th>
+                                        <th>{{ helperTrans('ingaz.account_number') }}</th>
                                         <th>أضيف بواسطة</th>
                                         @if($branchesEnabled ?? false)
                                             <th>{{ __('admin.branches') }}</th>
@@ -539,9 +539,9 @@
                         searchable: false
                     },
                     {
-                        data: 'DT_RowIndex',
-                        name: 'DT_RowIndex',
-                        orderable: false,
+                        data: 'id',
+                        name: 'id',
+                        orderable: true,
                         searchable: false
                     },
                     {
@@ -604,9 +604,7 @@
                         searchable: false
                     }
                 ],
-                order: [
-                    [@if($branchesEnabled ?? false) 10 @else 9 @endif, 'desc']
-                ],
+                order: [],
                 language: {
                     url: "{{ asset('admin/assets/js/datatable-ar.json') }}"
                 },

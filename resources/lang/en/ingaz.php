@@ -667,6 +667,7 @@ return array (
   'arrival_date_help' => 'Date of maid arrival to Kingdom for calculating stay duration',
   'under_warranty' => 'Under Warranty',
   'completed' => 'Completed',
+  'refunded' => 'Refunded',
   'warranty_status_info' => 'Warranty Status',
   'contract_completed' => 'Completed Contract',
   'ready_for_shelter' => 'Ready for Shelter',

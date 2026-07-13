@@ -55,6 +55,33 @@
             background: #f8fafc;
             padding: 10px 12px;
         }
+
+        .import-progress-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 11000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: rgba(15, 23, 42, 0.72);
+            backdrop-filter: blur(2px);
+        }
+
+        .import-progress-overlay.is-visible {
+            display: flex;
+        }
+
+        .import-progress-dialog {
+            width: min(520px, 100%);
+            border-radius: 12px;
+            background: #fff;
+            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.3);
+        }
+
+        .import-progress-dialog .progress {
+            height: 18px;
+        }
     </style>
 @endsection
 
@@ -117,7 +144,7 @@
                         </p>
                     </div>
                     <div class="col-lg-8">
-                        <form action="{{ route('reports.import.store') }}" method="POST" enctype="multipart/form-data">
+                        <form action="{{ route('reports.import.store') }}" method="POST" enctype="multipart/form-data" id="data-import-form">
                             @csrf
                             <div class="row g-3 upload-zone p-3">
                                 <div class="col-md-4">
@@ -134,7 +161,7 @@
                                     <input type="file" name="file" id="import-file" class="form-control" accept=".xlsx,.xls,.csv" required>
                                 </div>
                                 <div class="col-md-3 d-grid align-self-end">
-                                    <button type="submit" class="btn btn-primary">
+                                    <button type="submit" class="btn btn-primary" id="data-import-submit">
                                         <i class="fas fa-upload me-1"></i>
                                         رفع الملف
                                     </button>
@@ -236,7 +263,7 @@
                                     <i class="fas fa-file-excel me-1"></i>
                                     تحميل التمبلت
                                 </a>
-                                @if ($key === 'maids')
+                                @if (in_array($key, ['maids', 'arabia_cvs'], true))
                                     <a href="{{ route('maids.bulk-import.create') }}" class="btn btn-outline-primary btn-sm">
                                         <i class="fas fa-check-double me-1"></i>
                                         مراجعة استيراد السير
@@ -281,4 +308,135 @@
             </div>
         </div>
     </div>
+
+    <div class="import-progress-overlay" id="import-progress-overlay" role="dialog" aria-modal="true"
+         aria-labelledby="import-progress-title" aria-describedby="import-progress-status">
+        <div class="import-progress-dialog p-4 p-lg-5 text-center">
+            <div class="mb-3 text-primary"><i class="fas fa-cloud-upload-alt fa-3x"></i></div>
+            <h4 id="import-progress-title" class="mb-2">جارٍ رفع ملف الاستيراد</h4>
+            <p id="import-progress-status" class="text-muted mb-3" aria-live="polite">يتم تجهيز الملف للرفع...</p>
+            <div class="progress mb-2" dir="ltr">
+                <div id="import-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated"
+                     role="progressbar" style="width: 0%" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">0%</div>
+            </div>
+            <div class="small text-muted">يرجى عدم إغلاق الصفحة أو الانتقال إلى شاشة أخرى حتى اكتمال العملية.</div>
+        </div>
+    </div>
+@endsection
+
+@section('js')
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.getElementById('data-import-form');
+            const submitButton = document.getElementById('data-import-submit');
+            const overlay = document.getElementById('import-progress-overlay');
+            const progressBar = document.getElementById('import-progress-bar');
+            const progressTitle = document.getElementById('import-progress-title');
+            const progressStatus = document.getElementById('import-progress-status');
+            let importInProgress = false;
+
+            if (!form || !window.XMLHttpRequest || !(new XMLHttpRequest()).upload) {
+                return;
+            }
+
+            const preventLeaving = function (event) {
+                if (!importInProgress) return;
+                event.preventDefault();
+                event.returnValue = '';
+            };
+
+            const setProgress = function (percent) {
+                const value = Math.max(0, Math.min(100, Math.round(percent)));
+                progressBar.style.width = value + '%';
+                progressBar.setAttribute('aria-valuenow', String(value));
+                progressBar.textContent = value + '%';
+            };
+
+            const unlockPage = function () {
+                importInProgress = false;
+                submitButton.disabled = false;
+                overlay.classList.remove('is-visible');
+                document.body.style.overflow = '';
+            };
+
+            const showError = function (message) {
+                unlockPage();
+                const oldAlert = document.getElementById('import-upload-error');
+                if (oldAlert) oldAlert.remove();
+
+                const alert = document.createElement('div');
+                alert.id = 'import-upload-error';
+                alert.className = 'alert alert-danger';
+                alert.setAttribute('role', 'alert');
+                alert.textContent = message || 'تعذر رفع الملف. يرجى المحاولة مرة أخرى.';
+                form.closest('.import-panel').before(alert);
+                alert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            };
+
+            window.addEventListener('beforeunload', preventLeaving);
+
+            form.addEventListener('submit', function (event) {
+                if (!form.checkValidity() || importInProgress) return;
+
+                event.preventDefault();
+                importInProgress = true;
+                submitButton.disabled = true;
+                overlay.classList.add('is-visible');
+                document.body.style.overflow = 'hidden';
+                progressTitle.textContent = 'جارٍ رفع ملف الاستيراد';
+                progressStatus.textContent = 'بدأ رفع الملف...';
+                setProgress(0);
+
+                const request = new XMLHttpRequest();
+                request.open('POST', form.action, true);
+                request.setRequestHeader('Accept', 'application/json');
+                request.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+
+                request.upload.addEventListener('progress', function (uploadEvent) {
+                    if (!uploadEvent.lengthComputable) {
+                        progressStatus.textContent = 'جارٍ رفع الملف...';
+                        return;
+                    }
+
+                    const percent = (uploadEvent.loaded / uploadEvent.total) * 100;
+                    setProgress(percent);
+                    progressStatus.textContent = 'تم رفع ' + Math.round(percent) + '% من الملف.';
+                });
+
+                request.upload.addEventListener('load', function () {
+                    setProgress(100);
+                    progressTitle.textContent = 'جارٍ معالجة البيانات';
+                    progressStatus.textContent = 'اكتمل نقل الملف، ويتم الآن فحص البيانات واستيرادها...';
+                });
+
+                request.addEventListener('load', function () {
+                    let response = {};
+                    try { response = JSON.parse(request.responseText || '{}'); } catch (error) {}
+
+                    if (request.status >= 200 && request.status < 300 && response.redirect) {
+                        progressTitle.textContent = 'اكتملت العملية بنجاح';
+                        progressStatus.textContent = 'جارٍ فتح نتيجة الاستيراد...';
+                        importInProgress = false;
+                        window.location.assign(response.redirect);
+                        return;
+                    }
+
+                    const validationMessage = response.errors
+                        ? Object.values(response.errors).flat().join(' ')
+                        : response.message;
+                    showError(validationMessage || 'فشل رفع الملف أو معالجته. يرجى التحقق من الملف والمحاولة مرة أخرى.');
+                });
+
+                request.addEventListener('error', function () {
+                    showError('تعذر الاتصال بالخادم أثناء رفع الملف. تحقق من الاتصال ثم حاول مرة أخرى.');
+                });
+
+                request.addEventListener('abort', function () {
+                    showError('تم إلغاء رفع الملف قبل اكتماله.');
+                });
+
+                request.send(new FormData(form));
+            });
+        });
+    </script>
 @endsection

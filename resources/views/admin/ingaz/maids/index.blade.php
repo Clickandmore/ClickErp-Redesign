@@ -539,6 +539,36 @@
     @else
         @include('components.no_permissions')
     @endif
+
+    <div class="modal fade" id="maidCvPreviewModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content" style="height:92vh">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-file-pdf text-danger me-2"></i>معاينة ملف السيرة الذاتية</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                </div>
+                <div class="modal-body p-0 bg-secondary" style="min-height:0">
+                    <iframe id="maidCvPreviewFrame" title="معاينة ملف السيرة" class="w-100 h-100 border-0 bg-white"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('click', function (event) {
+            const trigger = event.target.closest('[data-cv-preview-url]');
+            if (!trigger) return;
+
+            const frame = document.getElementById('maidCvPreviewFrame');
+            const modalElement = document.getElementById('maidCvPreviewModal');
+            frame.src = trigger.dataset.cvPreviewUrl + '#toolbar=1&navpanes=0&view=FitH';
+            bootstrap.Modal.getOrCreateInstance(modalElement).show();
+        });
+
+        document.getElementById('maidCvPreviewModal')?.addEventListener('hidden.bs.modal', function () {
+            document.getElementById('maidCvPreviewFrame').src = 'about:blank';
+        });
+    </script>
 @endsection
 
 @section('js')
@@ -625,8 +655,8 @@
                     }
                 },
                 columns: [{
-                        data: 'DT_RowIndex',
-                        name: 'DT_RowIndex',
+                        data: 'worker_display_id',
+                        name: 'arabia_worker_number',
                         orderable: false,
                         searchable: false
                     },

@@ -44,6 +44,14 @@ class DataImportTemplateService
                     ['key' => 'notes', 'label' => 'ملاحظات', 'required' => false, 'example' => 'عميل مستورد من ملف خارجي'],
                 ],
             ],
+            'arabia_clients' => [
+                'label' => 'عملاء (أربيا)',
+                'route_hint' => '/admin/clients',
+                'icon' => 'fas fa-users-cog',
+                'description' => 'استبدال بيانات عملاء أربيا من الملف: يُحفظ رقم العميل مطابقاً لرقم تعريف أربيا، وتُحذف لقطة أربيا القديمة قبل إعادة حفظها، مع إبقاء سجل العميل نفسه لحماية روابط الطلبات والعقود والحسابات المالية.',
+                'filename' => 'arabia-clients-import-template.xlsx',
+                'columns' => $this->arabiaClientColumns(),
+            ],
             'maids' => [
                 'label' => 'السير الذاتية',
                 'route_hint' => '/admin/maids',
@@ -52,6 +60,26 @@ class DataImportTemplateService
                 'external_template_route' => 'maids.bulk-import.template',
                 'external_upload_route' => 'maids.bulk-import.store',
                 'columns' => [],
+            ],
+            'arabia_cvs' => [
+                'label' => 'سير ذاتية (أربيا)',
+                'route_hint' => '/admin/maids',
+                'icon' => 'fas fa-file-import',
+                'description' => 'استيراد ملف العاملات الصادر من نظام أربيا مع تثبيت رقم العامل والمهنة وتحميل الصورة وملف PDF.',
+                'filename' => 'stock_workers_report.xlsx',
+                'columns' => [
+                    ['key' => 'row_number', 'label' => 'الرقم', 'required' => false, 'example' => '1'],
+                    ['key' => 'worker_number', 'label' => 'رقم العامل', 'required' => true, 'example' => '3375'],
+                    ['key' => 'name', 'label' => 'الاسم', 'required' => true, 'example' => 'WORKER NAME'],
+                    ['key' => 'passport', 'label' => 'رقم الجواز', 'required' => true, 'example' => 'P123456'],
+                    ['key' => 'marital_status', 'label' => 'الحالة الاجتماعية', 'required' => false, 'example' => 'عازبـ / ـة'],
+                    ['key' => 'religion', 'label' => 'الديانة', 'required' => false, 'example' => 'مسلم'],
+                    ['key' => 'office', 'label' => 'المكتب', 'required' => false, 'example' => 'مكتب خارجي'],
+                    ['key' => 'profession', 'label' => 'المهنة', 'required' => true, 'example' => 'عاملة منزلية'],
+                    ['key' => 'country', 'label' => 'الدولة', 'required' => true, 'example' => 'اثيوبيا'],
+                    ['key' => 'image_url', 'label' => 'رابط الصورة', 'required' => false, 'example' => 'https://...'],
+                    ['key' => 'pdf_url', 'label' => 'رابط ملف السيرة (PDF)', 'required' => false, 'example' => 'https://...'],
+                ],
             ],
             'recruitment_offices' => [
                 'label' => 'مكاتب الاستقدام',
@@ -441,6 +469,18 @@ class DataImportTemplateService
             ],
         ];
 
+        $templates['arabia_recruitment_orders'] = [
+            'label' => 'طلبات استقدام (أربيا)',
+            'route_hint' => '/admin/RecruitmentContract',
+            'icon' => 'fas fa-plane-arrival',
+            'description' => 'استيراد النسخة الكاملة متعددة الأوراق من نظام أربيا: الطلبات والعقود والعملاء والعاملات والتفويضات والرحلات والوصول والإرساليات والملاحظات، مع حفظ جميع الخانات الأصلية ومنع التكرار.',
+            'filename' => 'requests_full_backup.xlsx',
+            'columns' => [
+                ['key' => 'arabia_order_number', 'label' => 'رقم الطلب', 'required' => true, 'example' => '2575'],
+                ['key' => 'status', 'label' => 'حالة', 'required' => true, 'example' => 'قيد العمل'],
+            ],
+        ];
+
         $templates['recruitment_contracts_clients_maids'] = [
             'label' => 'عقود استقدام-عملاء-عاملات',
             'route_hint' => '/admin/RecruitmentContract',
@@ -488,6 +528,28 @@ class DataImportTemplateService
         ];
 
         return $templates;
+    }
+
+    private function arabiaClientColumns(): array
+    {
+        $labels = [
+            'م', 'رقم تعريف', 'الإسم الأول', 'اسم العائلة', 'Full name english', 'تاريخ الميلاد',
+            'الجنسية', 'حالة الإجتماعية', 'الجوال', 'البريد الإلكتروني', 'الفاكس', 'رقم هاتف 2',
+            'رقم الهوية', 'تاريخ الهوية', 'نوع الهوية', 'الوظيفة', 'جهة العمل', 'صندوق بريد',
+            'رقم بريدي', 'مدينة العمل', 'الراتب', 'رقم هاتف العمل', 'رقم المنزل', 'شارع المنزل',
+            'الحي المتواجد فيه المنزل', 'مدينة المنزل', 'المنطقة', 'عدد الغرف', 'نوع المنزل',
+            'نوع السكن', 'رقم هاتف المنزل', 'عدد أفراد الأسرة', 'أقل من خمس سنوات', 'عدد العمالة',
+            'العمالة المنقولة', 'العمالة من نفس المهنة', 'اسم صاحب الهاتف', 'محظور', 'ملاحظة',
+            'العمر', 'رقم ضريبي', 'رقم التسجيل', 'رقم الحساب', 'الرصيد', 'نوع الرصيد',
+            'تاريخ الانشاء', 'طلبات الاستقدام', 'تفاويض انجاز', 'طلبات تأجير', 'أنشئ بواسطة',
+        ];
+
+        return collect($labels)->map(fn ($label, $index) => [
+            'key' => 'arabia_column_' . ($index + 1),
+            'label' => $label,
+            'required' => in_array($label, ['رقم تعريف', 'الإسم الأول', 'الجوال'], true),
+            'example' => '',
+        ])->all();
     }
 
     public function template(string $type): ?array
@@ -636,6 +698,7 @@ class DataImportTemplateService
             'تذكرة',
             'مرحلة الوصول',
             'عقد مكتمل',
+            'مسترد',
             'مرتجع',
             'عقد ساري',
             'عقد إيواء',

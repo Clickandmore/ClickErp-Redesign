@@ -46,6 +46,10 @@ class RecruitmentContractStageLabels
                 'ar' => 'عقد مكتمل',
                 'en' => 'Completed Contract',
             ],
+            ContractStatusEnum::Refunded->value => [
+                'ar' => 'مسترد',
+                'en' => 'Refunded',
+            ],
             ContractStatusEnum::Back->value => [
                 'ar' => 'مرتجع',
                 'en' => 'Returned',

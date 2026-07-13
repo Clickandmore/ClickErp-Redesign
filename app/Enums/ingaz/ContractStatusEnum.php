@@ -12,6 +12,7 @@ enum ContractStatusEnum: string
     case Tazker = 'tazker'; // تذكرة
     case Arrival = 'arrival'; // مرحلة الوصول
     case Completed = 'completed'; // عقد مكتمل (يشمل الضمان)
+    case Refunded = 'refunded'; // عقد مكتمل تم استرداد قيمته
     case Back = 'back'; // مرتجع
     case Sari = 'sari'; // عقد ساري
     case Shelter = 'shelter'; // عقد ايواء
@@ -40,6 +41,7 @@ enum ContractStatusEnum: string
             self::Tazker => __('ingaz.tazker'),
             self::Arrival => __('ingaz.arrival'),
             self::Completed => __('ingaz.completed'),
+            self::Refunded => __('ingaz.refunded'),
             self::Back => __('ingaz.back'),
             self::Sari => __('ingaz.sari'),
             self::Shelter => __('ingaz.shelter'),
@@ -63,6 +65,7 @@ enum ContractStatusEnum: string
             self::Tazker => 'primary',
             self::Arrival => 'primary',
             self::Completed => 'success',
+            self::Refunded => 'secondary',
             self::Back => 'danger',
             self::Sari => 'warning',
             self::Shelter => 'info',

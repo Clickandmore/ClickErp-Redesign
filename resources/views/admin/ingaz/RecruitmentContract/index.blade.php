@@ -330,7 +330,7 @@
                 'tazker',
                 'sari',
             ]);
-            $showCompletedStatsInitially = !$requestedStatus || in_array($requestedStatus, ['completed_stage', 'completed', 'arrival', 'shelter']);
+            $showCompletedStatsInitially = !$requestedStatus || in_array($requestedStatus, ['completed_stage', 'completed', 'refunded', 'arrival', 'shelter']);
             $contractStageLabels = \App\Support\RecruitmentContractStageLabels::labels();
             $contractStageLabel = fn($status) => $contractStageLabels[$status][app()->getLocale() === 'en' ? 'en' : 'ar'] ?? $status;
         @endphp
@@ -595,6 +595,7 @@
                                 <option value="arrival">{{ $contractStageLabel('arrival') }}</option>
                                 <option value="sari">{{ $contractStageLabel('sari') }}</option>
                                 <option value="completed">{{ $contractStageLabel('completed') }}</option>
+                                <option value="refunded">{{ $contractStageLabel('refunded') }}</option>
                                 <option value="back">{{ $contractStageLabel('back') }}</option>
                                 <option value="shelter">{{ $contractStageLabel('shelter') }}</option>
                                 <option value="pending_maid_selection">{{ $contractStageLabel('pending_maid_selection') }}</option>
@@ -1255,7 +1256,7 @@
 
             function toggleWarrantyFilter() {
                 const statusValue = $('#statusFilter').val();
-                const shouldShow = statusValue === 'arrival' || statusValue === 'completed' || statusValue === 'completed_stage';
+                const shouldShow = statusValue === 'arrival' || statusValue === 'completed' || statusValue === 'refunded' || statusValue === 'completed_stage';
                 const wrapper = $('#warrantyStatusFilter').closest('.col-md-3');
 
                 if (shouldShow) {
@@ -1273,7 +1274,7 @@
                 const currentStatuses = ['current', 'pending_maid_selection', 'new', 'msaned', 'tafwed', 'taffez',
                     'tazker', 'sari', 'accreditation_contracts'
                 ];
-                const completedStatuses = ['completed_stage', 'completed', 'arrival', 'shelter'];
+            const completedStatuses = ['completed_stage', 'completed', 'refunded', 'arrival', 'shelter'];
 
                 if (!statusValue) {
                     $('#currentStatsSection').show();

@@ -9,6 +9,7 @@ use App\Models\ingaz\JobType;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\MaidBulkImport;
 use App\Models\ingaz\MaidBulkImportRow;
+use App\Models\ingaz\MaidExternalReference;
 use App\Models\ingaz\Nationality;
 use App\Models\ingaz\Religion;
 use App\Models\ingaz\Skill;
@@ -18,9 +19,11 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use PhpOffice\PhpSpreadsheet\Cell\DataValidation;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
@@ -33,6 +36,7 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class MaidBulkImportService
 {
+    private const APPROVAL_BATCH_SIZE = 20;
     private const DATA_SHEET_NAME = 'البيانات';
     private const LOOKUPS_SHEET_NAME = 'القوائم';
     private const INSTRUCTIONS_SHEET_NAME = 'تعليمات';
@@ -246,13 +250,43 @@ class MaidBulkImportService
         return $import->fresh('rows');
     }
 
+    public function createArabiaImportFromUpload(UploadedFile $file, int $adminId): MaidBulkImport
+    {
+        $this->prepareLargeImportRuntime();
+
+        $storedPath = $file->storeAs(
+            'maid-imports',
+            now()->format('Ymd_His') . '_arabia_' . preg_replace('/[^A-Za-z0-9_.-]/', '_', $file->getClientOriginalName())
+        );
+
+        $import = MaidBulkImport::create([
+            'uploaded_by' => $adminId,
+            'status' => 'processing',
+            'original_filename' => $file->getClientOriginalName(),
+            'uploaded_file_path' => $storedPath,
+            'meta' => ['source' => 'arabia'],
+        ]);
+
+        try {
+            $this->persistImportRows($import, $this->parseArabiaFile(Storage::path($storedPath)));
+        } catch (\Throwable $exception) {
+            $import->update(['status' => 'failed', 'meta' => [
+                'source' => 'arabia',
+                'exception' => $exception->getMessage(),
+            ]]);
+            throw $exception;
+        }
+
+        return $import->fresh('rows');
+    }
+
     public function approveImport(MaidBulkImport $import, MaidAction $maidAction, int $adminId): array
     {
         $this->prepareLargeImportRuntime();
 
         $rowsQuery = MaidBulkImportRow::query()
             ->where('maid_bulk_import_id', $import->id)
-            ->whereIn('status', ['pending', 'failed']);
+            ->where('status', 'pending');
 
         if (!$rowsQuery->exists()) {
             return [
@@ -270,12 +304,14 @@ class MaidBulkImportService
         $importedCount = 0;
         $failedCount = 0;
 
-        MaidBulkImportRow::query()
+        $rows = MaidBulkImportRow::query()
             ->where('maid_bulk_import_id', $import->id)
-            ->whereIn('status', ['pending', 'failed'])
+            ->where('status', 'pending')
             ->orderBy('id')
-            ->chunkById(200, function ($rows) use ($maidAction, $adminId, &$importedCount, &$failedCount) {
-                foreach ($rows as $row) {
+            ->limit(self::APPROVAL_BATCH_SIZE)
+            ->get();
+
+        foreach ($rows as $row) {
                     $payload = $row->normalized_data ?? [];
 
                     try {
@@ -292,18 +328,36 @@ class MaidBulkImportService
 
                         DB::transaction(function () use ($maidAction, $payload, $request, $row, &$importedCount, $adminId) {
                             $data = $payload;
+                            $data = $this->materializeArabiaMedia($data);
+                            $downloadedMedia = array_filter([
+                                'image' => $data['image'] ?? null,
+                                'cv_file' => $data['cv_file'] ?? null,
+                            ]);
                             $data['status'] = $data['status'] ?? 'available';
                             $data['available'] = $data['available'] ?? ($data['status'] === 'available' || $data['status'] === 'completed' ? '1' : '0');
                             $data['added_by'] = $data['added_by'] ?? $adminId;
                             $data['preserve_null_arrival_date'] = true;
 
-                            $maid = Maid::where('passport_num', $data['passport_num'])->first();
+                            if (!empty($data['arabia_worker_number'])) {
+                                $maid = MaidExternalReference::query()
+                                    ->where('source', 'arabia')
+                                    ->where('external_id', (string) $data['arabia_worker_number'])
+                                    ->first()?->maid;
+
+                                $maid ??= Maid::where('arabia_worker_number', $data['arabia_worker_number'])->first();
+                                $maid ??= Maid::whereRaw('UPPER(TRIM(passport_num)) = ?', [mb_strtoupper(trim($data['passport_num']))])->first();
+                            } else {
+                                $maid = Maid::where('passport_num', $data['passport_num'])->first();
+                            }
 
                             if (!$maid && !empty($data['id'])) {
                                 $maid = Maid::find((int) $data['id']);
                             }
 
                             if ($maid) {
+                                // updateMaid expects browser UploadedFile objects for media. Arabia
+                                // assets have already been saved locally, so persist their paths after it.
+                                unset($data['image'], $data['cv_file']);
                                 unset(
                                     $data['preserve_null_arrival_date'],
                                     $data['job_id'],
@@ -313,8 +367,21 @@ class MaidBulkImportService
                                 );
                                 $maidAction->updateMaid($maid->id, $data, $request);
                                 $maid = $maid->fresh();
+                                if ($downloadedMedia !== []) {
+                                    $maid->update($downloadedMedia);
+                                }
                             } else {
                                 $maid = $maidAction->storeMaid($data, $request);
+                            }
+
+                            if (!empty($data['arabia_worker_number'])) {
+                                if (!$maid->arabia_worker_number) {
+                                    $maid->update(['arabia_worker_number' => (int) $data['arabia_worker_number']]);
+                                }
+                                MaidExternalReference::updateOrCreate(
+                                    ['source' => 'arabia', 'external_id' => (string) $data['arabia_worker_number']],
+                                    ['maid_id' => $maid->id]
+                                );
                             }
 
                             $row->update([
@@ -333,14 +400,26 @@ class MaidBulkImportService
                             'error_messages' => $this->extractErrors($exception),
                         ]);
                     }
+
+                // Release large downloaded response/model graphs before the next row.
+                unset($payload, $request, $row);
+                if (function_exists('gc_collect_cycles')) {
+                    gc_collect_cycles();
                 }
-            });
+        }
 
         $this->refreshImportCounters($import->fresh());
+
+        $remaining = MaidBulkImportRow::query()
+            ->where('maid_bulk_import_id', $import->id)
+            ->where('status', 'pending')
+            ->count();
 
         return [
             'imported' => $importedCount,
             'failed' => $failedCount,
+            'remaining' => $remaining,
+            'batch_size' => self::APPROVAL_BATCH_SIZE,
         ];
     }
 
@@ -571,6 +650,159 @@ class MaidBulkImportService
         return $rows;
     }
 
+    private function parseArabiaFile(string $path): array
+    {
+        $spreadsheet = $this->loadSpreadsheetForImport($path);
+        $sheet = $spreadsheet->getSheet(0);
+        $headers = [];
+        $highestColumn = Coordinate::columnIndexFromString($sheet->getHighestDataColumn());
+        for ($column = 1; $column <= $highestColumn; $column++) {
+            $label = trim((string) $sheet->getCell(Coordinate::stringFromColumnIndex($column) . '1')->getValue());
+            if ($label !== '') {
+                $headers[$label] = $column;
+            }
+        }
+
+        foreach (['رقم العامل', 'الاسم', 'رقم الجواز', 'الدولة'] as $requiredHeader) {
+            if (!isset($headers[$requiredHeader])) {
+                throw ValidationException::withMessages([
+                    'file' => ["تنسيق ملف أربيا غير مطابق: العمود «{$requiredHeader}» غير موجود."],
+                ]);
+            }
+        }
+
+        $filename = strtolower(basename($path));
+        $defaultProfession = str_contains($filename, 'private_driver')
+            ? 'سائق خاص'
+            : (str_contains($filename, 'general_worker')
+                ? 'عامل عادي'
+                : (str_contains($filename, 'home_farmer') ? 'مزارع منزلي' : null));
+
+        $lookups = $this->lookupEntities();
+        $defaultJobType = JobType::query()->orderBy('id')->first();
+        if (!$defaultJobType) {
+            throw ValidationException::withMessages(['file' => ['لا يوجد نوع سيرة مسجل في النظام.']]);
+        }
+
+        $rows = [];
+        for ($rowIndex = 2; $rowIndex <= $sheet->getHighestDataRow(); $rowIndex++) {
+            $value = function (string $label) use ($headers, $sheet, $rowIndex) {
+                if (!isset($headers[$label])) {
+                    return null;
+                }
+                return $this->cellValue($sheet->getCell(Coordinate::stringFromColumnIndex($headers[$label]) . $rowIndex)->getValue());
+            };
+
+            $workerNumber = $value('رقم العامل');
+            $name = $value('الاسم');
+            $passport = strtoupper(trim((string) $value('رقم الجواز'), " .\t\n\r\0\x0B"));
+            if (!$workerNumber && !$name && !$passport) {
+                continue;
+            }
+
+            $office = $value('المكتب');
+            $profession = $value('المهنة') ?: $defaultProfession;
+            if ($profession === 'اخصائي علاج طبيعي') {
+                $profession = 'علاج طبيعي';
+            }
+            $marital = str_contains((string) $value('الحالة الاجتماعية'), 'متزوج') ? 'متزوجة' : 'عازبة';
+            $raw = [
+                'name:en' => $name,
+                'passport_num' => $passport,
+                'nationality' => $value('الدولة'),
+                'office' => $office,
+                'religion' => $value('الديانة'),
+                'type_id' => $defaultJobType->id,
+                'job_titles' => $profession,
+                'experience_status' => 'لم يسبق لها العمل',
+                'marital_status:ar' => $marital,
+                'status' => 'متاحة',
+                'available' => 'نعم',
+                'is_show' => 'نعم',
+                'gender' => 'أنثى',
+                'additional_notes' => 'مستوردة من نظام أربيا. المكتب في المصدر: ' . ($office ?: '-'),
+                'arabia_worker_number' => $workerNumber,
+                'arabia_image_url' => $value('رابط الصورة'),
+                'arabia_pdf_url' => $value('رابط ملف السيرة (PDF)'),
+            ];
+
+            $normalized = $this->normalizeRow($raw, $lookups);
+            $normalized['data']['arabia_worker_number'] = $this->normalizeInteger($workerNumber);
+            $normalized['data']['arabia_image_url'] = $value('رابط الصورة');
+            $normalized['data']['arabia_pdf_url'] = $value('رابط ملف السيرة (PDF)');
+
+            if (empty($normalized['data']['arabia_worker_number'])) {
+                $normalized['errors'][] = 'رقم العامل في أربيا مطلوب.';
+            }
+
+            $rows[] = [
+                'row_number' => $rowIndex,
+                'raw_data' => $raw,
+                'normalized_data' => $normalized['data'],
+                'error_messages' => array_values(array_unique($normalized['errors'])),
+                'status' => empty($normalized['errors']) ? 'pending' : 'invalid',
+            ];
+        }
+
+        return $rows;
+    }
+
+    private function materializeArabiaMedia(array $data): array
+    {
+        $workerNumber = $data['arabia_worker_number'] ?? null;
+        if (!$workerNumber) {
+            return $data;
+        }
+
+        if (!empty($data['arabia_image_url'])) {
+            $imagePath = $this->downloadArabiaAsset($data['arabia_image_url'], $workerNumber, 'image');
+            if ($imagePath) {
+                $data['image'] = $imagePath;
+            }
+        }
+        if (!empty($data['arabia_pdf_url'])) {
+            $cvPath = $this->downloadArabiaAsset($data['arabia_pdf_url'], $workerNumber, 'cv');
+            if ($cvPath) {
+                $data['cv_file'] = $cvPath;
+            }
+        }
+
+        unset($data['arabia_image_url'], $data['arabia_pdf_url']);
+        return $data;
+    }
+
+    private function downloadArabiaAsset(string $url, int $workerNumber, string $kind): ?string
+    {
+        try {
+            $response = Http::retry(2, 250)->timeout(25)->get($url);
+        } catch (\Throwable $exception) {
+            logger()->warning('Arabia import media download failed.', [
+                'worker_number' => $workerNumber,
+                'kind' => $kind,
+                'url' => $url,
+                'error' => $exception->getMessage(),
+            ]);
+            return null;
+        }
+
+        if (!$response->successful() || $response->body() === '') {
+            logger()->warning('Arabia import media URL is unavailable.', [
+                'worker_number' => $workerNumber,
+                'kind' => $kind,
+                'url' => $url,
+                'status' => $response->status(),
+            ]);
+            return null;
+        }
+
+        $pathExtension = strtolower(pathinfo((string) parse_url($url, PHP_URL_PATH), PATHINFO_EXTENSION));
+        $extension = preg_match('/^[a-z0-9]{2,5}$/', $pathExtension) ? $pathExtension : ($kind === 'cv' ? 'pdf' : 'jpg');
+        $relativePath = 'images/Maid/arabia/' . $workerNumber . '_' . $kind . '_' . Str::random(8) . '.' . $extension;
+        Storage::disk('public')->put($relativePath, $response->body());
+
+        return $relativePath;
+    }
+
     private function loadSpreadsheetForImport(string $path): \PhpOffice\PhpSpreadsheet\Spreadsheet
     {
         $reader = IOFactory::createReaderForFile($path);
@@ -608,7 +840,7 @@ class MaidBulkImportService
         $this->refreshImportCounters($import->fresh());
     }
 
-    private function refreshImportCounters(MaidBulkImport $import): void
+    public function refreshImportCounters(MaidBulkImport $import): void
     {
         $statusCounts = $import->rows()
             ->selectRaw('status, COUNT(*) as aggregate')
@@ -622,9 +854,11 @@ class MaidBulkImportService
         $totalRows = (int) $statusCounts->sum();
 
         $status = 'pending_review';
-        if ($pendingRows === 0 && $invalidRows === 0 && $failedRows === 0) {
+        if ($pendingRows > 0) {
+            $status = 'pending_review';
+        } elseif ($invalidRows === 0 && $failedRows === 0) {
             $status = 'completed';
-        } elseif ($importedRows > 0 || $failedRows > 0) {
+        } else {
             $status = 'completed_with_errors';
         }
 

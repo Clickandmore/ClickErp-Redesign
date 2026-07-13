@@ -106,6 +106,15 @@ class DataImportExecutionService
             return $this->importLegacyRentalOrdersFile($storedPath, $adminId, $result);
         }
 
+        if ($type === 'arabia_recruitment_orders') {
+            return app(ArabiaRecruitmentOrdersImportService::class)->import(
+                Storage::path($storedPath),
+                $file->getClientOriginalName(),
+                $adminId,
+                $result
+            );
+        }
+
         foreach ($this->readRows(Storage::path($storedPath), $columns) as $rowNumber => $row) {
             $result['total']++;
 
@@ -3811,6 +3820,7 @@ class DataImportExecutionService
             ContractStatusEnum::Tazker->value => ['تذكرة', 'التذكرة'],
             ContractStatusEnum::Arrival->value => ['مرحلة الوصول', 'الوصول', 'وصول'],
             ContractStatusEnum::Completed->value => ['عقد مكتمل', 'مكتمل', 'مكتملة', 'completed'],
+            ContractStatusEnum::Refunded->value => ['مسترد', 'مسترده', 'مستردة', 'تم استرداده', 'تم إسترداده', 'refunded'],
             ContractStatusEnum::Back->value => ['مرتجع', 'راجع'],
             ContractStatusEnum::Sari->value => ['عقد ساري'],
             ContractStatusEnum::Shelter->value => ['عقد إيواء', 'عقد ايواء', 'إيواء', 'ايواء'],

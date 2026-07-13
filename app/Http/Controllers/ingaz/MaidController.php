@@ -64,6 +64,7 @@ class MaidController extends Controller
             ->with(['nationality', 'religion', 'jobTypes', 'contracts', 'orders', 'office', 'creatorActivity.causer', 'addedBy'])
             ->select([
                 'id',
+                'arabia_worker_number',
                 'name',
                 'cv_code',
                 'image',
@@ -93,21 +94,42 @@ class MaidController extends Controller
             ->orderByDesc('is_pinned');
 
         $this->applyRecruitmentMaidsScope($query);
+        $this->applyUniquePassportDisplayScope($query);
 
         if ($request->ajax()) {
             $this->applyMaidFilter($request, $query);
 
             $statsQuery = objModel::query();
             $this->applyRecruitmentMaidsScope($statsQuery);
+            $this->applyUniquePassportDisplayScope($statsQuery);
             $this->applyMaidFilter($request, $statsQuery);
             $stats = $this->buildRecruitmentMaidStats($statsQuery);
 
             return DataTables::of($query)
                 ->addIndexColumn()
+                ->addColumn('worker_display_id', fn ($row) => $row->arabia_worker_number ?: $row->id)
                 ->addColumn('photo', function ($row) {
-                    $rawPath = $row->image ?: ($row->cv_preview ?: $row->cv_file);
-                    $imageUrl = $rawPath ? showFile($rawPath) : asset('admin/assets/img/avatar.png');
-                    return '<img src="' . $imageUrl . '" alt="maid-avatar" class="border" style="width:85px;height:110px;object-fit:cover;">';
+                    foreach ([$row->image, $row->cv_preview] as $imagePath) {
+                        $extension = strtolower(pathinfo((string) $imagePath, PATHINFO_EXTENSION));
+                        $imageUrl = $imagePath && in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'], true)
+                            ? showFile($imagePath)
+                            : null;
+
+                        if ($imageUrl) {
+                            return '<img src="' . e($imageUrl) . '" alt="maid-avatar" class="border" style="width:85px;height:110px;object-fit:cover;">';
+                        }
+                    }
+
+                    $cvUrl = $row->cv_file ? showFile($row->cv_file) : null;
+                    if ($cvUrl) {
+                        return '<button type="button" data-cv-preview-url="' . e($cvUrl) . '" '
+                            . 'class="btn p-0 d-inline-flex flex-column align-items-center justify-content-center border rounded text-decoration-none bg-light" '
+                            . 'style="width:85px;height:110px" title="عرض ملف السيرة داخل النظام">'
+                            . '<i class="fas fa-file-pdf text-danger" style="font-size:34px"></i>'
+                            . '<span class="small mt-2">عرض السيرة</span></button>';
+                    }
+
+                    return '<img src="' . e(asset('admin/assets/img/avatar.png')) . '" alt="maid-avatar" class="border" style="width:85px;height:110px;object-fit:cover;">';
                 })
                 ->addColumn('profile', function (Maid $row) {
                     $nationality = e($row->nationality?->sub_title ?? helperTrans('ingaz.not_specified'));
@@ -2455,6 +2477,32 @@ class MaidController extends Controller
 
         $query->whereDoesntHave('jobTypes', function ($jobTypeQuery) use ($rentalJobTypeId) {
             $jobTypeQuery->whereKey($rentalJobTypeId);
+        });
+    }
+
+    private function applyUniquePassportDisplayScope($query): void
+    {
+        $query->whereNotExists(function ($duplicateQuery) {
+            $duplicateQuery->selectRaw('1')
+                ->from('maids as duplicate_maid')
+                ->whereNull('duplicate_maid.deleted_at')
+                ->whereColumn('duplicate_maid.id', '!=', 'maids.id')
+                ->whereRaw('UPPER(TRIM(duplicate_maid.passport_num)) = UPPER(TRIM(maids.passport_num))')
+                ->whereNotNull('maids.passport_num')
+                ->where('maids.passport_num', '!=', '')
+                ->where(function ($priority) {
+                    $priority
+                        ->where(function ($arabiaWins) {
+                            $arabiaWins->whereNull('maids.arabia_worker_number')
+                                ->whereNotNull('duplicate_maid.arabia_worker_number');
+                        })
+                        ->orWhere(function ($higherArabiaNumberWins) {
+                            $higherArabiaNumberWins
+                                ->whereNotNull('maids.arabia_worker_number')
+                                ->whereNotNull('duplicate_maid.arabia_worker_number')
+                                ->whereColumn('duplicate_maid.arabia_worker_number', '>', 'maids.arabia_worker_number');
+                        });
+                });
         });
     }
 

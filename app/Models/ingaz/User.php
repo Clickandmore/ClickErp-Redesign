@@ -191,6 +191,11 @@ class User extends Authenticatable implements JWTSubject
         return $this->hasMany(ClientAttachment::class, 'user_id');
     }
 
+    public function importDetails()
+    {
+        return $this->hasMany(ClientImportDetail::class, 'user_id')->orderBy('sort_order');
+    }
+
     private function branchesFeatureAvailable(): bool
     {
         return SystemModuleManager::isEnabled('branches')

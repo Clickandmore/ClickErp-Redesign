@@ -364,6 +364,7 @@ return array (
   'approved' => 'موافق عليه',
   'rejected' => 'مرفوض',
   'completed' => 'مكتمل',
+  'refunded' => 'مسترد',
   'date_from' => 'من تاريخ',
   'date_to' => 'إلى تاريخ',
   'search_contract_number' => 'البحث برقم العقد',

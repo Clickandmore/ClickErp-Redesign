@@ -390,6 +390,34 @@
                                 <input type="text" id="job" name="job" class="form-control"
                                        value="{{ old('job', $client->job) }}">
                             </div>
+                            <div class="col-lg-6">
+                                <label class="form-label" for="full_name_en">الاسم الكامل بالإنجليزية</label>
+                                <input type="text" id="full_name_en" name="full_name_en" class="form-control" dir="ltr" value="{{ old('full_name_en', $client->full_name_en) }}">
+                            </div>
+                            <div class="col-lg-3">
+                                <label class="form-label" for="identity_type">نوع الهوية</label>
+                                <input type="text" id="identity_type" name="identity_type" class="form-control" value="{{ old('identity_type', $client->identity_type) }}">
+                            </div>
+                            <div class="col-lg-3">
+                                <label class="form-label" for="identity_date">تاريخ الهوية</label>
+                                <input type="text" id="identity_date" name="identity_date" class="form-control" value="{{ old('identity_date', $client->identity_date) }}" placeholder="هجري أو ميلادي">
+                            </div>
+                            <div class="col-lg-6">
+                                <label class="form-label" for="workplace">جهة العمل</label>
+                                <input type="text" id="workplace" name="workplace" class="form-control" value="{{ old('workplace', $client->workplace) }}">
+                            </div>
+                            <div class="col-lg-3">
+                                <label class="form-label" for="po_box">صندوق البريد</label>
+                                <input type="text" id="po_box" name="po_box" class="form-control" value="{{ old('po_box', $client->po_box) }}">
+                            </div>
+                            <div class="col-lg-3">
+                                <label class="form-label" for="postal_code">الرقم البريدي</label>
+                                <input type="text" id="postal_code" name="postal_code" class="form-control" value="{{ old('postal_code', $client->postal_code) }}">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label" for="notes">ملاحظات العميل</label>
+                                <textarea id="notes" name="notes" class="form-control" rows="4">{{ old('notes', $client->notes) }}</textarea>
+                            </div>
 
                             <div class="col-lg-6">
                                 <label for="is_blocked" class="form-label">{{ helperTrans('ingaz.is_blocked') }}</label>
