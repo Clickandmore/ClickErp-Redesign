@@ -407,6 +407,40 @@ class DataImportTemplateService
             'columns' => $this->legacyInvoiceColumns(),
         ];
 
+        $templates['legacy_rental_orders'] = [
+            'label' => 'طلبات وعقود التأجير (اربيا)',
+            'route_hint' => '/admin/RentContract',
+            'icon' => 'fas fa-file-invoice-dollar',
+            'description' => 'استيراد تقرير طلبات التأجير وربط الطلب بالعميل وعاملة التأجير وعقد التأجير والفاتورة، مع الحفاظ على الأرقام القديمة ومنع التكرار.',
+            'filename' => 'legacy-rental-orders-import-template.xlsx',
+            'columns' => [
+                ['key' => 'sequence', 'label' => 'م', 'required' => false, 'example' => '1'],
+                ['key' => 'legacy_order_id', 'label' => 'رقم الطلب', 'required' => true, 'example' => '1937'],
+                ['key' => 'status', 'label' => 'الحالة', 'required' => false, 'example' => 'نشط'],
+                ['key' => 'legacy_maid_id', 'label' => 'رقم العامل', 'required' => false, 'example' => '3037'],
+                ['key' => 'maid_name', 'label' => 'اسم العاملـ / ـة', 'required' => true, 'example' => 'WORKER NAME'],
+                ['key' => 'maid_passport', 'label' => 'باسبور العاملـ / ـة', 'required' => true, 'example' => 'P000001'],
+                ['key' => 'legacy_client_id', 'label' => 'رقم العميل', 'required' => false, 'example' => '2621'],
+                ['key' => 'client_name', 'label' => 'العميل', 'required' => true, 'example' => 'اسم العميل'],
+                ['key' => 'legacy_invoice_id', 'label' => 'رقم الفاتورة', 'required' => false, 'example' => '8220'],
+                ['key' => 'legacy_receipt_id', 'label' => 'سند قبض', 'required' => false, 'example' => '6273'],
+                ['key' => 'nationality', 'label' => 'الجنسية', 'required' => false, 'example' => 'أوغندا'],
+                ['key' => 'job_title', 'label' => 'المهنة', 'required' => false, 'example' => 'عاملة منزلية'],
+                ['key' => 'supplier', 'label' => 'الشركة المزودة', 'required' => false, 'example' => 'مكتب خارجي'],
+                ['key' => 'start_date', 'label' => 'تاريخ البدء', 'required' => true, 'example' => now()->format('Y-m-d')],
+                ['key' => 'start_date_hijri', 'label' => 'تاريخ البدء هـ', 'required' => false, 'example' => '1448-01-01'],
+                ['key' => 'end_date', 'label' => 'تاريخ الانتهاء', 'required' => false, 'example' => now()->addMonth()->format('Y-m-d')],
+                ['key' => 'end_date_hijri', 'label' => 'تاريخ الانتهاء هـ', 'required' => false, 'example' => '1448-02-01'],
+                ['key' => 'duration_days', 'label' => 'مدة الأيام', 'required' => false, 'example' => '30'],
+                ['key' => 'remaining_days', 'label' => 'المتبقي', 'required' => false, 'example' => '26'],
+                ['key' => 'used_days', 'label' => 'الأيام المستفادة', 'required' => false, 'example' => '4'],
+                ['key' => 'total_cost', 'label' => 'التكلفة', 'required' => false, 'example' => '1900.00'],
+                ['key' => 'created_by', 'label' => 'بواسطة المستخدم', 'required' => false, 'example' => 'اسم الموظف'],
+                ['key' => 'created_at', 'label' => 'في تاريخ', 'required' => false, 'example' => now()->format('Y-m-d')],
+                ['key' => 'created_at_hijri', 'label' => 'في تاريخ هـ', 'required' => false, 'example' => '1448-01-01'],
+            ],
+        ];
+
         $templates['recruitment_contracts_clients_maids'] = [
             'label' => 'عقود استقدام-عملاء-عاملات',
             'route_hint' => '/admin/RecruitmentContract',

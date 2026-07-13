@@ -447,6 +447,7 @@
                                     {{ $level }}
                                 </option>
                             @endforeach
+                            <option value="all">{{ __('finance::finance.all_levels') }}</option>
                         </select>
                     </div>
 

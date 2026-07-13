@@ -19,7 +19,8 @@ class TrailBalanceController extends Controller
         $data['active_year'] = $yearService->getActiveYear();
         if ($request->ajax()) {
             $includeFirstBalance = isset($request['show_first_balance']) && $request['show_first_balance'];
-            $levelSummary = (int) $request->input('level', $data['levels'][0] ?? 1);
+            $requestedLevel = $request->input('level', $data['levels'][0] ?? 1);
+            $levelSummary = $requestedLevel === 'all' ? 'all' : (int) $requestedLevel;
             $fromDate = $request->input('from_date', $data['active_year']['from_date'] ?? null);
             $toDate = $request->input('to_date', $data['active_year']['to_date'] ?? null);
 
@@ -34,6 +35,7 @@ class TrailBalanceController extends Controller
             $returnHTML = view($this->folderPath . ".result")->with([
                 'accountsWithChildren' => $accountsWithChildren,
                 'includeFirstBalance' => $includeFirstBalance,
+                'allLevels' => $levelSummary === 'all',
             ])->render();
             return jsonSuccess(["html" => $returnHTML]);
         }

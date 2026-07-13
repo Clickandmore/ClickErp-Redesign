@@ -85,8 +85,12 @@ class TrailBalanceService extends MainService
         return $results;
     }
 
-    public function getAccountSummaryForTrailBalance(int $level, int $yearId, ?string $fromDate, ?string $toDate, bool $includeFirstBalance = false)
+    public function getAccountSummaryForTrailBalance(int|string $level, int $yearId, ?string $fromDate, ?string $toDate, bool $includeFirstBalance = false)
     {
+        $allLevels = $level === 'all';
+        $rootFilter = $allLevels ? '' : 'WHERE level = ?';
+        $finalFilter = $allLevels ? '' : 'WHERE root_acc.level = ?';
+
         $firstBalanceSelect = $includeFirstBalance
             ? 'COALESCE(first_balance.total_debtor, 0) as first_debtor,
                COALESCE(first_balance.total_creditor, 0) as first_creditor'
@@ -110,20 +114,28 @@ class TrailBalanceService extends MainService
         ) first_balance ON first_balance.root_id = root_acc.id"
             : '';
 
-        $bindings = [$level, $yearId, $fromDate, $toDate];
+        $bindings = [];
+
+        if (!$allLevels) {
+            $bindings[] = $level;
+        }
+
+        array_push($bindings, $yearId, $fromDate, $toDate);
 
         if ($includeFirstBalance) {
             $bindings[] = $yearId;
             $bindings[] = $fromDate;
         }
 
-        $bindings[] = $level;
+        if (!$allLevels) {
+            $bindings[] = $level;
+        }
 
         return collect(DB::select("
         WITH RECURSIVE account_tree AS (
             SELECT id as root_id, id as account_id
             FROM fn_accounts
-            WHERE level = ?
+            {$rootFilter}
 
             UNION ALL
 
@@ -147,6 +159,7 @@ class TrailBalanceService extends MainService
         SELECT root_acc.id,
                root_acc.name,
                root_acc.code,
+               root_acc.level,
                root_acc.status,
                COALESCE(period_balance.total_debtor, 0) as total_debtor,
                COALESCE(period_balance.total_creditor, 0) as total_creditor,
@@ -154,7 +167,7 @@ class TrailBalanceService extends MainService
         FROM fn_accounts root_acc
         LEFT JOIN period_balance ON period_balance.root_id = root_acc.id
         {$firstBalanceJoin}
-        WHERE root_acc.level = ?
+        {$finalFilter}
         ORDER BY root_acc.code
     ", $bindings));
     }

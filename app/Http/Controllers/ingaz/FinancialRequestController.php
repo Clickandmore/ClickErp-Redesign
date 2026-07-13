@@ -5,10 +5,12 @@ namespace App\Http\Controllers\ingaz;
 use App\Http\Controllers\Controller;
 use App\Models\Contract;
 use App\Models\FinancialRequest;
+use App\Models\Branch;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\User;
 use App\Models\RentalContract;
 use App\Services\AdminNotificationService;
+use App\Services\BranchAccessService;
 use App\Support\SystemModuleManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -67,12 +69,14 @@ class FinancialRequestController extends Controller
             $financialRequest = FinancialRequest::query()->create([
                 ...$data,
                 'request_no' => $this->nextRequestNo(),
-                'status' => FinancialRequest::STATUS_PENDING_REVIEW,
+                'status' => FinancialRequest::STATUS_FOR_APPROVAL,
                 'created_by_id' => auth('admin')->id(),
                 'updated_by_id' => auth('admin')->id(),
             ]);
 
             $this->storeAttachments($financialRequest, $request);
+            $this->logStatus($financialRequest, null, FinancialRequest::STATUS_PREPARING, 'تم تجهيز الطلب.');
+            $this->logStatus($financialRequest, FinancialRequest::STATUS_PREPARING, FinancialRequest::STATUS_FOR_APPROVAL, 'تم إرسال الطلب للاعتماد.');
         });
 
         return redirect()->route('financial-requests.index')->with('success', 'تم إنشاء الطلب المالي بنجاح.');
@@ -82,10 +86,35 @@ class FinancialRequestController extends Controller
     {
         abort_unless($this->canAccessRequest($financialRequest), 403);
 
-        $financialRequest->load(['attachments', 'creator', 'approver', 'financeBond.debitAccount', 'financeBond.creditAccount']);
+        $financialRequest->load(['attachments', 'branch', 'creator', 'updater', 'approver', 'statusLogs.performer', 'financeBond.debitAccount', 'financeBond.creditAccount']);
+
+        $workflowHistory = collect([[
+            'status' => FinancialRequest::STATUS_PREPARING,
+            'performer' => $financialRequest->creator?->name,
+            'occurred_at' => $financialRequest->created_at,
+            'remarks' => 'تم رفع الطلب المالي.',
+            'inferred' => false,
+        ]])->concat($financialRequest->statusLogs->map(fn ($log) => [
+            'status' => $log->to_status,
+            'performer' => $log->performer?->name,
+            'occurred_at' => $log->created_at,
+            'remarks' => $log->remarks,
+            'inferred' => false,
+        ]));
+
+        if ($financialRequest->statusLogs->isEmpty() && $financialRequest->status !== FinancialRequest::STATUS_PREPARING) {
+            $workflowHistory->push([
+                'status' => $financialRequest->status,
+                'performer' => $financialRequest->updater?->name,
+                'occurred_at' => $financialRequest->updated_at,
+                'remarks' => 'الحالة الحالية لطلب قديم لا يحتوي على سجل انتقالات محفوظ.',
+                'inferred' => true,
+            ]);
+        }
 
         return view('admin.ingaz.financial_requests.show', [
             'requestItem' => $financialRequest,
+            'workflowHistory' => $workflowHistory,
             'types' => FinancialRequest::types(),
             'statuses' => FinancialRequest::statuses(),
             'priorities' => FinancialRequest::priorities(),
@@ -111,10 +140,13 @@ class FinancialRequestController extends Controller
 
         $data = $this->validatedData($request);
         $data['updated_by_id'] = auth('admin')->id();
+        $data['status'] = FinancialRequest::STATUS_FOR_APPROVAL;
 
         DB::transaction(function () use ($request, $financialRequest, $data) {
+            $previousStatus = $financialRequest->status;
             $financialRequest->update($data);
             $this->storeAttachments($financialRequest, $request);
+            $this->logStatus($financialRequest, $previousStatus, FinancialRequest::STATUS_FOR_APPROVAL, 'تم استكمال الطلب وإعادة إرساله للاعتماد.');
         });
 
         return redirect()->route('financial-requests.show', $financialRequest)->with('success', 'تم تحديث الطلب المالي.');
@@ -139,6 +171,9 @@ class FinancialRequestController extends Controller
             'debit_account_id' => ['nullable', 'exists:fn_accounts,id'],
             'credit_account_id' => ['nullable', 'exists:fn_accounts,id'],
             'payment_type' => ['nullable', 'integer', Rule::in(array_map(fn (BondPaymentTypes $type) => $type->value, BondPaymentTypes::cases()))],
+            'remarks' => ['nullable', 'string', 'max:2000'],
+            'attachments' => ['nullable', 'array'],
+            'attachments.*.*' => ['file', 'max:10240'],
         ]);
 
         abort_unless($this->canAccessRequest($financialRequest) && $this->canUpdateStatus($financialRequest, $data), 403);
@@ -146,21 +181,44 @@ class FinancialRequestController extends Controller
         $previousStatus = $financialRequest->status;
         $previousPriority = $financialRequest->priority;
 
-        DB::transaction(function () use ($financialRequest, $data, $bondService, $yearService) {
+        if (($data['status'] === FinancialRequest::STATUS_PREPARING
+                || ($data['status'] === FinancialRequest::STATUS_REQUEST_CLOSING && $previousStatus === FinancialRequest::STATUS_RECEIPT_ATTACHED))
+            && trim((string) ($data['remarks'] ?? '')) === '') {
+            return back()->withErrors(['remarks' => 'الملاحظات مطلوبة عند الرفض أو إعادة الطلب للاستكمال.']);
+        }
+
+        if ($data['status'] === FinancialRequest::STATUS_PAID && ! $this->hasStageAttachment($financialRequest, $request, 'payment_proof')) {
+            return back()->withErrors(['attachments' => 'يجب إرفاق إثبات التحويل قبل تسجيل السداد.']);
+        }
+
+        if ($data['status'] === FinancialRequest::STATUS_RECEIPT_ATTACHED && ! $this->hasStageAttachment($financialRequest, $request, 'official_receipt')) {
+            return back()->withErrors(['attachments' => 'يجب إرفاق الإيصال الرسمي قبل المتابعة.']);
+        }
+
+        DB::transaction(function () use ($request, $financialRequest, $data, $bondService, $yearService, $previousStatus) {
             $payload = [
                 'status' => $data['status'],
                 'priority' => $data['priority'] ?? $financialRequest->priority,
                 'updated_by_id' => auth('admin')->id(),
             ];
 
-            if ($data['status'] === FinancialRequest::STATUS_PAID && ! $financialRequest->finance_bond_id) {
+            if ($data['status'] === FinancialRequest::STATUS_CLOSED && ! $financialRequest->finance_bond_id) {
                 $this->createFinanceBond($financialRequest, $data, $bondService, $yearService);
                 $financialRequest->refresh();
+                $payload['closed_at'] = now();
+            }
+
+            if ($data['status'] === FinancialRequest::STATUS_PAID) {
                 $payload['paid_at'] = now();
+            }
+
+            if ($data['status'] === FinancialRequest::STATUS_APPROVED) {
                 $payload['approved_by_id'] = auth('admin')->id();
             }
 
             $financialRequest->update($payload);
+            $this->storeAttachments($financialRequest, $request);
+            $this->logStatus($financialRequest, $previousStatus, $data['status'], $data['remarks'] ?? null);
             $this->updateLinkedContract($financialRequest);
         });
 
@@ -217,7 +275,7 @@ class FinancialRequestController extends Controller
 
     public function searchAccounts(Request $request)
     {
-        abort_unless(AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, \App\PermKeys::FINANCIAL_REQUESTS_APPROVE, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]), 403);
+        abort_unless(AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_CREATE, \App\PermKeys::FINANCIAL_REQUESTS_EDIT, \App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, \App\PermKeys::FINANCIAL_REQUESTS_APPROVE, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]), 403);
 
         $term = trim((string) $request->input('q'));
 
@@ -356,7 +414,7 @@ class FinancialRequestController extends Controller
         $validated = $request->validate([
             'type' => ['required', Rule::in(array_keys(FinancialRequest::types()))],
             'priority' => ['required', Rule::in(array_keys(FinancialRequest::priorities()))],
-            'amount' => ['nullable', 'numeric', 'min:0'],
+            'amount' => ['required', 'numeric', 'gt:0'],
             'request_date' => ['nullable', 'date'],
             'description' => ['nullable', 'string'],
             'client_id' => ['nullable', 'integer'],
@@ -371,9 +429,26 @@ class FinancialRequestController extends Controller
             'contract_cost' => ['nullable', 'numeric', 'min:0'],
             'contract_salary' => ['nullable', 'numeric', 'min:0'],
             'payload' => ['nullable', 'array'],
+            'payload.paid_to' => ['required', 'string', 'max:255'],
+            'payload.accounting_name' => ['required', 'string', 'max:255'],
+            'payload.debit_credit' => ['required', Rule::in(['debit', 'credit'])],
+            'payload.payment_method' => ['required', Rule::in(['bank_transfer', 'cash'])],
+            'payload.account_id' => ['nullable', 'integer', 'exists:fn_accounts,id'],
+            'payload.bank_name' => ['nullable', 'string', 'max:255'],
+            'payload.account_holder_name' => ['nullable', 'string', 'max:255'],
+            'payload.account_number' => ['nullable', 'string', 'max:100'],
+            'payload.iban' => ['nullable', 'string', 'max:34'],
+            'branch_id' => ['required', 'integer', 'exists:branches,id'],
+            'attachments' => ['nullable', 'array'],
+            'attachments.*.*' => ['file', 'max:10240'],
         ]);
 
         $validated['payload'] = $validated['payload'] ?? [];
+
+        $adminBranchId = (int) (auth('admin')->user()?->branch_id ?? 0);
+        if (SystemModuleManager::isEnabled('branches') && $adminBranchId > 0 && (int) $validated['branch_id'] !== $adminBranchId) {
+            abort(403, 'لا يمكن إنشاء طلب مالي لفرع آخر.');
+        }
 
         return $validated;
     }
@@ -385,6 +460,9 @@ class FinancialRequestController extends Controller
             'typeFields' => FinancialRequest::typeFields(),
             'priorities' => FinancialRequest::priorities(),
             'contractTypes' => FinancialRequest::contractTypes(),
+            'branches' => Branch::query()->active()
+                ->when((int) (auth('admin')->user()?->branch_id ?? 0) > 0, fn ($query) => $query->whereKey(auth('admin')->user()->branch_id))
+                ->ordered()->get(['id', 'name_ar', 'name_en']),
         ];
     }
 
@@ -392,11 +470,15 @@ class FinancialRequestController extends Controller
     {
         if ($request->input('scope') === 'incomplete') {
             $query->whereIn('status', [
-                FinancialRequest::STATUS_PENDING_REVIEW,
-                FinancialRequest::STATUS_IN_PROGRESS,
+                FinancialRequest::STATUS_PREPARING,
+                FinancialRequest::STATUS_FOR_APPROVAL,
+                FinancialRequest::STATUS_APPROVED,
+                FinancialRequest::STATUS_REQUEST_CLOSING,
+                FinancialRequest::STATUS_RECEIPT_ATTACHED,
+                FinancialRequest::STATUS_REJECTED,
             ]);
         } elseif ($request->input('scope') === 'paid') {
-            $query->where('status', FinancialRequest::STATUS_PAID);
+            $query->whereIn('status', $this->paidStatuses());
         }
 
         $query->when($request->filled('q'), function ($query) use ($request) {
@@ -429,19 +511,29 @@ class FinancialRequestController extends Controller
         return [
             'all' => (clone $query)->count(),
             'incomplete' => (clone $query)->whereIn('status', [
-                FinancialRequest::STATUS_PENDING_REVIEW,
-                FinancialRequest::STATUS_IN_PROGRESS,
+                FinancialRequest::STATUS_PREPARING,
+                FinancialRequest::STATUS_FOR_APPROVAL,
+                FinancialRequest::STATUS_APPROVED,
+                FinancialRequest::STATUS_REQUEST_CLOSING,
+                FinancialRequest::STATUS_RECEIPT_ATTACHED,
+                FinancialRequest::STATUS_REJECTED,
             ])->count(),
-            'paid' => (clone $query)->where('status', FinancialRequest::STATUS_PAID)->count(),
+            'paid' => (clone $query)->whereIn('status', $this->paidStatuses())->count(),
         ];
     }
 
     private function requestScopes(): array
     {
+        return trans('financial_requests.scopes');
+    }
+
+    private function paidStatuses(): array
+    {
         return [
-            'all' => 'كل الطلبات المالية',
-            'incomplete' => 'غير مكتملة',
-            'paid' => 'مكتملة / تم سدادها',
+            FinancialRequest::STATUS_PAID,
+            FinancialRequest::STATUS_REQUEST_CLOSING,
+            FinancialRequest::STATUS_RECEIPT_ATTACHED,
+            FinancialRequest::STATUS_CLOSED,
         ];
     }
 
@@ -606,17 +698,14 @@ class FinancialRequestController extends Controller
     private function canEdit(FinancialRequest $financialRequest): bool
     {
         return $this->canAccessRequest($financialRequest)
-            && $financialRequest->status !== FinancialRequest::STATUS_PAID
-            && AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_EDIT, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]);
+            && in_array($financialRequest->status, [FinancialRequest::STATUS_PREPARING, FinancialRequest::STATUS_REJECTED], true)
+            && (int) $financialRequest->created_by_id === (int) auth('admin')->id()
+            && AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_CREATE, \App\PermKeys::FINANCIAL_REQUESTS_EDIT, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]);
     }
 
     private function canAccessRequest(FinancialRequest $financialRequest): bool
     {
-        $branchesEnabled = SystemModuleManager::isEnabled('branches')
-            && Schema::hasColumn('financial_requests', 'branch_id');
-        $adminBranchId = (int) (auth('admin')->user()?->branch_id ?? 0);
-
-        if ($branchesEnabled && $adminBranchId > 0 && (int) $financialRequest->branch_id !== $adminBranchId) {
+        if (! app(BranchAccessService::class)->canAccessModel($financialRequest)) {
             return false;
         }
 
@@ -629,8 +718,32 @@ class FinancialRequestController extends Controller
         $nextStatus = $data['status'] ?? $financialRequest->status;
         $nextPriority = $data['priority'] ?? $financialRequest->priority;
 
+        $allowed = [
+            FinancialRequest::STATUS_FOR_APPROVAL => [FinancialRequest::STATUS_APPROVED, FinancialRequest::STATUS_PREPARING],
+            FinancialRequest::STATUS_PREPARING => [FinancialRequest::STATUS_FOR_APPROVAL],
+            FinancialRequest::STATUS_REJECTED => [FinancialRequest::STATUS_FOR_APPROVAL],
+            FinancialRequest::STATUS_APPROVED => [FinancialRequest::STATUS_PAID],
+            FinancialRequest::STATUS_PAID => [FinancialRequest::STATUS_REQUEST_CLOSING],
+            FinancialRequest::STATUS_REQUEST_CLOSING => [FinancialRequest::STATUS_RECEIPT_ATTACHED],
+            FinancialRequest::STATUS_RECEIPT_ATTACHED => [FinancialRequest::STATUS_CLOSED, FinancialRequest::STATUS_REQUEST_CLOSING],
+        ];
+
+        if ($nextStatus !== $financialRequest->status && ! in_array($nextStatus, $allowed[$financialRequest->status] ?? [], true)) {
+            return false;
+        }
+
+        $creatorActions = [
+            FinancialRequest::STATUS_PREPARING => FinancialRequest::STATUS_FOR_APPROVAL,
+            FinancialRequest::STATUS_REJECTED => FinancialRequest::STATUS_FOR_APPROVAL,
+            FinancialRequest::STATUS_APPROVED => FinancialRequest::STATUS_PAID,
+            FinancialRequest::STATUS_REQUEST_CLOSING => FinancialRequest::STATUS_RECEIPT_ATTACHED,
+        ];
+        if (($creatorActions[$financialRequest->status] ?? null) === $nextStatus) {
+            return (int) $financialRequest->created_by_id === (int) auth('admin')->id();
+        }
+
         if ($nextStatus === FinancialRequest::STATUS_PAID && $financialRequest->status !== FinancialRequest::STATUS_PAID) {
-            return AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_APPROVE, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]);
+            return (int) $financialRequest->created_by_id === (int) auth('admin')->id();
         }
 
         if ($nextStatus !== $financialRequest->status) {
@@ -642,5 +755,21 @@ class FinancialRequestController extends Controller
         }
 
         return AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, \App\PermKeys::FINANCIAL_REQUESTS_ESCALATE, \App\PermKeys::FINANCIAL_REQUESTS_APPROVE, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]);
+    }
+
+    private function logStatus(FinancialRequest $financialRequest, ?string $from, string $to, ?string $remarks = null): void
+    {
+        $financialRequest->statusLogs()->create([
+            'from_status' => $from,
+            'to_status' => $to,
+            'performed_by_id' => auth('admin')->id(),
+            'remarks' => $remarks,
+        ]);
+    }
+
+    private function hasStageAttachment(FinancialRequest $financialRequest, Request $request, string $key): bool
+    {
+        return count((array) $request->file("attachments.{$key}", [])) > 0
+            || $financialRequest->attachments()->where('field_key', $key)->exists();
     }
 }

@@ -15,6 +15,9 @@
         <tr>
             <th rowspan="2">{{ __("finance::finance.Account code") }}</th>
             <th  rowspan="2">{{ __("finance::finance.Account Name") }}</th>
+            @if($allLevels ?? false)
+                <th rowspan="2">{{ __('finance::finance.level') }}</th>
+            @endif
             @if($includeFirstBalance)
                 <th colspan="2">{{ __("finance::finance.first-stocks") }} +</th>
             @endif
@@ -38,6 +41,7 @@
             <?php
             $totalDebtorBalance = $totalCreditorBalance = $sumOfDebtorBalance = $sumOfCreditorBalance = 0;
             $totalFirstDebtorValue = $totalFirstCreditorValue = $totalFinalDebitValue = $totalFinalCreditValue = 0;
+            $summaryLevel = ($allLevels ?? false) ? $accountsWithChildren->min('level') : null;
             ?>
 
         @foreach ($accountsWithChildren as $account)
@@ -52,18 +56,6 @@
                 $finalSumDebtorValue = $sumPeriodDebtorValue + $firstDebtorValue;
                 $finalSumCreditorValue = $sumPeriodCreditorValue + $firstCreditorValue;
 
-                // حساب اجمالي دائن ومدين في فترة
-                $totalDebtorBalance += $sumPeriodDebtorValue;
-                $totalCreditorBalance += $sumPeriodCreditorValue;
-
-                // حساب اجمالي رصيد اول دائن ورصيد اول مدين
-                $totalFirstDebtorValue += $firstDebtorValue;
-                $totalFirstCreditorValue += $firstCreditorValue;
-
-                // Calculate total credit and debit balance
-                $totalFinalDebitValue += $finalSumDebtorValue;
-                $totalFinalCreditValue += $finalSumCreditorValue;
-
                 // حساب رصيد دائن ومدين بناء علي نوع الحساب
                 if($account->status == 'debtor'){
                     $debtorBalance = $finalSumDebtorValue - $finalSumCreditorValue ;
@@ -77,9 +69,19 @@
                     $creditorBalance = 0;
                 }
 
-                // حساب اجمالي رصيد دائن والمدين
-                $sumOfDebtorBalance += $debtorBalance;
-                $sumOfCreditorBalance += $creditorBalance;
+                // عند عرض كل المستويات نجمع المستوى الأعلى فقط حتى لا تتكرر
+                // حركة الحساب داخل إجمالي الأب والابن في الوقت نفسه.
+                $includeInTotals = !($allLevels ?? false) || (int) $account->level === (int) $summaryLevel;
+                if ($includeInTotals) {
+                    $totalDebtorBalance += $sumPeriodDebtorValue;
+                    $totalCreditorBalance += $sumPeriodCreditorValue;
+                    $totalFirstDebtorValue += $firstDebtorValue;
+                    $totalFirstCreditorValue += $firstCreditorValue;
+                    $totalFinalDebitValue += $finalSumDebtorValue;
+                    $totalFinalCreditValue += $finalSumCreditorValue;
+                    $sumOfDebtorBalance += $debtorBalance;
+                    $sumOfCreditorBalance += $creditorBalance;
+                }
 
                 if ( $firstCreditorValue == 0 &&
                      $firstDebtorValue == 0  &&
@@ -92,7 +94,10 @@
                 ?>
             <tr>
                 <td class="trial-code">{{ $account->code }}</td>
-                <td class="trial-name">{{ $account->name }}</td>
+                <td class="trial-name" @if($allLevels ?? false) style="padding-right: {{ max(0, ((int) $account->level - (int) $summaryLevel) * 18) }}px" @endif>{{ $account->name }}</td>
+                @if($allLevels ?? false)
+                    <td class="text-center">{{ $account->level }}</td>
+                @endif
 
                 @if($includeFirstBalance)
                     <td class="trial-number">{{ number_format($firstCreditorValue, 2) }}</td>
@@ -108,7 +113,7 @@
         @endforeach
 
         <tr class="trial-total-row">
-            <td class="text-center" colspan="2"><strong>{{ __('finance::finance.Total') }}</strong></td>
+            <td class="text-center" colspan="{{ ($allLevels ?? false) ? 3 : 2 }}"><strong>{{ __('finance::finance.Total') }}</strong></td>
 
             @if($includeFirstBalance)
                 <td class="trial-number"><strong>{{ number_format($totalFirstCreditorValue, 2) }}</strong></td>

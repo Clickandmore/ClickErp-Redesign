@@ -7,6 +7,7 @@ use App\Enums\ingaz\OrderEnum;
 use App\Models\Contract;
 use App\Models\Branch;
 use App\Models\RentalContract;
+use App\Models\RentalContractInvoice;
 use App\Models\RecruitmentOffices;
 use App\Models\RentalFinancialAdjustment;
 use App\Models\ShelterPlaces;
@@ -38,8 +39,8 @@ use Nami\Finance\Models\Account;
 use Nami\Finance\Models\Constraint;
 use Nami\Finance\Models\ConstraintDetails;
 use Nami\Finance\Models\CostCenter;
-use Nami\Finance\Models\FnYear;
 use Nami\Finance\Models\Bond;
+use Nami\Finance\Models\FnYear;
 use Nami\Finance\Enums\AccountTypesEnum;
 use Nami\Finance\Enums\BondPaymentTypes;
 use Nami\Finance\Enums\BondTypes;
@@ -99,6 +100,10 @@ class DataImportExecutionService
 
         if ($type === 'legacy_invoices') {
             return $this->importLegacyInvoicesFile($storedPath, $columns, $adminId, $result);
+        }
+
+        if ($type === 'legacy_rental_orders') {
+            return $this->importLegacyRentalOrdersFile($storedPath, $adminId, $result);
         }
 
         foreach ($this->readRows(Storage::path($storedPath), $columns) as $rowNumber => $row) {
@@ -467,6 +472,309 @@ class DataImportExecutionService
         }
 
         return 'nothing';
+    }
+
+    private function importLegacyRentalOrdersFile(string $storedPath, ?int $adminId, array $result): array
+    {
+        foreach ($this->readLegacyRentalOrderRows(Storage::path($storedPath)) as $rowNumber => $row) {
+            $result['total']++;
+
+            try {
+                DB::transaction(function () use ($row, $adminId, &$result) {
+                    $outcome = $this->importLegacyRentalOrder($row, $adminId);
+                    $result[$outcome]++;
+                });
+            } catch (\Throwable $exception) {
+                $result['skipped']++;
+                $result['error_count']++;
+
+                if (count($result['errors']) < self::MAX_ERROR_DETAILS) {
+                    $result['errors'][] = "صف {$rowNumber}: " . $exception->getMessage();
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    private function readLegacyRentalOrderRows(string $path): \Generator
+    {
+        $spreadsheet = $this->loadSpreadsheetForImport($path);
+        $sheet = $spreadsheet->getSheetByName('البيانات') ?: $spreadsheet->getActiveSheet();
+        $highestRow = $sheet->getHighestDataRow();
+        $keys = [
+            1 => 'sequence',
+            2 => 'legacy_order_id',
+            3 => 'status',
+            4 => 'legacy_maid_id',
+            5 => 'maid_name',
+            6 => 'maid_passport',
+            7 => 'legacy_client_id',
+            8 => 'client_name',
+            9 => 'legacy_invoice_id',
+            10 => 'legacy_receipt_id',
+            11 => 'nationality',
+            12 => 'job_title',
+            13 => 'supplier',
+            14 => 'start_date',
+            15 => 'start_date_hijri',
+            16 => 'end_date',
+            17 => 'end_date_hijri',
+            18 => 'duration_days',
+            19 => 'remaining_days',
+            20 => 'used_days',
+            21 => 'total_cost',
+            22 => 'created_by',
+            23 => 'created_at',
+            24 => 'created_at_hijri',
+        ];
+
+        for ($rowNumber = 2; $rowNumber <= $highestRow; $rowNumber++) {
+            $row = [];
+            foreach ($keys as $column => $key) {
+                $row[$key] = $this->cellValue(
+                    $sheet->getCell($this->cellCoordinate($column, $rowNumber))->getValue()
+                );
+            }
+
+            if (collect($row)->contains(fn ($value) => $value !== null && $value !== '')) {
+                yield $rowNumber => $row;
+            }
+        }
+
+        $spreadsheet->disconnectWorksheets();
+        unset($spreadsheet);
+    }
+
+    private function importLegacyRentalOrder(array $row, ?int $adminId): string
+    {
+        $row = $this->normalizeLegacyRentalOrderRow($row);
+        $requestId = $this->optionalInteger($row['legacy_order_id'] ?? null);
+        $clientLegacyId = $this->optionalInteger($row['legacy_client_id'] ?? null);
+        $maidLegacyId = $this->optionalInteger($row['legacy_maid_id'] ?? null);
+        $passport = $this->normalizePassportNumber($row['maid_passport'] ?? '');
+
+        if (!$requestId) {
+            throw new \InvalidArgumentException('رقم الطلب مطلوب.');
+        }
+        if (!$clientLegacyId && trim((string) ($row['client_name'] ?? '')) === '') {
+            throw new \InvalidArgumentException('رقم العميل أو اسم العميل مطلوب.');
+        }
+        if (!$maidLegacyId && $passport === '') {
+            throw new \InvalidArgumentException('رقم العامل أو رقم الجواز مطلوب.');
+        }
+
+        $user = $clientLegacyId ? User::query()->find($clientLegacyId) : null;
+        if (!$user) {
+            $clientName = trim((string) ($row['client_name'] ?? 'عميل مستورد'));
+            $user = User::query()->create(array_filter($this->filterColumns('users', [
+                'id' => $clientLegacyId,
+                'name' => $clientName ?: 'عميل مستورد',
+                'phone_code' => '+966',
+                'phone' => 'data-import-client-' . ($clientLegacyId ?: substr(sha1($clientName), 0, 12)),
+                'password' => $this->defaultImportPasswordHash(),
+                'register_from' => 'data_import',
+                'is_blocked' => 0,
+            ]), fn ($value) => $value !== null && $value !== ''));
+        }
+
+        $maid = $passport !== '' ? Maid::withTrashed()->where('passport_num', $passport)->first() : null;
+        $maid = $maid ?: ($maidLegacyId ? Maid::withTrashed()->find($maidLegacyId) : null);
+        $maidPayload = $this->filterColumns('maids', [
+            'name' => trim((string) ($row['maid_name'] ?? '')) ?: 'EDIT_ME_NAME',
+            'passport_num' => $passport ?: null,
+            'nationality_id' => $this->resolveLegacyRentalNationalityId($row['nationality'] ?? null),
+            'office_id' => $this->resolveTranslatableId(RecruitmentOffices::class, $row['supplier'] ?? null),
+            'maid_accommodation_type' => 2,
+            'available' => 0,
+            'status' => 'contracted',
+            'added_by' => $this->resolveAdminId($row['created_by'] ?? null) ?: $adminId,
+        ]);
+
+        if ($maid) {
+            if ($maid->trashed()) {
+                $maid->restore();
+            }
+            // لا نعيد حالة العاملة إلى "متعاقدة" عند المرور على عقد تاريخي أقدم لها.
+            $existingMaidPayload = $maidPayload;
+            unset($existingMaidPayload['status'], $existingMaidPayload['available']);
+            $maid->update(array_filter($existingMaidPayload, fn ($value) => $value !== null && $value !== ''));
+        } else {
+            $maid = Maid::query()->create(($maidLegacyId ? ['id' => $maidLegacyId] : []) + $maidPayload);
+        }
+        $this->syncMaidRelations($maid, [
+            'type_id' => 'إيجار',
+            'job_titles' => $row['job_title'] ?? null,
+        ], true);
+
+        $status = $this->legacyRentalStatus($row['status'] ?? null, $row['end_date'] ?? null);
+        $order = Order::query()->find($requestId);
+        $jobTypeId = $maid->job_types()->value('job_type_id') ?: JobType::query()->value('id');
+        if (!$jobTypeId) {
+            throw new \InvalidArgumentException('لا يوجد نوع سيرة إيجار لربط الطلب.');
+        }
+        $orderPayload = [
+            'maid_id' => $maid->id,
+            'user_id' => $user->id,
+            'payment_method' => 'cash',
+            'order_code' => (string) $requestId,
+            'job_type_id' => $jobTypeId,
+            'status' => $status === 'cancelled' ? OrderEnum::Refused->value : OrderEnum::Completed->value,
+            'customer_id' => $this->resolveAdminId($row['created_by'] ?? null) ?: $adminId,
+        ];
+        $order ? $order->update($this->filterColumns('orders', $orderPayload)) : $order = Order::query()->create(['id' => $requestId] + $this->filterColumns('orders', $orderPayload));
+
+        $contract = RentalContract::query()->where('contract_number', (string) $requestId)->first()
+            ?: RentalContract::query()->where('order_id', $order->id)->first();
+        $contractPayload = $this->filterColumns('rental_contracts', [
+            'user_id' => $user->id,
+            'maid_id' => $maid->id,
+            'order_id' => $order->id,
+            'marketer_id' => $this->resolveAdminId($row['created_by'] ?? null) ?: $adminId,
+            'contract_number' => (string) $requestId,
+            'contract_date' => $this->parseDate($row['start_date'] ?? $row['created_at'] ?? null),
+            'status' => $status,
+        ]);
+        $created = !$contract;
+        $contract ? $contract->update($contractPayload) : $contract = RentalContract::query()->create($contractPayload);
+
+        $total = $this->decimal($row['total_cost'] ?? null) ?: 0.0;
+        $durationDays = $this->optionalInteger($row['duration_days'] ?? null);
+        if (!$durationDays) {
+            $startDate = $this->parseDate($row['start_date'] ?? null);
+            $endDate = $this->parseDate($row['end_date'] ?? null);
+            if ($startDate && $endDate) {
+                $durationDays = Carbon::parse($startDate)->diffInDays(Carbon::parse($endDate)) + 1;
+            }
+        }
+        $hasReceipt = $this->optionalInteger($row['legacy_receipt_id'] ?? null) !== null;
+        $contract->info()->updateOrCreate([], $this->filterColumns('rental_contract_infos', [
+            'contract_duration_days' => $durationDays,
+            'contract_duration_months' => $durationDays ? max(1, (int) ceil($durationDays / 30)) : 1,
+            'contract_value' => $total,
+            'paid_amount' => $hasReceipt ? $total : 0,
+            'remaining_amount' => $hasReceipt ? 0 : $total,
+            'ingaz_from' => $this->parseDate($row['start_date'] ?? null),
+            'ingaz_to' => $this->parseDate($row['end_date'] ?? null),
+            'payment_type' => 'cash',
+            'payment_status' => $hasReceipt ? 'paid' : 'pending',
+            'notes' => 'مستورد من تقرير طلبات التأجير؛ رقم الفاتورة القديم: ' . ($row['legacy_invoice_id'] ?? '-'),
+        ]));
+
+        $this->upsertLegacyRentalInvoice($contract, $row, $total, $hasReceipt);
+
+        return $created ? 'created' : 'updated';
+    }
+
+    private function normalizeLegacyRentalOrderRow(array $row): array
+    {
+        $aliases = [
+            'م' => 'sequence',
+            'رقم الطلب' => 'legacy_order_id',
+            'الحالة' => 'status',
+            'رقم العامل' => 'legacy_maid_id',
+            'اسم العامل / ه' => 'maid_name',
+            'اسم العاملـ / ـة' => 'maid_name',
+            'باسبور العامل / ه' => 'maid_passport',
+            'باسبور العاملـ / ـة' => 'maid_passport',
+            'رقم العميل' => 'legacy_client_id',
+            'العميل' => 'client_name',
+            'رقم الفاتورة' => 'legacy_invoice_id',
+            'سند قبض' => 'legacy_receipt_id',
+            'الجنسية' => 'nationality',
+            'المهنة' => 'job_title',
+            'الشركة المزودة' => 'supplier',
+            'تاريخ البدء' => 'start_date',
+            'تاريخ البدء ه' => 'start_date_hijri',
+            'تاريخ الانتهاء' => 'end_date',
+            'تاريخ الانتهاء ه' => 'end_date_hijri',
+            'مدة الايام' => 'duration_days',
+            'المتبقي' => 'remaining_days',
+            'الايام المستفادة' => 'used_days',
+            'التكلفة' => 'total_cost',
+            'بواسطة المستخدم' => 'created_by',
+            'في تاريخ' => 'created_at',
+            'في تاريخ ه' => 'created_at_hijri',
+        ];
+
+        $normalizedAliases = [];
+        foreach ($aliases as $header => $key) {
+            $normalizedAliases[$this->normalizeHeader($header)] = $key;
+        }
+
+        foreach ($row as $header => $value) {
+            $key = $normalizedAliases[$this->normalizeHeader((string) $header)] ?? null;
+            if ($key && (!array_key_exists($key, $row) || $row[$key] === null || $row[$key] === '')) {
+                $row[$key] = $value;
+            }
+        }
+
+        return $row;
+    }
+
+    private function upsertLegacyRentalInvoice(RentalContract $contract, array $row, float $total, bool $hasReceipt): void
+    {
+        $invoiceId = $this->optionalInteger($row['legacy_invoice_id'] ?? null);
+        if (!$invoiceId) {
+            return;
+        }
+
+        $invoice = RentalContractInvoice::query()->find($invoiceId);
+        if ($invoice && (int) $invoice->rental_contract_id !== (int) $contract->id) {
+            throw new \InvalidArgumentException("رقم الفاتورة {$invoiceId} مرتبط بعقد إيجار آخر.");
+        }
+
+        $receiptId = $this->optionalInteger($row['legacy_receipt_id'] ?? null);
+        $payload = $this->filterColumns('rental_contract_invoices', [
+            'rental_contract_id' => $contract->id,
+            'subtotal' => $total,
+            'discount' => 0,
+            'vat_amount' => 0,
+            'total_due' => $total,
+            'paid_amount' => $hasReceipt ? $total : 0,
+            'remaining_amount' => $hasReceipt ? 0 : $total,
+            'payment_type' => 'cash',
+            'payment_status' => $hasReceipt ? 'paid' : 'pending',
+            'is_paid' => $hasReceipt,
+            'paid_at' => $hasReceipt ? $this->parseDate($row['created_at'] ?? null) : null,
+            'service_description' => 'طلب تأجير مستورد رقم ' . ($row['legacy_order_id'] ?? $contract->contract_number),
+            'receipt_bond_id' => $receiptId && Bond::query()->whereKey($receiptId)->exists() ? $receiptId : null,
+        ]);
+        $invoice ? $invoice->update($payload) : RentalContractInvoice::query()->create(['id' => $invoiceId] + $payload);
+    }
+
+    private function legacyRentalStatus($value, $endDate): string
+    {
+        $normalized = $this->normalizeArabicText($value);
+        if (str_contains($normalized, 'ملغي') || str_contains($normalized, 'ملغى')) {
+            return 'cancelled';
+        }
+        if (($date = $this->parseDate($endDate)) && Carbon::parse($date)->isPast()) {
+            return 'completed';
+        }
+
+        return 'active';
+    }
+
+    private function resolveLegacyRentalNationalityId($value): ?int
+    {
+        $id = $this->resolveNationalityId($value);
+        if ($id) {
+            return $id;
+        }
+
+        $normalized = $this->normalizeArabicText($value);
+        $country = match (true) {
+            str_contains($normalized, 'كيني') => 'كينيا',
+            str_contains($normalized, 'اثيوبي') => 'اثيوبيا',
+            str_contains($normalized, 'اندونيسي') => 'اندونيسيا',
+            str_contains($normalized, 'اوغندي') => 'اوغندا',
+            str_contains($normalized, 'بنجلاديشي') => 'بنجلاديش',
+            str_contains($normalized, 'فلبيني') => 'الفلبين',
+            default => null,
+        };
+
+        return $country ? $this->resolveNationalityId($country) : null;
     }
 
     private function readRows(string $path, array $columns): \Generator
@@ -1203,43 +1511,26 @@ class DataImportExecutionService
             throw new \InvalidArgumentException('اسم العميل ورقم الجوال ورقم الهوية مطلوبة.');
         }
 
-        $userByDatabaseId = $databaseId ? User::whereKey($databaseId)->first() : null;
-        $userById = User::where('national_num', $idNumber)->first();
-        $userByPhone = $this->findUserByPhone($phone);
-
-        if ($userByDatabaseId && $userById && (int) $userByDatabaseId->id !== (int) $userById->id) {
-            throw new \InvalidArgumentException('ID العميل ورقم الهوية يعودان لعميلين مختلفين.');
-        }
-
-        if ($userByDatabaseId && $userByPhone && (int) $userByDatabaseId->id !== (int) $userByPhone->id) {
-            throw new \InvalidArgumentException('ID العميل ورقم الجوال يعودان لعميلين مختلفين.');
-        }
-
-        if ($userByPhone && $userById && (int) $userByPhone->id !== (int) $userById->id) {
-            throw new \InvalidArgumentException('رقم الهوية مستخدم لعميل ورقم الجوال مستخدم لعميل آخر.');
-        }
-
-        if ($userByPhone && filled($userByPhone->national_num) && (string) $userByPhone->national_num !== $idNumber) {
-            throw new \InvalidArgumentException('رقم الجوال موجود مسبقاً برقم هوية مختلف.');
-        }
-
-        $user = $userByDatabaseId ?: $userById ?: $userByPhone;
+        $phoneIsDuplicate = $this->findUserByPhone($phone) !== null;
+        $databaseIdExists = $databaseId ? User::whereKey($databaseId)->exists() : false;
         $createdBy = $this->resolveImportedAdminId(
             $row['created_by'] ?? $row['created_by_name'] ?? null,
             $adminId
         );
         $accountId = $this->resolveOrCreateClientAccountId($row['account_id'] ?? null, $name, $adminId);
         $payload = $this->filterColumns('users', [
-            'id' => $databaseId,
+            'id' => $databaseIdExists ? null : $databaseId,
             'name' => $name,
             'phone_code' => '+966',
-            'phone' => $phone,
+            'phone' => $phoneIsDuplicate
+                ? $this->uniqueDuplicateClientImportPhone($phone, $idNumber, $databaseId)
+                : $phone,
             'email' => $row['email'] ?? null,
             'national_num' => $idNumber,
             'nationality_id' => $this->resolveCountryId($row['nationality'] ?? null),
             'birthdate' => $this->parseDate($row['birthdate'] ?? null),
             'marital_status' => $this->normalizeClientMaritalStatus($row['marital_status'] ?? null),
-            'phone2' => $this->normalizeOptionalPhone($row['phone2'] ?? null),
+            'phone2' => $this->normalizeOptionalPhone($row['phone2'] ?? null) ?: ($phoneIsDuplicate ? $phone : null),
             'address' => $row['address'] ?? null,
             'city' => $row['city'] ?? null,
             'account_id' => $accountId,
@@ -1253,19 +1544,27 @@ class DataImportExecutionService
             'created_by' => $createdBy,
         ]);
 
-        if ($user) {
-            unset($payload['id']);
-            $user->update(array_filter($payload, fn ($value) => $value !== null && $value !== ''));
-            return 'updated';
-        }
-
         if (Schema::hasColumn('users', 'password')) {
             $payload['password'] = $this->defaultImportPasswordHash();
         }
 
-        User::create($payload);
+        User::create(array_filter($payload, fn ($value) => $value !== null && $value !== ''));
 
         return 'created';
+    }
+
+    private function uniqueDuplicateClientImportPhone(string $phone, string $idNumber, ?int $databaseId): string
+    {
+        $base = 'data-import-duplicate-client-' . substr(sha1($phone . '|' . $idNumber . '|' . ($databaseId ?? '')), 0, 20);
+        $candidate = $base;
+        $suffix = 1;
+
+        while (User::query()->where('phone', $candidate)->exists()) {
+            $candidate = $base . '-' . $suffix;
+            $suffix++;
+        }
+
+        return $candidate;
     }
 
     private function importComplaint(array $row, ?int $adminId): string

@@ -1,12 +1,12 @@
 @extends('click.layout.indexs.index')
 
 @section('content')
-    @if (@AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_VIEW, \App\PermKeys::FINANCIAL_REQUESTS_CREATE, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]))
+    @if (@AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_VIEW, \App\PermKeys::FINANCIAL_REQUESTS_CREATE, \App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, \App\PermKeys::FINANCIAL_REQUESTS_APPROVE, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]))
         <div class="container-fluid">
             <div class="d-flex align-items-center justify-content-between mb-3">
                 <div>
-                    <h3 class="mb-1">إدارة الطلبات المالية</h3>
-                    <div class="text-muted">طلبات مالية تشغيلية مرتبطة بالعملاء والعاملات والعقود.</div>
+                    <h3 class="mb-1">{{ __('financial_requests.manage') }}</h3>
+                    <div class="text-muted">{{ __('financial_requests.subtitle') }}</div>
                 </div>
                 <div class="d-flex gap-2">
                     @if (@AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_EXPORT, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]))
@@ -14,12 +14,12 @@
                             <i class="fa fa-file-excel"></i> Excel
                         </a>
                         <a class="btn btn-outline-dark" target="_blank" href="{{ route('financial-requests.print', request()->query()) }}">
-                            <i class="fa fa-print"></i> طباعة
+                            <i class="fa fa-print"></i> {{ __('financial_requests.print') }}
                         </a>
                     @endif
                     @if (@AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_CREATE, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]))
                         <a class="btn btn-primary" href="{{ route('financial-requests.create') }}">
-                            <i class="fa fa-plus"></i> طلب جديد
+                            <i class="fa fa-plus"></i> {{ __('financial_requests.new') }}
                         </a>
                     @endif
                 </div>
@@ -54,38 +54,38 @@
                     @endif
                     <div class="row g-3">
                         <div class="col-md-3">
-                            <label class="form-label">بحث</label>
-                            <input type="text" name="q" value="{{ request('q') }}" class="form-control" placeholder="رقم عقد، هوية، عميل، رقم طلب">
+                            <label class="form-label">{{ __('financial_requests.search') }}</label>
+                            <input type="text" name="q" value="{{ request('q') }}" class="form-control" placeholder="{{ __('financial_requests.contract_no') }}, {{ __('financial_requests.identity') }}, {{ __('financial_requests.client') }}, {{ __('financial_requests.request_no') }}">
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">نوع الطلب</label>
+                            <label class="form-label">{{ __('financial_requests.request_type') }}</label>
                             <select name="type" class="form-select">
-                                <option value="">الكل</option>
+                                <option value="">{{ __('financial_requests.all') }}</option>
                                 @foreach ($types as $key => $label)
-                                    <option value="{{ $key }}" @selected(request('type') === $key)>{{ $label }}</option>
+                                    <option value="{{ $key }}" {{ request('type') === $key ? 'selected' : '' }}>{{ $label }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">الحالة</label>
+                            <label class="form-label">{{ __('financial_requests.status') }}</label>
                             <select name="status" class="form-select">
-                                <option value="">الكل</option>
+                                <option value="">{{ __('financial_requests.all') }}</option>
                                 @foreach ($statuses as $key => $label)
-                                    <option value="{{ $key }}" @selected(request('status') === $key)>{{ $label }}</option>
+                                    <option value="{{ $key }}" {{ request('status') === $key ? 'selected' : '' }}>{{ $label }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">التصعيد</label>
+                            <label class="form-label">{{ __('financial_requests.priority') }}</label>
                             <select name="priority" class="form-select">
-                                <option value="">الكل</option>
+                                <option value="">{{ __('financial_requests.all') }}</option>
                                 @foreach ($priorities as $key => $label)
-                                    <option value="{{ $key }}" @selected(request('priority') === $key)>{{ $label }}</option>
+                                    <option value="{{ $key }}" {{ request('priority') === $key ? 'selected' : '' }}>{{ $label }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label">التاريخ</label>
+                            <label class="form-label">{{ __('financial_requests.date') }}</label>
                             <input type="date" name="date" value="{{ request('date') }}" class="form-control">
                         </div>
                         @include('admin.partials.branch-filter', ['id' => 'branchFilter', 'containerClass' => 'col-md-2'])
@@ -101,14 +101,14 @@
                     <table class="table table-hover align-middle mb-0">
                         <thead>
                         <tr>
-                            <th>رقم الطلب</th>
-                            <th>النوع</th>
-                            <th>العميل</th>
-                            <th>رقم العقد</th>
-                            <th>المبلغ</th>
-                            <th>الحالة</th>
-                            <th>التصعيد</th>
-                            <th>مقدم الطلب</th>
+                            <th>{{ __('financial_requests.request_no') }}</th>
+                            <th>{{ __('financial_requests.type') }}</th>
+                            <th>{{ __('financial_requests.client') }}</th>
+                            <th>{{ __('financial_requests.contract_no') }}</th>
+                            <th>{{ __('financial_requests.amount') }}</th>
+                            <th>{{ __('financial_requests.status') }}</th>
+                            <th>{{ __('financial_requests.priority') }}</th>
+                            <th>{{ __('financial_requests.creator') }}</th>
                             <th></th>
                         </tr>
                         </thead>
@@ -125,20 +125,24 @@
                                 <td>{{ $item->creator?->name ?: '-' }}</td>
                                 <td class="text-end">
                                     <a class="btn btn-sm btn-outline-primary" href="{{ route('financial-requests.show', $item) }}"><i class="fa fa-eye"></i></a>
-                                    @if ($item->status !== 'paid' && @AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_EDIT, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]))
+                                    @if (in_array($item->status, ['preparing', 'rejected'], true) && (int) $item->created_by_id === (int) auth('admin')->id() && @AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_CREATE, \App\PermKeys::FINANCIAL_REQUESTS_EDIT, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]))
                                         <a class="btn btn-sm btn-outline-dark" href="{{ route('financial-requests.edit', $item) }}"><i class="fa fa-edit"></i></a>
                                     @endif
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="9" class="text-center text-muted py-4">لا توجد طلبات مالية.</td>
+                                <td colspan="9" class="text-center text-muted py-4">{{ __('financial_requests.no_requests') }}</td>
                             </tr>
                         @endforelse
                         </tbody>
                     </table>
                 </div>
-                <div class="card-footer">{{ $requests->links() }}</div>
+                @if ($requests->hasPages())
+                    <div class="card-footer d-flex justify-content-center">
+                        {{ $requests->onEachSide(1)->links('pagination::bootstrap-4') }}
+                    </div>
+                @endif
             </div>
         </div>
     @else

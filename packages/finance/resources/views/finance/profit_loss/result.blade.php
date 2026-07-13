@@ -6,7 +6,7 @@
     };
 
     $findRoot = function ($type) use ($data) {
-        return collect($data)->first(fn ($row) => $row['account']->type === $type);
+        return collect($data)->first(fn ($row) => ($row['report_type'] ?? $row['account']->type) === $type);
     };
 
     $incomeRoot = $findRoot(AccountTypesEnum::GeneralIncome);
@@ -147,7 +147,7 @@
             <div class="profit-report__title">
                 <h5>
                     {{ __("finance::finance.profit_loss_statement") }}
-                    {{ request('level') ? __('finance::finance.level') . ' ' . request('level') : '' }}
+                    {{ request('level') && request('level') !== 'all' ? __('finance::finance.level') . ' ' . request('level') : '' }}
                 </h5>
                 <div>
                     {{ __('finance::finance.values_from_date_to_date', [

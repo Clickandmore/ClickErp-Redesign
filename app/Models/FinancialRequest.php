@@ -14,11 +14,18 @@ class FinancialRequest extends Model
 {
     use AssignsBranch, SoftDeletes;
 
-    public const STATUS_PENDING_REVIEW = 'pending_review';
-    public const STATUS_IN_PROGRESS = 'in_progress';
+    public const STATUS_PREPARING = 'preparing';
+    public const STATUS_FOR_APPROVAL = 'for_approval';
+    public const STATUS_APPROVED = 'approved';
     public const STATUS_PAID = 'paid';
+    public const STATUS_REQUEST_CLOSING = 'request_closing';
+    public const STATUS_RECEIPT_ATTACHED = 'receipt_attached';
     public const STATUS_REJECTED = 'rejected';
     public const STATUS_CLOSED = 'closed';
+
+    // Legacy aliases kept for reports and older integrations.
+    public const STATUS_PENDING_REVIEW = self::STATUS_FOR_APPROVAL;
+    public const STATUS_IN_PROGRESS = self::STATUS_APPROVED;
 
     public const PRIORITY_NORMAL = 'normal';
     public const PRIORITY_IMPORTANT = 'important';
@@ -30,6 +37,7 @@ class FinancialRequest extends Model
         'payload' => 'array',
         'request_date' => 'date',
         'paid_at' => 'datetime',
+        'closed_at' => 'datetime',
         'amount' => 'decimal:2',
         'contract_cost' => 'decimal:2',
         'contract_salary' => 'decimal:2',
@@ -38,31 +46,22 @@ class FinancialRequest extends Model
 
     public static function types(): array
     {
-        return [
-            'musaned_payment' => 'سداد مساند',
-            'visa_fee' => 'رسوم تأشيرة',
-            'enjaz_fee' => 'رسوم إنجاز',
-            'iqama_fee' => 'رسوم إقامة',
-            'work_permit_fee' => 'رسوم رخصة عمل',
-            'medical_insurance' => 'تأمين طبي',
-            'salary_payment' => 'صرف راتب عاملة',
-            'client_refund' => 'استرداد عميل',
-            'other_financial' => 'طلب مالي آخر',
-        ];
+        return trans('financial_requests.types');
     }
 
     public static function typeFields(): array
     {
+        $fields = trans('financial_requests.fields');
         return [
-            'musaned_payment' => ['musaned_request_no' => 'رقم طلب مساند', 'musaned_invoice_no' => 'رقم فاتورة مساند'],
-            'visa_fee' => ['visa_number' => 'رقم التأشيرة', 'government_reference' => 'رقم المرجع الحكومي'],
-            'enjaz_fee' => ['enjaz_number' => 'رقم إنجاز', 'authorization_no' => 'رقم التفويض'],
-            'iqama_fee' => ['iqama_number' => 'رقم الإقامة', 'period' => 'المدة'],
-            'work_permit_fee' => ['permit_number' => 'رقم رخصة العمل', 'period' => 'المدة'],
-            'medical_insurance' => ['policy_number' => 'رقم الوثيقة', 'insurance_company' => 'شركة التأمين'],
-            'salary_payment' => ['salary_month' => 'شهر الراتب', 'salary_days' => 'عدد الأيام'],
-            'client_refund' => ['refund_reason' => 'سبب الاسترداد', 'iban' => 'آيبان العميل'],
-            'other_financial' => ['subject' => 'موضوع الطلب', 'reference_no' => 'رقم مرجعي'],
+            'musaned_payment' => array_intersect_key($fields, array_flip(['musaned_request_no', 'musaned_invoice_no'])),
+            'visa_fee' => array_intersect_key($fields, array_flip(['visa_number', 'government_reference'])),
+            'enjaz_fee' => array_intersect_key($fields, array_flip(['enjaz_number', 'authorization_no'])),
+            'iqama_fee' => array_intersect_key($fields, array_flip(['iqama_number', 'period'])),
+            'work_permit_fee' => array_intersect_key($fields, array_flip(['permit_number', 'period'])),
+            'medical_insurance' => array_intersect_key($fields, array_flip(['policy_number', 'insurance_company'])),
+            'salary_payment' => array_intersect_key($fields, array_flip(['salary_month', 'salary_days'])),
+            'client_refund' => array_intersect_key($fields, array_flip(['refund_reason'])),
+            'other_financial' => array_intersect_key($fields, array_flip(['subject', 'reference_no'])),
         ];
     }
 
@@ -82,30 +81,17 @@ class FinancialRequest extends Model
 
     public static function contractTypes(): array
     {
-        return [
-            'recruitment' => 'استقدام',
-            'rental' => 'تأجير',
-        ];
+        return trans('financial_requests.contract_types');
     }
 
     public static function statuses(): array
     {
-        return [
-            self::STATUS_PENDING_REVIEW => 'قيد المراجعة',
-            self::STATUS_IN_PROGRESS => 'تحت الإجراء',
-            self::STATUS_PAID => 'تم السداد',
-            self::STATUS_REJECTED => 'مرفوض',
-            self::STATUS_CLOSED => 'مقفلة',
-        ];
+        return trans('financial_requests.statuses');
     }
 
     public static function priorities(): array
     {
-        return [
-            self::PRIORITY_NORMAL => 'عادي',
-            self::PRIORITY_IMPORTANT => 'هام',
-            self::PRIORITY_CRITICAL => 'شديد الأهمية',
-        ];
+        return trans('financial_requests.priorities');
     }
 
     public static function labelFromMap(array $labels, ?string $value): string
@@ -166,9 +152,29 @@ class FinancialRequest extends Model
         return $this->belongsTo(Admin::class, 'approved_by_id');
     }
 
+    public function updater()
+    {
+        return $this->belongsTo(Admin::class, 'updated_by_id');
+    }
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
+    }
+
     public function financeBond()
     {
         return $this->belongsTo(Bond::class, 'finance_bond_id');
+    }
+
+    public function statusLogs()
+    {
+        return $this->hasMany(FinancialRequestStatusLog::class)->oldest();
+    }
+
+    public function isCreatorStage(): bool
+    {
+        return in_array($this->status, [self::STATUS_PREPARING, self::STATUS_APPROVED, self::STATUS_REQUEST_CLOSING, self::STATUS_REJECTED], true);
     }
 
     protected function resolveBranchIdForCreate(): ?int

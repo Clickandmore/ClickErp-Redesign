@@ -246,7 +246,10 @@ class ConstraintDetailsService extends MainService
             })
             ->pluck('id')->toArray();
 
-        return $this->accountService->getIncomeAccountsChildrens($constraints_ids, (int) $request->input('level', 1));
+        $requestedLevel = $request->input('level', 'all');
+        $level = $requestedLevel === 'all' ? null : (int) $requestedLevel;
+
+        return $this->accountService->getIncomeAccountsChildrens($constraints_ids, $level);
     }
 
     public function getIncomeReportLevels(): array
