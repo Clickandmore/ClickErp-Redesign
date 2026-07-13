@@ -665,3 +665,21 @@ Route::group(
 );
 
 Route::get("ShelterContract/deportation/{id}/activity-log", [ShelterContractController::class, "getActivityLog"])->name("ShelterContract.deportation.activity-log");
+
+// ===================== نظام العمولات =====================
+Route::middleware(['admin', 'admin.route.permission'])
+    ->prefix('commissions')
+    ->name('commissions.')
+    ->group(function () {
+        Route::get('marketers', [\App\Http\Controllers\commissions\CommissionMarketerController::class, 'index'])->name('marketers.index');
+        Route::get('marketers/{admin}', [\App\Http\Controllers\commissions\CommissionMarketerController::class, 'show'])->name('marketers.show');
+        Route::post('marketers/{admin}/calculate-preview', [\App\Http\Controllers\commissions\CommissionMarketerController::class, 'preview'])->name('marketers.preview');
+        Route::post('marketers/{admin}/calculate-approve', [\App\Http\Controllers\commissions\CommissionMarketerController::class, 'approve'])->name('marketers.approve');
+
+        Route::get('marketers/{admin}/payments', [\App\Http\Controllers\commissions\CommissionPaymentController::class, 'index'])->name('marketers.payments.index');
+        Route::post('marketers/{admin}/payments', [\App\Http\Controllers\commissions\CommissionPaymentController::class, 'store'])->name('marketers.payments.store');
+        Route::get('marketers/{admin}/payments/{payment}/print', [\App\Http\Controllers\commissions\CommissionPaymentController::class, 'print'])->name('marketers.payments.print');
+
+        Route::get('settings', [\App\Http\Controllers\commissions\CommissionSettingsController::class, 'index'])->name('settings.index');
+        Route::post('settings', [\App\Http\Controllers\commissions\CommissionSettingsController::class, 'store'])->name('settings.store');
+    });

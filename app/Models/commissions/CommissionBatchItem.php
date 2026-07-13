@@ -1,0 +1,32 @@
+<?php
+
+namespace App\Models\commissions;
+
+use App\Models\IngazDelegation;
+use Illuminate\Database\Eloquent\Model;
+
+class CommissionBatchItem extends Model
+{
+    protected $table = 'commission_batch_items';
+
+    protected $fillable = [
+        'batch_id', 'ingaz_delegation_id', 'service_type',
+        'base_amount', 'method', 'rate_or_amount', 'commission_amount',
+    ];
+
+    protected $casts = [
+        'base_amount' => 'decimal:2',
+        'rate_or_amount' => 'decimal:2',
+        'commission_amount' => 'decimal:2',
+    ];
+
+    public function batch()
+    {
+        return $this->belongsTo(CommissionBatch::class, 'batch_id');
+    }
+
+    public function delegation()
+    {
+        return $this->belongsTo(IngazDelegation::class, 'ingaz_delegation_id');
+    }
+}
