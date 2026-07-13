@@ -631,6 +631,18 @@
                     <form method="GET" action="{{ route('dash.activity.log') }}" class="activity-filter-form">
                         <div class="activity-filter-grid">
                             <div class="activity-filter-group">
+                                <label for="log_name">مصدر السجل</label>
+                                <select id="log_name" name="log_name" class="form-select">
+                                    <option value="">الكل</option>
+                                    @foreach ($filterOptions['log_names'] ?? [] as $logNameValue => $logNameLabel)
+                                        <option value="{{ $logNameValue }}"
+                                            {{ (string) ($filters['log_name'] ?? '') === (string) $logNameValue ? 'selected' : '' }}>
+                                            {{ $logNameLabel }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="activity-filter-group">
                                 <label for="employee_id">الموظف</label>
                                 <select id="employee_id" name="employee_id" class="form-select">
                                     <option value="">الكل</option>
@@ -702,6 +714,12 @@
 
                         @if (($stats['active_filters'] ?? 0) > 0)
                             <div class="activity-active-filters">
+                                @if (!empty($filters['log_name']))
+                                    <span class="activity-chip">
+                                        <strong>المصدر:</strong>
+                                        {{ $filterOptions['log_names'][$filters['log_name']] ?? $filters['log_name'] }}
+                                    </span>
+                                @endif
                                 @if (!empty($filters['employee_id']))
                                     @php
                                         $selectedEmployee = collect($filterOptions['employees'] ?? [])->firstWhere(

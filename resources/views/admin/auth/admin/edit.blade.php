@@ -1,4 +1,4 @@
-@if(@AdminGuardHasPerm(\App\PermKeys::USERS_CONTROL))
+@if(@AdminGuardHasPerm(\App\PermKeys::USERS_EDIT))
     @include('admin.auth.admin._form', [
         'action' => route('admins.update', $obj->id),
         'method' => 'put',
@@ -8,6 +8,7 @@
         'branchesEnabled' => $branchesEnabled ?? false,
         'admin_typeis' => $admin_typeis ?? [],
         'hasInvalidCurrentRole' => $hasInvalidCurrentRole ?? false,
+        'standalone' => $standalone ?? false,
     ])
 @else
     @include('components.no_permissions')

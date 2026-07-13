@@ -43,6 +43,14 @@ class Admin extends Authenticatable
         return $query->notSuspended();
     }
 
+    /**
+     * Exclude accounts managed as external office/agent users.
+     */
+    public function scopeNotExternalOfficeAgents(Builder $query): Builder
+    {
+        return $query->whereDoesntHave('agentOfficeLinks');
+    }
+
     public function role()
     {
         return $this->belongsTo(Role::class, 'role_id');

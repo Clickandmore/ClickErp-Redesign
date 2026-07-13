@@ -12,7 +12,7 @@ class OfficeManagementController extends Controller
     public function users(Request $request)
     {
         $query = Admin::query()
-            ->with(['agentOffices.nationality'])
+            ->with(['role', 'agentOffices.nationality'])
             ->whereHas('agentOfficeLinks')
             ->orderBy('name');
 

@@ -245,6 +245,10 @@
         <button class="btn btn-primary" type="submit">
             <i class="fa fa-save"></i> {{ __('buttons.save') }}
         </button>
-        <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">{{ __('buttons.close') }}</button>
+        @if($standalone ?? false)
+            <a class="btn btn-outline-secondary" href="{{ route('admins.index') }}">{{ __('buttons.close') }}</a>
+        @else
+            <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">{{ __('buttons.close') }}</button>
+        @endif
     </div>
 </form>

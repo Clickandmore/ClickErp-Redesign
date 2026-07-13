@@ -82,6 +82,7 @@ class Controller extends BaseController
     {
         return optional($activity->causer)->name
             ?? optional($activity->causer)->email
+            ?? data_get($activity, 'properties.legacy_user_name')
             ?? 'النظام';
     }
 

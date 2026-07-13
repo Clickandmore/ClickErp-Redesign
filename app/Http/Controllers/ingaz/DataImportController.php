@@ -9,6 +9,7 @@ use App\Services\ingaz\FinanceBondGenerationService;
 use App\Services\ingaz\MaidBulkImportService;
 use App\Services\ingaz\ArabiaClientsImportService;
 use App\Services\ingaz\AlrafedinTransferServicesImportService;
+use App\Services\ingaz\LegacyActivityLogImportService;
 use Illuminate\Http\Request;
 
 class DataImportController extends Controller
@@ -41,7 +42,8 @@ class DataImportController extends Controller
         MaidBulkImportService $maidImportService,
         DataImportExecutionService $importer,
         ArabiaClientsImportService $arabiaClientsImport,
-        AlrafedinTransferServicesImportService $alrafedinTransferImport
+        AlrafedinTransferServicesImportService $alrafedinTransferImport,
+        LegacyActivityLogImportService $legacyActivityLogImport
     )
     {
         $availableTypes = array_keys($templates->templates());
@@ -79,6 +81,7 @@ class DataImportController extends Controller
         }
 
         $result = match ($data['type']) {
+            'legacy_activity_logs' => $legacyActivityLogImport->import($request->file('file'), $adminId),
             'arabia_clients' => $arabiaClientsImport->import($request->file('file'), $adminId),
             'alrafedin_transfer_services' => $alrafedinTransferImport->import($request->file('file'), $adminId),
             default => $importer->import($data['type'], $request->file('file'), $adminId),
@@ -95,6 +98,9 @@ class DataImportController extends Controller
         if ($data['type'] === 'alrafedin_transfer_services') {
             $message .= ' نقل كفالة سابق: ' . ($result['legacy_sponsorship'] ?? 0)
                 . '، نقل خدمات: ' . ($result['transfer_service'] ?? 0) . '.';
+        }
+        if ($data['type'] === 'legacy_activity_logs') {
+            $message .= ' يمكنك إعادة رفع الملف نفسه بأمان؛ ستُحدّث السجلات السابقة دون تكرار.';
         }
         if ($data['type'] === 'legacy_rental_orders') {
             $message .= ' عاملات مرتبطة بسير الإيجار: ' . ($result['rental_maids'] ?? 0)

@@ -16,6 +16,7 @@ use App\Models\office\Office;
 use App\Models\RentalContract;
 use App\Models\SponsorshipTransfer;
 use App\Models\TransferServiceContract;
+use App\Services\ingaz\LegacyActivityLogImportService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -55,6 +56,7 @@ class ActivityLogController extends Controller
                 'subject_id',
                 'date_from',
                 'date_to',
+                'log_name',
             ]),
             'filterOptions' => $this->buildFilterOptions(),
             'stats' => [
@@ -89,6 +91,10 @@ class ActivityLogController extends Controller
             $query->where('subject_id', (int) $request->input('subject_id'));
         }
 
+        if ($request->filled('log_name')) {
+            $query->where('log_name', $request->input('log_name'));
+        }
+
         if ($request->filled('date_from')) {
             $query->whereDate('created_at', '>=', $request->input('date_from'));
         }
@@ -114,14 +120,15 @@ class ActivityLogController extends Controller
             ->get(['id', 'name']);
 
         $actions = Activity::query()
-            ->whereNotNull('description')
-            ->select('description')
+            ->whereNotNull('event')
+            ->where('event', '!=', '')
+            ->select('event')
             ->distinct()
-            ->orderBy('description')
-            ->pluck('description')
+            ->orderBy('event')
+            ->pluck('event')
             ->filter()
-            ->mapWithKeys(fn($description) => [
-                $description => $this->resolveActivityActionLabel(strtolower((string) $description)),
+            ->mapWithKeys(fn($event) => [
+                $event => $this->resolveActivityActionLabel(strtolower((string) $event)),
             ])
             ->all();
 
@@ -141,6 +148,18 @@ class ActivityLogController extends Controller
             'employees' => $employees,
             'actions' => $actions,
             'subject_types' => $subjectTypes,
+            'log_names' => Activity::query()
+                ->whereNotNull('log_name')
+                ->distinct()
+                ->orderBy('log_name')
+                ->pluck('log_name')
+                ->filter()
+                ->mapWithKeys(fn ($logName) => [
+                    $logName => $logName === LegacyActivityLogImportService::LOG_NAME
+                        ? 'سجل النظام السابق'
+                        : ($logName === 'default' ? 'سجل النظام الحالي' : Str::headline((string) $logName)),
+                ])
+                ->all(),
         ];
     }
 
@@ -153,14 +172,18 @@ class ActivityLogController extends Controller
             'subject_id',
             'date_from',
             'date_to',
+            'log_name',
         ])->filter(fn($key) => filled($request->input($key)))->count();
     }
 
     private function transformActivity(Activity $activity): array
     {
         $event = strtolower((string) ($activity->event ?: $activity->description ?: ''));
+        $isLegacy = $activity->log_name === LegacyActivityLogImportService::LOG_NAME;
         $subjectType = (string) $activity->subject_type;
-        $subjectTypeLabel = $this->resolveSubjectTypeLabel($subjectType, $activity->subject);
+        $subjectTypeLabel = $isLegacy
+            ? 'سجل النظام السابق'
+            : $this->resolveSubjectTypeLabel($subjectType, $activity->subject);
         $subjectId = $this->resolveSubjectId($activity);
         $subjectDescriptor = $this->resolveSubjectDescriptor($activity);
         $subjectLabel = trim($subjectTypeLabel . ($subjectId ? ' #' . $subjectId : ''));
@@ -181,8 +204,12 @@ class ActivityLogController extends Controller
             'subject_id' => $subjectId,
             'subject_label' => $subjectLabel,
             'subject_descriptor' => $subjectDescriptor,
-            'summary' => $this->buildSummary($activity, $event, $subjectLabel, $subjectDescriptor),
-            'description' => $this->buildDescription($activity, $event, $changes),
+            'summary' => $isLegacy
+                ? trim((string) $activity->description)
+                : $this->buildSummary($activity, $event, $subjectLabel, $subjectDescriptor),
+            'description' => $isLegacy
+                ? 'سجل مستورد من نظام الرافدين السابق.'
+                : $this->buildDescription($activity, $event, $changes),
             'changes_preview' => $visibleChanges,
             'changes_extra' => $expandedChanges,
             'changes_count' => count($changes),
@@ -278,6 +305,7 @@ class ActivityLogController extends Controller
             'created' => 'إضافة',
             'updated' => 'تحديث',
             'deleted' => 'حذف',
+            'legacy' => 'نشاط سابق',
             default => 'تنفيذ إجراء',
         };
     }
@@ -294,6 +322,10 @@ class ActivityLogController extends Controller
 
     private function resolveActorRoleLabel(Activity $activity): string
     {
+        if ($activity->log_name === LegacyActivityLogImportService::LOG_NAME) {
+            return 'مستخدم النظام السابق';
+        }
+
         if (!$activity->causer) {
             return 'تنفيذ آلي';
         }

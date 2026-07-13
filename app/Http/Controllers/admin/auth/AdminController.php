@@ -50,9 +50,16 @@ class AdminController extends Controller
 
     public function index(Request $request, ObjAction $action)
     {
+        if (! $request->ajax() && $request->get('filter_scope') === 'office') {
+            return redirect()->route('offices.users.index');
+        }
+
         if ($request->ajax()) {
             $branchesEnabled = SystemModuleManager::isEnabled('branches');
-            $dataTable = ObjModel::query()->with(['role', 'branch', 'agentOffices'])->orderBy('id', 'asc');
+            $dataTable = ObjModel::query()
+                ->notExternalOfficeAgents()
+                ->with(['role', 'branch', 'agentOffices'])
+                ->orderBy('id', 'asc');
 
             // Filters
             if ($request->filled('admin_type')) {
@@ -343,6 +350,7 @@ class AdminController extends Controller
             ? Branch::query()->active()->ordered()->get(['id', 'name_ar', 'name_en'])
             : collect();
         $data["reassignmentAdmins"] = ObjModel::query()
+            ->notExternalOfficeAgents()
             ->select('id', 'name')
             ->whereNull('deleted_at')
             ->where('status', 'active')
@@ -424,19 +432,22 @@ class AdminController extends Controller
 
     public function edit($id, Request $request, ObjAction $action)
     {
+        $obj = $action->find($id);
+        $roles = $this->adminRolesQuery()->pluck('name', 'id')->all();
+        $branchesEnabled = SystemModuleManager::isEnabled('branches');
+        $branches = $branchesEnabled
+            ? Branch::query()->active()->ordered()->get(['id', 'name_ar', 'name_en'])
+            : collect();
+        $adminRole = $obj->roles->pluck('id')->toArray();
+        $admin_typeis = $action->getAdminTypies();
+        $hasInvalidCurrentRole = $obj->role && $obj->role->guard_name !== 'admin';
+
         if ($request->ajax()) {
-            $obj = $action->find($id);
-            $roles = $this->adminRolesQuery()->pluck('name', 'id')->all();
-            $branchesEnabled = SystemModuleManager::isEnabled('branches');
-            $branches = $branchesEnabled
-                ? Branch::query()->active()->ordered()->get(['id', 'name_ar', 'name_en'])
-                : collect();
-            $adminRole = $obj->roles->pluck('id')->toArray();
-            $admin_typeis = $action->getAdminTypies();
-            $hasInvalidCurrentRole = $obj->role && $obj->role->guard_name !== 'admin';
             $returnHTML = view($this->folderPath . ".edit", compact('obj', 'roles', 'branches', 'branchesEnabled', 'adminRole', 'admin_typeis', 'hasInvalidCurrentRole'))->render();
             return jsonSuccess(["html" => $returnHTML]);
         }
+
+        return view($this->folderPath . ".edit_page", compact('obj', 'roles', 'branches', 'branchesEnabled', 'adminRole', 'admin_typeis', 'hasInvalidCurrentRole'));
     }
 
 
