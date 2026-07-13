@@ -127,4 +127,17 @@ return [
             'zatca*',
         ],
     ],
+
+    'commissions' => [
+        'name' => 'نظام العمولات',
+        'description' => 'احتساب وإدارة عمولات المسوّقين وسداد المستحقات عبر سندات الصرف.',
+        'default_enabled' => false,
+        'route_patterns' => [
+            'commissions.*',
+        ],
+        'path_patterns' => [
+            'commissions*',
+            'admin/commissions*',
+        ],
+    ],
 ];

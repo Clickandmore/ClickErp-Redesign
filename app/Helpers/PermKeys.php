@@ -475,4 +475,12 @@ const PARTENR_CONTROL = 'partenr_control';
 
     const RELEGIONS_DELETE = 'relegions_delete';
     const RELEGIONS_CONTROL = 'relegions_control';
+
+    // ========================================
+    // نظام العمولات (Commissions)
+    // ========================================
+    const COMMISSIONS_VIEW        = 'commissions_view';
+    const COMMISSIONS_CALCULATE   = 'commissions_calculate';
+    const COMMISSIONS_PAY         = 'commissions_pay';
+    const COMMISSIONS_SETTINGS    = 'commissions_settings';
 }

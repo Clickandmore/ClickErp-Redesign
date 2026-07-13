@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use App\Models\commissions\CommissionMarketerOverride;
+use App\Models\IngazDelegation;
 use App\Models\ingaz\Maid;
 
 class Admin extends Authenticatable
@@ -82,6 +84,16 @@ class Admin extends Authenticatable
     public function maids()
     {
         return $this->hasMany(Maid::class);
+    }
+
+    public function ingazDelegations()
+    {
+        return $this->hasMany(IngazDelegation::class, 'marketer_id');
+    }
+
+    public function commissionOverrides()
+    {
+        return $this->hasMany(CommissionMarketerOverride::class, 'admin_id');
     }
     public function complaintComments()
     {
