@@ -34,6 +34,10 @@ class SalesAnalysisController extends Controller
             'other_account' => 'yes',
         ], array_filter($request->only(['from_date', 'to_date', 'type', 'account_id', 'other_account']), fn ($value) => $value !== null && $value !== ''));
 
+        if (!$accounts->contains('id', (int) ($dataSearch['account_id'] ?? 0))) {
+            $dataSearch['account_id'] = $defaultAccountId;
+        }
+
         if ($request->ajax()) {
             $data = collect();
             $firstBalance = null;
@@ -81,12 +85,38 @@ class SalesAnalysisController extends Controller
         $accountId = $confirmSettingService->getConfirmSetting($settingType)?->value;
 
         if ($accountId) {
-            return Account::query()->whereKey((int) $accountId)->get();
+            $configuredAccount = Account::query()
+                ->whereKey((int) $accountId)
+                ->whereDoesntHave('children')
+                ->where('status', 'creditor')
+                ->first();
+
+            if ($configuredAccount) {
+                return collect([$configuredAccount]);
+            }
+        }
+
+        // Imported charts of accounts can change the internal account ID while
+        // preserving the accounting code. Prefer the known revenue VAT account
+        // before falling back to its Arabic description.
+        $vatAccount = Account::query()
+            ->whereDoesntHave('children')
+            ->where('status', 'creditor')
+            ->where('code', 1281)
+            ->first();
+
+        if ($vatAccount) {
+            return collect([$vatAccount]);
         }
 
         return Account::query()
             ->whereDoesntHave('children')
-            ->where('name', 'like', '%ضريب%')
+            ->where('status', 'creditor')
+            ->where(function ($query) {
+                $query->where('name', 'like', '%ضريبة%إيراد%')
+                    ->orWhere('name', 'like', '%ضريبة%إيرادات%')
+                    ->orWhere('name', 'like', '%ضريبة%قيمة%مضافة%');
+            })
             ->orderBy('code')
             ->get();
     }

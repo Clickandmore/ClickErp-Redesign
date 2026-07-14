@@ -41,6 +41,13 @@ class BondQabdController extends Controller
             $dataTable = $service->getDataTableQabdData(BondTypes::Qabd->value);
             $filterDataTable = $service->filterBonds($request, $dataTable);
             return DataTables::of($filterDataTable)
+                ->order(function ($query) {
+                    $query->reorder()
+                        ->orderByRaw("CASE WHEN TRIM(bond_book_num) REGEXP '^[0-9]+$' THEN CAST(bond_book_num AS UNSIGNED) ELSE code END DESC")
+                        ->orderByDesc('code')
+                        ->orderByDesc('date')
+                        ->orderByDesc('id');
+                })
                 ->addIndexColumn()
                 ->addColumn('bond_num', function ($row) {
                     $printUrl = route('finance.bonds-print.show', ['bonds_print' => $row->id, 'type' => 'qabd']);
@@ -53,7 +60,7 @@ class BondQabdController extends Controller
                         . $bookNumber . '</div>';
                 })
                 ->editColumn('date', function ($row) {
-                    return '<span class="bond-date" dir="ltr">' . e($row->date) . '</span>';
+                    return '<div class="bond-date"><strong dir="ltr">' . e($row->date) . '</strong><small>تاريخ السند</small></div>';
                 })
                 ->addColumn('credit_account', function ($row) {
                     return '<div class="bond-account"><strong>' . e(optional($row->creditAccount)->name ?: '-') . '</strong>'
@@ -103,6 +110,7 @@ class BondQabdController extends Controller
         $data["banks_boxes"] = $accountService->getByTypes([AccountTypesEnum::Bank->value, AccountTypesEnum::Box->value]);
         $data["payment_types"] = BondPaymentTypes::cases();
         $data["filterOptionsRoute"] = route($this->mainRoute . '.filter-options');
+        $data["archiveSummary"] = $service->getBondArchiveSummary(BondTypes::Qabd->value);
         return view($this->folderPath . '.index', $data)->with('results', $service->getReportBondQabd());
     }
 

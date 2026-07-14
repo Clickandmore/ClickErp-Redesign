@@ -118,6 +118,7 @@
             'date' => $row->date,
             'formatted_date' => filled($row->date) ? \Carbon\Carbon::parse($row->date)->format('d/m/Y') : '-',
             'constraint_id' => $row->constraint_id,
+            'constraint_number' => filled($row->constraint_code ?? null) ? $row->constraint_code : $row->constraint_id,
             'constraint_url' => route('finance.add-constraint.show', ['add_constraint' => $row->constraint_id]),
             'type' => getEnumValue('constraint_types', $row->constraints_type),
             'statement' => $row->statement,
@@ -243,7 +244,7 @@
             </div>
 
             <div class="table-responsive statement-table-scroll">
-                <table class="table statement-table {{ $showDollarEquivalent ? 'statement-table--currency' : '' }}" id="simpleTable4">
+                <table class="table statement-table {{ $showOtherAccount ? 'statement-table--with-counter' : '' }} {{ $showDollarEquivalent ? 'statement-table--currency' : '' }}" id="simpleTable4">
                     <thead>
                         <tr>
                             <th scope="col" class="statement-col-index">#</th>
@@ -293,15 +294,15 @@
 
                         @foreach ($preparedRows as $item)
                             <tr class="statement-row {{ $item['is_zero'] ? 'statement-row--muted' : '' }}">
-                                <td>{{ $item['index'] }}</td>
+                                <td class="statement-cell--index">{{ $item['index'] }}</td>
                                 <td class="text-nowrap">{{ $item['formatted_date'] }}</td>
-                                <td class="text-nowrap">
+                                <td class="text-nowrap statement-cell--number">
                                     <a href="{{ $item['constraint_url'] }}" target="_blank" rel="noopener"
                                         class="statement-entry-link">
-                                        #{{ $item['constraint_id'] }}
+                                        #{{ $item['constraint_number'] }}
                                     </a>
                                 </td>
-                                <td>{{ $item['type'] }}</td>
+                                <td class="statement-cell--type">{{ $item['type'] }}</td>
                                 @if ($showOtherAccount)
                                     <td>
                                         <div class="statement-other-accounts">
@@ -331,7 +332,7 @@
                                         <small>{{ $item['running_balance_label'] }}</small>
                                     </span>
                                 </td>
-                                <td>{{ $item['user_name'] ?: '-' }}</td>
+                                <td class="statement-cell--user">{{ $item['user_name'] ?: '-' }}</td>
                             </tr>
                         @endforeach
                     </tbody>

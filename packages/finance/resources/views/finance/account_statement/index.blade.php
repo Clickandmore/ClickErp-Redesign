@@ -432,6 +432,29 @@
             color: var(--statement-text);
         }
 
+        .statement-table:not(.statement-table--currency) {
+            min-width: 1180px;
+            table-layout: fixed;
+        }
+
+        .statement-table:not(.statement-table--currency) .statement-col-index { width: 5%; }
+        .statement-table:not(.statement-table--currency) .statement-col-date { width: 10%; }
+        .statement-table:not(.statement-table--currency) .statement-col-number { width: 9%; }
+        .statement-table:not(.statement-table--currency) .statement-col-type { width: 10%; }
+        .statement-table:not(.statement-table--currency) .statement-col-statement { width: 27%; }
+        .statement-table:not(.statement-table--currency) .statement-col-money { width: 9%; }
+        .statement-table:not(.statement-table--currency) .statement-col-balance { width: 13%; }
+        .statement-table:not(.statement-table--currency) .statement-col-user { width: 8%; }
+        .statement-table--with-counter:not(.statement-table--currency) .statement-col-index { width: 4%; }
+        .statement-table--with-counter:not(.statement-table--currency) .statement-col-date { width: 9%; }
+        .statement-table--with-counter:not(.statement-table--currency) .statement-col-number { width: 8%; }
+        .statement-table--with-counter:not(.statement-table--currency) .statement-col-type { width: 9%; }
+        .statement-table--with-counter:not(.statement-table--currency) .statement-col-account { width: 14%; }
+        .statement-table--with-counter:not(.statement-table--currency) .statement-col-statement { width: 21%; }
+        .statement-table--with-counter:not(.statement-table--currency) .statement-col-money { width: 8%; }
+        .statement-table--with-counter:not(.statement-table--currency) .statement-col-balance { width: 12%; }
+        .statement-table--with-counter:not(.statement-table--currency) .statement-col-user { width: 7%; }
+
         .statement-table-scroll {
             width: 100%;
             overflow-x: auto;
@@ -552,7 +575,25 @@
 
         .statement-money-cell {
             text-align: center;
-            white-space: normal;
+            white-space: nowrap;
+            overflow-wrap: normal !important;
+            word-break: normal;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .statement-cell--index,
+        .statement-cell--number,
+        .statement-cell--type,
+        .statement-cell--user {
+            white-space: nowrap;
+            overflow-wrap: normal !important;
+            word-break: normal;
+        }
+
+        .statement-cell--index,
+        .statement-cell--number {
+            direction: ltr;
+            font-variant-numeric: tabular-nums;
         }
 
         .statement-balance-pill {

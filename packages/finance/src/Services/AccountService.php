@@ -321,6 +321,7 @@ class AccountService extends MainService
         $excludedTypes = [
             AccountTypesEnum::Bank->value,
             AccountTypesEnum::Banks->value,
+            AccountTypesEnum::BankName->value,
             AccountTypesEnum::Box->value,
             AccountTypesEnum::Boxs->value,
             AccountTypesEnum::Clients->value,
@@ -621,7 +622,13 @@ class AccountService extends MainService
     public function getCreateView($request)
     {
         if ($request['parent_id']) {
-            $type = $this->model->find($request['parent_id'])->type->value;
+            $parent = $this->model->findOrFail($request['parent_id']);
+            $type = $parent->type->value;
+
+            if ($type === AccountTypesEnum::BankName->value) {
+                return redirect(route('finance.banks.edit', $parent->id));
+            }
+
             $redirectRoutes = [
                 AccountTypesEnum::Suppliers->value => 'finance.suppliers.create',
                 AccountTypesEnum::Clients->value => 'finance.clients.create',
@@ -839,20 +846,22 @@ class AccountService extends MainService
         }
     }
 
-    private function getConstraintsData($account_ids, $constraints_ids)
+    private function getConstraintsData($account_ids, $constraintsQuery)
     {
-        // Single query to get all constraint details for all accounts
+        // Keep the matching detail IDs as a subquery. Materializing them into a
+        // whereIn array can exceed MySQL's 65,535 prepared-statement placeholders.
         $constraints = DB::table('fn_constraint_details')
             ->join('fn_accounts', 'fn_accounts.id', '=', 'fn_constraint_details.account_id')
             ->whereIn('fn_constraint_details.account_id', $account_ids)
-            ->whereIn('fn_constraint_details.id', $constraints_ids)
+            ->whereIn('fn_constraint_details.id', $constraintsQuery)
             ->whereNull('fn_constraint_details.deleted_at')
             ->select(
                 'fn_constraint_details.account_id',
-                'fn_constraint_details.debtor_value',
-                'fn_constraint_details.creditor_value',
-                'fn_accounts.status'
+                'fn_accounts.status',
+                DB::raw('SUM(fn_constraint_details.debtor_value) as debtor_value'),
+                DB::raw('SUM(fn_constraint_details.creditor_value) as creditor_value')
             )
+            ->groupBy('fn_constraint_details.account_id', 'fn_accounts.status')
             ->get();
 
         // Group by account_id and calculate totals

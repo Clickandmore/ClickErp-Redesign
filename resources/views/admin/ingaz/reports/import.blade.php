@@ -198,6 +198,12 @@
                                 <span class="badge bg-light text-dark border">
                                     سندات مرتبطة بقيود: {{ number_format($bondGenerationStats['existing_bonds'] ?? 0) }}
                                 </span>
+                                <span class="badge bg-success-subtle text-success border">
+                                    سندات القبض المستوردة: {{ number_format($bondGenerationStats['imported_receipt_bonds'] ?? 0) }}
+                                </span>
+                                <span class="badge bg-success-subtle text-success border">
+                                    إجمالي حركة القبض: {{ number_format($bondGenerationStats['imported_receipt_movement'] ?? 0, 2) }} ريال
+                                </span>
                             </div>
                         @else
                             <div class="alert alert-warning py-2 mb-0">

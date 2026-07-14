@@ -115,7 +115,7 @@
                 scrollX: true,
                 processing: true,
                 serverSide: isManagedBondTable,
-                ordering: true,
+                ordering: !isManagedBondTable,
                 searching: true,
             searchDelay: 400,
             pageLength: 25,
@@ -226,7 +226,7 @@
                     sLast: "{{trans('dataTable.sLast')}}"
                 }
             },
-                order: isManagedBondTable ? [[2, "desc"]] : [[0, "desc"]],
+                order: isManagedBondTable ? [] : [[0, "desc"]],
                 drawCallback: function () {
                     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (element) {
                         if (!bootstrap.Tooltip.getInstance(element)) {

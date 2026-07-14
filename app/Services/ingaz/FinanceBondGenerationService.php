@@ -37,6 +37,14 @@ class FinanceBondGenerationService
             'existing_bonds' => Bond::query()
                 ->whereNotNull('constraint_id')
                 ->count(),
+            'imported_receipt_bonds' => Bond::query()
+                ->where('type', BondTypes::Qabd->value)
+                ->where('general_type', 0)
+                ->count(),
+            'imported_receipt_movement' => Bond::query()
+                ->where('type', BondTypes::Qabd->value)
+                ->where('general_type', 0)
+                ->sum(DB::raw('COALESCE(legacy_financial_movement, value)')),
             'ready' => true,
         ];
     }

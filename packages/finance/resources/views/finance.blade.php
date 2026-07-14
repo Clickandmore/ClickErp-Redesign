@@ -154,7 +154,6 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
                     // 'finance.cost-center-notification.index',
                     // 'finance.cost-centers.index',
                     'finance.banks.index',
-                    'finance.bank_accounts.index',
                     //                    'finance.suppliers.index',
                 ]) &&
                 (request()->query('status') == null || in_array(request()->query('status'), ['collected', 'refused']))
@@ -174,7 +173,6 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
                     // 'finance.cost-center-notification.index',
                     // 'finance.cost-centers.index',
                     'finance.banks.index',
-                    'finance.bank_accounts.index',
                     //                    'finance.suppliers.index',
                 ]) &&
                 (request()->query('status') == null || in_array(request()->query('status'), ['collected', 'refused']))
@@ -206,14 +204,6 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
             <a class="m-link {{ Route::currentRouteName() == 'finance.banks.index' ? 'active' : '' }}"
                 href="{{ route('finance.banks.index') }}">
                 <span class="ms-2"> {{ __('finance::finance.banks') }}</span>
-            </a>
-        </li>
-        {{--        @endif --}}
-        {{--        @if (in_array('finance.bank_accounts-read', $user_permission_list)) --}}
-        <li>
-            <a class="m-link {{ Route::currentRouteName() == 'finance.bank_accounts.index' ? 'active' : '' }}"
-                href="{{ route('finance.bank_accounts.index') }}">
-                <span class="ms-2"> {{ __('finance::finance.banksAccounts') }}</span>
             </a>
         </li>
         {{--        @endif --}}

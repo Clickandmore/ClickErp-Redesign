@@ -241,6 +241,8 @@ class ConstraintService extends MainService
                 'fn_accounts.status',
                 'fn_constraints.type as constraints_type',
                 'fn_constraint_details.constraint_id',
+                'fn_constraint_details.id as constraint_detail_id',
+                'fn_constraints.code as constraint_code',
                 'admins.name',
             ])
             ->join('fn_accounts', 'fn_accounts.id', '=', 'fn_constraint_details.account_id')
@@ -259,7 +261,9 @@ class ConstraintService extends MainService
                 return $q->whereDate('fn_constraint_details.date', '<=', $dataSearch['to_date']);
             })
             ->orderBy('fn_constraint_details.date')
+            ->orderByRaw('COALESCE(fn_constraints.code, fn_constraints.id)')
             ->orderBy('fn_constraints.id')
+            ->orderBy('fn_constraint_details.id')
             ->get();
 
         return $accountStatment;

@@ -136,6 +136,26 @@ class DashboardController extends Controller
         // الطلبات (استقدام)
         $ordersStats = $buildOrderStats(1);
 
+        // تفاويض إنجاز
+        $delegationAggregateQuery = IngazDelegation::query();
+        $this->applyDashboardBranchFilter(
+            $delegationAggregateQuery,
+            $activeDashboardBranchId,
+            'ingaz_delegations.branch_id',
+            'ingaz_delegations'
+        );
+        $delegationAggregate = $delegationAggregateQuery
+            ->selectRaw('COUNT(*) as total')
+            ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as under_process_total', [IngazDelegation::STATUS_UNDER_PROCESS])
+            ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as executed_total', [IngazDelegation::STATUS_EXECUTED])
+            ->first();
+
+        $delegationStats = [
+            'total' => (int) ($delegationAggregate->total ?? 0),
+            'under_process' => (int) ($delegationAggregate->under_process_total ?? 0),
+            'executed' => (int) ($delegationAggregate->executed_total ?? 0),
+        ];
+
         // السير الذاتية
         $cvAggregate = Maid::query()
             ->selectRaw('COUNT(*) as total')
@@ -1149,6 +1169,7 @@ class DashboardController extends Controller
             'contractsByMonthCurrent',
             'contractsByMonthPrevious',
             'ordersStats',
+            'delegationStats',
             'cvStats',
             'clientsStats',
             'rentalMaidStats',

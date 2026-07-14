@@ -380,6 +380,10 @@ class DataImportExecutionService
         }
 
         foreach ($this->readRows(Storage::path($storedPath), $columns) as $rowNumber => $row) {
+            if ($this->isLegacyBondReportSummaryRow($row)) {
+                continue;
+            }
+
             $result['total']++;
             $row = $this->withLegacyBondSourceMetadata($row, $rowNumber, $storedPath);
 
@@ -399,6 +403,19 @@ class DataImportExecutionService
         }
 
         return $result;
+    }
+
+    private function isLegacyBondReportSummaryRow(array $row): bool
+    {
+        if ($this->optionalInteger($row['bond_code'] ?? $row['code'] ?? null)) {
+            return false;
+        }
+
+        $label = $this->normalizeArabicText((string) ($row['sequence'] ?? ''));
+
+        return str_contains($label, 'الاجمالي')
+            || str_contains($label, 'عدد سندات')
+            || str_contains($label, 'نهايه التقرير');
     }
 
     private function importReceiptBond(array $row, ?int $adminId): string
@@ -1518,13 +1535,14 @@ class DataImportExecutionService
                 $labelMap[$this->normalizeHeader($column['key'])] = $column['key'];
             }
 
+            $headerRow = $this->detectImportHeaderRow($sheet, $highestColumnIndex, $labelMap);
             $headers = [];
             for ($column = 1; $column <= $highestColumnIndex; $column++) {
-                $header = $this->cellValue($sheet->getCell($this->cellCoordinate($column, 1))->getValue());
+                $header = $this->cellValue($sheet->getCell($this->cellCoordinate($column, $headerRow))->getValue());
                 $headers[$column] = $labelMap[$this->normalizeHeader($header)] ?? $header;
             }
 
-            for ($rowNumber = 2; $rowNumber <= $highestRow; $rowNumber++) {
+            for ($rowNumber = $headerRow + 1; $rowNumber <= $highestRow; $rowNumber++) {
                 $row = [];
                 $hasValue = false;
                 $onlyTemplateMarkers = true;
@@ -1555,6 +1573,30 @@ class DataImportExecutionService
             unset($sheet, $spreadsheet);
             gc_collect_cycles();
         }
+    }
+
+    private function detectImportHeaderRow($sheet, int $highestColumnIndex, array $labelMap): int
+    {
+        $bestRow = 1;
+        $bestMatches = -1;
+        $scanUntil = min(10, (int) $sheet->getHighestDataRow());
+
+        for ($row = 1; $row <= $scanUntil; $row++) {
+            $matches = 0;
+            for ($column = 1; $column <= $highestColumnIndex; $column++) {
+                $value = $this->cellValue($sheet->getCell($this->cellCoordinate($column, $row))->getValue());
+                if ($value !== '' && isset($labelMap[$this->normalizeHeader($value)])) {
+                    $matches++;
+                }
+            }
+
+            if ($matches > $bestMatches) {
+                $bestMatches = $matches;
+                $bestRow = $row;
+            }
+        }
+
+        return $bestRow;
     }
 
     private function loadSpreadsheetForImport(string $path): \PhpOffice\PhpSpreadsheet\Spreadsheet

@@ -25,7 +25,9 @@
         .bond-account { min-width:210px; }
         .bond-account strong { color:#273142; white-space:normal; line-height:1.5; }
         .bond-account small { max-width:270px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-        .bond-date, .bond-amount, .bond-constraint-link { white-space:nowrap; }
+        .bond-date { display:flex; flex-direction:column; gap:3px; white-space:nowrap; }
+        .bond-date small { color:#8a94a3; font-size:11px; }
+        .bond-amount, .bond-constraint-link { white-space:nowrap; }
         .bond-amount { color:#111827; font-size:14px; }
         .bond-status { display:inline-flex; align-items:center; gap:5px; padding:7px 9px; white-space:nowrap; }
         .bond-actions { display:flex; align-items:center; gap:4px; white-space:nowrap; }
@@ -148,7 +150,11 @@
     <div class="card bond-table-card">
         <div class="card-header d-flex align-items-center justify-content-between">
             <strong><i class="fa fa-list text-success me-1"></i> سجل سندات القبض</strong>
-            <small class="text-muted">اضغط رقم السند للطباعة أو رقم القيد لعرض تفاصيله</small>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <span class="badge bg-light text-dark border">عدد السندات: {{ number_format($archiveSummary->total_count ?? 0) }}</span>
+                <span class="badge bg-light text-dark border">إجمالي الحركة: {{ number_format($archiveSummary->total_movement ?? 0, 2) }} ريال</span>
+                <small class="text-muted">اضغط رقم السند للطباعة أو رقم القيد لعرض تفاصيله</small>
+            </div>
         </div>
         <div class="table-responsive">
             <table id="dataTableObject" class="table table-hover align-middle mb-0" style="width:100%">

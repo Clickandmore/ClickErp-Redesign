@@ -112,6 +112,16 @@ class BondService extends MainService
         return $this->getBondReportTotals(BondTypes::Qabd->value);
     }
 
+    public function getBondArchiveSummary($type): object
+    {
+        return $this->model->query()
+            ->where('type', $type)
+            ->where('general_type', 0)
+            ->selectRaw('COUNT(*) AS total_count')
+            ->selectRaw('COALESCE(SUM(COALESCE(legacy_financial_movement, value)), 0) AS total_movement')
+            ->first();
+    }
+
     public function getBondPaymentTypies()
     {
         return BondPaymentTypes::cases();

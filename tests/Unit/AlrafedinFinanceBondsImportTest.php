@@ -67,4 +67,39 @@ class AlrafedinFinanceBondsImportTest extends TestCase
             'financial_movement' => '1900.01',
         ], $payload);
     }
+
+    public function test_receipt_bond_directory_contains_the_complete_deduplicated_archive(): void
+    {
+        $directory = base_path('migration_system/data/alrafedin/finance/bonds-qabd');
+        $columns = app(DataImportTemplateService::class)->template('receipt_bonds')['columns'];
+        $rowsByCode = [];
+        $specialFileRows = [];
+
+        foreach (glob($directory . '/*.xlsx') as $path) {
+            foreach ($this->invoke('readRows', $path, $columns) as $row) {
+                if ($this->invoke('isLegacyBondReportSummaryRow', $row)) {
+                    continue;
+                }
+
+                $code = (string) ($row['bond_code'] ?? '');
+                if ($code === '') {
+                    continue;
+                }
+
+                $rowsByCode[$code] = $row;
+                if (str_contains(basename($path), '2022-09-04')) {
+                    $specialFileRows[] = $row;
+                }
+            }
+        }
+
+        $movement = array_sum(array_map(
+            fn (array $row) => (float) str_replace(',', '', (string) ($row['financial_movement'] ?? 0)),
+            $rowsByCode
+        ));
+
+        $this->assertCount(6, $specialFileRows);
+        $this->assertCount(6250, $rowsByCode);
+        $this->assertEqualsWithDelta(28066511, $movement, 0.01);
+    }
 }

@@ -56,7 +56,9 @@
         .sarf-account { min-width: 210px; }
         .sarf-account strong { color: #273142; white-space: normal; line-height: 1.5; }
         .sarf-account small { max-width: 270px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .sarf-date, .sarf-amount { white-space: nowrap; }
+        .sarf-date { display:flex; flex-direction:column; gap:3px; white-space:nowrap; }
+        .sarf-date small { color:#8a94a3; font-size:11px; }
+        .sarf-amount { white-space: nowrap; }
         .sarf-amount { color: #111827; font-size: 14px; }
         .sarf-status { display: inline-flex; align-items: center; gap: 5px; padding: 7px 9px; white-space: nowrap; }
         .sarf-constraint-link { white-space: nowrap; }

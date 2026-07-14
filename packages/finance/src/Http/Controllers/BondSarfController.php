@@ -40,6 +40,13 @@ class BondSarfController extends Controller
             $dataTable = $service->getDataTableData(BondTypes::Sarf->value);
             $filterDataTable = $service->filterBonds($request, $dataTable);
             return DataTables::of($filterDataTable)
+                ->order(function ($query) {
+                    $query->reorder()
+                        ->orderByDesc('date')
+                        ->orderByRaw("CASE WHEN TRIM(bond_book_num) REGEXP '^[0-9]+$' THEN CAST(bond_book_num AS UNSIGNED) ELSE code END DESC")
+                        ->orderByDesc('code')
+                        ->orderByDesc('id');
+                })
                 ->addIndexColumn()
                 ->editColumn('bond_num', function ($row) {
                     $printUrl = route('finance.bonds-print.show', ['bonds_print' => $row->id, 'type' => 'sarf']);
@@ -53,7 +60,7 @@ class BondSarfController extends Controller
                         . '</div>';
                 })
                 ->editColumn('date', function ($row) {
-                    return '<span class="sarf-date" dir="ltr">' . e($row->date) . '</span>';
+                    return '<div class="sarf-date"><strong dir="ltr">' . e($row->date) . '</strong><small>تاريخ السند</small></div>';
                 })
                 ->addColumn('debit_account', function ($row) {
                     return '<div class="sarf-account"><strong>' . e(optional($row->debitAccount)->name ?: '-') . '</strong>'

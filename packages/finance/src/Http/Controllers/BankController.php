@@ -4,9 +4,6 @@ namespace Nami\Finance\Http\Controllers;
 
 use App\Http\Controllers\admin\Controller;
 use Exception;
-use Illuminate\Contracts\Foundation\Application;
-use Illuminate\Contracts\View\Factory;
-use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Nami\Finance\Http\Requests\BankRequest;
@@ -16,142 +13,88 @@ use Yajra\DataTables\DataTables;
 
 class BankController extends Controller
 {
-    public string $folderPath = "finance::finance.banks";
-    public string $mainRoute = "finance.banks";
+    public string $folderPath = 'finance::finance.banks';
+    public string $mainRoute = 'finance.banks';
 
-    /**
-     * Display a listing of the resource.
-     *
-     * @return Application|Factory|View|\Illuminate\Foundation\Application|JsonResponse|\Illuminate\View\View
-     * @throws Exception
-     */
-
+    /** @throws Exception */
     public function index(Request $request, ObjService $service)
     {
         if ($request->ajax()) {
-            $dataTable = $service->getDataTable();
-            return DataTables::of($dataTable)
+            return DataTables::of($service->getDataTable())
                 ->addIndexColumn()
-                ->editColumn('image', function ($row) {
-                    return getImgTag($row->image);
-                })
-                ->addColumn('name', function ($row) {
-                    $locale = app()->getLocale();
-                    return @$row->translate($locale)->name;
-                })
-                ->addColumn('code', function ($row) {
-
-                    return $row->accounts->code ?? '--' ;
-                })
-                ->filterColumn('name', function ($query, $keyword) {
-                    $locale = app()->getLocale();
-                    $query->whereHas('translations', function ($query) use ($locale, $keyword) {
-                        $query->where('locale', $locale)
-                        ->where('name', 'LIKE', "%{$keyword}%");
-                    });
+                ->addColumn('accounts_count', function ($row) {
+                    return $row->type === \Nami\Finance\Enums\AccountTypesEnum::Bank
+                        ? 1
+                        : $row->accounts_count;
                 })
                 ->addColumn('actions', function ($row) {
-                    $editButton = editButton(route($this->mainRoute . ".edit", $row->id), $row->name);
-                    $deleteButton = deleteButton(route($this->mainRoute . ".destroy", $row->id));
+                    $editButton = editButton(route($this->mainRoute . '.edit', $row->id), $row->name);
+                    $deleteButton = deleteButton(route($this->mainRoute . '.destroy', $row->id));
 
-                    return $editButton . " " . $deleteButton;
-                })->escapeColumns([])->make(true);
+                    return $editButton . ' ' . $deleteButton;
+                })
+                ->escapeColumns([])
+                ->make(true);
         }
-        $data["createRoute"] = route($this->mainRoute . ".create");
-        $data["dataTableRoute"] = route($this->mainRoute . ".index");
-        $data["bladeTitle"] = __("finance::finance.banks");
-        $data["addButtonText"] = __("finance::finance.banks");
-        // $data["modalType"] = "";
-        return view($this->folderPath . '.index', $data);
+
+        return view($this->folderPath . '.index', [
+            'createRoute' => route($this->mainRoute . '.create'),
+            'dataTableRoute' => route($this->mainRoute . '.index'),
+            'bladeTitle' => __('finance::finance.banks'),
+            'addButtonText' => __('finance::finance.bank'),
+        ]);
     }
 
-    /**
-     * @param Request $request
-     * @param ObjService $service
-     * @return JsonResponse|void
-     * @throws Throwable
-     */
-    public function create(Request $request, ObjService $service)
+    /** @throws Throwable */
+    public function create(Request $request): ?JsonResponse
     {
-        if ($request->ajax()) {
-            $returnHTML = view($this->folderPath . ".create")->with([
-                'storeRoute' => route($this->mainRoute . ".store"),
-            ])->render();
-            return jsonSuccess(["html" => $returnHTML]);
+        if (!$request->ajax()) {
+            return null;
         }
+
+        $html = view($this->folderPath . '.create', [
+            'storeRoute' => route($this->mainRoute . '.store'),
+        ])->render();
+
+        return jsonSuccess(['html' => $html]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     *
-
-     */
-    public function store(BankRequest $request, ObjService $service)
+    public function store(BankRequest $request, ObjService $service): JsonResponse
     {
-        $dataInsert = $request->validated();
-        $dataInsert['created_by_id'] = auth('admin')->user()->id;
-        $bank = $service->store($dataInsert);
-        $service->storeBankAccount($bank['bank'], $request,$bank['account']->id);
-//       dd($bank);
-        return jsonSuccess($bank);
+        $data = $request->validated();
+        $data['created_by_id'] = auth('admin')->id();
+
+        return jsonSuccess($service->store($data));
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @param int $id
-     * @return void
-     */
-    public function show(int $id)
+    public function show(int $id): void
     {
-        //
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param int $id
-     * @param Request $request
-     * @param ObjService $service
-     * @return JsonResponse|void
-     * @throws Throwable
-     */
-    public function edit(int $id, Request $request, ObjService $service)
+    /** @throws Throwable */
+    public function edit(int $id, Request $request, ObjService $service): ?JsonResponse
     {
-        if ($request->ajax()) {
-            $returnHTML = view($this->folderPath . ".edit")->with([
-                "obj" => $service->find($id),
-                'updateRoute' => route($this->mainRoute . ".update", $id),
-            ])->render();
-            return jsonSuccess(["html" => $returnHTML]);
+        if (!$request->ajax()) {
+            return null;
         }
+
+        $html = view($this->folderPath . '.edit', [
+            'obj' => $service->findBank($id),
+            'updateRoute' => route($this->mainRoute . '.update', $id),
+        ])->render();
+
+        return jsonSuccess(['html' => $html]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     */
-    public function update(BankRequest $request, int $id, ObjService $service)
+    public function update(BankRequest $request, int $id, ObjService $service): JsonResponse
     {
-        $dataInsert = $request->validated();
-//        $bank = $service->find($id);
-//        $service->storeBankAccount($bank, $request,$dataInsert['account_id']);
-        $data = $service->update($id, $dataInsert);
-        $bank = $service->find($id);
-        $service->updateAccountName($bank->account_id, $dataInsert);
-        return jsonSuccess($data);
+        return jsonSuccess($service->updateBank($id, $request->validated()));
     }
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param int $id
-     * @param ObjService $service
-     * @return JsonResponse
-     */
-    public function destroy(int $id, ObjService $service,BankRequest $request)
+    public function destroy(int $id, BankRequest $request, ObjService $service): JsonResponse
     {
-        $service->deleteWithFile($id,'image');
+        $service->deleteBank($id);
+
         return jsonSuccess();
     }
 }

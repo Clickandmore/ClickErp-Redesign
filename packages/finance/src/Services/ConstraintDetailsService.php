@@ -223,33 +223,35 @@ class ConstraintDetailsService extends MainService
 
     public function filterIncomeList($request)
     {
-        $constraints_ids = $this->model
+        $constraintsQuery = $this->model
+            ->newQuery()
+            ->select('id')
             ->when($request->filled('from_date'), function ($q) use ($request) {
                 return $q->whereDate("date", ">=", $request->from_date);
             })
             ->when($request->filled('to_date'), function ($q) use ($request) {
                 return $q->whereDate("date", "<=", $request->to_date);
-            })
-            ->pluck('id')->toArray();
+            });
 
-        return $this->accountService->getIncomeAccountsChildrens($constraints_ids);
+        return $this->accountService->getIncomeAccountsChildrens($constraintsQuery);
     }
 
     public function filterProfitLoss($request)
     {
-        $constraints_ids = $this->model
+        $constraintsQuery = $this->model
+            ->newQuery()
+            ->select('id')
             ->when($request->filled('from_date'), function ($q) use ($request) {
                 return $q->whereDate("date", ">=", $request->from_date);
             })
             ->when($request->filled('to_date'), function ($q) use ($request) {
                 return $q->whereDate("date", "<=", $request->to_date);
-            })
-            ->pluck('id')->toArray();
+            });
 
         $requestedLevel = $request->input('level', 'all');
         $level = $requestedLevel === 'all' ? null : (int) $requestedLevel;
 
-        return $this->accountService->getIncomeAccountsChildrens($constraints_ids, $level);
+        return $this->accountService->getIncomeAccountsChildrens($constraintsQuery, $level);
     }
 
     public function getIncomeReportLevels(): array

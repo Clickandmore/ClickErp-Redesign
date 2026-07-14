@@ -25,7 +25,6 @@ use Nami\Finance\Http\Controllers\AuditBudgetController;
 use Nami\Finance\Http\Controllers\AuditBudgetMonthlyController;
 use Nami\Finance\Http\Controllers\BackPurchaseController;
 use Nami\Finance\Http\Controllers\BackPurchasePrintController;
-use Nami\Finance\Http\Controllers\BankAccountController;
 use Nami\Finance\Http\Controllers\BankAccountStatementController;
 use Nami\Finance\Http\Controllers\BankAccountStatementPrintController;
 use Nami\Finance\Http\Controllers\BankController;
@@ -243,7 +242,8 @@ Route::group(
         Route::resource('add-constraint', AddConstraintController::class);
 
         Route::resource('banks', BankController::class);
-        Route::resource('bank_accounts', BankAccountController::class);
+        Route::get('bank_accounts', fn () => redirect()->route('finance.banks.index'))
+            ->name('bank_accounts.index');
 
         /* ---------- start of stocks routes ------------- */
         Route::resource('units', UnitsController::class);

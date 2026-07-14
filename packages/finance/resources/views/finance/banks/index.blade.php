@@ -16,6 +16,7 @@
                 <th>{{ __('finance::finance.SL') }}</th>
                 <th>{{ __('finance::finance.name') }}</th>
                 <th>{{ __('finance::finance.code') }}</th>
+                <th>{{ __('finance::finance.accounts_count') }}</th>
                 <th>{{ __('finance::finance.actions') }}</th>
             </tr>
         </thead>
@@ -43,6 +44,11 @@
                     "data": "code",
                     orderable: true,
                     searchable: true
+                },
+                {
+                    "data": "accounts_count",
+                    orderable: true,
+                    searchable: false
                 },
                 {
                     "data": "actions",

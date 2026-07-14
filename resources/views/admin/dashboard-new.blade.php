@@ -88,6 +88,11 @@
             $canViewRentalMaidsCard;
 
         $canViewRentalOrdersCard = $canViewDashboardSection(\App\PermKeys::DASHBOARD_RENTAL_ORDERS_COUNT, [], true);
+        $canViewIngazDelegationsCard = $canViewDashboardSection(
+            null,
+            [\App\PermKeys::INGAZ_DELEGATIONS_VIEW, \App\PermKeys::INGAZ_DELEGATIONS_CONTROL],
+            true,
+        );
         $canViewRequestGenderCard = $canViewDashboardSection(
             \App\PermKeys::DASHBOARD_ORDERS_TYPES,
             [\App\PermKeys::INGAZ_DELEGATIONS_VIEW],
@@ -111,6 +116,7 @@
         $canViewShelterCard = $canViewDashboardSection(\App\PermKeys::DASHBOARD_SHELTER_COUNT, [], true);
         $canViewSecondStatsRow =
             $canViewRentalOrdersCard ||
+            $canViewIngazDelegationsCard ||
             $canViewRequestGenderCard ||
             $canViewComplaintsCard ||
             $canViewSponsorshipTransfersCard ||
@@ -712,6 +718,24 @@
                     </div>
                 @endif
 
+                @if ($canViewIngazDelegationsCard)
+                    <div class="stat-card is-5">
+                        <div class="stat-card-icon"><i class="fas fa-file-signature"></i></div>
+                        <div class="stat-head d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="stat-label">{{ __('admin.dashboard_new.ingaz_delegations') }}</small>
+                                <h3 class="mb-0">{{ number_format($delegationStats['total'] ?? 0) }}</h3>
+                            </div>
+                            <a href="{{ route('ingaz-delegations.index', $dashboardBranchQuery) }}"
+                                class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
+                        </div>
+                        <div class="stat-chip-list mt-3">
+                            <span>{{ __('admin.dashboard_new.under_process') }}: {{ number_format($delegationStats['under_process'] ?? 0) }}</span>
+                            <span>{{ __('admin.dashboard_new.executed') }}: {{ number_format($delegationStats['executed'] ?? 0) }}</span>
+                        </div>
+                    </div>
+                @endif
+
                 @if ($canViewComplaintsCard)
                     <div class="stat-card is-4">
                         <div class="stat-card-icon"><i class="fas fa-headset"></i></div>
@@ -772,8 +796,8 @@
                         <div class="stat-card-icon"><i class="fas fa-house-user"></i></div>
                         <div class="stat-head d-flex justify-content-between align-items-center">
                             <div>
-                                <small class="stat-label">{{ __('admin.dashboard_new.shelter') }}</small>
-                                <h3 class="mb-0">{{ number_format($shelterStats['total'] ?? 0) }}</h3>
+                                <small class="stat-label">{{ __('admin.dashboard_new.inside_shelter') }}</small>
+                                <h3 class="mb-0">{{ number_format($shelterStats['inside'] ?? 0) }}</h3>
                             </div>
                             <a href="{{ route('ShelterContract.index', $dashboardBranchQuery) }}" class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
                         </div>
