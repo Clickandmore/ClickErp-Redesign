@@ -386,6 +386,7 @@ Route::group(
             Route::get('invoices/search-clients', [InvoiceController::class, 'searchClients'])->name('invoices.searchClients');
             Route::get('invoices/export/excel', [InvoiceController::class, 'exportExcel'])->name('invoices.export.excel');
             Route::get('invoices/export/pdf', [InvoiceController::class, 'exportPdf'])->name('invoices.export.pdf');
+            Route::get('invoices/{id}/legacy-source-file', [InvoiceController::class, 'legacySourceFile'])->name('invoices.legacy-source-file');
             Route::resource('invoices', InvoiceController::class);
             Route::get('invoices/download/{id}', [InvoiceController::class, 'downloadInvoice'])->name('invoice.download');
             Route::resource('musaned-transfers', MusanedTransferController::class)->only(['index', 'create', 'store', 'show']);

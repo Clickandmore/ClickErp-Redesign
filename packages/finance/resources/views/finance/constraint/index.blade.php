@@ -64,9 +64,32 @@
 
         .constraints-filter-grid {
             display: grid;
-            grid-template-columns: minmax(220px, 1.2fr) minmax(170px, .9fr) minmax(170px, .9fr) 140px;
+            grid-template-columns: minmax(260px, 1.4fr) minmax(210px, 1fr) minmax(170px, .8fr) minmax(170px, .8fr);
             gap: 12px;
             align-items: end;
+        }
+
+        .constraints-filter-actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid #e9eef5;
+        }
+
+        .constraints-filter-actions__main,
+        .constraints-filter-actions__export {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .constraints-search-input {
+            direction: rtl;
         }
 
         .constraints-filter-panel label {
@@ -260,6 +283,17 @@
             .constraints-filter-grid {
                 grid-template-columns: 1fr;
             }
+
+            .constraints-filter-actions,
+            .constraints-filter-actions__main,
+            .constraints-filter-actions__export {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .constraints-filter-actions .btn {
+                width: 100%;
+            }
         }
     </style>
 @endsection
@@ -285,22 +319,19 @@
             <a href="{{ $pendingRoute }}" class="btn {{ $approvalMode === 'pending' ? 'btn-warning' : 'btn-outline-warning' }}">
                 <i class="fa fa-clock-o"></i> {{ __('finance::finance.pending_constraints_approval') }}
             </a>
-            @if ($approvalMode === 'approved')
-                <a href="{{ $exportPdfRoute }}" id="exportPdf" class="btn btn-outline-danger">
-                    <i class="fa fa-file-pdf-o"></i> PDF
-                </a>
-                <a href="{{ $exportExcelRoute }}" id="exportExcel" class="btn btn-outline-success">
-                    <i class="fa fa-file-excel-o"></i> Excel
-                </a>
-            @endif
             <a href="{{ url('finance/add-constraint/create') }}" class="btn btn-success">
                 <i class="fa fa-plus-circle"></i> {{ __('buttons.add button') . $addButtonText }}
             </a>
         </div>
     </div>
     {{--    {!! addButton($createRoute , $addButtonText) !!} --}}
-    <div class="constraints-filter-panel">
+    <form class="constraints-filter-panel" id="constraintsFilterForm">
         <div class="constraints-filter-grid">
+            <div>
+                <label for="keyword">البحث في القيود</label>
+                <input type="search" class="form-control constraints-search-input" id="keyword" name="keyword"
+                    placeholder="رقم القيد، البيان، الحساب، القيمة أو التاريخ" autocomplete="off">
+            </div>
             <div>
                 <label>{{ __('finance::finance.filter_by_type') }}</label>
                 <select class="form-control" id="type_filter" name="type_filter">
@@ -311,20 +342,36 @@
                 </select>
             </div>
             <div>
-                <label for="TextInput" class="form-label">{{ __('finance::finance.from_date') }}</label>
-                <input type="date" name="from_date" id="from_date" class="form-control" required>
+                <label for="from_date" class="form-label">{{ __('finance::finance.from_date') }}</label>
+                <input type="date" name="from_date" id="from_date" class="form-control">
             </div>
             <div>
-                <label for="TextInput" class="form-label">{{ __('finance::finance.to_date') }}</label>
-                <input type="date" name="to_date" id="to_date" class="form-control" required>
+                <label for="to_date" class="form-label">{{ __('finance::finance.to_date') }}</label>
+                <input type="date" name="to_date" id="to_date" class="form-control">
             </div>
-            <div>
-                <button type="button" id="clearFilters" class="btn btn-light border w-100">
+        </div>
+        <div class="constraints-filter-actions">
+            <div class="constraints-filter-actions__main">
+                <button type="submit" id="applyFilters" class="btn btn-primary">
+                    <i class="fa fa-search"></i> بحث وتطبيق الفلاتر
+                </button>
+                <button type="button" id="clearFilters" class="btn btn-light border">
                     <i class="fa fa-refresh"></i> مسح الفلاتر
                 </button>
             </div>
+            @if ($approvalMode === 'approved')
+                <div class="constraints-filter-actions__export">
+                    <span class="text-muted small">تصدير النتائج الحالية:</span>
+                    <a href="{{ $exportPdfRoute }}" id="exportPdf" class="btn btn-outline-danger">
+                        <i class="fa fa-file-pdf-o"></i> PDF
+                    </a>
+                    <a href="{{ $exportExcelRoute }}" id="exportExcel" class="btn btn-outline-success">
+                        <i class="fa fa-file-excel-o"></i> Excel
+                    </a>
+                </div>
+            @endif
         </div>
-    </div>
+    </form>
 
     <div class="constraints-table-wrap">
         <table id="dataTableObject" class="table display dataTable table-hover align-middle" style="width:100%">
@@ -355,6 +402,7 @@
         $(document).ready(function() {
             function currentFilters() {
                 return {
+                    keyword: $('#keyword').val(),
                     from_date: $('#from_date').val(),
                     to_date: $('#to_date').val(),
                     type_filter: $('#type_filter').val()
@@ -380,7 +428,7 @@
                 ],
                 "processing": true,
                 "serverSide": true,
-                "searching": true,
+                "searching": false,
                 "sort": false,
                 "autoWidth": false,
                 "scrollX": true,
@@ -521,27 +569,17 @@
             $(window).on('scroll resize', closeConstraintActionsMenu);
             table.on('draw.dt', closeConstraintActionsMenu);
 
-            $('#filter').click(function() {
-                table.ajax.reload();
-            });
-
-            $('#from_date').change(function() {
+            $('#constraintsFilterForm').on('submit', function(e) {
+                e.preventDefault();
                 syncExportLinks();
                 table.ajax.reload();
-
             });
-            $('#to_date').change(function() {
-                syncExportLinks();
-                table.ajax.reload();
 
-            });
-            $('#type_filter').change(function() {
-                syncExportLinks();
-                table.ajax.reload();
+            $('#from_date, #to_date, #type_filter').on('change', syncExportLinks);
+            $('#keyword').on('input', syncExportLinks);
 
-            });
             $('#clearFilters').click(function() {
-                $('#from_date, #to_date').val('');
+                $('#keyword, #from_date, #to_date').val('');
                 $('#type_filter').val('');
                 syncExportLinks();
                 table.ajax.reload();

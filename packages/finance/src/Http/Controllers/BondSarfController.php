@@ -13,8 +13,10 @@ use Nami\Finance\Http\Requests\Bond\StoreBondRequest as StoreRequest;
 use Nami\Finance\Http\Requests\Bond\UpdateBondRequest as UpdateRequest;
 use Nami\Finance\Services\AccountService;
 use Nami\Finance\Services\BondService;
-use Nami\Finance\Services\CostCenterService;
 use Nami\Finance\Services\YearService;
+use Nami\Finance\Models\Account;
+use Nami\Finance\Models\Bond;
+use Nami\Finance\Models\CostCenter;
 use Yajra\DataTables\DataTables;
 
 class BondSarfController extends Controller
@@ -32,7 +34,7 @@ class BondSarfController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function index(Request $request, BondService $service, CostCenterService $costCenterService, AccountService $accountService)
+    public function index(Request $request, BondService $service, AccountService $accountService)
     {
         if ($request->ajax()) {
             $dataTable = $service->getDataTableData(BondTypes::Sarf->value);
@@ -40,48 +42,129 @@ class BondSarfController extends Controller
             return DataTables::of($filterDataTable)
                 ->addIndexColumn()
                 ->editColumn('bond_num', function ($row) {
-                    return $row->code;
+                    $printUrl = route('finance.bonds-print.show', ['bonds_print' => $row->id, 'type' => 'sarf']);
+                    $bookNumber = filled(trim((string) $row->bond_book_num))
+                        ? '<small>دفتر: ' . e($row->bond_book_num) . '</small>'
+                        : '';
+
+                    return '<div class="sarf-voucher-number">'
+                        . '<a href="' . e($printUrl) . '" target="_blank" rel="noopener">#' . e($row->code) . '</a>'
+                        . $bookNumber
+                        . '</div>';
                 })
                 ->editColumn('date', function ($row) {
-                    return '<span  data-bs-toggle="tooltip" data-bs-placement="top" title="' . $row->statement . '">' . $row->date . '</span>';
+                    return '<span class="sarf-date" dir="ltr">' . e($row->date) . '</span>';
                 })
                 ->addColumn('debit_account', function ($row) {
-                    return $row->debitAccount->name;
+                    return '<div class="sarf-account"><strong>' . e(optional($row->debitAccount)->name ?: '-') . '</strong>'
+                        . '<small title="' . e($row->statement) . '">' . e($row->statement ?: 'بدون بيان') . '</small></div>';
                 })
                 ->addColumn('credit_account', function ($row) {
-                    return $row->creditAccount->name;
+                    return '<div class="sarf-account"><strong>' . e(optional($row->creditAccount)->name ?: '-') . '</strong>'
+                        . '<small>' . e(getEnumValue("bond_payment_type", $row->payment_type)) . '</small></div>';
                 })
                 ->editColumn('value', function ($row) {
-                    return '<span  data-bs-toggle="tooltip" data-bs-placement="top" title="' . $row->statement . '">' . $row->value . '</span>';
+                    return '<strong class="sarf-amount" dir="ltr">' . number_format((float) $row->value, 2) . '</strong>';
                 })
-                ->editColumn('payment_type_name', function ($row) {
-                    return getEnumValue("bond_payment_type", $row->payment_type);
+                ->addColumn('status', function ($row) {
+                    return $row->is_confirm
+                        ? '<span class="badge bg-success-subtle text-success sarf-status"><i class="fa fa-check-circle"></i> معتمد</span>'
+                        : '<span class="badge bg-warning-subtle text-warning sarf-status"><i class="fa fa-clock"></i> بانتظار الاعتماد</span>';
+                })
+                ->addColumn('constraint', function ($row) {
+                    if (!$row->constraint_id) {
+                        return '<span class="text-muted">غير منشأ</span>';
+                    }
+
+                    $url = route('finance.add-constraint.show', ['add_constraint' => $row->constraint_id]);
+                    return '<a class="btn btn-sm btn-outline-primary sarf-constraint-link" href="' . e($url) . '" target="_blank" rel="noopener">'
+                        . '<i class="fa fa-book"></i> القيد #' . e($row->constraint_id) . '</a>';
                 })
                 ->addColumn('actions', function ($row) {
-                    $buttons = printButton(route("finance.bonds-print.show", $row->id) . '?type=sarf', null, 'finance.bonds-print-read') . ' ';
+                    $buttons = '<div class="sarf-actions">';
+                    $buttons .= printButton(route("finance.bonds-print.show", $row->id) . '?type=sarf', null, 'finance.bonds-print-read') . ' ';
+                    $buttons .= '<button type="button" class="btn btn-dark editButton" data-bs-toggle="modal" data-bs-target="#createModal"'
+                        . ' model-route="' . route('finance.bonds-sarf.show', $row->id) . '" model-title="تفاصيل سند الصرف" title="التفاصيل">'
+                        . '<i class="fa fa-eye"></i></button> ';
                     $buttons .= editButton(route($this->mainRoute . ".edit", $row->id), $row->name) . " ";
                     $buttons .= deleteButton(route($this->mainRoute . ".destroy", $row->id)) . " ";
-                    $buttons .= '<button type="button" class="btn btn-dark editButton" data-bs-toggle="modal" data-bs-target="#createModal"
-                                model-route="' . route('finance.bonds-sarf.show', $row->id) . '" model-title="تفاصيل سند الصرف">
-                                <i class="fa fa-eye"></i></button>' . ' ';
                     if ($row->is_confirm == 0) {
                         $buttons .= confirmButton(route("finance.bonds-confirm.store"), $row->id);
                     }
 
-                    return $buttons;
+                    return $buttons . '</div>';
                 })
-                ->rawColumns(["bond_num", "date", "debit_account", "credit_account", "value", "value_other", "payment_type_name", 'actions'])
+                ->rawColumns(["bond_num", "date", "debit_account", "credit_account", "value", "status", "constraint", 'actions'])
                 ->make(true);
         }
         $data["createRoute"] = route($this->mainRoute . ".create");
         $data["dataTableRoute"] = route($this->mainRoute . ".index");
         $data["bladeTitle"] = __("finance::finance.sarf_bonds");
         $data["addButtonText"] = __("finance::finance.sarf_bond");
-        $data["cost_centers"] = $costCenterService->get();
-        $data["accounts"] = $accountService->get();
         $data["banks_boxes"] = $accountService->getByTypes([AccountTypesEnum::Bank->value, AccountTypesEnum::Box->value]);
         $data["payment_types"] = BondPaymentTypes::cases();
+        $data["filterOptionsRoute"] = route($this->mainRoute . '.filter-options');
         return view($this->folderPath . '.index', $data)->with('results', $service->getReportBondSarf());
+    }
+
+    public function filterOptions(Request $request)
+    {
+        $validated = $request->validate([
+            'type' => ['required', 'in:account,cost_center'],
+            'q' => ['nullable', 'string', 'max:100'],
+            'page' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        $search = trim((string) ($validated['q'] ?? ''));
+        $page = (int) ($validated['page'] ?? 1);
+
+        if ($validated['type'] === 'account') {
+            $query = Account::query()
+                ->select(['id', 'name', 'code'])
+                ->whereIn('id', Bond::query()
+                    ->select('debit_account_id')
+                    ->where('type', BondTypes::Sarf->value)
+                    ->where('general_type', 0));
+
+            if ($search !== '') {
+                $query->where(function ($accountQuery) use ($search) {
+                    $accountQuery->where('name', 'like', "%{$search}%")
+                        ->orWhere('code', 'like', "%{$search}%");
+                });
+            }
+
+            $paginator = $query->orderBy('name')->paginate(30, ['*'], 'page', $page);
+            $results = collect($paginator->items())->map(fn ($account) => [
+                'id' => $account->id,
+                'text' => trim(($account->code ? $account->code . ' - ' : '') . $account->name),
+            ]);
+        } else {
+            $query = CostCenter::query()
+                ->select(['id', 'title', 'code'])
+                ->whereIn('id', Bond::query()
+                    ->select('cost_center_id')
+                    ->where('type', BondTypes::Sarf->value)
+                    ->where('general_type', 0)
+                    ->whereNotNull('cost_center_id'));
+
+            if ($search !== '') {
+                $query->where(function ($costCenterQuery) use ($search) {
+                    $costCenterQuery->where('title', 'like', "%{$search}%")
+                        ->orWhere('code', 'like', "%{$search}%");
+                });
+            }
+
+            $paginator = $query->orderBy('title')->paginate(30, ['*'], 'page', $page);
+            $results = collect($paginator->items())->map(fn ($costCenter) => [
+                'id' => $costCenter->id,
+                'text' => trim(($costCenter->code ? $costCenter->code . ' - ' : '') . $costCenter->title),
+            ]);
+        }
+
+        return response()->json([
+            'results' => $results->values(),
+            'pagination' => ['more' => $paginator->hasMorePages()],
+        ]);
     }
 
     /**
@@ -132,7 +215,9 @@ class BondSarfController extends Controller
     public function show(Request $request, BondService $service, $id)
     {
         if ($request->ajax()) {
-            $obj = $service->find($id);
+            $obj = $service->find($id)->loadMissing([
+                'debitAccount', 'creditAccount', 'costCenter', 'createdBy', 'bondTax', 'constraint',
+            ]);
             $returnHTML = view($this->folderPath . ".show")->with([
                 "bond_payment_type" => $service->getBondPaymentTypies(),
                 "accounts" => $service->getAccounts(),

@@ -52,15 +52,36 @@ class CostCenterService extends MainService
 
     public function getAccountTree()
     {
-        $costs = $this->model->with('childrenRecursive')->whereNull('parent_id')->get();
+        $costs = $this->sortTree(
+            $this->model->with('childrenRecursive')->whereNull('parent_id')->get()
+        );
+        $constraintDetails = $this->getConDetails();
 
         foreach ($costs as $cost) {
-            $this->buildAllChildrenIDs($cost);
+            $this->attachAggregateBalances($cost, $constraintDetails);
         }
 
         $data['costs'] = $costs;
-        $data['constraintDetails'] = $this->getConDetails();
+        $data['constraintDetails'] = $constraintDetails;
         return $data;
+    }
+
+    private function sortTree($items)
+    {
+        $sorted = $items->sort(function ($left, $right) {
+            $leftCode = (int) ($left->legacy_source_code ?: $left->code ?: $left->id);
+            $rightCode = (int) ($right->legacy_source_code ?: $right->code ?: $right->id);
+
+            return [$leftCode, $left->title, $left->id] <=> [$rightCode, $right->title, $right->id];
+        })->values();
+
+        foreach ($sorted as $item) {
+            if ($item->relationLoaded('childrenRecursive')) {
+                $item->setRelation('childrenRecursive', $this->sortTree($item->childrenRecursive));
+            }
+        }
+
+        return $sorted;
     }
 
     public function getDatatableData()
@@ -68,26 +89,21 @@ class CostCenterService extends MainService
         return $this->model->query()->orderBy("id", "ASC");
     }
 
-    public function buildAllChildrenIDs($item)
+    private function attachAggregateBalances($item, $constraintDetails): array
     {
-        // Initialize the allChildrenIDs property for the current item
-        $item->allChildrenIDs = $this->getAllChildrenIDs($item);
-
-        // Recursively process children
-        foreach ($item->childrenRecursive as $child) {
-            $this->buildAllChildrenIDs($child);
-        }
-    }
-
-    private function getAllChildrenIDs($item)
-    {
-        $allChildrenIDs = [$item->id];
+        $debtor = (float) ($constraintDetails[$item->id]['debtor_value'] ?? 0);
+        $creditor = (float) ($constraintDetails[$item->id]['creditor_value'] ?? 0);
 
         foreach ($item->childrenRecursive as $child) {
-            $allChildrenIDs = array_merge($allChildrenIDs, $this->getAllChildrenIDs($child));
+            [$childDebtor, $childCreditor] = $this->attachAggregateBalances($child, $constraintDetails);
+            $debtor += $childDebtor;
+            $creditor += $childCreditor;
         }
 
-        return $allChildrenIDs;
+        $item->aggregate_debtor_value = $debtor;
+        $item->aggregate_creditor_value = $creditor;
+
+        return [$debtor, $creditor];
     }
 
     public function getConDetails()

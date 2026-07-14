@@ -35,6 +35,16 @@ class BondService extends MainService
 
     public function filterBonds($request, $dataTable)
     {
+        if ($request->filled('bond_search')) {
+            $search = trim((string) $request->bond_search);
+            $dataTable->where(function ($query) use ($search) {
+                $query->where('code', 'like', "%{$search}%")
+                    ->orWhere('bond_book_num', 'like', "%{$search}%")
+                    ->orWhere('constraint_id', 'like', "%{$search}%")
+                    ->orWhere('statement', 'like', "%{$search}%")
+                    ->orWhere('transfer_number', 'like', "%{$search}%");
+            });
+        }
         if ($request->filled('from_date')) {
             $dataTable->where('date', '>=', $request->from_date);
         }
@@ -53,126 +63,53 @@ class BondService extends MainService
         if ($request->filled('payment_type')) {
             $dataTable->where('payment_type', $request->payment_type);
         }
+        if ($request->filled('is_confirm')) {
+            $dataTable->where('is_confirm', (int) $request->is_confirm);
+        }
         return $dataTable;
     }
 
     public function getReportBondSarf()
     {
-        $currentQuarter = ceil(Carbon::now()->month / 3);
-        $startMonth = ($currentQuarter - 1) * 3 + 1;
-        $endMonth = $startMonth + 2;
+        return $this->getBondReportTotals(BondTypes::Sarf->value);
+    }
 
-        $last_currentQuarter = ceil(Carbon::now()->subMonth()->month / 3);
-        $last_startMonth = ($last_currentQuarter - 1) * 3 + 1;
-        $last_endMonth = $last_startMonth + 2;
-
-        return [
-            "year" => $this->model->select(DB::raw("SUM(value) as total_value"))
-                ->where("type", BondTypes::Sarf->value)
-                ->whereYear('date', Carbon::now()->year)
-                ->first(),
-
-            "last_year" => $this->model->select(DB::raw("SUM(value) as total_value"))
-                ->where("type", BondTypes::Sarf->value)
-                ->whereYear('date', Carbon::now()->subYear()->year)
-                ->first(),
-
-            "quarterYearData" => $this->model->select(DB::raw("SUM(value) as total_value"))
-                ->where("type", BondTypes::Sarf->value)
-                ->whereYear('date', Carbon::now()->year)
-                ->whereMonth('date', '>=', $startMonth)
-                ->whereMonth('date', '<=', $endMonth)
-                ->first(),
-
-            "last_quarterYearData" => $this->model->select(DB::raw("SUM(value) as total_value"))
-                ->where("type", BondTypes::Sarf->value)
-                ->whereYear('date', Carbon::now()->year)
-                ->whereMonth('date', '>=', $last_startMonth)
-                ->whereMonth('date', '<=', $last_endMonth)
-                ->first(),
-
-            "month" => $this->model->select(DB::raw("SUM(value) as total_value"))
-                ->where("type", BondTypes::Sarf->value)
-                ->whereYear('date', Carbon::now()->year)
-                ->whereMonth('date', Carbon::now()->month)
-                ->first(),
-
-            "last_month" => $this->model->select(DB::raw("SUM(value) as total_value"))
-                ->where("type", BondTypes::Sarf->value)
-                ->whereYear('date', Carbon::now()->year)
-                ->whereMonth('date', Carbon::now()->subMonth()->month)
-                ->first(),
-
-            "last_day" => $this->model->select(DB::raw("SUM(value) as total_value"))
-                ->where("type", BondTypes::Sarf->value)
-                ->whereDate('date', Carbon::yesterday()->toDateString())
-                ->first(),
-
-            "day" => $this->model->select(DB::raw("SUM(value) as total_value"))
-                ->where("type", BondTypes::Sarf->value)
-                ->whereDate('date', Carbon::now()->toDateString())
-                ->first(),
+    private function getBondReportTotals($type): array
+    {
+        $now = Carbon::now();
+        $ranges = [
+            'year' => [$now->copy()->startOfYear(), $now->copy()->endOfYear()],
+            'last_year' => [$now->copy()->subYear()->startOfYear(), $now->copy()->subYear()->endOfYear()],
+            'quarterYearData' => [$now->copy()->startOfQuarter(), $now->copy()->endOfQuarter()],
+            'last_quarterYearData' => [$now->copy()->subQuarter()->startOfQuarter(), $now->copy()->subQuarter()->endOfQuarter()],
+            'month' => [$now->copy()->startOfMonth(), $now->copy()->endOfMonth()],
+            'last_month' => [$now->copy()->subMonth()->startOfMonth(), $now->copy()->subMonth()->endOfMonth()],
+            'day' => [$now->copy()->startOfDay(), $now->copy()->endOfDay()],
+            'last_day' => [$now->copy()->subDay()->startOfDay(), $now->copy()->subDay()->endOfDay()],
         ];
+
+        $selects = [];
+        $bindings = [];
+        foreach ($ranges as $key => [$from, $to]) {
+            $selects[] = "COALESCE(SUM(CASE WHEN date BETWEEN ? AND ? THEN value ELSE 0 END), 0) AS {$key}";
+            $bindings[] = $from->toDateTimeString();
+            $bindings[] = $to->toDateTimeString();
+        }
+
+        $totals = $this->model->query()
+            ->where('type', $type)
+            ->selectRaw(implode(', ', $selects), $bindings)
+            ->first();
+
+        return collect(array_keys($ranges))->mapWithKeys(fn ($key) => [
+            $key => (object) ['total_value' => (float) ($totals->{$key} ?? 0)],
+        ])->all();
     }
 
 
     public function getReportBondQabd()
     {
-        $currentQuarter = ceil(Carbon::now()->month / 3);
-        $startMonth = ($currentQuarter - 1) * 3 + 1;
-        $endMonth = $startMonth + 2;
-
-        $last_currentQuarter = ceil(Carbon::now()->subMonth()->month / 3);
-        $last_startMonth = ($last_currentQuarter - 1) * 3 + 1;
-        $last_endMonth = $last_startMonth + 2;
-
-        return [
-            "year" => $this->model->select(DB::raw("SUM(value) as total_value"))
-                ->where("type", BondTypes::Qabd->value)
-                ->whereYear('date', Carbon::now()->year)
-                ->first(),
-
-            "last_year" => $this->model->select(DB::raw("SUM(value) as total_value"))
-                ->where("type", BondTypes::Qabd->value)
-                ->whereYear('date', Carbon::now()->subYear()->year)
-                ->first(),
-
-            "quarterYearData" => $this->model->select(DB::raw("SUM(value) as total_value"))
-                ->where("type", BondTypes::Qabd->value)
-                ->whereYear('date', Carbon::now()->year)
-                ->whereMonth('date', '>=', $startMonth)
-                ->whereMonth('date', '<=', $endMonth)
-                ->first(),
-
-            "last_quarterYearData" => $this->model->select(DB::raw("SUM(value) as total_value"))
-                ->where("type", BondTypes::Qabd->value)
-                ->whereYear('date', Carbon::now()->year)
-                ->whereMonth('date', '>=', $last_startMonth)
-                ->whereMonth('date', '<=', $last_endMonth)
-                ->first(),
-
-            "month" => $this->model->select(DB::raw("SUM(value) as total_value"))
-                ->where("type", BondTypes::Qabd->value)
-                ->whereYear('date', Carbon::now()->year)
-                ->whereMonth('date', Carbon::now()->month)
-                ->first(),
-
-            "last_month" => $this->model->select(DB::raw("SUM(value) as total_value"))
-                ->where("type", BondTypes::Qabd->value)
-                ->whereYear('date', Carbon::now()->year)
-                ->whereMonth('date', Carbon::now()->subMonth()->month)
-                ->first(),
-
-            "last_day" => $this->model->select(DB::raw("SUM(value) as total_value"))
-                ->where("type", BondTypes::Qabd->value)
-                ->whereDate('date', Carbon::yesterday()->toDateString())
-                ->first(),
-
-            "day" => $this->model->select(DB::raw("SUM(value) as total_value"))
-                ->where("type", BondTypes::Qabd->value)
-                ->whereDate('date', Carbon::now()->toDateString())
-                ->first(),
-        ];
+        return $this->getBondReportTotals(BondTypes::Qabd->value);
     }
 
     public function getBondPaymentTypies()
@@ -509,19 +446,21 @@ class BondService extends MainService
 
     public function getDataTableData($type, $general_type = 0)
     {
-        return $this->model->query()->with(["debitAccount", "creditAccount"])
+        return $this->model->query()->with([
+            "debitAccount:id,name,code",
+            "creditAccount:id,name,code",
+            "costCenter:id,title",
+            "createdBy:id,name",
+        ])
             ->where("type", $type)
             ->where("general_type", $general_type)
-            ->orderBy("is_confirm", "asc")
-            ->orderBy("date", "DESC");
+            ->orderByDesc("date")
+            ->orderByDesc("id");
     }
 
     public function getDataTableQabdData($type, $general_type = 0)
     {
-        return $this->model->query()->with(["debitAccount", "creditAccount", "createdBy", "check"])
-            ->where("type", $type)
-            ->where("general_type", $general_type)
-            ->latest();
+        return $this->getDataTableData($type, $general_type)->with('check');
     }
 
     public function lastCode($type)

@@ -166,6 +166,17 @@
                                         رفع الملف
                                     </button>
                                 </div>
+                                <div class="col-12">
+                                    <div class="form-check">
+                                        <input type="hidden" name="finance_constraints_missing_only" value="0">
+                                        <input class="form-check-input" type="checkbox" name="finance_constraints_missing_only"
+                                               value="1" id="finance-constraints-missing-only"
+                                               {{ old('finance_constraints_missing_only', '1') ? 'checked' : '' }}>
+                                        <label class="form-check-label" for="finance-constraints-missing-only">
+                                            للقيود المالية: إدخال أرقام القيود المفقودة فقط وعدم تعديل أي قيد موجود (موصى به)
+                                        </label>
+                                    </div>
+                                </div>
                             </div>
                         </form>
                     </div>

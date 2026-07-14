@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
+use Nami\Finance\Models\Bond;
 
 class RentalContract extends Model
 {
@@ -93,6 +94,11 @@ class RentalContract extends Model
     public function marketer()
     {
         return $this->belongsTo(Admin::class, 'marketer_id');
+    }
+
+    public function financeBonds()
+    {
+        return $this->hasMany(Bond::class, 'rental_contract_id');
     }
 
     public function order()

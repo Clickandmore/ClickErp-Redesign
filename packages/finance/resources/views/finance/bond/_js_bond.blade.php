@@ -108,28 +108,33 @@
     });
 
         $(document).ready(function () {
+            const bondTableType = @json($bondTableType ?? null);
+            const isManagedBondTable = ['sarf', 'qabd'].includes(bondTableType);
             let table = $("#dataTableObject").DataTable({
                 responsive: true,
                 scrollX: true,
                 processing: true,
-                serverSide: false,
+                serverSide: isManagedBondTable,
                 ordering: true,
                 searching: true,
-            iDisplayLength: 10,
-            lengthMenu: [[5, 10, 25, 50, -1], [5, 10, 25, 50, "الكل"]],
+            searchDelay: 400,
+            pageLength: 25,
+            lengthMenu: isManagedBondTable ? [[10, 25, 50, 100], [10, 25, 50, 100]] : [[5, 10, 25, 50, -1], [5, 10, 25, 50, "الكل"]],
             ajax: {
                 url: "{{ $dataTableRoute }}",
                 data: function (response) {
+                    response.bond_search = $('#bond_search').val();
                     response.from_date = $('#from_date').val();
                     response.to_date = $('#to_date').val();
                     response.cost_center_id = $('#cost_center_id').val();
                     response.debit_account_id = $('#debit_account_id').val();
                     response.credit_account_id = $('#credit_account_id').val();
                     response.payment_type = $('#payment_type_filter').val();
+                    response.is_confirm = $('#is_confirm_filter').val();
                 }
                 },
                 columns: [
-                    @if (($bondTableType ?? null) === 'sarf')
+                    @if (in_array(($bondTableType ?? null), ['sarf', 'qabd'], true))
                     {
                         "data": 'DT_RowIndex',
                         name: 'DT_RowIndex',
@@ -138,32 +143,44 @@
                     },
                     {
                         "data": "bond_num",
-                        orderable: false,
+                        name: 'code',
+                        orderable: true,
                         searchable: true
                     },
                     {
                         "data": "date",
+                        name: 'date',
+                        orderable: true,
+                        searchable: true
+                    },
+                    {
+                        "data": "{{ ($bondTableType ?? null) === 'qabd' ? 'credit_account' : 'debit_account' }}",
+                        name: '{{ ($bondTableType ?? null) === 'qabd' ? 'creditAccount.name' : 'debitAccount.name' }}',
                         orderable: false,
                         searchable: true
                     },
                     {
-                        "data": "debit_account",
-                        orderable: false,
-                        searchable: true
-                    },
-                    {
-                        "data": "credit_account",
+                        "data": "{{ ($bondTableType ?? null) === 'qabd' ? 'debit_account' : 'credit_account' }}",
+                        name: '{{ ($bondTableType ?? null) === 'qabd' ? 'debitAccount.name' : 'creditAccount.name' }}',
                         orderable: false,
                         searchable: true
                     },
                     {
                         "data": "value",
-                        orderable: false,
+                        name: 'value',
+                        orderable: true,
                         searchable: true
                     },
                     {
-                        "data": "payment_type_name",
+                        "data": "status",
+                        name: 'is_confirm',
                         orderable: false,
+                        searchable: false
+                    },
+                    {
+                        "data": "constraint",
+                        name: 'constraint_id',
+                        orderable: true,
                         searchable: true
                     },
                     {
@@ -209,11 +226,43 @@
                     sLast: "{{trans('dataTable.sLast')}}"
                 }
             },
-                order: [[0, "desc"]]
+                order: isManagedBondTable ? [[2, "desc"]] : [[0, "desc"]],
+                drawCallback: function () {
+                    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (element) {
+                        if (!bootstrap.Tooltip.getInstance(element)) {
+                            new bootstrap.Tooltip(element);
+                        }
+                    });
+                }
             });
-        $('#from_date, #to_date , #cost_center_id,#debit_account_id,#credit_account_id,#payment_type_filter').change(function () {
-            table.ajax.reload();
-        });
+        if (isManagedBondTable) {
+            const reloadSarfTable = function () { table.ajax.reload(null, true); };
+            let searchTimer;
+
+            $('#applySarfFilters, #applyBondFilters').on('click', reloadSarfTable);
+            $('#bond_search').on('input', function () {
+                clearTimeout(searchTimer);
+                searchTimer = setTimeout(reloadSarfTable, 450);
+            }).on('keypress', function (event) {
+                if (event.which === 13) {
+                    event.preventDefault();
+                    clearTimeout(searchTimer);
+                    reloadSarfTable();
+                }
+            });
+            $('#from_date, #to_date, #cost_center_id, #debit_account_id, #credit_account_id, #payment_type_filter, #is_confirm_filter')
+                .on('change', reloadSarfTable);
+            $('#resetSarfFilters, #resetBondFilters').on('click', function () {
+                $('#bond_search, #from_date, #to_date').val('');
+                $('#cost_center_id, #debit_account_id, #credit_account_id, #payment_type_filter, #is_confirm_filter')
+                    .val('').trigger('change.select2');
+                table.search('').ajax.reload(null, true);
+            });
+        } else {
+            $('#from_date, #to_date, #cost_center_id, #debit_account_id, #credit_account_id, #payment_type_filter').change(function () {
+                table.ajax.reload();
+            });
+        }
     })
 
 </script>

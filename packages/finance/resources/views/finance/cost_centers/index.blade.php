@@ -12,11 +12,21 @@
         .price {
             border: 0 !important;
             font-weight: bold;
+            display: inline-block;
+            padding: 2px 8px;
+            margin-inline-start: 7px;
+            border-radius: 12px;
+            font-size: 12px;
         }
 
-        .price {
-            border: 0 !important;
-            font-weight: bold;
+        .ledger-balance {
+            color: #176b48;
+            background: #e5f6ee;
+        }
+
+        .legacy-balance {
+            color: #855f08 !important;
+            background: #fff3cd;
         }
 
         .cost-center-statement-link {
@@ -34,6 +44,70 @@
             color: inherit;
             text-decoration: none;
         }
+
+        .cost-center-tree-toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        .cost-center-tree-toolbar .form-control {
+            min-width: 260px;
+            max-width: 480px;
+        }
+
+        .cost-center-tree-actions {
+            display: inline-flex;
+            gap: 4px;
+            margin-inline-start: 8px;
+            vertical-align: middle;
+        }
+
+        .searchTree [data-cost-center-node] {
+            margin-block: 2px;
+        }
+
+        .searchTree .cost-center-level-1>[data-cost-center-item] {
+            color: #183f46;
+            font-weight: 700;
+        }
+
+        .searchTree .cost-center-level-2>[data-cost-center-item] {
+            color: #244b68;
+            font-weight: 600;
+        }
+
+        .searchTree .cost-center-level-3>[data-cost-center-item] {
+            color: #36474f;
+        }
+
+        .searchTree .cost-center-level-1>[data-cost-center-item] .fa-folder,
+        .searchTree .cost-center-level-1>[data-cost-center-item] .fa-folder-open {
+            color: #1f6f78;
+        }
+
+        .searchTree .cost-center-level-2>[data-cost-center-item] .fa-folder,
+        .searchTree .cost-center-level-2>[data-cost-center-item] .fa-folder-open {
+            color: #3977a5;
+        }
+
+        .searchTree .cost-center-level-3>[data-cost-center-item]>.fa-database {
+            color: #7b8f96;
+        }
+
+        .cost-center-tree-branch {
+            content-visibility: auto;
+            contain-intrinsic-size: 1px 500px;
+        }
+
+        @media (max-width: 767.98px) {
+            .cost-center-tree-toolbar .form-control {
+                min-width: 100%;
+            }
+
+        }
     </style>
 @endsection
 @section('page-title')
@@ -45,17 +119,6 @@
 @section('content')
     <?php
     
-    function addButtonTree($route, $fullText = '')
-    {
-        return '<button type="button" class="btn btn-success addButton  mx-1" data-bs-toggle="modal" data-bs-target="#createModal"
-                                       model-route="' .
-            $route .
-            '" model-title="' .
-            $fullText .
-            '">
-                                   <i class="fa fa-plus-circle"></i>
-                                </button>';
-    }
     function costCenterStatementUrl($costCenterId)
     {
         return route('finance.account-cost-centers.index', [
@@ -65,84 +128,68 @@
             'auto_search' => 1,
         ]);
     }
-    function createTreeView($array, $createRoute, $constraints)
+    function createTreeView($array, $createRoute, $constraints, $level = 1)
     {
         foreach ($array as $row) {
-            $sumDebtor = 0;
-            $sumCreditor = 0;
-            $price = '';
-            $statementUrl = costCenterStatementUrl($row->id);
-            if ($row->allChildrenIDs) {
-                // Calculate sum for all children
-                foreach ($row->allChildrenIDs as $childId) {
-                    if (isset($constraints[$childId])) {
-                        $sumDebtor += $constraints[$childId]['debtor_value'] ?? 0;
-                        $sumCreditor += $constraints[$childId]['creditor_value'] ?? 0;
-                    }
-                }
-                $finalBalance = abs($sumDebtor - $sumCreditor);
-                $price = "<span class='price'> رصيد " . $finalBalance . '</span>';
+            $visualLevel = min(3, max(1, (int) ($row->legacy_level ?: $level)));
+            $hasChildren = $row->childrenRecursive->isNotEmpty();
+            $sumDebtor = (float) ($row->aggregate_debtor_value ?? 0);
+            $sumCreditor = (float) ($row->aggregate_creditor_value ?? 0);
+            $price = "<span class='price ledger-balance'>رصيد القيود " . number_format(abs($sumDebtor - $sumCreditor), 2) . '</span>';
+            $legacyPrice = '';
+            if ($row->legacy_balance !== null) {
+                $legacyBalanceType = $row->legacy_balance_type === 'creditor' ? 'دائن' : ($row->legacy_balance_type === 'debtor' ? 'مدين' : '');
+                $legacyTitle = 'إجمالي  — مدين: ' . number_format((float) ($row->legacy_debtor_total ?? 0), 2) . '، دائن: ' . number_format((float) ($row->legacy_creditor_total ?? 0), 2);
+                $legacyPrice = " <span class='price legacy-balance' title='" . e($legacyTitle) . "'>رصيد  " . number_format((float) $row->legacy_balance, 2) . ' ' . $legacyBalanceType . '</span>';
             }
-            if (count($row->childrenRecursive) > 0) {
-                echo '<li>';
-                echo '   <span>';
+            $statementUrl = costCenterStatementUrl($row->id);
+            $actions = '<span class="cost-center-tree-actions">' . '<button type="button" class="btn btn-sm btn-success addButton" data-cost-center-action="add" data-bs-toggle="modal" data-bs-target="#createModal" title="إضافة فرع"><i class="fa fa-plus-circle"></i></button>' . '<button type="button" class="btn btn-sm btn-primary editButton" data-cost-center-action="edit" data-bs-toggle="modal" data-bs-target="#createModal" title="تعديل"><i class="fa fa-pencil"></i></button>' . '<button type="button" class="btn btn-sm btn-danger deleteButton" data-cost-center-action="delete" title="حذف"><i class="fa fa-trash-o"></i></button>' . '</span>';
+    
+            if ($hasChildren) {
+                echo '<li data-cost-center-node class="cost-center-level-' . $visualLevel . '">';
+                echo '   <span data-cost-center-item data-center-id="' . $row->id . '" data-center-title="' . e($row->title) . '">';
                 echo '       <a class="cost-center-toggle-link" data-bs-toggle="collapse" href="#Page-' .
                     $row->id .
-                    '" aria-expanded="true" aria-controls="Page-' .
+                    '" aria-expanded="false" aria-controls="Page-' .
                     $row->id .
                     '">
-                                                 <i class="collapsed"><i class="fa fa-folder"></i></i>
-                                                 <i class="expanded"><i class="fa fa-folder-open"></i></i>
-                                                 </a>';
+                                                     <i class="collapsed"><i class="fa fa-folder"></i></i>
+                                                     <i class="expanded"><i class="fa fa-folder-open"></i></i>
+                                                     </a>';
                 echo '       <a href="' .
                     $statementUrl .
                     '" target="_blank" rel="noopener" class="cost-center-statement-link">' .
-                    $row->id .
+                    ($row->legacy_source_code ?: $row->id) .
                     ' /
-                                                       <i class="fa fa-book"></i>  ' .
+                                                           <i class="fa fa-book"></i>  ' .
                     $row->title .
                     $price .
+                    $legacyPrice .
                     ' <i class="fa fa-external-link"></i></a>' .
-                    ' ';
-                //                echo ($row->status == "debtor") ? "<b style='color: red'> (مدين) </b>" : "<b style='color: blue'> (دائن)  </b>";
-                echo addButtonTree($createRoute . '?parent_id=' . $row->id) . editButton(route('finance.cost-centers.edit', $row->id), $row->title) . ' ' . deleteButton(route('finance.cost-centers.destroy', $row->id), $row->children->count() > 0 ? 1 : 0);
+                    $actions;
                 echo '   </span>';
-                echo '   <ul>
-                                               <div id="Page-' .
-                    $row->id .
-                    '" class="collapse in show">';
-                createTreeView($row->childrenRecursive, $createRoute, $constraints);
-                echo '      </div>
-                                             </ul>
-                                          </li>';
+                echo '   <ul id="Page-' . $row->id . '" class="collapse cost-center-tree-branch">';
+                createTreeView($row->childrenRecursive, $createRoute, $constraints, $level + 1);
+                echo '   </ul></li>';
             } else {
-                $finalBalance = 0;
-                $sumDebtor = 0;
-                $sumCreditor = 0;
-                if (isset($constraints[$row->id])) {
-                    $sumDebtor += $constraints[$row->id]['debtor_value'] ?? 0;
-                    $sumCreditor += $constraints[$row->id]['creditor_value'] ?? 0;
-                    $finalBalance = abs($sumDebtor - $sumCreditor);
-                    $price = "<span class='price'> رصيد " . $finalBalance . '</span>';
-                } else {
-                    $finalBalance = 0;
-                    $sumDebtor = 0;
-                    $sumCreditor = 0;
-                    $price = "<span class='price'> رصيد " . $finalBalance . '</span>';
-                }
-                echo '<li>
-                                               <span> <a href="' .
+                echo '<li data-cost-center-node class="cost-center-level-' .
+                    $visualLevel .
+                    '">
+                                                   <span data-cost-center-item data-center-id="' .
+                    $row->id .
+                    '" data-center-title="' .
+                    e($row->title) .
+                    '"> <a href="' .
                     $statementUrl .
                     '" target="_blank" rel="noopener" class="cost-center-statement-link"><i class="fa fa-database"></i> ' .
-                    $row->id .
+                    ($row->legacy_source_code ?: $row->id) .
                     ' / <i class="fa fa-book"></i>  ' .
                     $row->title .
                     $price .
-                    ' <i class="fa fa-external-link"></i></a> ';
-                //                echo ($row->status == "debtor") ? "<b style='color: red'> (مدين) </b>" : "<b style='color: blue'> (دائن)  </b>";
-                echo addButtonTree($createRoute . '?parent_id=' . $row->id) . editButton(route('finance.cost-centers.edit', $row->id), $row->title) . ' ' . deleteButton(route('finance.cost-centers.destroy', $row->id), $row->children->count() > 0 ? 1 : 0);
-                echo '</span> ';
-                echo ' </li>';
+                    $legacyPrice .
+                    ' <i class="fa fa-external-link"></i></a> ' .
+                    $actions .
+                    '</span></li>';
             }
         } // end foreach
     }
@@ -152,8 +199,15 @@
 
     <div class="col-md-12 " id="option_search">
 
-        <div class="col-md-4 col-md-offset-4 col-sm-6 col-xs-12">
-            <input type="text" class="form-control" id="filterUl" style="height: 40px;" placeholder="بحــــث" />
+        <div class="cost-center-tree-toolbar">
+            <input type="search" class="form-control" id="filterUl" placeholder="ابحث برقم أو اسم مركز التكلفة"
+                autocomplete="off" />
+            <button type="button" class="btn btn-outline-primary" id="expandCostCenters">
+                <i class="fa fa-folder-open"></i> فتح الكل
+            </button>
+            <button type="button" class="btn btn-outline-secondary" id="collapseCostCenters">
+                <i class="fa fa-folder"></i> طي الكل
+            </button>
         </div>
         <div class="clearfix"></div>
         <div class="tree searchTree">
@@ -212,17 +266,90 @@
         {{-- }); --}}
     </script>
     <script>
-        $('#filterUl').keyup(function() {
-            var filter = jQuery(this).val();
-            jQuery(".searchTree li").each(function() {
-                if (jQuery(this).text().search(new RegExp(filter, "i")) < 0) {
-                    jQuery(this).hide();
-                } else {
-                    jQuery(this).show();
-                    jQuery(this).children().show();
+        (function() {
+            const tree = $('.searchTree');
+            let filterTimer = null;
+            const createRoute = @json($createRoute);
+            const editRoute = @json(route('finance.cost-centers.edit', ['cost_center' => '__CENTER__']));
+            const deleteRoute = @json(route('finance.cost-centers.destroy', ['cost_center' => '__CENTER__']));
+
+            document.addEventListener('click', function(event) {
+                const button = event.target.closest('[data-cost-center-action]');
+                if (!button) {
+                    return;
                 }
+
+                const item = button.closest('[data-cost-center-item]');
+                const centerId = item.dataset.centerId;
+                const centerTitle = item.dataset.centerTitle;
+                const action = button.dataset.costCenterAction;
+
+                if (action === 'add') {
+                    button.setAttribute('model-route', createRoute + '?parent_id=' + encodeURIComponent(
+                        centerId));
+                    button.setAttribute('model-title', 'إضافة مركز فرعي إلى ' + centerTitle);
+                } else if (action === 'edit') {
+                    button.setAttribute('model-route', editRoute.replace('__CENTER__', centerId));
+                    button.setAttribute('model-title', 'تعديل ' + centerTitle);
+                } else if (action === 'delete') {
+                    button.setAttribute('delete-route', deleteRoute.replace('__CENTER__', centerId));
+                }
+            }, true);
+
+            function setBranches(open) {
+                tree.find('.cost-center-tree-branch').toggleClass('show', open);
+                tree.find('[data-cost-center-item] [data-bs-toggle="collapse"]').attr('aria-expanded', open ? 'true' :
+                    'false');
+            }
+
+            function applyFilter() {
+                const filter = ($('#filterUl').val() || '').trim().toLocaleLowerCase('ar');
+
+                if (!filter) {
+                    tree.find('[data-cost-center-node]').show();
+                    setBranches(false);
+                    return;
+                }
+
+                function evaluateNode(node) {
+                    const $node = $(node);
+                    const ownText = ($node.children('[data-cost-center-item]').first().text() || '').toLocaleLowerCase(
+                        'ar');
+                    let childMatch = false;
+
+                    $node.children('ul.cost-center-tree-branch').children('[data-cost-center-node]').each(function() {
+                        childMatch = evaluateNode(this) || childMatch;
+                    });
+
+                    const matched = ownText.includes(filter) || childMatch;
+                    $node.toggle(matched);
+                    if (childMatch) {
+                        $node.children('ul.cost-center-tree-branch').addClass('show');
+                        $node.children('[data-cost-center-item]').find('[data-bs-toggle="collapse"]').attr(
+                            'aria-expanded', 'true');
+                    }
+
+                    return matched;
+                }
+
+                tree.find('#Web > ul > [data-cost-center-node]').each(function() {
+                    evaluateNode(this);
+                });
+            }
+
+            $('#filterUl').on('input', function() {
+                clearTimeout(filterTimer);
+                filterTimer = setTimeout(applyFilter, 120);
             });
-        });
+
+            $('#expandCostCenters').on('click', function() {
+                setBranches(true);
+            });
+
+            $('#collapseCostCenters').on('click', function() {
+                setBranches(false);
+            });
+        })();
     </script>
     <script>
         function checkAndResetSelect() {

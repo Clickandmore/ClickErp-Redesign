@@ -53,7 +53,9 @@
                 <div class="invoice-index-toolbar">
                     <div>
                         <h4 class="invoice-index-title">جميع الفواتير</h4>
-                        <small class="text-muted">متابعة فواتير الاستقدام والتأجير وحالة الإدراج في فواتير هيئة الزكاة.</small>
+                        <small class="text-muted">
+                            {{ ($legacyMode ?? false) ? 'يعرض فقط فواتير الرافدين الموجودة في ملف الاستيراد، مع البحث والطباعة حسب رقم الفاتورة.' : 'متابعة فواتير الاستقدام والتأجير وحالة الإدراج في فواتير هيئة الزكاة.' }}
+                        </small>
                     </div>
                     <div class="invoice-index-actions">
                         @if (AdminGuardHasAnyPerm([\App\PermKeys::INVOICES_EXPORT, \App\PermKeys::INVOICES_CONTROL, \App\PermKeys::REC_CONTRACTS_EXPORT, \App\PermKeys::REC_CONTRACTS_MANAGE]))
@@ -72,19 +74,64 @@
                     </div>
                 </div>
 
-                @if($branchesEnabled ?? false)
-                    <div class="row g-3 align-items-end mb-3">
+                    @if($legacyMode ?? false)
+                    <div class="row g-3 align-items-end mb-3" id="invoiceFilters">
+                        <div class="col-md-3 col-lg-2">
+                            <label for="invoiceNumberFilter" class="form-label fw-bold">رقم الفاتورة</label>
+                            <input type="number" min="1" id="invoiceNumberFilter" class="form-control invoice-filter-input" placeholder="مثال: 8231">
+                        </div>
+                        <div class="col-md-3 col-lg-2">
+                            <label for="invoiceTypeFilter" class="form-label">نوع الفاتورة</label>
+                            <select id="invoiceTypeFilter" class="form-select invoice-filter">
+                                <option value="">الكل</option>
+                                @foreach(($invoiceTypes ?? collect()) as $type)
+                                    <option value="{{ $type }}">{{ $type }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-3 col-lg-2">
+                            <label for="documentTypeFilter" class="form-label">نوع المستند</label>
+                            <select id="documentTypeFilter" class="form-select invoice-filter">
+                                <option value="">الكل</option>
+                                @foreach(($documentTypes ?? collect()) as $type)
+                                    <option value="{{ $type }}">{{ $type }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-3 col-lg-2">
+                            <label for="zatcaFilter" class="form-label">المشاركة مع الهيئة</label>
+                            <select id="zatcaFilter" class="form-select invoice-filter">
+                                <option value="">الكل</option>
+                                <option value="1">مشارك سابقاً</option>
+                                <option value="0">غير مشارك</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 col-lg-2">
+                            <label for="dateFromFilter" class="form-label">من تاريخ</label>
+                            <input type="date" id="dateFromFilter" class="form-control invoice-filter">
+                        </div>
+                        <div class="col-md-3 col-lg-2">
+                            <label for="dateToFilter" class="form-label">إلى تاريخ</label>
+                            <input type="date" id="dateToFilter" class="form-control invoice-filter">
+                        </div>
+                        @if($branchesEnabled ?? false)
                         <div class="col-md-3">
                             <label for="branchFilter" class="form-label">{{ __('admin.branches') }}</label>
-                            <select id="branchFilter" class="form-select">
+                            <select id="branchFilter" class="form-select invoice-filter">
                                 <option value="">{{ helperTrans('ingaz.all') }}</option>
                                 @foreach(($branches ?? collect()) as $branch)
                                     <option value="{{ $branch->id }}">{{ $branch->name }}</option>
                                 @endforeach
                             </select>
                         </div>
+                        @endif
+                        <div class="col-auto">
+                            <button type="button" class="btn btn-outline-secondary" id="clearInvoiceFilters">
+                                <i class="fas fa-rotate-left me-1"></i> مسح الفلاتر
+                            </button>
+                        </div>
                     </div>
-                @endif
+                    @endif
 
                 <div class="table-responsive">
                     <table class="table table-clean" id="dataTableObject">
@@ -101,7 +148,7 @@
                                 <th>الضريبة</th>
                                 <th>الخصم</th>
                                 <th>المطلوب</th>
-                                <th>الحالة</th>
+                                <th>حالة السداد</th>
                                 <th>هيئة الزكاة</th>
                                 <th>تاريخ الإنشاء</th>
                                 <th></th>
@@ -119,13 +166,23 @@
     <script src="{{ asset('admin') }}/assets/js/bundle/dataTables.bundle.js"></script>
     <script>
         $(function() {
-            $('#dataTableObject').DataTable({
+            const table = $('#dataTableObject').DataTable({
                 processing: true,
                 serverSide: true,
+                deferRender: true,
+                searchDelay: 400,
+                pageLength: 25,
+                lengthMenu: [[25, 50, 100], [25, 50, 100]],
                 ajax: {
                     url: "{{ route('invoices.index') }}",
                     data: function(d) {
                         d.branch_id = $('#branchFilter').length ? $('#branchFilter').val() : '';
+                        d.invoice_number = $('#invoiceNumberFilter').val();
+                        d.invoice_type = $('#invoiceTypeFilter').val();
+                        d.document_type = $('#documentTypeFilter').val();
+                        d.zatca_shared = $('#zatcaFilter').val();
+                        d.date_from = $('#dateFromFilter').val();
+                        d.date_to = $('#dateToFilter').val();
                     }
                 },
                 columns: [{
@@ -136,12 +193,11 @@
                     },
                     {
                         data: 'invoice_number',
-                        name: 'id'
+                        name: "{{ ($legacyMode ?? false) ? 'legacy_invoice_number' : 'id' }}"
                     },
                     {
                         data: 'invoice_source',
-                        name: 'contract_id',
-                        orderable: false,
+                        name: "{{ ($legacyMode ?? false) ? 'legacy_order_number' : 'contract_id' }}",
                         searchable: false
                     },
                     {
@@ -199,21 +255,38 @@
                 ],
                 order: [
                     [1, 'desc']
-                ]
+                ],
+                language: {
+                    search: 'بحث سريع:',
+                    searchPlaceholder: 'رقم الفاتورة، الطلب، العميل...'
+                }
             });
 
-            $('#branchFilter').on('change', function() {
-                $('#dataTableObject').DataTable().ajax.reload();
+            $('.invoice-filter').on('change', function() {
+                table.ajax.reload();
+            });
+
+            let invoiceNumberTimer;
+            $('#invoiceNumberFilter').on('input', function() {
+                clearTimeout(invoiceNumberTimer);
+                invoiceNumberTimer = setTimeout(() => table.ajax.reload(), 350);
+            });
+
+            $('#clearInvoiceFilters').on('click', function() {
+                $('#invoiceFilters').find('select, input').val('');
+                table.search('').ajax.reload();
             });
 
             $('#invoiceExportExcel, #invoiceExportPdf').on('click', function(e) {
-                if (!$('#branchFilter').length || !$('#branchFilter').val()) {
-                    return;
-                }
-
                 e.preventDefault();
                 window.location.href = this.href + '?' + $.param({
-                    branch_id: $('#branchFilter').val()
+                    branch_id: $('#branchFilter').length ? $('#branchFilter').val() : '',
+                    invoice_number: $('#invoiceNumberFilter').val(),
+                    invoice_type: $('#invoiceTypeFilter').val(),
+                    document_type: $('#documentTypeFilter').val(),
+                    zatca_shared: $('#zatcaFilter').val(),
+                    date_from: $('#dateFromFilter').val(),
+                    date_to: $('#dateToFilter').val()
                 });
             });
 

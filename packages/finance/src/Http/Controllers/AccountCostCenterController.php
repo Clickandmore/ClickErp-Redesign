@@ -33,6 +33,9 @@ class AccountCostCenterController extends Controller
             $data = $service->filterAccount($dataSearch);
             $returnHTML = view($this->folderPath . ".result")->with([
                 "data" => $data,
+                "linkSummary" => $service->getCostCenterLinkSummary(
+                    isset($dataSearch['cost_center_id']) ? (int) $dataSearch['cost_center_id'] : null
+                ),
 //                "otherAccount" => $otherAccount,
 //                "show_other_account" => $dataSearch["other_account"],
             ])->render();

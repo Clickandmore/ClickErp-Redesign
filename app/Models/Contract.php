@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
+use Nami\Finance\Models\Bond;
 
 class Contract extends Model
 {
@@ -100,6 +101,11 @@ class Contract extends Model
     public function invoice()
     {
         return $this->hasOne(Invoice::class, 'contract_id');
+    }
+
+    public function financeBonds()
+    {
+        return $this->hasMany(Bond::class, 'recruitment_contract_id');
     }
 
     public function musanedTransferItem()

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\auth\Admin;
 use App\Models\Concerns\AssignsBranch;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -14,6 +15,7 @@ class ContractStatusLog extends Model
 
     protected $casts = [
         'branch_id' => 'integer',
+        'performed_by_id' => 'integer',
     ];
 
     protected static function booted(): void
@@ -22,7 +24,16 @@ class ContractStatusLog extends Model
             if (self::hasInvalidDate($contractStatusLog->date ?? null)) {
                 $contractStatusLog->date = now()->toDateString();
             }
+
+            if (!$contractStatusLog->performed_by_id && auth('admin')->check()) {
+                $contractStatusLog->performed_by_id = auth('admin')->id();
+            }
         });
+    }
+
+    public function performer()
+    {
+        return $this->belongsTo(Admin::class, 'performed_by_id');
     }
 
     private static function hasInvalidDate($value): bool

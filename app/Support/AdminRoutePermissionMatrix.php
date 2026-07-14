@@ -456,6 +456,14 @@ class AdminRoutePermissionMatrix
                 PermKeys::REC_CONTRACTS_VIEW,
                 PermKeys::REC_CONTRACTS_MANAGE,
             ],
+            'invoices.legacy-source-file' => [
+                PermKeys::INVOICES_PRINT,
+                PermKeys::INVOICES_VIEW,
+                PermKeys::INVOICES_CONTROL,
+                PermKeys::REC_CONTRACTS_PRINT,
+                PermKeys::REC_CONTRACTS_VIEW,
+                PermKeys::REC_CONTRACTS_MANAGE,
+            ],
             'invoices.queue-zatca-sale' => [
                 PermKeys::INVOICES_CONTROL,
                 PermKeys::REC_CONTRACTS_MANAGE,

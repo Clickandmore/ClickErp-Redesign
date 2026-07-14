@@ -58,6 +58,12 @@
                                 target="_blank" title="طباعة الفاتورة">
                                 <i class="fa-solid fa-print"></i>
                             </a>
+                            @if ($invoice->legacy_source_file)
+                                <a href="{{ route('invoices.legacy-source-file', $invoice->id) }}" class="btn btn-light border"
+                                    target="_blank" title="عرض ملف PDF الأصلي">
+                                    <i class="fa-solid fa-file-pdf"></i>
+                                </a>
+                            @endif
                             @if ($invoice->musanedTransferItem && $invoice->musanedTransferItem->transfer && AdminGuardHasAnyPerm([\App\PermKeys::MUSANED_TRANSFERS_VIEW, \App\PermKeys::MUSANED_TRANSFERS_CONTROL, \App\PermKeys::REC_CONTRACTS_VIEW, \App\PermKeys::REC_CONTRACTS_MANAGE]))
                                 <a href="{{ route('musaned-transfers.show', $invoice->musanedTransferItem->transfer->id) }}"
                                     class="btn btn-light border" title="عرض تحويل مساند">
@@ -90,13 +96,19 @@
                                 <span>{{ $invoice->contract_id ?: ($invoice->ingaz_delegation_id ?: 'فاتورة عامة') }}</span>
                             </div>
                             <div class="d-flex justify-content-between mb-2">
-                                <strong>حالة الفاتورة</strong>
-                                <span>{{ $invoiceStatus }}</span>
+                                <strong>حالة السداد</strong>
+                                <span>
+                                    {{ $invoiceStatus }}
+                                </span>
                             </div>
                             <div class="d-flex justify-content-between mb-2">
                                 <strong>ارتباط هيئة الزكاة</strong>
                                 <span>
-                                    @if (!$invoice->send_to_zatca)
+                                    @if ($invoice->legacy_zatca_shared)
+                                        مشارك سابقاً مع الهيئة (حسب ملف الرافدين)
+                                    @elseif ($invoice->legacy_invoice_number && $invoice->legacy_zatca_shared === false)
+                                        غير مشارك في ملف الرافدين
+                                    @elseif (!$invoice->send_to_zatca)
                                         غير مطلوب
                                     @elseif (!$invoice->finance_sale_id)
                                         لم يتم إدراجها في فواتير المبيعات
@@ -107,6 +119,24 @@
                                     @endif
                                 </span>
                             </div>
+                            @if ($invoice->legacy_invoice_number)
+                                <div class="d-flex justify-content-between mb-2">
+                                    <strong>نوع الفاتورة الأصلي</strong>
+                                    <span>{{ $invoice->legacy_invoice_type ?: '-' }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <strong>نوع المستند الأصلي</strong>
+                                    <span>{{ $invoice->legacy_document_type ?: '-' }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <strong>رقم العميل / الطلب القديم</strong>
+                                    <span>{{ $invoice->legacy_client_number ?: '-' }} / {{ $invoice->legacy_order_number ?: '-' }}</span>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <strong>مصدر الاستيراد</strong>
+                                    <span>{{ $invoice->legacy_source_sheet ?: '-' }}، صف {{ $invoice->legacy_source_row ?: '-' }}</span>
+                                </div>
+                            @endif
                             @if ($invoice->finance_sale_id)
                                 <div class="d-flex justify-content-between mb-2">
                                     <strong>فاتورة المبيعات المرتبطة</strong>

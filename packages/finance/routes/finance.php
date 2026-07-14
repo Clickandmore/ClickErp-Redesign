@@ -170,10 +170,14 @@ Route::group(
         Route::resource('account-transfer-files', AccountTransferFileController::class);
         Route::resource('constraint-files', ConstraintFileController::class);
         Route::resource('bonds-print', BondPrintController::class);
+        Route::get('bonds-sarf/filter-options', [BondSarfController::class, 'filterOptions'])
+            ->name('bonds-sarf.filter-options');
         Route::resource('bonds-sarf', BondSarfController::class);
         Route::get('bonds-qabd/{bond}/attachments/{attachment}/download', [BondQabdController::class, 'downloadAttachment'])
             ->where('attachment', 'file|transfer_file')
             ->name('bonds-qabd.download-attachment');
+        Route::get('bonds-qabd/filter-options', [BondQabdController::class, 'filterOptions'])
+            ->name('bonds-qabd.filter-options');
         Route::resource('bonds-qabd', BondQabdController::class);
         Route::resource('bonds-confirm', BondConfirmController::class);
         Route::resource('bonds-payment', BondPaymentController::class);

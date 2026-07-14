@@ -559,7 +559,9 @@
                         url: "{{ route('travel.calendar.events') }}",
                         method: 'GET',
                         data: {
-                            travel_scope: calendarScope
+                            travel_scope: calendarScope,
+                            start: fetchInfo.startStr,
+                            end: fetchInfo.endStr
                         },
                         success: function(response) {
                             const events = response.events || [];
@@ -891,10 +893,6 @@
                     if ((data.contracts_count || 0) > 1) {
                         $(row).addClass('grouped-trip-row');
                     }
-                },
-                drawCallback: function() {
-                    // Update statistics after table is loaded
-                    loadStatistics();
                 }
             });
         }

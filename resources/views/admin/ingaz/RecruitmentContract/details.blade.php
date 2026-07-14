@@ -374,10 +374,23 @@
         height: auto;
         min-height: 0;
         overflow: hidden;
+        margin-bottom: 0;
     }
 
     .contract-notes-section {
-        margin-top: 4px;
+        margin-top: 0;
+    }
+
+    .contract-activity-section > .col-12,
+    .contract-notes-section > .col-12 {
+        margin-bottom: 12px !important;
+    }
+
+    .contract-activity-section .timeline-panel {
+        height: auto;
+        min-height: 0;
+        padding: 18px;
+        margin-bottom: 18px;
     }
 
     .contract-activity-section .table-responsive,
@@ -403,16 +416,20 @@
     }
 
     .contract-status-cell {
-        width: 24%;
+        width: 18%;
     }
 
     .contract-date-cell {
-        width: 22%;
+        width: 18%;
+    }
+
+    .contract-performer-cell {
+        width: 20%;
     }
 
     .contract-details-cell {
-        width: 54%;
-        line-height: 1.8;
+        width: 44%;
+        line-height: 1.6;
     }
 
     .contract-note-cell {
@@ -426,6 +443,17 @@
 
     .contract-notes-section .contract-date-cell {
         width: 22%;
+    }
+
+    .contract-notes-section .info-table td {
+        padding-top: 10px;
+        padding-bottom: 10px;
+        vertical-align: middle;
+    }
+
+    .contract-notes-section .contract-user-cell,
+    .contract-notes-section .contract-date-cell {
+        white-space: nowrap;
     }
 
     .contract-activity-section .status-badge {
@@ -828,6 +856,33 @@
         padding: 10px 12px;
         color: #495057;
         font-size: 13px;
+    }
+
+    .stage-meta-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 10px;
+        color: #475569;
+        font-size: 13px;
+    }
+
+    .stage-performer {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #eef5ff;
+        border: 1px solid #d8e7fb;
+        border-radius: 999px;
+        padding: 5px 10px;
+    }
+
+    .stage-history-badge {
+        color: #64748b;
+        background: #f8fafc;
+        border-radius: 999px;
+        padding: 5px 9px;
     }
 
     .timeline-caption {
@@ -1252,45 +1307,115 @@
                     <div class="info-card financial-info">
                         <div class="card-title">
                             <i class="fas fa-money-bill-wave text-danger"></i>
-                            المعلومات المالية
+                            البيانات المالية الفعلية
                         </div>
-                        <div class="info-row">
-                            <span class="info-label">عدد ساعات العمل:</span>
-                            <span class="info-value">{{ $info->working_hours_num ?? 'غير محدد' }}</span>
+                        <div class="small text-muted mb-3">
+                            <i class="fas fa-database me-1"></i>{{ $financialSummary['source_label'] }}
                         </div>
-                        <div class="info-row">
-                            <span class="info-label">مبلغ نقل الكفالة:</span>
-                            <span class="info-value success">{{ $info->sponsorship_price ?? 'غير محدد' }} ريال</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">الراتب بعد الكفالة:</span>
-                            <span class="info-value success">{{ $info->salary_after_sponsorship ?? 'غير محدد' }}
-                                ريال</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">التكلفة الشهرية:</span>
-                            <span class="info-value warning">{{ $info->monthly_cost ?? 'غير محدد' }} ريال</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">قيمة العقد:</span>
-                            <span class="info-value highlight">{{ $info->contract_value ?? 'غير محدد' }} ريال</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">الانجاز من:</span>
-                            <span class="info-value">{{ $info->ingaz_from ?? 'غير محدد' }}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">الانجاز إلى:</span>
-                            <span class="info-value">{{ $info->ingaz_to ?? 'غير محدد' }}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">الكفيل السابق:</span>
-                            <span class="info-value">{{ $info->prevSponsorship->title ?? 'غير محدد' }}</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">مقر الإيواء:</span>
-                            <span class="info-value">{{ $info->shelter->title ?? 'غير محدد' }}</span>
-                        </div>
+
+                        @if ($financialSummary['has_invoice'])
+                            <div class="row g-2 mb-3">
+                                <div class="col-6">
+                                    <div class="overview-card h-100">
+                                        <span class="overview-label">إجمالي الفاتورة</span>
+                                        <div class="overview-value">{{ number_format($financialSummary['total_due'], 2) }}</div>
+                                        <div class="overview-meta">ريال</div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="overview-card h-100">
+                                        <span class="overview-label">المتبقي</span>
+                                        <div class="overview-value {{ $financialSummary['remaining_amount'] > 0 ? 'text-danger' : 'text-success' }}">
+                                            {{ number_format($financialSummary['remaining_amount'], 2) }}
+                                        </div>
+                                        <div class="overview-meta">ريال</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="info-row">
+                                <span class="info-label">رقم الفاتورة:</span>
+                                <span class="info-value">
+                                    <a href="{{ route('invoices.show', $financialSummary['invoice_id']) }}" target="_blank">
+                                        #{{ $financialSummary['invoice_number'] }}
+                                    </a>
+                                </span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">قبل الضريبة:</span>
+                                <span class="info-value">{{ number_format($financialSummary['subtotal'], 2) }} ريال</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">الخصم:</span>
+                                <span class="info-value">{{ number_format($financialSummary['discount'], 2) }} ريال</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">الضريبة:</span>
+                                <span class="info-value warning">{{ number_format($financialSummary['vat_amount'], 2) }} ريال</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">المدفوع:</span>
+                                <span class="info-value success">{{ number_format($financialSummary['paid_amount'], 2) }} ريال</span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">مصدر مبلغ السداد:</span>
+                                <span class="info-value"><small>{{ $financialSummary['payment_source_label'] }}</small></span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">حالة السداد:</span>
+                                <span class="info-value">
+                                    <span class="badge {{ $financialSummary['is_paid'] ? 'bg-success' : 'bg-warning text-dark' }}">
+                                        {{ $financialSummary['is_paid'] ? 'مدفوعة' : 'غير مدفوعة' }}
+                                    </span>
+                                </span>
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">تاريخ السداد:</span>
+                                <span class="info-value">{{ $financialSummary['paid_at'] ?: 'غير محدد' }}</span>
+                            </div>
+
+                            @if ($financialSummary['finance_sale_id'] || $financialSummary['musaned_transfer_id'] || $financialSummary['arrival_revenue_constraint_id'] || $financialSummary['external_office_cost_constraint_id'])
+                                <div class="d-flex flex-wrap gap-2 mt-3">
+                                    @if ($financialSummary['finance_sale_id'])
+                                        <a class="btn btn-sm btn-outline-primary" target="_blank"
+                                            href="{{ route('finance.bill-sales.show', $financialSummary['finance_sale_id']) }}">فاتورة المبيعات</a>
+                                    @endif
+                                    @if ($financialSummary['musaned_transfer_id'])
+                                        <a class="btn btn-sm btn-outline-success" target="_blank"
+                                            href="{{ route('musaned-transfers.show', $financialSummary['musaned_transfer_id']) }}">تحويل مساند</a>
+                                    @endif
+                                    @foreach (['arrival_revenue_constraint_id' => 'قيد إيراد الوصول', 'external_office_cost_constraint_id' => 'قيد تكلفة المكتب'] as $constraintKey => $constraintLabel)
+                                        @if ($financialSummary[$constraintKey])
+                                            <a class="btn btn-sm btn-outline-secondary" target="_blank"
+                                                href="{{ route('finance.add-constraint.show', ['add_constraint' => $financialSummary[$constraintKey]]) }}">{{ $constraintLabel }}</a>
+                                        @endif
+                                    @endforeach
+                                </div>
+                            @endif
+
+                            @if (!empty($financialSummary['linked_bonds']))
+                                <div class="mt-3 pt-3 border-top">
+                                    <div class="fw-semibold mb-2"><i class="fas fa-receipt text-success me-1"></i>السندات المالية المرتبطة</div>
+                                    @foreach ($financialSummary['linked_bonds'] as $bond)
+                                        <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+                                            <a class="btn btn-sm btn-outline-success" target="_blank"
+                                                href="{{ route($bond['type'] === 'qabd' ? 'finance.bonds-qabd.show' : 'finance.bonds-sarf.show', $bond['id']) }}">
+                                                {{ $bond['type_label'] }} #{{ $bond['code'] }}
+                                            </a>
+                                            <span class="fw-semibold">{{ number_format($bond['value'], 2) }} ريال</span>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endif
+                        @else
+                            <div class="alert alert-warning mb-3">
+                                لا توجد فاتورة مرتبطة بهذا العقد، والقيمة أدناه مأخوذة من بيانات العقد فقط.
+                            </div>
+                            <div class="info-row">
+                                <span class="info-label">قيمة العقد المسجلة:</span>
+                                <span class="info-value highlight">{{ number_format($financialSummary['contract_info_value'], 2) }} ريال</span>
+                            </div>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -1700,7 +1825,20 @@
                                                 </div>
                                             </div>
 
-                                            @if ($stage['notes'])
+                                            <div class="stage-meta-row">
+                                                <span class="stage-performer">
+                                                    <i class="fas fa-user-check text-primary"></i>
+                                                    <span>بواسطة</span>
+                                                    <strong>{{ $stage['performer_name'] }}</strong>
+                                                </span>
+                                                @if ($stage['is_inferred'] || ($stage['performer_source'] ?? null) === 'activity_log')
+                                                    <span class="stage-history-badge">
+                                                        <i class="fas fa-clock-rotate-left me-1"></i>سجل تاريخي
+                                                    </span>
+                                                @endif
+                                            </div>
+
+                                            @if ($stage['notes'] && !$stage['is_inferred'])
                                                 <div class="stage-notes">
                                                     {!! nl2br(e($stage['notes'])) !!}
                                                 </div>
@@ -1721,6 +1859,7 @@
                                     <tr>
                                         <th class="contract-status-cell">الحالة</th>
                                         <th class="contract-date-cell">التاريخ</th>
+                                        <th class="contract-performer-cell">تم بواسطة</th>
                                         <th class="contract-details-cell">التفاصيل</th>
                                     </tr>
                                 </thead>
@@ -1733,11 +1872,25 @@
                                                 </span>
                                             </td>
                                             <td class="contract-date-cell">{{ $log['display_date'] }}</td>
-                                            <td class="contract-details-cell">{!! $log['notes'] ? nl2br(e($log['notes'])) : '<span class="text-muted">لا توجد تفاصيل</span>' !!}</td>
+                                            <td class="contract-performer-cell">
+                                                <div><i class="fas fa-user text-muted me-1"></i><strong>{{ $log['performer_name'] }}</strong></div>
+                                                @if ($log['is_inferred'])
+                                                    <small class="text-muted"><i class="fas fa-clock-rotate-left me-1"></i>سجل تاريخي</small>
+                                                @endif
+                                            </td>
+                                            <td class="contract-details-cell">
+                                                @if ($log['is_inferred'])
+                                                    <span class="text-muted">الحالة المسجلة عند إنشاء أو استيراد العقد</span>
+                                                @elseif ($log['notes'])
+                                                    {!! nl2br(e($log['notes'])) !!}
+                                                @else
+                                                    <span class="text-muted">لا توجد تفاصيل</span>
+                                                @endif
+                                            </td>
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="3" class="text-center text-muted">لا يوجد سجل حركات لهذا العقد</td>
+                                            <td colspan="4" class="text-center text-muted">لا يوجد سجل حركات لهذا العقد</td>
                                         </tr>
                                     @endforelse
                                 </tbody>
@@ -1778,9 +1931,19 @@
                                     <tbody id="contractNotesTableBody">
                                         @foreach ($contract->notes as $note)
                                             <tr>
-                                                <td class="contract-note-cell">{!! nl2br(e($note->note)) !!}</td>
-                                                <td class="contract-user-cell">{{ $note->admin->name ?? 'غير محدد' }}</td>
-                                                <td class="contract-date-cell">{{ $note->created_at ? $note->created_at->format('Y-m-d H:i') : '' }}</td>
+                                                <td class="contract-note-cell">
+                                                    <div class="d-flex align-items-start gap-2">
+                                                        <i class="fas fa-note-sticky text-warning mt-1"></i>
+                                                        <span>{!! nl2br(e($note->note)) !!}</span>
+                                                    </div>
+                                                </td>
+                                                <td class="contract-user-cell">
+                                                    <i class="fas fa-user text-muted me-1"></i>{{ $note->admin->name ?? 'غير محدد' }}
+                                                </td>
+                                                <td class="contract-date-cell">
+                                                    <i class="far fa-calendar text-muted me-1"></i>
+                                                    {{ $note->created_at ? ($note->created_at->format('H:i') === '00:00' ? $note->created_at->format('Y-m-d') : $note->created_at->format('Y-m-d H:i')) : '' }}
+                                                </td>
                                             </tr>
                                         @endforeach
                                     </tbody>

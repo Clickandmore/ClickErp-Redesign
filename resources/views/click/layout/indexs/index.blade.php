@@ -42,6 +42,7 @@
 </div>
 @include("click.layout.inc.global_modals")
 @include("click.layout.inc.siderbar_models")
+@include("admin.layout.inc.scroll_controls")
 
 
 @include("click.layout.inc._js")

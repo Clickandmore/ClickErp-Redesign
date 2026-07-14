@@ -450,7 +450,7 @@
                     <td class="info-value">{{ $accountNumber }}</td>
                 </tr>
                 <tr>
-                    <td class="info-label">حالة الفاتورة</td>
+                    <td class="info-label">حالة السداد</td>
                     <td class="info-value">{{ $invoiceStatus }}</td>
                     <td class="info-label">هاتف إضافي</td>
                     <td class="info-value">{{ $supplierOtherPhone }}</td>
@@ -535,7 +535,7 @@
                             <td><span id="printed-at">{{ optional($printedAt)->format('Y-m-d H:i:s') ?? now()->format('Y-m-d H:i:s') }}</span></td>
                         </tr>
                         <tr>
-                            <td class="label">حالة الفاتورة</td>
+                            <td class="label">حالة السداد</td>
                             <td>{{ $invoiceStatus }}</td>
                         </tr>
                     </table>

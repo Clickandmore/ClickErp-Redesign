@@ -438,6 +438,8 @@ class ArabiaRecruitmentOrdersImportService
             }
         }
 
+        $this->syncImportedFinanceBonds($contract, $orderNumber);
+
         $arrivalDate = $this->date($this->first($bundle, 'موعد الوصول') ?: $this->first($bundle, 'تاريخ الوصول'));
         $delegation = $bundle['delegations'] ?? [];
         ContractInfo::query()->updateOrCreate(['contract_id' => $contract->id], array_filter([
@@ -457,6 +459,19 @@ class ArabiaRecruitmentOrdersImportService
         }
 
         return $contract;
+    }
+
+    private function syncImportedFinanceBonds(Contract $contract, int $orderNumber): void
+    {
+        if (!Schema::hasTable('fn_bonds') || !Schema::hasColumn('fn_bonds', 'recruitment_contract_id')) {
+            return;
+        }
+
+        DB::table('fn_bonds')
+            ->where('legacy_source', 'alrafedin_finance_bonds')
+            ->whereNull('rental_contract_id')
+            ->where('legacy_order_number', $orderNumber)
+            ->update(['recruitment_contract_id' => $contract->id]);
     }
 
     private function upsertTravel(Contract $contract, User $client, ?Maid $maid, array $bundle): void

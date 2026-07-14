@@ -46,9 +46,12 @@ class AdminTravelHistoryController extends Controller
         if ($request->ajax()) {
             $query = $this->travelIndexQuery($request);
 
-            $groupedTrips = $this->buildGroupedTripsCollection($query->get());
+            [$groupedTrips, $filteredCount] = $this->paginatedGroupedTrips($query, $request);
 
             return DataTables::of($groupedTrips)
+                ->skipPaging()
+                ->setTotalRecords($filteredCount)
+                ->setFilteredRecords($filteredCount)
                 ->addIndexColumn()
                 ->addColumn('user_data', function($row) {
                     $users = collect(data_get($row, 'users', []));
@@ -233,40 +236,34 @@ class AdminTravelHistoryController extends Controller
     public function statistics()
     {
         try {
-            $tripGroups = TravelHistory::where('travel_type', '!=', 'deportation')
-                ->get()
-                ->groupBy(fn (TravelHistory $trip) => $this->resolveTripGroupKey($trip));
+            $groupKey = $this->tripGroupSqlExpression();
+            $tripGroups = TravelHistory::query()
+                ->where('travel_type', '!=', 'deportation')
+                ->selectRaw($groupKey . ' AS group_key')
+                ->selectRaw("SUM(CASE WHEN status = 'completed' THEN 0 ELSE 1 END) AS non_completed_count")
+                ->selectRaw("SUM(CASE WHEN status IN ('new', 'active', 'scheduled', 'in_progress', 'pending', 'confirmed') THEN 1 ELSE 0 END) AS active_count")
+                ->selectRaw("SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) AS in_progress_count")
+                ->selectRaw("SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) AS current_active_count")
+                ->selectRaw("SUM(CASE WHEN status = 'scheduled' THEN 1 ELSE 0 END) AS scheduled_count")
+                ->selectRaw("SUM(CASE WHEN status = 'confirmed' THEN 1 ELSE 0 END) AS confirmed_count")
+                ->selectRaw("SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending_count")
+                ->selectRaw("SUM(CASE WHEN status = 'new' THEN 1 ELSE 0 END) AS new_count")
+                ->selectRaw('MIN(arrival_date) AS first_arrival_date')
+                ->groupByRaw($groupKey);
 
-            $activeStatuses = ['new', 'active', 'scheduled', 'in_progress', 'pending', 'confirmed'];
-            $upcomingStatuses = ['new', 'scheduled', 'pending'];
-
-            $total = $tripGroups->count();
-            $completed = $tripGroups->filter(function (Collection $group) {
-                return $group->every(fn (TravelHistory $trip) => $trip->status === 'completed');
-            })->count();
-            $active = $tripGroups->filter(function (Collection $group) use ($activeStatuses) {
-                return $group->contains(fn (TravelHistory $trip) => in_array($trip->status, $activeStatuses, true));
-            })->count();
-            $upcoming = $tripGroups->filter(function (Collection $group) use ($upcomingStatuses) {
-                $status = $this->resolveGroupStatus($group);
-                $firstTrip = $group->sortBy('arrival_date')->first();
-                if (!$firstTrip || !$firstTrip->arrival_date) {
-                    return false;
-                }
-
-                try {
-                    return in_array($status, $upcomingStatuses, true)
-                        && Carbon::parse($firstTrip->arrival_date)->isFuture();
-                } catch (\Throwable $e) {
-                    return false;
-                }
-            })->count();
+            $stats = DB::query()
+                ->fromSub($tripGroups, 'travel_trip_groups')
+                ->selectRaw('COUNT(*) AS total')
+                ->selectRaw('COALESCE(SUM(CASE WHEN non_completed_count = 0 THEN 1 ELSE 0 END), 0) AS completed')
+                ->selectRaw('COALESCE(SUM(CASE WHEN active_count > 0 THEN 1 ELSE 0 END), 0) AS active')
+                ->selectRaw("COALESCE(SUM(CASE WHEN first_arrival_date > ? AND (scheduled_count > 0 AND in_progress_count = 0 AND current_active_count = 0 OR pending_count > 0 AND in_progress_count = 0 AND current_active_count = 0 AND scheduled_count = 0 AND confirmed_count = 0 OR new_count > 0 AND in_progress_count = 0 AND current_active_count = 0 AND scheduled_count = 0 AND confirmed_count = 0 AND pending_count = 0) THEN 1 ELSE 0 END), 0) AS upcoming", [now()->toDateString()])
+                ->first();
 
             return response()->json([
-                'total' => $total,
-                'active' => $active,
-                'completed' => $completed,
-                'upcoming' => $upcoming
+                'total' => (int) ($stats->total ?? 0),
+                'active' => (int) ($stats->active ?? 0),
+                'completed' => (int) ($stats->completed ?? 0),
+                'upcoming' => (int) ($stats->upcoming ?? 0),
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -290,8 +287,8 @@ class AdminTravelHistoryController extends Controller
             ->orderBy('arrival_time', 'asc');
 
         if ($rangeStart && $rangeEnd) {
-            $query->whereDate('arrival_date', '>=', $rangeStart->toDateString())
-                ->whereDate('arrival_date', '<', $rangeEnd->toDateString());
+            $query->where('arrival_date', '>=', $rangeStart->toDateString())
+                ->where('arrival_date', '<', $rangeEnd->toDateString());
         }
 
         if ($request->filled('travel_scope')) {
@@ -1358,6 +1355,76 @@ class AdminTravelHistoryController extends Controller
             })
             ->sortByDesc('id')
             ->values();
+    }
+
+    /**
+     * Paginate trip groups in SQL before loading models and their relationships.
+     *
+     * DataTables sends a page offset, but the rows displayed here can represent a
+     * group of travel_histories records. Fetching every matching model before
+     * grouping made the completed-trips view increasingly slow as data grew.
+     */
+    private function paginatedGroupedTrips($query, Request $request): array
+    {
+        $groupKey = $this->tripGroupSqlExpression();
+        $groupedQuery = clone $query;
+        $groupedQuery->setEagerLoads([])
+            ->reorder()
+            ->selectRaw($groupKey . ' AS group_key')
+            ->selectRaw('MAX(travel_histories.id) AS sort_id')
+            ->groupByRaw($groupKey);
+
+        $filteredCount = DB::query()
+            ->fromSub(clone $groupedQuery, 'filtered_travel_groups')
+            ->count();
+
+        $length = max(1, min(100, (int) $request->input('length', 10)));
+        $start = max(0, (int) $request->input('start', 0));
+        $pageGroups = $groupedQuery
+            ->orderByDesc('sort_id')
+            ->offset($start)
+            ->limit($length)
+            ->get();
+
+        if ($pageGroups->isEmpty()) {
+            return [collect(), (int) $filteredCount];
+        }
+
+        $groupCodes = $pageGroups
+            ->pluck('group_key')
+            ->filter(fn ($key) => str_starts_with((string) $key, 'group:'))
+            ->map(fn ($key) => substr((string) $key, 6))
+            ->values();
+        $singleIds = $pageGroups
+            ->pluck('group_key')
+            ->filter(fn ($key) => str_starts_with((string) $key, 'single:'))
+            ->map(fn ($key) => (int) substr((string) $key, 7))
+            ->values();
+
+        $query->where(function ($pageQuery) use ($groupCodes, $singleIds) {
+            if ($groupCodes->isNotEmpty()) {
+                $pageQuery->whereIn('trip_group_code', $groupCodes->all());
+            }
+
+            if ($singleIds->isNotEmpty()) {
+                $method = $groupCodes->isNotEmpty() ? 'orWhereIn' : 'whereIn';
+                $pageQuery->{$method}('travel_histories.id', $singleIds->all());
+            }
+        });
+
+        return [
+            $this->buildGroupedTripsCollection($query->get()),
+            (int) $filteredCount,
+        ];
+    }
+
+    private function tripGroupSqlExpression(): string
+    {
+        return "CASE
+            WHEN trip_group_code IS NOT NULL AND trip_group_code <> ''
+                THEN CONCAT('group:', trip_group_code)
+            ELSE CONCAT('single:', travel_histories.id)
+        END";
     }
 
     private function travelIndexQuery(Request $request)

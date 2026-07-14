@@ -50,6 +50,7 @@ class DataImportController extends Controller
 
         $data = $request->validate([
             'type' => ['required', 'string', 'in:' . implode(',', $availableTypes)],
+            'finance_constraints_missing_only' => ['nullable', 'boolean'],
             // Legacy Alrafedin .xls reports are HTML tables with an .xls extension.
             'file' => ['required', 'file', 'mimes:xlsx,xls,csv,html,txt', 'max:51200'],
         ], [
@@ -84,6 +85,9 @@ class DataImportController extends Controller
             'legacy_activity_logs' => $legacyActivityLogImport->import($request->file('file'), $adminId),
             'arabia_clients' => $arabiaClientsImport->import($request->file('file'), $adminId),
             'alrafedin_transfer_services' => $alrafedinTransferImport->import($request->file('file'), $adminId),
+            'finance_constraints' => $request->boolean('finance_constraints_missing_only')
+                ? $importer->importMissingFinanceConstraints($request->file('file'), $adminId)
+                : $importer->import($data['type'], $request->file('file'), $adminId),
             default => $importer->import($data['type'], $request->file('file'), $adminId),
         };
         $shownErrors = array_slice($result['errors'] ?? [], 0, 10);
@@ -110,6 +114,21 @@ class DataImportController extends Controller
                 . '، بانتظار استيراد سندات القبض: ' . ($result['pending_receipt_links'] ?? 0)
                 . '، صفوف أصلية محفوظة: ' . ($result['archived_rows'] ?? 0)
                 . '، مكتملة سابقًا دون تغيير: ' . ($result['unchanged_rows'] ?? 0) . '.';
+        }
+        if ($data['type'] === 'legacy_invoices') {
+            $message .= ' تم الحفاظ على أرقام الفواتير وبيانات المصدر وحالة المشاركة السابقة مع هيئة الزكاة، وسُجلت الفواتير المستوردة كمسددة حسب اعتماد الإدارة.';
+            $message .= ' ملفات PDF أصلية مرتبطة: ' . ($result['source_files_attached'] ?? 0) . '.';
+        }
+        if (in_array($data['type'], ['receipt_bonds', 'disbursement_bonds'], true)) {
+            $message .= ' تم الحفاظ على رقم السند الأصلي، وإنشاء/تحديث القيد المحاسبي المرتبط، وأرشفة الصف الخام كاملًا مع اسم الملف ورقم الصف. كما تمت مزامنة روابط عقود الاستقدام والتأجير المتاحة.';
+        }
+        if ($data['type'] === 'finance_constraints' && ($result['accounts_created'] ?? 0) > 0) {
+            $message .= ' حسابات مالية ناقصة تم إنشاؤها وربطها بالشجرة: '
+                . $result['accounts_created'] . '.';
+        }
+        if (in_array($data['type'], ['finance_cost_centers', 'finance_constraints'], true)) {
+            $message .= ' تفاصيل قيود رُبطت تلقائياً بمراكز طلبات الاستقدام: '
+                . ($result['cost_center_links'] ?? 0) . '.';
         }
         if (($result['error_count'] ?? 0) > count($shownErrors)) {
             $message .= " تم عرض أول " . count($shownErrors) . " خطأ من إجمالي {$result['error_count']} خطأ.";

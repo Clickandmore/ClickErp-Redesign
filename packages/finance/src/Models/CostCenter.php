@@ -8,7 +8,11 @@ use Illuminate\Support\Facades\DB;
 class CostCenter extends Finance
 {
     protected $table ='fn_cost_centers';
-    protected $fillable =['title','parent_id','table_name', 'table_related_id', 'code', 'admin_id', 'created_by_id'];
+    protected $fillable =[
+        'title', 'parent_id', 'table_name', 'table_related_id', 'code', 'admin_id', 'created_by_id',
+        'legacy_source_code', 'legacy_level', 'legacy_full_path', 'legacy_debtor_total', 'legacy_creditor_total',
+        'legacy_balance', 'legacy_balance_type', 'legacy_opening_balance',
+    ];
 
     public function children()
     {

@@ -12,9 +12,11 @@ use Nami\Finance\Enums\ConfirmSettingTypes;
 use Nami\Finance\Http\Middleware\CheckActiveYear;
 use Nami\Finance\Http\Requests\Bond\StoreBondRequest as StoreRequest;
 use Nami\Finance\Http\Requests\Bond\UpdateBondRequest as UpdateRequest;
+use Nami\Finance\Models\Account;
+use Nami\Finance\Models\Bond;
+use Nami\Finance\Models\CostCenter;
 use Nami\Finance\Services\AccountService;
 use Nami\Finance\Services\BondService as ObjService;
-use Nami\Finance\Services\CostCenterService;
 use Nami\Finance\Services\YearService;
 use Yajra\DataTables\DataTables;
 
@@ -33,64 +35,119 @@ class BondQabdController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function index(Request $request, ObjService $service, CostCenterService $costCenterService, AccountService $accountService)
+    public function index(Request $request, ObjService $service, AccountService $accountService)
     {
         if ($request->ajax()) {
             $dataTable = $service->getDataTableQabdData(BondTypes::Qabd->value);
             $filterDataTable = $service->filterBonds($request, $dataTable);
             return DataTables::of($filterDataTable)
-                ->addColumn('identifier', function ($row) {
-                    return '<a href="' . route('finance.bonds-print.show', ['bonds_print' => $row->id, 'type' => 'qabd']) . '" target="_blank" rel="noopener" class="fw-bold text-decoration-none">#' . $row->id . '</a>';
-                })
-                ->addColumn('request_number', function ($row) {
-                    return $this->extractRequestNumber($row->statement);
-                })
-                ->addColumn('account_summary', function ($row) {
-                    return $this->formatAccountSummary($row);
-                })
-                ->addColumn('required_amount', function ($row) {
-                    return $this->formatCurrency($row->value);
-                })
-                ->addColumn('received_amount', function ($row) {
-                    return $this->formatCurrency($row->value);
-                })
-                ->addColumn('financial_movement', function ($row) {
-                    return $this->formatCurrency($row->value);
-                })
-                ->addColumn('created_by_name', function ($row) {
-                    return e(optional($row->createdBy)->name ?: '-');
+                ->addIndexColumn()
+                ->addColumn('bond_num', function ($row) {
+                    $printUrl = route('finance.bonds-print.show', ['bonds_print' => $row->id, 'type' => 'qabd']);
+                    $bookNumber = filled(trim((string) $row->bond_book_num))
+                        ? '<small>دفتر: ' . e($row->bond_book_num) . '</small>'
+                        : '';
+
+                    return '<div class="bond-voucher-number">'
+                        . '<a href="' . e($printUrl) . '" target="_blank" rel="noopener">#' . e($row->code) . '</a>'
+                        . $bookNumber . '</div>';
                 })
                 ->editColumn('date', function ($row) {
-                    return '<div class="receipt-date" data-bs-toggle="tooltip" data-bs-placement="top" title="' . e($row->statement) . '">
-                                <strong dir="ltr">' . e($row->date) . '</strong>
-                                <small>' . e(getEnumValue("bond_payment_type", $row->payment_type)) . '</small>
-                            </div>';
+                    return '<span class="bond-date" dir="ltr">' . e($row->date) . '</span>';
                 })
-                ->addColumn('print_action', function ($row) {
-                    return printButton(route("finance.bonds-print.show", $row->id) . '?type=qabd', ' طباعة', 'finance.bonds-print-read');
+                ->addColumn('credit_account', function ($row) {
+                    return '<div class="bond-account"><strong>' . e(optional($row->creditAccount)->name ?: '-') . '</strong>'
+                        . '<small title="' . e($row->statement) . '">' . e($row->statement ?: 'بدون بيان') . '</small></div>';
+                })
+                ->addColumn('debit_account', function ($row) {
+                    return '<div class="bond-account"><strong>' . e(optional($row->debitAccount)->name ?: '-') . '</strong>'
+                        . '<small>' . e(getEnumValue("bond_payment_type", $row->payment_type)) . '</small></div>';
+                })
+                ->editColumn('value', function ($row) {
+                    return '<strong class="bond-amount" dir="ltr">' . number_format((float) $row->value, 2) . '</strong>';
+                })
+                ->addColumn('status', function ($row) {
+                    return $row->is_confirm
+                        ? '<span class="badge bg-success-subtle text-success bond-status"><i class="fa fa-check-circle"></i> معتمد</span>'
+                        : '<span class="badge bg-warning-subtle text-warning bond-status"><i class="fa fa-clock"></i> بانتظار الاعتماد</span>';
+                })
+                ->addColumn('constraint', function ($row) {
+                    if (!$row->constraint_id) {
+                        return '<span class="text-muted">غير منشأ</span>';
+                    }
+
+                    $url = route('finance.add-constraint.show', ['add_constraint' => $row->constraint_id]);
+                    return '<a class="btn btn-sm btn-outline-primary bond-constraint-link" href="' . e($url) . '" target="_blank" rel="noopener">'
+                        . '<i class="fa fa-book"></i> القيد #' . e($row->constraint_id) . '</a>';
                 })
                 ->addColumn('actions', function ($row) {
-                    $buttons = editButton(route($this->mainRoute . ".edit", $row->id), $row->name) . " ";
+                    $buttons = '<div class="bond-actions">';
+                    $buttons .= printButton(route("finance.bonds-print.show", $row->id) . '?type=qabd', null, 'finance.bonds-print-read') . ' ';
+                    $buttons .= '<button type="button" class="btn btn-dark editButton" data-bs-toggle="modal" data-bs-target="#createModal"'
+                        . ' model-route="' . route('finance.bonds-qabd.show', $row->id) . '" model-title="تفاصيل سند القبض" title="التفاصيل">'
+                        . '<i class="fa fa-eye"></i></button> ';
+                    $buttons .= editButton(route($this->mainRoute . ".edit", $row->id), $row->name) . " ";
                     $buttons .= deleteButton(route($this->mainRoute . ".destroy", $row->id)) . " ";
-                    $buttons .= '<button type="button" class="btn btn-dark editButton" data-bs-toggle="modal" data-bs-target="#createModal"
-                                model-route="' . route('finance.bonds-qabd.show', $row->id) . '" model-title="تفاصيل سند القبض">
-                                <i class="fa fa-eye"></i></button>' . ' ';
                     if ($row->is_confirm == 0) {
                         $buttons .= confirmButton(route("finance.bonds-confirm.store"), $row->id);
                     }
-                    return $buttons;
+                    return $buttons . '</div>';
                 })
-                ->rawColumns(['identifier', 'account_summary', 'date', 'print_action', 'actions'])->make(true);
+                ->rawColumns(['bond_num', 'date', 'credit_account', 'debit_account', 'value', 'status', 'constraint', 'actions'])
+                ->make(true);
         }
         $data["createRoute"] = route($this->mainRoute . ".create");
         $data["dataTableRoute"] = route($this->mainRoute . ".index");
         $data["bladeTitle"] = __("finance::finance.qabd_bonds");
         $data["addButtonText"] = __("finance::finance.qabd_bond");
-        $data["accounts"] = $accountService->get();
-        $data["cost_centers"] = $costCenterService->get();
         $data["banks_boxes"] = $accountService->getByTypes([AccountTypesEnum::Bank->value, AccountTypesEnum::Box->value]);
         $data["payment_types"] = BondPaymentTypes::cases();
+        $data["filterOptionsRoute"] = route($this->mainRoute . '.filter-options');
         return view($this->folderPath . '.index', $data)->with('results', $service->getReportBondQabd());
+    }
+
+    public function filterOptions(Request $request)
+    {
+        $validated = $request->validate([
+            'type' => ['required', 'in:account,cost_center'],
+            'q' => ['nullable', 'string', 'max:100'],
+            'page' => ['nullable', 'integer', 'min:1'],
+        ]);
+        $search = trim((string) ($validated['q'] ?? ''));
+        $page = (int) ($validated['page'] ?? 1);
+
+        if ($validated['type'] === 'account') {
+            $query = Account::query()->select(['id', 'name', 'code'])
+                ->whereIn('id', Bond::query()->select('credit_account_id')
+                    ->where('type', BondTypes::Qabd->value)->where('general_type', 0));
+            if ($search !== '') {
+                $query->where(fn ($q) => $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('code', 'like', "%{$search}%"));
+            }
+            $paginator = $query->orderBy('name')->paginate(30, ['*'], 'page', $page);
+            $results = collect($paginator->items())->map(fn ($account) => [
+                'id' => $account->id,
+                'text' => trim(($account->code ? $account->code . ' - ' : '') . $account->name),
+            ]);
+        } else {
+            $query = CostCenter::query()->select(['id', 'title', 'code'])
+                ->whereIn('id', Bond::query()->select('cost_center_id')
+                    ->where('type', BondTypes::Qabd->value)->where('general_type', 0)->whereNotNull('cost_center_id'));
+            if ($search !== '') {
+                $query->where(fn ($q) => $q->where('title', 'like', "%{$search}%")
+                    ->orWhere('code', 'like', "%{$search}%"));
+            }
+            $paginator = $query->orderBy('title')->paginate(30, ['*'], 'page', $page);
+            $results = collect($paginator->items())->map(fn ($costCenter) => [
+                'id' => $costCenter->id,
+                'text' => trim(($costCenter->code ? $costCenter->code . ' - ' : '') . $costCenter->title),
+            ]);
+        }
+
+        return response()->json([
+            'results' => $results->values(),
+            'pagination' => ['more' => $paginator->hasMorePages()],
+        ]);
     }
 
     /**
@@ -141,7 +198,7 @@ class BondQabdController extends Controller
     public function show(Request $request, ObjService $service, $id)
     {
         if ($request->ajax()) {
-            $obj = $service->find($id)->loadMissing(['debitAccount', 'creditAccount', 'costCenter', 'createdBy', 'check', 'bondTax']);
+            $obj = $service->find($id)->loadMissing(['debitAccount', 'creditAccount', 'costCenter', 'createdBy', 'check', 'bondTax', 'constraint']);
             $returnHTML = view($this->folderPath . ".show")->with([
                 "bond_payment_type" => $service->getBondPaymentTypies(),
                 "accounts" => $service->getAccounts(),

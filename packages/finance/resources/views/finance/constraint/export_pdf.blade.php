@@ -83,9 +83,10 @@
 
     <table class="summary">
         <tr>
+            <td>البحث: {{ $filters['keyword'] }}</td>
             <td>من تاريخ: {{ $filters['from_date'] }}</td>
             <td>إلى تاريخ: {{ $filters['to_date'] }}</td>
-            <td>نوع الطرف: {{ $filters['type'] }}</td>
+            <td>نوع القيد: {{ $filters['type'] }}</td>
             <td>عدد القيود: {{ $totals['count'] }}</td>
             <td>الإجمالي: <span class="amount">{{ number_format((float) $totals['value'], 2, '.', ',') }}</span></td>
         </tr>

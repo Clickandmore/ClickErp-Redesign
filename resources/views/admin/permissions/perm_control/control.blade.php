@@ -740,6 +740,9 @@
                         <button type="button" class="btn btn-outline-secondary" id="collapseSectionsButton">طي الكل</button>
                         <button type="button" class="btn btn-primary" id="selectVisibleButton">تحديد الظاهر</button>
                         <button type="button" class="btn btn-outline-danger" id="clearVisibleButton">إلغاء الظاهر</button>
+                        @if (@AdminGuardHasPerm(\App\PermKeys::PERMISSIONS_ASSIGN))
+                            <button type="button" class="btn btn-success" id="savePermissionsTopButton">حفظ الكل</button>
+                        @endif
                     </div>
 
                     <div class="permissions-summary">
@@ -1253,6 +1256,7 @@
             const clearVisibleButton = document.getElementById('clearVisibleButton');
             const expandSectionsButton = document.getElementById('expandSectionsButton');
             const collapseSectionsButton = document.getElementById('collapseSectionsButton');
+            const savePermissionsTopButton = document.getElementById('savePermissionsTopButton');
             const savePermissionsButton = document.getElementById('savePermissionsButton');
             const form = document.getElementById('storePermForm');
 
@@ -1407,6 +1411,12 @@
 
             if (savePermissionsButton && form) {
                 savePermissionsButton.addEventListener('click', function () {
+                    confirmAndSubmitPermissions(form);
+                });
+            }
+
+            if (savePermissionsTopButton && form) {
+                savePermissionsTopButton.addEventListener('click', function () {
                     confirmAndSubmitPermissions(form);
                 });
             }

@@ -20,6 +20,8 @@ class Invoice extends Model
     protected $casts = [
         'is_paid' => 'boolean',
         'send_to_zatca' => 'boolean',
+        'legacy_zatca_shared' => 'boolean',
+        'legacy_source_payload' => 'array',
         'paid_at' => 'datetime',
         'branch_id' => 'integer',
     ];

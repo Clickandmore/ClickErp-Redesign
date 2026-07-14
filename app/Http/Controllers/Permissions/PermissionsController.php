@@ -1799,15 +1799,43 @@ class PermissionsController extends Controller
 
             if ($branchId) {
                 if ($scopePermissions->isNotEmpty()) {
-                    $result = $this->syncRoleBranchPermissionsWithinScope($role, $branchId, $requestedPermissions, $scopePermissions);
-                    $missingPermissions = $result['missing_scope_permissions']->merge($result['missing_requested_permissions'])->unique()->values();
+                    $branchResult = $this->syncRoleBranchPermissionsWithinScope(
+                        $role,
+                        $branchId,
+                        $requestedPermissions,
+                        $scopePermissions
+                    );
+                    $roleResult = $this->syncRolePermissionsWithinScope(
+                        $role,
+                        $requestedPermissions,
+                        $scopePermissions
+                    );
+                    $missingPermissions = $branchResult['missing_scope_permissions']
+                        ->merge($branchResult['missing_requested_permissions'])
+                        ->merge($roleResult['missing_scope_permissions'])
+                        ->merge($roleResult['missing_requested_permissions'])
+                        ->unique()
+                        ->values();
                 } else {
                     $syncedPermissionNames = BranchScopedPermissions::syncRoleBranchPermissions(
                         (int) $role->id,
                         $branchId,
                         $requestedPermissions
                     );
-                    $missingPermissions = $requestedPermissions->diff($syncedPermissionNames)->values();
+                    $permissions = $requestedPermissions->isEmpty()
+                        ? collect()
+                        : Permission::query()
+                            ->where('guard_name', 'admin')
+                            ->whereIn('name', $requestedPermissions)
+                            ->get();
+
+                    $role->syncPermissions($permissions);
+
+                    $missingPermissions = $requestedPermissions
+                        ->diff($syncedPermissionNames)
+                        ->merge($requestedPermissions->diff($permissions->pluck('name')))
+                        ->unique()
+                        ->values();
                 }
 
                 $this->forgetPermissionCache();
@@ -1820,8 +1848,8 @@ class PermissionsController extends Controller
                 }
 
                 $successMessage = $scopePermissions->isNotEmpty()
-                    ? ($scopeLabel !== '' ? 'تم تحديث صلاحيات ' . $scopeLabel . ' لهذا الفرع فقط بنجاح.' : 'تم تحديث صلاحيات القائمة المحددة لهذا الفرع فقط بنجاح.')
-                    : 'تم تحديث صلاحيات هذا الفرع بنجاح.';
+                    ? ($scopeLabel !== '' ? 'تم تحديث صلاحيات ' . $scopeLabel . ' للفرع والدور بنجاح.' : 'تم تحديث صلاحيات القائمة المحددة للفرع والدور بنجاح.')
+                    : 'تم تحديث صلاحيات الفرع والدور بنجاح.';
 
                 return redirect()->back()->with('msg', $successMessage);
             }

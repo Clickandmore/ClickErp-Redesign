@@ -227,28 +227,7 @@ class ConstraintController extends Controller
                 return $this->renderRowActions($row);
             })
             ->filter(function ($instance) use ($request) {
-                if ($request->get('from_date')) {
-                    $instance->where('fn_constraints.date','>=', $request->get('from_date'));
-                }
-                if ($request->get('to_date')) {
-                    $instance->where('fn_constraints.date','<=', $request->get('to_date'));
-                }
-                if ($request->get('type_filter')) {
-                    $instance->where('fn_constraints.type', $request->get('type_filter'));
-                }
-
-                $search = trim((string) $request->input('search.value', ''));
-                if ($search !== '') {
-                    $instance->where(function ($query) use ($search) {
-                        $query->where('fn_constraints.code', 'like', '%' . $search . '%')
-                            ->orWhere('fn_constraints.statement', 'like', '%' . $search . '%')
-                            ->orWhere('fn_constraints.value', 'like', '%' . $search . '%')
-                            ->orWhere('fn_constraints.date', 'like', '%' . $search . '%')
-                            ->orWhereHas('constraintDetails.account', function ($accountQuery) use ($search) {
-                                $accountQuery->where('fn_accounts.name', 'like', '%' . $search . '%');
-                            });
-                    });
-                }
+                $this->applyConstraintFilters($instance, $request);
             });
 
         if ($pending) {
@@ -499,16 +478,61 @@ class ConstraintController extends Controller
 
     private function filteredExportQuery(Request $request, ObjService $service)
     {
-        return $service->getIndexData()
-            ->when($request->get('from_date'), function ($query, $date) {
-                $query->whereDate('fn_constraints.date', '>=', $date);
+        $query = $service->getIndexData();
+
+        return $this->applyConstraintFilters($query, $request);
+    }
+
+    private function applyConstraintFilters($query, Request $request)
+    {
+        $query
+            ->when($request->filled('from_date'), function ($query) use ($request) {
+                $query->whereDate('fn_constraints.date', '>=', $request->input('from_date'));
             })
-            ->when($request->get('to_date'), function ($query, $date) {
-                $query->whereDate('fn_constraints.date', '<=', $date);
+            ->when($request->filled('to_date'), function ($query) use ($request) {
+                $query->whereDate('fn_constraints.date', '<=', $request->input('to_date'));
             })
-            ->when($request->get('type_filter'), function ($query, $type) {
-                $query->where('fn_constraints.type', $type);
+            ->when($request->filled('type_filter'), function ($query) use ($request) {
+                $query->where('fn_constraints.type', $request->input('type_filter'));
             });
+
+        $keyword = $this->resolveSearchKeyword($request);
+        if ($keyword === '') {
+            return $query;
+        }
+
+        $numericKeyword = ltrim($keyword, '#');
+
+        return $query->where(function ($query) use ($keyword, $numericKeyword) {
+            if ($numericKeyword !== '' && ctype_digit($numericKeyword)) {
+                // The list displays the database id whenever a legacy constraint has no code.
+                $query->orWhere('fn_constraints.id', (int) $numericKeyword);
+            }
+
+            $query->orWhere('fn_constraints.code', 'like', '%' . $keyword . '%')
+                ->orWhere('fn_constraints.statement', 'like', '%' . $keyword . '%')
+                ->orWhere('fn_constraints.value', 'like', '%' . $keyword . '%')
+                ->orWhere('fn_constraints.date', 'like', '%' . $keyword . '%')
+                ->orWhereHas('constraintDetails.account', function ($accountQuery) use ($keyword) {
+                    $accountQuery->where('fn_accounts.name', 'like', '%' . $keyword . '%');
+                });
+        });
+    }
+
+    private function resolveSearchKeyword(Request $request): string
+    {
+        $keyword = $request->input('keyword');
+
+        if ($keyword === null) {
+            $keyword = $request->input('search.value', $request->input('sSearch', ''));
+        }
+
+        return trim(strtr((string) $keyword, [
+            '٠' => '0', '١' => '1', '٢' => '2', '٣' => '3', '٤' => '4',
+            '٥' => '5', '٦' => '6', '٧' => '7', '٨' => '8', '٩' => '9',
+            '۰' => '0', '۱' => '1', '۲' => '2', '۳' => '3', '۴' => '4',
+            '۵' => '5', '۶' => '6', '۷' => '7', '۸' => '8', '۹' => '9',
+        ]));
     }
 
     private function buildExportRows($constraints): array
@@ -548,6 +572,7 @@ class ConstraintController extends Controller
         $type = ConstraintTypiesEnum::tryFrom((int) $request->get('type_filter'));
 
         return [
+            'keyword' => $this->resolveSearchKeyword($request) ?: 'الكل',
             'from_date' => $request->get('from_date') ?: 'الكل',
             'to_date' => $request->get('to_date') ?: 'الكل',
             'type' => $type?->lang() ?: 'الكل',

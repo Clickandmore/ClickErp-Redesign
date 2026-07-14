@@ -60,53 +60,159 @@ class InvoiceController extends Controller
      */
     public function index(Request $request)
     {
+        $legacyMode = $this->usesLegacyInvoiceIndex();
+
         if ($request->ajax()) {
+            if (!$legacyMode) {
+                return $this->standardInvoiceIndexData($request);
+            }
+
             $invoiceBranchesEnabled = $this->branchesEnabledFor('invoices');
-            $rentalBranchesEnabled = $this->branchesEnabledFor('rental_contracts');
 
             $invoiceRelations = ['contract.user', 'ingazDelegation.user', 'client', 'financeSale.zatca'];
             if ($invoiceBranchesEnabled) {
                 $invoiceRelations[] = 'branch';
             }
 
-            $recruitmentInvoicesQuery = Invoice::with($invoiceRelations);
-            $this->applyRequestBranchFilter($recruitmentInvoicesQuery, $request, 'invoices');
+            $query = Invoice::query()
+                ->with($invoiceRelations)
+                ->whereNotNull('legacy_invoice_number');
+            $this->applyRequestBranchFilter($query, $request, 'invoices');
+            $this->applyInvoiceIndexFilters($query, $request, false);
 
-            $recruitmentInvoices = $recruitmentInvoicesQuery
-                ->latest()
-                ->get()
-                ->map(fn (Invoice $invoice) => $this->formatInvoiceIndexRow($invoice, $invoiceBranchesEnabled));
-
-            $rentalRelations = ['rentalContract.user', 'rentalContract.maid', 'invoiceConstraint'];
-            if ($rentalBranchesEnabled) {
-                $rentalRelations[] = 'rentalContract.branch';
-            }
-
-            $rentalInvoicesQuery = RentalContractInvoice::with($rentalRelations);
-            $this->applyRequestBranchFilter($rentalInvoicesQuery, $request, 'rental_contract_invoices');
-
-            $rentalInvoices = $rentalInvoicesQuery
-                ->latest()
-                ->get()
-                ->map(fn (RentalContractInvoice $invoice) => $this->formatRentalInvoiceIndexRow($invoice, $rentalBranchesEnabled));
-
-            $query = $recruitmentInvoices
-                ->concat($rentalInvoices)
-                ->sortByDesc('created_at_sort')
-                ->values();
-
-            return DataTables::of($query)
+            return DataTables::eloquent($query)
+                ->filter(fn ($query) => $this->applyInvoiceIndexSearch($query, $request))
                 ->addIndexColumn()
+                ->addColumn('invoice_number', fn (Invoice $invoice) => $this->invoiceNumberLink($invoice))
+                ->addColumn('invoice_source', fn (Invoice $invoice) => $this->invoiceSourceBadge($invoice))
+                ->addColumn('client_name', fn (Invoice $invoice) => e($this->invoiceClientName($invoice)))
+                ->addColumn('branch', fn (Invoice $invoice) => $invoiceBranchesEnabled ? e($invoice->branch?->name ?: '-') : '-')
+                ->editColumn('subtotal', fn (Invoice $invoice) => number_format((float) $invoice->subtotal, 2))
+                ->editColumn('vat_amount', fn (Invoice $invoice) => number_format((float) $invoice->vat_amount, 2))
+                ->editColumn('discount', fn (Invoice $invoice) => number_format((float) $invoice->discount, 2))
+                ->editColumn('total_due', fn (Invoice $invoice) => number_format((float) $invoice->total_due, 2))
+                ->addColumn('status', fn (Invoice $invoice) => $this->invoicePaymentStatusBadge($invoice))
+                ->addColumn('zatca_status', fn (Invoice $invoice) => $this->invoiceZatcaBadge($invoice))
+                ->editColumn('created_at', fn (Invoice $invoice) => $invoice->created_at?->format('Y-m-d H:i') ?: '-')
+                ->addColumn('actions', fn (Invoice $invoice) => $this->invoiceIndexActions($invoice))
                 ->rawColumns(['invoice_number', 'invoice_source', 'status', 'zatca_status', 'actions'])
                 ->make(true);
         }
 
-        $branchesEnabled = $this->branchesEnabledFor('invoices') || $this->branchesEnabledFor('rental_contracts');
+        $branchesEnabled = $this->branchesEnabledFor('invoices')
+            || (!$legacyMode && $this->branchesEnabledFor('rental_contracts'));
         $branches = $branchesEnabled
             ? Branch::query()->active()->ordered()->get(['id', 'name_ar', 'name_en'])
             : collect();
+        $invoiceTypes = $legacyMode ? Invoice::query()
+            ->whereNotNull('legacy_invoice_number')
+            ->whereNotNull('legacy_invoice_type')
+            ->distinct()
+            ->orderBy('legacy_invoice_type')
+            ->pluck('legacy_invoice_type') : collect();
+        $documentTypes = $legacyMode ? Invoice::query()
+            ->whereNotNull('legacy_invoice_number')
+            ->whereNotNull('legacy_document_type')
+            ->distinct()
+            ->orderBy('legacy_document_type')
+            ->pluck('legacy_document_type') : collect();
 
-        return view('admin.ingaz.invoices.index', compact('branchesEnabled', 'branches'));
+        return view('admin.ingaz.invoices.index', compact(
+            'branchesEnabled',
+            'branches',
+            'invoiceTypes',
+            'documentTypes',
+            'legacyMode'
+        ));
+    }
+
+    private function usesLegacyInvoiceIndex(): bool
+    {
+        return Schema::hasColumn('invoices', 'legacy_invoice_number')
+            && Invoice::query()->whereNotNull('legacy_invoice_number')->exists();
+    }
+
+    private function standardInvoiceIndexData(Request $request)
+    {
+        $invoiceBranchesEnabled = $this->branchesEnabledFor('invoices');
+        $rentalBranchesEnabled = $this->branchesEnabledFor('rental_contracts');
+        $invoiceRelations = ['contract.user', 'ingazDelegation.user', 'client', 'financeSale.zatca'];
+        if ($invoiceBranchesEnabled) {
+            $invoiceRelations[] = 'branch';
+        }
+
+        $invoiceQuery = Invoice::with($invoiceRelations);
+        $this->applyRequestBranchFilter($invoiceQuery, $request, 'invoices');
+        $invoices = $invoiceQuery->latest()->get()
+            ->map(fn (Invoice $invoice) => $this->formatInvoiceIndexRow($invoice, $invoiceBranchesEnabled));
+
+        $rentalRelations = ['rentalContract.user', 'rentalContract.maid', 'invoiceConstraint'];
+        if ($rentalBranchesEnabled) {
+            $rentalRelations[] = 'rentalContract.branch';
+        }
+
+        $rentalQuery = RentalContractInvoice::with($rentalRelations);
+        $this->applyRequestBranchFilter($rentalQuery, $request, 'rental_contract_invoices');
+        $rentalInvoices = $rentalQuery->latest()->get()
+            ->map(fn (RentalContractInvoice $invoice) => $this->formatRentalInvoiceIndexRow($invoice, $rentalBranchesEnabled));
+
+        return DataTables::of($invoices->concat($rentalInvoices)->sortByDesc('created_at_sort')->values())
+            ->addIndexColumn()
+            ->rawColumns(['invoice_number', 'invoice_source', 'status', 'zatca_status', 'actions'])
+            ->make(true);
+    }
+
+    private function applyInvoiceIndexFilters($query, Request $request, bool $includeSearch = true): void
+    {
+        if ($request->filled('invoice_number')) {
+            $query->where('legacy_invoice_number', (int) $request->input('invoice_number'));
+        }
+
+        if ($request->filled('invoice_type')) {
+            $query->where('legacy_invoice_type', (string) $request->input('invoice_type'));
+        }
+
+        if ($request->filled('document_type')) {
+            $query->where('legacy_document_type', (string) $request->input('document_type'));
+        }
+
+        if ($request->filled('zatca_shared')) {
+            $query->where('legacy_zatca_shared', $request->input('zatca_shared') === '1');
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        if ($includeSearch) {
+            $this->applyInvoiceIndexSearch($query, $request);
+        }
+    }
+
+    private function applyInvoiceIndexSearch($query, Request $request): void
+    {
+        $search = trim((string) data_get($request->input('search'), 'value'));
+        if ($search === '') {
+            return;
+        }
+
+        $query->where(function ($query) use ($search) {
+            $query->where('legacy_invoice_number', 'like', "%{$search}%")
+                ->orWhere('legacy_order_number', 'like', "%{$search}%")
+                ->orWhere('legacy_client_number', 'like', "%{$search}%")
+                ->orWhere('legacy_invoice_type', 'like', "%{$search}%")
+                ->orWhere('legacy_document_type', 'like', "%{$search}%")
+                ->orWhereHas('client', fn ($client) => $client
+                    ->where('name', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%"))
+                ->orWhereHas('contract.user', fn ($client) => $client
+                    ->where('name', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%"));
+        });
     }
 
     private function branchesEnabledFor(string $table): bool
@@ -116,10 +222,60 @@ class InvoiceController extends Controller
             && Schema::hasColumn($table, 'branch_id');
     }
 
+    private function invoiceNumberLink(Invoice $invoice): string
+    {
+        return '<a href="' . $this->invoicePrintUrl($invoice) . '" target="_blank" rel="noopener" class="fs-6 fw-bold text-decoration-none">'
+            . e((string) ($invoice->legacy_invoice_number ?: $invoice->id))
+            . '</a>';
+    }
+
+    private function invoiceClientName(Invoice $invoice): string
+    {
+        return $invoice->contract?->user?->name
+            ?: ($invoice->ingazDelegation?->user?->name
+                ?: ($invoice->client?->name ?: '-'));
+    }
+
+    private function invoicePaymentStatusBadge(Invoice $invoice): string
+    {
+        $paid = (bool) $invoice->is_paid || (float) $invoice->total_due <= 0;
+        $class = $paid ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning';
+
+        return '<span class="badge ' . $class . '">' . e($this->invoicePaymentStatusLabel($invoice)) . '</span>';
+    }
+
+    private function invoicePrintUrl(Invoice $invoice): string
+    {
+        return route('invoice.download', ['id' => $invoice->id, 'autoprint' => 1]);
+    }
+
+    private function invoiceIndexActions(Invoice $invoice): string
+    {
+        $originalFileButton = $invoice->legacy_source_file
+            ? '<a href="' . route('invoices.legacy-source-file', $invoice->id) . '" class="btn btn-sm btn-outline-info" target="_blank" rel="noopener" title="عرض ملف PDF الأصلي">
+                    <i class="fas fa-file-pdf"></i>
+                </a>'
+            : '';
+
+        return '<div class="d-flex justify-content-end gap-2">
+                    <a href="' . route('invoices.show', $invoice->id) . '" class="btn btn-sm btn-outline-primary" title="عرض التفاصيل">
+                        <i class="fas fa-eye"></i>
+                    </a>
+                    <a href="' . $this->invoicePrintUrl($invoice) . '" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener" title="طباعة الفاتورة">
+                        <i class="fas fa-print"></i>
+                    </a>
+                    ' . $originalFileButton . '
+                </div>';
+    }
+
     private function formatInvoiceIndexRow(Invoice $invoice, bool $branchesEnabled = false): array
     {
         $paid = (bool) $invoice->is_paid || (float) $invoice->total_due <= 0;
-        $queueButton = (!$invoice->finance_sale_id)
+        $paymentStatus = $this->invoicePaymentStatusLabel($invoice);
+        $statusClass = $paid ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning';
+        $queueButton = $invoice->legacy_zatca_shared
+            ? '<span class="btn btn-sm btn-outline-success disabled" title="مشاركة سابقة محفوظة من نظام الرافدين"><i class="fas fa-check-circle"></i></span>'
+            : ((!$invoice->finance_sale_id)
             ? '<form method="post" action="' . route('invoices.queue-zatca-sale', $invoice->id) . '" class="d-inline queue-zatca-form">
                     ' . csrf_field() . '
                     <button type="submit" class="btn btn-sm btn-outline-success" title="إدراج في فواتير الزكاة">
@@ -128,11 +284,11 @@ class InvoiceController extends Controller
                 </form>'
             : '<a href="' . route('finance.bill-sales.show', $invoice->finance_sale_id) . '" class="btn btn-sm btn-outline-success" title="فاتورة المبيعات">
                     <i class="fas fa-link"></i>
-                </a>';
+                </a>');
 
         return [
             'id' => $invoice->id,
-            'invoice_number' => '<a href="' . route('invoice.download', ['id' => $invoice->id, 'autoprint' => 1]) . '" target="_blank" rel="noopener" class="fw-bold text-decoration-none">#' . $invoice->id . '</a>',
+            'invoice_number' => '<a href="' . route('invoice.download', ['id' => $invoice->id, 'autoprint' => 1]) . '" target="_blank" rel="noopener" class="fw-bold text-decoration-none">#' . ($invoice->legacy_invoice_number ?: $invoice->id) . '</a>',
             'invoice_source' => $this->invoiceSourceBadge($invoice),
             'client_name' => $invoice->contract?->user?->name ?: ($invoice->ingazDelegation?->user?->name ?: ($invoice->client?->name ?: '-')),
             'branch' => $branchesEnabled ? ($invoice->branch?->name ?: '-') : '-',
@@ -140,7 +296,7 @@ class InvoiceController extends Controller
             'vat_amount' => number_format((float) $invoice->vat_amount, 2),
             'discount' => number_format((float) $invoice->discount, 2),
             'total_due' => number_format((float) $invoice->total_due, 2),
-            'status' => '<span class="badge ' . ($paid ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning') . '">' . ($paid ? 'مدفوعة' : 'غير مدفوعة') . '</span>',
+            'status' => '<span class="badge ' . $statusClass . '">' . e($paymentStatus) . '</span>',
             'zatca_status' => $this->invoiceZatcaBadge($invoice),
             'created_at' => $invoice->created_at ? $invoice->created_at->format('Y-m-d H:i') : '-',
             'created_at_sort' => optional($invoice->created_at)->timestamp ?? 0,
@@ -190,6 +346,14 @@ class InvoiceController extends Controller
 
     private function invoiceSourceBadge(Invoice $invoice): string
     {
+        if ($invoice->legacy_invoice_number) {
+            if ($invoice->legacy_order_number) {
+                return '<span class="badge bg-info-subtle text-info border">طلب رقم ' . e($invoice->legacy_order_number) . '</span>';
+            }
+
+            return '<span class="text-muted">بدون طلب مرتبط</span>';
+        }
+
         if ($invoice->contract_id) {
             return '<span class="badge bg-info-subtle text-info border">عقد استقدام #' . $invoice->contract_id . '</span>';
         }
@@ -203,6 +367,14 @@ class InvoiceController extends Controller
 
     private function invoiceZatcaBadge(Invoice $invoice): string
     {
+        if ($invoice->legacy_zatca_shared) {
+            return '<span class="badge bg-success">مشارك سابقاً مع الهيئة</span>';
+        }
+
+        if ($invoice->legacy_invoice_number && $invoice->legacy_zatca_shared === false) {
+            return '<span class="badge bg-secondary-subtle text-secondary border">غير مشارك في المصدر</span>';
+        }
+
         if (!$invoice->send_to_zatca) {
             return '<span class="badge bg-secondary-subtle text-secondary border">غير مطلوب</span>';
         }
@@ -574,6 +746,10 @@ class InvoiceController extends Controller
                 ->with(['contract.user', 'ingazDelegation.user', 'client', 'financeSale.zatca'])
                 ->findOrFail($id);
 
+            if ($invoice->legacy_zatca_shared) {
+                throw new \RuntimeException('هذه الفاتورة مسجلة كمشاركة سابقاً مع هيئة الزكاة، ولن يعاد إرسالها تفادياً للتكرار.');
+            }
+
             DB::transaction(function () use ($invoice) {
                 $invoice->update(['send_to_zatca' => true]);
                 $this->queueInvoiceForZatcaSale($invoice->fresh(['contract.user', 'ingazDelegation.user', 'client']));
@@ -583,6 +759,23 @@ class InvoiceController extends Controller
         } catch (\Throwable $e) {
             return back()->with('error', $e->getMessage());
         }
+    }
+
+    public function legacySourceFile(int $id)
+    {
+        $invoice = Invoice::query()->findOrFail($id);
+        $this->assertCanAccessBranchModel($invoice, 'invoices');
+
+        abort_if(!$invoice->legacy_source_file, 404);
+
+        $directory = base_path('migration_system/data/alrafedin/finance/invoices');
+        $path = $directory . DIRECTORY_SEPARATOR . basename((string) $invoice->legacy_source_file);
+        abort_unless(is_file($path), 404);
+
+        return response()->file($path, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="invoice-' . ($invoice->legacy_invoice_number ?: $invoice->id) . '.pdf"',
+        ]);
     }
 
     public function searchClients(Request $request)
@@ -760,7 +953,7 @@ class InvoiceController extends Controller
 
         foreach ($invoices as $invoice) {
             fputcsv($stream, [
-                $invoice->id,
+                $invoice->legacy_invoice_number ?: $invoice->id,
                 $invoice->contract_id
                     ? ('عقد #' . $invoice->contract_id)
                     : ($invoice->ingaz_delegation_id ? ('تفويض #' . $invoice->ingaz_delegation_id) : 'فاتورة عامة'),
@@ -769,7 +962,7 @@ class InvoiceController extends Controller
                 number_format((float) $invoice->vat_amount, 2, '.', ''),
                 number_format((float) $invoice->discount, 2, '.', ''),
                 number_format((float) $invoice->total_due, 2, '.', ''),
-                ((bool) $invoice->is_paid || (float) $invoice->total_due <= 0) ? 'مدفوعة' : 'غير مدفوعة',
+                $this->invoicePaymentStatusLabel($invoice),
                 $this->exportZatcaStatusLabel($invoice),
                 optional($invoice->created_at)->format('Y-m-d H:i'),
             ]);
@@ -807,6 +1000,11 @@ class InvoiceController extends Controller
             ->with(['contract.user', 'ingazDelegation.user', 'client', 'financeSale.zatca'])
             ->latest('id');
 
+        if ($this->usesLegacyInvoiceIndex()) {
+            $query->whereNotNull('legacy_invoice_number');
+            $this->applyInvoiceIndexFilters($query, $request);
+        }
+
         if ($this->branchesEnabledFor('invoices') && $request->filled('branch_id')) {
             $query->where('branch_id', $request->branch_id);
         }
@@ -816,6 +1014,14 @@ class InvoiceController extends Controller
 
     private function exportZatcaStatusLabel(Invoice $invoice): string
     {
+        if ($invoice->legacy_zatca_shared) {
+            return 'مشارك سابقاً مع الهيئة';
+        }
+
+        if ($invoice->legacy_invoice_number && $invoice->legacy_zatca_shared === false) {
+            return 'غير مشارك في المصدر';
+        }
+
         if (!$invoice->send_to_zatca) {
             return 'غير مطلوب';
         }
@@ -830,6 +1036,13 @@ class InvoiceController extends Controller
             'NOT_REPORTED', 'NOT_CLEARED' => 'مرفوض من الهيئة',
             default => 'معلق في المبيعات',
         };
+    }
+
+    private function invoicePaymentStatusLabel(Invoice $invoice): string
+    {
+        return ((bool) $invoice->is_paid || (float) $invoice->total_due <= 0)
+            ? 'مدفوعة'
+            : 'غير مدفوعة';
     }
 
     private function ensureIngazZatcaServiceItem(): Item
@@ -1562,7 +1775,7 @@ class InvoiceController extends Controller
         $serviceDesc = $invoice->ingaz_delegation_id ? 'تفويض إنجاز' : ($invoice->client_id ? 'فاتورة عامة' : 'طلب تعاقد');
         $serviceLongDescription = $this->buildServiceDescription($invoice);
         $items = $this->buildInvoiceItems($invoice);
-        $invoiceStatus = ((bool) $invoice->is_paid || (float) $invoice->total_due <= 0) ? 'مدفوعة' : 'غير مدفوعة';
+        $invoiceStatus = $this->invoicePaymentStatusLabel($invoice);
         $printedBy = optional(Auth::guard('admin')->user())->name
             ?? optional(Auth::user())->name
             ?? 'النظام';

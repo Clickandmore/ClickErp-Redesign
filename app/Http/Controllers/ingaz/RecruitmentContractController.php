@@ -1671,8 +1671,14 @@ class RecruitmentContractController extends Controller
             'recruitmentRefund.refundConstraint.constraintDetails.account',
             'recruitmentRefund.createdBy',
             'attachments.uploader',
+            'invoice.financeSale',
+            'invoice.musanedTransferItem.transfer',
+            'invoice.arrivalRevenueConstraint.constraintDetails.account',
+            'invoice.externalOfficeCostConstraint.constraintDetails.account',
+            'financeBonds.createdBy',
+            'activities.causer',
             'contract_status_logs' => function ($query) {
-                $query->orderByDesc('date')->orderByDesc('id');
+                $query->with('performer')->orderByDesc('date')->orderByDesc('id');
             },
             'notes' => function ($query) {
                 $query->latest();
@@ -1712,13 +1718,41 @@ class RecruitmentContractController extends Controller
         $contractAttachments = $this->collectRecruitmentContractAttachments($contract);
         $contractDocuments = $this->collectRecruitmentContractDocuments($contract);
         $statusHistory = $contract->contract_status_logs->map(function ($log) use ($contract) {
+            $performer = $this->resolveContractStatusPerformer($contract, $log->status, $log);
+
             return [
                 'status' => $log->status,
                 'status_label' => getEnumValue('contract_statuses', $log->status) ?? getContractStatus($log->status),
                 'display_date' => $this->formatContractStatusLogDate($log, $contract),
                 'notes' => $log->notes,
+                'performer_name' => $performer['name'],
+                'performer_source' => $performer['source'],
+                'is_inferred' => false,
             ];
         });
+
+        if ($statusHistory->isEmpty() || ($statusHistory->first()['status'] ?? null) !== $contract->status) {
+            $performer = $this->resolveContractStatusPerformer($contract, $contract->status);
+            $statusActivity = $contract->activities
+                ->filter(fn ($activity) => (string) data_get($activity->properties, 'attributes.status') === $contract->status)
+                ->sortByDesc('created_at')
+                ->first();
+
+            $inferredCurrentStatus = [
+                'status' => $contract->status,
+                'status_label' => getEnumValue('contract_statuses', $contract->status) ?? getContractStatus($contract->status),
+                'display_date' => optional($statusActivity?->created_at ?? $contract->created_at)->format('Y-m-d H:i'),
+                'notes' => $statusHistory->isEmpty()
+                    ? 'الحالة المسجلة عند إنشاء أو استيراد العقد'
+                    : 'انتقال مستنتج من سجل النشاط لعدم وجود سجل حالة مستقل',
+                'performer_name' => $performer['name'],
+                'performer_source' => $performer['source'],
+                'is_inferred' => true,
+            ];
+
+            $statusHistory = collect([$inferredCurrentStatus])->concat($statusHistory)->values();
+        }
+        $financialSummary = $this->buildRecruitmentContractFinancialSummary($contract);
 
         $contractExtensionRequests = \App\Models\ContractExtensionRequest::with(['requestedBy', 'processedBy'])
             ->where('contract_id', $contract->id)
@@ -1734,6 +1768,7 @@ class RecruitmentContractController extends Controller
             'contractAttachments',
             'contractDocuments',
             'statusHistory',
+            'financialSummary',
             'contractExtensionRequests'
         ));
     }
@@ -2022,6 +2057,95 @@ class RecruitmentContractController extends Controller
         };
     }
 
+    private function resolveContractStatusPerformer(Contract $contract, string $status, $log = null): array
+    {
+        if ($log?->performer) {
+            return [
+                'name' => $log->performer->name ?: 'موظف غير محدد',
+                'source' => 'status_log',
+            ];
+        }
+
+        $matchingActivity = $contract->activities
+            ->filter(function ($activity) use ($status) {
+                return (string) data_get($activity->properties, 'attributes.status') === $status;
+            })
+            ->when($log?->created_at, function ($activities) use ($log) {
+                return $activities->sortBy(function ($activity) use ($log) {
+                    return abs(optional($activity->created_at)->diffInSeconds($log->created_at, false) ?? PHP_INT_MAX);
+                });
+            }, fn ($activities) => $activities->sortByDesc('created_at'))
+            ->first();
+
+        if ($matchingActivity?->causer) {
+            return [
+                'name' => $matchingActivity->causer->name
+                    ?? $matchingActivity->causer->email
+                    ?? 'موظف غير محدد',
+                'source' => 'activity_log',
+            ];
+        }
+
+        return [
+            'name' => 'النظام',
+            'source' => 'system',
+        ];
+    }
+
+    private function buildRecruitmentContractFinancialSummary(Contract $contract): array
+    {
+        $invoice = $contract->invoice;
+        $transferItem = $invoice?->musanedTransferItem;
+        $linkedBonds = $contract->financeBonds->sortByDesc('date')->values();
+        $confirmedReceiptBonds = $linkedBonds
+            ->where('type', 'qabd')
+            ->where('is_confirm', 1);
+        $total = (float) ($invoice?->total_due ?? $contract->info?->contract_value ?? 0);
+        $paid = $confirmedReceiptBonds->isNotEmpty()
+            ? (float) $confirmedReceiptBonds->sum('value')
+            : ($transferItem?->customer_paid_amount !== null
+                ? (float) $transferItem->customer_paid_amount
+                : ($invoice?->is_paid ? $total : 0.0));
+
+        return [
+            'has_invoice' => (bool) $invoice,
+            'invoice_id' => $invoice?->id,
+            'invoice_number' => $invoice?->legacy_invoice_number ?: $invoice?->id,
+            'invoice_date' => optional($invoice?->created_at)->format('Y-m-d H:i'),
+            'subtotal' => (float) ($invoice?->subtotal ?? 0),
+            'discount' => (float) ($invoice?->discount ?? 0),
+            'vat_amount' => (float) ($invoice?->vat_amount ?? 0),
+            'total_due' => $total,
+            'paid_amount' => $paid,
+            'remaining_amount' => max($total - $paid, 0),
+            'is_paid' => $total > 0 && $paid >= $total,
+            'paid_at' => optional($invoice?->paid_at)->format('Y-m-d H:i'),
+            'contract_info_value' => (float) ($contract->info?->contract_value ?? 0),
+            'finance_sale_id' => $invoice?->finance_sale_id,
+            'musaned_transfer_id' => $transferItem?->musaned_transfer_id,
+            'arrival_revenue_constraint_id' => $invoice?->arrival_revenue_constraint_id,
+            'external_office_cost_constraint_id' => $invoice?->external_office_cost_constraint_id,
+            'payment_source_label' => $confirmedReceiptBonds->isNotEmpty()
+                ? 'سندات القبض المؤكدة المرتبطة بالعقد'
+                : ($transferItem ? 'تحويل مساند المرتبط بالفاتورة' : 'حالة السداد المسجلة في الفاتورة'),
+            'linked_bonds' => $linkedBonds->map(function ($bond) {
+                return [
+                    'id' => $bond->id,
+                    'code' => $bond->code ?: $bond->bond_book_num ?: $bond->id,
+                    'type' => $bond->type,
+                    'type_label' => $bond->type === 'qabd' ? 'سند قبض' : 'سند صرف',
+                    'value' => (float) $bond->value,
+                    'date' => $bond->date ? Carbon::parse($bond->date)->format('Y-m-d') : null,
+                    'is_confirmed' => (bool) $bond->is_confirm,
+                    'created_by' => $bond->createdBy?->name,
+                ];
+            })->all(),
+            'source_label' => $invoice
+                ? 'الفاتورة المرتبطة بالعقد'
+                : 'بيانات العقد (لا توجد فاتورة مرتبطة)',
+        ];
+    }
+
     private function buildContractStageTimeline(Contract $contract): array
     {
         $logs = $contract->contract_status_logs
@@ -2040,6 +2164,8 @@ class RecruitmentContractController extends Controller
                     'started_at' => $stageDate,
                     'started_precision' => $stageMoment['precision'] ?? 'time',
                     'notes' => $log->notes,
+                    'performer' => $this->resolveContractStatusPerformer($contract, $log->status, $log),
+                    'is_inferred' => false,
                 ];
             })
             ->filter()
@@ -2047,6 +2173,24 @@ class RecruitmentContractController extends Controller
                 return $log['started_at']->getTimestamp();
             })
             ->values();
+
+        if ($logs->isNotEmpty() && ($logs->last()['status'] ?? null) !== $contract->status) {
+            $statusActivity = $contract->activities
+                ->filter(fn ($activity) => (string) data_get($activity->properties, 'attributes.status') === $contract->status)
+                ->sortByDesc('created_at')
+                ->first();
+
+            $logs->push([
+                'status' => $contract->status,
+                'status_label' => getEnumValue('contract_statuses', $contract->status) ?? getContractStatus($contract->status),
+                'status_color' => getContractStatusColor($contract->status),
+                'started_at' => $statusActivity?->created_at?->copy() ?? Carbon::parse($contract->updated_at),
+                'started_precision' => 'time',
+                'notes' => 'انتقال مستنتج من سجل النشاط لعدم وجود سجل حالة مستقل',
+                'performer' => $this->resolveContractStatusPerformer($contract, $contract->status),
+                'is_inferred' => true,
+            ]);
+        }
 
         if ($logs->isEmpty()) {
             $fallbackStart = $contract->created_at ? Carbon::parse($contract->created_at) : now();
@@ -2058,6 +2202,8 @@ class RecruitmentContractController extends Controller
                     'status_color' => getContractStatusColor($contract->status),
                     'started_at' => $fallbackStart,
                     'notes' => null,
+                    'performer' => $this->resolveContractStatusPerformer($contract, $contract->status),
+                    'is_inferred' => true,
                 ],
             ]);
         }
@@ -2096,6 +2242,9 @@ class RecruitmentContractController extends Controller
                 'is_current' => !$nextLog,
                 'is_active_stage' => $shouldTrackUntilNow,
                 'notes' => $log['notes'],
+                'performer_name' => $log['performer']['name'] ?? 'النظام',
+                'performer_source' => $log['performer']['source'] ?? 'system',
+                'is_inferred' => (bool) ($log['is_inferred'] ?? false),
             ];
         }
 

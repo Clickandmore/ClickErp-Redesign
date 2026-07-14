@@ -42,6 +42,7 @@
 </div>
 @include("admin.layout.inc.global_modals")
 @include("admin.layout.inc.siderbar_models")
+@include("admin.layout.inc.scroll_controls")
 
 
 @include("admin.layout.inc._js")

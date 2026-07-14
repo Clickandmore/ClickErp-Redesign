@@ -26,6 +26,9 @@
     $movementAmount = rtrim(rtrim(number_format((float) $obj->value, 2, '.', ','), '0'), '.') . ' ر.س';
     $accountant = optional($obj->createdBy)->name ?: '-';
     $printRoute = route('finance.bonds-print.show', $obj->id) . '?type=qabd';
+    $constraintRoute = $obj->constraint_id
+        ? route('finance.add-constraint.show', ['add_constraint' => $obj->constraint_id])
+        : null;
     $fileDownloadRoute = $obj->file ? route('finance.bonds-qabd.download-attachment', [$obj->id, 'file']) : null;
     $transferFileDownloadRoute = $obj->transfer_file ? route('finance.bonds-qabd.download-attachment', [$obj->id, 'transfer_file']) : null;
 @endphp
@@ -124,13 +127,19 @@
 <div class="receipt-preview">
     <div class="receipt-preview__header">
         <div>
-            <h4>سند قبض #{{ $obj->id }}</h4>
+            <h4>سند قبض #{{ $obj->code }}</h4>
             <p>{{ $accountLabel ?: '-' }}</p>
         </div>
-        <a href="{{ $printRoute }}" target="_blank" class="btn btn-success">
-            <i class="fa fa-print"></i>
-            طباعة السند
-        </a>
+        <div class="d-flex flex-wrap gap-2">
+            @if($constraintRoute)
+                <a href="{{ $constraintRoute }}" target="_blank" rel="noopener" class="btn btn-primary">
+                    <i class="fa fa-book"></i> فتح القيد #{{ $obj->constraint_id }}
+                </a>
+            @endif
+            <a href="{{ $printRoute }}" target="_blank" rel="noopener" class="btn btn-success">
+                <i class="fa fa-print"></i> طباعة السند
+            </a>
+        </div>
     </div>
 
     <div class="receipt-preview__grid">
@@ -141,6 +150,13 @@
         <div class="receipt-preview__item">
             <span>التاريخ</span>
             <strong dir="ltr">{{ $obj->date }}</strong>
+        </div>
+        <div class="receipt-preview__item">
+            <span>حالة السند</span>
+            <strong class="{{ $obj->is_confirm ? 'text-success' : 'text-warning' }}">
+                <i class="fa {{ $obj->is_confirm ? 'fa-check-circle' : 'fa-clock' }}"></i>
+                {{ $obj->is_confirm ? 'معتمد' : 'بانتظار الاعتماد' }}
+            </strong>
         </div>
         <div class="receipt-preview__item">
             <span>المبلغ المطلوب</span>

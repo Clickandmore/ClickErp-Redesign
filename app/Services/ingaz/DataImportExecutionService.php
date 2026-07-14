@@ -57,8 +57,13 @@ use Spatie\Permission\Models\Role;
 class DataImportExecutionService
 {
     private const MAX_ERROR_DETAILS = 200;
+    private const LEGACY_UNASSIGNED_ACCOUNT_CODE = 1230000000;
 
     private ?string $importPasswordHash = null;
+    private ?array $legacyRequestCostCenterIds = null;
+    private array $financeAccountCostCenterEligibility = [];
+    private bool $financeConstraintsMissingOnly = false;
+    private ?string $currentImportOriginalName = null;
 
     public function __construct(private DataImportTemplateService $templates)
     {
@@ -68,6 +73,9 @@ class DataImportExecutionService
     {
         $this->prepareLargeImportRuntime();
         $this->importPasswordHash = null;
+        $this->legacyRequestCostCenterIds = null;
+        $this->financeAccountCostCenterEligibility = [];
+        $this->currentImportOriginalName = $file->getClientOriginalName();
 
         $storedPath = $this->templates->storeUploadedFile($type, $file, $adminId);
         $result = [
@@ -84,6 +92,10 @@ class DataImportExecutionService
 
         if ($type === 'finance_constraints') {
             return $this->importFinanceConstraintsFile($storedPath, $columns, $adminId, $result);
+        }
+
+        if ($type === 'finance_cost_centers') {
+            return $this->importFinanceCostCentersFile($storedPath, $columns, $adminId, $result);
         }
 
         if ($type === 'receipt_bonds') {
@@ -152,6 +164,132 @@ class DataImportExecutionService
         return $result;
     }
 
+    public function importMissingFinanceConstraints(UploadedFile $file, ?int $adminId): array
+    {
+        $this->financeConstraintsMissingOnly = true;
+
+        try {
+            return $this->import('finance_constraints', $file, $adminId);
+        } finally {
+            $this->financeConstraintsMissingOnly = false;
+        }
+    }
+
+    public function linkImportedBondsToFinanceConstraints(string $directory): array
+    {
+        $this->prepareLargeImportRuntime();
+        $files = glob(rtrim($directory, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . '*.xlsx') ?: [];
+        $columns = $this->templates->template('finance_constraints')['columns'] ?? [];
+        $references = [];
+
+        foreach ($files as $file) {
+            foreach ($this->readRowsInChunks($file, $columns) as $rowNumber => $row) {
+                $documentType = $this->normalizeLegacyBondDocumentType($row['document_type'] ?? null);
+                $documentNumber = $this->optionalInteger($row['document_number'] ?? null);
+                $constraintCode = $this->optionalInteger($row['constraint_ref'] ?? $row['code'] ?? null);
+
+                if (!$documentType || !$documentNumber || !$constraintCode) {
+                    continue;
+                }
+
+                $key = $documentType . '|' . $documentNumber;
+                $references[$key][$constraintCode] = [
+                    'file' => basename($file),
+                    'row' => $rowNumber,
+                ];
+            }
+        }
+
+        $ambiguous = array_filter($references, fn (array $versions) => count($versions) > 1);
+        $unambiguous = array_filter($references, fn (array $versions) => count($versions) === 1);
+        $constraintCodes = collect($unambiguous)
+            ->map(fn (array $versions) => (int) array_key_first($versions))
+            ->unique()
+            ->values();
+        $constraints = Constraint::query()->whereIn('code', $constraintCodes)->get()->keyBy('code');
+        $bonds = Bond::query()
+            ->where('legacy_source', 'alrafedin_finance_bonds')
+            ->get()
+            ->keyBy(fn (Bond $bond) => $bond->type . '|' . $bond->code);
+        $details = ConstraintDetails::query()
+            ->whereIn('constraint_id', $constraints->pluck('id'))
+            ->get(['constraint_id', 'type', 'account_id', 'debtor_value', 'creditor_value'])
+            ->groupBy('constraint_id');
+        $result = [
+            'files' => count($files),
+            'source_references' => count($references),
+            'ambiguous_references' => count($ambiguous),
+            'constraints_tagged' => 0,
+            'bonds_matched' => 0,
+            'bonds_linked' => 0,
+            'bonds_already_linked' => 0,
+            'bonds_without_source_reference' => 0,
+            'source_constraints_missing' => 0,
+            'date_mismatches' => 0,
+            'value_mismatches' => 0,
+            'account_mismatches' => 0,
+            'invoice_links_updated' => 0,
+        ];
+
+        foreach ($unambiguous as $key => $versions) {
+            $constraintCode = (int) array_key_first($versions);
+            $source = reset($versions);
+            $constraint = $constraints->get($constraintCode);
+
+            if (!$constraint) {
+                $result['source_constraints_missing']++;
+                continue;
+            }
+
+            [$documentType, $documentNumber] = explode('|', $key, 2);
+            $constraint->update([
+                'legacy_document_type' => $documentType,
+                'legacy_document_number' => (int) $documentNumber,
+                'legacy_source_file' => $source['file'],
+                'legacy_source_row' => $source['row'],
+            ]);
+            $result['constraints_tagged']++;
+
+            /** @var Bond|null $bond */
+            $bond = $bonds->get($key);
+            if (!$bond) {
+                continue;
+            }
+
+            $result['bonds_matched']++;
+            $constraintDetails = $details->get($constraint->id, collect());
+            $bondValue = round((float) $bond->value, 2);
+            $hasDebitAccount = $constraintDetails->contains(
+                fn ($detail) => $detail->type === 'debtor'
+                    && (int) $detail->account_id === (int) $bond->debit_account_id
+                    && round((float) $detail->debtor_value, 2) === $bondValue
+            );
+            $hasCreditAccount = $constraintDetails->contains(
+                fn ($detail) => $detail->type === 'creditor'
+                    && (int) $detail->account_id === (int) $bond->credit_account_id
+                    && round((float) $detail->creditor_value, 2) === $bondValue
+            );
+
+            if ((string) $constraint->date !== (string) $bond->date) {
+                $result['date_mismatches']++;
+            }
+            if (round((float) $constraint->value, 2) !== $bondValue) {
+                $result['value_mismatches']++;
+            }
+            if (!$hasDebitAccount || !$hasCreditAccount) {
+                $result['account_mismatches']++;
+            }
+
+            $linkResult = $this->attachLegacyBondToActualConstraint($bond, $constraint);
+            $result[$linkResult['linked'] ? 'bonds_linked' : 'bonds_already_linked']++;
+            $result['invoice_links_updated'] += $linkResult['invoice_links_updated'];
+        }
+
+        $result['bonds_without_source_reference'] = $bonds->keys()->diff(array_keys($unambiguous))->count();
+
+        return $result;
+    }
+
     private function importReceiptBondsFile(string $storedPath, array $columns, ?int $adminId, array $result): array
     {
         if (!class_exists(Bond::class) || !Schema::hasTable('fn_bonds')) {
@@ -163,6 +301,7 @@ class DataImportExecutionService
 
         foreach ($this->readRows(Storage::path($storedPath), $columns) as $rowNumber => $row) {
             $result['total']++;
+            $row = $this->withLegacyBondSourceMetadata($row, $rowNumber, $storedPath);
 
             try {
                 DB::transaction(function () use ($row, $adminId, &$result) {
@@ -192,7 +331,6 @@ class DataImportExecutionService
             $row,
             $adminId,
             BondTypes::Qabd->value,
-            ConstraintTypiesEnum::QapdBond,
             ['received_amount', 'total', 'financial_movement'],
             'سند قبض مستورد'
         );
@@ -209,6 +347,7 @@ class DataImportExecutionService
 
         foreach ($this->readRows(Storage::path($storedPath), $columns) as $rowNumber => $row) {
             $result['total']++;
+            $row = $this->withLegacyBondSourceMetadata($row, $rowNumber, $storedPath);
 
             try {
                 DB::transaction(function () use ($row, $adminId, &$result) {
@@ -234,7 +373,6 @@ class DataImportExecutionService
             $row,
             $adminId,
             BondTypes::Sarf->value,
-            ConstraintTypiesEnum::SarfBond,
             ['paid_amount', 'spent_amount', 'total', 'financial_movement'],
             'سند صرف مستورد'
         );
@@ -244,7 +382,6 @@ class DataImportExecutionService
         array $row,
         ?int $adminId,
         string $bondType,
-        ConstraintTypiesEnum $constraintType,
         array $amountKeys,
         string $defaultStatement
     ): string
@@ -264,8 +401,8 @@ class DataImportExecutionService
             throw new \InvalidArgumentException('لا توجد سنة مالية صالحة لتاريخ السند.');
         }
 
-        $debitAccountId = $this->resolveReceiptBondAccountId($row, 'debit');
-        $creditAccountId = $this->resolveReceiptBondAccountId($row, 'credit');
+        $debitAccountId = $this->resolveReceiptBondAccountId($row, 'debit', $adminId);
+        $creditAccountId = $this->resolveReceiptBondAccountId($row, 'credit', $adminId);
 
         if (!$debitAccountId || !$creditAccountId) {
             throw new \InvalidArgumentException('تعذر تحديد حساب المدين أو الدائن من أرقام الحسابات الموجودة في الشيت.');
@@ -286,19 +423,16 @@ class DataImportExecutionService
             $row['created_by_name'] ?? $row['created_by'] ?? null,
             $adminId
         );
-        $constraintId = $this->upsertReceiptBondConstraint(
-            $row,
-            $code,
-            $date,
-            (float) $value,
-            $statement,
-            $debitAccountId,
-            $creditAccountId,
-            (int) $year->id,
-            $createdById,
-            $bondType,
-            $constraintType
-        );
+        $bond = Bond::query()
+            ->where('type', $bondType)
+            ->where('code', $code)
+            ->lockForUpdate()
+            ->first();
+        $constraintId = $bond
+            && (!Schema::hasColumn('fn_bonds', 'legacy_source') || $bond->legacy_source !== 'alrafedin_finance_bonds')
+                ? $bond->constraint_id
+                : null;
+        $operatingLinks = $this->resolveImportedBondOperatingLinks($row);
 
         $payload = [
             'code' => $code,
@@ -317,6 +451,29 @@ class DataImportExecutionService
             'cost_center_id' => $this->resolveFinanceCostCenterId($row),
         ];
 
+        $legacyPayload = [
+            'legacy_source' => 'alrafedin_finance_bonds',
+            'legacy_source_file' => $row['__source_file'] ?? null,
+            'legacy_source_sheet' => $row['__source_sheet'] ?? null,
+            'legacy_source_row' => $this->optionalInteger($row['__source_row'] ?? null),
+            'legacy_sequence' => $this->optionalInteger($row['sequence'] ?? $row['source_sequence'] ?? null),
+            'legacy_hijri_date' => $this->nullableImportString($row['hijri_date'] ?? null),
+            'legacy_total' => $this->decimal($row['total'] ?? null),
+            'legacy_currency' => $this->nullableImportString($row['currency'] ?? null),
+            'legacy_financial_movement' => $this->decimal($row['financial_movement'] ?? null),
+            'legacy_financial_movement_currency' => $this->nullableImportString($row['financial_movement_currency'] ?? null),
+            'legacy_client_number' => $this->optionalInteger($row['client_number'] ?? null),
+            'legacy_order_number' => $this->optionalInteger($row['order_number'] ?? null),
+            'recruitment_contract_id' => $operatingLinks['recruitment_contract_id'],
+            'rental_contract_id' => $operatingLinks['rental_contract_id'],
+            'legacy_source_payload' => $this->legacyBondSourcePayload($row),
+        ];
+        foreach ($legacyPayload as $column => $columnValue) {
+            if (Schema::hasColumn('fn_bonds', $column)) {
+                $payload[$column] = $columnValue;
+            }
+        }
+
         foreach ([
             'is_tax' => 0,
             'net' => round((float) $value, 2),
@@ -329,21 +486,110 @@ class DataImportExecutionService
             }
         }
 
-        $bond = Bond::query()
-            ->where('type', $bondType)
-            ->where('code', $code)
-            ->first();
-
         if ($bond) {
+            if (
+                Schema::hasColumn('fn_bonds', 'legacy_source')
+                && !$bond->legacy_source
+                && !$this->existingBondMatchesLegacyRow($bond, $payload)
+            ) {
+                throw new \InvalidArgumentException(
+                    "رقم السند {$code} مستخدم مسبقًا في سند غير مستورد وتختلف بياناته؛ لم يتم استبداله."
+                );
+            }
             $bond->update($payload);
-            $this->syncRentalInvoicesForReceiptBond($bond->fresh());
+            $bond = $bond->fresh();
+            $this->archiveLegacyBondSourceRow($bond, $row);
+            $this->linkLegacyBondToActualConstraint($bond);
+            $bond = $bond->fresh();
+            $this->syncRentalInvoicesForReceiptBond($bond);
             return 'updated';
         }
 
         $bond = Bond::query()->create($payload);
+        $this->archiveLegacyBondSourceRow($bond, $row);
+        $this->linkLegacyBondToActualConstraint($bond);
         $this->syncRentalInvoicesForReceiptBond($bond->fresh());
 
         return 'created';
+    }
+
+    private function normalizeLegacyBondDocumentType($value): ?string
+    {
+        $normalized = $this->normalizeArabicText((string) $value);
+
+        return match (true) {
+            str_contains($normalized, 'سند قبض') => BondTypes::Qabd->value,
+            str_contains($normalized, 'سند صرف') => BondTypes::Sarf->value,
+            default => null,
+        };
+    }
+
+    private function linkLegacyBondToActualConstraint(Bond $bond): bool
+    {
+        if (
+            !Schema::hasColumn('fn_constraints', 'legacy_document_type')
+            || !Schema::hasColumn('fn_constraints', 'legacy_document_number')
+        ) {
+            return false;
+        }
+
+        $constraints = Constraint::query()
+            ->where('legacy_document_type', $bond->type)
+            ->where('legacy_document_number', $bond->code)
+            ->get();
+
+        if ($constraints->count() !== 1) {
+            return false;
+        }
+
+        $this->attachLegacyBondToActualConstraint($bond, $constraints->first());
+
+        return true;
+    }
+
+    private function attachLegacyBondToActualConstraint(Bond $bond, Constraint $constraint): array
+    {
+        if ($bond->constraint_id && (int) $bond->constraint_id !== (int) $constraint->id) {
+            $currentConstraint = Constraint::query()->find($bond->constraint_id);
+            if ($currentConstraint) {
+                throw new \RuntimeException(
+                    "السند {$bond->code} مرتبط مسبقًا بقيد فعلي آخر رقم {$currentConstraint->code}."
+                );
+            }
+        }
+
+        $linked = (int) $bond->constraint_id !== (int) $constraint->id;
+        if ($linked) {
+            $bond->update(['constraint_id' => $constraint->id]);
+        }
+
+        $invoiceLinksUpdated = 0;
+        if (
+            $bond->type === BondTypes::Qabd->value
+            && Schema::hasTable('rental_contract_invoices')
+            && Schema::hasColumn('rental_contract_invoices', 'receipt_constraint_id')
+        ) {
+            $invoiceLinksUpdated = DB::table('rental_contract_invoices')
+                ->where(function ($query) use ($bond) {
+                    $query->where('receipt_bond_id', $bond->id);
+                    if (Schema::hasColumn('rental_contract_invoices', 'legacy_receipt_code')) {
+                        $query->orWhere('legacy_receipt_code', $bond->code);
+                    }
+                })
+                ->where(function ($query) use ($constraint) {
+                    $query->whereNull('receipt_constraint_id')
+                        ->orWhere('receipt_constraint_id', '!=', $constraint->id);
+                })
+                ->update([
+                    'receipt_constraint_id' => $constraint->id,
+                    'updated_at' => now(),
+                ]);
+        }
+
+        return [
+            'linked' => $linked,
+            'invoice_links_updated' => $invoiceLinksUpdated,
+        ];
     }
 
     private function syncRentalInvoicesForReceiptBond(Bond $bond): void
@@ -388,74 +634,130 @@ class DataImportExecutionService
                     'payment_confirmed_at' => $paidAmount > 0 ? $bond->date : null,
                 ]);
         }
-    }
 
-    private function upsertReceiptBondConstraint(
-        array $row,
-        int $code,
-        string $date,
-        float $value,
-        string $statement,
-        int $debitAccountId,
-        int $creditAccountId,
-        int $yearId,
-        ?int $adminId,
-        string $bondType,
-        ConstraintTypiesEnum $constraintType
-    ): int {
-        $constraint = null;
-        $existingBond = Bond::query()
-            ->where('type', $bondType)
-            ->where('code', $code)
-            ->first();
-
-        if ($existingBond?->constraint_id) {
-            $constraint = Constraint::query()->whereKey($existingBond->constraint_id)->first();
-        }
-
-        $payload = [
-            'type' => $constraintType->value,
-            'value' => round($value, 2),
-            'date' => $date,
-            'statement' => $statement,
-            'year_id' => $yearId,
-            'code' => $constraint?->code ?: $this->nextFinanceConstraintCode(),
-            'created_by_id' => $adminId ?? auth('admin')->id() ?? auth()->id() ?? 1,
-        ];
-
-        if ($constraint) {
-            $constraint->update($payload);
-            ConstraintDetails::query()->where('constraint_id', $constraint->id)->delete();
-        } else {
-            $constraint = Constraint::query()->create($payload);
-        }
-
-        $costCenterId = $this->resolveFinanceCostCenterId($row);
-        foreach ([
-            ['type' => 'debtor', 'account_id' => $debitAccountId, 'debtor_value' => round($value, 2), 'creditor_value' => 0],
-            ['type' => 'creditor', 'account_id' => $creditAccountId, 'debtor_value' => 0, 'creditor_value' => round($value, 2)],
-        ] as $detail) {
-            ConstraintDetails::query()->create($detail + [
-                'constraint_id' => $constraint->id,
-                'date' => $date,
-                'cost_center_id' => $costCenterId,
-                'statement' => $statement,
-                'year_id' => $yearId,
+        if (
+            $invoices->isNotEmpty()
+            && Schema::hasColumn('fn_bonds', 'rental_contract_id')
+            && $invoices->pluck('rental_contract_id')->unique()->count() === 1
+        ) {
+            DB::table('fn_bonds')->where('id', $bond->id)->update([
+                'rental_contract_id' => (int) $invoices->first()->rental_contract_id,
             ]);
         }
-
-        return (int) $constraint->id;
     }
 
-    private function resolveReceiptBondAccountId(array $row, string $side): ?int
+    private function resolveReceiptBondAccountId(array $row, string $side, ?int $adminId): ?int
     {
         $prefix = $side === 'debit' ? 'debit' : 'credit';
 
-        return $this->resolveFinanceAccountId([
+        return $this->resolveOrCreateFinanceConstraintAccountId([
             'account_id' => $row[$prefix . '_account_id'] ?? null,
             'account_code' => $row[$prefix . '_account_code'] ?? null,
             'account_name' => $row[$prefix . '_account_name'] ?? null,
-        ]);
+            'statement' => $row['statement'] ?? null,
+        ], $adminId);
+    }
+
+    private function withLegacyBondSourceMetadata(array $row, int $rowNumber, string $storedPath): array
+    {
+        $row['__source_file'] = $this->currentImportOriginalName ?: basename($storedPath);
+        $row['__source_sheet'] = 'Arabia2web.com';
+        $row['__source_row'] = $rowNumber;
+
+        return $row;
+    }
+
+    private function legacyBondSourcePayload(array $row): array
+    {
+        return collect($row)
+            ->reject(fn ($value, $key) => str_starts_with((string) $key, '__'))
+            ->map(fn ($value) => is_string($value) ? trim($value) : $value)
+            ->all();
+    }
+
+    private function archiveLegacyBondSourceRow(Bond $bond, array $row): void
+    {
+        if (!Schema::hasTable('legacy_finance_bond_source_rows')) {
+            return;
+        }
+
+        $payload = $this->legacyBondSourcePayload($row);
+        $sourceFile = (string) ($row['__source_file'] ?? 'unknown');
+        $sourceSheet = (string) ($row['__source_sheet'] ?? '');
+        $sourceRow = $this->optionalInteger($row['__source_row'] ?? null);
+        $sourceHash = hash('sha256', json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        $sourceKey = hash('sha256', implode('|', [$sourceFile, $sourceSheet, (string) $sourceRow, $sourceHash]));
+
+        DB::table('legacy_finance_bond_source_rows')->updateOrInsert(
+            ['source_key' => $sourceKey],
+            [
+                'bond_id' => $bond->id,
+                'source_hash' => $sourceHash,
+                'source_file' => $sourceFile,
+                'source_sheet' => $sourceSheet ?: null,
+                'source_row' => $sourceRow,
+                'payload' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        );
+    }
+
+    private function existingBondMatchesLegacyRow(Bond $bond, array $payload): bool
+    {
+        return (string) $bond->date === (string) $payload['date']
+            && (int) $bond->debit_account_id === (int) $payload['debit_account_id']
+            && (int) $bond->credit_account_id === (int) $payload['credit_account_id']
+            && abs((float) $bond->value - (float) $payload['value']) < 0.005;
+    }
+
+    private function resolveImportedBondOperatingLinks(array $row): array
+    {
+        $statement = $this->normalizeDigits((string) ($row['statement'] ?? ''));
+        $rentalOrderNumber = $this->extractLegacyRentalOrderNumber($statement);
+        $rentalContractId = null;
+        $recruitmentContractId = null;
+
+        if ($rentalOrderNumber && Schema::hasTable('rental_contracts')) {
+            $query = RentalContract::query();
+            if (Schema::hasColumn('rental_contracts', 'legacy_order_id')) {
+                $query->where('legacy_order_id', $rentalOrderNumber);
+            } else {
+                $query->where('contract_number', (string) $rentalOrderNumber);
+            }
+            $rentalContractId = $query->value('id');
+        }
+
+        $orderNumber = $this->optionalInteger($row['order_number'] ?? null);
+        if (!$rentalOrderNumber && $orderNumber && Schema::hasTable('contracts')) {
+            $contractQuery = Contract::query();
+            if (Schema::hasColumn('contracts', 'arabia_order_number')) {
+                $contractQuery->where('arabia_order_number', $orderNumber);
+            } else {
+                $contractQuery->where('id', $orderNumber);
+            }
+            $contract = $contractQuery->first();
+            $contract ??= Contract::query()->where('contract_number', (string) $orderNumber)->first();
+            $recruitmentContractId = $contract?->id;
+        }
+
+        return [
+            'recruitment_contract_id' => $recruitmentContractId ? (int) $recruitmentContractId : null,
+            'rental_contract_id' => $rentalContractId ? (int) $rentalContractId : null,
+        ];
+    }
+
+    private function extractLegacyRentalOrderNumber(?string $statement): ?int
+    {
+        $statement = $this->normalizeDigits((string) $statement);
+
+        if (!preg_match('/طلب\s+ت[اأإآ]جير\s+رقم\s*[:：]?\s*(\d+)/u', $statement, $matches)) {
+            return null;
+        }
+
+        $number = (int) ($matches[1] ?? 0);
+
+        return $number > 0 ? $number : null;
     }
 
     private function resolveReceiptBondPaymentType($value): int
@@ -912,6 +1214,10 @@ class DataImportExecutionService
             $sourceCreatedAt
         );
 
+        if ($receiptBond && Schema::hasColumn('fn_bonds', 'rental_contract_id')) {
+            $receiptBond->update(['rental_contract_id' => $contract->id]);
+        }
+
         return [
             'outcome' => $created ? 'created' : 'updated',
             'maid_id' => $maid->id,
@@ -1115,43 +1421,59 @@ class DataImportExecutionService
     private function readRows(string $path, array $columns): \Generator
     {
         $spreadsheet = $this->loadSpreadsheetForImport($path);
-        $sheet = $spreadsheet->getSheetByName('البيانات') ?: $spreadsheet->getActiveSheet();
-        $highestRow = $sheet->getHighestDataRow();
-        $highestColumn = $sheet->getHighestDataColumn();
-        $highestColumnIndex = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($highestColumn);
+        try {
+            $sheet = $spreadsheet->getSheetByName('البيانات') ?: $spreadsheet->getActiveSheet();
+            $highestRow = $sheet->getHighestDataRow();
+            $highestColumn = $sheet->getHighestDataColumn();
+            $highestColumnIndex = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($highestColumn);
 
-        $labelMap = [];
-        foreach ($columns as $column) {
-            $labelMap[$this->normalizeHeader($column['label'])] = $column['key'];
-            $labelMap[$this->normalizeHeader($column['key'])] = $column['key'];
-        }
-        foreach ($this->importHeaderAliases() as $header => $key) {
-            $labelMap[$this->normalizeHeader($header)] = $key;
-        }
+            $labelMap = [];
+            foreach ($this->importHeaderAliases() as $header => $key) {
+                $labelMap[$this->normalizeHeader($header)] = $key;
+            }
+            // Template labels are more specific than the shared legacy aliases. For
+            // example, "رقم الحساب" means a cost-center code in the Alrafedin file.
+            foreach ($columns as $column) {
+                $labelMap[$this->normalizeHeader($column['label'])] = $column['key'];
+                $labelMap[$this->normalizeHeader($column['key'])] = $column['key'];
+            }
 
-        $headers = [];
-        for ($column = 1; $column <= $highestColumnIndex; $column++) {
-            $header = $this->cellValue($sheet->getCell($this->cellCoordinate($column, 1))->getValue());
-            $headers[$column] = $labelMap[$this->normalizeHeader($header)] ?? $header;
-        }
-
-        $rows = [];
-        for ($rowNumber = 2; $rowNumber <= $highestRow; $rowNumber++) {
-            $row = [];
+            $headers = [];
             for ($column = 1; $column <= $highestColumnIndex; $column++) {
-                $key = $headers[$column] ?? null;
-                if (!$key) {
-                    continue;
+                $header = $this->cellValue($sheet->getCell($this->cellCoordinate($column, 1))->getValue());
+                $headers[$column] = $labelMap[$this->normalizeHeader($header)] ?? $header;
+            }
+
+            for ($rowNumber = 2; $rowNumber <= $highestRow; $rowNumber++) {
+                $row = [];
+                $hasValue = false;
+                $onlyTemplateMarkers = true;
+
+                for ($column = 1; $column <= $highestColumnIndex; $column++) {
+                    $key = $headers[$column] ?? null;
+                    if (!$key) {
+                        continue;
+                    }
+
+                    $value = $this->cellValue($sheet->getCell($this->cellCoordinate($column, $rowNumber))->getValue());
+                    $row[$key] = $value;
+
+                    if ($value !== '') {
+                        $hasValue = true;
+                        if (!in_array($value, ['مطلوب', 'اختياري'], true)) {
+                            $onlyTemplateMarkers = false;
+                        }
+                    }
                 }
 
-                $row[$key] = $this->cellValue($sheet->getCell($this->cellCoordinate($column, $rowNumber))->getValue());
+                if ($hasValue && !$onlyTemplateMarkers) {
+                    yield $rowNumber => $row;
+                }
             }
-
-            $values = collect($row)->filter(fn ($value) => $value !== null && $value !== '');
-
-            if ($values->isNotEmpty() && !$values->every(fn ($value) => in_array($value, ['مطلوب', 'اختياري'], true))) {
-                yield $rowNumber => $row;
-            }
+        } finally {
+            $spreadsheet->disconnectWorksheets();
+            unset($sheet, $spreadsheet);
+            gc_collect_cycles();
         }
     }
 
@@ -1172,10 +1494,15 @@ class DataImportExecutionService
 
     private function importFinanceConstraintsFile(string $storedPath, array $columns, ?int $adminId, array $result): array
     {
+        $accountsBeforeImport = class_exists(Account::class) && Schema::hasTable('fn_accounts')
+            ? Account::query()->count()
+            : 0;
         $groups = [];
 
-        foreach ($this->readRows(Storage::path($storedPath), $columns) as $rowNumber => $row) {
+        foreach ($this->readRowsInChunks(Storage::path($storedPath), $columns) as $rowNumber => $row) {
             $result['total']++;
+            $row['__source_file'] = basename($storedPath);
+            $row['__source_row'] = $rowNumber;
             $reference = trim((string) ($row['constraint_ref'] ?? $row['code'] ?? ''));
 
             if ($reference === '') {
@@ -1212,7 +1539,225 @@ class DataImportExecutionService
             }
         }
 
+        $result['accounts_created'] = class_exists(Account::class) && Schema::hasTable('fn_accounts')
+            ? max(0, Account::query()->count() - $accountsBeforeImport)
+            : 0;
+        $result['cost_center_links'] = $this->linkImportedRequestCostCentersToConstraints();
+
         return $result;
+    }
+
+    private function importFinanceCostCentersFile(string $storedPath, array $columns, ?int $adminId, array $result): array
+    {
+        if (!class_exists(CostCenter::class) || !Schema::hasTable('fn_cost_centers')) {
+            $result['error_count']++;
+            $result['errors'][] = 'جدول مراكز التكلفة المالية غير موجود.';
+
+            return $result;
+        }
+
+        $rows = [];
+        foreach ($this->readRows(Storage::path($storedPath), $columns) as $rowNumber => $row) {
+            $result['total']++;
+            $code = trim($this->normalizeDigits((string) ($row['cost_center_code'] ?? '')));
+            $name = trim((string) ($row['cost_center_name'] ?? ''));
+            $level = $this->optionalInteger($row['level'] ?? null);
+
+            if ($code === '' || $name === '' || !$level) {
+                $result['skipped']++;
+                $result['error_count']++;
+                if (count($result['errors']) < self::MAX_ERROR_DETAILS) {
+                    $result['errors'][] = "صف {$rowNumber}: رقم مركز التكلفة واسمه ومستواه مطلوبة.";
+                }
+                continue;
+            }
+
+            $rows[] = [
+                'row_number' => $rowNumber,
+                'code' => $code,
+                'name' => $name,
+                'level' => $level,
+                'parent_code' => trim($this->normalizeDigits((string) ($row['parent_code'] ?? ''))),
+                'parent_name' => trim((string) ($row['parent_name'] ?? '')),
+                'full_path' => trim((string) ($row['full_path'] ?? '')),
+                'legacy_debtor_total' => $this->decimal($row['legacy_debtor_total'] ?? null),
+                'legacy_creditor_total' => $this->decimal($row['legacy_creditor_total'] ?? null),
+                'legacy_balance' => $this->decimal($row['legacy_balance'] ?? null),
+                'legacy_balance_type' => $this->normalizeLegacyBalanceType($row['legacy_balance_type'] ?? null),
+                'legacy_opening_balance' => $this->decimal($row['legacy_opening_balance'] ?? null),
+            ];
+        }
+
+        usort($rows, fn (array $left, array $right) => [$left['level'], (int) $left['code']] <=> [$right['level'], (int) $right['code']]);
+
+        $byCode = CostCenter::query()
+            ->whereNotNull('legacy_source_code')
+            ->get()
+            ->keyBy(fn (CostCenter $center) => (string) $center->legacy_source_code);
+        $tableColumns = array_flip(Schema::getColumnListing('fn_cost_centers'));
+
+        foreach ($rows as $row) {
+            try {
+                DB::transaction(function () use ($row, $adminId, $tableColumns, &$byCode, &$result) {
+                    $parent = null;
+                    if ($row['level'] > 1) {
+                        $parent = $row['parent_code'] !== '' ? ($byCode[$row['parent_code']] ?? null) : null;
+                        if (!$parent && $row['parent_name'] !== '') {
+                            $matches = CostCenter::query()->where('title', $row['parent_name'])->get();
+                            if ($matches->count() === 1) {
+                                $parent = $matches->first();
+                            }
+                        }
+                        if (!$parent) {
+                            throw new \InvalidArgumentException('تعذر تحديد مركز التكلفة الأب: ' . ($row['parent_code'] ?: $row['parent_name'] ?: '-'));
+                        }
+                    }
+
+                    $isRecruitmentRoot = $row['code'] === '2'
+                        && $this->normalizeArabicText($row['name']) === $this->normalizeArabicText('طلبات الاستقدام');
+                    $center = $byCode[$row['code']] ?? null;
+                    if (!$center && $isRecruitmentRoot) {
+                        $center = CostCenter::query()
+                            ->whereNull('parent_id')
+                            ->where('title', 'عقود الاستقدام')
+                            ->first();
+                    }
+                    $payload = array_intersect_key([
+                        'title' => $isRecruitmentRoot ? 'عقود الاستقدام' : $row['name'],
+                        'parent_id' => $parent?->id,
+                        'table_name' => 'fn_cost_centers',
+                        // The finance package defines this column as NOT NULL even
+                        // for general (unassociated) cost centers.
+                        'table_related_id' => 0,
+                        'created_by_id' => $center?->created_by_id ?? $adminId ?? auth('admin')->id() ?? 1,
+                        'legacy_source_code' => $row['code'],
+                        'legacy_level' => $row['level'],
+                        'legacy_full_path' => $row['full_path'] ?: null,
+                        'legacy_debtor_total' => $row['legacy_debtor_total'],
+                        'legacy_creditor_total' => $row['legacy_creditor_total'],
+                        'legacy_balance' => $row['legacy_balance'],
+                        'legacy_balance_type' => $row['legacy_balance_type'],
+                        'legacy_opening_balance' => $row['legacy_opening_balance'],
+                    ], $tableColumns);
+
+                    if ($center) {
+                        $center->update($payload);
+                        $result['updated']++;
+                    } else {
+                        $center = CostCenter::query()->create($payload + ['code' => 'ALR-' . $row['code']]);
+                        $result['created']++;
+                    }
+
+                    $byCode[$row['code']] = $center->fresh();
+                });
+            } catch (\Throwable $exception) {
+                $result['skipped']++;
+                $result['error_count']++;
+                if (count($result['errors']) < self::MAX_ERROR_DETAILS) {
+                    $result['errors'][] = "صف {$row['row_number']}: " . $exception->getMessage();
+                }
+            }
+        }
+
+        $result['cost_center_links'] = $this->linkImportedRequestCostCentersToConstraints();
+
+        return $result;
+    }
+
+    private function normalizeLegacyBalanceType($value): ?string
+    {
+        $value = $this->normalizeArabicText((string) $value);
+
+        return match ($value) {
+            'مدين', 'debtor', 'debit' => 'debtor',
+            'دائن', 'داين', 'creditor', 'credit' => 'creditor',
+            default => null,
+        };
+    }
+
+    private function readRowsInChunks(string $path, array $columns, int $chunkSize = 2000): \Generator
+    {
+        $infoReader = IOFactory::createReaderForFile($path);
+        $worksheetInfo = $infoReader->listWorksheetInfo($path);
+        $highestRow = (int) ($worksheetInfo[0]['totalRows'] ?? 0);
+        unset($infoReader, $worksheetInfo);
+
+        $labelMap = [];
+        foreach ($columns as $column) {
+            $labelMap[$this->normalizeHeader($column['label'])] = $column['key'];
+            $labelMap[$this->normalizeHeader($column['key'])] = $column['key'];
+        }
+        foreach ($this->importHeaderAliases() as $header => $key) {
+            $labelMap[$this->normalizeHeader($header)] = $key;
+        }
+
+        for ($startRow = 2; $startRow <= $highestRow; $startRow += $chunkSize) {
+            $endRow = min($highestRow, $startRow + $chunkSize - 1);
+            $reader = IOFactory::createReaderForFile($path);
+
+            if (method_exists($reader, 'setReadDataOnly')) {
+                $reader->setReadDataOnly(true);
+            }
+            if (method_exists($reader, 'setReadEmptyCells')) {
+                $reader->setReadEmptyCells(false);
+            }
+
+            $reader->setReadFilter(new class($startRow, $endRow) implements \PhpOffice\PhpSpreadsheet\Reader\IReadFilter {
+                public function __construct(private int $startRow, private int $endRow)
+                {
+                }
+
+                public function readCell($columnAddress, $row, $worksheetName = ''): bool
+                {
+                    return $row === 1 || ($row >= $this->startRow && $row <= $this->endRow);
+                }
+            });
+
+            $spreadsheet = $reader->load($path);
+            try {
+                $sheet = $spreadsheet->getSheetByName('البيانات') ?: $spreadsheet->getActiveSheet();
+                $highestColumnIndex = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString(
+                    $sheet->getHighestDataColumn()
+                );
+                $headers = [];
+
+                for ($column = 1; $column <= $highestColumnIndex; $column++) {
+                    $header = $this->cellValue($sheet->getCell($this->cellCoordinate($column, 1))->getValue());
+                    $headers[$column] = $labelMap[$this->normalizeHeader($header)] ?? $header;
+                }
+
+                for ($rowNumber = $startRow; $rowNumber <= $endRow; $rowNumber++) {
+                    $row = [];
+                    $hasValue = false;
+                    $onlyTemplateMarkers = true;
+
+                    for ($column = 1; $column <= $highestColumnIndex; $column++) {
+                        $key = $headers[$column] ?? null;
+                        if (!$key) {
+                            continue;
+                        }
+
+                        $value = $this->cellValue($sheet->getCell($this->cellCoordinate($column, $rowNumber))->getValue());
+                        $row[$key] = $value;
+
+                        if ($value !== '') {
+                            $hasValue = true;
+                            if (!in_array($value, ['مطلوب', 'اختياري'], true)) {
+                                $onlyTemplateMarkers = false;
+                            }
+                        }
+                    }
+
+                    if ($hasValue && !$onlyTemplateMarkers) {
+                        yield $rowNumber => $row;
+                    }
+                }
+            } finally {
+                $spreadsheet->disconnectWorksheets();
+                unset($sheet, $spreadsheet, $reader);
+                gc_collect_cycles();
+            }
+        }
     }
 
     private function importFinanceConstraintGroup(string $reference, array $rows, ?int $adminId): string
@@ -1221,7 +1766,14 @@ class DataImportExecutionService
             throw new \InvalidArgumentException('القيد يجب أن يحتوي على سطرين على الأقل.');
         }
 
+        $code = $this->resolveFinanceConstraintCode($rows);
+        if ($this->financeConstraintsMissingOnly && $code && Constraint::query()->where('code', $code)->exists()) {
+            return 'skipped';
+        }
+
         $firstRow = $rows[0]['row'];
+        $legacyDocumentType = $this->normalizeLegacyBondDocumentType($firstRow['document_type'] ?? null);
+        $legacyDocumentNumber = $this->optionalInteger($firstRow['document_number'] ?? null);
         $date = $this->parseDate($firstRow['date'] ?? null);
 
         if (!$date) {
@@ -1238,7 +1790,6 @@ class DataImportExecutionService
         $createdByValue = collect($rows)
             ->map(fn ($item) => $item['row']['created_by'] ?? $item['row']['created_by_name'] ?? null)
             ->first(fn ($value) => trim((string) $value) !== '');
-        $code = $this->resolveFinanceConstraintCode($rows);
         $type = $this->resolveFinanceConstraintType($firstRow['type'] ?? null);
         $details = [];
         $debtorTotal = 0.0;
@@ -1252,13 +1803,13 @@ class DataImportExecutionService
                 throw new \InvalidArgumentException('كل صفوف القيد الواحد يجب أن تحمل نفس التاريخ.');
             }
 
-            $accountId = $this->resolveFinanceAccountId($row);
+            $accountId = $this->resolveOrCreateFinanceConstraintAccountId($row, $adminId);
             if (!$accountId) {
-                throw new \InvalidArgumentException('تعذر تحديد الحساب. استخدم account_id أو account_code أو account_name صحيح.');
+                throw new \InvalidArgumentException('تعذر تحديد الحساب أو إنشاؤه داخل شجرة الحسابات.');
             }
 
             $line = $this->resolveFinanceConstraintLine($row);
-            $costCenterId = $this->resolveFinanceCostCenterId($row);
+            $costCenterId = $this->resolveFinanceCostCenterId($row, $accountId);
             $lineStatement = trim((string) ($row['line_statement'] ?? ''))
                 ?: (trim((string) ($row['statement'] ?? '')) ?: $statement);
 
@@ -1286,6 +1837,10 @@ class DataImportExecutionService
         }
 
         $constraint = $code ? Constraint::query()->where('code', $code)->first() : null;
+        if ($this->financeConstraintsMissingOnly && $constraint) {
+            return 'skipped';
+        }
+
         $payload = [
             'type' => $type,
             'value' => round($debtorTotal, 2),
@@ -1295,6 +1850,12 @@ class DataImportExecutionService
             'code' => $code ?: $this->nextFinanceConstraintCode(),
             'created_by_id' => $this->resolveImportedAdminId($createdByValue, $adminId),
         ];
+        if (Schema::hasColumn('fn_constraints', 'legacy_document_type')) {
+            $payload['legacy_document_type'] = $legacyDocumentType;
+            $payload['legacy_document_number'] = $legacyDocumentNumber;
+            $payload['legacy_source_file'] = $firstRow['__source_file'] ?? null;
+            $payload['legacy_source_row'] = $this->optionalInteger($firstRow['__source_row'] ?? null);
+        }
 
         if ($constraint) {
             $constraint->update($payload);
@@ -1305,10 +1866,25 @@ class DataImportExecutionService
             $outcome = 'created';
         }
 
-        foreach ($details as $detail) {
-            ConstraintDetails::query()->create($detail + [
+        $now = now();
+        ConstraintDetails::query()->insert(array_map(
+            fn (array $detail) => $detail + [
                 'constraint_id' => $constraint->id,
-            ]);
+                'created_at' => $now,
+                'updated_at' => $now,
+            ],
+            $details
+        ));
+
+        if ($legacyDocumentType && $legacyDocumentNumber) {
+            $bond = Bond::query()
+                ->where('legacy_source', 'alrafedin_finance_bonds')
+                ->where('type', $legacyDocumentType)
+                ->where('code', $legacyDocumentNumber)
+                ->first();
+            if ($bond) {
+                $this->attachLegacyBondToActualConstraint($bond, $constraint);
+            }
         }
 
         return $outcome;
@@ -1428,9 +2004,23 @@ class DataImportExecutionService
             'users_by_legacy_number' => [],
             'users_by_phone' => [],
             'users_by_name' => [],
-            // العقد رقمه هو نفسه id العقد، فنحمّل كل أرقام العقود مرة واحدة للمطابقة في الذاكرة.
+            'admin_ids_by_source_name' => [],
+            // نطابق رقم الطلب الخارجي أولاً، ولا نخلطه مع id داخلي من نوع عقد مختلف.
             'contract_ids' => Contract::query()->pluck('id')->flip()->all(),
+            'has_contract_legacy_numbers' => Schema::hasColumn('contracts', 'arabia_order_number'),
+            'contract_ids_by_legacy_number' => Schema::hasColumn('contracts', 'arabia_order_number')
+                ? Contract::query()->whereNotNull('arabia_order_number')->pluck('id', 'arabia_order_number')->all()
+                : [],
+            'contract_branch_ids' => Schema::hasColumn('contracts', 'branch_id')
+                ? Contract::query()->pluck('branch_id', 'id')->all()
+                : [],
+            'import_branch_id' => $adminId && Schema::hasColumn('admins', 'branch_id')
+                ? Admin::query()->whereKey($adminId)->value('branch_id')
+                : null,
             'existing_invoice_ids' => Invoice::query()->pluck('id')->flip()->all(),
+            'legacy_invoice_ids' => Schema::hasColumn('invoices', 'legacy_invoice_number')
+                ? Invoice::query()->whereNotNull('legacy_invoice_number')->pluck('id', 'legacy_invoice_number')->all()
+                : [],
             'invoice_columns' => array_flip(Schema::getColumnListing('invoices')),
             'user_columns' => array_flip(Schema::getColumnListing('users')),
         ];
@@ -1453,7 +2043,40 @@ class DataImportExecutionService
             }
         }
 
+        $result['source_files_attached'] = $this->attachLegacyInvoiceSourceFiles();
+
         return $result;
+    }
+
+    private function attachLegacyInvoiceSourceFiles(): int
+    {
+        if (!Schema::hasColumn('invoices', 'legacy_source_file')) {
+            return 0;
+        }
+
+        $directory = base_path('migration_system/data/alrafedin/finance/invoices');
+        $filesByInvoice = [
+            8228 => 'فاتورة مُوّرِد.pdf',
+            8229 => 'اشعار دائن ضريبي - استرداد طلب 2392 .. طلب استقدام_ 2392.pdf',
+            8230 => 'اشعار مدين ضريبي - خصم الاسترداد _ استرداد طلب_ 2392 فاتورة رقم_ 8229 - العميل_ حسين عبدالكريم حسين النمر - HUSEEN _ 2634.pdf',
+            8231 => 'اشعار دائن ضريبي - استرداد طلب 2372 .. طلب استقدام_ 2372.pdf',
+            8232 => 'اشعار مدين ضريبي - خصم الاسترداد _ استرداد طلب_ 2372 فاتورة رقم_ 8231 - العميل_ هنيه موسى جعفر آل خزعل - HANEEH _ 2595.pdf',
+            8233 => 'اشعار دائن ضريبي - استرداد طلب 2296 .. طلب استقدام_ 2296.pdf',
+            8234 => 'اشعار دائن ضريبي - استرداد طلب 2056 .. طلب استقدام_ 2056.pdf',
+        ];
+
+        $attached = 0;
+        foreach ($filesByInvoice as $invoiceNumber => $filename) {
+            if (!is_file($directory . DIRECTORY_SEPARATOR . $filename)) {
+                continue;
+            }
+
+            $attached += Invoice::query()
+                ->where('legacy_invoice_number', $invoiceNumber)
+                ->update(['legacy_source_file' => $filename]);
+        }
+
+        return $attached;
     }
 
     private function readLegacyInvoiceRows(string $path, array $columns): \Generator
@@ -1543,9 +2166,13 @@ class DataImportExecutionService
         // مطابقة الفاتورة مع العقد عن طريق رقم العقد (وهو نفسه id العقد في النظام).
         $contractId = $this->resolveLegacyInvoiceContract($row, $context);
         $client = $contractId ? null : $this->resolveLegacyInvoiceClient($row, $adminId, $context);
+        $legacyZatcaShared = $this->truthy($row['legacy_zatca_shared'] ?? null, false);
 
         $payload = array_intersect_key([
             'contract_id' => $contractId,
+            'branch_id' => $contractId
+                ? ($context['contract_branch_ids'][$contractId] ?? $context['import_branch_id'])
+                : $context['import_branch_id'],
             'ingaz_delegation_id' => null,
             'client_id' => $contractId ? null : $client?->id,
             'insurance_company' => null,
@@ -1568,26 +2195,44 @@ class DataImportExecutionService
             'discount' => 0,
             'vat_amount' => $vatAmount,
             'total_due' => $totalDue,
+            // حسب اعتماد الإدارة، جميع فواتير الرافدين المستوردة مسددة.
             'is_paid' => 1,
             'paid_at' => $invoiceDate,
+            // المشاركة السابقة تحفظ مستقلة حتى لا يعاد إرسال الفاتورة نفسها إلى الهيئة.
             'send_to_zatca' => 0,
-            'created_by' => $this->resolveImportedAdminId(
+            'legacy_invoice_number' => $invoiceNumber,
+            'legacy_invoice_type' => $this->nullableTrimmedString($row['invoice_type'] ?? null),
+            'legacy_document_type' => $this->nullableTrimmedString($row['document_type'] ?? null),
+            'legacy_client_number' => $this->nullableTrimmedString($row['legacy_client_number'] ?? null),
+            'legacy_order_number' => $this->nullableTrimmedString($row['legacy_order_number'] ?? null),
+            'legacy_zatca_shared' => $legacyZatcaShared,
+            'legacy_source_sheet' => $this->nullableTrimmedString($row['source_sheet'] ?? null),
+            'legacy_source_row' => $this->optionalInteger($row['source_row'] ?? null),
+            'legacy_source_payload' => $this->legacyInvoiceSourcePayload($row),
+            'created_by' => $this->resolveLegacyInvoiceAdminId(
                 $row['created_by_name'] ?? $row['created_by'] ?? null,
-                $adminId
+                $adminId,
+                $context
             ),
             'created_at' => $invoiceDate,
             'updated_at' => $invoiceDate,
         ], $context['invoice_columns']);
 
-        // نعتمد على قائمة أرقام الفواتير المحمّلة مسبقاً بدل استعلام لكل صف.
-        if (isset($context['existing_invoice_ids'][$invoiceNumber])) {
-            Invoice::query()->whereKey($invoiceNumber)->update($payload);
+        // إعادة رفع الملف تحدث نفس الفاتورة القديمة ولا تنشئ نسخة ثانية.
+        if (isset($context['legacy_invoice_ids'][$invoiceNumber])) {
+            Invoice::query()->whereKey($context['legacy_invoice_ids'][$invoiceNumber])->update($payload);
 
             return 'updated';
         }
 
+        // لا نستبدل فاتورة أصلية حديثة إذا تصادف رقمها مع رقم قديم.
+        if (isset($context['existing_invoice_ids'][$invoiceNumber])) {
+            throw new \RuntimeException("رقم الفاتورة {$invoiceNumber} مستخدم في فاتورة غير مستوردة؛ لم يتم استبدالها.");
+        }
+
         Invoice::query()->create(['id' => $invoiceNumber] + $payload);
         $context['existing_invoice_ids'][$invoiceNumber] = true;
+        $context['legacy_invoice_ids'][$invoiceNumber] = $invoiceNumber;
 
         return 'created';
     }
@@ -1611,7 +2256,9 @@ class DataImportExecutionService
         }
 
         if ($legacyClientNumber) {
-            $user = User::query()->whereKey($legacyClientNumber)->first();
+            $user = Schema::hasColumn('users', 'arabia_client_number')
+                ? User::query()->where('arabia_client_number', $legacyClientNumber)->first()
+                : null;
             if ($user) {
                 $this->rememberLegacyInvoiceUser($context, $user, $legacyClientNumber, $phone, $name);
                 return $user;
@@ -1652,6 +2299,7 @@ class DataImportExecutionService
             'phone' => $fallbackPhone,
             'register_from' => 'legacy_invoices_import',
             'created_by' => $adminId,
+            'arabia_client_number' => $legacyClientNumber,
         ];
 
         if (Schema::hasColumn('users', 'password')) {
@@ -1679,14 +2327,52 @@ class DataImportExecutionService
         }
     }
 
-    private function resolveLegacyInvoiceContract(array $row, array &$context): ?int
+    private function resolveLegacyInvoiceAdminId($value, ?int $fallbackAdminId, array &$context): int
     {
-        // رقم العقد في ملف الفواتير (عمود "رقم الطلب") هو نفسه id العقد في النظام.
+        $sourceName = trim((string) $value);
+        if (array_key_exists($sourceName, $context['admin_ids_by_source_name'])) {
+            return $context['admin_ids_by_source_name'][$sourceName];
+        }
+
+        $adminId = $this->resolveAdminId($sourceName);
+        if (!$adminId && str_contains($sourceName, '/')) {
+            foreach (array_filter(array_map('trim', explode('/', $sourceName))) as $candidate) {
+                $adminId = $this->resolveAdminId($candidate);
+                if ($adminId) {
+                    break;
+                }
+            }
+        }
+
+        return $context['admin_ids_by_source_name'][$sourceName] = $adminId
+            ?? $fallbackAdminId
+            ?? auth('admin')->id()
+            ?? auth()->id()
+            ?? 1;
+    }
+
+    private function resolveLegacyInvoiceContract(array $row, array $context): ?int
+    {
+        $invoiceType = $this->normalizeArabicText($row['invoice_type'] ?? null);
+        $recruitmentTypes = [
+            $this->normalizeArabicText('فاتورة ايراد / طلب استقدام'),
+            $this->normalizeArabicText('إغلاق'),
+        ];
+        if (!in_array($invoiceType, $recruitmentTypes, true)) {
+            return null;
+        }
+
         $contractNumber = $this->optionalInteger($row['legacy_order_number'] ?? null);
 
-        return $contractNumber !== null && isset($context['contract_ids'][$contractNumber])
-            ? $contractNumber
-            : null;
+        if ($contractNumber === null) {
+            return null;
+        }
+
+        if ($context['has_contract_legacy_numbers']) {
+            return $context['contract_ids_by_legacy_number'][$contractNumber] ?? null;
+        }
+
+        return isset($context['contract_ids'][$contractNumber]) ? $contractNumber : null;
     }
 
     private function legacyInvoiceDescription(array $row): string
@@ -1701,6 +2387,20 @@ class DataImportExecutionService
             'مشارك Zatca في الملف القديم: ' . trim((string) ($row['legacy_zatca_shared'] ?? '-')),
             'مصدر الصف: ' . trim((string) ($row['source_sheet'] ?? '-')) . ' / ' . trim((string) ($row['source_row'] ?? '-')),
         ])->implode("\n");
+    }
+
+    private function legacyInvoiceSourcePayload(array $row): array
+    {
+        return collect($row)
+            ->map(fn ($value) => is_scalar($value) || $value === null ? $value : (string) $value)
+            ->all();
+    }
+
+    private function nullableTrimmedString($value): ?string
+    {
+        $value = trim((string) $value);
+
+        return $value === '' ? null : $value;
     }
 
     private function legacyInvoiceItemLabel(array $row): string
@@ -2399,8 +3099,34 @@ class DataImportExecutionService
         ]);
 
         $this->syncRecruitmentContractWarrantyFromArrivalDate($contract, $arrivalDate);
+        $this->syncImportedBondsForRecruitmentContract($contract, $row);
 
         return $created ? 'created' : 'updated';
+    }
+
+    private function syncImportedBondsForRecruitmentContract(Contract $contract, array $row = []): void
+    {
+        if (!Schema::hasTable('fn_bonds') || !Schema::hasColumn('fn_bonds', 'recruitment_contract_id')) {
+            return;
+        }
+
+        $numbers = collect([
+            $contract->id,
+            $contract->contract_number,
+            $contract->arabia_order_number ?? null,
+            $row['contract_number'] ?? null,
+            $row['order_number'] ?? null,
+        ])->map(fn ($value) => $this->optionalInteger($value))->filter()->unique()->values();
+
+        if ($numbers->isEmpty()) {
+            return;
+        }
+
+        Bond::query()
+            ->where('legacy_source', 'alrafedin_finance_bonds')
+            ->whereNull('rental_contract_id')
+            ->whereIn('legacy_order_number', $numbers)
+            ->update(['recruitment_contract_id' => $contract->id]);
     }
 
     private function importShelterContract(array $row, ?int $adminId): string
@@ -3434,7 +4160,165 @@ class DataImportExecutionService
         return null;
     }
 
-    private function resolveFinanceCostCenterId(array $row): ?int
+    /**
+     * Resolve a constraint account, creating a missing legacy account only when
+     * its numeric code and a clear parent in the current chart are available.
+     */
+    private function resolveOrCreateFinanceConstraintAccountId(array $row, ?int $adminId): ?int
+    {
+        $accountId = $this->resolveFinanceAccountId($row);
+        if ($accountId) {
+            return $accountId;
+        }
+
+        $rawCode = trim($this->normalizeDigits((string) ($row['account_code'] ?? '')));
+        $code = $this->normalizeFinanceAccountCode($row['account_code'] ?? null);
+        $name = trim((string) ($row['account_name'] ?? ''));
+
+        if ($rawCode === '0' && $name === '') {
+            return $this->resolveOrCreateLegacyUnassignedFinanceAccount($adminId);
+        }
+
+        if ($code && $name === '') {
+            $name = $this->inferLegacyFinanceAccountName($row, $code);
+        }
+
+        if (!$code || $name === '' || !class_exists(Account::class) || !Schema::hasTable('fn_accounts')) {
+            return null;
+        }
+
+        $existing = Account::query()->where('code', $code)->lockForUpdate()->first();
+        if ($existing) {
+            return (int) $existing->id;
+        }
+
+        $parent = $this->closestFinanceAccountParentByCode($code);
+        if (!$parent) {
+            throw new \InvalidArgumentException(
+                "الحساب {$code} ({$name}) غير موجود، ولا يوجد حساب أصل واضح يمكن ربطه به."
+            );
+        }
+
+        $accountColumns = array_flip(Schema::getColumnListing('fn_accounts'));
+        $payload = [
+            'name' => $name,
+            'operation_type' => $parent->operation_type ?? 1,
+            'status' => $parent->status instanceof \BackedEnum
+                ? $parent->status->value
+                : $parent->status,
+            'statement_type' => $parent->statement_type,
+            'level' => (int) $parent->level + 1,
+            'type' => $this->resolveImportedFinanceAccountType(
+                ['name' => $name],
+                $parent,
+                null
+            ),
+            'parent_id' => $parent->id,
+            'code' => $code,
+            'created_by_id' => $adminId ?? auth('admin')->id() ?? auth()->id() ?? 1,
+        ];
+
+        $account = Account::query()->create(array_intersect_key($payload, $accountColumns));
+
+        return (int) $account->id;
+    }
+
+    private function inferLegacyFinanceAccountName(array $row, int $code): string
+    {
+        $context = trim(collect([
+            $row['account_name'] ?? null,
+            $row['line_statement'] ?? null,
+            $row['statement'] ?? null,
+        ])->filter()->implode(' '));
+
+        if ($context !== '' && preg_match('/العميل\s*:\s*(.+?)(?:\s+-\s+[A-Za-z]|\s+\/|$)/u', $context, $matches)) {
+            $clientName = trim($matches[1]);
+            if ($clientName !== '') {
+                return $clientName;
+            }
+        }
+
+        return "حساب قديم مستورد رقم {$code}";
+    }
+
+    private function resolveOrCreateLegacyUnassignedFinanceAccount(?int $adminId): int
+    {
+        $existing = Account::query()
+            ->where('code', self::LEGACY_UNASSIGNED_ACCOUNT_CODE)
+            ->lockForUpdate()
+            ->first();
+
+        if ($existing) {
+            return (int) $existing->id;
+        }
+
+        $clientsParent = Account::query()
+            ->where('type', AccountTypesEnum::Clients->value)
+            ->orderBy('level')
+            ->first();
+
+        if (!$clientsParent) {
+            throw new \InvalidArgumentException(
+                'يوجد سطر بحساب قديم رقم 0 دون اسم، ولا يوجد حساب رئيسي للعملاء لعزله تحته.'
+            );
+        }
+
+        $accountColumns = array_flip(Schema::getColumnListing('fn_accounts'));
+        $status = $clientsParent->status instanceof \BackedEnum
+            ? $clientsParent->status->value
+            : $clientsParent->status;
+        $payload = [
+            'name' => 'حساب عميل قديم غير محدد (رمز المصدر 0)',
+            'operation_type' => $clientsParent->operation_type ?? 1,
+            'status' => $status,
+            'statement_type' => $clientsParent->statement_type,
+            'level' => (int) $clientsParent->level + 1,
+            'type' => AccountTypesEnum::Client->value,
+            'parent_id' => $clientsParent->id,
+            'code' => self::LEGACY_UNASSIGNED_ACCOUNT_CODE,
+            'created_by_id' => $adminId ?? auth('admin')->id() ?? auth()->id() ?? 1,
+        ];
+
+        $account = Account::query()->create(array_intersect_key($payload, $accountColumns));
+
+        return (int) $account->id;
+    }
+
+    private function closestFinanceAccountParentByCode(int $code): ?Account
+    {
+        $parentCode = (string) $code;
+        $candidates = collect();
+
+        while (strlen($parentCode) > 1) {
+            $parentCode = substr($parentCode, 0, -1);
+            $parent = Account::query()->where('code', $parentCode)->first();
+
+            if ($parent) {
+                $candidates->push($parent);
+            }
+        }
+
+        $containerTypes = [
+            AccountTypesEnum::Clients->value,
+            AccountTypesEnum::Suppliers->value,
+            AccountTypesEnum::Banks->value,
+            AccountTypesEnum::Boxs->value,
+            AccountTypesEnum::Storages->value,
+            AccountTypesEnum::Employees->value,
+            AccountTypesEnum::Drivers->value,
+            AccountTypesEnum::ElectronicWallets->value,
+            AccountTypesEnum::FreeLancers->value,
+            AccountTypesEnum::Marketers->value,
+            AccountTypesEnum::Issues->value,
+            AccountTypesEnum::Contracts->value,
+        ];
+
+        return $candidates->first(
+            fn (Account $candidate) => in_array($this->financeAccountTypeValue($candidate), $containerTypes, true)
+        ) ?? $candidates->first();
+    }
+
+    private function resolveFinanceCostCenterId(array $row, ?int $accountId = null): ?int
     {
         if (!class_exists(CostCenter::class) || !Schema::hasTable('fn_cost_centers')) {
             return null;
@@ -3447,7 +4331,11 @@ class DataImportExecutionService
 
         $code = trim((string) ($row['cost_center_code'] ?? ''));
         if ($code !== '' && Schema::hasColumn('fn_cost_centers', 'code')) {
-            $costCenter = CostCenter::query()->where('code', $this->normalizeDigits($code))->first();
+            $normalizedCode = $this->normalizeDigits($code);
+            $costCenter = Schema::hasColumn('fn_cost_centers', 'legacy_source_code')
+                ? CostCenter::query()->where('legacy_source_code', $normalizedCode)->first()
+                : null;
+            $costCenter ??= CostCenter::query()->where('code', $normalizedCode)->first();
             if ($costCenter) {
                 return (int) $costCenter->id;
             }
@@ -3461,7 +4349,132 @@ class DataImportExecutionService
             }
         }
 
-        return null;
+        return $this->inferRequestCostCenterId($row, $accountId);
+    }
+
+    /**
+     * The Alrafedin constraint report has no cost-center column. The only safe
+     * recovery available in that export is an explicit recruitment request
+     * number in the statement. Limit inference to P&L accounts so the balance
+     * sheet counterpart is not incorrectly allocated to the same center.
+     */
+    private function inferRequestCostCenterId(array $row, ?int $accountId = null): ?int
+    {
+        if (!$this->financeAccountAcceptsInferredCostCenter($accountId, $row['account_code'] ?? null)) {
+            return null;
+        }
+
+        $requestNumber = $this->extractLegacyRequestNumber(collect([
+            $row['line_statement'] ?? null,
+            $row['statement'] ?? null,
+        ])->filter()->implode(' '));
+
+        if (!$requestNumber) {
+            return null;
+        }
+
+        $this->legacyRequestCostCenterIds ??= CostCenter::query()->get(['id', 'title'])
+            ->mapWithKeys(function (CostCenter $center) {
+                $normalized = $this->normalizeArabicText($center->title);
+
+                return preg_match('/^طلب استقدام (\d+)$/u', $normalized, $matches)
+                    ? [(int) $matches[1] => (int) $center->id]
+                    : [];
+            })
+            ->all();
+
+        return $this->legacyRequestCostCenterIds[$requestNumber] ?? null;
+    }
+
+    private function extractLegacyRequestNumber(?string $statement): ?int
+    {
+        $statement = $this->normalizeDigits((string) $statement);
+        if (!preg_match('/طلب(?:\s+استقدام)?\s*(?:رقم\s*)?[:：]?\s*(\d+)/u', $statement, $matches)) {
+            return null;
+        }
+
+        $number = (int) ($matches[1] ?? 0);
+
+        return $number > 0 ? $number : null;
+    }
+
+    private function financeAccountAcceptsInferredCostCenter(?int $accountId, $accountCode = null): bool
+    {
+        if ($accountId && array_key_exists($accountId, $this->financeAccountCostCenterEligibility)) {
+            return $this->financeAccountCostCenterEligibility[$accountId];
+        }
+
+        $account = $accountId ? Account::query()->find($accountId, ['code', 'statement_type']) : null;
+        $code = trim((string) ($account?->code ?? $accountCode ?? ''));
+        $eligible = $account?->statement_type === 'income_statement'
+            || str_starts_with($code, '4')
+            || str_starts_with($code, '5');
+
+        if ($accountId) {
+            $this->financeAccountCostCenterEligibility[$accountId] = $eligible;
+        }
+
+        return $eligible;
+    }
+
+    private function linkImportedRequestCostCentersToConstraints(): int
+    {
+        if (!Schema::hasTable('fn_constraint_details') || !Schema::hasTable('fn_constraints')) {
+            return 0;
+        }
+
+        $centersByRequest = CostCenter::query()->get(['id', 'title'])
+            ->mapWithKeys(function (CostCenter $center) {
+                $normalized = $this->normalizeArabicText($center->title);
+                if (!preg_match('/^طلب استقدام (\d+)$/u', $normalized, $matches)) {
+                    return [];
+                }
+
+                return [(int) $matches[1] => (int) $center->id];
+            });
+
+        if ($centersByRequest->isEmpty()) {
+            return 0;
+        }
+
+        $linked = 0;
+        DB::table('fn_constraint_details as details')
+            ->join('fn_constraints as constraints', 'constraints.id', '=', 'details.constraint_id')
+            ->join('fn_accounts as accounts', 'accounts.id', '=', 'details.account_id')
+            ->whereNull('details.cost_center_id')
+            ->whereNull('details.deleted_at')
+            ->where(function ($query) {
+                $query->where('accounts.statement_type', 'income_statement')
+                    ->orWhere('accounts.code', 'like', '4%')
+                    ->orWhere('accounts.code', 'like', '5%');
+            })
+            ->select([
+                'details.id',
+                'details.statement as detail_statement',
+                'constraints.statement as constraint_statement',
+            ])
+            ->orderBy('details.id')
+            ->chunkById(1000, function ($details) use ($centersByRequest, &$linked) {
+                $detailIdsByCenter = [];
+                foreach ($details as $detail) {
+                    $requestNumber = $this->extractLegacyRequestNumber(
+                        trim((string) $detail->detail_statement . ' ' . (string) $detail->constraint_statement)
+                    );
+                    $centerId = $requestNumber ? $centersByRequest->get($requestNumber) : null;
+                    if ($centerId) {
+                        $detailIdsByCenter[$centerId][] = $detail->id;
+                    }
+                }
+
+                foreach ($detailIdsByCenter as $centerId => $detailIds) {
+                    $linked += DB::table('fn_constraint_details')
+                        ->whereNull('cost_center_id')
+                        ->whereIn('id', $detailIds)
+                        ->update(['cost_center_id' => $centerId, 'updated_at' => now()]);
+                }
+            }, 'details.id', 'id');
+
+        return $linked;
     }
 
     private function resolveFinanceConstraintLine(array $row): array
@@ -4718,6 +5731,8 @@ class DataImportExecutionService
             'بيان السطر' => 'line_statement',
             'تاريخ' => 'date',
             'تاريخ القيد' => 'date',
+            'نوع المستند' => 'document_type',
+            'رقم المستند' => 'document_number',
             'م' => 'source_sequence',
             'رقم تعريف' => 'external_ref',
             'نوع الشكوى' => 'complaint_type',

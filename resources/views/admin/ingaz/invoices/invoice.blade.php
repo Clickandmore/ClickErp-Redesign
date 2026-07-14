@@ -196,7 +196,7 @@
                 <td class="info-value">{{ $supplierTaxNumber }}</td>
             </tr>
             <tr>
-                <td class="info-label">حالة الفاتورة</td>
+                <td class="info-label">حالة السداد</td>
                 <td class="info-value">{{ $invoiceStatus }}</td>
                 <td class="info-label">حساب رقم</td>
                 <td class="info-value">{{ $accountNumber }}</td>

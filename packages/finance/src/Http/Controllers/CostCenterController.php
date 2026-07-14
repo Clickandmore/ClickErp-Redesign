@@ -45,9 +45,9 @@ class CostCenterController extends Controller
                     return $editButton . " " . $deleteButton;
                 })->escapeColumns([])->make(true);
         }
-        $data["accountTree"] = $service->getAccountTree()['costs'];
-        $data["constraints"] = $service->getAccountTree()['constraintDetails'];
-//        return $service->getAccountTree()['costs'][0]->allChildrenIDs;
+        $tree = $service->getAccountTree();
+        $data["accountTree"] = $tree['costs'];
+        $data["constraints"] = $tree['constraintDetails'];
         $data["createRoute"] = route($this->mainRoute . ".create");
         $data["dataTableRoute"] = route($this->mainRoute . ".index");
         $data["bladeTitle"] = __("finance::finance.Cost Center Operations");

@@ -205,6 +205,29 @@ class AccountCostCenterService extends MainService
         return $accountStatment;
     }
 
+    public function getCostCenterLinkSummary(?int $costCenterId): array
+    {
+        if (!$costCenterId) {
+            return [];
+        }
+
+        $center = DB::table('fn_cost_centers')->where('id', $costCenterId)->first();
+        if (!$center) {
+            return [];
+        }
+
+        $linked = DB::table('fn_constraint_details')
+            ->whereNull('deleted_at')
+            ->where('cost_center_id', $costCenterId);
+
+        return [
+            'center' => $center,
+            'linked_details' => (clone $linked)->count(),
+            'linked_constraints' => (clone $linked)->distinct()->count('constraint_id'),
+            'all_constraints' => DB::table('fn_constraints')->whereNull('deleted_at')->count(),
+        ];
+    }
+
     public function filterConstraints($dataSearch)
     {
         $account_id = $dataSearch['account_id'];
