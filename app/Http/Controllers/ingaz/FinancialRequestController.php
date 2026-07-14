@@ -444,6 +444,9 @@ class FinancialRequestController extends Controller
         ]);
 
         $validated['payload'] = $validated['payload'] ?? [];
+        // Attachments are persisted through storeAttachments() in their own
+        // table and must not be passed to the FinancialRequest model insert.
+        unset($validated['attachments']);
 
         $adminBranchId = (int) (auth('admin')->user()?->branch_id ?? 0);
         if (SystemModuleManager::isEnabled('branches') && $adminBranchId > 0 && (int) $validated['branch_id'] !== $adminBranchId) {

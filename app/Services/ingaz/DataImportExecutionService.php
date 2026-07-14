@@ -354,7 +354,7 @@ class DataImportExecutionService
                         }
 
                         $currentTitle = $this->normalizeArabicText((string) $detail->costCenter?->title);
-                        $hasWrongRecruitmentCenter = preg_match('/^طلب استقدام\s+' . $requestNumber . '$/u', $currentTitle);
+                        $hasWrongRecruitmentCenter = preg_match('/^طلب استقدام\s+\d+$/u', $currentTitle);
                         if ($detail->cost_center_id && !$hasWrongRecruitmentCenter) {
                             continue;
                         }
@@ -4503,7 +4503,7 @@ class DataImportExecutionService
     private function extractLegacyRentalRequestNumber(?string $statement): ?int
     {
         $statement = $this->normalizeDigits((string) $statement);
-        if (!preg_match('/(?:انهاء\s+)?طلب\s+تاجير.*?رقم\s+الطلب\s*[:：#-]?\s*(\d+)/iu', $this->normalizeArabicText($statement), $matches)) {
+        if (!preg_match('/(?:انهاء\s+)?طلب\s+تاجير.*?رقم(?:\s+الطلب)?\s*[:：#-]?\s*(\d+)/iu', $this->normalizeArabicText($statement), $matches)) {
             return null;
         }
 

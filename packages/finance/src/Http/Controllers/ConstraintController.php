@@ -515,7 +515,19 @@ class ConstraintController extends Controller
 
     private function applyConstraintFilters($query, Request $request)
     {
+        $constraintCode = $this->normalizeNumericFilter($request->input('constraint_code'));
+        $documentNumber = $this->normalizeNumericFilter($request->input('document_number'));
+
         $query
+            ->when($constraintCode, function ($query) use ($constraintCode) {
+                $query->where('fn_constraints.code', $constraintCode);
+            })
+            ->when($documentNumber, function ($query) use ($documentNumber) {
+                $query->where(function ($query) use ($documentNumber) {
+                    $query->where('fn_constraints.legacy_document_number', $documentNumber)
+                        ->orWhere('fn_constraints.legacy_invoice_number', $documentNumber);
+                });
+            })
             ->when($request->filled('from_date'), function ($query) use ($request) {
                 $query->where('fn_constraints.date', '>=', $request->input('from_date'));
             })
@@ -569,6 +581,20 @@ class ConstraintController extends Controller
             '۰' => '0', '۱' => '1', '۲' => '2', '۳' => '3', '۴' => '4',
             '۵' => '5', '۶' => '6', '۷' => '7', '۸' => '8', '۹' => '9',
         ]));
+    }
+
+    private function normalizeNumericFilter($value): ?int
+    {
+        $normalized = ltrim(trim(strtr((string) $value, [
+            '٠' => '0', '١' => '1', '٢' => '2', '٣' => '3', '٤' => '4',
+            '٥' => '5', '٦' => '6', '٧' => '7', '٨' => '8', '٩' => '9',
+            '۰' => '0', '۱' => '1', '۲' => '2', '۳' => '3', '۴' => '4',
+            '۵' => '5', '۶' => '6', '۷' => '7', '۸' => '8', '۹' => '9',
+        ])), '#');
+
+        return $normalized !== '' && ctype_digit($normalized) && (int) $normalized > 0
+            ? (int) $normalized
+            : null;
     }
 
     private function buildExportRows($constraints): array

@@ -40,6 +40,20 @@ class FinanceConstraintFiltersTest extends TestCase
         $this->assertContains('%رواتب%', $query->getBindings());
     }
 
+    /** @test */
+    public function it_filters_an_explicit_constraint_code_exactly_and_normalizes_arabic_digits(): void
+    {
+        $query = Constraint::query();
+        $request = Request::create('/finance/constraints', 'GET', [
+            'constraint_code' => '٦٠٥٢',
+        ]);
+
+        $this->applyFilters($query, $request);
+
+        $this->assertStringContainsString('`fn_constraints`.`code` = ?', $query->toSql());
+        $this->assertSame([6052], $query->getBindings());
+    }
+
     private function applyFilters($query, Request $request): void
     {
         $controller = app(ConstraintController::class);

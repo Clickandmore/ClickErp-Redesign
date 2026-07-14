@@ -6,6 +6,8 @@ use App\Models\auth\Admin;
 use App\Models\FinancialRequest;
 use Nami\Finance\Models\Account;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class FinancialRequestFormTest extends TestCase
@@ -36,6 +38,28 @@ class FinancialRequestFormTest extends TestCase
 
         $response->assertSessionHasNoErrors();
         $this->assertDatabaseHas('financial_requests', ['status' => FinancialRequest::STATUS_FOR_APPROVAL]);
+    }
+
+    public function test_request_with_attachment_is_created_and_attachment_is_stored_separately(): void
+    {
+        Storage::fake('public');
+
+        $response = $this->post(route('financial-requests.store'), [
+            ...$this->validPayload('bank_transfer'),
+            'attachments' => [
+                'main' => [UploadedFile::fake()->create('refund.pdf', 100, 'application/pdf')],
+            ],
+        ]);
+
+        $response->assertSessionHasNoErrors();
+        $response->assertRedirect(route('financial-requests.index'));
+
+        $requestItem = FinancialRequest::query()->latest('id')->firstOrFail();
+        $attachment = $requestItem->attachments()->firstOrFail();
+
+        $this->assertSame('main', $attachment->field_key);
+        $this->assertSame('refund.pdf', $attachment->file_name);
+        Storage::disk('public')->assertExists($attachment->file_path);
     }
 
     public function test_existing_leaf_account_can_be_selected_for_bank_transfer(): void

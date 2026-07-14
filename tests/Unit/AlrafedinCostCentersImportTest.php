@@ -41,5 +41,8 @@ class AlrafedinCostCentersImportTest extends TestCase
         $this->assertSame(445, $this->invoke('extractLegacyRequestNumber', 'فاتورة تخص طلب استقدام رقم: 445'));
         $this->assertSame(22, $this->invoke('extractLegacyRequestNumber', 'إغلاق طلب: 22، فاتورة رقم 2'));
         $this->assertNull($this->invoke('extractLegacyRequestNumber', 'فاتورة العميل رقم 445'));
+        $this->assertNull($this->invoke('extractLegacyRequestNumber', 'طلب تأجير, رقم الطلب: 496'));
+        $this->assertSame(496, $this->invoke('extractLegacyRentalRequestNumber', 'طلب تأجير, رقم الطلب: 496'));
+        $this->assertSame(1591, $this->invoke('extractLegacyRentalRequestNumber', 'إنهاء طلب تأجير رقم: 1591'));
     }
 }

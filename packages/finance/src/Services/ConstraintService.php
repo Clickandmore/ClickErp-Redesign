@@ -310,8 +310,8 @@ class ConstraintService extends MainService
             ])
             ->approved()
             ->orderByRaw('CASE WHEN fn_constraints.code IS NULL THEN 1 ELSE 0 END')
-            ->orderBy('fn_constraints.code')
-            ->orderBy('fn_constraints.id');
+            ->orderByDesc('fn_constraints.code')
+            ->orderByDesc('fn_constraints.id');
     }
 
     public function getPendingApprovalData()
@@ -332,8 +332,8 @@ class ConstraintService extends MainService
             ])
             ->pendingApproval()
             ->orderByRaw('CASE WHEN fn_constraints.code IS NULL THEN 1 ELSE 0 END')
-            ->orderBy('fn_constraints.code')
-            ->orderBy('fn_constraints.id');
+            ->orderByDesc('fn_constraints.code')
+            ->orderByDesc('fn_constraints.id');
     }
 
     public function approveConstraint(int $id, ?int $adminId = null): Model

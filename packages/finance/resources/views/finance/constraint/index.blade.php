@@ -328,9 +328,19 @@
     <form class="constraints-filter-panel" id="constraintsFilterForm">
         <div class="constraints-filter-grid">
             <div>
-                <label for="keyword">البحث في القيود</label>
+                <label for="constraint_code">رقم القيد</label>
+                <input type="search" inputmode="numeric" class="form-control constraints-search-input"
+                    id="constraint_code" name="constraint_code" placeholder="مثال: 6052" autocomplete="off">
+            </div>
+            <div>
+                <label for="document_number">رقم السند أو الفاتورة</label>
+                <input type="search" inputmode="numeric" class="form-control constraints-search-input"
+                    id="document_number" name="document_number" placeholder="رقم المستند المرتبط" autocomplete="off">
+            </div>
+            <div>
+                <label for="keyword">بحث في البيان أو الحساب</label>
                 <input type="search" class="form-control constraints-search-input" id="keyword" name="keyword"
-                    placeholder="رقم القيد، البيان، الحساب، القيمة أو التاريخ" autocomplete="off">
+                    placeholder="البيان، الحساب، القيمة أو التاريخ" autocomplete="off">
             </div>
             <div>
                 <label>{{ __('finance::finance.filter_by_type') }}</label>
@@ -403,6 +413,8 @@
         $(document).ready(function() {
             function currentFilters() {
                 return {
+                    constraint_code: $('#constraint_code').val(),
+                    document_number: $('#document_number').val(),
                     keyword: $('#keyword').val(),
                     from_date: $('#from_date').val(),
                     to_date: $('#to_date').val(),
@@ -582,10 +594,10 @@
             });
 
             $('#from_date, #to_date, #type_filter').on('change', syncExportLinks);
-            $('#keyword').on('input', syncExportLinks);
+            $('#keyword, #constraint_code, #document_number').on('input', syncExportLinks);
 
             $('#clearFilters').click(function() {
-                $('#keyword, #from_date, #to_date').val('');
+                $('#keyword, #constraint_code, #document_number, #from_date, #to_date').val('');
                 $('#type_filter').val('');
                 syncExportLinks();
                 table.ajax.reload();
