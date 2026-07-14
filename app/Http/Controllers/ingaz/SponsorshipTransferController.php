@@ -1406,6 +1406,12 @@ class SponsorshipTransferController extends Controller
                 DB::rollBack();
             }
 
+            \Log::error('Error cancelling sponsorship transfer', [
+                'transfer_id' => $id,
+                'admin_id' => auth()->guard('admin')->id(),
+                'exception' => $e,
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'حدث خطأ في إلغاء النقل'
