@@ -25,6 +25,45 @@
             font-size: 20px;
             font-weight: 700;
         }
+
+        .musaned-transfer-card .selected-transfer-sources {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            min-height: 38px;
+            border: 1px dashed #d8dee9;
+            border-radius: 8px;
+            padding: 8px;
+            background: #f8fafc;
+        }
+
+        .musaned-transfer-card .selected-transfer-source {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            max-width: 100%;
+            border: 1px solid #cfe2ff;
+            border-radius: 6px;
+            padding: 6px 10px;
+            background: #eef6ff;
+            color: #084298;
+            font-size: 13px;
+        }
+
+        .musaned-transfer-card .selected-transfer-source span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .musaned-transfer-card .selected-transfer-source button {
+            flex: 0 0 auto;
+            border: 0;
+            padding: 0;
+            background: transparent;
+            color: #842029;
+            line-height: 1;
+        }
     </style>
 @endsection
 
@@ -125,6 +164,9 @@
                                         </option>
                                     @endforeach
                                 </select>
+                                <div id="selected_transfer_sources_preview" class="selected-transfer-sources mt-2">
+                                    <span class="text-muted">لم يتم اختيار أي عقود أو تفاويض بعد</span>
+                                </div>
                                 <small class="text-muted d-block mt-1">
                                     العمولة = قيمة الفاتورة - المبلغ المحول من مساند. ضريبة المصروفات تحتسب وفق نسبة {{ number_format($expenseTaxRate, 2) }}%.
                                 </small>
@@ -243,6 +285,7 @@
                     const searchInput = document.getElementById('contract_musaned_search');
                     const body = document.getElementById('transfer_items_body');
                     const emptyRow = document.getElementById('empty_transfer_row');
+                    const selectedPreview = document.getElementById('selected_transfer_sources_preview');
 
                     const summaries = {
                         customerPaid: document.getElementById('summary_customer_paid'),
@@ -369,6 +412,62 @@
                         summaries.tax.textContent = formatMoney(tax);
                     }
 
+                    function getSelectedKeys() {
+                        return Array.from(selector.selectedOptions).map(option => option.value);
+                    }
+
+                    function setOptionSelected(sourceKey, selected) {
+                        const option = Array.from(selector.options).find(item => item.value === sourceKey);
+                        if (!option) {
+                            return;
+                        }
+
+                        option.selected = selected;
+
+                        if (window.jQuery && window.jQuery.fn && window.jQuery.fn.select2) {
+                            window.jQuery(selector).trigger('change');
+                        } else {
+                            handleSelectorChange();
+                        }
+                    }
+
+                    function renderSelectedPreview(selectedKeys) {
+                        selectedPreview.innerHTML = '';
+
+                        if (!selectedKeys.length) {
+                            const emptyText = document.createElement('span');
+                            emptyText.className = 'text-muted';
+                            emptyText.textContent = 'لم يتم اختيار أي عقود أو تفاويض بعد';
+                            selectedPreview.appendChild(emptyText);
+                            return;
+                        }
+
+                        selectedKeys.forEach(function(sourceKey) {
+                            const option = contractsLookup.find(item => item.source_key === sourceKey);
+                            if (!option) {
+                                return;
+                            }
+
+                            const item = document.createElement('span');
+                            item.className = 'selected-transfer-source';
+
+                            const label = document.createElement('span');
+                            label.textContent = option.label;
+                            item.appendChild(label);
+
+                            const removeButton = document.createElement('button');
+                            removeButton.type = 'button';
+                            removeButton.setAttribute('aria-label', 'إزالة');
+                            removeButton.innerHTML = '&times;';
+                            removeButton.addEventListener('click', function() {
+                                setOptionSelected(sourceKey, false);
+                            });
+                            item.appendChild(removeButton);
+
+                            selectedPreview.appendChild(item);
+                        });
+                    }
+
                     function buildRow(option, index) {
                         const row = document.createElement('tr');
                         row.className = 'transfer-item-row';
@@ -421,8 +520,9 @@
                     }
 
                     function renderRows() {
-                        const selectedKeys = Array.from(selector.selectedOptions).map(option => option.value);
+                        const selectedKeys = getSelectedKeys();
                         body.innerHTML = '';
+                        renderSelectedPreview(selectedKeys);
 
                         if (!selectedKeys.length) {
                             body.appendChild(emptyRow);
@@ -469,6 +569,14 @@
 
                         window.jQuery(selector).on('change', handleSelectorChange);
                     } else {
+                        selector.addEventListener('mousedown', function(event) {
+                            if (event.target && event.target.tagName === 'OPTION') {
+                                event.preventDefault();
+                                event.target.selected = !event.target.selected;
+                                selector.focus();
+                                handleSelectorChange();
+                            }
+                        });
                         selector.addEventListener('change', handleSelectorChange);
                     }
 
