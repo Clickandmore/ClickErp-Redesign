@@ -2,7 +2,9 @@
 
 namespace Nami\Finance\Models;
 
+use App\Models\RentalContractInvoice;
 use App\Models\auth\Admin;
+use App\Models\ingaz\Invoice;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Schema;
@@ -30,6 +32,9 @@ class Constraint extends Finance
         'legacy_document_number',
         'legacy_source_file',
         'legacy_source_row',
+        'legacy_invoice_type',
+        'legacy_invoice_number',
+        'legacy_rental_order_number',
         'created_by_id',
         'approval_status',
         'approved_at',
@@ -188,6 +193,41 @@ class Constraint extends Finance
     public function transfer_entry()
     {
         return $this->hasOne(AccountTransfer::class, 'constraint_id', 'id');
+    }
+
+    public function rentalInvoice()
+    {
+        return $this->belongsTo(RentalContractInvoice::class, 'legacy_invoice_number', 'legacy_invoice_id');
+    }
+
+    public function recruitmentInvoice()
+    {
+        return $this->belongsTo(Invoice::class, 'legacy_invoice_number', 'legacy_invoice_number');
+    }
+
+    public function rentalInvoiceConstraint()
+    {
+        return $this->hasOne(RentalContractInvoice::class, 'invoice_constraint_id');
+    }
+
+    public function rentalReceiptInvoice()
+    {
+        return $this->hasOne(RentalContractInvoice::class, 'receipt_constraint_id');
+    }
+
+    public function arrivalRevenueInvoice()
+    {
+        return $this->hasOne(Invoice::class, 'arrival_revenue_constraint_id');
+    }
+
+    public function externalOfficeCostInvoice()
+    {
+        return $this->hasOne(Invoice::class, 'external_office_cost_constraint_id');
+    }
+
+    public function ingazDelegationCostInvoice()
+    {
+        return $this->hasOne(Invoice::class, 'ingaz_delegation_cost_constraint_id');
     }
 
 

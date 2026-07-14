@@ -296,23 +296,44 @@ class ConstraintService extends MainService
 
     public function getIndexData() {
         return $this->model->query()
-            ->with(['constraintDetails.account', 'bond', 'transfer_entry'])
+            ->with([
+                'constraintDetails.account',
+                'bond',
+                'transfer_entry',
+                'rentalInvoice',
+                'recruitmentInvoice',
+                'rentalInvoiceConstraint',
+                'rentalReceiptInvoice',
+                'arrivalRevenueInvoice',
+                'externalOfficeCostInvoice',
+                'ingazDelegationCostInvoice',
+            ])
             ->approved()
-            ->when(request('type_filter'), function ($q) {
-                $q->where('fn_constraints.type', request('type_filter'));
-            })
-            ->latest('fn_constraints.created_at');
+            ->orderByRaw('CASE WHEN fn_constraints.code IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('fn_constraints.code')
+            ->orderBy('fn_constraints.id');
     }
 
     public function getPendingApprovalData()
     {
         return $this->model->query()
-            ->with(['constraintDetails.account', 'bond', 'transfer_entry', 'created_by'])
+            ->with([
+                'constraintDetails.account',
+                'bond',
+                'transfer_entry',
+                'rentalInvoice',
+                'recruitmentInvoice',
+                'rentalInvoiceConstraint',
+                'rentalReceiptInvoice',
+                'arrivalRevenueInvoice',
+                'externalOfficeCostInvoice',
+                'ingazDelegationCostInvoice',
+                'created_by',
+            ])
             ->pendingApproval()
-            ->when(request('type_filter'), function ($q) {
-                $q->where('fn_constraints.type', request('type_filter'));
-            })
-            ->latest('fn_constraints.created_at');
+            ->orderByRaw('CASE WHEN fn_constraints.code IS NULL THEN 1 ELSE 0 END')
+            ->orderBy('fn_constraints.code')
+            ->orderBy('fn_constraints.id');
     }
 
     public function approveConstraint(int $id, ?int $adminId = null): Model

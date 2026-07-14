@@ -619,7 +619,11 @@ class FinancialRequestController extends Controller
 
     private function nextRequestNo(): string
     {
-        $next = ((int) FinancialRequest::query()->max('id')) + 1;
+        // request_no remains unique for soft-deleted rows. Include them when
+        // calculating the next number and serialize concurrent generators.
+        $next = ((int) FinancialRequest::withTrashed()
+            ->lockForUpdate()
+            ->max('id')) + 1;
 
         return 'FR-' . now()->format('Ymd') . '-' . str_pad((string) $next, 5, '0', STR_PAD_LEFT);
     }

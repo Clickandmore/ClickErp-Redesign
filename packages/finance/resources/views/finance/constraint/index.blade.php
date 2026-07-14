@@ -383,6 +383,7 @@
                     <th>{{ __('finance::finance.date') }}</th>
                     <th>مدينون</th>
                     <th>دائنون</th>
+                    <th>المستند المرتبط</th>
                     <th>{{ __('finance::finance.actions') }}</th>
                     @if ($approvalMode === 'pending')
                         <th>{{ __('finance::finance.approval_status') }}</th>
@@ -471,6 +472,11 @@
                     },
                     {
                         "data": "creditors_total",
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
+                        "data": "document_action",
                         orderable: false,
                         searchable: false
                     },

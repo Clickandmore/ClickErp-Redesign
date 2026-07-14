@@ -61,6 +61,7 @@ class DataImportExecutionService
 
     private ?string $importPasswordHash = null;
     private ?array $legacyRequestCostCenterIds = null;
+    private array $legacyRentalCostCenters = [];
     private array $financeAccountCostCenterEligibility = [];
     private bool $financeConstraintsMissingOnly = false;
     private ?string $currentImportOriginalName = null;
@@ -74,6 +75,7 @@ class DataImportExecutionService
         $this->prepareLargeImportRuntime();
         $this->importPasswordHash = null;
         $this->legacyRequestCostCenterIds = null;
+        $this->legacyRentalCostCenters = [];
         $this->financeAccountCostCenterEligibility = [];
         $this->currentImportOriginalName = $file->getClientOriginalName();
 
@@ -286,6 +288,84 @@ class DataImportExecutionService
         }
 
         $result['bonds_without_source_reference'] = $bonds->keys()->diff(array_keys($unambiguous))->count();
+
+        return $result;
+    }
+
+    public function repairImportedRentalConstraintLinks(): array
+    {
+        $this->prepareLargeImportRuntime();
+        $result = [
+            'constraints_tagged' => 0,
+            'invoice_links_found' => 0,
+            'cost_centers_created' => 0,
+            'cost_center_details_relinked' => 0,
+        ];
+
+        Constraint::query()
+            ->where('statement', 'like', '%تأجير%')
+            ->orderBy('id')
+            ->chunkById(500, function ($constraints) use (&$result) {
+                foreach ($constraints as $constraint) {
+                    $statement = (string) $constraint->statement;
+                    $requestNumber = $this->extractLegacyRentalRequestNumber($statement);
+                    $invoiceNumber = $this->extractLegacyInvoiceNumber($statement);
+                    $payload = [];
+
+                    if ($requestNumber && Schema::hasColumn('fn_constraints', 'legacy_rental_order_number')) {
+                        $payload['legacy_rental_order_number'] = $requestNumber;
+                    }
+
+                    if (
+                        $invoiceNumber
+                        && Schema::hasColumn('fn_constraints', 'legacy_invoice_number')
+                        && RentalContractInvoice::query()->where('legacy_invoice_id', $invoiceNumber)->exists()
+                    ) {
+                        $payload['legacy_invoice_type'] = 'rental';
+                        $payload['legacy_invoice_number'] = $invoiceNumber;
+                        $result['invoice_links_found']++;
+                    }
+
+                    if ($payload && collect($payload)->contains(
+                        fn ($value, $key) => (string) $constraint->{$key} !== (string) $value
+                    )) {
+                        $constraint->update($payload);
+                        $result['constraints_tagged']++;
+                    }
+
+                    if (!$requestNumber) {
+                        continue;
+                    }
+
+                    [$costCenter, $created] = $this->resolveOrCreateRentalRequestCostCenter($requestNumber);
+                    if (!$costCenter) {
+                        continue;
+                    }
+                    $result['cost_centers_created'] += $created ? 1 : 0;
+
+                    $details = ConstraintDetails::query()
+                        ->with(['account:id,code,statement_type', 'costCenter:id,title'])
+                        ->where('constraint_id', $constraint->id)
+                        ->get();
+
+                    foreach ($details as $detail) {
+                        if (!$this->financeAccountAcceptsInferredCostCenter($detail->account_id, $detail->account?->code)) {
+                            continue;
+                        }
+
+                        $currentTitle = $this->normalizeArabicText((string) $detail->costCenter?->title);
+                        $hasWrongRecruitmentCenter = preg_match('/^طلب استقدام\s+' . $requestNumber . '$/u', $currentTitle);
+                        if ($detail->cost_center_id && !$hasWrongRecruitmentCenter) {
+                            continue;
+                        }
+
+                        if ((int) $detail->cost_center_id !== (int) $costCenter->id) {
+                            $detail->update(['cost_center_id' => $costCenter->id]);
+                            $result['cost_center_details_relinked']++;
+                        }
+                    }
+                }
+            });
 
         return $result;
     }
@@ -1855,6 +1935,17 @@ class DataImportExecutionService
             $payload['legacy_document_number'] = $legacyDocumentNumber;
             $payload['legacy_source_file'] = $firstRow['__source_file'] ?? null;
             $payload['legacy_source_row'] = $this->optionalInteger($firstRow['__source_row'] ?? null);
+        }
+        if (Schema::hasColumn('fn_constraints', 'legacy_invoice_number')) {
+            $rentalRequestNumber = $this->extractLegacyRentalRequestNumber($statement);
+            $invoiceNumber = $this->extractLegacyInvoiceNumber($statement);
+            if ($rentalRequestNumber) {
+                $payload['legacy_rental_order_number'] = $rentalRequestNumber;
+                if ($invoiceNumber && RentalContractInvoice::query()->where('legacy_invoice_id', $invoiceNumber)->exists()) {
+                    $payload['legacy_invoice_type'] = 'rental';
+                    $payload['legacy_invoice_number'] = $invoiceNumber;
+                }
+            }
         }
 
         if ($constraint) {
@@ -4364,10 +4455,18 @@ class DataImportExecutionService
             return null;
         }
 
-        $requestNumber = $this->extractLegacyRequestNumber(collect([
+        $statement = collect([
             $row['line_statement'] ?? null,
             $row['statement'] ?? null,
-        ])->filter()->implode(' '));
+        ])->filter()->implode(' ');
+        $rentalRequestNumber = $this->extractLegacyRentalRequestNumber($statement);
+        if ($rentalRequestNumber) {
+            [$costCenter] = $this->resolveOrCreateRentalRequestCostCenter($rentalRequestNumber);
+
+            return $costCenter?->id;
+        }
+
+        $requestNumber = $this->extractLegacyRequestNumber($statement);
 
         if (!$requestNumber) {
             return null;
@@ -4389,6 +4488,9 @@ class DataImportExecutionService
     private function extractLegacyRequestNumber(?string $statement): ?int
     {
         $statement = $this->normalizeDigits((string) $statement);
+        if (preg_match('/طلب\s+ت[أا]جير/u', $statement)) {
+            return null;
+        }
         if (!preg_match('/طلب(?:\s+استقدام)?\s*(?:رقم\s*)?[:：]?\s*(\d+)/u', $statement, $matches)) {
             return null;
         }
@@ -4396,6 +4498,92 @@ class DataImportExecutionService
         $number = (int) ($matches[1] ?? 0);
 
         return $number > 0 ? $number : null;
+    }
+
+    private function extractLegacyRentalRequestNumber(?string $statement): ?int
+    {
+        $statement = $this->normalizeDigits((string) $statement);
+        if (!preg_match('/(?:انهاء\s+)?طلب\s+تاجير.*?رقم\s+الطلب\s*[:：#-]?\s*(\d+)/iu', $this->normalizeArabicText($statement), $matches)) {
+            return null;
+        }
+
+        $number = (int) ($matches[1] ?? 0);
+
+        return $number > 0 ? $number : null;
+    }
+
+    private function extractLegacyInvoiceNumber(?string $statement): ?int
+    {
+        $statement = $this->normalizeDigits((string) $statement);
+        foreach ([
+            '/رقم\s+الفاتورة\s*[:：#-]?\s*(\d+)/u',
+            '/فاتورة\s+رقم\s*[:：#-]?\s*(\d+)/u',
+            '/الفاتورة\s*#\s*(\d+)/u',
+        ] as $pattern) {
+            if (preg_match($pattern, $statement, $matches)) {
+                $number = (int) ($matches[1] ?? 0);
+
+                return $number > 0 ? $number : null;
+            }
+        }
+
+        return null;
+    }
+
+    private function resolveOrCreateRentalRequestCostCenter(int $requestNumber): array
+    {
+        if (isset($this->legacyRentalCostCenters[$requestNumber])) {
+            return [$this->legacyRentalCostCenters[$requestNumber], false];
+        }
+
+        $contract = RentalContract::query()
+            ->where('legacy_order_id', $requestNumber)
+            ->orWhere('contract_number', (string) $requestNumber)
+            ->first(['id', 'legacy_order_id', 'contract_number']);
+        $root = CostCenter::query()
+            ->whereNull('parent_id')
+            ->where('title', 'عقود التأجير')
+            ->first();
+
+        if (!$root) {
+            $root = CostCenter::query()->create([
+                'title' => 'عقود التأجير',
+                'parent_id' => null,
+                'table_name' => 'fn_cost_centers',
+                'table_related_id' => 0,
+                'code' => 'RENTAL',
+                'created_by_id' => auth('admin')->id() ?? 1,
+            ]);
+        }
+
+        $title = 'طلب تأجير ' . $requestNumber;
+        $query = CostCenter::query()->where('parent_id', $root->id);
+        if ($contract) {
+            $query->where('table_name', 'rental_contracts')
+                ->where('table_related_id', $contract->id);
+        } else {
+            $query->where('title', $title);
+        }
+
+        $center = $query->first();
+        $created = false;
+        if (!$center) {
+            $center = CostCenter::query()->create([
+                'title' => $title,
+                'parent_id' => $root->id,
+                'table_name' => $contract ? 'rental_contracts' : 'fn_cost_centers',
+                'table_related_id' => $contract?->id ?? 0,
+                'code' => 'RENTAL-' . $requestNumber,
+                'created_by_id' => auth('admin')->id() ?? 1,
+            ]);
+            $created = true;
+        } elseif ($center->title !== $title) {
+            $center->update(['title' => $title]);
+        }
+
+        $this->legacyRentalCostCenters[$requestNumber] = $center;
+
+        return [$center, $created];
     }
 
     private function financeAccountAcceptsInferredCostCenter(?int $accountId, $accountCode = null): bool

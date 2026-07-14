@@ -401,21 +401,37 @@ class ConstraintController extends Controller
     {
         $type = $this->resolveConstraintType($constraint);
 
-        if ($type === ConstraintTypiesEnum::QapdBond && $constraint->bond) {
+        if ($constraint->bond) {
+            $bondType = $constraint->bond->type === 'sarf' ? 'sarf' : 'qabd';
+            $bondLabel = $bondType === 'sarf' ? 'سند الصرف' : 'سند القبض';
+
             return [
-                'label' => 'سند القبض #' . $constraint->bond->id,
+                'label' => $bondLabel . ' #' . ($constraint->bond->code ?: $constraint->bond->id),
                 'url' => route('finance.bonds-print.show', [
                     'bonds_print' => $constraint->bond->id,
-                    'type' => 'qabd',
+                    'type' => $bondType,
                 ]),
             ];
         }
 
-        if ($type === ConstraintTypiesEnum::SarfBond && $constraint->bond) {
+        $rentalInvoice = $constraint->rentalInvoiceConstraint
+            ?: ($constraint->legacy_invoice_type === 'rental' ? $constraint->rentalInvoice : null);
+        if ($rentalInvoice) {
             return [
-                'label' => 'سند الصرف #' . $constraint->bond->id,
-                'url' => route('finance.bonds-print.show', [
-                    'bonds_print' => $constraint->bond->id,
+                'label' => 'فاتورة التأجير #' . ($rentalInvoice->legacy_invoice_id ?: $rentalInvoice->id),
+                'url' => route('rental.invoice.download', [
+                    'id' => $rentalInvoice->id,
+                    'autoprint' => 1,
+                ]),
+            ];
+        }
+
+        if ($constraint->rentalReceiptInvoice) {
+            return [
+                'label' => 'فاتورة التأجير #' . ($constraint->rentalReceiptInvoice->legacy_invoice_id ?: $constraint->rentalReceiptInvoice->id),
+                'url' => route('rental.invoice.download', [
+                    'id' => $constraint->rentalReceiptInvoice->id,
+                    'autoprint' => 1,
                 ]),
             ];
         }
@@ -425,6 +441,20 @@ class ConstraintController extends Controller
                 'label' => 'مستند التحويل #' . $constraint->transfer_entry->id,
                 'url' => route('finance.account-transfer-print.show', [
                     'account_transfer_print' => $constraint->transfer_entry->id,
+                ]),
+            ];
+        }
+
+        $recruitmentInvoice = $constraint->arrivalRevenueInvoice
+            ?: $constraint->externalOfficeCostInvoice
+            ?: $constraint->ingazDelegationCostInvoice
+            ?: ($constraint->legacy_invoice_type === 'recruitment' ? $constraint->recruitmentInvoice : null);
+        if ($recruitmentInvoice) {
+            return [
+                'label' => 'الفاتورة #' . ($recruitmentInvoice->legacy_invoice_number ?: $recruitmentInvoice->id),
+                'url' => route('invoice.download', [
+                    'id' => $recruitmentInvoice->id,
+                    'autoprint' => 1,
                 ]),
             ];
         }
@@ -487,10 +517,10 @@ class ConstraintController extends Controller
     {
         $query
             ->when($request->filled('from_date'), function ($query) use ($request) {
-                $query->whereDate('fn_constraints.date', '>=', $request->input('from_date'));
+                $query->where('fn_constraints.date', '>=', $request->input('from_date'));
             })
             ->when($request->filled('to_date'), function ($query) use ($request) {
-                $query->whereDate('fn_constraints.date', '<=', $request->input('to_date'));
+                $query->where('fn_constraints.date', '<=', $request->input('to_date'));
             })
             ->when($request->filled('type_filter'), function ($query) use ($request) {
                 $query->where('fn_constraints.type', $request->input('type_filter'));
@@ -505,12 +535,18 @@ class ConstraintController extends Controller
 
         return $query->where(function ($query) use ($keyword, $numericKeyword) {
             if ($numericKeyword !== '' && ctype_digit($numericKeyword)) {
-                // The list displays the database id whenever a legacy constraint has no code.
-                $query->orWhere('fn_constraints.id', (int) $numericKeyword);
+                $number = (int) $numericKeyword;
+
+                return $query->where('fn_constraints.code', $number)
+                    ->orWhere(function ($query) use ($number) {
+                        $query->whereNull('fn_constraints.code')
+                            ->where('fn_constraints.id', $number);
+                    })
+                    ->orWhere('fn_constraints.legacy_document_number', $number)
+                    ->orWhere('fn_constraints.legacy_invoice_number', $number);
             }
 
-            $query->orWhere('fn_constraints.code', 'like', '%' . $keyword . '%')
-                ->orWhere('fn_constraints.statement', 'like', '%' . $keyword . '%')
+            $query->where('fn_constraints.statement', 'like', '%' . $keyword . '%')
                 ->orWhere('fn_constraints.value', 'like', '%' . $keyword . '%')
                 ->orWhere('fn_constraints.date', 'like', '%' . $keyword . '%')
                 ->orWhereHas('constraintDetails.account', function ($accountQuery) use ($keyword) {
