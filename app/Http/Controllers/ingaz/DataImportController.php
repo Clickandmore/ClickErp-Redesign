@@ -114,6 +114,12 @@ class DataImportController extends Controller
                 . '، بانتظار استيراد سندات القبض: ' . ($result['pending_receipt_links'] ?? 0)
                 . '، صفوف أصلية محفوظة: ' . ($result['archived_rows'] ?? 0)
                 . '، مكتملة سابقًا دون تغيير: ' . ($result['unchanged_rows'] ?? 0) . '.';
+            if ($result['active_snapshot'] ?? false) {
+                $message .= ' تمت معاملة الملف كلقطة العقود السارية؛ عاملات مرتبطة بخارج الإيواء: '
+                    . ($result['outside_shelter_links'] ?? 0)
+                    . '، عقود سابقة أغلقت لغيابها من اللقطة: ' . ($result['deactivated_contracts'] ?? 0)
+                    . '، دون عقد شركة مطابق: ' . ($result['missing_company_contracts'] ?? 0) . '.';
+            }
         }
         if ($data['type'] === 'legacy_invoices') {
             $message .= ' تم الحفاظ على أرقام الفواتير وبيانات المصدر وحالة المشاركة السابقة مع هيئة الزكاة، وسُجلت الفواتير المستوردة كمسددة حسب اعتماد الإدارة.';

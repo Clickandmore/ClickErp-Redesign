@@ -51,10 +51,12 @@
                 <h3 class="mb-1">إرسالات المكتب الخارجي</h3>
                 <p class="text-muted mb-0">عرض العقود التي تم إرسالها للمكتب الخارجي مع إمكانية فلترة العقود غير المرسلة.</p>
             </div>
-            <a href="{{ route('RecruitmentContract.index', ['status' => 'current']) }}" class="btn btn-outline-secondary">
-                <i class="fas fa-file-contract me-1"></i>
-                عقود الاستقدام
-            </a>
+            <div class="d-flex flex-wrap gap-2">
+                <a href="{{ route('RecruitmentContract.index', ['status' => 'current']) }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-file-contract me-1"></i>
+                    الرجوع للعقود السارية
+                </a>
+            </div>
         </div>
 
         @if (session('success'))
@@ -63,6 +65,16 @@
 
         @if (session('error'))
             <div class="alert alert-danger">{{ session('error') }}</div>
+        @endif
+
+        @if ($errors->any())
+            <div class="alert alert-danger">
+                <ul class="mb-0 ps-3">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
         @endif
 
         @if (session('bulk_dispatch_errors') && count(session('bulk_dispatch_errors')))
@@ -140,7 +152,7 @@
             <div class="card-body">
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                     <div class="text-muted small">
-                        حدد أكثر من عقد من الجدول ثم أنشئ الإرساليات دفعة واحدة.
+                        تظهر العقود السارية التي لم تُنشأ لها إرسالية أولًا. يمكن جمع العقود من نفس الجنسية والمكتب في إرسالية واحدة وتحديد تكلفتها مرة واحدة.
                     </div>
                     <button type="button" id="open-bulk-dispatch-modal" class="btn btn-primary" disabled
                         data-bs-toggle="modal" data-bs-target="#bulkDispatchModal">
@@ -149,6 +161,7 @@
                         <span class="badge bg-light text-primary ms-1" id="selected-dispatch-count">0</span>
                     </button>
                 </div>
+                <div id="bulk-selection-group-alert" class="alert alert-info py-2 d-none" role="status"></div>
                 <div class="table-responsive">
                     <table id="external-office-dispatch-table" class="table table-hover align-middle mb-0" style="width: 100%;">
                         <thead class="table-light">
@@ -159,6 +172,7 @@
                                 <th>رقم العقد</th>
                                 <th>العميل</th>
                                 <th>العاملة</th>
+                                <th>الجنسية</th>
                                 <th>المكتب</th>
                                 <th>حالة العقد</th>
                                 <th>حالة الإرسالية</th>
@@ -185,19 +199,41 @@
                 </div>
                 <div class="modal-body">
                     <div class="alert alert-info">
-                        سيتم إنشاء أو تحديث الإرسالية للعقود المحددة باستخدام تكلفة المكتب المسجلة على كل عقد.
+                        سيتم إنشاء إرسالية لكل عقد محدد باستخدام نفس التاريخ والتكلفة. يجب أن تكون العقود من نفس الجنسية ونفس المكتب الخارجي.
                     </div>
                     <div class="mb-3">
                         <label class="form-label">عدد العقود المحددة</label>
                         <input type="text" class="form-control" id="bulk-dispatch-selected-summary" readonly>
                     </div>
                     <div class="mb-3">
+                        <label class="form-label">المكتب والجنسية</label>
+                        <input type="text" class="form-control" id="bulk-dispatch-group-summary" readonly>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label">تاريخ الإرسالية <span class="text-danger">*</span></label>
-                        <input type="date" name="dispatch_date" class="form-control" value="{{ now()->toDateString() }}" required>
+                        <input type="date" name="dispatch_date" class="form-control"
+                            value="{{ old('dispatch_date', now()->toDateString()) }}" required>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">تكلفة العقد بالدولار <span class="text-danger">*</span></label>
+                            <input type="number" name="office_contract_cost_usd" id="bulk_office_contract_cost_usd"
+                                class="form-control" value="{{ old('office_contract_cost_usd') }}"
+                                step="0.01" min="0.01" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">المقابل بالريال</label>
+                            <div class="input-group">
+                                <input type="number" id="bulk_office_contract_cost_sar" class="form-control"
+                                    step="0.01" min="0.01">
+                                <span class="input-group-text">ريال</span>
+                            </div>
+                        </div>
                     </div>
                     <div class="mb-0">
                         <label class="form-label">محطة الوصول</label>
                         <input type="text" name="arrival_station" class="form-control"
+                            value="{{ old('arrival_station') }}"
                             placeholder="اتركها فارغة لاستخدام محطة الوصول المسجلة لكل عقد">
                     </div>
                 </div>
@@ -216,13 +252,51 @@
 @section('js')
     <script>
         $(document).ready(function() {
-            const selectedDispatchContracts = new Set();
+            const selectedDispatchContracts = new Set(
+                @json(collect($selectedContractIds ?? [])->map(fn ($id) => (string) $id)->values())
+            );
+            const selectedDispatchGroups = new Map(
+                Object.entries(@json($selectedContractGroups ?? collect())).map(([id, group]) => [String(id), group])
+            );
+
+            function checkboxGroup(checkbox) {
+                return {
+                    office_id: String($(checkbox).data('office-id') || ''),
+                    nationality_id: String($(checkbox).data('nationality-id') || ''),
+                    office_name: String($(checkbox).data('office-name') || 'غير محدد'),
+                    nationality_name: String($(checkbox).data('nationality-name') || 'غير محددة'),
+                };
+            }
+
+            function groupKey(group) {
+                return `${group.office_id}:${group.nationality_id}`;
+            }
+
+            function activeSelectionGroup() {
+                const firstGroup = selectedDispatchGroups.values().next();
+                return firstGroup.done ? null : firstGroup.value;
+            }
+
+            function isCompatibleGroup(group) {
+                const activeGroup = activeSelectionGroup();
+                return !activeGroup || groupKey(activeGroup) === groupKey(group);
+            }
 
             function syncBulkDispatchControls() {
                 const selectedCount = selectedDispatchContracts.size;
                 $('#selected-dispatch-count').text(selectedCount);
                 $('#open-bulk-dispatch-modal').prop('disabled', selectedCount === 0);
                 $('#bulk-dispatch-selected-summary').val(selectedCount + ' عقد');
+                const activeGroup = activeSelectionGroup();
+                const groupDescription = activeGroup
+                    ? `${activeGroup.office_name} / ${activeGroup.nationality_name}`
+                    : '';
+                $('#bulk-dispatch-group-summary').val(groupDescription);
+                $('#bulk-selection-group-alert')
+                    .toggleClass('d-none', !activeGroup)
+                    .text(activeGroup
+                        ? `الاختيار الحالي: ${groupDescription}. يمكن إضافة عقود أخرى من نفس المجموعة فقط.`
+                        : '');
 
                 const inputs = Array.from(selectedDispatchContracts)
                     .map(id => `<input type="hidden" name="contract_ids[]" value="${id}">`)
@@ -281,6 +355,12 @@
                         searchable: false
                     },
                     {
+                        data: 'nationality',
+                        name: 'nationality',
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
                         data: 'office',
                         name: 'office',
                         orderable: false,
@@ -329,10 +409,11 @@
             $('#reset-dispatch-filters').on('click', function() {
                 $('input[name="search"]').val('');
                 $('select[name="contract_status"]').val('');
-                $('#dispatch_filter').val('sent');
+                $('#dispatch_filter').val('not_sent');
                 $('.dispatch-filter-chip').removeClass('active');
-                $('.dispatch-filter-chip[data-dispatch-filter="sent"]').addClass('active');
+                $('.dispatch-filter-chip[data-dispatch-filter="not_sent"]').addClass('active');
                 selectedDispatchContracts.clear();
+                selectedDispatchGroups.clear();
                 syncBulkDispatchControls();
                 table.ajax.reload();
             });
@@ -343,6 +424,7 @@
                 $('.dispatch-filter-chip').removeClass('active');
                 $(this).addClass('active');
                 selectedDispatchContracts.clear();
+                selectedDispatchGroups.clear();
                 syncBulkDispatchControls();
                 table.ajax.reload();
             });
@@ -350,9 +432,22 @@
             $(document).on('change', '.dispatch-contract-checkbox', function() {
                 const contractId = String($(this).val());
                 if ($(this).is(':checked')) {
+                    const group = checkboxGroup(this);
+                    if (!group.office_id || !group.nationality_id) {
+                        $(this).prop('checked', false);
+                        window.alert('يجب تحديد المكتب الخارجي والجنسية للعقد قبل إضافته إلى الإرسالية المجمعة.');
+                        return;
+                    }
+                    if (!isCompatibleGroup(group)) {
+                        $(this).prop('checked', false);
+                        window.alert('يمكن جمع العقود من نفس الجنسية ونفس المكتب الخارجي فقط.');
+                        return;
+                    }
                     selectedDispatchContracts.add(contractId);
+                    selectedDispatchGroups.set(contractId, group);
                 } else {
                     selectedDispatchContracts.delete(contractId);
+                    selectedDispatchGroups.delete(contractId);
                 }
                 syncBulkDispatchControls();
             });
@@ -362,13 +457,41 @@
                 $('.dispatch-contract-checkbox:not(:disabled)').each(function() {
                     const contractId = String($(this).val());
                     if (shouldSelect) {
-                        selectedDispatchContracts.add(contractId);
+                        const group = checkboxGroup(this);
+                        if (group.office_id && group.nationality_id && isCompatibleGroup(group)) {
+                            selectedDispatchContracts.add(contractId);
+                            selectedDispatchGroups.set(contractId, group);
+                        }
                     } else {
                         selectedDispatchContracts.delete(contractId);
+                        selectedDispatchGroups.delete(contractId);
                     }
                 });
                 syncBulkDispatchControls();
             });
+
+            const usdInput = document.getElementById('bulk_office_contract_cost_usd');
+            const sarInput = document.getElementById('bulk_office_contract_cost_sar');
+            const usdToSarRate = 3.75;
+            let updatingCurrency = false;
+
+            function syncCurrency(source, target, multiplier) {
+                if (updatingCurrency) {
+                    return;
+                }
+
+                updatingCurrency = true;
+                const value = parseFloat(String(source?.value || '').replace(',', '.'));
+                target.value = Number.isFinite(value) && value > 0 ? (value * multiplier).toFixed(2) : '';
+                updatingCurrency = false;
+            }
+
+            usdInput?.addEventListener('input', () => syncCurrency(usdInput, sarInput, usdToSarRate));
+            sarInput?.addEventListener('input', () => syncCurrency(sarInput, usdInput, 1 / usdToSarRate));
+
+            if (usdInput?.value) {
+                syncCurrency(usdInput, sarInput, usdToSarRate);
+            }
         });
     </script>
 @endsection

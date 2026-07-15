@@ -16,17 +16,16 @@ class TrailBalanceController extends Controller
     public function index(Request $request,TrailBalanceService $service,YearService $yearService)
     {
         $data['levels'] = $service->showLevels();
-        $data['active_year'] = $yearService->getActiveYear();
+        $data['report_period'] = $yearService->getReportPeriod();
         if ($request->ajax()) {
             $includeFirstBalance = isset($request['show_first_balance']) && $request['show_first_balance'];
             $requestedLevel = $request->input('level', $data['levels'][0] ?? 1);
             $levelSummary = $requestedLevel === 'all' ? 'all' : (int) $requestedLevel;
-            $fromDate = $request->input('from_date', $data['active_year']['from_date'] ?? null);
-            $toDate = $request->input('to_date', $data['active_year']['to_date'] ?? null);
+            $fromDate = $request->input('from_date', $data['report_period']->from_date ?? null);
+            $toDate = $request->input('to_date', $data['report_period']->to_date ?? null);
 
             $accountsWithChildren = $service->getAccountSummaryForTrailBalance(
                 $levelSummary,
-                $data['active_year']['id'],
                 $fromDate,
                 $toDate,
                 $includeFirstBalance

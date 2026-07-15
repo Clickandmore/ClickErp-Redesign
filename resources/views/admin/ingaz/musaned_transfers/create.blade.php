@@ -64,6 +64,44 @@
             color: #842029;
             line-height: 1;
         }
+
+        .musaned-transfer-card .transfer-source-results {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            background: #fff;
+        }
+
+        .musaned-transfer-card .transfer-source-result {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            width: 100%;
+            border: 0;
+            border-bottom: 1px solid #edf0f2;
+            padding: 10px 12px;
+            background: #fff;
+            color: #212529;
+            text-align: right;
+        }
+
+        .musaned-transfer-card .transfer-source-result:last-child {
+            border-bottom: 0;
+        }
+
+        .musaned-transfer-card .transfer-source-result:not(:disabled):hover,
+        .musaned-transfer-card .transfer-source-result:not(:disabled):focus {
+            background: #eef6ff;
+            outline: 0;
+        }
+
+        .musaned-transfer-card .transfer-source-result:disabled {
+            background: #f8f9fa;
+            color: #6c757d;
+            cursor: default;
+        }
     </style>
 @endsection
 
@@ -140,7 +178,7 @@
                             </div>
                             <div class="col-md-4">
                                 <label for="bank_account_id" class="form-label">الحساب البنكي</label>
-                                <select class="form-control select2" id="bank_account_id" name="bank_account_id" required>
+                                <select class="form-control select2" id="bank_account_id" name="bank_account_id" @required($automaticEntriesEnabled ?? true)>
                                     <option value="">اختر الحساب البنكي</option>
                                     @foreach ($bankAccounts as $account)
                                         <option value="{{ $account->id }}"
@@ -149,10 +187,23 @@
                                 </select>
                             </div>
                             <div class="col-12">
-                                <label for="contract_selector" class="form-label">العقود والتفاويض المشمولة في الحوالة</label>
-                                <input type="search" class="form-control mb-2" id="contract_musaned_search"
-                                    placeholder="ابحث برقم عقد مساند أو اسم العميل أو رقم العقد">
-                                <select class="form-control" id="contract_selector" multiple>
+                                <label for="contract_musaned_search" class="form-label">العقود والتفاويض المشمولة في الحوالة</label>
+                                <div class="input-group">
+                                    <input type="search" class="form-control" id="contract_musaned_search"
+                                        placeholder="ابحث برقم عقد مساند أو اسم العميل أو رقم العقد"
+                                        autocomplete="off" aria-controls="contract_search_results">
+                                    <button type="button" class="btn btn-outline-secondary" id="clear_contract_search"
+                                        aria-label="مسح البحث" title="مسح البحث">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center my-2">
+                                    <small class="text-muted">اضغط على العقد المطلوب لإضافته.</small>
+                                    <span class="badge bg-primary" id="selected_sources_count">0 محدد</span>
+                                </div>
+                                <div id="contract_search_results" class="transfer-source-results mb-2"
+                                    role="listbox" aria-label="نتائج البحث عن العقود والتفاويض"></div>
+                                <select class="d-none" id="contract_selector" multiple aria-hidden="true" tabindex="-1">
                                     @foreach ($invoiceOptions as $option)
                                         <option value="{{ $option['source_key'] }}"
                                             data-search-text="{{ $option['label'] }} {{ $option['msaned_number'] }}"
@@ -197,11 +248,12 @@
                                         <th>عمولة مساند</th>
                                         <th>ضريبة المصروفات</th>
                                         <th>صافي العمولة</th>
+                                        <th class="text-center">حذف</th>
                                     </tr>
                                 </thead>
                                 <tbody id="transfer_items_body">
                                     <tr id="empty_transfer_row">
-                                        <td colspan="8" class="text-center py-4 text-muted">
+                                        <td colspan="9" class="text-center py-4 text-muted">
                                             اختر عقداً أو تفويضاً واحداً أو أكثر لإضافة بنود الحوالة.
                                         </td>
                                     </tr>
@@ -283,6 +335,9 @@
                     );
                     const selector = document.getElementById('contract_selector');
                     const searchInput = document.getElementById('contract_musaned_search');
+                    const clearSearchButton = document.getElementById('clear_contract_search');
+                    const searchResults = document.getElementById('contract_search_results');
+                    const selectedCount = document.getElementById('selected_sources_count');
                     const body = document.getElementById('transfer_items_body');
                     const emptyRow = document.getElementById('empty_transfer_row');
                     const selectedPreview = document.getElementById('selected_transfer_sources_preview');
@@ -294,14 +349,14 @@
                         tax: document.getElementById('summary_tax'),
                     };
 
-                    const oldTransferredMap = {};
+                    const transferredValues = {};
                     selectedFromOld.forEach(function(item) {
                         const sourceKey = item.contract_id
                             ? `contract:${parseInt(item.contract_id, 10)}`
                             : (item.ingaz_delegation_id ? `delegation:${parseInt(item.ingaz_delegation_id, 10)}` : null);
 
                         if (sourceKey) {
-                            oldTransferredMap[sourceKey] = item.transferred_amount || '';
+                            transferredValues[sourceKey] = item.transferred_amount || '';
                         }
                     });
 
@@ -333,27 +388,58 @@
                             .replace(/[\s\-_/\\.:#]+/g, '');
                     }
 
-                    function optionMatchesSearch(option, normalizedTerm) {
+                    function sourceMatchesSearch(option, normalizedTerm) {
                         if (!normalizedTerm) {
                             return true;
                         }
 
-                        const searchText = option.dataset.searchText || option.textContent || '';
+                        const searchText = `${option.label || ''} ${option.msaned_number || ''} ${option.client_name || ''}`;
                         return normalizeSearch(searchText).includes(normalizedTerm);
                     }
 
-                    function applyContractSearchFilter() {
+                    function renderSearchResults() {
                         const normalizedTerm = normalizeSearch(searchInput ? searchInput.value : '');
+                        const selectedKeys = new Set(getSelectedKeys());
+                        const matches = contractsLookup
+                            .filter(option => sourceMatchesSearch(option, normalizedTerm))
+                            .slice(0, 50);
 
-                        Array.from(selector.options).forEach(function(option) {
-                            const shouldShow = option.selected || optionMatchesSearch(option, normalizedTerm);
-                            option.hidden = !shouldShow;
-                            option.disabled = !shouldShow;
-                        });
+                        searchResults.innerHTML = '';
+                        selectedCount.textContent = `${selectedKeys.size} محدد`;
 
-                        if (window.jQuery && window.jQuery.fn && window.jQuery.fn.select2) {
-                            window.jQuery(selector).trigger('change.select2');
+                        if (!matches.length) {
+                            const emptyMessage = document.createElement('div');
+                            emptyMessage.className = 'text-center text-muted py-3 px-2';
+                            emptyMessage.textContent = 'لا توجد نتائج مطابقة للبحث.';
+                            searchResults.appendChild(emptyMessage);
+                            return;
                         }
+
+                        matches.forEach(function(option) {
+                            const isSelected = selectedKeys.has(option.source_key);
+                            const result = document.createElement('button');
+                            result.type = 'button';
+                            result.className = 'transfer-source-result';
+                            result.disabled = isSelected;
+                            result.setAttribute('role', 'option');
+                            result.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+
+                            const label = document.createElement('span');
+                            label.textContent = option.label;
+                            result.appendChild(label);
+
+                            const status = document.createElement('span');
+                            status.className = isSelected ? 'badge bg-success' : 'badge bg-light text-primary border';
+                            status.textContent = isSelected ? 'تمت الإضافة' : 'إضافة';
+                            result.appendChild(status);
+
+                            result.addEventListener('click', function() {
+                                setOptionSelected(option.source_key, true);
+                                searchInput.focus();
+                            });
+
+                            searchResults.appendChild(result);
+                        });
                     }
 
                     function calculateExpenseTax(commission) {
@@ -423,12 +509,7 @@
                         }
 
                         option.selected = selected;
-
-                        if (window.jQuery && window.jQuery.fn && window.jQuery.fn.select2) {
-                            window.jQuery(selector).trigger('change');
-                        } else {
-                            handleSelectorChange();
-                        }
+                        handleSelectorChange();
                     }
 
                     function renderSelectedPreview(selectedKeys) {
@@ -474,7 +555,7 @@
                         row.dataset.sourceKey = option.source_key;
                         row.dataset.invoiceTotal = option.invoice_total;
 
-                        const transferredValue = oldTransferredMap[option.source_key] || '';
+                        const transferredValue = transferredValues[option.source_key] || '';
                         const hiddenSourceInput = option.source_type === 'contract'
                             ? `<input type="hidden" name="items[${index}][contract_id]" value="${option.contract_id}">`
                             : `<input type="hidden" name="items[${index}][ingaz_delegation_id]" value="${option.ingaz_delegation_id}">`;
@@ -507,11 +588,22 @@
                             <td>
                                 <input type="text" class="form-control commission-net-amount" readonly>
                             </td>
+                            <td class="text-center">
+                                <button type="button" class="btn btn-sm btn-outline-danger remove-transfer-item"
+                                    title="حذف هذا العقد" aria-label="حذف ${sourceText}">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </td>
                         `;
 
                         row.querySelector('.transferred-amount').addEventListener('input', function() {
+                            transferredValues[option.source_key] = this.value;
                             updateRowCalculations(row);
                             updateSummary();
+                        });
+
+                        row.querySelector('.remove-transfer-item').addEventListener('click', function() {
+                            setOptionSelected(option.source_key, false);
                         });
 
                         updateRowCalculations(row);
@@ -520,6 +612,13 @@
                     }
 
                     function renderRows() {
+                        body.querySelectorAll('tr.transfer-item-row').forEach(function(row) {
+                            const input = row.querySelector('.transferred-amount');
+                            if (input) {
+                                transferredValues[row.dataset.sourceKey] = input.value;
+                            }
+                        });
+
                         const selectedKeys = getSelectedKeys();
                         body.innerHTML = '';
                         renderSelectedPreview(selectedKeys);
@@ -543,45 +642,34 @@
                     }
 
                     function handleSelectorChange() {
-                        applyContractSearchFilter();
                         renderRows();
-                    }
-
-                    if (window.jQuery && window.jQuery.fn && window.jQuery.fn.select2) {
-                        window.jQuery(selector).select2({
-                            placeholder: 'اختر العقود أو التفاويض المشمولة في الحوالة',
-                            width: '100%',
-                            closeOnSelect: false,
-                            matcher: function(params, data) {
-                                const term = normalizeSearch(params.term || '');
-                                if (!term) {
-                                    return data;
-                                }
-
-                                const element = data.element;
-                                if (!element || optionMatchesSearch(element, term)) {
-                                    return data;
-                                }
-
-                                return null;
-                            }
-                        });
-
-                        window.jQuery(selector).on('change', handleSelectorChange);
-                    } else {
-                        selector.addEventListener('mousedown', function(event) {
-                            if (event.target && event.target.tagName === 'OPTION') {
-                                event.preventDefault();
-                                event.target.selected = !event.target.selected;
-                                selector.focus();
-                                handleSelectorChange();
-                            }
-                        });
-                        selector.addEventListener('change', handleSelectorChange);
+                        renderSearchResults();
                     }
 
                     if (searchInput) {
-                        searchInput.addEventListener('input', applyContractSearchFilter);
+                        searchInput.addEventListener('input', renderSearchResults);
+                        searchInput.addEventListener('keydown', function(event) {
+                            if (event.key === 'Escape') {
+                                searchInput.value = '';
+                                renderSearchResults();
+                            }
+
+                            if (event.key === 'Enter') {
+                                const firstResult = searchResults.querySelector('.transfer-source-result:not(:disabled)');
+                                if (firstResult) {
+                                    event.preventDefault();
+                                    firstResult.click();
+                                }
+                            }
+                        });
+                    }
+
+                    if (clearSearchButton) {
+                        clearSearchButton.addEventListener('click', function() {
+                            searchInput.value = '';
+                            renderSearchResults();
+                            searchInput.focus();
+                        });
                     }
 
                     if (initialSelectedKeys && initialSelectedKeys.length) {
@@ -590,12 +678,8 @@
                         });
                     }
 
-                    if (window.jQuery && window.jQuery.fn && window.jQuery.fn.select2) {
-                        window.jQuery(selector).trigger('change');
-                    }
-
-                    applyContractSearchFilter();
                     renderRows();
+                    renderSearchResults();
                 })();
             </script>
         @endif

@@ -593,6 +593,129 @@ class AccountService extends MainService
             ->get();
     }
 
+    /**
+     * Return posting accounts whose balance is actually on the requested side.
+     *
+     * The account status is its normal accounting nature, not its current balance.
+     * Reports based only on that status omit debit-nature accounts that currently
+     * have a credit balance and include credit-nature accounts with zero/debit
+     * balances. This query derives the side from the posted movements instead.
+     */
+    public function balanceAccountsByActualSide(string $side, array $search = [])
+    {
+        $side = $side === 'debtor' ? 'debtor' : 'creditor';
+        $debtorTotal = 'movements.debtor_total';
+        $creditorTotal = 'movements.creditor_total';
+        $balanceExpression = $side === 'debtor'
+            ? "{$debtorTotal} - {$creditorTotal}"
+            : "{$creditorTotal} - {$debtorTotal}";
+
+        $movements = DB::table('fn_constraint_details as detail')
+            ->join('fn_constraints as constraint', function ($join) {
+                $join->on('constraint.id', '=', 'detail.constraint_id')
+                    ->whereNull('constraint.deleted_at');
+            })
+            ->whereNull('detail.deleted_at')
+            ->when(!empty($search['from_date']), function ($query) use ($search) {
+                $query->where('detail.date', '>=', $search['from_date']);
+            })
+            ->when(!empty($search['to_date']), function ($query) use ($search) {
+                $query->where('detail.date', '<=', $search['to_date']);
+            })
+            ->groupBy('detail.account_id')
+            ->selectRaw('detail.account_id, SUM(detail.debtor_value) AS debtor_total, SUM(detail.creditor_value) AS creditor_total');
+
+        return DB::table('fn_accounts as account')
+            ->leftJoin('fn_accounts as parent', 'parent.id', '=', 'account.parent_id')
+            ->joinSub($movements, 'movements', 'movements.account_id', '=', 'account.id')
+            ->select([
+                'account.id',
+                'account.code',
+                'account.status',
+                'account.name',
+                'account.level',
+                'parent.code as parent_code',
+                'parent.name as parent_name',
+            ])
+            ->selectRaw("{$debtorTotal} AS debtor_total, {$creditorTotal} AS creditor_total")
+            ->selectRaw("{$balanceExpression} AS balance")
+            ->when(!empty($search['keyword']), function ($query) use ($search) {
+                $keyword = trim((string) $search['keyword']);
+                $query->where(function ($query) use ($keyword) {
+                    $query->where('account.name', 'like', "%{$keyword}%")
+                        ->orWhere('account.code', 'like', "%{$keyword}%")
+                        ->orWhere('parent.name', 'like', "%{$keyword}%")
+                        ->orWhere('parent.code', 'like', "%{$keyword}%");
+                });
+            })
+            ->whereNotExists(function ($query) {
+                $query->selectRaw('1')
+                    ->from('fn_accounts as children')
+                    ->whereColumn('children.parent_id', 'account.id');
+            })
+            ->whereRaw("{$balanceExpression} > ?", [0.005])
+            ->orderBy('account.code')
+            ->orderBy('account.id')
+            ->get();
+    }
+
+    public function balanceAccountsDifferedFromNature(array $search = [])
+    {
+        $movements = DB::table('fn_constraint_details as detail')
+            ->join('fn_constraints as constraint', function ($join) {
+                $join->on('constraint.id', '=', 'detail.constraint_id')
+                    ->whereNull('constraint.deleted_at');
+            })
+            ->whereNull('detail.deleted_at')
+            ->when(!empty($search['from_date']), function ($query) use ($search) {
+                $query->where('detail.date', '>=', $search['from_date']);
+            })
+            ->when(!empty($search['to_date']), function ($query) use ($search) {
+                $query->where('detail.date', '<=', $search['to_date']);
+            })
+            ->groupBy('detail.account_id')
+            ->selectRaw('detail.account_id, SUM(detail.debtor_value) AS debtor_total, SUM(detail.creditor_value) AS creditor_total');
+
+        $balanceExpression = "CASE
+            WHEN account.status = 'debtor' THEN movements.creditor_total - movements.debtor_total
+            ELSE movements.debtor_total - movements.creditor_total
+        END";
+
+        return DB::table('fn_accounts as account')
+            ->leftJoin('fn_accounts as parent', 'parent.id', '=', 'account.parent_id')
+            ->joinSub($movements, 'movements', 'movements.account_id', '=', 'account.id')
+            ->select([
+                'account.id',
+                'account.code',
+                'account.status',
+                'account.name',
+                'account.level',
+                'parent.code as parent_code',
+                'parent.name as parent_name',
+            ])
+            ->selectRaw('movements.debtor_total, movements.creditor_total')
+            ->selectRaw("{$balanceExpression} AS balance")
+            ->selectRaw("CASE WHEN account.status = 'debtor' THEN 'creditor' ELSE 'debtor' END AS actual_status")
+            ->when(!empty($search['keyword']), function ($query) use ($search) {
+                $keyword = trim((string) $search['keyword']);
+                $query->where(function ($query) use ($keyword) {
+                    $query->where('account.name', 'like', "%{$keyword}%")
+                        ->orWhere('account.code', 'like', "%{$keyword}%")
+                        ->orWhere('parent.name', 'like', "%{$keyword}%")
+                        ->orWhere('parent.code', 'like', "%{$keyword}%");
+                });
+            })
+            ->whereNotExists(function ($query) {
+                $query->selectRaw('1')
+                    ->from('fn_accounts as children')
+                    ->whereColumn('children.parent_id', 'account.id');
+            })
+            ->whereRaw("{$balanceExpression} > ?", [0.005])
+            ->orderBy('account.code')
+            ->orderBy('account.id')
+            ->get();
+    }
+
     public function balanceconstraintsByType($type = null)
     {
         return DB::table('fn_constraint_details as d')

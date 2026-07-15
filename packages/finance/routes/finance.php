@@ -66,6 +66,7 @@ use Nami\Finance\Http\Controllers\DoubleAccountStatementController;
 use Nami\Finance\Http\Controllers\DoubleAccountStatementPrintController;
 use Nami\Finance\Http\Controllers\ExchangeCheckController;
 use Nami\Finance\Http\Controllers\FilterItemController;
+use Nami\Finance\Http\Controllers\FiscalYearClosingController;
 use Nami\Finance\Http\Controllers\FirstStockController;
 use Nami\Finance\Http\Controllers\GeneralBondQabdController;
 use Nami\Finance\Http\Controllers\GeneralBondSarfController;
@@ -189,8 +190,16 @@ Route::group(
         Route::resource('double-account-statement-print', DoubleAccountStatementPrintController::class);
         Route::resource('trail-balance', TrailBalanceController::class);
         Route::resource('opening-balance', OpeningBalanceController::class);
+        Route::get('fiscal-year-closing', [FiscalYearClosingController::class, 'index'])
+            ->name('fiscal-year-closing.index');
+        Route::post('fiscal-year-closing', [FiscalYearClosingController::class, 'store'])
+            ->name('fiscal-year-closing.store');
+        Route::post('fiscal-year-closing/{operation}/reverse', [FiscalYearClosingController::class, 'reverse'])
+            ->name('fiscal-year-closing.reverse');
         Route::resource('boxes', BoxController::class);
         Route::resource('principles', PrincipleController::class);
+        Route::get('account-statement/account-options', [AccountStatementController::class, 'accountOptions'])
+            ->name('account-statement.account-options');
         Route::resource('account-statement', AccountStatementController::class);
         Route::resource('account-statement-print', AccountStatementPrintController::class);
         Route::resource('account-statement-clients', AccountStatementClientController::class);

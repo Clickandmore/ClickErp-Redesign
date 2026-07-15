@@ -33,6 +33,23 @@ class AlrafedinRentalContractsImportTest extends TestCase
         $this->assertSame('569', (string) $rows[1938]['legacy_invoice_id']);
     }
 
+    public function test_filtered_report_is_detected_as_the_authoritative_active_snapshot(): void
+    {
+        $matches = glob(base_path('migration_system/data/alrafedin/rental-contracts/*2026-07-15.xlsx'));
+
+        $this->assertCount(1, $matches);
+
+        $rows = iterator_to_array($this->invoke('readLegacyRentalOrderRows', $matches[0]));
+
+        $this->assertCount(75, $rows);
+        $this->assertTrue($this->invoke('isLegacyRentalActiveSnapshot', $rows));
+
+        $fullReport = base_path('migration_system/data/alrafedin/rental-contracts/تقرير طلبات التأجير __2026-07-13.xlsx');
+        $fullRows = iterator_to_array($this->invoke('readLegacyRentalOrderRows', $fullReport));
+
+        $this->assertFalse($this->invoke('isLegacyRentalActiveSnapshot', $fullRows));
+    }
+
     public function test_legacy_day_labels_and_vat_inclusive_total_are_normalized(): void
     {
         $this->assertSame(24, $this->invoke('legacyRentalDayCount', ' +24'));

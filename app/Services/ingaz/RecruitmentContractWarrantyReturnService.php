@@ -6,6 +6,7 @@ use App\Models\Contract;
 use App\Models\ContractReturnRequest;
 use App\Models\TravelHistory;
 use App\Support\AutomationSettings;
+use App\Support\AutomaticJournalEntries;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Nami\Finance\Models\Account;
@@ -30,6 +31,10 @@ class RecruitmentContractWarrantyReturnService
      */
     public function record(Contract $contract, ContractReturnRequest $returnRequest): ?Constraint
     {
+        if (!AutomaticJournalEntries::enabled()) {
+            return null;
+        }
+
         $contract->loadMissing([
             'user',
             'invoice',

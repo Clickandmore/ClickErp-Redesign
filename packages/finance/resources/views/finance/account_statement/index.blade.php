@@ -4,6 +4,7 @@
     $statementRoute = $statementRoute ?? route('finance.account-statement.index');
     $printRoute = $printRoute ?? route('finance.account-statement-print.index');
     $printPermission = $printPermission ?? 'finance::finance.account-statement-print-read';
+    $accountSearchRoute = $accountSearchRoute ?? null;
 @endphp
 
 @section('style')
@@ -883,8 +884,13 @@
             <div class="statement-filter-grid">
                 <div class="statement-field statement-field--account">
                     <label for="account_id">{{ __('finance::finance.account') }}</label>
-                    <select name="account_id" id="account_id" class="form-control select2 search_keys">
-                        {!! showSelectElement($accounts, 'name', $filters['account_id'] ?? request('account_id')) !!}
+                    <select name="account_id" id="account_id" class="form-control search_keys">
+                        <option value="">اختر الحساب بالاسم أو رقم الحساب</option>
+                        @foreach ($accounts as $account)
+                            <option value="{{ $account->id }}" @selected((string) ($filters['account_id'] ?? request('account_id')) === (string) $account->id)>
+                                {{ $account->code }} — {{ $account->name }}
+                            </option>
+                        @endforeach
                     </select>
                 </div>
 
@@ -933,7 +939,7 @@
             </div>
         </form>
 
-        <div class="print-and-excel-buttons d-none">
+        <div class="print-and-excel-buttons {{ ($initialResultCount ?? 0) > 0 ? '' : 'd-none' }}">
             <div class="statement-action-bar">
                 <p class="statement-action-copy">الطباعة والتصدير يعتمدان دائمًا على نفس الفلاتر الحالية ونتيجة البحث
                     المعروضة أسفلها.</p>
@@ -952,7 +958,7 @@
             </div>
         </div>
 
-        <div id="account_list" class="statement-results"></div>
+        <div id="account_list" class="statement-results">{!! $initialResultHtml ?? '' !!}</div>
     </div>
 @endsection
 
@@ -960,7 +966,38 @@
     <script>
         document.body.classList.add('statement-page-wide');
 
-        $('.select2').select2();
+        const accountSelectOptions = {
+            placeholder: 'ابحث باسم الحساب أو رقم الحساب',
+            width: '100%',
+            allowClear: true,
+            templateResult: function(account) {
+                return account.text;
+            },
+            templateSelection: function(account) {
+                return account.text;
+            }
+        };
+
+        @if ($accountSearchRoute)
+            accountSelectOptions.minimumInputLength = 1;
+            accountSelectOptions.ajax = {
+                url: @json($accountSearchRoute),
+                dataType: 'json',
+                delay: 300,
+                cache: true,
+                data: function(params) {
+                    return {
+                        q: params.term || '',
+                        page: params.page || 1
+                    };
+                },
+                processResults: function(data) {
+                    return data;
+                }
+            };
+        @endif
+
+        $('#account_id').select2(accountSelectOptions);
 
         const filtersContainer = $('#accountStatementFilters');
         const printButton = $('#print_button');
@@ -1025,12 +1062,8 @@
             }
         });
 
-        @if (!empty($filters['account_id'] ?? request('account_id')))
+        @if (!empty($filters['account_id'] ?? request('account_id')) && empty($initialResultHtml))
             searchAccountStatement();
-
-            if (window.history && window.history.replaceState) {
-                window.history.replaceState({}, document.title, statementBaseUrl);
-            }
         @endif
     </script>
 

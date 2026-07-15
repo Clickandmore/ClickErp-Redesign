@@ -4,6 +4,7 @@ namespace App\Services\ingaz;
 
 use App\Models\ShelterLivingExpenseAllocation;
 use App\Models\SponsorshipTransfer;
+use App\Support\AutomaticJournalEntries;
 use Carbon\Carbon;
 use Nami\Finance\Models\Account;
 use Nami\Finance\Models\Constraint;
@@ -27,6 +28,10 @@ class SponsorshipTransferFailureService
 
     public function record(SponsorshipTransfer $transfer): ?Constraint
     {
+        if (!AutomaticJournalEntries::enabled()) {
+            return null;
+        }
+
         $transfer->loadMissing([
             'contract.maid.nationality',
             'contract.requiredMaidNationality',

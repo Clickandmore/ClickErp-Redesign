@@ -7,6 +7,7 @@ use App\Models\TravelHistory;
 use App\Models\ingaz\Invoice;
 use App\Models\office\Office;
 use App\Services\office\OfficeFinanceAccountService;
+use App\Support\AutomaticJournalEntries;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Nami\Finance\Enums\CostCenterTypeEnum;
@@ -29,6 +30,16 @@ class RecruitmentTripAccountingService
 
     public function recordCompletionEntries(Contract $contract, ?TravelHistory $travelHistory = null): array
     {
+        if (!AutomaticJournalEntries::enabled()) {
+            return [
+                'skipped_reason' => 'automatic_entries_disabled',
+                'revenue_constraint_id' => null,
+                'external_office_cost_constraint_id' => null,
+                'created_revenue_constraint' => false,
+                'created_external_office_cost_constraint' => false,
+            ];
+        }
+
         $contract->loadMissing([
             'user',
             'invoice',

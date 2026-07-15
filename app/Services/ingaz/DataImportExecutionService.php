@@ -5,6 +5,7 @@ namespace App\Services\ingaz;
 use App\Enums\ingaz\ContractStatusEnum;
 use App\Enums\ingaz\OrderEnum;
 use App\Models\Contract;
+use App\Models\ContractInfo;
 use App\Models\Branch;
 use App\Models\RentalContract;
 use App\Models\RentalContractInvoice;
@@ -930,6 +931,8 @@ class DataImportExecutionService
 
     private function importLegacyRentalOrdersFile(string $storedPath, ?int $adminId, array $result): array
     {
+        $rows = iterator_to_array($this->readLegacyRentalOrderRows(Storage::path($storedPath)));
+        $activeSnapshot = $this->isLegacyRentalActiveSnapshot($rows);
         $result += [
             'rental_maids' => 0,
             'rental_contracts' => 0,
@@ -938,17 +941,25 @@ class DataImportExecutionService
             'pending_receipt_links' => 0,
             'archived_rows' => 0,
             'unchanged_rows' => 0,
+            'active_snapshot' => $activeSnapshot,
+            'outside_shelter_links' => 0,
+            'missing_company_contracts' => 0,
+            'deactivated_contracts' => 0,
         ];
         $maidIds = [];
         $existingRows = $this->legacyRentalExistingRowsForResume();
 
-        foreach ($this->readLegacyRentalOrderRows(Storage::path($storedPath)) as $rowNumber => $row) {
+        foreach ($rows as $rowNumber => $row) {
             $result['total']++;
             $normalizedRow = $this->normalizeLegacyRentalOrderRow($row);
             $requestId = $this->optionalInteger($normalizedRow['legacy_order_id'] ?? null);
             $existing = $requestId ? ($existingRows[$requestId] ?? null) : null;
 
-            if ($existing && $this->legacyRentalSourcePayload($normalizedRow) == $existing['source_payload']) {
+            if (
+                $existing
+                && (!$activeSnapshot || $existing['status'] === 'active')
+                && $this->legacyRentalSourcePayload($normalizedRow) == $existing['source_payload']
+            ) {
                 $result['updated']++;
                 $result['rental_contracts']++;
                 $result['rental_invoices']++;
@@ -964,8 +975,8 @@ class DataImportExecutionService
             }
 
             try {
-                DB::transaction(function () use ($row, $adminId, &$result, &$maidIds) {
-                    $imported = $this->importLegacyRentalOrder($row, $adminId);
+                DB::transaction(function () use ($row, $adminId, $activeSnapshot, &$result, &$maidIds) {
+                    $imported = $this->importLegacyRentalOrder($row, $adminId, $activeSnapshot);
                     $result[$imported['outcome']]++;
                     $result['rental_contracts']++;
                     $result['rental_invoices']++;
@@ -986,7 +997,28 @@ class DataImportExecutionService
         $result['rental_maids'] = count($maidIds);
         $this->backfillLegacyRentalBranches($adminId);
 
+        if ($activeSnapshot && $result['error_count'] === 0) {
+            $snapshotResult = $this->reconcileLegacyRentalActiveSnapshot(
+                collect($rows)->pluck('legacy_order_id')->map(fn ($id) => (int) $id)->filter()->unique()->all(),
+                $adminId
+            );
+            $result = array_merge($result, $snapshotResult);
+        }
+
         return $result;
+    }
+
+    private function isLegacyRentalActiveSnapshot(array $rows): bool
+    {
+        if ($rows === []) {
+            return false;
+        }
+
+        return collect($rows)->every(function (array $row) {
+            $row = $this->normalizeLegacyRentalOrderRow($row);
+
+            return $this->normalizeArabicText($row['status'] ?? null) === '';
+        });
     }
 
     private function legacyRentalExistingRowsForResume(): array
@@ -1007,6 +1039,7 @@ class DataImportExecutionService
             ->get([
                 'contracts.legacy_order_id',
                 'contracts.maid_id',
+                'contracts.status',
                 'infos.legacy_source_payload',
                 'invoices.legacy_receipt_code',
                 'invoices.receipt_bond_id',
@@ -1016,12 +1049,109 @@ class DataImportExecutionService
 
                 return [(int) $row->legacy_order_id => [
                     'maid_id' => (int) $row->maid_id,
+                    'status' => (string) $row->status,
                     'source_payload' => is_array($sourcePayload) ? $sourcePayload : [],
                     'receipt_code' => $this->optionalInteger($row->legacy_receipt_code),
                     'receipt_linked' => $row->receipt_bond_id !== null,
                 ]];
             })
             ->all();
+    }
+
+    private function reconcileLegacyRentalActiveSnapshot(array $activeOrderIds, ?int $adminId): array
+    {
+        $activeContracts = RentalContract::query()
+            ->with('info')
+            ->where('legacy_source', 'alrafedin_rental_orders')
+            ->whereIn('legacy_order_id', $activeOrderIds)
+            ->get();
+
+        $deactivatedContracts = RentalContract::query()
+            ->where('legacy_source', 'alrafedin_rental_orders')
+            ->where('status', 'active')
+            ->whereNotIn('legacy_order_id', $activeOrderIds)
+            ->update(['status' => 'completed']);
+
+        $activeContractIds = $activeContracts->pluck('id');
+        ContractInfo::query()
+            ->where('is_outside_shelter', true)
+            ->where('outside_shelter_reason', 'rental_delivery')
+            ->where('outside_shelter_reference_type', RentalContract::class)
+            ->when(
+                $activeContractIds->isNotEmpty(),
+                fn ($query) => $query->whereNotIn('outside_shelter_reference_id', $activeContractIds),
+                fn ($query) => $query
+            )
+            ->update(['is_outside_shelter' => false]);
+
+        $outsideLinks = 0;
+        $missingCompanyContracts = 0;
+
+        foreach ($activeContracts->groupBy('maid_id') as $maidId => $maidContracts) {
+            $rentalContract = $maidContracts
+                ->sortByDesc(fn (RentalContract $contract) => sprintf(
+                    '%s-%010d',
+                    optional($contract->info?->ingaz_from)->format('Y-m-d') ?: '0000-00-00',
+                    (int) $contract->legacy_order_id
+                ))
+                ->first();
+
+            if (!$rentalContract) {
+                continue;
+            }
+
+            Maid::query()->whereKey($maidId)->update([
+                'status' => 'contracted',
+                'available' => false,
+            ]);
+
+            $companyContract = Contract::query()
+                ->with('info')
+                ->where('maid_id', $maidId)
+                ->whereHas('user', function ($userQuery) {
+                    $userQuery->where('name', 'like', '%شركة%الرافدين%');
+                })
+                ->latest('id')
+                ->first();
+
+            if (!$companyContract) {
+                $missingCompanyContracts++;
+                continue;
+            }
+
+            $alreadyLinked = $companyContract->status === ContractStatusEnum::Shelter->value
+                && $companyContract->info?->is_outside_shelter
+                && $companyContract->info?->outside_shelter_reason === 'rental_delivery'
+                && $companyContract->info?->outside_shelter_reference_type === RentalContract::class
+                && (int) $companyContract->info?->outside_shelter_reference_id === (int) $rentalContract->id;
+
+            $companyContract->update(['status' => ContractStatusEnum::Shelter->value]);
+            $companyContract->info()->updateOrCreate([], [
+                'is_outside_shelter' => true,
+                'outside_shelter_at' => $rentalContract->info?->ingaz_from ?: $rentalContract->contract_date ?: now(),
+                'outside_shelter_reason' => 'rental_delivery',
+                'outside_shelter_reference_type' => RentalContract::class,
+                'outside_shelter_reference_id' => $rentalContract->id,
+                'outside_shelter_by' => $adminId,
+            ]);
+
+            if (!$alreadyLinked) {
+                $companyContract->contract_status_logs()->create([
+                    'status' => ContractStatusEnum::Shelter->value,
+                    'date' => now(),
+                    'notes' => 'مصالحة تقرير التأجير الساري: العاملة خارج الإيواء بسبب عقد الإيجار رقم '
+                        . $rentalContract->legacy_order_id,
+                ]);
+            }
+
+            $outsideLinks++;
+        }
+
+        return [
+            'outside_shelter_links' => $outsideLinks,
+            'missing_company_contracts' => $missingCompanyContracts,
+            'deactivated_contracts' => $deactivatedContracts,
+        ];
     }
 
     private function backfillLegacyRentalBranches(?int $fallbackAdminId): void
@@ -1131,7 +1261,7 @@ class DataImportExecutionService
         unset($spreadsheet);
     }
 
-    private function importLegacyRentalOrder(array $row, ?int $adminId): array
+    private function importLegacyRentalOrder(array $row, ?int $adminId, bool $activeSnapshot = false): array
     {
         $row = $this->normalizeLegacyRentalOrderRow($row);
         $requestId = $this->optionalInteger($row['legacy_order_id'] ?? null);
@@ -1196,7 +1326,9 @@ class DataImportExecutionService
             'job_titles' => $row['job_title'] ?? null,
         ], true);
 
-        $status = $this->legacyRentalStatus($row['status'] ?? null, $row['end_date'] ?? null);
+        $status = $activeSnapshot
+            ? 'active'
+            : $this->legacyRentalStatus($row['status'] ?? null, $row['end_date'] ?? null);
         $sourceCreatedAt = $this->parseDateTime($row['created_at'] ?? null);
         $marketerId = $this->resolveAdminId($row['created_by'] ?? null) ?: $adminId;
         $branchId = $marketerId ? Admin::query()->whereKey($marketerId)->value('branch_id') : null;

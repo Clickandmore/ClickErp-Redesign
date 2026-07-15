@@ -58,6 +58,21 @@ class YearService extends MainService
         return $this->model->where('status', 1)->first();
     }
 
+    /**
+     * Return the full date range covered by all configured financial years.
+     *
+     * Financial reports use this range instead of the active year so historical
+     * periods remain available without changing the operational year.
+     */
+    public function getReportPeriod(): ?object
+    {
+        $period = $this->model
+            ->selectRaw('MIN(from_date) as from_date, MAX(to_date) as to_date')
+            ->first();
+
+        return $period?->from_date && $period?->to_date ? $period : null;
+    }
+
     public function checkDateRange($date)
     {
         $date = Carbon::parse($date);

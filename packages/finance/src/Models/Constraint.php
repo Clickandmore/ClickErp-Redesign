@@ -8,6 +8,7 @@ use App\Models\ingaz\Invoice;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
 use Nami\Finance\Enums\ConstraintTypiesEnum;
 
 class Constraint extends Finance
@@ -53,6 +54,8 @@ class Constraint extends Finance
     protected static function booted(): void
     {
         static::creating(function (Constraint $constraint) {
+            self::guardClosedFinancialPeriod($constraint);
+
             if (!self::hasApprovalColumns()) {
                 return;
             }
@@ -68,6 +71,63 @@ class Constraint extends Finance
                 $constraint->approved_by_id = $constraint->approved_by_id ?? auth('admin')->id();
             }
         });
+
+        static::updating(function (Constraint $constraint) {
+            self::guardClosedFinancialPeriod($constraint);
+        });
+
+        static::deleting(function (Constraint $constraint) {
+            self::guardClosedFinancialPeriod($constraint);
+        });
+    }
+
+    private static function guardClosedFinancialPeriod(Constraint $constraint): void
+    {
+        $type = $constraint->getAttribute('type');
+        $typeValue = $type instanceof ConstraintTypiesEnum ? $type->value : (int) $type;
+
+        if (
+            !$constraint->year_id
+            || !$constraint->date
+            || $typeValue === ConstraintTypiesEnum::FiscalYearClosing->value
+        ) {
+            return;
+        }
+
+        $closingConstraint = null;
+        $closingOperation = null;
+
+        if (Schema::hasTable('fn_fiscal_year_closures')) {
+            $year = FnYear::query()->find($constraint->year_id, ['from_date', 'to_date']);
+            if ($year) {
+                $closingOperation = FiscalYearClosure::query()
+                    ->whereNull('reversed_at')
+                    ->whereBetween('closing_date', [$year->from_date, $year->to_date])
+                    ->whereDate('closing_date', '>=', $constraint->date)
+                    ->when($constraint->exists, fn ($query) => $query->where(function ($query) use ($constraint) {
+                        $query->whereNull('constraint_id')->orWhere('constraint_id', '!=', $constraint->id);
+                    }))
+                    ->first(['id', 'operation_number', 'constraint_id', 'closing_date']);
+            }
+        } else {
+            $closingConstraint = self::query()
+                ->where('year_id', $constraint->year_id)
+                ->where('type', ConstraintTypiesEnum::FiscalYearClosing->value)
+                ->whereDate('date', '>=', $constraint->date)
+                ->when($constraint->exists, fn ($query) => $query->where('id', '!=', $constraint->id))
+                ->first(['id', 'code', 'date']);
+        }
+
+        if ($closingOperation || $closingConstraint) {
+            $closedUntil = $closingOperation?->closing_date ?? $closingConstraint->date;
+            $reference = $closingOperation
+                ? 'عملية الإقفال رقم ' . ($closingOperation->operation_number ?? $closingOperation->id)
+                : 'القيد رقم ' . ($closingConstraint->code ?? $closingConstraint->id);
+
+            throw ValidationException::withMessages([
+                'date' => 'الفترة المالية مقفلة حتى ' . $closedUntil . ' بواسطة ' . $reference . '.',
+            ]);
+        }
     }
 
     public static function requiresApproval(): bool

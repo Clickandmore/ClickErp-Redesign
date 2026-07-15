@@ -5,6 +5,7 @@ namespace App\Services\ingaz;
 use App\Models\RentalFinancialAdjustment;
 use App\Models\ingaz\Maid;
 use App\Models\office\Office;
+use App\Support\AutomaticJournalEntries;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Nami\Finance\Enums\CostCenterTypeEnum;
@@ -24,6 +25,10 @@ class RentalMaidAccountingService
 
     public function recordCreationEntries(Maid $maid): ?Constraint
     {
+        if (!AutomaticJournalEntries::enabled()) {
+            return null;
+        }
+
         return DB::transaction(function () use ($maid) {
             $maid = $maid->fresh(['rentalFinancialAdjustments', 'office']);
 

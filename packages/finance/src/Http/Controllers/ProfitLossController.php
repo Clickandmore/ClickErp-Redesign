@@ -14,7 +14,7 @@ class ProfitLossController extends Controller
     public function index(Request $request, ObjService $service, YearService $yearService)
     {
         $data['levels'] = $service->getIncomeReportLevels();
-        $data['active_year'] = $yearService->getActiveYear();
+        $data['report_period'] = $yearService->getReportPeriod();
 
         if ($request->ajax()) {
             $reportData = $service->filterProfitLoss($request);

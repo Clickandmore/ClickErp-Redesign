@@ -85,7 +85,7 @@ class TrailBalanceService extends MainService
         return $results;
     }
 
-    public function getAccountSummaryForTrailBalance(int|string $level, int $yearId, ?string $fromDate, ?string $toDate, bool $includeFirstBalance = false)
+    public function getAccountSummaryForTrailBalance(int|string $level, ?string $fromDate, ?string $toDate, bool $includeFirstBalance = false)
     {
         $allLevels = $level === 'all';
         $rootFilter = $allLevels ? '' : 'WHERE level = ?';
@@ -106,8 +106,7 @@ class TrailBalanceService extends MainService
             FROM account_tree
             INNER JOIN fn_constraint_details cd ON cd.account_id = account_tree.account_id
             INNER JOIN fn_constraints c ON c.id = cd.constraint_id
-            WHERE c.year_id = ?
-              AND cd.date < ?
+            WHERE cd.date < ?
               AND cd.deleted_at IS NULL
               AND c.deleted_at IS NULL
             GROUP BY account_tree.root_id
@@ -120,10 +119,9 @@ class TrailBalanceService extends MainService
             $bindings[] = $level;
         }
 
-        array_push($bindings, $yearId, $fromDate, $toDate);
+        array_push($bindings, $fromDate, $toDate);
 
         if ($includeFirstBalance) {
-            $bindings[] = $yearId;
             $bindings[] = $fromDate;
         }
 
@@ -150,8 +148,7 @@ class TrailBalanceService extends MainService
             FROM account_tree
             INNER JOIN fn_constraint_details cd ON cd.account_id = account_tree.account_id
             INNER JOIN fn_constraints c ON c.id = cd.constraint_id
-            WHERE c.year_id = ?
-              AND cd.date BETWEEN ? AND ?
+            WHERE cd.date BETWEEN ? AND ?
               AND cd.deleted_at IS NULL
               AND c.deleted_at IS NULL
             GROUP BY account_tree.root_id

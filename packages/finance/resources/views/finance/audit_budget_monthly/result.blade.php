@@ -20,7 +20,7 @@
                     <th colspan="2">{{__('finance::finance.First Balance')}}</th>
                 @endif
                 @foreach($months_keys as $month)
-                    <th colspan="2">{{ getMonthName($month) }}</th>
+                    <th colspan="2">{{ getMonthName(substr($month, 5, 2)) }} {{ substr($month, 0, 4) }}</th>
                 @endforeach
                 <th colspan="2">{{__('finance::finance.totals')}}</th>
                 <th colspan="2">{{__('finance::finance.balances')}}</th>

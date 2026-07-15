@@ -12,6 +12,7 @@ use App\Models\RentalContract;
 use App\Services\AdminNotificationService;
 use App\Services\BranchAccessService;
 use App\Support\SystemModuleManager;
+use App\Support\AutomaticJournalEntries;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -564,6 +565,10 @@ class FinancialRequestController extends Controller
 
     private function createFinanceBond(FinancialRequest $financialRequest, array $data, BondService $bondService, YearService $yearService): void
     {
+        if (!AutomaticJournalEntries::enabled()) {
+            return;
+        }
+
         if (! $financialRequest->amount || $financialRequest->amount <= 0) {
             throw new \RuntimeException('يجب تحديد مبلغ الطلب قبل السداد.');
         }

@@ -301,24 +301,6 @@ class DashboardController extends Controller
             'transferred' => (int) ($transferAggregate->transferred_total ?? 0),
         ];
 
-        $rentalOrderStats = $buildOrderStats(2);
-
-        $transferWebQuery = Order::query()
-            ->where('job_type_id', 3);
-        $this->applyDashboardBranchFilter($transferWebQuery, $activeDashboardBranchId, 'orders.branch_id', 'orders');
-        $transferWebAggregate = $transferWebQuery
-            ->selectRaw('COUNT(*) as total')
-            ->selectRaw("SUM(CASE WHEN status = 'new' THEN 1 ELSE 0 END) as new_total")
-            ->selectRaw("SUM(CASE WHEN status = 'paid' THEN 1 ELSE 0 END) as paid_total")
-            ->selectRaw("SUM(CASE WHEN status IN ('completed', 'done') THEN 1 ELSE 0 END) as completed_total")
-            ->first();
-        $transferWebRequestStats = [
-            'total' => (int) ($transferWebAggregate->total ?? 0),
-            'new' => (int) ($transferWebAggregate->new_total ?? 0),
-            'paid' => (int) ($transferWebAggregate->paid_total ?? 0),
-            'completed' => (int) ($transferWebAggregate->completed_total ?? 0),
-        ];
-
         $genderCaseExpression = "CASE
             WHEN LOWER(TRIM(m.gender)) IN ('male', 'm', 'ذكر') THEN 'male'
             WHEN LOWER(TRIM(m.gender)) IN ('female', 'f', 'أنثى', 'انثى') THEN 'female'
@@ -1174,9 +1156,7 @@ class DashboardController extends Controller
             'clientsStats',
             'rentalMaidStats',
             'rentalStats',
-            'rentalOrderStats',
             'transferStats',
-            'transferWebRequestStats',
             'requestGenderStats',
             'complaintStats',
             'jobTypeCounts',

@@ -9,6 +9,7 @@ use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Nami\Finance\Models\Account;
 use Nami\Finance\Services\AccountService;
 use Nami\Finance\Services\ConstraintService as ObjService;
 use Throwable;
@@ -37,40 +38,112 @@ class AccountStatementController extends Controller
         ], $request->only($this->getData));
 
         if ($request->ajax()) {
-            $data = collect();
-            $firstBalance = null;
-            $otherAccount = [];
-            $selectedAccount = null;
-
-            if (!empty($dataSearch['account_id'])) {
-                $data = $service->filterAccount($dataSearch);
-                $firstBalance = $service->getFirstBalance($dataSearch);
-                $otherAccount = ($dataSearch["other_account"] == "yes") ? $service->filterConstraints($dataSearch) : [];
-                $selectedAccount = $accountService->find($dataSearch['account_id']);
-            }
-
-            $hasOpeningBalance = abs((float) ($firstBalance->sum_debtor_value ?? 0)) > 0.01
-                || abs((float) ($firstBalance->sum_creditor_value ?? 0)) > 0.01;
+            $result = $this->buildStatementResult($dataSearch, $service, $accountService);
 
             $returnHTML = view($this->folderPath . ".result")->with([
-                "data" => $data,
-                "firstBalance" => $firstBalance,
-                "otherAccount" => $otherAccount,
+                "data" => $result['data'],
+                "firstBalance" => $result['firstBalance'],
+                "otherAccount" => $result['otherAccount'],
                 "show_other_account" => $dataSearch["other_account"],
-                "accountName" => $selectedAccount->name ?? null,
+                "accountName" => $result['selectedAccount']->name ?? null,
                 "filters" => $dataSearch,
             ])->render();
 
             return jsonSuccess([
                 "html" => $returnHTML,
-                "count" => ($data->count() > 0 || $hasOpeningBalance) ? 1 : 0,
+                "count" => $result['hasData'] ? 1 : 0,
             ]);
         }
-//        $data["accounts"] = $service->getAccounts();
-        $data["accounts"] = $accountService->get();
+        $selectedAccount = !empty($dataSearch['account_id'])
+            ? Account::query()->select(['id', 'code', 'name'])->find($dataSearch['account_id'])
+            : null;
+
+        // The account list is loaded remotely to keep this page fast even when
+        // the chart of accounts contains thousands of records.
+        $data["accounts"] = $selectedAccount ? collect([$selectedAccount]) : collect();
+        $data["accountSearchRoute"] = route($this->mainRoute . '.account-options');
         $data["bladeTitle"] = __("finance::finance.account-statment");
         $data["filters"] = $dataSearch;
+        $data["initialResultHtml"] = null;
+        $data["initialResultCount"] = 0;
+
+        // A statement opened from the account tree or another report should be
+        // useful immediately, even if JavaScript/AJAX is slow or unavailable.
+        if ($selectedAccount) {
+            $result = $this->buildStatementResult($dataSearch, $service, $accountService);
+            $data["initialResultHtml"] = view($this->folderPath . ".result")->with([
+                "data" => $result['data'],
+                "firstBalance" => $result['firstBalance'],
+                "otherAccount" => $result['otherAccount'],
+                "show_other_account" => $dataSearch["other_account"],
+                "accountName" => $selectedAccount->name,
+                "filters" => $dataSearch,
+            ])->render();
+            $data["initialResultCount"] = $result['hasData'] ? 1 : 0;
+        }
+
         return view($this->folderPath . '.index', $data);
+    }
+
+    private function buildStatementResult(
+        array $filters,
+        ObjService $service,
+        AccountService $accountService
+    ): array {
+        $statementData = collect();
+        $firstBalance = null;
+        $otherAccount = [];
+        $selectedAccount = null;
+
+        if (!empty($filters['account_id'])) {
+            $statementData = $service->filterAccount($filters);
+            $firstBalance = $service->getFirstBalance($filters);
+            $otherAccount = $filters['other_account'] === 'yes'
+                ? $service->filterConstraints($filters)
+                : [];
+            $selectedAccount = $accountService->find($filters['account_id']);
+        }
+
+        $hasOpeningBalance = abs((float) ($firstBalance->sum_debtor_value ?? 0)) > 0.01
+            || abs((float) ($firstBalance->sum_creditor_value ?? 0)) > 0.01;
+
+        return [
+            'data' => $statementData,
+            'firstBalance' => $firstBalance,
+            'otherAccount' => $otherAccount,
+            'selectedAccount' => $selectedAccount,
+            'hasData' => $statementData->isNotEmpty() || $hasOpeningBalance,
+        ];
+    }
+
+    public function accountOptions(Request $request): JsonResponse
+    {
+        $search = trim(mb_substr((string) $request->input('q', ''), 0, 100));
+        $page = max(1, (int) $request->input('page', 1));
+
+        $query = Account::query()->select(['id', 'code', 'name']);
+
+        if ($search !== '') {
+            $query->where(function ($query) use ($search) {
+                $query->where('code', 'like', "%{$search}%")
+                    ->orWhere('name', 'like', "%{$search}%");
+            });
+        }
+
+        $accounts = $query
+            ->orderBy('code')
+            ->orderBy('id')
+            ->paginate(30, ['id', 'code', 'name'], 'page', $page);
+
+        return response()->json([
+            'results' => collect($accounts->items())->map(static fn (Account $account) => [
+                'id' => $account->id,
+                'code' => (string) $account->code,
+                'name' => $account->name,
+                'text' => trim($account->code . ' — ' . $account->name),
+            ])->values(),
+            'pagination' => ['more' => $accounts->hasMorePages()],
+        ]);
     }
 
     /**

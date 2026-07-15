@@ -391,6 +391,7 @@
         $settingValue = fn (string $key, $default = '') => (string) ($obj->get($key)->value ?? $default);
         $selected = fn (string $key, $id) => $settingValue($key) === (string) $id ? 'selected' : '';
         $dailyConstraintsApproval = $settingValue('daily_constraints', 'off');
+        $automaticJournalEntries = $settingValue('automatic_journal_entries', 'on');
         $accountTreeLabel = __('finance::finance.account_tree_position');
     @endphp
 
@@ -409,6 +410,20 @@
             </div>
 
             <div class="settings-nav">
+                <a class="settings-nav__item" href="#automatic-journal-entries-section">
+                    <span class="settings-nav__icon"><i class="fa fa-cogs"></i></span>
+                    <span>
+                        <span class="settings-nav__title">{{ __('finance::finance.automatic_journal_entries') }}</span>
+                        <span class="settings-nav__count">1 {{ __('finance::finance.settings_fields') }}</span>
+                    </span>
+                </a>
+                <a class="settings-nav__item" href="#constraints-approval-section">
+                    <span class="settings-nav__icon"><i class="fa fa-check-circle"></i></span>
+                    <span>
+                        <span class="settings-nav__title">{{ __('finance::finance.confirm_settings_approval_section') }}</span>
+                        <span class="settings-nav__count">1 {{ __('finance::finance.settings_fields') }}</span>
+                    </span>
+                </a>
                 <a class="settings-nav__item" href="#tax-settings-section">
                     <span class="settings-nav__icon"><i class="fa fa-percent"></i></span>
                     <span>
@@ -452,6 +467,72 @@
                     </span>
                 </a>
             </div>
+
+            <details class="settings-section" id="automatic-journal-entries-section" open>
+                <summary>
+                    <div>
+                        <h3 class="settings-section-title">{{ __('finance::finance.automatic_journal_entries') }}</h3>
+                        <p class="settings-section-hint">{{ __('finance::finance.automatic_journal_entries_hint') }}</p>
+                    </div>
+                    <span class="settings-section-icon"><i class="fa fa-chevron-down"></i></span>
+                </summary>
+                <div class="settings-section-body">
+                    <input type="hidden" value="automatic_journal_entries" name="data[automatic_journal_entries][title]">
+                    <div class="approval-options">
+                        <label class="approval-option" for="automaticJournalEntriesOn">
+                            <input type="radio" id="automaticJournalEntriesOn" name="data[automatic_journal_entries][value]" value="on" {{ $automaticJournalEntries !== 'off' ? 'checked' : '' }}>
+                            <span>
+                                <strong>{{ __('finance::finance.automatic_journal_entries_on') }}</strong>
+                                <span>{{ __('finance::finance.automatic_journal_entries_on_hint') }}</span>
+                            </span>
+                        </label>
+                        <label class="approval-option" for="automaticJournalEntriesOff">
+                            <input type="radio" id="automaticJournalEntriesOff" name="data[automatic_journal_entries][value]" value="off" {{ $automaticJournalEntries === 'off' ? 'checked' : '' }}>
+                            <span>
+                                <strong>{{ __('finance::finance.automatic_journal_entries_off') }}</strong>
+                                <span>{{ __('finance::finance.automatic_journal_entries_off_hint') }}</span>
+                            </span>
+                        </label>
+                    </div>
+                    <small class="text-muted d-block mt-3">
+                        <i class="fa fa-info-circle"></i>
+                        {{ __('finance::finance.automatic_journal_entries_scope_hint') }}
+                    </small>
+                </div>
+            </details>
+
+            <details class="settings-section" id="constraints-approval-section" open>
+                <summary>
+                    <div>
+                        <h3 class="settings-section-title">{{ __('finance::finance.confirm_settings_approval_section') }}</h3>
+                        <p class="settings-section-hint">{{ __('finance::finance.confirm_settings_approval_section_hint') }}</p>
+                    </div>
+                    <span class="settings-section-icon"><i class="fa fa-chevron-down"></i></span>
+                </summary>
+                <div class="settings-section-body">
+                    <input type="hidden" value="daily_constraints" name="data[daily_constraints][title]">
+                    <div class="approval-options">
+                        <label class="approval-option" for="dailyConstraintsAuto">
+                            <input type="radio" id="dailyConstraintsAuto" name="data[daily_constraints][value]" value="off" {{ $dailyConstraintsApproval !== 'on' ? 'checked' : '' }}>
+                            <span>
+                                <strong>{{ __('finance::finance.constraints_auto_approval') }}</strong>
+                                <span>{{ __('finance::finance.constraints_auto_approval_hint') }}</span>
+                            </span>
+                        </label>
+                        <label class="approval-option" for="dailyConstraintsManual">
+                            <input type="radio" id="dailyConstraintsManual" name="data[daily_constraints][value]" value="on" {{ $dailyConstraintsApproval === 'on' ? 'checked' : '' }}>
+                            <span>
+                                <strong>{{ __('finance::finance.constraints_manual_approval') }}</strong>
+                                <span>{{ __('finance::finance.constraints_manual_approval_hint') }}</span>
+                            </span>
+                        </label>
+                    </div>
+                    <small class="text-muted d-block mt-3">
+                        <i class="fa fa-info-circle"></i>
+                        {{ __('finance::finance.constraints_approval_permission_hint') }}
+                    </small>
+                </div>
+            </details>
 
             <details class="settings-section" id="tax-settings-section" open>
                 <summary>
@@ -882,39 +963,6 @@
                             </div>
                         </div>
                     </div>
-                </div>
-            </details>
-
-            <details class="settings-section" open>
-                <summary>
-                    <div>
-                        <h3 class="settings-section-title">{{ __('finance::finance.confirm_settings_approval_section') }}</h3>
-                        <p class="settings-section-hint">{{ __('finance::finance.confirm_settings_approval_section_hint') }}</p>
-                    </div>
-                    <span class="settings-section-icon"><i class="fa fa-chevron-down"></i></span>
-                </summary>
-                <div class="settings-section-body">
-                    <input type="hidden" value="daily_constraints" name="data[daily_constraints][title]">
-                    <div class="approval-options">
-                        <label class="approval-option" for="dailyConstraintsAuto">
-                            <input type="radio" id="dailyConstraintsAuto" name="data[daily_constraints][value]" value="off" {{ $dailyConstraintsApproval !== 'on' ? 'checked' : '' }}>
-                            <span>
-                                <strong>{{ __('finance::finance.constraints_auto_approval') }}</strong>
-                                <span>{{ __('finance::finance.constraints_auto_approval_hint') }}</span>
-                            </span>
-                        </label>
-                        <label class="approval-option" for="dailyConstraintsManual">
-                            <input type="radio" id="dailyConstraintsManual" name="data[daily_constraints][value]" value="on" {{ $dailyConstraintsApproval === 'on' ? 'checked' : '' }}>
-                            <span>
-                                <strong>{{ __('finance::finance.constraints_manual_approval') }}</strong>
-                                <span>{{ __('finance::finance.constraints_manual_approval_hint') }}</span>
-                            </span>
-                        </label>
-                    </div>
-                    <small class="text-muted d-block mt-3">
-                        <i class="fa fa-info-circle"></i>
-                        {{ __('finance::finance.constraints_approval_permission_hint') }}
-                    </small>
                 </div>
             </details>
 

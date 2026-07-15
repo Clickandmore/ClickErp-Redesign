@@ -1,122 +1,390 @@
 @extends('click.layout.indexs.index')
+
 @section('page-title')
     {{ $bladeTitle }}
 @endsection
+
 @section('page-links')
-    <li class="breadcrumb-item active" aria-current="page"> {{ $bladeTitle }}</li>
+    <li class="breadcrumb-item active" aria-current="page">{{ $bladeTitle }}</li>
 @endsection
+
 @section('style')
     <style>
-        .loader {
-            border: 12px solid #f3f3f3;
-            border-top: 12px solid #F7941D;
+        .balances-dashboard {
+            --balance-navy: #172554;
+            --balance-purple: #6d28d9;
+            --balance-debit: #2563eb;
+            --balance-credit: #f59e0b;
+            --balance-surface: #f6f7fb;
+        }
+
+        .balances-toolbar {
+            padding: 18px;
+            margin-bottom: 18px;
+            background: linear-gradient(135deg, #172554 0%, #312e81 100%);
+            border-radius: 16px;
+            box-shadow: 0 10px 28px rgba(23, 37, 84, .18);
+        }
+
+        .balances-toolbar-grid {
+            display: grid;
+            grid-template-columns: minmax(240px, 2fr) repeat(2, minmax(150px, 1fr)) auto;
+            gap: 12px;
+            align-items: end;
+        }
+
+        .balances-field label {
+            display: block;
+            margin-bottom: 6px;
+            color: #e0e7ff;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .balances-field .form-control {
+            min-height: 43px;
+            background: rgba(255, 255, 255, .98);
+            border: 0;
+            border-radius: 9px;
+        }
+
+        .balances-actions {
+            display: flex;
+            gap: 7px;
+            flex-wrap: nowrap;
+        }
+
+        .balances-actions .btn {
+            min-width: 43px;
+            min-height: 43px;
+            border: 0;
+            border-radius: 9px;
+        }
+
+        .balance-summary-card,
+        .balance-table-card {
+            background: #fff;
+            border: 1px solid #e8eaf2;
+            border-radius: 14px;
+            box-shadow: 0 4px 15px rgba(23, 37, 84, .06);
+        }
+
+        .balance-summary-card {
+            position: relative;
+            min-height: 118px;
+            padding: 17px;
+            overflow: hidden;
+        }
+
+        .balance-summary-card::after {
+            content: '';
+            position: absolute;
+            width: 70px;
+            height: 70px;
+            inset-inline-end: -20px;
+            bottom: -24px;
+            background: currentColor;
             border-radius: 50%;
-            width: 120px;
-            height: 120px;
-            animation: spin 2s linear infinite;
+            opacity: .08;
         }
 
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
+        .balance-summary-label {
+            color: #6b7280;
+            font-size: 12px;
+            font-weight: 700;
         }
 
+        .balance-summary-value {
+            margin-top: 8px;
+            color: #172554;
+            font-size: 22px;
+            font-weight: 800;
+        }
 
-        .header {
+        .balance-summary-note {
+            display: block;
+            margin-top: 5px;
+            color: #9ca3af;
+            font-size: 11px;
+        }
+
+        .balance-table-card {
+            overflow: hidden;
+        }
+
+        .balance-table-scroll {
+            max-height: 72vh;
+            overflow: auto;
+        }
+
+        .balance-table-card .table {
+            margin: 0;
+            min-width: 2150px;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+
+        .balance-table-card thead th {
+            padding: 13px 10px;
+            color: #374151;
+            background: #f3f4f8;
+            border: 0;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .balance-table-card thead tr:first-child th {
             position: sticky;
             top: 0;
-            background-color: #ffc800;
+            z-index: 8;
         }
 
-        td {
-            font-size: small;
+        .balance-table-card thead tr:nth-child(2) th {
+            position: sticky;
+            top: 47px;
+            z-index: 8;
+        }
+
+        .balance-period-heading {
+            color: #fff !important;
+            text-align: center;
+            border-inline-start: 2px solid rgba(255, 255, 255, .45) !important;
+        }
+
+        .balance-period-heading--opening { background: #475569 !important; }
+        .balance-period-heading--current { background: #312e81 !important; }
+        .balance-period-heading--after { background: #7c3aed !important; }
+        .balance-period-heading--closing { background: #0f766e !important; }
+
+        .balance-period-subhead {
+            text-align: center;
+            background: #eef2ff !important;
+        }
+
+        .balance-period-border {
+            border-inline-start: 2px solid #cbd5e1 !important;
+        }
+
+        .balance-table-card tbody td {
+            padding: 12px 10px;
+            vertical-align: middle;
+            border-color: #f0f1f5;
+            font-size: 13px;
+        }
+
+        .balance-parent-row td {
+            background: #eef0f6 !important;
+            font-weight: 800;
+        }
+
+        .balance-level-mark {
+            display: inline-block;
+            width: 6px;
+            height: 25px;
+            margin-inline-end: 7px;
+            background: #6d28d9;
+            border-radius: 5px;
+            vertical-align: middle;
+        }
+
+        .balance-direction {
+            display: inline-block;
+            min-width: 48px;
+            padding: 4px 7px;
+            text-align: center;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 800;
+        }
+
+        .balance-direction--debtor {
+            color: #1e40af;
+            background: #dbeafe;
+        }
+
+        .balance-direction--creditor {
+            color: #92400e;
+            background: #fef3c7;
+        }
+
+        .balance-report-heading {
+            padding: 19px 20px;
+            color: #fff;
+            background: linear-gradient(135deg, #172554 0%, #6d28d9 100%);
+        }
+
+        .balance-report-heading h4 {
+            margin: 0 0 5px;
+            color: #fff;
+        }
+
+        .balance-report-heading p {
+            margin: 0;
+            color: #ddd6fe;
+            font-size: 12px;
+        }
+
+        .balance-account-link {
+            color: #312e81 !important;
+            font-weight: 800;
+        }
+
+        .balance-movement-track {
+            display: flex;
+            width: 150px;
+            height: 9px;
+            overflow: hidden;
+            background: #e5e7eb;
+            border-radius: 20px;
+        }
+
+        .balance-movement-debit { background: var(--balance-debit); }
+        .balance-movement-credit { background: var(--balance-credit); }
+
+        .balance-movement-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            color: #6b7280;
+            font-size: 10px;
+        }
+
+        .balance-net {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 9px;
+            border-radius: 8px;
+            font-weight: 800;
+            white-space: nowrap;
+        }
+
+        .balance-net--debtor {
+            color: #1e40af;
+            background: #dbeafe;
+        }
+
+        .balance-net--creditor {
+            color: #92400e;
+            background: #fef3c7;
+        }
+
+        .balances-loader {
+            width: 44px;
+            height: 44px;
+            margin: 55px auto;
+            border: 5px solid #e5e7eb;
+            border-top-color: #6d28d9;
+            border-radius: 50%;
+            animation: balances-spin .8s linear infinite;
+        }
+
+        @keyframes balances-spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 991.98px) {
+            .balances-toolbar-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+
+        @media (max-width: 575.98px) {
+            .balances-toolbar-grid { grid-template-columns: 1fr; }
+            .balances-actions { flex-wrap: wrap; }
         }
 
         @media print {
-            body * {
-                visibility: hidden;
-            }
-
-            #simpleTable4,
-            #simpleTable4 * {
-                visibility: visible;
-            }
-
-            #simpleTable4 {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-                padding: 20px;
-                font-size: 12pt;
-            }
-
-            .sidebar {
-                display: none !important;
-            }
+            body * { visibility: hidden; }
+            #balances_result, #balances_result * { visibility: visible; }
+            #balances_result { position: absolute; inset: 0; width: 100%; }
+            .balances-no-print { display: none !important; }
+            .balance-summary-card, .balance-table-card { box-shadow: none; }
         }
     </style>
 @endsection
-@section('content')
 
-    @if (count($accounts))
-        <div class="row print-and-excel-buttons mb-3">
-            <div class="col-12 mt-4" style="text-align: left">
-                <button onclick="window.print()" class="btn btn-primary" id="printBalanceTable"><i
-                        class="fa fa-print"></i></button>
-                <button id="toExcel" class="btn btn-info"><i class="fa fa-file-excel-o"></i></button>
+@section('content')
+    <div class="balances-dashboard" dir="rtl">
+        <div class="balances-toolbar balances-no-print">
+            <div class="balances-toolbar-grid">
+                <div class="balances-field">
+                    <label for="balances_keyword">بحث في الحسابات</label>
+                    <input type="search" id="balances_keyword" name="keyword"
+                           value="{{ $filters['keyword'] ?? '' }}" class="form-control balance-filter"
+                           placeholder="اسم الحساب أو رقمه أو الحساب الأب">
+                </div>
+                <div class="balances-field">
+                    <label for="balances_from_date">{{ __('finance::finance.from_date') }}</label>
+                    <input type="date" id="balances_from_date" name="from_date"
+                           value="{{ $filters['from_date'] ?? '' }}" class="form-control balance-filter">
+                </div>
+                <div class="balances-field">
+                    <label for="balances_to_date">{{ __('finance::finance.to_date') }}</label>
+                    <input type="date" id="balances_to_date" name="to_date"
+                           value="{{ $filters['to_date'] ?? '' }}" class="form-control balance-filter">
+                </div>
+                <div class="balances-actions">
+                    <button type="button" id="balances_search" class="btn btn-light" title="بحث"><i class="fa fa-search"></i></button>
+                    <button type="button" id="balances_reset" class="btn btn-secondary" title="إعادة ضبط"><i class="fa fa-refresh"></i></button>
+                    <button type="button" id="balances_print" class="btn btn-info" title="طباعة"><i class="fa fa-print"></i></button>
+                    <button type="button" id="balances_excel" class="btn btn-warning" title="Excel"><i class="fa fa-file-excel-o"></i></button>
+                </div>
             </div>
         </div>
-        <table class="table table-hover table-bordered table-striped" id="simpleTable4" style="width:100%">
-            <thead>
-                <tr class="header">
-                    <th style="width: 3%" scope="col">#</th>
-                    <th style="width: 10%" scope="col"> {{ __('finance::finance.code') }}</th>
-                    <th style="width: 10%" scope="col"> {{ __('finance::finance.Account') }}</th>
-                    <th style="width: 5%" scope="col">{{ __('finance::finance.total_depit') }}</th>
-                    <th style="width: 5%" scope="col">{{ __('finance::finance.total_credit') }}</th>
-                    <th style="width: 10%" scope="col">{{ __('finance::finance.Balance') }}</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach ($accounts as $key => $account)
-                    <tr>
-                        <td>{{ ++$key }}</td>
-                        <td>{{ $account['code'] }}</td>
-                        <td>{{ $account['name'] }}</td>
-                        <td>{{ $account['debtor_value'] }}</td>
-                        <td>{{ $account['creditor_value'] }}</td>
-                        <td>{{ $account['balance'] }}</td>
-                    </tr>
-                @endforeach
-            </tbody>
-            <tfoot>
-                <th colspan="3">{{ __('finance::finance.Total') }}</th>
-                <th class="currency-egp">{{ $total_depitors }}</th>
-                <th class="currency-egp">{{ $total_creditors }}</th>
-                <th class="currency-egp" style="background-color: yellow">{{ $total_balance }}</th>
-            </tfoot>
-        </table>
-    @else
-        <div class="d-flex justify-content-center align-items-center" style="height: 50vh !important;">
-            <div class="no-data text-center">
-                {{ __('finance::finance.no_data') }}
-            </div>
+
+        <div id="balances_result">
+            @include('finance::finance.balances.result', [
+                'accounts' => $accounts,
+                'filters' => $filters,
+                'reportType' => $reportType,
+            ])
         </div>
-    @endif
+    </div>
 @endsection
+
 @section('js')
     <script src="{{ asset('plugins') }}/exelJs/dist/tableToExcel.517b1af9.js"></script>
     <script>
-        var button = document.querySelector('#toExcel');
-        button.addEventListener('click', function(e) {
-            var table = document.querySelector('#simpleTable4');
-            TableToExcel.convert(table);
-        });
+        (function () {
+            const resultContainer = $('#balances_result');
+            const reportUrl = @json($dataTableRoute);
+
+            function loadBalances() {
+                $.ajax({
+                    url: reportUrl,
+                    type: 'GET',
+                    data: $('.balance-filter').serialize(),
+                    beforeSend: function () {
+                        $('#balances_search').prop('disabled', true);
+                        resultContainer.html('<div class="balance-table-card"><div class="balances-loader"></div></div>');
+                    },
+                    success: function (result) {
+                        resultContainer.html(result.data.html);
+                    },
+                    error: function (errorObj) {
+                        handleErrorResponce(errorObj);
+                    },
+                    complete: function () {
+                        $('#balances_search').prop('disabled', false);
+                    }
+                });
+            }
+
+            $('#balances_search').on('click', loadBalances);
+            $('#balances_keyword').on('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    loadBalances();
+                }
+            });
+            $('#balances_reset').on('click', function () {
+                $('.balance-filter').val('');
+                loadBalances();
+            });
+            $('#balances_print').on('click', function () { window.print(); });
+            $('#balances_excel').on('click', function () {
+                const table = document.querySelector('#balancesTable');
+                if (table && typeof TableToExcel !== 'undefined') {
+                    TableToExcel.convert(table, { name: @json($exportFileName) });
+                }
+            });
+        })();
     </script>
 @endsection

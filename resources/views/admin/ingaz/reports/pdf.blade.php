@@ -7,7 +7,7 @@
     <title>{{ $title }}</title>
     <style>
         @page {
-            size: A4 landscape;
+            size: {{ strtoupper($paperSize ?? 'a4') }} landscape;
             margin: 12mm;
         }
 
@@ -76,6 +76,54 @@
             page-break-inside: avoid;
         }
 
+        body.report-wide {
+            margin: 8px;
+            font-size: 8px;
+        }
+
+        body.report-wide .header {
+            margin-bottom: 10px;
+            padding: 10px 12px;
+        }
+
+        body.report-wide th,
+        body.report-wide td {
+            padding: 4px 3px;
+            line-height: 1.45;
+        }
+
+        td.status-cell {
+            background: #eff6ff;
+            color: #1d4ed8;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        td.status-cell.status-danger {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+
+        td.days-remaining {
+            background: #f0fdf4;
+            color: #15803d;
+            font-weight: 800;
+            text-align: center;
+        }
+
+        td.days-expired {
+            background: #fef2f2;
+            color: #dc2626;
+            font-weight: 800;
+            text-align: center;
+        }
+
+        a.document-link {
+            color: #2563eb;
+            font-weight: 800;
+            text-decoration: underline;
+        }
+
         .empty {
             text-align: center;
             padding: 30px 12px;
@@ -87,7 +135,7 @@
     </style>
 </head>
 
-<body>
+<body class="{{ !empty($wide) ? 'report-wide' : '' }}">
     <div class="header">
         <h1>{{ $title }}</h1>
         <p class="meta">تاريخ التصدير: {{ $exportedAt }}</p>
@@ -104,10 +152,30 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach ($rows as $row)
+                @foreach ($rows as $rowIndex => $row)
                     <tr>
-                        @foreach ($row as $cell)
-                            <td>{{ $cell }}</td>
+                        @foreach ($row as $cellIndex => $cell)
+                            @php
+                                $isRemainingCell = isset($remainingDaysColumn) && $cellIndex === $remainingDaysColumn;
+                                $hasRemainingDays = $isRemainingCell && str_starts_with(trim((string) $cell), '+');
+                                $isExpiredDays = $isRemainingCell && !$hasRemainingDays
+                                    && ((trim((string) $cell) !== '-' && str_starts_with(trim((string) $cell), '-'))
+                                        || in_array(trim((string) $cell), ['0', 'منتهي', 'ملغي'], true));
+                                $cellLink = data_get($cellLinks ?? [], $rowIndex . '.' . $cellIndex);
+                            @endphp
+                            <td @class([
+                                'status-cell' => isset($statusColumn) && $cellIndex === $statusColumn,
+                                'status-danger' => isset($statusColumn) && $cellIndex === $statusColumn
+                                    && in_array($cell, ['ملغي', 'معلق', 'مجمد'], true),
+                                'days-remaining' => $hasRemainingDays,
+                                'days-expired' => $isExpiredDays,
+                            ])>
+                                @if ($cellLink)
+                                    <a class="document-link" href="{{ $cellLink }}" target="_blank">{{ $cell }}</a>
+                                @else
+                                    {{ $cell }}
+                                @endif
+                            </td>
                         @endforeach
                     </tr>
                 @endforeach

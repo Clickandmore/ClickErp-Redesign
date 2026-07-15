@@ -415,13 +415,13 @@
 @endsection
 @section('content')
     <div class="trial-balance-page">
-        @if ($active_year)
+        @if ($report_period)
             <div class="trial-panel">
                 <div class="trial-panel__head">
                     <h3 class="trial-panel__title">{{ $bladeTitle }}</h3>
                     <span class="trial-year">
                         <i class="fa fa-calendar"></i>
-                        {{ $active_year['from_date'] }} / {{ $active_year['to_date'] }}
+                        {{ $report_period->from_date }} / {{ $report_period->to_date }}
                     </span>
                 </div>
 
@@ -429,13 +429,13 @@
                     <div class="trial-field">
                         <label for="from_date">{{ __('finance::finance.from_date') }}</label>
                         <input type="date" name="from_date" class="form-control search_keys" id="from_date"
-                            value="{{ $active_year['from_date'] }}">
+                            value="{{ $report_period->from_date }}">
                     </div>
 
                     <div class="trial-field">
                         <label for="to_date">{{ __('finance::finance.to_date') }}</label>
                         <input type="date" name="to_date" class="form-control search_keys" id="to_date"
-                            value="{{ $active_year['to_date'] }}">
+                            value="{{ $report_period->to_date }}">
                     </div>
 
                     <div class="trial-field">
@@ -490,9 +490,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
         let debounceTimer;
-        const activeYearFromDate = new Date('{{ @$active_year['from_date'] }}');
-        const activeYearToDate = new Date('{{ @$active_year['to_date'] }}');
-
         function debounce(func, delay) {
             return function(...args) {
                 clearTimeout(debounceTimer);
@@ -507,30 +504,6 @@
         function validateDateRange() {
             const fromDate = new Date($('#from_date').val());
             const toDate = new Date($('#to_date').val());
-
-            if (fromDate < activeYearFromDate || fromDate > activeYearToDate) {
-                $.toast({
-                    heading: '{{ helperTrans('finance::finance.error') }}',
-                    text: '{{ helperTrans('finance::finance.The From Date must be within the active financial year') }}',
-                    icon: 'error',
-                    position: 'top-right',
-                    stack: false
-                });
-                $('#from_date').val(activeYearFromDate.toISOString().split('T')[0]);
-                return false;
-            }
-
-            if (toDate < activeYearFromDate || toDate > activeYearToDate) {
-                $.toast({
-                    heading: '{{ helperTrans('finance::finance.error') }}',
-                    text: '{{ helperTrans('finance::finance.The To Date must be within the active financial year') }}',
-                    icon: 'error',
-                    position: 'top-right',
-                    stack: false
-                });
-                $('#to_date').val(activeYearToDate.toISOString().split('T')[0]);
-                return false;
-            }
 
             if (toDate < fromDate) {
                 $.toast({

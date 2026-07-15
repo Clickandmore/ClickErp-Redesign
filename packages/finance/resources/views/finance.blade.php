@@ -17,6 +17,8 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
                 'finance.confirm-settings.index',
                 'finance.tax-setting.index',
                 'finance.years.index',
+                'finance.opening-balance.index',
+                'finance.fiscal-year-closing.index',
             ]) &&
             (request()->query('status') == null || in_array(request()->query('status'), ['collected', 'refused']))
                 ? 'active'
@@ -31,6 +33,8 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
                 'finance.confirm-settings.index',
                 'finance.tax-setting.index',
                 'finance.years.index',
+                'finance.opening-balance.index',
+                'finance.fiscal-year-closing.index',
             ]) &&
             (request()->query('status') == null || in_array(request()->query('status'), ['collected', 'refused']))
                 ? 'show'
@@ -61,27 +65,24 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
             </a>
         </li>
         {{--        @endif --}}
+        {{--        @if (in_array('finance.opening-balance-read', $user_permission_list)) --}}
+        <li>
+            <a class="m-link {{ Route::currentRouteName() == 'finance.opening-balance.index' ? 'active' : '' }}"
+                href="{{ route('finance.opening-balance.index') }}">
+                <span class="ms-2"> {{ trans('finance::finance.opening-balance') }} </span>
+            </a>
+        </li>
+        {{--        @endif --}}
         {{--        @if (in_array('dashboard-read', $user_permission_list)) --}}
         <li>
-            <a class="m-link" href="#!">
+            <a class="m-link {{ Route::currentRouteName() == 'finance.fiscal-year-closing.index' ? 'active' : '' }}"
+                href="{{ route('finance.fiscal-year-closing.index') }}">
                 <span class="ms-2"> {{ __('finance::finance.Closing the fiscal year') }}</span>
             </a>
         </li>
         {{--        @endif --}}
     </ul>
 </li>
-
-
-{{-- @if (in_array('finance.opening-balance-read', $user_permission_list)) --}}
-<li>
-    <a class="m-link {{ Route::currentRouteName() == 'finance.opening-balance.index' ? 'active' : '' }}"
-        href="{{ route('finance.opening-balance.index') }}">
-        <i class="fa fa-balance-scale me-2"></i>
-        <span class="ms-2"> {{ trans('finance::finance.opening-balance') }} </span>
-    </a>
-</li>
-{{-- @endif --}}
-
 
 {{-- <li class="collapsed"> --}}
 {{--    <a class="m-link --}}
@@ -605,85 +606,6 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
 
 <li class="collapsed">
     <a class="m-link
-    {{ in_array(Route::currentRouteName(), [
-        'finance.exchange-checks.index',
-        'finance.catch-checks.index',
-        'finance.exchange-checks-data.index',
-        'finance.catch-checks-data.index',
-    ]) &&
-    (request()->query('status') == null || in_array(request()->query('status'), ['collected', 'refused']))
-        ? 'active'
-        : '' }}"
-        data-bs-toggle="collapse" data-bs-target="#check_section" href="#">
-        <i class="fa fa-money-check"></i>
-        <span class="ms-2">{{ __('finance::finance.checks') }}</span>
-        <span class="arrow fa fa-angle-left ms-auto text-end"></span>
-    </a>
-
-    <ul class="sub-menu collapse
-                                     {{ in_array(Route::currentRouteName(), [
-                                         'finance.exchange-checks.index',
-                                         'finance.catch-checks.index',
-                                         'finance.exchange-checks-data.index',
-                                         'finance.catch-checks-data.index',
-                                     ]) &&
-                                     (request()->query('status') == null || in_array(request()->query('status'), ['collected', 'refused']))
-                                         ? 'show'
-                                         : '' }}"
-        id="check_section">
-        {{--        @if (in_array('finance.exchange-checks-read', $user_permission_list)) --}}
-        <li>
-            <a class="m-link {{ Route::currentRouteName() == 'finance.exchange-checks.index' ? 'active' : '' }}"
-                href="{{ route('finance.exchange-checks.index') }}">
-                <span class="ms-2">{{ trans('finance::finance.exchange-checks') }}</span>
-            </a>
-        </li>
-        {{--        @endif --}}
-        {{--        @if (in_array('finance.catch-checks-read', $user_permission_list)) --}}
-        <li>
-            <a class="m-link {{ Route::currentRouteName() == 'finance.catch-checks.index' ? 'active' : '' }}"
-                href="{{ route('finance.catch-checks.index') }}">
-                <span class="ms-2">{{ trans('finance::finance.catch-checks') }}</span>
-            </a>
-        </li>
-        {{--        @endif --}}
-        {{--        @if (in_array('finance.exchange-checks-data-read', $user_permission_list)) --}}
-        <li>
-            <a class="m-link {{ Route::currentRouteName() == 'finance.exchange-checks-data.index' && request()->query('status') == 'collected' ? 'active' : '' }}"
-                href="{{ route('finance.exchange-checks-data.index', ['status' => 'collected']) }}">
-                <span class="ms-2">{{ trans('finance::finance.collected_exchange_checks') }}</span>
-            </a>
-        </li>
-        {{--        @endif --}}
-        {{--        @if (in_array('finance.exchange-checks-data-read', $user_permission_list)) --}}
-        <li>
-            <a class="m-link {{ Route::currentRouteName() == 'finance.exchange-checks-data.index' && request()->query('status') == 'refused' ? 'active' : '' }}"
-                href="{{ route('finance.exchange-checks-data.index', ['status' => 'refused']) }}">
-                <span class="ms-2">{{ trans('finance::finance.refused_exchange_checks') }}</span>
-            </a>
-        </li>
-        {{--        @endif --}}
-        {{--        @if (in_array('finance.catch-checks-data-read', $user_permission_list)) --}}
-        <li>
-            <a class="m-link {{ Route::currentRouteName() == 'finance.catch-checks-data.index' && request()->query('status') == 'collected' ? 'active' : '' }}"
-                href="{{ route('finance.catch-checks-data.index', ['status' => 'collected']) }}">
-                <span class="ms-2">{{ trans('finance::finance.collected_catch_checks') }}</span>
-            </a>
-        </li>
-        {{--        @endif --}}
-        {{--        @if (in_array('finance.catch-checks-data-read', $user_permission_list)) --}}
-        <li>
-            <a class="m-link {{ Route::currentRouteName() == 'finance.catch-checks-data.index' && request()->query('status') == 'refused' ? 'active' : '' }}"
-                href="{{ route('finance.catch-checks-data.index', ['status' => 'refused']) }}">
-                <span class="ms-2">{{ trans('finance::finance.refused_catch_checks') }}</span>
-            </a>
-        </li>
-        {{--        @endif --}}
-    </ul>
-</li>
-
-<li class="collapsed">
-    <a class="m-link
                                 {{ in_array(Route::currentRouteName(), [
                                     'finance.accounts-balances.index',
                                     'finance.clients-balances.index',
@@ -999,48 +921,5 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
             </a>
         </li>
         {{--        @endif --}}
-    </ul>
-</li>
-<li class="collapsed">
-    <a class="m-link
-    {{ in_array(Route::currentRouteName(), [
-        'finance.double-account.index',
-        'finance.double-account-statement.index',
-    ]) &&
-    (request()->query('status') == null || in_array(request()->query('status'), ['collected', 'refused']))
-        ? 'active'
-        : '' }}"
-        data-bs-toggle="collapse" data-bs-target="#double-account-statement" href="#">
-        <i class="fa fa-link"></i>
-        <span class="ms-2">{{ __('finance::finance.double_accounts') }}</span>
-        <span class="arrow fa fa-angle-left ms-auto text-end"></span>
-    </a>
-
-    <ul class="sub-menu collapse
-                                     {{ in_array(Route::currentRouteName(), [
-                                         'finance.double-account.index',
-                                         'finance.double-account-statement.index',
-                                     ]) &&
-                                     (request()->query('status') == null || in_array(request()->query('status'), ['collected', 'refused']))
-                                         ? 'show'
-                                         : '' }}"
-        id="double-account-statement">
-        {{--        @if (in_array('finance.double-account-read', $user_permission_list)) --}}
-        <li>
-            <a class="m-link {{ Route::currentRouteName() == 'finance.double-account.index' ? 'active' : '' }}"
-                href="{{ route('finance.double-account.index') }}">
-                <span class="ms-2"> {{ __('finance::finance.double_accounts') }} </span>
-            </a>
-        </li>
-        {{--        @endif --}}
-        {{--        @if (in_array('finance.double-account-statement-read', $user_permission_list)) --}}
-        <li>
-            <a class="m-link {{ Route::currentRouteName() == 'finance.double-account-statement.index' ? 'active' : '' }}"
-                href="{{ route('finance.double-account-statement.index') }}">
-                <span class="ms-2"> {{ __('finance::finance.double-account-statement') }} </span>
-            </a>
-        </li>
-        {{--        @endif --}}
-
     </ul>
 </li>

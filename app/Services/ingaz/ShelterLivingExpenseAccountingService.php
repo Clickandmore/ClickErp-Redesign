@@ -5,6 +5,7 @@ namespace App\Services\ingaz;
 use App\Enums\ingaz\ContractStatusEnum;
 use App\Models\Contract;
 use App\Models\ShelterLivingExpense;
+use App\Support\AutomaticJournalEntries;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Nami\Finance\Enums\CostCenterTypeEnum;
@@ -76,7 +77,8 @@ class ShelterLivingExpenseAccountingService
             $workerCount = $contracts->count();
             $allocations = $this->splitAmount($totalAmount, $workerCount);
             $entryDate = (string) $data['expense_date'];
-            $activeYear = $this->resolveYear($entryDate);
+            $automaticEntriesEnabled = AutomaticJournalEntries::enabled();
+            $activeYear = $automaticEntriesEnabled ? $this->resolveYear($entryDate) : null;
             $expenseShelterId = $data['shelter_id'] ?? ($workerCount === 1 ? $contracts->first()?->info?->shelter_id : null);
 
             $expense = ShelterLivingExpense::query()->create([
@@ -124,7 +126,9 @@ class ShelterLivingExpenseAccountingService
                 'cost_center_id' => null,
             ];
 
-            $constraint = $this->storeConstraint($lines, $this->constraintStatement($expense), $entryDate, $totalAmount, $activeYear);
+            $constraint = $automaticEntriesEnabled
+                ? $this->storeConstraint($lines, $this->constraintStatement($expense), $entryDate, $totalAmount, $activeYear)
+                : null;
             $expense->update(['constraint_id' => $constraint?->id]);
 
             return $expense->fresh(['constraint']);

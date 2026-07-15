@@ -20,6 +20,7 @@ enum ConstraintTypiesEnum: int{
     case Depreciation = 14; // قيد اهلاك
     case ManualDepreciation = 15; // قيد اهلاك يدوي
     case PrincipleSales = 16; // قيد بيع اصل
+    case FiscalYearClosing = 17; // قيد إقفال السنة المالية
 
     public function lang()
     {
@@ -40,6 +41,7 @@ enum ConstraintTypiesEnum: int{
             self::Depreciation => trans('finance::finance.Depreciation'),
             self::ManualDepreciation => trans('finance::finance.ManualDepreciation'),
             self::PrincipleSales => trans('finance::finance.PrincipleSales'),
+            self::FiscalYearClosing => trans('finance::finance.Closing the fiscal year'),
         };
 
     }
@@ -62,6 +64,7 @@ enum ConstraintTypiesEnum: int{
             self::Depreciation =>  'finance.constraints.show',
             self::ManualDepreciation =>  'finance.constraints.show',
             self::PrincipleSales =>  'finance.constraints.show',
+            self::FiscalYearClosing => 'finance.constraints.show',
         };
 
     }

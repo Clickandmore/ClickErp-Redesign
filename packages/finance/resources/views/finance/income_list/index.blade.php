@@ -54,13 +54,13 @@
     <div class="row g-3 m-2 to_hide">
         <div class="col">
             <label for="TextInput" class="form-label"> {{ __('finance::finance.From Date') }}</label>
-            <input type="date" name="from_date" value="{{ date('Y-01-01') }}" class="form-control search_keys"
+            <input type="date" name="from_date" value="{{ $report_period->from_date ?? '' }}" class="form-control search_keys"
                 id="from_date">
         </div>
 
         <div class="col">
             <label for="TextInput" class="form-label"> {{ __('finance::finance.To Date') }}</label>
-            <input type="date" name="to_date" value="{{ date('Y-m-d', time()) }}" class="form-control search_keys"
+            <input type="date" name="to_date" value="{{ $report_period->to_date ?? '' }}" class="form-control search_keys"
                 id="to_date">
         </div>
 

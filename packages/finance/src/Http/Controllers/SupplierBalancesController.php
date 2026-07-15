@@ -16,30 +16,18 @@ class SupplierBalancesController extends Controller
      */
     public function index(Request $request,ObjService $service)
     {
-        $accounts = [];
-        $data['total_depitors'] = 0;
-        $data['total_creditors'] = 0;
-        $data['total_balance'] = 0;
+        $filters = $service->normalizeBalanceMovementFilters($request->only(['from_date', 'to_date', 'keyword']));
+        $data['accounts'] = $service->balancesMovementReport('external_agents', $filters);
+        $data['filters'] = $filters;
+        $data['reportType'] = 'external_agents';
 
-        foreach ($service->supliers_balances() as $account) {
-
-            $balance = $account->account->status->value == 'debtor' ? $account->total_debtor - $account->total_creditor : $account->total_creditor - $account->total_debtor;
-
-            $accounts[]= [
-                'code' => $account->account->code,
-                'name' => $account->account->name,
-                'debtor_value' => $account->total_debtor,
-                'creditor_value' => $account->total_creditor,
-                'balance' => $balance
-            ];
-
-            $data['total_depitors'] += $account->total_debtor;
-            $data['total_creditors'] += $account->total_creditor;
-            $data['total_balance'] += $balance;
-
+        if ($request->ajax()) {
+            return jsonSuccess(['html' => view($this->folderPath . '.result', $data)->render()]);
         }
+
         $data["bladeTitle"] = __("finance::finance.suppliers_balances");
-        $data["accounts"] = $accounts;
+        $data["dataTableRoute"] = route($this->mainRoute . '.index');
+        $data["exportFileName"] = 'external-agents-balances.xlsx';
         return view($this->folderPath . '.index', $data);
     }
 

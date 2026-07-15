@@ -167,8 +167,8 @@ class ReportExportService
     {
         return [
             'new' => 'جديد',
-            'waiting_contract_send' => 'انتظار إرسال العقد',
-            'contract_sent' => 'تم إرسال العقد',
+            'waiting_contract_send' => 'بانتظار التوقيع',
+            'contract_sent' => 'بانتظار التوقيع',
             'contract_signed' => 'تم توقيع العقد',
             'maid_delivered' => 'تم تسليم العاملة',
             'active' => 'نشط',
@@ -176,6 +176,7 @@ class ReportExportService
             'transferred' => 'تم النقل',
             'cancelled' => 'ملغي',
             'suspended' => 'معلق',
+            'frozen' => 'مجمد',
             'available' => 'مغلقة - متاحة',
         ];
     }
@@ -794,8 +795,18 @@ class ReportExportService
     private function buildRentContractsReportPayload(Request $request): array
     {
         $query = RentalContract::query()
-            ->with(['user', 'maid.nationality', 'info', 'marketer'])
+            ->with([
+                'user',
+                'maid.nationality',
+                'maid.jobTypes',
+                'maid.office',
+                'info',
+                'marketer',
+                'financeInvoice.receiptBond',
+                'extensions',
+            ])
             ->withCount('extensions')
+            ->orderByRaw('CAST(contract_number AS UNSIGNED) DESC')
             ->orderByDesc('id');
 
         $this->applyRentContractFilters($request, $query);
@@ -805,37 +816,104 @@ class ReportExportService
         return [
             'title' => 'تقرير عقود الإيجار',
             'filename_prefix' => 'rent_contracts_report',
+            'paper_size' => 'a3',
+            'wide' => true,
+            'status_column' => 2,
+            'remaining_days_column' => 19,
             'headings' => [
+                'م',
                 'رقم العقد',
+                'الحالة',
+                'رقم العاملة',
+                'اسم العاملة',
+                'رقم الجواز',
+                'رقم العميل',
                 'العميل',
                 'الجوال',
-                'العاملة',
-                'رقم الجواز',
-                'المسوق',
-                'حالة العقد',
+                'رقم الفاتورة',
+                'سند القبض',
+                'الجنسية',
+                'المهنة',
+                'الشركة المزودة',
+                'تاريخ البداية',
+                'تاريخ البداية ـه',
+                'تاريخ النهاية',
+                'تاريخ النهاية ـه',
+                'مدة الأيام',
+                'المتبقي',
+                'الأيام المستفادة',
+                'قيمة العقد',
                 'التمديد',
                 'حالة الضمان',
-                'المدة بالشهور',
-                'القيمة الشهرية',
-                'قيمة العقد',
-                'تاريخ العقد',
+                'بواسطة المستخدم',
+                'تاريخ الإنشاء',
+                'تاريخ الإنشاء ـه',
             ],
-            'rows' => $contracts->map(function (RentalContract $contract) {
+            'rows' => $contracts->values()->map(function (RentalContract $contract, int $index) {
+                $startDate = $this->resolveRentReportStartDate($contract);
+                $endDate = $this->resolveRentReportEndDate($contract);
+                $createdAt = $contract->legacy_created_at ?: $contract->created_at;
+
                 return [
+                    $index + 1,
                     $contract->contract_number ?: $contract->id,
-                    $contract->user?->name ?: '-',
-                    $this->resolveUserPhone($contract->user),
+                    $this->resolveRentStatusLabel($contract),
+                    $this->resolveRentLegacyPayloadValue($contract, 'legacy_maid_id', $contract->maid?->id),
                     $contract->maid?->name ?: '-',
                     $contract->maid?->passport_num ?: '-',
-                    $contract->marketer?->name ?: '-',
-                    $this->resolveRentStatusLabel($contract),
+                    $this->resolveRentLegacyPayloadValue($contract, 'legacy_client_id', $contract->user?->id),
+                    $contract->user?->name ?: '-',
+                    $this->resolveUserPhone($contract->user),
+                    $this->resolveRentReportInvoiceNumber($contract),
+                    $this->resolveRentReportReceiptNumber($contract),
+                    $this->resolveRentLegacyPayloadValue(
+                        $contract,
+                        'nationality',
+                        $this->modelLabel($contract->maid?->nationality, ['sub_title', 'title', 'name'])
+                    ),
+                    $this->resolveRentLegacyPayloadValue(
+                        $contract,
+                        'job_title',
+                        $contract->maid?->jobTypes?->pluck('title')->filter()->implode('، ')
+                    ),
+                    $this->resolveRentLegacyPayloadValue(
+                        $contract,
+                        'supplier',
+                        $this->modelLabel($contract->maid?->office, ['title', 'name'])
+                    ),
+                    $this->formatDateValue($startDate),
+                    $contract->info?->legacy_start_date_hijri ?: '-',
+                    $this->formatDateValue($endDate),
+                    $contract->info?->legacy_end_date_hijri ?: '-',
+                    $this->resolveRentReportDurationDays($contract, $startDate, $endDate),
+                    $this->resolveRentReportRemainingDays($contract, $endDate),
+                    $this->resolveRentReportUsedDays($contract, $startDate, $endDate),
+                    $this->resolveRentReportContractValue($contract),
                     ($contract->extensions_count ?? 0) > 0 ? 'ممدد' : 'غير ممدد',
                     $this->resolveRentWarrantyStatusLabel($contract->warranty_status),
-                    $contract->info?->contract_duration_months ?: '-',
-                    $this->formatMoney($contract->info?->monthly_cost),
-                    $this->formatMoney($contract->info?->contract_value),
-                    $this->formatDateValue($contract->contract_date),
+                    $contract->legacy_created_by ?: ($contract->marketer?->name ?: '-'),
+                    $this->formatDateValue($createdAt),
+                    $contract->legacy_created_at_hijri ?: '-',
                 ];
+            })->all(),
+            'cell_links' => $contracts->values()->map(function (RentalContract $contract) {
+                $links = [];
+
+                if ($contract->financeInvoice) {
+                    $links[9] = route('rental.invoice.download', [
+                        'id' => $contract->financeInvoice->id,
+                        'autoprint' => 1,
+                    ]);
+                }
+
+                if ($contract->financeInvoice?->receipt_bond_id) {
+                    $links[10] = route('finance.bonds-print.show', [
+                        'bonds_print' => $contract->financeInvoice->receipt_bond_id,
+                        'type' => 'qabd',
+                    ]);
+                }
+
+                return $links;
             })->all(),
         ];
     }
@@ -1271,6 +1349,11 @@ class ReportExportService
             'rows' => $payload['rows'],
             'exportedAt' => now()->format('Y-m-d H:i'),
             'recordCount' => count($payload['rows']),
+            'paperSize' => $payload['paper_size'] ?? 'a4',
+            'wide' => $payload['wide'] ?? false,
+            'statusColumn' => $payload['status_column'] ?? null,
+            'remainingDaysColumn' => $payload['remaining_days_column'] ?? null,
+            'cellLinks' => $payload['cell_links'] ?? [],
         ];
 
         // Default to a browser print view because it preserves Arabic shaping
@@ -1290,7 +1373,8 @@ class ReportExportService
         }
 
         $filename = $this->buildFilename($payload['filename_prefix'], 'pdf');
-        $pdf = PDF::loadView('admin.ingaz.reports.pdf', $viewData)->setPaper('a4', 'landscape');
+        $pdf = PDF::loadView('admin.ingaz.reports.pdf', $viewData)
+            ->setPaper($viewData['paperSize'], 'landscape');
 
         $pdf->setWarnings(false);
         $pdf->setOptions([
@@ -1314,6 +1398,8 @@ class ReportExportService
 
         $headings = $payload['headings'];
         $rows = $payload['rows'];
+        $cellLinks = $payload['cell_links'] ?? [];
+        $remainingDaysColumn = $payload['remaining_days_column'] ?? null;
         $lastColumn = Coordinate::stringFromColumnIndex(count($headings));
 
         $sheet->fromArray($headings, null, 'A1');
@@ -1334,8 +1420,31 @@ class ReportExportService
         ]);
 
         $rowNumber = 2;
-        foreach ($rows as $row) {
+        foreach ($rows as $rowIndex => $row) {
             $sheet->fromArray($row, null, 'A' . $rowNumber);
+
+            foreach (($cellLinks[$rowIndex] ?? []) as $cellIndex => $url) {
+                $coordinate = Coordinate::stringFromColumnIndex($cellIndex + 1) . $rowNumber;
+                $sheet->getCell($coordinate)->getHyperlink()->setUrl($url);
+                $sheet->getStyle($coordinate)->getFont()->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('FF2563EB'));
+                $sheet->getStyle($coordinate)->getFont()->setUnderline(true);
+            }
+
+            if ($remainingDaysColumn !== null) {
+                $coordinate = Coordinate::stringFromColumnIndex($remainingDaysColumn + 1) . $rowNumber;
+                $remainingValue = trim((string) ($row[$remainingDaysColumn] ?? ''));
+                $isRemaining = str_starts_with($remainingValue, '+');
+                $isExpired = ($remainingValue !== '-' && str_starts_with($remainingValue, '-'))
+                    || in_array($remainingValue, ['0', 'منتهي', 'ملغي'], true);
+
+                if ($isRemaining || $isExpired) {
+                    $color = $isRemaining ? 'FF15803D' : 'FFDC2626';
+                    $sheet->getStyle($coordinate)->getFont()->setBold(true)->setColor(
+                        new \PhpOffice\PhpSpreadsheet\Style\Color($color)
+                    );
+                }
+            }
+
             $rowNumber++;
         }
 
@@ -2734,14 +2843,14 @@ class ReportExportService
 
         return match ($contract->status) {
             'new' => 'جديد',
-            'waiting_contract_send' => 'انتظار إرسال العقد',
-            'contract_sent' => 'تم إرسال العقد',
+            'waiting_contract_send', 'contract_sent' => 'بانتظار التوقيع',
             'contract_signed' => 'تم توقيع العقد',
             'maid_delivered' => 'تم تسليم العاملة',
             'active' => 'نشط',
             'completed' => 'مكتمل',
             'cancelled' => 'ملغي',
             'suspended' => 'معلق',
+            'frozen' => 'مجمد',
             default => $contract->status ?: '-',
         };
     }
@@ -2754,6 +2863,145 @@ class ReportExportService
             'not_applicable' => 'غير مطبق',
             default => '-',
         };
+    }
+
+    private function resolveRentReportStartDate(RentalContract $contract): ?Carbon
+    {
+        return $this->parseCarbonValue($contract->info?->ingaz_from)
+            ?: $this->parseCarbonValue($contract->contract_date);
+    }
+
+    private function resolveRentReportEndDate(RentalContract $contract): ?Carbon
+    {
+        $extensionEndDate = $contract->extensions
+            ->map(fn ($extension) => $this->parseCarbonValue($extension->end_date))
+            ->filter()
+            ->sortByDesc(fn (Carbon $date) => $date->getTimestamp())
+            ->first();
+
+        return $extensionEndDate ?: $this->parseCarbonValue($contract->info?->ingaz_to);
+    }
+
+    private function resolveRentReportDurationDays(
+        RentalContract $contract,
+        ?Carbon $startDate,
+        ?Carbon $endDate
+    ): string {
+        $legacyDuration = $this->resolveRentLegacyPayloadValue($contract, 'duration_days');
+        if ($legacyDuration !== '-') {
+            return $legacyDuration;
+        }
+
+        if ($startDate && $endDate) {
+            return (string) ($startDate->copy()->startOfDay()->diffInDays($endDate->copy()->startOfDay()) + 1);
+        }
+
+        return filled($contract->info?->contract_duration_days)
+            ? (string) $contract->info->contract_duration_days
+            : '-';
+    }
+
+    private function resolveRentReportRemainingDays(RentalContract $contract, ?Carbon $endDate): string
+    {
+        $legacyRemaining = $this->resolveRentLegacyPayloadValue($contract, 'remaining_days');
+        if ($legacyRemaining !== '-') {
+            return $legacyRemaining;
+        }
+
+        if ($contract->info?->legacy_remaining_days !== null) {
+            $days = (int) $contract->info->legacy_remaining_days;
+
+            return $days > 0 ? '+' . $days : (string) $days;
+        }
+
+        if ($contract->status === 'completed') {
+            return 'منتهي';
+        }
+
+        if ($contract->status === 'cancelled') {
+            return 'ملغي';
+        }
+
+        if (!$endDate) {
+            return '-';
+        }
+
+        $days = now()->startOfDay()->diffInDays($endDate->copy()->startOfDay(), false);
+
+        return $days > 0 ? '+' . $days : (string) $days;
+    }
+
+    private function resolveRentReportUsedDays(
+        RentalContract $contract,
+        ?Carbon $startDate,
+        ?Carbon $endDate
+    ): string {
+        $legacyUsed = $this->resolveRentLegacyPayloadValue($contract, 'used_days');
+        if ($legacyUsed !== '-') {
+            return $legacyUsed;
+        }
+
+        if ($contract->info?->legacy_used_days !== null) {
+            $days = (int) $contract->info->legacy_used_days;
+
+            return in_array($contract->status, ['completed', 'cancelled'], true)
+                ? (string) $days
+                : $days . ' حتى اللحظة';
+        }
+
+        if (!$startDate || $contract->status === 'cancelled') {
+            return 'لا يوجد';
+        }
+
+        $calculationEnd = $endDate && now()->isAfter($endDate) ? $endDate : now();
+        if ($calculationEnd->copy()->startOfDay()->isBefore($startDate->copy()->startOfDay())) {
+            return '0';
+        }
+
+        $days = $startDate->copy()->startOfDay()->diffInDays($calculationEnd->copy()->startOfDay()) + 1;
+
+        return in_array($contract->status, ['completed'], true)
+            ? (string) $days
+            : $days . ' حتى اللحظة';
+    }
+
+    private function resolveRentLegacyPayloadValue(
+        RentalContract $contract,
+        string $key,
+        mixed $fallback = null
+    ): string {
+        $legacyValue = data_get($contract->info?->legacy_source_payload, $key);
+        $value = filled($legacyValue) ? $legacyValue : $fallback;
+
+        return filled($value) || $value === 0 || $value === '0' ? (string) $value : '-';
+    }
+
+    private function resolveRentReportInvoiceNumber(RentalContract $contract): string
+    {
+        $invoiceNumber = $contract->financeInvoice?->legacy_invoice_id
+            ?: $contract->financeInvoice?->id;
+
+        return filled($invoiceNumber) ? (string) $invoiceNumber : '-';
+    }
+
+    private function resolveRentReportReceiptNumber(RentalContract $contract): string
+    {
+        $receipt = $contract->financeInvoice?->legacy_receipt_code
+            ?: $contract->financeInvoice?->receiptBond?->code
+            ?: $contract->financeInvoice?->receipt_bond_id;
+
+        return filled($receipt) ? (string) $receipt : '-';
+    }
+
+    private function resolveRentReportContractValue(RentalContract $contract): string
+    {
+        $legacyValue = data_get($contract->info?->legacy_source_payload, 'total_cost');
+
+        if ($contract->legacy_source) {
+            return filled($legacyValue) ? $this->formatMoney($legacyValue) : '-';
+        }
+
+        return $this->formatMoney($contract->info?->contract_value);
     }
 
     private function serviceCategoryLabel(string $category): string

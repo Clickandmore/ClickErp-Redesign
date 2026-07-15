@@ -4095,6 +4095,8 @@ class RecruitmentContractController extends Controller
                     $message .= ' وتم إنشاء القيود المحاسبية المرتبطة بالفاتورة.';
                 } elseif (($accountingResult['skipped_reason'] ?? null) === 'missing_invoice') {
                     $message .= ' لم يتم إنشاء القيود المحاسبية لعدم وجود فاتورة على العقد.';
+                } elseif (($accountingResult['skipped_reason'] ?? null) === 'automatic_entries_disabled') {
+                    $message .= ' لم يتم إنشاء قيود محاسبية لأن القيود التلقائية غير مفعلة من إعدادات الحسابات.';
                 }
 
                 return response()->json([

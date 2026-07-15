@@ -7,6 +7,7 @@ use App\Models\MusanedTransferItem;
 use App\Models\RecruitmentContractRefund;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use App\Support\AutomaticJournalEntries;
 use Nami\Finance\Enums\AccountStatusEnum;
 use Nami\Finance\Enums\AccountTypesEnum;
 use Nami\Finance\Models\Account;
@@ -87,7 +88,7 @@ class RecruitmentContractRefundService
         /** @var MusanedTransferItem|null $transferItem */
         $transferItem = $summary['transfer_item'];
 
-        if ($summary['has_musaned_transfer']) {
+        if ($summary['has_musaned_transfer'] && AutomaticJournalEntries::enabled()) {
             $constraint = $this->createRefundConstraint(
                 $contract,
                 $transferItem,
@@ -124,6 +125,8 @@ class RecruitmentContractRefundService
 
         if (!$summary['has_musaned_transfer']) {
             $warnings[] = 'لم يتم تسجيل تحويل مساند لهذا العقد، لذلك لن يتم إنشاء قيد مالي للاسترداد.';
+        } elseif (!AutomaticJournalEntries::enabled()) {
+            $warnings[] = 'لن يتم إنشاء قيد مالي للاسترداد لأن القيود التلقائية غير مفعلة من إعدادات الحسابات.';
         } else {
             $sourceConstraintId = $invoice->arrival_revenue_constraint_id ?: $invoice->constraint_id;
             $reverseLines = $this->buildReverseInvoiceLines($sourceConstraintId, $statement);

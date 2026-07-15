@@ -433,6 +433,72 @@
     overflow-wrap: anywhere;
 }
 
+.gender-chart-card {
+    min-height: 290px;
+}
+
+.gender-chart-layout {
+    display: grid;
+    grid-template-columns: minmax(100px, 0.9fr) minmax(90px, 1.1fr);
+    align-items: center;
+    gap: 14px;
+}
+
+.gender-chart-wrap {
+    position: relative;
+    height: 138px;
+    min-width: 0;
+}
+
+.gender-chart-wrap canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.gender-chart-legend {
+    display: grid;
+    gap: 9px;
+}
+
+.gender-chart-legend span {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 7px;
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.gender-chart-legend strong {
+    color: var(--text);
+    font-size: 13px;
+}
+
+.gender-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--dash-chart-1);
+}
+
+.gender-dot.is-female {
+    background: var(--dash-chart-3);
+}
+
+.gender-dot.is-unknown {
+    background: var(--dash-chart-4);
+}
+
+@media (max-width: 420px) {
+    .gender-chart-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .gender-chart-wrap {
+        height: 155px;
+    }
+}
+
 .dashboard-route-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));

@@ -63,7 +63,7 @@ class AuditBudgetService extends MainService
 
     public function getYear()
     {
-        return $this->yearService->getWhere(['status'=>1])->first();
+        return $this->yearService->getReportPeriod();
     }
 
 
@@ -162,7 +162,7 @@ class AuditBudgetService extends MainService
         $accountStatements = DB::table('fn_constraint_details')
             ->select([
                 'fn_constraint_details.account_id',
-                DB::raw('DATE_FORMAT(fn_constraint_details.date, "%m") as month'),
+                DB::raw('DATE_FORMAT(fn_constraint_details.date, "%Y-%m") as month'),
                 DB::raw('SUM(fn_constraint_details.debtor_value) as sum_debtor_value'),
                 DB::raw('SUM(fn_constraint_details.creditor_value) as sum_creditor_value'),
                 'fn_accounts.code as account_code',
@@ -182,7 +182,7 @@ class AuditBudgetService extends MainService
             ->when(($dataSearch['to_date'] ?? '') != '', function ($q) use ($dataSearch) {
                 return $q->whereDate('fn_constraint_details.date', '<=', $this->normalizeMonthEnd($dataSearch['to_date']));
             })
-            ->groupBy('fn_constraint_details.account_id', DB::raw('DATE_FORMAT(fn_constraint_details.date, "%m")'), 'fn_accounts.code', 'fn_accounts.name', 'fn_accounts.status')
+            ->groupBy('fn_constraint_details.account_id', DB::raw('DATE_FORMAT(fn_constraint_details.date, "%Y-%m")'), 'fn_accounts.code', 'fn_accounts.name', 'fn_accounts.status')
             ->get()
             ->keyBy(fn ($item) => $item->account_id . '-' . $item->month);
 
@@ -292,7 +292,7 @@ class AuditBudgetService extends MainService
         $end = strtotime($this->normalizeMonthStart($toMonth));
 
         while ($current <= $end) {
-            $months[] = date('m', $current);
+            $months[] = date('Y-m', $current);
             $current = strtotime('+1 month', $current);
         }
 

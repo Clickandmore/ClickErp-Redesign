@@ -161,26 +161,26 @@
 @endsection
 @section('content')
     <div class="profit-page">
-        @if ($active_year)
+        @if ($report_period)
             <div class="profit-panel to_hide">
                 <div class="profit-panel__head">
                     <h3 class="profit-panel__title">{{ $bladeTitle }}</h3>
                     <span class="profit-year">
                         <i class="fa fa-calendar"></i>
-                        {{ $active_year['from_date'] }} / {{ $active_year['to_date'] }}
+                        {{ $report_period->from_date }} / {{ $report_period->to_date }}
                     </span>
                 </div>
 
                 <div class="profit-filter-grid">
                     <div class="profit-field">
                         <label for="from_date">{{ __('finance::finance.From Date') }}</label>
-                        <input type="date" name="from_date" value="{{ $active_year['from_date'] }}" class="form-control search_keys"
+                        <input type="date" name="from_date" value="{{ $report_period->from_date }}" class="form-control search_keys"
                             id="from_date">
                     </div>
 
                     <div class="profit-field">
                         <label for="to_date">{{ __('finance::finance.To Date') }}</label>
-                        <input type="date" name="to_date" value="{{ $active_year['to_date'] }}" class="form-control search_keys"
+                        <input type="date" name="to_date" value="{{ $report_period->to_date }}" class="form-control search_keys"
                             id="to_date">
                     </div>
 
@@ -248,7 +248,7 @@
             loadProfitLoss();
         });
 
-        @if ($active_year)
+        @if ($report_period)
             loadProfitLoss();
         @endif
     </script>

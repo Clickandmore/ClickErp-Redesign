@@ -14,15 +14,21 @@ class AccountBalanceDifferedNormalController extends Controller
 
     public function index(Request $request, ObjService $service)
     {
-        $data['accounts'] = $service->balanceAccountsByTypeNoNormal($request->all());
-        if($request->ajax()){
-            $data['accounts'] = $service->balanceAccountsByTypeNoNormal($request->all());
+        $filters = $request->only(['from_date', 'to_date', 'keyword']);
+        $data['accounts'] = $service->balanceAccountsDifferedFromNature($filters);
+        $data['filters'] = $filters;
+
+        if ($request->ajax()) {
             $returnHTML = view($this->folderPath . ".result")->with($data)->render();
             return jsonSuccess(["html" => $returnHTML]);
         }
+
         $data["dataTableRoute"] = route($this->mainRoute . ".index");
         $data["bladeTitle"] =__("finance::finance.account-balance-differed-normal");
-        return view($this->folderPath . '.index', $data);
+        $data["resultView"] = $this->folderPath . '.result';
+        $data["exportFileName"] = 'accounts-differed-from-nature.xlsx';
+
+        return view('finance::finance.creditor_accounts.index', $data);
     }
 
 }

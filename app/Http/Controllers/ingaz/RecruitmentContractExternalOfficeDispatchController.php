@@ -38,16 +38,62 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
             abort(403, 'ليس لديك صلاحية لعرض إرسالات المكتب الخارجي.');
         }
 
-        $dispatchFilter = $request->get('dispatch_filter', 'sent');
+        $dispatchFilter = (string) $request->get('dispatch_filter', 'not_sent');
+        if (!in_array($dispatchFilter, ['all', 'sent', 'not_sent'], true)) {
+            $dispatchFilter = 'not_sent';
+        }
         $currentStatuses = $this->currentRecruitmentStatuses();
+
+        $requestedContractIds = collect((array) $request->old('contract_ids', $request->query('contract_ids', [])))
+            ->push($request->query('contract_id'))
+            ->filter(fn ($value) => is_scalar($value) && filter_var($value, FILTER_VALIDATE_INT) !== false)
+            ->map(fn ($value) => (int) $value)
+            ->filter(fn ($value) => $value > 0)
+            ->unique()
+            ->values();
+
+        $selectedContractIds = collect();
+        $selectedContractGroups = collect();
+        if ($requestedContractIds->isNotEmpty()) {
+            $selectedContractsQuery = Contract::query()
+                ->with([
+                    'maid.nationality',
+                    'maid.office',
+                    'maid.recruitmentOffice',
+                    'requiredMaidNationality',
+                    'info.manualMaidNationality',
+                    'info.manualMaidOffice',
+                ])
+                ->whereIn('id', $requestedContractIds)
+                ->whereIn('type', ['recruitment', 'maid'])
+                ->whereIn('status', $currentStatuses)
+                ->whereDoesntHave('externalOfficeDispatch');
+            $this->applyRequestBranchFilter($selectedContractsQuery, $request, 'contracts');
+            $selectedContracts = $selectedContractsQuery->get()
+                ->filter(function (Contract $contract) {
+                    $group = $this->buildBulkSelectionGroupData($contract);
+
+                    return $contract->canManageExternalOfficeDispatch()
+                        && !empty($group['office_id'])
+                        && !empty($group['nationality_id'])
+                        && empty($contract->externalOfficeDispatchSourceValidationErrors('1.00'));
+                });
+            $selectedContractIds = $selectedContracts->pluck('id');
+            $selectedContractGroups = $selectedContracts->mapWithKeys(fn (Contract $contract) => [
+                (string) $contract->id => $this->buildBulkSelectionGroupData($contract),
+            ]);
+        }
 
         $query = Contract::query()
             ->with([
                 'user',
                 'maid.religion',
+                'maid.nationality',
                 'maid.office',
                 'maid.recruitmentOffice',
+                'requiredMaidNationality',
                 'info',
+                'info.manualMaidNationality',
                 'info.manualMaidOffice',
                 'externalOfficeDispatch',
             ])
@@ -89,9 +135,33 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
                     return '<a href="' . e(route('contracts.details', $contract->id)) . '" class="fw-semibold text-decoration-none">#' . e($contract->id) . '</a>';
                 })
                 ->addColumn('selection', function (Contract $contract) {
-                    $disabled = $contract->canManageExternalOfficeDispatch() ? '' : ' disabled';
+                    $group = $this->buildBulkSelectionGroupData($contract);
+                    $sourceErrors = $contract->externalOfficeDispatchSourceValidationErrors('1.00');
+                    $isSelectable = $contract->canManageExternalOfficeDispatch()
+                        && !$contract->externalOfficeDispatch
+                        && !empty($group['office_id'])
+                        && !empty($group['nationality_id'])
+                        && empty($sourceErrors);
+                    $disabled = $isSelectable
+                        ? ''
+                        : ' disabled';
+                    $disabledReason = $sourceErrors
+                        ? implode(' ', $sourceErrors)
+                        : (!$group['office_id'] || !$group['nationality_id']
+                            ? 'يجب تحديد المكتب الخارجي والجنسية أولًا.'
+                            : ($contract->externalOfficeDispatch ? 'توجد إرسالية مسجلة مسبقًا.' : 'العقد غير متاح للإرسال.'));
 
-                    return '<input type="checkbox" class="form-check-input dispatch-contract-checkbox" value="' . e($contract->id) . '"' . $disabled . '>';
+                    $checkbox = '<input type="checkbox" class="form-check-input dispatch-contract-checkbox"'
+                        . ' value="' . e($contract->id) . '"'
+                        . ' data-office-id="' . e($group['office_id']) . '"'
+                        . ' data-nationality-id="' . e($group['nationality_id']) . '"'
+                        . ' data-office-name="' . e($group['office_name']) . '"'
+                        . ' data-nationality-name="' . e($group['nationality_name']) . '"'
+                        . $disabled . '>';
+
+                    return $isSelectable
+                        ? $checkbox
+                        : '<span title="' . e($disabledReason) . '">' . $checkbox . '</span>';
                 })
                 ->addColumn('client', function (Contract $contract) {
                     $name = e($contract->user?->name ?? 'غير محدد');
@@ -114,6 +184,11 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
                         : 'غير محدد';
 
                     return '<div class="fw-semibold">' . $officeName . '</div><small class="text-muted">التكلفة: ' . e($usdCost) . '</small>';
+                })
+                ->addColumn('nationality', function (Contract $contract) {
+                    $group = $this->buildBulkSelectionGroupData($contract);
+
+                    return e($group['nationality_name']);
                 })
                 ->addColumn('contract_status', function (Contract $contract) {
                     return '<span class="badge bg-' . e(getContractStatusColor($contract->status)) . '">' . e(getContractStatus($contract->status)) . '</span>';
@@ -159,6 +234,7 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
                     'client',
                     'worker',
                     'office',
+                    'nationality',
                     'contract_status',
                     'dispatch_status',
                     'dispatch_date',
@@ -188,10 +264,12 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
         return view('admin.ingaz.RecruitmentContract.external_office_dispatch_index', [
             'dispatchFilter' => $dispatchFilter,
             'stats' => $stats,
+            'selectedContractIds' => $selectedContractIds,
+            'selectedContractGroups' => $selectedContractGroups,
         ]);
     }
 
-    public function edit(Contract $contract)
+    public function edit(Contract $contract, Request $request)
     {
         $this->assertCanAccessBranchModel($contract);
 
@@ -202,8 +280,12 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
         $contract->load([
             'user',
             'maid.religion',
+            'maid.nationality',
             'maid.office',
             'maid.recruitmentOffice',
+            'requiredMaidNationality',
+            'info.manualMaidNationality',
+            'info.manualMaidOffice',
             'externalOfficeDispatch',
             'travelHistory',
         ]);
@@ -220,6 +302,54 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
         $initialOfficeContractCostSar = filled($initialOfficeContractCostUsd)
             ? number_format((float) str_replace(',', '', (string) $initialOfficeContractCostUsd) * self::USD_TO_SAR_RATE, 2, '.', '')
             : null;
+        $bulkGroup = $this->buildBulkSelectionGroupData($contract);
+        $bulkCompatibleContracts = collect();
+
+        if ($contract->canManageExternalOfficeDispatch() && $bulkGroup['office_id'] && $bulkGroup['nationality_id']) {
+            $bulkContractsQuery = Contract::query()
+                ->with([
+                    'user',
+                    'maid.religion',
+                    'maid.nationality',
+                    'maid.office',
+                    'maid.recruitmentOffice',
+                    'requiredMaidNationality',
+                    'info.manualMaidNationality',
+                    'info.manualMaidOffice',
+                    'externalOfficeDispatch',
+                    'travelHistory',
+                ])
+                ->whereIn('type', ['recruitment', 'maid'])
+                ->whereIn('status', $this->currentRecruitmentStatuses())
+                ->whereDoesntHave('externalOfficeDispatch')
+                ->where(function ($query) use ($bulkGroup) {
+                    $query->whereHas('maid', function ($maidQuery) use ($bulkGroup) {
+                        $maidQuery
+                            ->where('office_id', $bulkGroup['office_id'])
+                            ->where('nationality_id', $bulkGroup['nationality_id']);
+                    })->orWhereHas('info', function ($infoQuery) use ($bulkGroup) {
+                        $infoQuery
+                            ->where('manual_maid_office_id', $bulkGroup['office_id'])
+                            ->where('manual_maid_nationality_id', $bulkGroup['nationality_id']);
+                    });
+                });
+            $this->applyRequestBranchFilter($bulkContractsQuery, $request, 'contracts');
+
+            $bulkCompatibleContracts = $bulkContractsQuery
+                ->orderByDesc('id')
+                ->get()
+                ->filter(function (Contract $candidate) use ($bulkGroup) {
+                    return $this->buildBulkSelectionGroupData($candidate)['group_key'] === $bulkGroup['group_key']
+                        && empty($candidate->externalOfficeDispatchSourceValidationErrors('1.00'));
+                })
+                ->values();
+        }
+
+        $oldBulkContractIds = collect((array) old('contract_ids', [$contract->id]))
+            ->map(fn ($id) => (int) $id)
+            ->intersect($bulkCompatibleContracts->pluck('id'))
+            ->values()
+            ->all();
 
         return view('admin.ingaz.RecruitmentContract.external_office_dispatch', [
             'contract' => $contract,
@@ -236,6 +366,9 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
                 'dispatch_date',
                 optional($dispatch?->dispatch_date)->format('Y-m-d') ?? now()->toDateString()
             ),
+            'bulkGroup' => $bulkGroup,
+            'bulkCompatibleContracts' => $bulkCompatibleContracts,
+            'oldBulkContractIds' => $oldBulkContractIds,
         ]);
     }
 
@@ -309,20 +442,29 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
             'contract_ids.*' => 'integer|distinct|exists:contracts,id',
             'dispatch_date' => 'required|date',
             'arrival_station' => 'nullable|string|max:255',
+            'office_contract_cost_usd' => 'required|numeric|min:0.01|max:99999999.99',
+            'return_contract_id' => 'nullable|integer|exists:contracts,id',
         ], [
             'contract_ids.required' => 'يجب تحديد عقد واحد على الأقل.',
             'contract_ids.min' => 'يجب تحديد عقد واحد على الأقل.',
             'dispatch_date.required' => 'تاريخ الإرسالية مطلوب.',
             'dispatch_date.date' => 'تاريخ الإرسالية غير صحيح.',
             'arrival_station.max' => 'محطة الوصول طويلة جداً.',
+            'office_contract_cost_usd.required' => 'تكلفة العقد بالدولار مطلوبة للإرسال المجمع.',
+            'office_contract_cost_usd.numeric' => 'تكلفة العقد بالدولار يجب أن تكون رقمًا صحيحًا.',
+            'office_contract_cost_usd.min' => 'تكلفة العقد بالدولار يجب أن تكون أكبر من صفر.',
+            'office_contract_cost_usd.max' => 'تكلفة العقد بالدولار كبيرة جداً.',
         ]);
 
         $contractsQuery = Contract::query()
             ->with([
                 'user',
                 'maid.religion',
+                'maid.nationality',
                 'maid.office',
                 'maid.recruitmentOffice',
+                'requiredMaidNationality',
+                'info.manualMaidNationality',
                 'info.manualMaidOffice',
                 'externalOfficeDispatch',
                 'travelHistory',
@@ -332,26 +474,56 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
         $contracts = $contractsQuery->get();
 
         $adminId = auth('admin')->id() ?? auth()->id();
-        $createdCount = 0;
         $errors = [];
+        $arrivalStations = [];
         $commonArrivalStation = trim((string) ($validated['arrival_station'] ?? ''));
+        $commonOfficeContractCostUsd = number_format(
+            (float) $validated['office_contract_cost_usd'],
+            2,
+            '.',
+            ''
+        );
+
+        if ($contracts->count() !== count($validated['contract_ids'])) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'تعذر الوصول إلى عقد أو أكثر من العقود المحددة.');
+        }
+
+        $groupData = $contracts->map(fn (Contract $contract) => $this->buildBulkSelectionGroupData($contract));
+        $missingGroupContract = $contracts->first(function (Contract $contract) {
+            $group = $this->buildBulkSelectionGroupData($contract);
+
+            return !$group['office_id'] || !$group['nationality_id'];
+        });
+
+        if ($missingGroupContract) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'العقد #' . $missingGroupContract->id . ': يجب تحديد المكتب الخارجي والجنسية قبل إنشاء الإرسالية.');
+        }
+
+        if ($groupData->pluck('group_key')->unique()->count() !== 1) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'يجب أن تكون جميع العقود المحددة من نفس الجنسية ونفس المكتب الخارجي.');
+        }
 
         foreach ($contracts as $contract) {
             if (!$contract->canManageExternalOfficeDispatch()) {
-                $errors[] = 'العقد #' . $contract->id . ': يمكن إنشاء أو تحديث الإرسالية للعقود الجارية فقط.';
+                $errors[] = 'العقد #' . $contract->id . ': يمكن إنشاء الإرسالية للعقود الجارية فقط.';
                 continue;
             }
 
-            $officeContractCostUsd = $contract->buildExternalOfficeDispatchSourceData(
-                $contract->externalOfficeDispatch?->office_contract_cost_usd
-            )['office_contract_cost_usd'];
-
-            if ((float) ($officeContractCostUsd ?? 0) <= 0) {
-                $errors[] = 'العقد #' . $contract->id . ': تكلفة المكتب بالدولار غير محددة.';
+            if ($contract->externalOfficeDispatch) {
+                $errors[] = 'العقد #' . $contract->id . ': توجد إرسالية مسجلة مسبقًا.';
                 continue;
             }
 
-            $sourceErrors = $contract->externalOfficeDispatchSourceValidationErrors($officeContractCostUsd);
+            $sourceErrors = $contract->externalOfficeDispatchSourceValidationErrors($commonOfficeContractCostUsd);
             if (!empty($sourceErrors)) {
                 $errors[] = 'العقد #' . $contract->id . ': ' . implode(' ', $sourceErrors);
                 continue;
@@ -366,22 +538,47 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
                 continue;
             }
 
-            $this->persistExternalOfficeDispatch(
-                $contract,
-                $validated['dispatch_date'],
-                $arrivalStation,
-                $officeContractCostUsd,
-                $adminId
-            );
-            $createdCount++;
+            $arrivalStations[$contract->id] = $arrivalStation;
         }
+
+        if (!empty($errors)) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', 'لم يتم حفظ أي إرسالية. يرجى معالجة الملاحظات ثم المحاولة مرة أخرى.')
+                ->with('bulk_dispatch_errors', $errors);
+        }
+
+        DB::transaction(function () use (
+            $contracts,
+            $validated,
+            $arrivalStations,
+            $commonOfficeContractCostUsd,
+            $adminId
+        ) {
+            foreach ($contracts as $contract) {
+                $this->persistExternalOfficeDispatch(
+                    $contract,
+                    $validated['dispatch_date'],
+                    $arrivalStations[$contract->id],
+                    $commonOfficeContractCostUsd,
+                    $adminId
+                );
+            }
+        });
+
+        $createdCount = $contracts->count();
 
         $message = $createdCount > 0
             ? 'تم حفظ ' . $createdCount . ' إرسالية مكتب خارجي بنجاح.'
             : 'لم يتم حفظ أي إرسالية.';
 
+        $redirectRoute = !empty($validated['return_contract_id'])
+            ? route('RecruitmentContract.externalOfficeDispatch.edit', $validated['return_contract_id'])
+            : route('RecruitmentContract.externalOfficeDispatch.index', ['dispatch_filter' => 'not_sent']);
+
         return redirect()
-            ->route('RecruitmentContract.externalOfficeDispatch.index', ['dispatch_filter' => 'sent'])
+            ->to($redirectRoute)
             ->with($createdCount > 0 ? 'success' : 'error', $message)
             ->with('bulk_dispatch_errors', $errors);
     }
@@ -500,6 +697,26 @@ class RecruitmentContractExternalOfficeDispatchController extends Controller
         }
 
         $query->whereHas('externalOfficeDispatch');
+    }
+
+    private function buildBulkSelectionGroupData(Contract $contract): array
+    {
+        $office = $contract->resolveExternalOfficeDispatchOffice();
+        $nationality = $contract->maid?->nationality
+            ?? $contract->info?->manualMaidNationality
+            ?? $contract->requiredMaidNationality;
+        $nationalityId = $contract->maid?->nationality_id
+            ?? $contract->info?->manual_maid_nationality_id
+            ?? $contract->required_maid_nationality_id;
+        $officeId = $office?->id;
+
+        return [
+            'office_id' => $officeId ? (string) $officeId : '',
+            'nationality_id' => $nationalityId ? (string) $nationalityId : '',
+            'office_name' => $office?->title ?: 'غير محدد',
+            'nationality_name' => $nationality?->display_name ?: 'غير محددة',
+            'group_key' => ($officeId ?: 'missing') . ':' . ($nationalityId ?: 'missing'),
+        ];
     }
 
     private function persistExternalOfficeDispatch(

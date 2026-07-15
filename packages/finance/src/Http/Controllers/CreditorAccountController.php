@@ -14,14 +14,19 @@ class CreditorAccountController extends Controller
 
     public function index(Request $request, ObjService $service)
     {
-        $data['accounts'] = $service->balanceAccountsByType('creditor',$request->all());
-        if($request->ajax()){
-            $data['accounts'] = $service->balanceAccountsByType('creditor',$request->all());
+        $filters = $request->only(['from_date', 'to_date', 'keyword']);
+        $data['accounts'] = $service->balanceAccountsByActualSide('creditor', $filters);
+        $data['filters'] = $filters;
+
+        if ($request->ajax()) {
             $returnHTML = view($this->folderPath . ".result")->with($data)->render();
             return jsonSuccess(["html" => $returnHTML]);
         }
+
         $data["dataTableRoute"] = route($this->mainRoute . ".index");
         $data["bladeTitle"] = __("finance::finance.creditor-accounts");
+        $data["resultView"] = $this->folderPath . '.result';
+        $data["exportFileName"] = 'creditor-accounts.xlsx';
 
         return view($this->folderPath . '.index', $data);
     }

@@ -15,6 +15,8 @@
     $pdfUrl = $dispatch
         ? route('RecruitmentContract.externalOfficeDispatch.print', ['contract' => $contract->id, 'driver' => 'dompdf', 'download' => 1])
         : null;
+    $showBulkCreateForm = $isEditable && $bulkCompatibleContracts->isNotEmpty();
+    $useUnifiedCreateForm = !$dispatch && $showBulkCreateForm;
 @endphp
 
 @section('content')
@@ -25,6 +27,16 @@
                 <div class="text-muted">مرتبطة بالعقد رقم #{{ $contract->id }}</div>
             </div>
             <div class="d-flex flex-wrap gap-2">
+                @if ($bulkCompatibleContracts->isNotEmpty())
+                <a href="#bulk-dispatch-card" class="btn btn-primary">
+                    <i class="fas fa-layer-group me-1"></i>
+                    اختيار عقود وعمل إرسالية
+                </a>
+                @endif
+                <a href="{{ route('RecruitmentContract.index', ['status' => 'current']) }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-list me-1"></i>
+                    العقود السارية
+                </a>
                 <a href="{{ route('contracts.details', $contract->id) }}" class="btn btn-outline-secondary">
                     <i class="fas fa-arrow-right me-1"></i>
                     الرجوع لتفاصيل العقد
@@ -62,6 +74,134 @@
             </div>
         @endif
 
+        @if (session('bulk_dispatch_errors') && count(session('bulk_dispatch_errors')))
+            <div class="alert alert-warning">
+                <div class="fw-semibold mb-2">ملاحظات على الإرسال المجمع:</div>
+                <ul class="mb-0 ps-3">
+                    @foreach (session('bulk_dispatch_errors') as $bulkDispatchError)
+                        <li>{{ $bulkDispatchError }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
+        @if ($showBulkCreateForm)
+            <form method="POST" action="{{ route('RecruitmentContract.externalOfficeDispatch.bulkStore') }}"
+                id="bulk-dispatch-card" class="card shadow-sm border-0 mb-4 overflow-hidden">
+                @csrf
+                <input type="hidden" name="return_contract_id" value="{{ $contract->id }}">
+
+                <div class="card-header bg-primary text-white d-flex flex-wrap justify-content-between align-items-center gap-3 py-3">
+                    <div>
+                        <h5 class="mb-1">إنشاء إرسالية مكتب خارجي</h5>
+                        <div class="small opacity-75">
+                            {{ $bulkGroup['office_name'] }} / {{ $bulkGroup['nationality_name'] }}
+                        </div>
+                    </div>
+                    <span class="badge bg-white text-primary" id="inline-bulk-selected-count">0 عقد</span>
+                </div>
+
+                <div class="card-body">
+                    <div class="alert alert-light border d-flex align-items-start gap-2">
+                        <i class="fas fa-info-circle text-primary mt-1"></i>
+                        <div>
+                            <div class="fw-semibold">نموذج موحد للإرسالية الفردية والمجمعة</div>
+                            <div class="small text-muted">
+                                اختيار عقد واحد ينشئ إرسالية فردية، واختيار أكثر من عقد ينشئ إرساليات مجمعة بنفس التاريخ والتكلفة ومحطة الوصول.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <label class="form-label">تاريخ الإرسالية <span class="text-danger">*</span></label>
+                            <input type="date" name="dispatch_date" class="form-control"
+                                value="{{ $initialDispatchDate }}" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">التكلفة بالدولار لكل عقد <span class="text-danger">*</span></label>
+                            <input type="number" name="office_contract_cost_usd" id="inline_bulk_cost_usd"
+                                class="form-control" value="{{ $initialOfficeContractCostUsd }}"
+                                step="0.01" min="0.01" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">المقابل بالريال</label>
+                            <div class="input-group">
+                                <input type="number" id="inline_bulk_cost_sar" class="form-control"
+                                    value="{{ $initialOfficeContractCostSar }}" step="0.01" min="0.01">
+                                <span class="input-group-text">ريال</span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">محطة الوصول الموحدة</label>
+                            <input type="text" name="arrival_station" class="form-control"
+                                value="{{ $initialArrivalStation }}"
+                                placeholder="اتركها فارغة لاستخدام محطة كل عقد">
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                        <h6 class="mb-0">العقود المتاحة من نفس المكتب والجنسية</h6>
+                        <small class="text-muted">حدد عقدًا واحدًا أو أكثر</small>
+                    </div>
+                    <div class="table-responsive border rounded">
+                        <table class="table table-bordered table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 45px;">
+                                        <input type="checkbox" class="form-check-input" id="inline-bulk-select-all">
+                                    </th>
+                                    <th>العقد</th>
+                                    <th>العميل</th>
+                                    <th>العاملة</th>
+                                    <th>رقم التأشيرة</th>
+                                    <th>محطة الوصول</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($bulkCompatibleContracts as $bulkContract)
+                                    @php
+                                        $bulkSource = $bulkContract->buildExternalOfficeDispatchSourceData('1.00');
+                                        $bulkStation = $bulkContract->resolveExternalOfficeDispatchArrivalStation();
+                                    @endphp
+                                    <tr>
+                                        <td>
+                                            <input type="checkbox" name="contract_ids[]"
+                                                class="form-check-input inline-bulk-contract"
+                                                value="{{ $bulkContract->id }}"
+                                                {{ in_array($bulkContract->id, $oldBulkContractIds, true) ? 'checked' : '' }}>
+                                        </td>
+                                        <td>
+                                            <a href="{{ route('contracts.details', $bulkContract->id) }}" target="_blank" rel="noopener">
+                                                #{{ $bulkContract->id }}
+                                            </a>
+                                            @if ($bulkContract->id === $contract->id)
+                                                <span class="badge bg-primary ms-1">العقد الحالي</span>
+                                            @endif
+                                        </td>
+                                        <td>{{ $bulkContract->user?->name ?: 'غير محدد' }}</td>
+                                        <td>
+                                            <div>{{ $bulkSource['worker_name'] ?: 'غير محدد' }}</div>
+                                            <small class="text-muted">{{ $bulkSource['passport_number'] ?: '-' }}</small>
+                                        </td>
+                                        <td>{{ $bulkSource['visa_number'] ?: '-' }}</td>
+                                        <td>{{ $bulkStation ?: 'سيتم استخدام المحطة الموحدة' }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer bg-white d-flex justify-content-end">
+                    <button type="submit" class="btn btn-primary" id="inline-bulk-submit">
+                        <i class="fas fa-paper-plane me-1"></i>
+                        <span id="inline-bulk-submit-label">إنشاء الإرسالية</span>
+                    </button>
+                </div>
+            </form>
+        @endif
+
+        @if (!$useUnifiedCreateForm)
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-body">
                 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
@@ -197,6 +337,7 @@
                 @endif
             </div>
         </form>
+        @endif
     </div>
 @endsection
 
@@ -244,6 +385,49 @@
 
             usdInput?.addEventListener('input', updateSarCost);
             sarInput?.addEventListener('input', updateUsdCost);
+
+            const bulkUsdInput = document.getElementById('inline_bulk_cost_usd');
+            const bulkSarInput = document.getElementById('inline_bulk_cost_sar');
+            const bulkCheckboxes = Array.from(document.querySelectorAll('.inline-bulk-contract'));
+            const bulkSelectAll = document.getElementById('inline-bulk-select-all');
+            const bulkSubmit = document.getElementById('inline-bulk-submit');
+            const bulkSelectedCount = document.getElementById('inline-bulk-selected-count');
+            const bulkSubmitLabel = document.getElementById('inline-bulk-submit-label');
+
+            function syncInlineBulkSelection() {
+                const selectedCount = bulkCheckboxes.filter(checkbox => checkbox.checked).length;
+                if (bulkSelectedCount) {
+                    bulkSelectedCount.textContent = selectedCount + ' عقد';
+                }
+                if (bulkSubmit) {
+                    bulkSubmit.disabled = selectedCount === 0;
+                }
+                if (bulkSubmitLabel) {
+                    bulkSubmitLabel.textContent = selectedCount > 1
+                        ? `إنشاء ${selectedCount} إرساليات مجمعة`
+                        : 'إنشاء إرسالية فردية';
+                }
+                if (bulkSelectAll) {
+                    bulkSelectAll.checked = bulkCheckboxes.length > 0 && selectedCount === bulkCheckboxes.length;
+                    bulkSelectAll.indeterminate = selectedCount > 0 && selectedCount < bulkCheckboxes.length;
+                }
+            }
+
+            bulkCheckboxes.forEach(checkbox => checkbox.addEventListener('change', syncInlineBulkSelection));
+            bulkSelectAll?.addEventListener('change', function () {
+                bulkCheckboxes.forEach(checkbox => {
+                    checkbox.checked = bulkSelectAll.checked;
+                });
+                syncInlineBulkSelection();
+            });
+
+            bulkUsdInput?.addEventListener('input', function () {
+                setConvertedValue(bulkSarInput, parseMoney(bulkUsdInput.value) * rate);
+            });
+            bulkSarInput?.addEventListener('input', function () {
+                setConvertedValue(bulkUsdInput, parseMoney(bulkSarInput.value) / rate);
+            });
+            syncInlineBulkSelection();
         });
     </script>
 @endpush

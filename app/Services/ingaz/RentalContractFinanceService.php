@@ -6,6 +6,7 @@ use App\Models\RentalContract;
 use App\Models\RentalContractInvoice;
 use App\Models\ingaz\Package;
 use App\Models\ingaz\User as ClientUser;
+use App\Support\AutomaticJournalEntries;
 use Illuminate\Support\Facades\Auth;
 use Nami\Finance\Enums\AccountTypesEnum;
 use Nami\Finance\Enums\BondPaymentTypes;
@@ -54,7 +55,10 @@ class RentalContractFinanceService
             ?: ($info->package_id ? Package::query()->find($info->package_id) : null);
 
         $amounts = $this->buildInvoiceAmounts($contract, $package);
-        $clientAccountId = $this->ensureClientAccountId($contract);
+        $automaticEntriesEnabled = AutomaticJournalEntries::enabled();
+        $clientAccountId = $automaticEntriesEnabled
+            ? $this->ensureClientAccountId($contract)
+            : null;
 
         $invoice = RentalContractInvoice::query()->create([
             'rental_contract_id' => $contract->id,
@@ -77,13 +81,13 @@ class RentalContractFinanceService
         $invoice->setRelation('rentalContract', $contract);
 
         $invoiceConstraint = null;
-        if ($amounts['total_due'] > 0) {
+        if ($automaticEntriesEnabled && $amounts['total_due'] > 0) {
             $invoiceConstraint = $this->storeInvoiceConstraint($invoice, $contract, $clientAccountId, $amounts);
         }
 
         $receiptBond = null;
         $receiptConstraint = null;
-        if ($amounts['paid_amount'] > 0) {
+        if ($automaticEntriesEnabled && $amounts['paid_amount'] > 0) {
             $receipt = $this->storeReceiptBond($invoice, $contract, $clientAccountId, $amounts['paid_amount']);
             $receiptBond = $receipt['bond'];
             $receiptConstraint = $receipt['constraint'];
@@ -145,7 +149,7 @@ class RentalContractFinanceService
         $receiptConstraint = $invoice->receiptConstraint;
         $receiptCreated = false;
 
-        if ($amounts['paid_amount'] > 0 && !$invoice->receipt_bond_id) {
+        if (AutomaticJournalEntries::enabled() && $amounts['paid_amount'] > 0 && !$invoice->receipt_bond_id) {
             $clientAccountId = $this->ensureClientAccountId($contract);
             $receipt = $this->storeReceiptBond($invoice->fresh(), $contract, $clientAccountId, $amounts['paid_amount']);
             $receiptBond = $receipt['bond'];

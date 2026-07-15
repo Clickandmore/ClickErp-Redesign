@@ -1,7 +1,7 @@
 @extends('admin.layout.indexs.index')
 
 @section('style')
-    <link rel="stylesheet" href="{{ asset('admin/assets/css/dashboard-new.css') }}?v=15">
+    <link rel="stylesheet" href="{{ asset('admin/assets/css/dashboard-new.css') }}?v=16">
     <link rel="stylesheet" href="{{ asset('admin/assets/cssbundle/fullcalendar.min.css') }}">
 @endsection
 
@@ -79,6 +79,11 @@
             true,
         );
         $canViewRentalMaidsCard = $canViewDashboardSection(\App\PermKeys::MAIDS_RENTAL_VIEW, [], true);
+        $canViewRequestGenderCard = $canViewDashboardSection(
+            \App\PermKeys::DASHBOARD_ORDERS_TYPES,
+            [\App\PermKeys::INGAZ_DELEGATIONS_VIEW],
+            true,
+        );
         $canViewTopStatsRow =
             $canViewRecruitmentOrdersCard ||
             $canViewRecruitmentContractsCard ||
@@ -87,15 +92,9 @@
             $canViewClientsCard ||
             $canViewRentalMaidsCard;
 
-        $canViewRentalOrdersCard = $canViewDashboardSection(\App\PermKeys::DASHBOARD_RENTAL_ORDERS_COUNT, [], true);
         $canViewIngazDelegationsCard = $canViewDashboardSection(
             null,
             [\App\PermKeys::INGAZ_DELEGATIONS_VIEW, \App\PermKeys::INGAZ_DELEGATIONS_CONTROL],
-            true,
-        );
-        $canViewRequestGenderCard = $canViewDashboardSection(
-            \App\PermKeys::DASHBOARD_ORDERS_TYPES,
-            [\App\PermKeys::INGAZ_DELEGATIONS_VIEW],
             true,
         );
         $canViewComplaintsCard = $canViewDashboardSection(
@@ -108,19 +107,11 @@
             [\App\PermKeys::SPONSOR_TRANSFER_VIEW],
             true,
         );
-        $canViewSponsorshipTransferRequestsCard = $canViewDashboardSection(
-            \App\PermKeys::DASHBOARD_SPONSORSHIP_TRANSFER_REQUESTS_COUNT,
-            [\App\PermKeys::SPONSOR_TRANSFER_VIEW],
-            true,
-        );
         $canViewShelterCard = $canViewDashboardSection(\App\PermKeys::DASHBOARD_SHELTER_COUNT, [], true);
-        $canViewSecondStatsRow =
-            $canViewRentalOrdersCard ||
+        $canViewTopStatsRow = $canViewTopStatsRow ||
             $canViewIngazDelegationsCard ||
-            $canViewRequestGenderCard ||
             $canViewComplaintsCard ||
             $canViewSponsorshipTransfersCard ||
-            $canViewSponsorshipTransferRequestsCard ||
             $canViewShelterCard;
 
         $canViewOperationsSection = $canViewDashboardSection(
@@ -149,7 +140,10 @@
             true,
         );
         $canViewAnalyticsSummaryRow =
-            $canViewNationalitiesPanel || $canViewOfficesPanel || $canViewRecentActivitiesPanel;
+            $canViewNationalitiesPanel ||
+            $canViewRequestGenderCard ||
+            $canViewOfficesPanel ||
+            $canViewRecentActivitiesPanel;
 
         $canViewCalendarPanel = $canViewDashboardSection(
             \App\PermKeys::DASHBOARD_CALENDAR_EVENTS,
@@ -168,7 +162,6 @@
         $hasAnyDashboardSection =
             $canViewTopStatsRow ||
             $canViewOperationsSection ||
-            $canViewSecondStatsRow ||
             $canViewContractsOverviewSection ||
             $canViewAnalyticsSummaryRow ||
             $canViewBottomRow;
@@ -402,6 +395,34 @@
                             <div class="progress-bar bg-secondary"
                                 style="width: {{ round((($clientsStats['no_orders'] ?? 0) / $clTotal) * 100) }}%"></div>
                         </div>
+                    </div>
+                @endif
+
+                @if ($canViewRequestGenderCard)
+                    <div class="stat-card gender-chart-card is-3" style="order: 7;">
+                        <div class="stat-card-icon"><i class="fas fa-venus-mars"></i></div>
+                        <div class="stat-head d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="stat-label">{{ __('admin.dashboard_new.requests_by_gender') }}</small>
+                                <h3 class="mb-0">{{ number_format($requestGenderStats['total'] ?? 0) }}</h3>
+                            </div>
+                            <a href="{{ route('orders.index', $dashboardBranchQuery) }}"
+                                class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
+                        </div>
+                        <div class="gender-chart-layout mt-3">
+                            <div class="gender-chart-wrap">
+                                <canvas id="requestGenderChart"
+                                    aria-label="{{ __('admin.dashboard_new.requests_by_gender') }}" role="img"></canvas>
+                            </div>
+                            <div class="gender-chart-legend">
+                                <span><i class="gender-dot is-male"></i>{{ __('admin.dashboard_new.male') }} <strong>{{ number_format($requestGenderStats['male'] ?? 0) }}</strong></span>
+                                <span><i class="gender-dot is-female"></i>{{ __('admin.dashboard_new.female') }} <strong>{{ number_format($requestGenderStats['female'] ?? 0) }}</strong></span>
+                                <span><i class="gender-dot is-unknown"></i>{{ __('admin.dashboard_new.unspecified') }} <strong>{{ number_format($requestGenderStats['unknown'] ?? 0) }}</strong></span>
+                            </div>
+                        </div>
+                        <a href="{{ route('ingaz-delegations.index', $dashboardBranchQuery) }}" class="stat-meta stat-link d-inline-block mt-2">
+                            {{ __('admin.dashboard_new.includes_ingaz_delegations') }} <i class="fas fa-arrow-left ms-1"></i>
+                        </a>
                     </div>
                 @endif
 
@@ -676,48 +697,6 @@
 
         @if ($canViewSecondStatsRow)
             <div class="stat-row mt-3">
-                @if ($canViewRentalOrdersCard)
-                    <div class="stat-card is-6">
-                        <div class="stat-card-icon"><i class="fas fa-clipboard-list"></i></div>
-                        <a href="{{ route('rental-orders.index', $dashboardBranchQuery) }}"
-                            class="btn btn-sm btn-light text-dark stat-icon-action">{{ __('admin.dashboard_new.view') }}</a>
-                        <div class="stat-head d-flex justify-content-between align-items-center">
-                            <div>
-                                <small class="stat-label">{{ __('admin.dashboard_new.rental_orders') }}</small>
-                                <h3 class="mb-0">{{ number_format($rentalOrderStats['total'] ?? 0) }}</h3>
-                            </div>
-                        </div>
-                        <div class="mt-3 stat-meta">{{ __('admin.dashboard_new.new') }}: {{ number_format($rentalOrderStats['new'] ?? 0) }} | {{ __('admin.dashboard_new.under_process') }}:
-                            {{ number_format($rentalOrderStats['under_process'] ?? 0) }} | {{ __('admin.dashboard_new.completed') }}:
-                            {{ number_format($rentalOrderStats['completed'] ?? 0) }}</div>
-                        <a href="{{ route('RentContract.index', $dashboardBranchQuery) }}" class="stat-meta stat-link d-inline-block mt-2">
-                            {{ __('admin.dashboard_new.convert_to_rental_contract') }} <i class="fas fa-arrow-left ms-1"></i>
-                        </a>
-                    </div>
-                @endif
-
-                @if ($canViewRequestGenderCard)
-                    <div class="stat-card is-3">
-                        <div class="stat-card-icon"><i class="fas fa-venus-mars"></i></div>
-                        <div class="stat-head d-flex justify-content-between align-items-center">
-                            <div>
-                                <small class="stat-label">{{ __('admin.dashboard_new.requests_by_gender') }}</small>
-                                <h3 class="mb-0">{{ number_format($requestGenderStats['total'] ?? 0) }}</h3>
-                            </div>
-                            <a href="{{ route('orders.index', $dashboardBranchQuery) }}"
-                                class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
-                        </div>
-                        <div class="stat-chip-list mt-3">
-                            <span>{{ __('admin.dashboard_new.male') }}: {{ number_format($requestGenderStats['male'] ?? 0) }}</span>
-                            <span>{{ __('admin.dashboard_new.female') }}: {{ number_format($requestGenderStats['female'] ?? 0) }}</span>
-                            <span>{{ __('admin.dashboard_new.unspecified') }}: {{ number_format($requestGenderStats['unknown'] ?? 0) }}</span>
-                        </div>
-                        <a href="{{ route('ingaz-delegations.index', $dashboardBranchQuery) }}" class="stat-meta stat-link d-inline-block mt-2">
-                            {{ __('admin.dashboard_new.includes_ingaz_delegations') }} <i class="fas fa-arrow-left ms-1"></i>
-                        </a>
-                    </div>
-                @endif
-
                 @if ($canViewIngazDelegationsCard)
                     <div class="stat-card is-5">
                         <div class="stat-card-icon"><i class="fas fa-file-signature"></i></div>
@@ -770,24 +749,6 @@
                             {{ __('admin.dashboard_new.approved') }}:
                             {{ number_format($transferStats['approved'] ?? 0) }} | {{ __('admin.dashboard_new.transferred') }}:
                             {{ number_format($transferStats['transferred'] ?? 0) }}</div>
-                    </div>
-                @endif
-
-                @if ($canViewSponsorshipTransferRequestsCard)
-                    <div class="stat-card is-1">
-                        <div class="stat-card-icon"><i class="fas fa-globe"></i></div>
-                        <div class="stat-head d-flex justify-content-between align-items-center">
-                            <div>
-                                <small class="stat-label">{{ __('admin.dashboard_new.sponsorship_transfer_requests') }}</small>
-                                <h3 class="mb-0">{{ number_format($transferWebRequestStats['total'] ?? 0) }}</h3>
-                            </div>
-                            <a href="{{ route('SponsorshipTransfer.webRequests') }}"
-                                class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
-                        </div>
-                        <div class="mt-3 stat-meta">{{ __('admin.dashboard_new.new') }}: {{ number_format($transferWebRequestStats['new'] ?? 0) }} |
-                            {{ __('admin.dashboard_new.paid') }}:
-                            {{ number_format($transferWebRequestStats['paid'] ?? 0) }} | {{ __('admin.dashboard_new.completed') }}:
-                            {{ number_format($transferWebRequestStats['completed'] ?? 0) }}</div>
                     </div>
                 @endif
 
@@ -1511,9 +1472,54 @@
 
             const contractsCanvas = document.getElementById('contractsChart');
             const nationalitiesCanvas = document.getElementById('nationalitiesChart');
+            const requestGenderCanvas = document.getElementById('requestGenderChart');
 
-            if (contractsCanvas || nationalitiesCanvas) {
+            if (contractsCanvas || nationalitiesCanvas || requestGenderCanvas) {
                 loadExternalScript('https://cdn.jsdelivr.net/npm/chart.js').then(() => {
+                    if (requestGenderCanvas) {
+                        const requestGenderStats = @json($requestGenderStats ?? []);
+
+                        new Chart(requestGenderCanvas.getContext('2d'), {
+                            type: 'doughnut',
+                            data: {
+                                labels: [
+                                    @json(__('admin.dashboard_new.male')),
+                                    @json(__('admin.dashboard_new.female')),
+                                    @json(__('admin.dashboard_new.unspecified'))
+                                ],
+                                datasets: [{
+                                    data: [
+                                        Number(requestGenderStats.male || 0),
+                                        Number(requestGenderStats.female || 0),
+                                        Number(requestGenderStats.unknown || 0)
+                                    ],
+                                    backgroundColor: [chartColor1, chartColor3, chartColor4],
+                                    borderColor: '#fff',
+                                    borderWidth: 3,
+                                    hoverOffset: 7
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                cutout: '62%',
+                                plugins: {
+                                    legend: {
+                                        display: false
+                                    },
+                                    tooltip: {
+                                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                                        rtl: dashboardDirection === 'rtl',
+                                        textDirection: dashboardDirection,
+                                        callbacks: {
+                                            label: (context) => `${context.label}: ${numberFormatter.format(context.raw || 0)}`
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    }
+
                     if (contractsCanvas) {
                         const contractsCtx = contractsCanvas.getContext('2d');
                         const contractsYearSeries = {!! json_encode($contractsYearSeries ?? []) !!};

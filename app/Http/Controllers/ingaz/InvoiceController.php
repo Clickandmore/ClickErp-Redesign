@@ -13,6 +13,7 @@ use App\Models\ingaz\Nationality;
 use App\Models\ingaz\Setting;
 use App\Models\ingaz\User as ClientUser;
 use App\Services\ingaz\InvoiceCalculationService;
+use App\Support\AutomaticJournalEntries;
 use App\Support\InvoiceQrCode;
 use App\Support\SystemModuleManager;
 use Illuminate\Http\Request;
@@ -609,35 +610,33 @@ class InvoiceController extends Controller
                     throw new \RuntimeException('هذا العقد لديه فاتورة سابقة');
                 }
 
-                // التأكد من وجود حساب للعميل أو إنشاؤه تلقائياً عند أول إصدار للفاتورة
-                $clientAccountId = $this->ensureClientAccountId($contract);
-
-                // جلب حساب الجنسية المسجلة في الشجرة المحاسبية، أو محاولة إيجاد حساب بناءً على اسم الجنسية
-                // التزامات عقود الاستقدام + اسم الجنسية
+                $automaticEntriesEnabled = AutomaticJournalEntries::enabled();
+                $clientAccountId = null;
                 $nationality = $contract->maid?->nationality ?? $contract->requiredMaidNationality;
-                $nationalityAccountId = $nationality?->account_id;
-
                 $nationalityName = $nationality?->sub_title ?? $nationality?->title ?? null;
                 $this->persistMissingNationalityInvoiceCosts($nationality, $invoicePayload);
+                $nationalityAccountId = null;
 
-                if ($nationalityAccountId && !$this->isRecruitmentLiabilityAccount((int) $nationalityAccountId)) {
-                    $nationalityAccountId = null;
-                }
+                if ($automaticEntriesEnabled) {
+                    // الحسابات التالية مطلوبة فقط لإنشاء القيد وسند القبض التلقائيين.
+                    $clientAccountId = $this->ensureClientAccountId($contract);
+                    $nationalityAccountId = $nationality?->account_id;
 
-                if (!$nationalityAccountId && $nationality) {
-                    if ($nationalityName) {
+                    if ($nationalityAccountId && !$this->isRecruitmentLiabilityAccount((int) $nationalityAccountId)) {
+                        $nationalityAccountId = null;
+                    }
+
+                    if (!$nationalityAccountId && $nationalityName) {
                         $nationalityAccountId = $this->resolveNationalityAccountId($nationalityName);
                     }
-                }
 
-                // dd( $contract, $clientAccountId, $nationality, $nationalityAccountId);
-
-                if (!$nationalityAccountId) {
-                    throw new \RuntimeException(
-                        'لا يوجد حساب لهذه الجنسية'
-                        . ($nationalityName ? " : {$nationalityName}" : '')
-                        . '، الرجاء إضافة حساب أولاً.'
-                    );
+                    if (!$nationalityAccountId) {
+                        throw new \RuntimeException(
+                            'لا يوجد حساب لهذه الجنسية'
+                            . ($nationalityName ? " : {$nationalityName}" : '')
+                            . '، الرجاء إضافة حساب أولاً.'
+                        );
+                    }
                 }
 
                 //1- انشاء الفاتورة وربطها بالعقد
@@ -670,7 +669,7 @@ class InvoiceController extends Controller
                 $invoiceConstraint = null;
                 $receiptBond = null;
 
-                if ((float) $invoice->total_due > 0) {
+                if ($automaticEntriesEnabled && (float) $invoice->total_due > 0) {
                     //2- انشاء قيد الفاتورة التفصيلي وربطه بمركز تكلفة العقد
                     $contractCostCenter = $this->ensureRecruitmentContractCostCenter($contract, $nationalityName);
 
@@ -1329,7 +1328,10 @@ class InvoiceController extends Controller
             throw new \RuntimeException('التفويض غير مرتبط بعميل، لا يمكن إصدار الفاتورة.');
         }
 
-        $clientAccountId = $this->ensureClientUserAccountId($delegation->user);
+        $automaticEntriesEnabled = AutomaticJournalEntries::enabled();
+        $clientAccountId = $automaticEntriesEnabled
+            ? $this->ensureClientUserAccountId($delegation->user)
+            : null;
         $this->persistMissingNationalityInvoiceCosts($delegation->nationality, $invoicePayload);
 
         $invoice = Invoice::create([
@@ -1363,7 +1365,7 @@ class InvoiceController extends Controller
         $receiptBond = null;
         $delegationCostConstraint = null;
 
-        if ((float) $invoice->total_due > 0) {
+        if ($automaticEntriesEnabled && (float) $invoice->total_due > 0) {
             $invoiceConstraint = $this->storeInvoiceConstraintForIngazDelegation(
                 $invoice,
                 $service,
@@ -1417,7 +1419,10 @@ class InvoiceController extends Controller
             ->lockForUpdate()
             ->findOrFail($request->client_id);
 
-        $clientAccountId = $this->ensureClientUserAccountId($client);
+        $automaticEntriesEnabled = AutomaticJournalEntries::enabled();
+        $clientAccountId = $automaticEntriesEnabled
+            ? $this->ensureClientUserAccountId($client)
+            : null;
 
         $invoice = Invoice::create([
             'contract_id' => null,
@@ -1453,7 +1458,7 @@ class InvoiceController extends Controller
         $invoiceConstraint = null;
         $receiptBond = null;
 
-        if ((float) $invoice->total_due > 0) {
+        if ($automaticEntriesEnabled && (float) $invoice->total_due > 0) {
             $invoiceConstraint = $this->storeInvoiceConstraintForGeneralInvoice(
                 $invoice,
                 $service,

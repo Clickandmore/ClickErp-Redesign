@@ -195,10 +195,31 @@ class RentContractController extends Controller
                 $this->applyRentalContractExpiryFilter($query, $request->expiry_filter);
             }
 
-            $contracts = $query->latest();
+            // Imported rows keep their original Excel ID in legacy_order_id. The
+            // importer inserts the sheet from newest to oldest, so the database ID
+            // runs in the opposite direction and must not drive this listing.
+            $contracts = $query
+                ->orderByRaw('COALESCE(rental_contracts.legacy_order_id, rental_contracts.id) DESC')
+                ->orderByDesc('rental_contracts.id');
 
             return DataTables::eloquent($contracts)
-                ->addIndexColumn()
+                ->editColumn('id', function ($row) {
+                    $displayId = $row->legacy_order_id ?: $row->id;
+
+                    return '<span class="fw-bold text-nowrap">#' . e((string) $displayId) . '</span>';
+                })
+                ->orderColumn('id', function ($query, $order) {
+                    $direction = strtolower((string) $order) === 'asc' ? 'ASC' : 'DESC';
+                    $query
+                        ->orderByRaw("COALESCE(rental_contracts.legacy_order_id, rental_contracts.id) {$direction}")
+                        ->orderBy('rental_contracts.id', $direction);
+                })
+                ->filterColumn('id', function ($query, $keyword) {
+                    $query->where(function ($idQuery) use ($keyword) {
+                        $idQuery->where('rental_contracts.legacy_order_id', $keyword)
+                            ->orWhere('rental_contracts.id', $keyword);
+                    });
+                })
                 ->editColumn('status', function ($row) {
                     return $this->getStatusBadge($row->status, $row->closure_type, $row);
                 })
@@ -305,41 +326,85 @@ class RentContractController extends Controller
                     return $row->branch ? e($row->branch->name) : '-';
                 })
                 ->addColumn('remaining_days', function ($row) {
-                    if ($row->status === 'cancelled') {
-                        $remainingDays = null;
-                        if ($row->closed_at && $row->info?->ingaz_to) {
-                            $remainingDays = Carbon::parse($row->closed_at)->startOfDay()
-                                ->diffInDays(Carbon::parse($row->info->ingaz_to)->startOfDay(), false);
-                        }
-
-                        $remainingText = $remainingDays !== null && $remainingDays > 0
-                            ? '<small class="d-block text-danger fw-bold">ألغي قبل نهاية العقد بـ ' . $remainingDays . ' يوم</small>'
-                            : '';
-
-                        return '<span class="badge bg-danger">ملغي قبل اكتمال المدة</span>' . $remainingText;
+                    $startDate = $row->info?->ingaz_from
+                        ? Carbon::parse($row->info->ingaz_from)->startOfDay()
+                        : null;
+                    $endDate = $row->info?->ingaz_to
+                        ? Carbon::parse($row->info->ingaz_to)->startOfDay()
+                        : null;
+                    $durationDays = (int) ($row->info?->contract_duration_days ?? 0);
+                    if ($durationDays <= 0) {
+                        $durationMonths = (int) ($row->info?->contract_duration_months ?? 0);
+                        $durationDays = $durationMonths > 0 ? $durationMonths * 30 : 0;
+                    }
+                    if ($durationDays <= 0 && $startDate && $endDate) {
+                        $durationDays = max(1, $startDate->diffInDays($endDate, false));
                     }
 
-                    // Only show remaining days for active contracts
-                    if ($row->status !== 'completed') {
-                        $remainingDays = $row->calculateRemainingDays();
-                        if ($remainingDays !== null) {
-                            if ($remainingDays > 0) {
-                                return '<span class="badge bg-success">' . $remainingDays . ' يوم متبقي</span>';
-                            } else {
-                                return '<span class="badge bg-danger">منتهي منذ ' . abs((int) $remainingDays) . ' يوم</span>';
-                            }
-                        }
-                        return '<span class="badge bg-secondary">غير محدد</span>';
-                    } else {
-                        // For completed contracts, show closure info
-                        if ($row->closure_type === 'transferred') {
-                            return '<span class="badge bg-warning">تم النقل</span>';
-                        } elseif ($row->closure_type === 'available') {
-                            return '<span class="badge bg-info">أصبحت متاحة</span>';
+                    $usageDate = in_array($row->status, ['completed', 'cancelled'], true) && $row->closed_at
+                        ? Carbon::parse($row->closed_at)->startOfDay()
+                        : now()->startOfDay();
+                    $usedDays = null;
+                    if ($startDate && $durationDays > 0) {
+                        if ($usageDate->lessThan($startDate)) {
+                            $usedDays = 0;
+                        } elseif ($endDate && $usageDate->greaterThanOrEqualTo($endDate)) {
+                            $usedDays = $durationDays;
                         } else {
-                            return '<span class="badge bg-secondary">مكتمل</span>';
+                            $usedDays = min($durationDays, max(0, $startDate->diffInDays($usageDate, false) + 1));
                         }
                     }
+
+                    // Preserve the original day figures from the imported Excel
+                    // sheet; calculate them only for contracts created in-system.
+                    if ($row->legacy_source) {
+                        $usedDays = $row->info?->legacy_used_days !== null
+                            ? (int) $row->info->legacy_used_days
+                            : null;
+                    }
+
+                    $remainingDays = $row->calculateRemainingDays();
+                    if ($row->legacy_source) {
+                        $remainingDays = $row->info?->legacy_remaining_days !== null
+                            ? (int) $row->info->legacy_remaining_days
+                            : null;
+                    }
+
+                    $usedValue = $usedDays !== null ? (string) $usedDays : '—';
+                    $usedClass = $usedDays !== null ? '' : ' is-muted';
+
+                    if ($row->status === 'cancelled') {
+                        $remainingValue = 'ملغي';
+                        $remainingClass = ' is-cancelled';
+                        $remainingDirection = 'rtl';
+                    } elseif ($row->status === 'completed') {
+                        $remainingValue = 'مكتمل';
+                        $remainingClass = ' is-muted';
+                        $remainingDirection = 'rtl';
+                    } elseif ($remainingDays === null) {
+                        $remainingValue = '—';
+                        $remainingClass = ' is-muted';
+                        $remainingDirection = 'ltr';
+                    } elseif ($remainingDays > 0) {
+                        $remainingValue = '+' . (int) $remainingDays;
+                        $remainingClass = ' is-remaining';
+                        $remainingDirection = 'ltr';
+                    } else {
+                        $remainingValue = (string) (int) $remainingDays;
+                        $remainingClass = ' is-ended';
+                        $remainingDirection = 'ltr';
+                    }
+
+                    return '<div class="rent-days-cell">
+                                <div class="rent-day-row" title="الأيام المستفادة">
+                                    <span class="rent-day-label">المستفادة</span>
+                                    <strong class="rent-day-value' . $usedClass . '" dir="ltr">' . e($usedValue) . '</strong>
+                                </div>
+                                <div class="rent-day-row" title="الأيام المتبقية">
+                                    <span class="rent-day-label">المتبقية</span>
+                                    <strong class="rent-day-value' . $remainingClass . '" dir="' . $remainingDirection . '">' . e($remainingValue) . '</strong>
+                                </div>
+                            </div>';
                 })
                 ->addColumn('actions', function ($row) {
                     $actions = '<div class="dropdown actions-dropdown">
@@ -527,7 +592,7 @@ class RentContractController extends Controller
 
                     return $actions;
                 })
-                ->rawColumns(['user_id', 'phone', 'maid_id', 'contract_info', 'remaining_days', 'actions', 'status'])
+                ->rawColumns(['id', 'user_id', 'phone', 'maid_id', 'contract_info', 'remaining_days', 'actions', 'status'])
                 ->make(true);
         }
 
@@ -1696,10 +1761,12 @@ class RentContractController extends Controller
     {
         try {
             $baseQuery = RentalContract::query();
-            $this->applyRentalContractIndexFilters($baseQuery, $request);
+            // Keep the counters useful as status facets: apply every search filter
+            // except the currently selected status so users can move between cards.
+            $this->applyRentalContractIndexFilters($baseQuery, $request, false);
 
             $total = (clone $baseQuery)->count();
-            $active = (clone $baseQuery)->whereNotIn('status', ['completed', 'cancelled', 'frozen'])->count();
+            $active = (clone $baseQuery)->where('status', 'active')->count();
             $completed = (clone $baseQuery)->where('status', 'completed')->count();
             $cancelled = (clone $baseQuery)->where('status', 'cancelled')->count();
             $available = (clone $baseQuery)->where('status', 'completed')->where('closure_type', 'available')->count();

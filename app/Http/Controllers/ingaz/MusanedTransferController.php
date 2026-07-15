@@ -7,6 +7,7 @@ use App\Models\Contract;
 use App\Models\ingaz\Invoice;
 use App\Models\MusanedTransfer;
 use App\Models\MusanedTransferItem;
+use App\Support\AutomaticJournalEntries;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -80,15 +81,17 @@ class MusanedTransferController extends Controller
             'selectedIngazDelegationIds' => $selectedIngazDelegationIds,
             'bankAccounts' => $bankAccounts,
             'expenseTaxRate' => $expenseTaxRate,
+            'automaticEntriesEnabled' => AutomaticJournalEntries::enabled(),
         ]);
     }
 
     public function store(Request $request, ObjService $service, YearService $yearService)
     {
+        $automaticEntriesEnabled = AutomaticJournalEntries::enabled();
         $validated = $request->validate([
             'reference_number' => 'nullable|string|max:255',
             'transfer_date' => 'required|date',
-            'bank_account_id' => 'required|integer|exists:fn_accounts,id',
+            'bank_account_id' => ($automaticEntriesEnabled ? 'required' : 'nullable') . '|integer|exists:fn_accounts,id',
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
             'items.*.contract_id' => 'nullable|required_without:items.*.ingaz_delegation_id|integer|exists:contracts,id',
@@ -96,25 +99,27 @@ class MusanedTransferController extends Controller
             'items.*.transferred_amount' => 'required|numeric|min:0.01',
         ]);
 
-        if (!$yearService->checkDateRange($validated['transfer_date'])) {
+        if ($automaticEntriesEnabled && !$yearService->checkDateRange($validated['transfer_date'])) {
             throw ValidationException::withMessages([
                 'transfer_date' => 'لا يوجد سنة مالية نشطة للتاريخ المحدد.',
             ]);
         }
 
-        $activeYear = $yearService->getActiveYear();
-        $bankAccount = $this->findValidBankAccount((int) $validated['bank_account_id']);
+        $activeYear = $automaticEntriesEnabled ? $yearService->getActiveYear() : null;
+        $bankAccount = !empty($validated['bank_account_id'])
+            ? $this->findValidBankAccount((int) $validated['bank_account_id'])
+            : null;
 
-        if (!$bankAccount) {
+        if ($automaticEntriesEnabled && !$bankAccount) {
             throw ValidationException::withMessages([
                 'bank_account_id' => 'الحساب البنكي المحدد غير صالح للتحويل.',
             ]);
         }
 
-        $intermediateAccount = $this->resolveIntermediateAccount();
-        $commissionAccount = $this->resolveCommissionAccount();
+        $intermediateAccount = $automaticEntriesEnabled ? $this->resolveIntermediateAccount() : null;
+        $commissionAccount = $automaticEntriesEnabled ? $this->resolveCommissionAccount() : null;
         $expenseTaxRate = $this->resolveExpenseTaxRate();
-        $expenseTaxAccount = $this->resolveExpenseTaxAccount();
+        $expenseTaxAccount = $automaticEntriesEnabled ? $this->resolveExpenseTaxAccount() : null;
 
         try {
             $transfer = DB::transaction(function () use (
@@ -125,7 +130,8 @@ class MusanedTransferController extends Controller
                 $intermediateAccount,
                 $commissionAccount,
                 $expenseTaxRate,
-                $expenseTaxAccount
+                $expenseTaxAccount,
+                $automaticEntriesEnabled
             ) {
                 $itemsInput = collect($validated['items'])
                     ->map(function ($item) {
@@ -210,8 +216,12 @@ class MusanedTransferController extends Controller
                         ? $this->calculateExpenseTaxAmount($commissionAmount, $expenseTaxRate)
                         : 0.0;
                     $commissionNetAmount = $this->roundMoney($commissionAmount - $expenseTaxAmount);
-                    $sourceAccountId = $this->resolveInvoiceMusanedSourceAccountId($invoice, (int) $intermediateAccount->id);
-                    $costCenter = $contract ? $this->ensureRecruitmentContractCostCenter($contract) : null;
+                    $sourceAccountId = $automaticEntriesEnabled
+                        ? $this->resolveInvoiceMusanedSourceAccountId($invoice, (int) $intermediateAccount->id)
+                        : null;
+                    $costCenter = $automaticEntriesEnabled && $contract
+                        ? $this->ensureRecruitmentContractCostCenter($contract)
+                        : null;
 
                     $itemPayloads[] = [
                         'contract_id' => $contract?->id,
@@ -249,9 +259,9 @@ class MusanedTransferController extends Controller
                     'expense_tax_total' => $totals['expense_tax_total'],
                     'commission_net_total' => $totals['commission_net_total'],
                     'expense_tax_rate' => $expenseTaxRate,
-                    'bank_account_id' => $bankAccount->id,
-                    'intermediate_account_id' => $intermediateAccount->id,
-                    'commission_account_id' => $commissionAccount->id,
+                    'bank_account_id' => $bankAccount?->id,
+                    'intermediate_account_id' => $intermediateAccount?->id,
+                    'commission_account_id' => $commissionAccount?->id,
                     'expense_tax_account_id' => $expenseTaxAccount?->id,
                     'created_by_id' => Auth::guard('admin')->id() ?: Auth::id(),
                 ]);
@@ -259,22 +269,27 @@ class MusanedTransferController extends Controller
                 $transfer->items()->createMany($itemPayloads);
                 $transfer->load(['items.contract.user', 'items.ingazDelegation.user', 'items.invoice.contract.info', 'items.invoice.ingazDelegation']);
 
-                $settlementConstraint = $this->storeSettlementConstraint(
-                    $transfer,
-                    $service,
-                    $activeYear,
-                    (int) $intermediateAccount->id,
-                    (int) $commissionAccount->id,
-                    $expenseTaxAccount?->id ? (int) $expenseTaxAccount->id : null
-                );
+                $settlementConstraint = null;
+                $bankTransferConstraint = null;
 
-                $bankTransferConstraint = $this->storeBankTransferConstraint(
-                    $transfer,
-                    $service,
-                    $activeYear,
-                    (int) $bankAccount->id,
-                    (int) $intermediateAccount->id
-                );
+                if ($automaticEntriesEnabled) {
+                    $settlementConstraint = $this->storeSettlementConstraint(
+                        $transfer,
+                        $service,
+                        $activeYear,
+                        (int) $intermediateAccount->id,
+                        (int) $commissionAccount->id,
+                        $expenseTaxAccount?->id ? (int) $expenseTaxAccount->id : null
+                    );
+
+                    $bankTransferConstraint = $this->storeBankTransferConstraint(
+                        $transfer,
+                        $service,
+                        $activeYear,
+                        (int) $bankAccount->id,
+                        (int) $intermediateAccount->id
+                    );
+                }
 
                 $transfer->update([
                     'settlement_constraint_id' => $settlementConstraint?->id,
@@ -304,7 +319,12 @@ class MusanedTransferController extends Controller
 
         return redirect()
             ->route('musaned-transfers.show', $transfer->id)
-            ->with('success', 'تم تسجيل تحويل مساند وإنشاء القيود المحاسبية بنجاح.');
+            ->with(
+                'success',
+                $automaticEntriesEnabled
+                    ? 'تم تسجيل تحويل مساند وإنشاء القيود المحاسبية بنجاح.'
+                    : 'تم تسجيل تحويل مساند دون قيود محاسبية لأن القيود التلقائية غير مفعلة.'
+            );
     }
 
     public function show(int $id)

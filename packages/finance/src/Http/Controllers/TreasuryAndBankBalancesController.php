@@ -15,30 +15,18 @@ class TreasuryAndBankBalancesController extends Controller
      */
     public function index(Request $request,ObjService $service)
     {
-        $accounts = [];
-        $data['total_depitors'] = 0;
-        $data['total_creditors'] = 0;
-        $data['total_balance'] = 0;
+        $filters = $service->normalizeBalanceMovementFilters($request->only(['from_date', 'to_date', 'keyword']));
+        $data['accounts'] = $service->balancesMovementReport('treasury_banks', $filters);
+        $data['filters'] = $filters;
+        $data['reportType'] = 'treasury_banks';
 
-        foreach ($service->treasury_and_bank_balances() as $account) {
-
-            $balance = $account->account->status->value == 'debtor' ? $account->total_debtor - $account->total_creditor : $account->total_creditor - $account->total_debtor;
-
-            $accounts[]= [
-                'code' => $account->account->code,
-                'name' => $account->account->name,
-                'debtor_value' => $account->total_debtor,
-                'creditor_value' => $account->total_creditor,
-                'balance' => $balance
-            ];
-
-            $data['total_depitors'] += $account->total_debtor;
-            $data['total_creditors'] += $account->total_creditor;
-            $data['total_balance'] += $balance;
-
+        if ($request->ajax()) {
+            return jsonSuccess(['html' => view($this->folderPath . '.result', $data)->render()]);
         }
+
         $data["bladeTitle"] = __("finance::finance.treasury_and_banks_balances");
-        $data["accounts"] = $accounts;
+        $data["dataTableRoute"] = route($this->mainRoute . '.index');
+        $data["exportFileName"] = 'treasury-and-banks-balances.xlsx';
         return view($this->folderPath . '.index', $data);
     }
 

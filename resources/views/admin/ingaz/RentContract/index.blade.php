@@ -20,25 +20,7 @@
 
         #dataTableObject th:last-child,
         #dataTableObject td:last-child {
-            position: -webkit-sticky !important;
-            position: sticky !important;
-            right: 0;
-            z-index: 6;
-            background: #fff;
             min-width: 155px;
-            box-shadow: -8px 0 14px rgba(0, 0, 0, 0.06);
-        }
-
-        #dataTableObject thead th:last-child {
-            z-index: 8;
-            background: #f8f9fa;
-        }
-
-        html[dir="rtl"] #dataTableObject th:last-child,
-        html[dir="rtl"] #dataTableObject td:last-child {
-            right: auto;
-            left: 0;
-            box-shadow: 8px 0 14px rgba(0, 0, 0, 0.06);
         }
 
         #dataTableObject .actions-dropdown {
@@ -155,6 +137,8 @@
         }
 
         .rent-stat-card {
+            appearance: none;
+            width: 100%;
             border: 1px solid #e5e7eb;
             border-right: 4px solid var(--rent-stat-color, #2563eb);
             border-radius: 8px;
@@ -166,6 +150,25 @@
             align-items: center;
             justify-content: space-between;
             gap: 12px;
+            color: inherit;
+            font: inherit;
+            text-align: right;
+            cursor: pointer;
+            transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .rent-stat-card:hover,
+        .rent-stat-card:focus-visible {
+            transform: translateY(-2px);
+            border-color: var(--rent-stat-color, #2563eb);
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+            outline: none;
+        }
+
+        .rent-stat-card.is-active {
+            border-color: var(--rent-stat-color, #2563eb);
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--rent-stat-color, #2563eb) 18%, transparent),
+                0 12px 28px rgba(15, 23, 42, 0.12);
         }
 
         .rent-stat-label {
@@ -272,6 +275,10 @@
             vertical-align: middle;
         }
 
+        #dataTableObject td {
+            padding: 0.55rem 0.65rem;
+        }
+
         #dataTableObject thead th {
             white-space: nowrap;
             color: #334155;
@@ -338,6 +345,64 @@
         #dataTableObject td:nth-last-child(2),
         #dataTableObject td:nth-last-child(3) {
             white-space: nowrap;
+        }
+
+        .rent-days-cell {
+            width: 150px;
+            display: grid;
+            gap: 0;
+            overflow: hidden;
+            border: 1px solid #dbe4ee;
+            border-radius: 8px;
+            background: #fff;
+            font-size: 13px;
+        }
+
+        .rent-day-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            min-height: 30px;
+            padding: 4px 7px;
+        }
+
+        .rent-day-row + .rent-day-row {
+            border-top: 1px solid #e5e7eb;
+            background: #fafcfe;
+        }
+
+        .rent-day-label {
+            color: #475569;
+            font-weight: 800;
+        }
+
+        .rent-day-value {
+            min-width: 36px;
+            border-radius: 6px;
+            padding: 3px 7px;
+            background: #eff6ff;
+            color: #1d4ed8;
+            font-size: 14px;
+            font-weight: 800;
+            line-height: 1.35;
+            text-align: center;
+        }
+
+        .rent-day-value.is-remaining {
+            background: #ecfdf3;
+            color: #15803d;
+        }
+
+        .rent-day-value.is-ended,
+        .rent-day-value.is-cancelled {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+
+        .rent-day-value.is-muted {
+            background: #f1f5f9;
+            color: #64748b;
         }
 
         .close-contract-modal .modal-content {
@@ -443,9 +508,6 @@
 
 @section('content')
     @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_VIEW))
-        @php
-            $canManageRentContractTerms = @AdminGuardHasAnyPerm([\App\PermKeys::RENT_CONTRACT_TERMS_VIEW, \App\PermKeys::RENT_CONTRACT_TERMS_CREATE, \App\PermKeys::RENT_CONTRACT_TERMS_EDIT, \App\PermKeys::RENT_CONTRACT_TERMS_DELETE, \App\PermKeys::RENT_CONTRACT_VIEW, \App\PermKeys::RENT_CONTRACT_CREATE, \App\PermKeys::RENT_CONTRACT_EDIT, \App\PermKeys::RENT_CONTRACT_DELETE, \App\PermKeys::RENT_CONTRACT_CONTROL, \App\PermKeys::CONTRACT_SETTINGS]);
-        @endphp
         <!-- Header Section -->
         <div class="d-sm-flex align-items-center justify-content-between mb-4">
             <h3 class="h3 mb-0 text-gray-800">
@@ -453,22 +515,6 @@
                 {{ helperTrans('ingaz.All Rent contracts') }}
             </h3>
             <div>
-                @if (@AdminGuardHasPerm(\App\PermKeys::CONTRACT_SETTINGS))
-                    <a href="{{ route('rent-contract.settings') }}" class="btn btn-info me-2">
-                        <i class="fas fa-sliders-h me-2"></i>
-                        إعدادات العقد
-                    </a>
-                    <a href="{{ route('form-settings.index') }}#editor-rental-contract" class="btn btn-secondary me-2">
-                        <i class="fas fa-file-signature me-2"></i>
-                        إعدادات نصوص العقد
-                    </a>
-                @endif
-                @if ($canManageRentContractTerms)
-                    <a href="{{ route('rent-contract-terms.index') }}" class="btn btn-warning me-2">
-                        <i class="fas fa-list-alt me-2"></i>
-                        إدارة بنود العقد
-                    </a>
-                @endif
                 @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_CREATE))
                     <a href="{{ route('RentContract.create') }}" class="btn btn-primary">
                         <i class="fas fa-plus me-2"></i>
@@ -480,7 +526,8 @@
 
         <!-- Statistics Cards -->
         <div class="rent-stats-grid">
-            <div class="rent-stat-card rent-stat-primary">
+            <button type="button" class="rent-stat-card rent-stat-primary" data-status-filter=""
+                aria-pressed="false" title="انقر لعرض جميع العقود">
                 <div>
                     <div class="rent-stat-label">إجمالي عقود التأجير</div>
                     <div class="rent-stat-value" id="totalContracts">0</div>
@@ -488,9 +535,10 @@
                 <div class="rent-stat-icon">
                     <i class="fas fa-file-contract"></i>
                 </div>
-            </div>
+            </button>
 
-            <div class="rent-stat-card rent-stat-success">
+            <button type="button" class="rent-stat-card rent-stat-success" data-status-filter="active"
+                aria-pressed="false" title="انقر لتصفية العقود النشطة">
                 <div>
                     <div class="rent-stat-label">العقود النشطة</div>
                     <div class="rent-stat-value" id="activeContracts">0</div>
@@ -498,9 +546,10 @@
                 <div class="rent-stat-icon">
                     <i class="fas fa-check-circle"></i>
                 </div>
-            </div>
+            </button>
 
-            <div class="rent-stat-card rent-stat-info">
+            <button type="button" class="rent-stat-card rent-stat-info" data-status-filter="completed"
+                aria-pressed="false" title="انقر لتصفية العقود المكتملة">
                 <div>
                     <div class="rent-stat-label">العقود المكتملة</div>
                     <div class="rent-stat-value" id="completedContracts">0</div>
@@ -508,9 +557,10 @@
                 <div class="rent-stat-icon">
                     <i class="fas fa-flag-checkered"></i>
                 </div>
-            </div>
+            </button>
 
-            <div class="rent-stat-card rent-stat-muted">
+            <button type="button" class="rent-stat-card rent-stat-muted" data-status-filter="available"
+                aria-pressed="false" title="انقر لتصفية العقود المغلقة والمتاحة">
                 <div>
                     <div class="rent-stat-label">مغلقة - متاحة</div>
                     <div class="rent-stat-value" id="availableContracts">0</div>
@@ -518,9 +568,10 @@
                 <div class="rent-stat-icon">
                     <i class="fas fa-user-check"></i>
                 </div>
-            </div>
+            </button>
 
-            <div class="rent-stat-card rent-stat-warning">
+            <button type="button" class="rent-stat-card rent-stat-warning" data-status-filter="transferred"
+                aria-pressed="false" title="انقر لتصفية العقود المنقولة">
                 <div>
                     <div class="rent-stat-label">تم النقل</div>
                     <div class="rent-stat-value" id="transferredContracts">0</div>
@@ -528,9 +579,10 @@
                 <div class="rent-stat-icon">
                     <i class="fas fa-exchange-alt"></i>
                 </div>
-            </div>
+            </button>
 
-            <div class="rent-stat-card rent-stat-danger">
+            <button type="button" class="rent-stat-card rent-stat-danger" data-status-filter="cancelled"
+                aria-pressed="false" title="انقر لتصفية العقود الملغية">
                 <div>
                     <div class="rent-stat-label">ملغية قبل اكتمال المدة</div>
                     <div class="rent-stat-value" id="cancelledContracts">0</div>
@@ -538,7 +590,7 @@
                 <div class="rent-stat-icon">
                     <i class="fas fa-times-circle"></i>
                 </div>
-            </div>
+            </button>
         </div>
 
         <!-- Filters Section -->
@@ -577,7 +629,8 @@
                             </option>
                             <option value="completed" {{ request('status') === 'completed' ? 'selected' : '' }}>مكتمل
                             </option>
-                            {{-- <option value="available">مغلق - متاحة</option> --}}
+                            <option value="available" {{ request('status') === 'available' ? 'selected' : '' }}>مغلق -
+                                متاحة</option>
                             <option value="transferred" {{ request('status') === 'transferred' ? 'selected' : '' }}>تم
                                 النقل</option>
                             <option value="cancelled" {{ request('status') === 'cancelled' ? 'selected' : '' }}>ملغي
@@ -725,7 +778,7 @@
                 <table class="table table-bordered table-style" id="dataTableObject" width="100%" cellspacing="0">
                     <thead>
                         <tr>
-                            <th>#</th>
+                            <th>ID العقد</th>
                             <th>بيانات العميل</th>
                             <th>العاملة</th>
                             <th>معلومات العقد</th>
@@ -734,7 +787,7 @@
                                 <th>{{ __('admin.branches') }}</th>
                             @endif
                             <th>الحالة</th>
-                            <th>الأيام المتبقية</th>
+                            <th title="الأيام المستفادة والمتبقية">الأيام</th>
                             <th>الإجراءات</th>
                         </tr>
                     </thead>
@@ -1486,11 +1539,10 @@
                         });
                     }
                 },
+                order: [[0, 'desc']],
                 columns: [{
-                        data: 'DT_RowIndex',
-                        name: 'DT_RowIndex',
-                        orderable: false,
-                        searchable: false
+                        data: 'id',
+                        name: 'id'
                     },
                     {
                         data: 'user_id',
@@ -1765,10 +1817,43 @@
                 '#expiryFilter'
             ].filter((selector) => $(selector).length).join(', ');
 
+            const statisticsCards = $('.rent-stat-card[data-status-filter]');
+
+            function syncStatisticsCardSelection() {
+                const selectedStatus = String($('#statusFilter').val() || '');
+
+                statisticsCards.each(function() {
+                    const cardStatus = String($(this).data('status-filter') || '');
+                    const isSelected = cardStatus === selectedStatus;
+                    $(this).toggleClass('is-active', isSelected).attr('aria-pressed', isSelected ? 'true' : 'false');
+                });
+            }
+
+            function syncStatusFilterUrl() {
+                const url = new URL(window.location.href);
+                const selectedStatus = String($('#statusFilter').val() || '');
+                url.searchParams.delete('status_filter');
+
+                if (selectedStatus) {
+                    url.searchParams.set('status', selectedStatus);
+                } else {
+                    url.searchParams.delete('status');
+                }
+
+                window.history.replaceState({}, '', url.toString());
+            }
+
             function applyRentContractFilters() {
+                syncStatisticsCardSelection();
+                syncStatusFilterUrl();
                 updateStatistics();
                 dataTable.ajax.reload();
             }
+
+            statisticsCards.on('click', function() {
+                $('#statusFilter').val(String($(this).data('status-filter') || ''));
+                applyRentContractFilters();
+            });
 
             // Apply Filters
             $('#applyFilters').click(function() {
@@ -1788,8 +1873,7 @@
                     .val('');
                 $('#dateFromFilter, #dateToFilter, #startDateFromFilter, #startDateToFilter, #endDateFromFilter, #endDateToFilter, #clientPhoneFilter, #clientNameFilter, #maidPassportFilter, #maidNameFilter, #contractNumberFilter')
                     .val('');
-                updateStatistics();
-                dataTable.ajax.reload();
+                applyRentContractFilters();
             });
 
             // Export Excel
@@ -2421,6 +2505,7 @@
             });
 
             // Load initial statistics
+            syncStatisticsCardSelection();
             updateStatistics();
 
             // إضافة متغير لحفظ معرف العقد المحدد

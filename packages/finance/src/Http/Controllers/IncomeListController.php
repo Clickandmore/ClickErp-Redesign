@@ -5,6 +5,7 @@ namespace Nami\Finance\Http\Controllers;
 use App\Http\Controllers\admin\Controller;
 use Illuminate\Http\Request;
 use Nami\Finance\Services\ConstraintDetailsService as ObjService;
+use Nami\Finance\Services\YearService;
 
 class IncomeListController extends Controller
 {
@@ -16,7 +17,7 @@ class IncomeListController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index(Request $request, ObjService $service)
+    public function index(Request $request, ObjService $service, YearService $yearService)
     {
         if ($request->ajax()) {
             $data = $service->filterIncomeList($request);
@@ -26,6 +27,7 @@ class IncomeListController extends Controller
             ])->render();
             return jsonSuccess(["html" => $returnHTML]);
         }
+        $data['report_period'] = $yearService->getReportPeriod();
         $data["bladeTitle"] = __("finance::finance.incomeList");
         $data["canPermission"] = __("incomeList add");
         return view($this->folderPath . '.index', $data);
