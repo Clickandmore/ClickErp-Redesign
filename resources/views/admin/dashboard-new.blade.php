@@ -1,7 +1,7 @@
 @extends('admin.layout.indexs.index')
 
 @section('style')
-    <link rel="stylesheet" href="{{ asset('admin/assets/css/dashboard-new.css') }}?v=16">
+    <link rel="stylesheet" href="{{ asset('admin/assets/css/dashboard-new.css') }}?v=17">
     <link rel="stylesheet" href="{{ asset('admin/assets/cssbundle/fullcalendar.min.css') }}">
 @endsection
 
@@ -108,11 +108,17 @@
             true,
         );
         $canViewShelterCard = $canViewDashboardSection(\App\PermKeys::DASHBOARD_SHELTER_COUNT, [], true);
+        $canViewTravelCards = $canViewDashboardSection(
+            \App\PermKeys::TRAVEL_VIEW,
+            [\App\PermKeys::DASHBOARD_CALENDAR_EVENTS],
+            true,
+        );
         $canViewTopStatsRow = $canViewTopStatsRow ||
             $canViewIngazDelegationsCard ||
             $canViewComplaintsCard ||
             $canViewSponsorshipTransfersCard ||
-            $canViewShelterCard;
+            $canViewShelterCard ||
+            $canViewTravelCards;
 
         $canViewOperationsSection = $canViewDashboardSection(
             \App\PermKeys::DASHBOARD_OPERATIONS_OVERVIEW,
@@ -477,6 +483,40 @@
                     </div>
                 @endif
 
+                @if ($canViewTravelCards)
+                    <div class="stat-card is-5" style="order: 11;">
+                        <div class="stat-card-icon"><i class="fas fa-plane-arrival"></i></div>
+                        <div class="stat-head d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="stat-label">{{ __('admin.sidebar.recruitment_trips') }}</small>
+                                <h3 class="mb-0">{{ number_format($recruitmentTravelStats['total'] ?? 0) }}</h3>
+                            </div>
+                            <a href="{{ route('travel') }}" class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
+                        </div>
+                        <div class="stat-chip-list mt-3">
+                            <span>{{ __('admin.dashboard_new.current') }}: {{ number_format($recruitmentTravelStats['active'] ?? 0) }}</span>
+                            <span>{{ __('admin.dashboard_new.completed') }}: {{ number_format($recruitmentTravelStats['completed'] ?? 0) }}</span>
+                            <span>القادمة: {{ number_format($recruitmentTravelStats['upcoming'] ?? 0) }}</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-card is-6" style="order: 12;">
+                        <div class="stat-card-icon"><i class="fas fa-plane-departure"></i></div>
+                        <div class="stat-head d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="stat-label">{{ __('admin.sidebar.deportation_trips') }}</small>
+                                <h3 class="mb-0">{{ number_format($deportationTravelStats['total'] ?? 0) }}</h3>
+                            </div>
+                            <a href="{{ route('DeportationTravel.index') }}" class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
+                        </div>
+                        <div class="stat-chip-list mt-3">
+                            <span>{{ __('admin.dashboard_new.current') }}: {{ number_format($deportationTravelStats['active'] ?? 0) }}</span>
+                            <span>{{ __('admin.dashboard_new.completed') }}: {{ number_format($deportationTravelStats['completed'] ?? 0) }}</span>
+                            <span>{{ __('admin.dashboard_new.canceled') }}: {{ number_format($deportationTravelStats['cancelled'] ?? 0) }}</span>
+                        </div>
+                    </div>
+                @endif
+
                 @if ($canViewRentalMaidsCard)
                     <div class="stat-card is-4" style="order: 4;">
                         <div class="stat-card-icon"><i class="fas fa-female"></i></div>
@@ -508,6 +548,8 @@
             $ticketsReady =
                 $insights['tickets_ready'] ?? ($statusCounts[\App\Enums\ingaz\ContractStatusEnum::Tazker->value] ?? 0);
             $completedContractsCount = $insights['completed'] ?? ($contractsStats['completed'] ?? 0);
+            $cancelledContractsCount = $statusCounts[\App\Enums\ingaz\ContractStatusEnum::Back->value] ?? 0;
+            $refundedContractsCount = $statusCounts[\App\Enums\ingaz\ContractStatusEnum::Refunded->value] ?? 0;
 
             $operationsHighlights = [
                 [
@@ -627,6 +669,26 @@
                     'color' => 'var(--success)',
                     'link' => $contractIndexUrl([
                         'status' => \App\Enums\ingaz\ContractStatusEnum::Completed->value,
+                    ]),
+                ],
+                [
+                    'title' => __('admin.sidebar.cancelled_contracts'),
+                    'subtitle' => __('ingaz.back'),
+                    'value' => $cancelledContractsCount,
+                    'icon' => 'fas fa-ban',
+                    'color' => 'var(--danger)',
+                    'link' => $contractIndexUrl([
+                        'status' => \App\Enums\ingaz\ContractStatusEnum::Back->value,
+                    ]),
+                ],
+                [
+                    'title' => __('ingaz.refunded'),
+                    'subtitle' => __('admin.dashboard_new.final_total'),
+                    'value' => $refundedContractsCount,
+                    'icon' => 'fas fa-rotate-left',
+                    'color' => 'var(--dash-chart-4)',
+                    'link' => $contractIndexUrl([
+                        'status' => \App\Enums\ingaz\ContractStatusEnum::Refunded->value,
                     ]),
                 ],
             ];
@@ -1216,17 +1278,17 @@
                             </div>
                             <div class="activity-feed">
                                 @forelse($recentActivities ?? [] as $activity)
-                                    <div class="activity-line">
+                                    <a href="{{ $activity['url'] ?? '#' }}" class="activity-line activity-link">
                                         <div class="activity-icon">
                                             <i class="fas fa-{{ $activity['icon'] ?? 'circle' }} text-primary"></i>
                                         </div>
                                         <div class="flex-grow-1">
                                             <strong class="d-block">{{ $activity['title'] }}</strong>
-                                            <small>{{ $activity['time'] }}</small>
+                                            <small>{{ $activity['category'] ?? 'تشغيلي' }} · {{ $activity['time'] }}</small>
                                         </div>
                                         <span
                                             class="status-chip {{ $activity['type'] ?? 'info' }}">{{ $activity['status'] }}</span>
-                                    </div>
+                                    </a>
                                 @empty
                                     <div class="empty-state">{{ __('admin.dashboard_new.no_recent_activity') }}</div>
                                 @endforelse

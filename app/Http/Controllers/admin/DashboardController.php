@@ -1126,24 +1126,86 @@ class DashboardController extends Controller
             $nationalityData[] = $stat->count;
         }
 
-        // أحدث الأنشطة (عقود)
+        // أحدث الأنشطة التشغيلية والمالية مرتبة حسب وقت الحدث
         $recentContractsQuery = Contract::with('user');
         $this->applyDashboardBranchFilter($recentContractsQuery, $activeDashboardBranchId, 'contracts.branch_id', 'contracts');
         $recentContracts = $recentContractsQuery
-            ->orderBy('created_at', 'desc')
-            ->limit(5)
+            ->latest('updated_at')
+            ->limit(4)
             ->get();
 
-        $recentActivities = [];
+        $operationalActivities = collect();
         foreach ($recentContracts as $contract) {
-            $recentActivities[] = [
+            $occurredAt = $contract->updated_at ?? $contract->created_at;
+            $operationalActivities->push([
                 'icon' => 'file-contract',
                 'title' => 'عقد #' . $contract->id . ' - ' . ($contract->user->name ?? 'غير محدد'),
-                'time' => $contract->created_at->diffForHumans(),
+                'time' => optional($occurredAt)->diffForHumans(),
+                'occurred_at' => $occurredAt,
                 'type' => $contract->status == ContractStatusEnum::Completed->value ? 'success' : 'warning',
-                'status' => $contract->status
-            ];
+                'status' => \App\Support\RecruitmentContractStageLabels::label($contract->status) ?? $contract->status,
+                'category' => 'تشغيلي',
+                'url' => route('RecruitmentContract.show', $contract->id),
+            ]);
         }
+
+        $recentTrips = TravelHistory::query()
+            ->with('maid:id,name')
+            ->latest('updated_at')
+            ->limit(4)
+            ->get();
+
+        foreach ($recentTrips as $trip) {
+            $occurredAt = $trip->updated_at ?? $trip->created_at;
+            $isDeportation = $trip->travel_type === 'deportation';
+            $operationalActivities->push([
+                'icon' => $isDeportation ? 'plane-departure' : 'plane-arrival',
+                'title' => ($isDeportation ? 'رحلة ترحيل' : 'رحلة استقدام') . ' #' . $trip->id . ' - ' . ($trip->maid->name ?? 'غير محدد'),
+                'time' => optional($occurredAt)->diffForHumans(),
+                'occurred_at' => $occurredAt,
+                'type' => $trip->status === 'completed' ? 'success' : 'info',
+                'status' => __('travel_types.status.' . $trip->status),
+                'category' => 'تشغيلي',
+                'url' => $isDeportation ? route('DeportationTravel.index') : route('travel'),
+            ]);
+        }
+
+        $financialActivities = collect();
+        if (Schema::hasTable('fn_constraints')) {
+            $recentConstraints = Constraint::query()
+                ->latest('created_at')
+                ->limit(4)
+                ->get();
+
+            foreach ($recentConstraints as $constraint) {
+                $occurredAt = $constraint->created_at;
+                $constraintType = $constraint->type;
+                $isApproved = ($constraint->approval_status ?? Constraint::APPROVAL_APPROVED) === Constraint::APPROVAL_APPROVED;
+                $financialActivities->push([
+                    'icon' => 'coins',
+                    'title' => 'قيد مالي #' . ($constraint->code ?: $constraint->id) . ' - ' . ($constraint->statement ?: ($constraintType?->lang() ?? 'حركة مالية')),
+                    'time' => optional($occurredAt)->diffForHumans(),
+                    'occurred_at' => $occurredAt,
+                    'type' => $isApproved ? 'success' : 'warning',
+                    'status' => $isApproved ? 'معتمد' : 'بانتظار الاعتماد',
+                    'category' => 'مالي',
+                    'url' => route('finance.constraints.show', $constraint->id),
+                ]);
+            }
+        }
+
+        $recentActivities = $operationalActivities
+            ->sortByDesc(fn (array $activity) => optional($activity['occurred_at'] ?? null)->timestamp ?? 0)
+            ->take(4)
+            ->concat(
+                $financialActivities
+                    ->sortByDesc(fn (array $activity) => optional($activity['occurred_at'] ?? null)->timestamp ?? 0)
+                    ->take(4)
+            )
+            ->sortByDesc(fn (array $activity) => optional($activity['occurred_at'] ?? null)->timestamp ?? 0)
+            ->take(8)
+            ->values()
+            ->all();
 
         $calendarEvents = [];
 
@@ -1228,6 +1290,8 @@ class DashboardController extends Controller
             'employeeBookingSummary',
             'employeesStats',
             'shelterStats',
+            'recruitmentTravelStats',
+            'deportationTravelStats',
             'nationalityLabels',
             'nationalityData',
             'recentActivities',

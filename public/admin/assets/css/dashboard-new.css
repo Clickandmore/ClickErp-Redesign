@@ -2236,6 +2236,21 @@
     border-bottom: none;
 }
 
+.activity-link {
+    color: var(--text);
+    text-decoration: none;
+    border-radius: 12px;
+    padding: 8px;
+    transition: background 0.18s ease, transform 0.18s ease;
+}
+
+.activity-link:hover,
+.activity-link:focus {
+    color: var(--text);
+    background: var(--surface-muted);
+    transform: translateX(-2px);
+}
+
 .activity-icon {
     width: 44px;
     height: 44px;
