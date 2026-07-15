@@ -300,6 +300,7 @@ class ConstraintService extends MainService
 
     public function getIndexData() {
         return $this->model->query()
+            ->without('admin')
             ->with([
                 'constraintDetails.account',
                 'bond',
@@ -313,6 +314,7 @@ class ConstraintService extends MainService
                 'ingazDelegationCostInvoice',
             ])
             ->approved()
+            ->orderByDesc('fn_constraints.date')
             ->orderByRaw('CASE WHEN fn_constraints.code IS NULL THEN 1 ELSE 0 END')
             ->orderByDesc('fn_constraints.code')
             ->orderByDesc('fn_constraints.id');
@@ -321,6 +323,7 @@ class ConstraintService extends MainService
     public function getPendingApprovalData()
     {
         return $this->model->query()
+            ->without('admin')
             ->with([
                 'constraintDetails.account',
                 'bond',
@@ -335,6 +338,7 @@ class ConstraintService extends MainService
                 'created_by',
             ])
             ->pendingApproval()
+            ->orderByDesc('fn_constraints.date')
             ->orderByRaw('CASE WHEN fn_constraints.code IS NULL THEN 1 ELSE 0 END')
             ->orderByDesc('fn_constraints.code')
             ->orderByDesc('fn_constraints.id');

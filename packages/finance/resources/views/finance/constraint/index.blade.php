@@ -188,11 +188,14 @@
 
         #dataTableObject th:nth-child(2),
         #dataTableObject td:nth-child(2) {
-            width: 390px;
+            width: 125px;
         }
 
         #dataTableObject th:nth-child(3),
-        #dataTableObject td:nth-child(3),
+        #dataTableObject td:nth-child(3) {
+            width: 390px;
+        }
+
         #dataTableObject th:nth-child(4),
         #dataTableObject td:nth-child(4) {
             width: 125px;
@@ -388,9 +391,9 @@
             <thead>
                 <tr>
                     <th>رقم القيد</th>
+                    <th>{{ __('finance::finance.date') }}</th>
                     <th>{{ __('finance::finance.statement') }}</th>
                     <th>{{ __('finance::finance.value') }}</th>
-                    <th>{{ __('finance::finance.date') }}</th>
                     <th>مدينون</th>
                     <th>دائنون</th>
                     <th>المستند المرتبط</th>
@@ -460,6 +463,12 @@
                         searchable: true
                     },
                     {
+                        "data": "date",
+                        "name": "fn_constraints.date",
+                        orderable: false,
+                        searchable: true
+                    },
+                    {
                         "data": "statement_preview",
                         "name": "fn_constraints.statement",
                         orderable: false,
@@ -468,12 +477,6 @@
                     {
                         "data": "value",
                         "name": "fn_constraints.value",
-                        orderable: false,
-                        searchable: true
-                    },
-                    {
-                        "data": "date",
-                        "name": "fn_constraints.date",
                         orderable: false,
                         searchable: true
                     },

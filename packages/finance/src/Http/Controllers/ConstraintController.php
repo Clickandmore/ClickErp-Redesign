@@ -30,7 +30,7 @@ class ConstraintController extends Controller
     public function index(Request $request, ObjService $service)
     {
         if ($request->ajax()) {
-            return $this->constraintDataTable($service->getIndexData(), $request)->make(true);
+            return $this->makeConstraintDataTableResponse($service->getIndexData(), $request);
         }
 
         return view($this->folderPath . '.index', [
@@ -52,7 +52,7 @@ class ConstraintController extends Controller
     public function pending(Request $request, ObjService $service)
     {
         if ($request->ajax()) {
-            return $this->constraintDataTable($service->getPendingApprovalData(), $request, true)->make(true);
+            return $this->makeConstraintDataTableResponse($service->getPendingApprovalData(), $request, true);
         }
 
         return view($this->folderPath . '.index', [
@@ -256,7 +256,45 @@ class ConstraintController extends Controller
             $rawColumns[] = 'approval_action';
         }
 
-        return $dataTable->rawColumns($rawColumns);
+        $responseColumns = [
+            'code_link',
+            'date',
+            'statement_preview',
+            'value',
+            'debitors_total',
+            'creditors_total',
+            'document_action',
+            'actions',
+        ];
+
+        if ($pending) {
+            $responseColumns[] = 'approval_status';
+            $responseColumns[] = 'approval_action';
+        }
+
+        return $dataTable
+            ->rawColumns($rawColumns)
+            ->only($responseColumns);
+    }
+
+    /**
+     * Yajra 9 uses the deprecated utf8_encode() while app debug is enabled.
+     * On PHP 8.3 those warnings can be printed before the JSON response and
+     * make DataTables reject an otherwise valid payload.
+     */
+    private function makeConstraintDataTableResponse($query, Request $request, bool $pending = false)
+    {
+        $debugEnabled = config('app.debug');
+        $errorReporting = error_reporting();
+        config(['app.debug' => false]);
+        error_reporting($errorReporting & ~E_DEPRECATED & ~E_USER_DEPRECATED);
+
+        try {
+            return $this->constraintDataTable($query, $request, $pending)->make(true);
+        } finally {
+            error_reporting($errorReporting);
+            config(['app.debug' => $debugEnabled]);
+        }
     }
 
     private function renderApprovalStatus(Constraint $constraint): string

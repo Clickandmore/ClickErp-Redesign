@@ -5,6 +5,7 @@ namespace Tests\Unit;
 use Illuminate\Http\Request;
 use Nami\Finance\Http\Controllers\ConstraintController;
 use Nami\Finance\Models\Constraint;
+use Nami\Finance\Services\ConstraintService;
 use ReflectionMethod;
 use Tests\TestCase;
 
@@ -52,6 +53,17 @@ class FinanceConstraintFiltersTest extends TestCase
 
         $this->assertStringContainsString('`fn_constraints`.`code` = ?', $query->toSql());
         $this->assertSame([6052], $query->getBindings());
+    }
+
+    /** @test */
+    public function it_lists_the_newest_accounting_date_before_the_constraint_sequence(): void
+    {
+        $orders = app(ConstraintService::class)->getIndexData()->getQuery()->orders;
+
+        $this->assertSame('fn_constraints.date', $orders[0]['column']);
+        $this->assertSame('desc', $orders[0]['direction']);
+        $this->assertSame('fn_constraints.code', $orders[2]['column']);
+        $this->assertSame('desc', $orders[2]['direction']);
     }
 
     private function applyFilters($query, Request $request): void

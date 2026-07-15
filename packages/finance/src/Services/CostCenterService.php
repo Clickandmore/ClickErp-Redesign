@@ -9,6 +9,7 @@ use Nami\Hr\Services\EmployeeService;
 
 class CostCenterService extends MainService
 {
+    protected EmployeeService $employeeService;
 
     public function __construct(CostCenter $model, private StockService $stockService)
     {
