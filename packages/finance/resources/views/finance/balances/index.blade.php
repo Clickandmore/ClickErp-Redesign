@@ -113,8 +113,9 @@
         }
 
         .balance-table-scroll {
-            max-height: 72vh;
-            overflow: auto;
+            max-height: none;
+            overflow-x: auto;
+            overflow-y: visible;
         }
 
         .balance-table-card .table {
