@@ -3,6 +3,7 @@
 namespace Nami\Finance\Services;
 
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Nami\Finance\Enums\AccountTypesEnum;
 use Nami\Finance\Enums\ConstraintTypiesEnum;
@@ -408,6 +409,27 @@ class ConstraintDetailsService extends MainService
             })
             ->sortBy(fn ($account) => [(int) $account->code, (int) $account->id])
             ->values();
+    }
+
+    public function summarizeBalanceMovementReport(Collection $accounts, string $scope): array
+    {
+        $summaryRows = $scope === 'all'
+            ? $accounts->filter(fn ($account) => empty($account->parent_id))
+            : $accounts;
+
+        if ($summaryRows->isEmpty()) {
+            $summaryRows = $accounts;
+        }
+
+        $periodDebtor = (float) $summaryRows->sum('period_debtor');
+        $periodCreditor = (float) $summaryRows->sum('period_creditor');
+
+        return [
+            'accounts_count' => $accounts->count(),
+            'period_debtor' => $periodDebtor,
+            'period_creditor' => $periodCreditor,
+            'period_movement' => $periodDebtor + $periodCreditor,
+        ];
     }
 
     private function setMovementPeriodValues(object $account, string $period, float $debtor, float $creditor): void

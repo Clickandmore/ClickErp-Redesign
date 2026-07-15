@@ -16,7 +16,10 @@ class TreasuryAndBankBalancesController extends Controller
     public function index(Request $request,ObjService $service)
     {
         $filters = $service->normalizeBalanceMovementFilters($request->only(['from_date', 'to_date', 'keyword']));
-        $data['accounts'] = $service->balancesMovementReport('treasury_banks', $filters);
+        $data["dataTableRoute"] = route($this->mainRoute . '.index');
+        $allAccounts = $service->balancesMovementReport('treasury_banks', $filters);
+        $data['movementSummary'] = $service->summarizeBalanceMovementReport($allAccounts, 'treasury_banks');
+        $data['accounts'] = $allAccounts;
         $data['filters'] = $filters;
         $data['reportType'] = 'treasury_banks';
 
@@ -25,7 +28,6 @@ class TreasuryAndBankBalancesController extends Controller
         }
 
         $data["bladeTitle"] = __("finance::finance.treasury_and_banks_balances");
-        $data["dataTableRoute"] = route($this->mainRoute . '.index');
         $data["exportFileName"] = 'treasury-and-banks-balances.xlsx';
         return view($this->folderPath . '.index', $data);
     }

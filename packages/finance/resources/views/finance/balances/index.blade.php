@@ -119,7 +119,7 @@
 
         .balance-table-card .table {
             margin: 0;
-            min-width: 2150px;
+            min-width: 980px;
             border-collapse: separate;
             border-spacing: 0;
         }
@@ -139,30 +139,39 @@
             z-index: 8;
         }
 
-        .balance-table-card thead tr:nth-child(2) th {
-            position: sticky;
-            top: 47px;
-            z-index: 8;
+        .balance-period-switcher {
+            display: flex;
+            gap: 7px;
+            padding: 12px 14px;
+            overflow-x: auto;
+            background: #f8fafc;
+            border-bottom: 1px solid #e5e7eb;
         }
 
-        .balance-period-heading {
-            color: #fff !important;
-            text-align: center;
-            border-inline-start: 2px solid rgba(255, 255, 255, .45) !important;
+        .balance-period-button {
+            min-width: 145px;
+            padding: 9px 12px;
+            color: #475569;
+            background: #fff;
+            border: 1px solid #dbe1ea;
+            border-radius: 9px;
+            font-weight: 700;
+            white-space: nowrap;
         }
 
-        .balance-period-heading--opening { background: #475569 !important; }
-        .balance-period-heading--current { background: #312e81 !important; }
-        .balance-period-heading--after { background: #7c3aed !important; }
-        .balance-period-heading--closing { background: #0f766e !important; }
-
-        .balance-period-subhead {
-            text-align: center;
-            background: #eef2ff !important;
+        .balance-period-button.is-active {
+            color: #fff;
+            background: #312e81;
+            border-color: #312e81;
+            box-shadow: 0 5px 12px rgba(49, 46, 129, .2);
         }
 
-        .balance-period-border {
-            border-inline-start: 2px solid #cbd5e1 !important;
+        .balance-active-period {
+            padding: 10px 14px;
+            color: #312e81;
+            background: #eef2ff;
+            font-size: 12px;
+            font-weight: 800;
         }
 
         .balance-table-card tbody td {
@@ -346,11 +355,12 @@
             const resultContainer = $('#balances_result');
             const reportUrl = @json($dataTableRoute);
 
-            function loadBalances() {
+            function loadBalances(url) {
+                const requestUrl = url || reportUrl;
                 $.ajax({
-                    url: reportUrl,
+                    url: requestUrl,
                     type: 'GET',
-                    data: $('.balance-filter').serialize(),
+                    data: url ? {} : $('.balance-filter').serialize(),
                     beforeSend: function () {
                         $('#balances_search').prop('disabled', true);
                         resultContainer.html('<div class="balance-table-card"><div class="balances-loader"></div></div>');
@@ -367,7 +377,45 @@
                 });
             }
 
-            $('#balances_search').on('click', loadBalances);
+            function formatBalanceValue(value) {
+                return new Intl.NumberFormat('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                }).format(Number(value || 0));
+            }
+
+            function showMovementPeriod(periodIndex, button) {
+                resultContainer.find('.balance-movement-row').each(function () {
+                    const row = $(this);
+                    const movements = row.data('m');
+                    const values = movements && movements[periodIndex] ? movements[periodIndex] : null;
+
+                    if (!values) {
+                        return;
+                    }
+
+                    row.find('.balance-cell-debtor').text(formatBalanceValue(values[0]));
+                    row.find('.balance-cell-creditor').text(formatBalanceValue(values[1]));
+                    row.find('.balance-cell-total').text(formatBalanceValue(values[2]));
+
+                    const statusCell = row.find('.balance-cell-status');
+                    if (values[3] === 'd' || values[3] === 'c') {
+                        const status = values[3] === 'd' ? 'debtor' : 'creditor';
+                        const label = values[3] === 'd' ? 'مدين' : 'دائن';
+                        statusCell.html('<span class="balance-direction balance-direction--' + status + '">' + label + '</span>');
+                    } else {
+                        statusCell.html('<span class="text-muted">—</span>');
+                    }
+                });
+
+                resultContainer.find('.balance-period-button').removeClass('is-active');
+                button.addClass('is-active');
+                resultContainer.find('[data-active-period-label]').text(
+                    button.text().trim() + ' — ' + (button.data('subtitle') || '')
+                );
+            }
+
+            $('#balances_search').on('click', function () { loadBalances(); });
             $('#balances_keyword').on('keydown', function (event) {
                 if (event.key === 'Enter') {
                     event.preventDefault();
@@ -375,8 +423,12 @@
                 }
             });
             $('#balances_reset').on('click', function () {
-                $('.balance-filter').val('');
+                $('#balances_keyword, #balances_from_date, #balances_to_date').val('');
                 loadBalances();
+            });
+            resultContainer.on('click', '.balance-period-button', function () {
+                const button = $(this);
+                showMovementPeriod(Number(button.data('period-index')), button);
             });
             $('#balances_print').on('click', function () { window.print(); });
             $('#balances_excel').on('click', function () {

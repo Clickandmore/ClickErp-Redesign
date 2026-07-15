@@ -17,7 +17,10 @@ class ClientBalancesController extends Controller
     public function index(Request $request,ObjService $service)
     {
         $filters = $service->normalizeBalanceMovementFilters($request->only(['from_date', 'to_date', 'keyword']));
-        $data['accounts'] = $service->balancesMovementReport('clients', $filters);
+        $data["dataTableRoute"] = route($this->mainRoute . '.index');
+        $allAccounts = $service->balancesMovementReport('clients', $filters);
+        $data['movementSummary'] = $service->summarizeBalanceMovementReport($allAccounts, 'clients');
+        $data['accounts'] = $allAccounts;
         $data['filters'] = $filters;
         $data['reportType'] = 'clients';
 
@@ -26,7 +29,6 @@ class ClientBalancesController extends Controller
         }
 
         $data["bladeTitle"] = __("finance::finance.clients_balances");
-        $data["dataTableRoute"] = route($this->mainRoute . '.index');
         $data["exportFileName"] = 'clients-balances.xlsx';
         return view($this->folderPath . '.index', $data);
     }

@@ -17,7 +17,10 @@ class SupplierBalancesController extends Controller
     public function index(Request $request,ObjService $service)
     {
         $filters = $service->normalizeBalanceMovementFilters($request->only(['from_date', 'to_date', 'keyword']));
-        $data['accounts'] = $service->balancesMovementReport('external_agents', $filters);
+        $data["dataTableRoute"] = route($this->mainRoute . '.index');
+        $allAccounts = $service->balancesMovementReport('external_agents', $filters);
+        $data['movementSummary'] = $service->summarizeBalanceMovementReport($allAccounts, 'external_agents');
+        $data['accounts'] = $allAccounts;
         $data['filters'] = $filters;
         $data['reportType'] = 'external_agents';
 
@@ -26,7 +29,6 @@ class SupplierBalancesController extends Controller
         }
 
         $data["bladeTitle"] = __("finance::finance.suppliers_balances");
-        $data["dataTableRoute"] = route($this->mainRoute . '.index');
         $data["exportFileName"] = 'external-agents-balances.xlsx';
         return view($this->folderPath . '.index', $data);
     }

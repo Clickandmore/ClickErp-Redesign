@@ -1,34 +1,28 @@
 @php
-    $accountsCount = $accounts->count();
+    $accountsCount = (int) ($movementSummary['accounts_count'] ?? $accounts->count());
     $fromDate = \Carbon\Carbon::parse($filters['from_date']);
     $toDate = \Carbon\Carbon::parse($filters['to_date']);
     $monthsCount = $fromDate->diffInMonths($toDate) + 1;
     $accountNameHeader = ($reportType ?? 'accounts') === 'external_agents'
         ? 'الوكيل الخارجي'
         : __('finance::finance.account_name');
-    $summaryRows = ($reportType ?? 'accounts') === 'accounts'
-        ? $accounts->filter(fn ($account) => empty($account->parent_id))
-        : $accounts;
-    if ($summaryRows->isEmpty()) {
-        $summaryRows = $accounts;
-    }
-    $periodDebtorTotal = (float) $summaryRows->sum('period_debtor');
-    $periodCreditorTotal = (float) $summaryRows->sum('period_creditor');
-    $periodMovementTotal = $periodDebtorTotal + $periodCreditorTotal;
+    $periodDebtorTotal = (float) ($movementSummary['period_debtor'] ?? 0);
+    $periodCreditorTotal = (float) ($movementSummary['period_creditor'] ?? 0);
+    $periodMovementTotal = (float) ($movementSummary['period_movement'] ?? ($periodDebtorTotal + $periodCreditorTotal));
     $formatMoney = fn ($value) => number_format((float) $value, 2);
     $periods = [
-        'opening' => ['title' => 'أول الفترة', 'subtitle' => 'قبل: ' . $filters['from_date'], 'class' => 'opening'],
-        'period' => ['title' => 'مجموع الفترة', 'subtitle' => $filters['from_date'] . ' ← ' . $filters['to_date'], 'class' => 'current'],
-        'after' => ['title' => 'بعد الفترة', 'subtitle' => 'بعد: ' . $filters['to_date'], 'class' => 'after'],
-        'closing' => ['title' => 'الرصيد الختامي', 'subtitle' => 'جميع الحركات', 'class' => 'closing'],
+        'opening' => ['title' => 'أول الفترة', 'subtitle' => 'قبل ' . $filters['from_date']],
+        'period' => ['title' => 'حركة الفترة', 'subtitle' => $filters['from_date'] . ' ← ' . $filters['to_date']],
+        'after' => ['title' => 'بعد الفترة', 'subtitle' => 'بعد ' . $filters['to_date']],
+        'closing' => ['title' => 'الرصيد الختامي', 'subtitle' => 'جميع الحركات'],
     ];
 @endphp
 
 <div class="balance-report-heading mb-3">
     <h4>حركات الأرصدة</h4>
     <p>
-        تقرير حركة أرصدة يشمل {{ number_format($monthsCount) }} شهرًا،
-        يبدأ من {{ $filters['from_date'] }} إلى {{ $filters['to_date'] }}
+        تقرير موحّد يعرض {{ number_format($accountsCount) }} حسابًا في صفحة واحدة،
+        خلال {{ number_format($monthsCount) }} شهرًا من {{ $filters['from_date'] }} إلى {{ $filters['to_date'] }}
     </p>
 </div>
 
@@ -37,21 +31,21 @@
         <div class="balance-summary-card" style="color:#6d28d9">
             <div class="balance-summary-label">الحسابات ذات الحركة</div>
             <div class="balance-summary-value">{{ number_format($accountsCount) }}</div>
-            <span class="balance-summary-note">تشمل الحسابات التجميعية والفرعية</span>
+            <span class="balance-summary-note">جميعها معروضة في الجدول أدناه</span>
         </div>
     </div>
     <div class="col-xl-3 col-md-6">
         <div class="balance-summary-card" style="color:#2563eb">
             <div class="balance-summary-label">مدين خلال الفترة</div>
             <div class="balance-summary-value">{{ $formatMoney($periodDebtorTotal) }}</div>
-            <span class="balance-summary-note">من {{ $filters['from_date'] }} إلى {{ $filters['to_date'] }}</span>
+            <span class="balance-summary-note">إجمالي التقرير دون تكرار الفروع</span>
         </div>
     </div>
     <div class="col-xl-3 col-md-6">
         <div class="balance-summary-card" style="color:#f59e0b">
             <div class="balance-summary-label">دائن خلال الفترة</div>
             <div class="balance-summary-value">{{ $formatMoney($periodCreditorTotal) }}</div>
-            <span class="balance-summary-note">من {{ $filters['from_date'] }} إلى {{ $filters['to_date'] }}</span>
+            <span class="balance-summary-note">إجمالي التقرير دون تكرار الفروع</span>
         </div>
     </div>
     <div class="col-xl-3 col-md-6">
@@ -65,28 +59,30 @@
 
 <div class="balance-table-card">
     @if ($accountsCount > 0)
+        <div class="balance-period-switcher balances-no-print">
+            @foreach ($periods as $periodKey => $period)
+                <button type="button"
+                        class="balance-period-button {{ $periodKey === 'period' ? 'is-active' : '' }}"
+                        data-period-index="{{ $loop->index }}" data-subtitle="{{ $period['subtitle'] }}">
+                    {{ $period['title'] }}
+                </button>
+            @endforeach
+        </div>
+        <div class="balance-active-period">
+            المعروض الآن: <strong data-active-period-label>حركة الفترة — {{ $periods['period']['subtitle'] }}</strong>
+        </div>
         <div class="table-responsive balance-table-scroll">
             <table class="table table-hover" id="balancesTable" style="width:100%">
                 <thead>
                     <tr>
-                        <th rowspan="2">#</th>
-                        <th rowspan="2">{{ __('finance::finance.account_code') }}</th>
-                        <th rowspan="2">{{ $accountNameHeader }}</th>
-                        <th rowspan="2">الحساب الأب</th>
-                        @foreach ($periods as $period)
-                            <th colspan="4" class="balance-period-heading balance-period-heading--{{ $period['class'] }}">
-                                <strong>{{ $period['title'] }}</strong><br>
-                                <small>{{ $period['subtitle'] }}</small>
-                            </th>
-                        @endforeach
-                    </tr>
-                    <tr>
-                        @foreach ($periods as $periodKey => $period)
-                            <th class="balance-period-subhead balance-period-border">مدين</th>
-                            <th class="balance-period-subhead">دائن</th>
-                            <th class="balance-period-subhead">رصيد</th>
-                            <th class="balance-period-subhead">حركة الرصيد</th>
-                        @endforeach
+                        <th>#</th>
+                        <th>{{ __('finance::finance.account_code') }}</th>
+                        <th>{{ $accountNameHeader }}</th>
+                        <th>الحساب الأب</th>
+                        <th class="text-left">مدين</th>
+                        <th class="text-left">دائن</th>
+                        <th class="text-left">الرصيد</th>
+                        <th class="text-center">حركة الرصيد</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -99,17 +95,25 @@
                                 'type' => 'both',
                                 'other_account' => 'no',
                             ]);
+                            $movementData = [];
+                            foreach (array_keys($periods) as $periodKey) {
+                                $movementData[] = [
+                                    round((float) $row->{$periodKey . '_debtor'}, 2),
+                                    round((float) $row->{$periodKey . '_creditor'}, 2),
+                                    round((float) $row->{$periodKey . '_balance'}, 2),
+                                    $row->{$periodKey . '_status'} === 'debtor' ? 'd' : ($row->{$periodKey . '_status'} === 'creditor' ? 'c' : ''),
+                                ];
+                            }
                         @endphp
-                        <tr class="{{ $row->has_children ? 'balance-parent-row' : '' }}">
+                        <tr class="balance-movement-row {{ $row->has_children ? 'balance-parent-row' : '' }}"
+                            data-m='@json($movementData)'>
                             <td class="text-muted">{{ $loop->iteration }}</td>
                             <td>
                                 @if ($row->has_children)
                                     <span class="balance-account-link">{{ $row->code }}</span>
                                 @else
                                     <a href="{{ $statementUrl }}" target="_blank" rel="noopener"
-                                       class="balance-account-link" title="فتح كشف الحساب">
-                                        {{ $row->code }}
-                                    </a>
+                                       class="balance-account-link" title="فتح كشف الحساب">{{ $row->code }}</a>
                                 @endif
                             </td>
                             <td>
@@ -117,9 +121,7 @@
                                 @if ($row->has_children)
                                     <span>{{ $row->name }}</span>
                                 @else
-                                    <a href="{{ $statementUrl }}" target="_blank" rel="noopener" style="color:inherit">
-                                        {{ $row->name }}
-                                    </a>
+                                    <a href="{{ $statementUrl }}" target="_blank" rel="noopener" style="color:inherit">{{ $row->name }}</a>
                                 @endif
                             </td>
                             <td>
@@ -130,21 +132,18 @@
                                     <span class="text-muted">—</span>
                                 @endif
                             </td>
-                            @foreach ($periods as $periodKey => $period)
-                                @php($movementStatus = $row->{$periodKey . '_status'})
-                                <td class="text-left balance-period-border">{{ $formatMoney($row->{$periodKey . '_debtor'}) }}</td>
-                                <td class="text-left">{{ $formatMoney($row->{$periodKey . '_creditor'}) }}</td>
-                                <td class="text-left font-weight-bold">{{ $formatMoney($row->{$periodKey . '_balance'}) }}</td>
-                                <td class="text-center">
-                                    @if ($movementStatus)
-                                        <span class="balance-direction balance-direction--{{ $movementStatus }}">
-                                            {{ $movementStatus === 'debtor' ? 'مدين' : 'دائن' }}
-                                        </span>
-                                    @else
-                                        <span class="text-muted">—</span>
-                                    @endif
-                                </td>
-                            @endforeach
+                            <td class="text-left balance-cell-debtor">{{ $formatMoney($row->period_debtor) }}</td>
+                            <td class="text-left balance-cell-creditor">{{ $formatMoney($row->period_creditor) }}</td>
+                            <td class="text-left font-weight-bold balance-cell-total">{{ $formatMoney($row->period_balance) }}</td>
+                            <td class="text-center balance-cell-status">
+                                @if ($row->period_status)
+                                    <span class="balance-direction balance-direction--{{ $row->period_status }}">
+                                        {{ $row->period_status === 'debtor' ? 'مدين' : 'دائن' }}
+                                    </span>
+                                @else
+                                    <span class="text-muted">—</span>
+                                @endif
+                            </td>
                         </tr>
                     @endforeach
                 </tbody>
