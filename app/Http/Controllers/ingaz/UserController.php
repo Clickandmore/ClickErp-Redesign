@@ -250,7 +250,8 @@ class UserController extends Controller
                     $documentNumber = $row->documentNumber();
                     $idNumber = $documentNumber ? '<span class="badge bg-light text-dark border me-1"><i class="fas fa-id-card me-1"></i>' . e($row->documentNumberLabel()) . ': ' . e($documentNumber) . '</span>' : '';
 
-                    $primary = $row->phone
+                    $hasPrimaryPhone = $row->phone && !str_starts_with($row->phone, 'arabia-client-');
+                    $primary = $hasPrimaryPhone
                         ? '<a href="tel:' . e($row->phone_code . $row->phone) . '" class="text-decoration-none">
                                 <i class="fas fa-phone-alt me-1 text-success"></i>' . e($row->phone_code . $row->phone) . '
                             </a>'
@@ -1404,11 +1405,14 @@ class UserController extends Controller
         foreach ($clients as $client) {
             $statusClass = $client->is_blocked ? 'status-blocked' : 'status-active';
             $statusText = $client->is_blocked ? __('ingaz.blocked') : __('ingaz.active');
+            $displayPhone = $client->phone && !str_starts_with($client->phone, 'arabia-client-')
+                ? $client->phone_code . $client->phone
+                : __('ingaz.not_specified');
 
             $html .= '<tr>
                 <td>' . ($client->arabia_client_number ?: $client->id) . '</td>
                 <td>' . $client->name . '</td>
-                <td>' . $client->phone_code . $client->phone . '</td>
+                <td>' . $displayPhone . '</td>
                 <td>' . $client->email . '</td>
                 <td>' . ($client->nationality->title ?? '') . '</td>
                 <td>' . ($client->isCompanyClient() ? __('ingaz.company') : __('ingaz.person_client')) . '</td>
@@ -1551,11 +1555,14 @@ class UserController extends Controller
         foreach ($clients as $client) {
             $statusClass = $client->is_blocked ? 'status-blocked' : 'status-active';
             $statusText = $client->is_blocked ? __('ingaz.blocked') : __('ingaz.active');
+            $displayPhone = $client->phone && !str_starts_with($client->phone, 'arabia-client-')
+                ? $client->phone_code . $client->phone
+                : __('ingaz.not_specified');
 
             $html .= '<tr>
                 <td>' . ($client->arabia_client_number ?: $client->id) . '</td>
                 <td>' . $client->name . '</td>
-                <td>' . $client->phone_code . $client->phone . '</td>
+                <td>' . $displayPhone . '</td>
                 <td>' . $client->email . '</td>
                 <td>' . ($client->nationality->title ?? '') . '</td>
                 <td>' . ($client->isCompanyClient() ? __('ingaz.company') : __('ingaz.person_client')) . '</td>
@@ -1632,9 +1639,12 @@ class UserController extends Controller
         // Set data
         $row = 2;
         foreach ($clients as $client) {
+            $displayPhone = $client->phone && !str_starts_with($client->phone, 'arabia-client-')
+                ? $client->phone_code . $client->phone
+                : __('ingaz.not_specified');
             $sheet->setCellValue('A' . $row, $client->arabia_client_number ?: $client->id);
             $sheet->setCellValue('B' . $row, $client->name);
-            $sheet->setCellValue('C' . $row, $client->phone_code . $client->phone);
+            $sheet->setCellValue('C' . $row, $displayPhone);
             $sheet->setCellValue('D' . $row, $client->email);
             $sheet->setCellValue('E' . $row, $client->nationality->title ?? '');
             $sheet->setCellValue('F' . $row, $client->isCompanyClient() ? __('ingaz.company') : __('ingaz.person_client'));

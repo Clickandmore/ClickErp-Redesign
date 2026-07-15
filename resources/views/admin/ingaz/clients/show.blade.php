@@ -347,7 +347,7 @@
                                 <div class="info-item">
                                     <div class="label">{{ helperTrans('ingaz.client_phone') }}</div>
                                     <div class="value">
-                                        @if ($client->phone)
+                                        @if ($client->phone && !str_starts_with($client->phone, 'arabia-client-'))
                                             <a href="tel:{{ $client->phone_code . $client->phone }}"
                                                 class="text-decoration-none">
                                                 <i

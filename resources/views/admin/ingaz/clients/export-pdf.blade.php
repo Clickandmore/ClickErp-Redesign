@@ -52,7 +52,11 @@
                 <tr>
                     <td>{{ $client->id }}</td>
                     <td>{{ $client->name }}</td>
-                    <td>{{ $client->phone_code . $client->phone }}</td>
+                    <td>
+                        {{ $client->phone && !str_starts_with($client->phone, 'arabia-client-')
+                            ? $client->phone_code . $client->phone
+                            : helperTrans('ingaz.not_specified') }}
+                    </td>
                     <td>{{ $client->email }}</td>
                     <td>{{ $client->nationality->title ?? '' }}</td>
                     <td>{{ $client->documentNumberLabel() }}: {{ $client->documentNumber() }}</td>

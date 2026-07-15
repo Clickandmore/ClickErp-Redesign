@@ -120,7 +120,13 @@ class ArabiaClientsImportService
 
         $isNew = !$user;
         $user ??= new User();
-        $storedPhone = $this->availablePhone($phone, $user->exists ? (int) $user->id : null, $arabiaNumber, $rowNumber);
+        $storedPhone = $this->availablePhone(
+            $phone,
+            $user->exists ? (int) $user->id : null,
+            $arabiaNumber,
+            $rowNumber,
+            $user->exists ? (string) $user->phone : null,
+        );
         $homeAddress = collect([
             $raw['شارع المنزل'] ?? null,
             $raw['الحي المتواجد فيه المنزل'] ?? null,
@@ -217,7 +223,13 @@ class ArabiaClientsImportService
         DB::table('client_import_details')->insert($details);
     }
 
-    private function availablePhone(string $phone, ?int $userId, ?int $arabiaNumber, int $rowNumber): string
+    private function availablePhone(
+        string $phone,
+        ?int $userId,
+        ?int $arabiaNumber,
+        int $rowNumber,
+        ?string $existingPhone = null,
+    ): string
     {
         if ($phone !== '') {
             $query = User::query()->whereIn('phone', $this->phoneCandidates($phone));
@@ -227,6 +239,12 @@ class ArabiaClientsImportService
             if (!$query->exists()) {
                 return $phone;
             }
+        }
+
+        // Never replace a real existing number with an import placeholder when
+        // the source value is missing, invalid, or already belongs to another user.
+        if ($existingPhone && !str_starts_with($existingPhone, 'arabia-client-')) {
+            return $existingPhone;
         }
 
         $base = 'arabia-client-' . ($arabiaNumber ?: $rowNumber);
@@ -252,7 +270,7 @@ class ArabiaClientsImportService
             $digits = substr($digits, 1);
         }
 
-        return $digits;
+        return preg_match('/^5\d{8}$/', $digits) ? $digits : '';
     }
 
     private function digits($value): string

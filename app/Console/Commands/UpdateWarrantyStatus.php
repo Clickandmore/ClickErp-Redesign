@@ -5,9 +5,6 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Enums\ingaz\ContractStatusEnum;
 use App\Models\Contract;
-use App\Models\TravelHistory;
-use App\Support\AutomationSettings;
-use Carbon\Carbon;
 
 class UpdateWarrantyStatus extends Command
 {
@@ -41,70 +38,24 @@ class UpdateWarrantyStatus extends Command
     public function handle()
     {
         $this->info('Starting warranty status update...');
-        $warrantyPeriodDays = AutomationSettings::warrantyPeriodDays();
-
         // جلب العقود في مرحلة الوصول أو المكتملة التي قد تحتاج إعادة تقييم
         $contracts = Contract::whereIn('status', [
                 ContractStatusEnum::Arrival->value,
                 ContractStatusEnum::Completed->value,
             ])
-            ->where(function ($query) {
-                $query->where('warranty_status', 'active')
-                    ->orWhereNull('warranty_status');
-            })
+            ->whereIn('type', ['recruitment', 'maid'])
             ->get();
 
         $updatedCount = 0;
         $expiredCount = 0;
 
         foreach ($contracts as $contract) {
-            // البحث عن رحلة الوصول للعقد
-            $travelHistory = TravelHistory::where('order_id', $contract->id)
-                ->latest('id')
-                ->first();
+            $contract->calculateWarrantyStatus();
+            $contract->refresh();
+            $updatedCount++;
 
-            if ($travelHistory) {
-                $arrivalDateTime = null;
-                if ($travelHistory->arrival_date && $travelHistory->arrival_time) {
-                    $arrivalDateTime = Carbon::parse($travelHistory->arrival_date . ' ' . $travelHistory->arrival_time);
-                } elseif ($travelHistory->arrival_date) {
-                    $arrivalDateTime = Carbon::parse($travelHistory->arrival_date);
-                } elseif (!empty($travelHistory->arrived_at)) {
-                    $arrivalDateTime = Carbon::parse($travelHistory->arrived_at);
-                }
-
-                if (!$arrivalDateTime) {
-                    $contract->update(['warranty_status' => 'not_applicable']);
-                    $this->warn("Contract {$contract->id}: No arrival datetime found, warranty set to not applicable");
-                    continue;
-                }
-
-                $warrantyEndDate = $arrivalDateTime->copy()->addDays($warrantyPeriodDays);
-
-                $updates = [
-                    'warranty_start_date' => $arrivalDateTime,
-                    'warranty_end_date' => $warrantyEndDate
-                ];
-
-                // التحقق من انتهاء الضمان
-                if ($warrantyEndDate->isPast()) {
-                    $updates['status'] = ContractStatusEnum::Completed->value;
-                    $updates['warranty_status'] = 'expired';
-                    $expiredCount++;
-                    $this->warn("Contract {$contract->id}: Warranty expired on {$warrantyEndDate->format('Y-m-d')}");
-                } else {
-                    $updates['status'] = ContractStatusEnum::Arrival->value;
-                    $updates['warranty_status'] = 'active';
-                    $this->info("Contract {$contract->id}: Warranty active until {$warrantyEndDate->format('Y-m-d')}");
-                }
-
-                $contract->update($updates);
-
-                $updatedCount++;
-            } else {
-                // إذا لم توجد رحلة، تعيين حالة الضمان كغير قابل للتطبيق
-                $contract->update(['warranty_status' => 'not_applicable']);
-                $this->warn("Contract {$contract->id}: No travel history found, warranty set to not applicable");
+            if ($contract->warranty_status === 'expired') {
+                $expiredCount++;
             }
         }
 

@@ -296,13 +296,25 @@ class ArabiaRecruitmentOrdersImportService
 
         $client = ($clientNumber ? User::query()->where('arabia_client_number', $clientNumber)->first() : null)
             ?: ($identity !== '' ? User::query()->where('national_num', $identity)->first() : null)
-            ?: (!$clientNumber && $phone !== '' ? User::query()->where('phone', $phone)->first() : null);
+            ?: (!$clientNumber && $phone !== '' ? User::query()->whereIn('phone', $this->phoneCandidates($phone))->first() : null);
 
-        $phoneOwner = $phone !== '' ? User::query()->where('phone', $phone)->first() : null;
-        $phoneConflict = $phoneOwner && (!$client || (int) $phoneOwner->id !== (int) $client->id);
-        $safePrimaryPhone = $phoneConflict
-            ? ($client?->phone ?: 'arabia-client-' . ($clientNumber ?: $orderNumber))
-            : ($phone ?: ($client?->phone ?: 'arabia-client-' . ($clientNumber ?: $orderNumber)));
+        // Some recruitment sheets omit the phone even though it exists in the
+        // separately imported Arabia client master. Prefer that source before
+        // falling back to the required unique placeholder.
+        if ($phone === '' && $client) {
+            $phone = $this->importedClientPhone($client);
+        }
+
+        $phoneOwner = $phone !== ''
+            ? User::query()
+                ->when($client, fn ($query) => $query->where('id', '!=', $client->id))
+                ->whereIn('phone', $this->phoneCandidates($phone))
+                ->first()
+            : null;
+        $phoneConflict = (bool) $phoneOwner;
+        $safePrimaryPhone = $phone !== '' && !$phoneConflict
+            ? $phone
+            : ($client?->phone ?: 'arabia-client-' . ($clientNumber ?: $orderNumber));
 
         $payload = [
             'arabia_client_number' => $clientNumber,
@@ -838,10 +850,28 @@ class ArabiaRecruitmentOrdersImportService
     private function phone($value): string
     {
         $phone = preg_replace('/\D+/', '', $this->digits($value));
-        if (str_starts_with($phone, '966') && strlen($phone) === 12) {
-            $phone = '0' . substr($phone, 3);
+        $phone = preg_replace('/^(?:00966|966)/', '', $phone);
+        if (preg_match('/^05\d{8}$/', $phone)) {
+            $phone = substr($phone, 1);
         }
-        return $phone;
+
+        return preg_match('/^5\d{8}$/', $phone) ? $phone : '';
+    }
+
+    private function phoneCandidates(string $phone): array
+    {
+        return array_values(array_unique([$phone, '0' . $phone, '966' . $phone, '+966' . $phone]));
+    }
+
+    private function importedClientPhone(User $client): string
+    {
+        $rawPhone = DB::table('client_import_details')
+            ->where('user_id', $client->id)
+            ->where('source', 'arabia')
+            ->where('field_label', 'الجوال')
+            ->value('field_value');
+
+        return $this->phone($rawPhone);
     }
 
     private function passport($value): string

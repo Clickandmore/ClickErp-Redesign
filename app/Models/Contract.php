@@ -519,11 +519,10 @@ class Contract extends Model
     public function calculateWarrantyStatus()
     {
         if (!in_array($this->status, [ContractStatusEnum::Arrival->value, ContractStatusEnum::Completed->value], true)) {
-            $this->update(['warranty_status' => 'not_applicable']);
             return;
         }
 
-        // البحث عن رحلة الوصول
+        // يبدأ ضمان الاستقدام من تاريخ الوصول الفعلي فقط.
         $travelHistory = \App\Models\TravelHistory::where('order_id', $this->id)
             ->latest('id')
             ->first();
@@ -549,7 +548,17 @@ class Contract extends Model
         }
 
         if (!$arrivalDateTime) {
-            $this->update(['warranty_status' => 'not_applicable']);
+            $updates = [
+                'warranty_status' => 'not_applicable',
+                'warranty_start_date' => null,
+                'warranty_end_date' => null,
+            ];
+            $this->fill($updates);
+
+            if ($this->isDirty(array_keys($updates))) {
+                $this->save();
+            }
+
             return;
         }
 
@@ -559,7 +568,8 @@ class Contract extends Model
             'warranty_end_date' => $warrantyEndDate,
         ];
 
-        if ($warrantyEndDate->isPast()) {
+        // يظل الضمان نشطاً حتى نهاية تاريخ الانتهاء الظاهر للمستخدم.
+        if ($warrantyEndDate->copy()->endOfDay()->isPast()) {
             $updates['status'] = ContractStatusEnum::Completed->value;
             $updates['warranty_status'] = 'expired';
         } else {
@@ -567,7 +577,11 @@ class Contract extends Model
             $updates['warranty_status'] = 'active';
         }
 
-        $this->update($updates);
+        $this->fill($updates);
+
+        if ($this->isDirty(array_keys($updates))) {
+            $this->save();
+        }
     }
 
     /**
