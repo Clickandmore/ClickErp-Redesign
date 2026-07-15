@@ -937,13 +937,66 @@ class ShelterContractController extends Controller
         };
     }
 
+    private function resolveExplicitShelterArrivalDate(Contract $contract): ?Carbon
+    {
+        $candidate = optional($contract->info)->arrival_date
+            ?: optional($contract->maid)->arrival_date
+            ?: optional($contract->travelHistory)->arrival_date;
+
+        if (!$candidate) {
+            return null;
+        }
+
+        return $candidate instanceof \Carbon\CarbonInterface
+            ? Carbon::instance($candidate)->startOfDay()
+            : Carbon::parse($candidate)->startOfDay();
+    }
+
+    private function shelterIneligibilityDetails(?Contract $contract): ?array
+    {
+        if (!$contract) {
+            return null;
+        }
+
+        $currentStatus = getContractStatus($contract->status);
+
+        if (!in_array($contract->status, $this->shelterEligibleContractStatuses(), true)) {
+            return [
+                'message' => 'العقد موجود لكنه غير مؤهل للإيواء لأن حالته الحالية هي: ' . $currentStatus . '. الحالات المقبولة: وصول / مكتمل / تحت الضمان / مغلق.',
+                'status' => $contract->status,
+                'status_label' => $currentStatus,
+            ];
+        }
+
+        $arrivalDate = $this->resolveExplicitShelterArrivalDate($contract);
+
+        if (!$arrivalDate) {
+            return [
+                'message' => 'العقد موجود وحالته مناسبة، لكنه لا يحتوي على تاريخ وصول فعلي مسجل في بيانات العقد أو العاملة أو رحلة الوصول.',
+                'status' => $contract->status,
+                'status_label' => $currentStatus,
+            ];
+        }
+
+        if ($arrivalDate->gt(now()->endOfDay())) {
+            return [
+                'message' => 'العقد موجود وحالته مناسبة، لكن تاريخ الوصول المسجل مستقبلي: ' . $arrivalDate->format('Y-m-d') . '. لا يمكن إضافته للإيواء قبل تاريخ الوصول.',
+                'status' => $contract->status,
+                'status_label' => $currentStatus,
+                'arrival_date' => $arrivalDate->format('Y-m-d'),
+            ];
+        }
+
+        return null;
+    }
+
     private function contractCanBeAddedToShelter(Contract $contract): bool
     {
         if (!in_array($contract->status, $this->shelterEligibleContractStatuses(), true)) {
             return false;
         }
 
-        $arrivalDate = $this->resolveArrivalDate($contract);
+        $arrivalDate = $this->resolveExplicitShelterArrivalDate($contract);
 
         return $arrivalDate && $arrivalDate->lte(now()->endOfDay());
     }
@@ -1086,7 +1139,55 @@ class ShelterContractController extends Controller
             ->get()
             ->map(fn ($contract) => $this->formatShelterSelectableContract($contract));
 
-        return response()->json(['contracts' => $contracts]);
+        $ineligibility = null;
+        if ($contracts->isEmpty() && $searchTerm !== '') {
+            $candidate = $this->findShelterSearchCandidate($contractNumber, $searchTerm);
+            $ineligibility = $this->shelterIneligibilityDetails($candidate);
+        }
+
+        return response()->json([
+            'contracts' => $contracts,
+            'ineligibility' => $ineligibility,
+        ]);
+    }
+
+    private function findShelterSearchCandidate(string $contractNumber, string $searchTerm): ?Contract
+    {
+        $query = Contract::query()
+            ->with(['maid.nationality.translations', 'info', 'user', 'travelHistory']);
+
+        if ($contractNumber !== '' || ctype_digit($searchTerm)) {
+            $contract = (clone $query)->whereKey((int) ($contractNumber ?: $searchTerm))->first();
+            if ($contract) {
+                return $contract;
+            }
+        }
+
+        return $query
+            ->where(function ($query) use ($searchTerm) {
+                $query->where('id', 'like', '%' . $searchTerm . '%')
+                    ->orWhereHas('user', function ($userQuery) use ($searchTerm) {
+                        $userQuery->where('name', 'like', '%' . $searchTerm . '%')
+                            ->orWhere('national_num', 'like', '%' . $searchTerm . '%')
+                            ->orWhere('tax_number', 'like', '%' . $searchTerm . '%')
+                            ->orWhere('license_number', 'like', '%' . $searchTerm . '%')
+                            ->orWhere('phone', 'like', '%' . $searchTerm . '%');
+                    })
+                    ->orWhereHas('maid', function ($maidQuery) use ($searchTerm) {
+                        $maidQuery->where('name', 'like', '%' . $searchTerm . '%')
+                            ->orWhere('passport_num', 'like', '%' . $searchTerm . '%')
+                            ->orWhere('id_number', 'like', '%' . $searchTerm . '%')
+                            ->orWhere('border_number', 'like', '%' . $searchTerm . '%');
+                    })
+                    ->orWhereHas('info', function ($infoQuery) use ($searchTerm) {
+                        $infoQuery->where('manual_maid_name', 'like', '%' . $searchTerm . '%')
+                            ->orWhere('manual_maid_passport_num', 'like', '%' . $searchTerm . '%')
+                            ->orWhere('visa_number', 'like', '%' . $searchTerm . '%')
+                            ->orWhere('msaned_number', 'like', '%' . $searchTerm . '%')
+                            ->orWhere('tafwed_number', 'like', '%' . $searchTerm . '%');
+                    });
+            })
+            ->first();
     }
 
     public function store(ShelterContactStore $request)
