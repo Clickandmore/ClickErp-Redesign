@@ -965,7 +965,9 @@ class AdminController extends Controller
                 Auth::guard('admin')->login($user, $request->boolean('rememberme'));
                 $this->startAdminSession($request, $user);
 
-                $redirectUrl = $user->admin_type === 'employee' && Route::has('employeeProfile.index')
+                $redirectUrl = SystemModuleManager::defaultDashboardKey() !== 'finance'
+                    && $user->admin_type === 'employee'
+                    && Route::has('employeeProfile.index')
                     ? route('employeeProfile.index')
                     : $this->defaultAdminRedirectUrl($user);
 
@@ -1047,6 +1049,10 @@ class AdminController extends Controller
 
     private function defaultAdminRedirectUrl($admin): string
     {
+        if (SystemModuleManager::defaultDashboardKey() === 'finance') {
+            return SystemModuleManager::defaultDashboardUrl();
+        }
+
         return AdminRoutePermissionMatrix::firstAccessibleUrlForAdmin($admin)
             ?? route('admin.no-permissions');
     }
