@@ -20,12 +20,14 @@ use App\Models\ingaz\User;
 use App\Models\RecruitmentOffices;
 use App\Models\RentalContract;
 use App\Models\SponsorshipTransfer;
+use App\Models\TravelHistory;
 use App\Support\SystemModuleManager;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Nami\Finance\Models\Constraint;
 
 class DashboardController extends Controller
 {
@@ -291,6 +293,7 @@ class DashboardController extends Controller
             ->selectRaw('COUNT(*) as total')
             ->selectRaw("SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_total")
             ->selectRaw("SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved_total")
+            ->selectRaw("SUM(CASE WHEN status IN ('trial', 'trial_started') THEN 1 ELSE 0 END) as trial_total")
             ->selectRaw("SUM(CASE WHEN status = 'transferred' THEN 1 ELSE 0 END) as transferred_total")
             ->first();
 
@@ -298,6 +301,7 @@ class DashboardController extends Controller
             'total' => (int) ($transferAggregate->total ?? 0),
             'pending' => (int) ($transferAggregate->pending_total ?? 0),
             'approved' => (int) ($transferAggregate->approved_total ?? 0),
+            'trial' => (int) ($transferAggregate->trial_total ?? 0),
             'transferred' => (int) ($transferAggregate->transferred_total ?? 0),
         ];
 
@@ -1064,6 +1068,47 @@ class DashboardController extends Controller
             })->count(),
             'deported' => \App\Models\DeportationProcedure::where('status', 'completed')->count(),
         ];
+
+        $buildTravelStats = static function (bool $deportation): array {
+            $travelQuery = TravelHistory::query()
+                ->when(
+                    $deportation,
+                    fn ($query) => $query->where('travel_type', 'deportation'),
+                    fn ($query) => $query->where('travel_type', '!=', 'deportation')
+                );
+
+            $groupedTrips = $travelQuery
+                ->selectRaw("CASE
+                    WHEN trip_group_code IS NOT NULL AND trip_group_code <> ''
+                        THEN CONCAT('group:', trip_group_code)
+                    ELSE CONCAT('single:', travel_histories.id)
+                END as trip_key")
+                ->selectRaw("MAX(CASE WHEN status IN ('new', 'active', 'scheduled', 'in_progress', 'pending', 'confirmed') THEN 1 ELSE 0 END) as is_active")
+                ->selectRaw("MIN(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as is_completed")
+                ->selectRaw("MAX(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as is_cancelled")
+                ->selectRaw('MAX(arrival_date) as trip_date')
+                ->groupBy('trip_key');
+
+            $aggregate = DB::query()
+                ->fromSub($groupedTrips, 'dashboard_trip_groups')
+                ->selectRaw('COUNT(*) as total')
+                ->selectRaw('COALESCE(SUM(is_active), 0) as active_total')
+                ->selectRaw('COALESCE(SUM(is_completed), 0) as completed_total')
+                ->selectRaw('COALESCE(SUM(is_cancelled), 0) as cancelled_total')
+                ->selectRaw('COALESCE(SUM(CASE WHEN is_active = 1 AND trip_date >= ? THEN 1 ELSE 0 END), 0) as upcoming_total', [now()->toDateString()])
+                ->first();
+
+            return [
+                'total' => (int) ($aggregate->total ?? 0),
+                'active' => (int) ($aggregate->active_total ?? 0),
+                'completed' => (int) ($aggregate->completed_total ?? 0),
+                'cancelled' => (int) ($aggregate->cancelled_total ?? 0),
+                'upcoming' => (int) ($aggregate->upcoming_total ?? 0),
+            ];
+        };
+
+        $recruitmentTravelStats = $buildTravelStats(false);
+        $deportationTravelStats = $buildTravelStats(true);
 
         // الجنسيات
         $nationalityStats = Maid::select('nationality_id')

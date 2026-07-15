@@ -398,30 +398,81 @@
                     </div>
                 @endif
 
-                @if ($canViewRequestGenderCard)
-                    <div class="stat-card gender-chart-card is-3" style="order: 7;">
-                        <div class="stat-card-icon"><i class="fas fa-venus-mars"></i></div>
+                @if ($canViewIngazDelegationsCard)
+                    <div class="stat-card is-5" style="order: 7;">
+                        <div class="stat-card-icon"><i class="fas fa-file-signature"></i></div>
                         <div class="stat-head d-flex justify-content-between align-items-center">
                             <div>
-                                <small class="stat-label">{{ __('admin.dashboard_new.requests_by_gender') }}</small>
-                                <h3 class="mb-0">{{ number_format($requestGenderStats['total'] ?? 0) }}</h3>
+                                <small class="stat-label">{{ __('admin.dashboard_new.ingaz_delegations') }}</small>
+                                <h3 class="mb-0">{{ number_format($delegationStats['total'] ?? 0) }}</h3>
                             </div>
-                            <a href="{{ route('orders.index', $dashboardBranchQuery) }}"
+                            <a href="{{ route('ingaz-delegations.index', $dashboardBranchQuery) }}"
                                 class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
                         </div>
-                        <div class="gender-chart-layout mt-3">
-                            <div class="gender-chart-wrap">
-                                <canvas id="requestGenderChart"
-                                    aria-label="{{ __('admin.dashboard_new.requests_by_gender') }}" role="img"></canvas>
-                            </div>
-                            <div class="gender-chart-legend">
-                                <span><i class="gender-dot is-male"></i>{{ __('admin.dashboard_new.male') }} <strong>{{ number_format($requestGenderStats['male'] ?? 0) }}</strong></span>
-                                <span><i class="gender-dot is-female"></i>{{ __('admin.dashboard_new.female') }} <strong>{{ number_format($requestGenderStats['female'] ?? 0) }}</strong></span>
-                                <span><i class="gender-dot is-unknown"></i>{{ __('admin.dashboard_new.unspecified') }} <strong>{{ number_format($requestGenderStats['unknown'] ?? 0) }}</strong></span>
-                            </div>
+                        <div class="stat-chip-list mt-3">
+                            <span>{{ __('admin.dashboard_new.under_process') }}: {{ number_format($delegationStats['under_process'] ?? 0) }}</span>
+                            <span>{{ __('admin.dashboard_new.executed') }}: {{ number_format($delegationStats['executed'] ?? 0) }}</span>
                         </div>
-                        <a href="{{ route('ingaz-delegations.index', $dashboardBranchQuery) }}" class="stat-meta stat-link d-inline-block mt-2">
-                            {{ __('admin.dashboard_new.includes_ingaz_delegations') }} <i class="fas fa-arrow-left ms-1"></i>
+                    </div>
+                @endif
+
+                @if ($canViewComplaintsCard)
+                    <div class="stat-card is-4" style="order: 8;">
+                        <div class="stat-card-icon"><i class="fas fa-headset"></i></div>
+                        <div class="stat-head d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="stat-label">{{ __('admin.dashboard_new.complaints') }}</small>
+                                <h3 class="mb-0">{{ number_format($complaintStats['total'] ?? 0) }}</h3>
+                            </div>
+                            <a href="{{ route('complaints.index', $dashboardBranchQuery) }}"
+                                class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
+                        </div>
+                        <div class="stat-chip-list mt-3">
+                            <span>{{ __('admin.dashboard_new.total') }}: {{ number_format($complaintStats['total'] ?? 0) }}</span>
+                            <span>{{ __('admin.dashboard_new.open') }}: {{ number_format($complaintStats['open'] ?? 0) }}</span>
+                            <span>{{ __('admin.dashboard_new.closed') }}: {{ number_format($complaintStats['closed'] ?? 0) }}</span>
+                        </div>
+                    </div>
+                @endif
+
+                @if ($canViewSponsorshipTransfersCard)
+                    <div class="stat-card is-2" style="order: 9;">
+                        <div class="stat-card-icon"><i class="fas fa-exchange-alt"></i></div>
+                        <div class="stat-head d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="stat-label">{{ __('admin.dashboard_new.sponsorship_transfers') }}</small>
+                                <h3 class="mb-0">{{ number_format($transferStats['total'] ?? 0) }}</h3>
+                            </div>
+                            <a href="{{ route('SponsorshipTransfer.index') }}"
+                                class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
+                        </div>
+                        <div class="stat-chip-list mt-3">
+                            <a href="{{ route('SponsorshipTransfer.trial') }}">{{ __('ingaz.trial_period') }}: {{ number_format($transferStats['trial'] ?? 0) }}</a>
+                            <a href="{{ route('SponsorshipTransfer.transferred') }}">{{ __('ingaz.transferred') }}: {{ number_format($transferStats['transferred'] ?? 0) }}</a>
+                        </div>
+                    </div>
+                @endif
+
+                @if ($canViewShelterCard)
+                    <div class="stat-card is-7" style="order: 10;">
+                        <div class="stat-card-icon"><i class="fas fa-house-user"></i></div>
+                        <div class="stat-head d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="stat-label">{{ __('admin.dashboard_new.inside_shelter') }}</small>
+                                <h3 class="mb-0">{{ number_format($shelterStats['inside'] ?? 0) }}</h3>
+                            </div>
+                            <a href="{{ route('ShelterContract.index', $dashboardBranchQuery) }}" class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
+                        </div>
+                        <div class="stat-chip-list mt-3">
+                            <span>{{ __('admin.dashboard_new.inside_shelter') }}: {{ number_format($shelterStats['inside'] ?? 0) }}</span>
+                            <span>{{ __('admin.dashboard_new.outside_shelter') }}: {{ number_format($shelterStats['outside'] ?? 0) }}</span>
+                            <span>{{ __('admin.dashboard_new.ready_for_transfer') }}: {{ number_format($shelterStats['available_for_transfer'] ?? 0) }}</span>
+                            <span>{{ __('admin.dashboard_new.deportation_stage') }}: {{ number_format($shelterStats['deportation_stage'] ?? 0) }}</span>
+                            <span>{{ __('admin.dashboard_new.deported') }}: {{ number_format($shelterStats['deported'] ?? 0) }}</span>
+                            <span>{{ __('admin.dashboard_new.places') }}: {{ number_format($shelterStats['places'] ?? 0) }}</span>
+                        </div>
+                        <a href="{{ route('ShelterContract.outside') }}" class="stat-meta stat-link d-inline-block mt-2">
+                            {{ __('admin.dashboard_new.follow_shelter_exit') }} <i class="fas fa-arrow-left ms-1"></i>
                         </a>
                     </div>
                 @endif
@@ -692,89 +743,6 @@
                         </div>
                     </div>
                 </div>
-            </div>
-        @endif
-
-        @if ($canViewSecondStatsRow)
-            <div class="stat-row mt-3">
-                @if ($canViewIngazDelegationsCard)
-                    <div class="stat-card is-5">
-                        <div class="stat-card-icon"><i class="fas fa-file-signature"></i></div>
-                        <div class="stat-head d-flex justify-content-between align-items-center">
-                            <div>
-                                <small class="stat-label">{{ __('admin.dashboard_new.ingaz_delegations') }}</small>
-                                <h3 class="mb-0">{{ number_format($delegationStats['total'] ?? 0) }}</h3>
-                            </div>
-                            <a href="{{ route('ingaz-delegations.index', $dashboardBranchQuery) }}"
-                                class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
-                        </div>
-                        <div class="stat-chip-list mt-3">
-                            <span>{{ __('admin.dashboard_new.under_process') }}: {{ number_format($delegationStats['under_process'] ?? 0) }}</span>
-                            <span>{{ __('admin.dashboard_new.executed') }}: {{ number_format($delegationStats['executed'] ?? 0) }}</span>
-                        </div>
-                    </div>
-                @endif
-
-                @if ($canViewComplaintsCard)
-                    <div class="stat-card is-4">
-                        <div class="stat-card-icon"><i class="fas fa-headset"></i></div>
-                        <div class="stat-head d-flex justify-content-between align-items-center">
-                            <div>
-                                <small class="stat-label">{{ __('admin.dashboard_new.complaints') }}</small>
-                                <h3 class="mb-0">{{ number_format($complaintStats['total'] ?? 0) }}</h3>
-                            </div>
-                            <a href="{{ route('complaints.index', $dashboardBranchQuery) }}"
-                                class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
-                        </div>
-                        <div class="stat-chip-list mt-3">
-                            <span>{{ __('admin.dashboard_new.total') }}: {{ number_format($complaintStats['total'] ?? 0) }}</span>
-                            <span>{{ __('admin.dashboard_new.open') }}: {{ number_format($complaintStats['open'] ?? 0) }}</span>
-                            <span>{{ __('admin.dashboard_new.closed') }}: {{ number_format($complaintStats['closed'] ?? 0) }}</span>
-                        </div>
-                    </div>
-                @endif
-
-                @if ($canViewSponsorshipTransfersCard)
-                    <div class="stat-card is-2">
-                        <div class="stat-card-icon"><i class="fas fa-exchange-alt"></i></div>
-                        <div class="stat-head d-flex justify-content-between align-items-center">
-                            <div>
-                                <small class="stat-label">{{ __('admin.dashboard_new.sponsorship_transfers') }}</small>
-                                <h3 class="mb-0">{{ number_format($transferStats['total'] ?? 0) }}</h3>
-                            </div>
-                            <a href="{{ route('SponsorshipTransfer.index') }}"
-                                class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
-                        </div>
-                        <div class="mt-3 stat-meta">{{ __('admin.dashboard_new.pending_review') }}: {{ number_format($transferStats['pending'] ?? 0) }} |
-                            {{ __('admin.dashboard_new.approved') }}:
-                            {{ number_format($transferStats['approved'] ?? 0) }} | {{ __('admin.dashboard_new.transferred') }}:
-                            {{ number_format($transferStats['transferred'] ?? 0) }}</div>
-                    </div>
-                @endif
-
-                @if ($canViewShelterCard)
-                    <div class="stat-card is-7">
-                        <div class="stat-card-icon"><i class="fas fa-house-user"></i></div>
-                        <div class="stat-head d-flex justify-content-between align-items-center">
-                            <div>
-                                <small class="stat-label">{{ __('admin.dashboard_new.inside_shelter') }}</small>
-                                <h3 class="mb-0">{{ number_format($shelterStats['inside'] ?? 0) }}</h3>
-                            </div>
-                            <a href="{{ route('ShelterContract.index', $dashboardBranchQuery) }}" class="btn btn-sm btn-light text-dark">{{ __('admin.dashboard_new.view') }}</a>
-                        </div>
-                        <div class="stat-chip-list mt-3">
-                            <span>{{ __('admin.dashboard_new.inside_shelter') }}: {{ number_format($shelterStats['inside'] ?? 0) }}</span>
-                            <span>{{ __('admin.dashboard_new.outside_shelter') }}: {{ number_format($shelterStats['outside'] ?? 0) }}</span>
-                            <span>{{ __('admin.dashboard_new.ready_for_transfer') }}: {{ number_format($shelterStats['available_for_transfer'] ?? 0) }}</span>
-                            <span>{{ __('admin.dashboard_new.deportation_stage') }}: {{ number_format($shelterStats['deportation_stage'] ?? 0) }}</span>
-                            <span>{{ __('admin.dashboard_new.deported') }}: {{ number_format($shelterStats['deported'] ?? 0) }}</span>
-                            <span>{{ __('admin.dashboard_new.places') }}: {{ number_format($shelterStats['places'] ?? 0) }}</span>
-                        </div>
-                        <a href="{{ route('ShelterContract.outside') }}" class="stat-meta stat-link d-inline-block mt-2">
-                            {{ __('admin.dashboard_new.follow_shelter_exit') }} <i class="fas fa-arrow-left ms-1"></i>
-                        </a>
-                    </div>
-                @endif
             </div>
         @endif
 
@@ -1113,6 +1081,40 @@
                                     <li class="empty-state">{{ __('admin.dashboard_new.no_data_available') }}</li>
                                 @endif
                             </ul>
+                        </div>
+                    </div>
+                @endif
+                @if ($canViewRequestGenderCard)
+                    <div class="col-xxl-4 col-lg-5">
+                        <div class="panel-card h-100">
+                            <div class="panel-head">
+                                <div>
+                                    <p class="section-eyebrow">{{ __('admin.dashboard_new.requests_by_gender') }}</p>
+                                    <h4 class="mb-0">{{ __('admin.dashboard_new.requests_by_gender') }}</h4>
+                                </div>
+                                <small>{{ __('admin.dashboard_new.total') }}: {{ number_format($requestGenderStats['total'] ?? 0) }}</small>
+                            </div>
+                            <div class="chart-holder" style="height: 260px;">
+                                <canvas id="requestGenderChart"
+                                    aria-label="{{ __('admin.dashboard_new.requests_by_gender') }}" role="img"></canvas>
+                            </div>
+                            <ul class="legend-list">
+                                <li>
+                                    <span>{{ __('admin.dashboard_new.male') }}</span>
+                                    <strong>{{ number_format($requestGenderStats['male'] ?? 0) }}</strong>
+                                </li>
+                                <li>
+                                    <span>{{ __('admin.dashboard_new.female') }}</span>
+                                    <strong>{{ number_format($requestGenderStats['female'] ?? 0) }}</strong>
+                                </li>
+                                <li>
+                                    <span>{{ __('admin.dashboard_new.unspecified') }}</span>
+                                    <strong>{{ number_format($requestGenderStats['unknown'] ?? 0) }}</strong>
+                                </li>
+                            </ul>
+                            <a href="{{ route('orders.index', $dashboardBranchQuery) }}" class="stat-meta stat-link d-inline-block mt-2">
+                                {{ __('admin.dashboard_new.view') }} <i class="fas fa-arrow-left ms-1"></i>
+                            </a>
                         </div>
                     </div>
                 @endif
