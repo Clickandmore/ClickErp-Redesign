@@ -1,7 +1,7 @@
 @extends('admin.layout.indexs.index')
 
 @section('style')
-    <link rel="stylesheet" href="{{ asset('admin/assets/css/dashboard-new.css') }}?v=17">
+    <link rel="stylesheet" href="{{ asset('admin/assets/css/dashboard-new.css') }}?v=18">
     <link rel="stylesheet" href="{{ asset('admin/assets/cssbundle/fullcalendar.min.css') }}">
 @endsection
 
@@ -1267,31 +1267,81 @@
                     </div>
                 @endif
                 @if ($canViewRecentActivitiesPanel)
-                    <div class="col-xxl-4 col-lg-3">
+                    <div class="col-12">
                         <div class="panel-card h-100">
                             <div class="panel-head">
                                 <div>
                                     <p class="section-eyebrow">{{ __('admin.dashboard_new.recent_updates') }}</p>
                                     <h4 class="mb-0">{{ __('admin.dashboard_new.recent_activities') }}</h4>
                                 </div>
-                                <small>{{ __('admin.dashboard_new.item_count', ['count' => count($recentActivities ?? [])]) }}</small>
+                                <small>مقسمة حسب الإدارة ومرتبة من الأحدث</small>
                             </div>
-                            <div class="activity-feed">
-                                @forelse($recentActivities ?? [] as $activity)
-                                    <a href="{{ $activity['url'] ?? '#' }}" class="activity-line activity-link">
-                                        <div class="activity-icon">
-                                            <i class="fas fa-{{ $activity['icon'] ?? 'circle' }} text-primary"></i>
+                            <div class="activity-departments-grid">
+                                @foreach ($recentActivityGroups ?? [] as $activityGroup)
+                                    <section class="activity-department-card is-{{ $activityGroup['key'] ?? 'general' }}">
+                                        <header class="activity-department-head">
+                                            <span class="activity-department-icon"><i class="fas fa-{{ $activityGroup['icon'] ?? 'layer-group' }}"></i></span>
+                                            <div>
+                                                <strong>{{ $activityGroup['title'] }}</strong>
+                                                <small>{{ count($activityGroup['items'] ?? []) }} أنشطة حديثة</small>
+                                            </div>
+                                        </header>
+                                        <div class="activity-department-list">
+                                            @forelse($activityGroup['items'] ?? [] as $activity)
+                                                <a href="{{ $activity['url'] ?? '#' }}" class="department-activity-item">
+                                                    <span class="department-activity-item-icon"><i class="fas fa-{{ $activity['icon'] ?? 'circle' }}"></i></span>
+                                                    <span class="department-activity-copy">
+                                                        <strong>{{ $activity['title'] }}</strong>
+                                                        <small>{{ $activity['time'] }}</small>
+                                                    </span>
+                                                    <span class="status-chip {{ $activity['type'] ?? 'info' }}">{{ $activity['status'] }}</span>
+                                                </a>
+                                            @empty
+                                                <div class="empty-state py-3">{{ __('admin.dashboard_new.no_recent_activity') }}</div>
+                                            @endforelse
                                         </div>
-                                        <div class="flex-grow-1">
-                                            <strong class="d-block">{{ $activity['title'] }}</strong>
-                                            <small>{{ $activity['category'] ?? 'تشغيلي' }} · {{ $activity['time'] }}</small>
+                                    </section>
+                                @endforeach
+
+                                @php
+                                    $notificationIcons = [
+                                        'complaint_status_changed' => 'arrow-right-arrow-left',
+                                        'complaint_assigned' => 'user-check',
+                                        'new_complaint' => 'circle-exclamation',
+                                        'financial_request_updated' => 'money-bill-transfer',
+                                        'sponsorship_transfer_created' => 'right-left',
+                                        'sponsorship_transfer_status_changed' => 'right-left',
+                                        'travel_assignment' => 'plane',
+                                        'rental_contract_expiry_response' => 'file-signature',
+                                    ];
+                                @endphp
+                                <section class="activity-department-card is-notifications">
+                                    <header class="activity-department-head">
+                                        <span class="activity-department-icon"><i class="fas fa-bell"></i></span>
+                                        <div>
+                                            <strong>آخر الإشعارات</strong>
+                                            <small>{{ number_format($unreadNotificationsCount ?? 0) }} غير مقروء</small>
                                         </div>
-                                        <span
-                                            class="status-chip {{ $activity['type'] ?? 'info' }}">{{ $activity['status'] }}</span>
-                                    </a>
-                                @empty
-                                    <div class="empty-state">{{ __('admin.dashboard_new.no_recent_activity') }}</div>
-                                @endforelse
+                                    </header>
+                                    <div class="activity-department-list">
+                                        @forelse($recentNotifications ?? [] as $notification)
+                                            <a href="{{ $notification['url'] ?? '#' }}"
+                                                class="department-activity-item notification-activity-item {{ !empty($notification['is_unread']) ? 'is-unread' : '' }}">
+                                                <span class="department-activity-item-icon"><i class="fas fa-{{ $notificationIcons[$notification['type'] ?? ''] ?? 'bell' }}"></i></span>
+                                                <span class="department-activity-copy">
+                                                    <strong>{{ $notification['title'] }}</strong>
+                                                    <span>{{ \Illuminate\Support\Str::limit($notification['message'] ?? '', 75) }}</span>
+                                                    <small>{{ $notification['time'] }}</small>
+                                                </span>
+                                                @if (!empty($notification['is_unread']))
+                                                    <i class="notification-unread-dot" aria-label="غير مقروء"></i>
+                                                @endif
+                                            </a>
+                                        @empty
+                                            <div class="empty-state py-3">لا توجد إشعارات حديثة</div>
+                                        @endforelse
+                                    </div>
+                                </section>
                             </div>
                         </div>
                     </div>

@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('commission_marketer_overrides')) {
+            return;
+        }
+
         Schema::create('commission_marketer_overrides', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('admin_id');

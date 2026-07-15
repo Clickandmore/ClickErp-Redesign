@@ -9,6 +9,7 @@ use App\Enums\ingaz\OrderEnum;
 use App\Http\Actions\dashboard\DashboardAction as objAction;
 use App\PermKeys;
 use App\Models\Branch;
+use App\Models\AdminNotification;
 use App\Models\auth\Admin;
 use App\Models\Contract;
 use App\Models\IngazDelegation;
@@ -1145,6 +1146,7 @@ class DashboardController extends Controller
                 'type' => $contract->status == ContractStatusEnum::Completed->value ? 'success' : 'warning',
                 'status' => \App\Support\RecruitmentContractStageLabels::label($contract->status) ?? $contract->status,
                 'category' => 'تشغيلي',
+                'department' => 'contracts',
                 'url' => route('RecruitmentContract.show', $contract->id),
             ]);
         }
@@ -1166,6 +1168,7 @@ class DashboardController extends Controller
                 'type' => $trip->status === 'completed' ? 'success' : 'info',
                 'status' => __('travel_types.status.' . $trip->status),
                 'category' => 'تشغيلي',
+                'department' => 'travel',
                 'url' => $isDeportation ? route('DeportationTravel.index') : route('travel'),
             ]);
         }
@@ -1189,6 +1192,7 @@ class DashboardController extends Controller
                     'type' => $isApproved ? 'success' : 'warning',
                     'status' => $isApproved ? 'معتمد' : 'بانتظار الاعتماد',
                     'category' => 'مالي',
+                    'department' => 'finance',
                     'url' => route('finance.constraints.show', $constraint->id),
                 ]);
             }
@@ -1206,6 +1210,63 @@ class DashboardController extends Controller
             ->take(8)
             ->values()
             ->all();
+
+        $recentActivityGroups = [
+            [
+                'key' => 'contracts',
+                'title' => 'إدارة العقود',
+                'icon' => 'file-contract',
+                'items' => $operationalActivities
+                    ->where('department', 'contracts')
+                    ->sortByDesc(fn (array $activity) => optional($activity['occurred_at'] ?? null)->timestamp ?? 0)
+                    ->take(4)
+                    ->values()
+                    ->all(),
+            ],
+            [
+                'key' => 'travel',
+                'title' => 'إدارة الرحلات',
+                'icon' => 'plane',
+                'items' => $operationalActivities
+                    ->where('department', 'travel')
+                    ->sortByDesc(fn (array $activity) => optional($activity['occurred_at'] ?? null)->timestamp ?? 0)
+                    ->take(4)
+                    ->values()
+                    ->all(),
+            ],
+            [
+                'key' => 'finance',
+                'title' => 'الإدارة المالية',
+                'icon' => 'coins',
+                'items' => $financialActivities
+                    ->sortByDesc(fn (array $activity) => optional($activity['occurred_at'] ?? null)->timestamp ?? 0)
+                    ->take(4)
+                    ->values()
+                    ->all(),
+            ],
+        ];
+
+        $recentNotifications = collect();
+        $unreadNotificationsCount = 0;
+        $currentAdminId = auth('admin')->id();
+        if ($currentAdminId && Schema::hasTable('admin_notifications')) {
+            $notificationQuery = AdminNotification::query()->where('admin_id', $currentAdminId);
+            $unreadNotificationsCount = (clone $notificationQuery)->whereNull('read_at')->count();
+            $recentNotifications = $notificationQuery
+                ->latest()
+                ->limit(5)
+                ->get()
+                ->map(fn (AdminNotification $notification) => [
+                    'id' => $notification->id,
+                    'title' => $notification->title,
+                    'message' => $notification->message,
+                    'type' => $notification->type,
+                    'url' => $notification->link ?: '#',
+                    'time' => optional($notification->created_at)->diffForHumans(),
+                    'is_unread' => $notification->read_at === null,
+                ])
+                ->values();
+        }
 
         $calendarEvents = [];
 
@@ -1295,6 +1356,9 @@ class DashboardController extends Controller
             'nationalityLabels',
             'nationalityData',
             'recentActivities',
+            'recentActivityGroups',
+            'recentNotifications',
+            'unreadNotificationsCount',
             'calendarEvents',
             'contractStatusBreakdown',
             'ordersStatusBreakdown',

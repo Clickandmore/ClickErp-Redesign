@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('commission_batch_items')) {
+            return;
+        }
+
         Schema::create('commission_batch_items', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('batch_id');
