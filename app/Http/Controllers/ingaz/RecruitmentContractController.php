@@ -1665,6 +1665,7 @@ class RecruitmentContractController extends Controller
             'info.manualMaidNationality',
             'info.manualMaidOffice',
             'info.shelter',
+            'travelHistory',
             'externalOfficeDispatch',
             'sponsorshipTransfers.oldSponsor',
             'sponsorshipTransfers.newSponsor',

@@ -680,13 +680,13 @@
             });
 
             $('#search_contract_number_btn').on('click', function() {
-                searchContractByNumber($('#contract_number_search').val());
+                searchContractByNumber($('#contract_number_search').val(), false, true);
             });
 
             $('#contract_number_search').on('keypress', function(e) {
                 if (e.which === 13) {
                     e.preventDefault();
-                    searchContractByNumber($(this).val());
+                    searchContractByNumber($(this).val(), false, true);
                 }
             });
 
@@ -865,6 +865,9 @@
                                 .removeClass('text-success')
                                 .addClass('text-danger')
                                 .text('لم يتم العثور على عقد مؤهل للإيواء. يجب أن يكون العقد في مرحلة وصول/ضمان/مكتمل وتاريخ الوصول مسجلًا وغير مستقبلي.');
+                            if (response.ineligibility && response.ineligibility.message) {
+                                $('#contract_search_feedback').text(response.ineligibility.message);
+                            }
                             return;
                         }
 

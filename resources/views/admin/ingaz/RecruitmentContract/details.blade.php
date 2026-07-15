@@ -34,6 +34,12 @@
     $contractExpiryDate = $contractDate
         ? $contractDate->copy()->addYears((int) ($info->contract_duration ?: 2))
         : null;
+    $arrivalDateForDisplay = $info->arrival_date
+        ?: optional($contract->travelHistory)->arrival_date
+        ?: optional($contract->maid)->arrival_date;
+    $arrivalDateLabel = $arrivalDateForDisplay
+        ? \Carbon\Carbon::parse($arrivalDateForDisplay)->format('Y-m-d')
+        : 'غير محدد';
     $contractDurationLabel = match ((int) ($info->contract_duration ?? 0)) {
         1 => 'سنة واحدة',
         2 => 'سنتان',
@@ -1009,6 +1015,12 @@
                         <span class="overview-label">المرحلة الحالية</span>
                         <div class="overview-value">{{ $statusTimeline['current_stage_label'] ?? 'غير محدد' }}</div>
                         <div class="overview-meta">{{ $statusTimeline['current_stage_duration'] ?? 'لا توجد مدة محسوبة' }}</div>
+                    </div>
+
+                    <div class="overview-card">
+                        <span class="overview-label">تاريخ الوصول</span>
+                        <div class="overview-value">{{ $arrivalDateLabel }}</div>
+                        <div class="overview-meta">يعتمد عليه في أهلية الإيواء والضمان</div>
                     </div>
 
                     <div class="overview-card">
