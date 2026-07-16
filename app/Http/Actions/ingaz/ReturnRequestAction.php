@@ -73,6 +73,7 @@ class ReturnRequestAction extends MainAction
             "order_id" => $notification->order_id,
         ];
         if($data['status'] == 'accept'){
+            $maid->status = 'available';
             $maid->available = 1;
             $maid->available_at = Carbon::now();
             $maid->save();

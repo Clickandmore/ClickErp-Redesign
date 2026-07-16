@@ -413,8 +413,11 @@ class ContractController extends Controller
                 'status' => $contractData['contract_status'] ?? 'active',
             ]);
 
-            // Update maid status
-            $maid->update(['status' => 'contracted']);
+            // A contracted maid cannot also remain immediately available.
+            $maid->update([
+                'status' => 'contracted',
+                'available' => false,
+            ]);
 
             DB::commit();
 
