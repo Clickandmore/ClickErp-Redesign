@@ -116,6 +116,18 @@ class Order extends Model
         return $this->hasMany(\App\Models\RentalContract::class, 'order_id');
     }
 
+    public function rentalOrderPayments()
+    {
+        return $this->hasMany(\App\Models\RentalOrderPayment::class, 'order_id');
+    }
+
+    public function latestMoyasarPayment()
+    {
+        return $this->hasOne(\App\Models\RentalOrderPayment::class, 'order_id')
+            ->where('provider', \App\Models\RentalOrderPayment::PROVIDER_MOYASAR)
+            ->latestOfMany();
+    }
+
     public function resolveResponsibleAdmin(): ?Admin
     {
         if ($this->details?->admin) {

@@ -7,10 +7,13 @@ use App\Http\Controllers\Controller;
 use App\Models\ingaz\Contact;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\Order;
+use App\Models\ingaz\OrderDetail;
+use App\Models\ingaz\Package;
 use App\Models\ingaz\RecruitmentRequest;
 use App\Models\ingaz\UserFirebaseToken;
 use App\Models\TravelHistory;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
 class AppOrderController extends Controller
@@ -29,6 +32,7 @@ class AppOrderController extends Controller
             'user',
             'customer',
             'details.admin',
+            'latestMoyasarPayment',
         ])->where('user_id', auth('api')->id());
 
         if ($status === 'current') {
@@ -66,6 +70,7 @@ class AppOrderController extends Controller
             'user',
             'customer',
             'details.admin',
+            'latestMoyasarPayment',
         ])
             ->where('user_id', auth('api')->id())
             ->findOrFail($id);
@@ -104,10 +109,10 @@ class AppOrderController extends Controller
         ], 'تم إرسال طلبك الخاص بنجاح');
     }
 
-    public function createOrder(int $id)
+    public function createOrder(Request $request, int $id)
     {
         $maid = Maid::with('jobTypes')->findOrFail($id);
-        $jobType = $maid->jobTypes->first();
+        $jobType = $maid->jobTypes->firstWhere('id', 2);
 
         if (!$jobType) {
             return response()->json([
@@ -134,15 +139,71 @@ class AppOrderController extends Controller
             ], 422);
         }
 
-        RecruitmentRequest::create([
-            'user_id' => auth('api')->id(),
-            'maid_id' => $maid->id,
-            'job_type_id' => $jobType->id,
+        $validator = Validator::make($request->all(), [
+            'package_id' => ['nullable', 'integer', 'exists:packages,id'],
+            'address_id' => ['nullable', 'integer', 'exists:user_addresses,id'],
         ]);
+
+        if ($validator->fails()) {
+            return jsonValid($validator->errors(), $validator->errors()->first());
+        }
+
+        $package = null;
+        if ($request->filled('package_id')) {
+            $package = Package::query()
+                ->visible()
+                ->forNationality($maid->nationality_id)
+                ->find((int) $request->input('package_id'));
+
+            if (!$package) {
+                return response()->json([
+                    'success' => false,
+                    'msg' => 'الباقة المختارة غير متاحة لهذه العاملة.',
+                ], 422);
+            }
+        }
+
+        if ($request->filled('address_id')) {
+            $ownsAddress = \App\Models\ingaz\UserAddress::query()
+                ->whereKey((int) $request->input('address_id'))
+                ->where('user_id', auth('api')->id())
+                ->exists();
+
+            if (!$ownsAddress) {
+                return response()->json([
+                    'success' => false,
+                    'msg' => 'العنوان المختار غير صحيح.',
+                ], 422);
+            }
+        }
+
+        $order = DB::transaction(function () use ($request, $maid, $jobType, $package) {
+            $order = RecruitmentRequest::create([
+                'user_id' => auth('api')->id(),
+                'maid_id' => $maid->id,
+                'job_type_id' => $jobType->id,
+            ]);
+
+            if ($package) {
+                OrderDetail::create([
+                    'order_id' => $order->id,
+                    'package_id' => $package->id,
+                    'address_id' => $request->input('address_id'),
+                ]);
+            }
+
+            return $order;
+        });
 
         return response()->json([
             'success' => true,
             'msg' => 'تم تنفيذ طلبك بنجاح',
+            'data' => [
+                'order_id' => (int) $order->id,
+                'payment_endpoint' => $package
+                    ? url('/api/user/orders/' . $order->id . '/payments/moyasar')
+                    : null,
+            ],
         ], 200);
     }
 
@@ -171,6 +232,11 @@ class AppOrderController extends Controller
             'admin_whats_link' => $this->resolveWhatsappLink($admin?->whatsapp_phone ?? $admin?->phone),
             'phone' => (string) ($admin?->phone ?? ''),
             'user_id' => (int) $order->user_id,
+            'payment' => [
+                'status' => (string) ($order->latestMoyasarPayment?->status ?? 'not_started'),
+                'is_paid' => $order->latestMoyasarPayment?->status === \App\Models\RentalOrderPayment::STATUS_PAID,
+                'payment_url' => $order->latestMoyasarPayment?->payment_url,
+            ],
             'user' => [
                 'id' => (int) ($user?->id ?? 0),
                 'name' => (string) ($user?->name ?? ''),

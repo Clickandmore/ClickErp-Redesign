@@ -8,6 +8,7 @@ use App\Http\Controllers\APPAPIControllers\AuthController as AppAuthController;
 use App\Http\Controllers\APPAPIControllers\AppHomeController;
 use App\Http\Controllers\APPAPIControllers\AppOrderController;
 use App\Http\Controllers\APPAPIControllers\AppComplaintController;
+use App\Http\Controllers\APPAPIControllers\RentalOrderPaymentController;
 use App\Http\Middleware\AppApiLang;
 use App\Http\Controllers\Webhook\WhatsAppWebhookController;
 use \Api\ApiSettingController;
@@ -207,7 +208,18 @@ Route::group(['middleware' => AppApiLang::class, 'prefix' => 'user'], function (
     Route::get('orders/{id}', [AppOrderController::class, 'orderDetails'])->middleware('auth:api');
     Route::post('special-requests', [AppOrderController::class, 'createSpecialRequest'])->middleware('auth:api');
     Route::post('complaints', [AppComplaintController::class, 'addComplaint'])->middleware('auth:api');
+    Route::post('orders/{order}/payments/moyasar', [RentalOrderPaymentController::class, 'store'])
+        ->whereNumber('order')
+        ->middleware('auth:api');
+    Route::get('orders/{order}/payments/moyasar', [RentalOrderPaymentController::class, 'show'])
+        ->whereNumber('order')
+        ->middleware('auth:api');
 });
+
+Route::get('app/payments/moyasar/callback', [RentalOrderPaymentController::class, 'callback'])
+    ->name('api.app.moyasar.callback');
+Route::post('app/payments/moyasar/webhook', [RentalOrderPaymentController::class, 'webhook'])
+    ->name('api.app.moyasar.webhook');
 
 Route::group(['middleware' => AppApiLang::class, 'prefix' => 'home'], function () {
     Route::post('complete_request/{id}', [AppOrderController::class, 'createOrder'])->middleware('auth:api');

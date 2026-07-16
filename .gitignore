@@ -6,6 +6,7 @@
 /vendor
 .env
 .env.backup
+/storage/app/firebase
 .phpunit.result.cache
 error_log
 docker-compose.override.yml

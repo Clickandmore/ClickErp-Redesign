@@ -3,40 +3,37 @@
 namespace App\Http\Traits;
 
 use App\Models\ingaz\UserFirebaseToken;
-use Illuminate\Support\Facades\Http;
+use App\Services\Firebase\FirebasePushService;
 
+/**
+ * واجهة توافقية للكود القديم.
+ *
+ * التنفيذ الفعلي انتقل إلى App\Services\Firebase\FirebasePushService بعد إغلاق
+ * جوجل لواجهة FCM القديمة (fcm.googleapis.com/fcm/send) في يونيو 2024.
+ * التوقيع لم يتغيّر حتى تستمر مواضع الاستدعاء الحالية بالعمل كما هي.
+ */
 trait Firebase
 {
-    public function sendFCMNotification($title, $message, $id,$data = [])
+    /**
+     * @param  string     $title
+     * @param  string     $message
+     * @param  int|null   $id       معرّف المستخدم المستلم
+     * @param  array      $data     حمولة إضافية تصل للتطبيق
+     * @return array  حصيلة الإرسال (success_count / failure_count / …)
+     */
+    public function sendFCMNotification($title, $message, $id, $data = [])
     {
-        $serverKey = 'AAAAS3wslyE:APA91bECJfsgdTKrh7AeXc_LL9IYe9SGKwwgjtco5GXuzybA_CuIGCdxIOtuOs8P5ty5CPzgKmio3rY1qOUlk6qM5lsKSrSCO5uo7xyhjLhlWwOYhmHjOVErwLcBCLI3aj0j3myVf0lh';
-        $url = 'https://fcm.googleapis.com/fcm/send';
-        $recipientTokens = $this->getRecipientTokens($id);
-        // dd($recipientTokens);
-        $data = [
-            'notification' => [
-                'title' => $title,
-                'body' => $message,
-            ],
-            'registration_ids' => $recipientTokens,
-            'data' => $data,
-        ];
-        // dd($data);
+        if (empty($id)) {
+            return ['success_count' => 0, 'failure_count' => 0, 'skipped' => true];
+        }
 
-        $headers = [
-            'Authorization' => 'key=' . $serverKey,
-            'Content-Type' => 'application/json',
-        ];
-
-        $response = Http::withHeaders($headers)
-            ->post($url, $data);
-        // dd($response);
-        return $response->body();
+        return app(FirebasePushService::class)
+            ->sendToUser((int) $id, (string) $title, (string) $message, (array) $data)
+            ->toArray();
     }
 
     public function getRecipientTokens($userId)
     {
         return UserFirebaseToken::where('user_id', $userId)->pluck('phone_token')->toArray();
     }
-
 }

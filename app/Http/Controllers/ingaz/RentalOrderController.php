@@ -45,7 +45,8 @@ class RentalOrderController extends Controller
                 'jobType',
                 'details.admin',
                 'customer',
-                'rentalContracts'
+                'rentalContracts',
+                'latestMoyasarPayment'
             ]);
 
             // Order by created_at desc to show newest orders first
@@ -184,7 +185,15 @@ class RentalOrderController extends Controller
                            return '<span class="badge bg-warning status-badge">لم يتم تحديد العنوان</span>';
                        })
                        ->addColumn('payment_status', function ($row) {
-                           // Assuming payment_method indicates payment status
+                           if ($row->latestMoyasarPayment) {
+                               if ($row->latestMoyasarPayment->status === \App\Models\RentalOrderPayment::STATUS_PAID) {
+                                   return '<span class="badge bg-success status-badge">تم الدفع</span>';
+                               }
+
+                               return '<span class="badge bg-warning status-badge">لم يتم الدفع</span>';
+                           }
+
+                           // Keep the legacy display for orders created before payment tracking was introduced.
                            if ($row->payment_method && $row->payment_method !== 'cash') {
                                return '<span class="badge bg-success status-badge">تم الدفع</span>';
                            }
