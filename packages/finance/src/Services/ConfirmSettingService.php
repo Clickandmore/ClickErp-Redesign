@@ -30,10 +30,7 @@ class ConfirmSettingService extends MainService
     {
         return Account::query()
             ->whereDoesntHave('children')
-            ->where(function ($query) {
-                $query->underMusanedParent()
-                    ->orWhere('name', 'like', '%مساند%');
-            })
+            ->musanedAccountCandidate()
             ->orderBy('code')
             ->get();
     }
@@ -41,10 +38,7 @@ class ConfirmSettingService extends MainService
     public function getMusanedSourceAccounts()
     {
         return Account::query()
-            ->where(function ($query) {
-                $query->underMusanedParent()
-                    ->orWhere('name', 'like', '%مساند%');
-            })
+            ->musanedAccountCandidate()
             ->orderBy('code')
             ->get()
             ->unique('id')

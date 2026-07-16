@@ -2369,7 +2369,7 @@ class InvoiceController extends Controller
     {
         return Account::query()
             ->whereKey($accountId)
-            ->underMusanedParent()
+            ->musanedAccountCandidate()
             ->first();
     }
 

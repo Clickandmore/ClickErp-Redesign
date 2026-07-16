@@ -64,6 +64,26 @@ class Account extends Finance
         });
     }
 
+    public function scopeMusanedAccountCandidate($query)
+    {
+        return $query
+            ->where('status', AccountStatusEnum::Debtor->value)
+            ->where(function ($accountQuery) {
+                $accountQuery->underMusanedParent()
+                    ->orWhere(function ($namedAccountQuery) {
+                        $namedAccountQuery
+                            ->where('name', 'like', '%مساند%')
+                            ->whereIn('type', [
+                                AccountTypesEnum::Banks->value,
+                                AccountTypesEnum::Bank->value,
+                                AccountTypesEnum::Boxs->value,
+                                AccountTypesEnum::Box->value,
+                                AccountTypesEnum::BankName->value,
+                            ]);
+                    });
+            });
+    }
+
     public function admin()
     {
         return $this->belongsTo(Admin::class, 'created_by_id');
