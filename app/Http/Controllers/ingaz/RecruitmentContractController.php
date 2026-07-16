@@ -3788,7 +3788,39 @@ class RecruitmentContractController extends Controller
         ]);
     }
 
-    public function exportPdf()
+    private function recruitmentContractExportQuery(Request $request)
+    {
+        $query = Contract::query()->with([
+            'user',
+            'maid',
+            'info',
+            'sponsorshipTransfers.oldSponsor',
+        ]);
+
+        $statusFilter = $this->getStatusFilterForRequest($request);
+
+        if ($statusFilter !== ContractStatusEnum::Shelter->value) {
+            $query->whereIn('type', ['recruitment', 'maid']);
+        }
+
+        $this->applyContractFilters($query, $request);
+
+        if ($request->filled('marketer_id')) {
+            $query->where(function ($marketerQuery) use ($request) {
+                $marketerQuery
+                    ->where('marketer_id', $request->marketer_id)
+                    ->orWhereHas('order.details', function ($orderDetailsQuery) use ($request) {
+                        $orderDetailsQuery->where('admin_id', $request->marketer_id);
+                    });
+            });
+        }
+
+        $this->applyRequestBranchFilter($query, $request, 'contracts');
+
+        return $query;
+    }
+
+    public function exportPdf(Request $request)
     {
         // التحقق من صلاحية تصدير العقود
         if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_EXPORT)) {
@@ -3798,7 +3830,8 @@ class RecruitmentContractController extends Controller
             ], 403);
         }
 
-        $contracts = Contract::RecruitmentContract()->with('user', 'maid', 'info')->get();
+        // Read records in small batches so large tenants do not exhaust PHP memory.
+        $contracts = $this->recruitmentContractExportQuery($request)->lazyById(250);
 
         // Create HTML content with RTL support and better styling
         $html = '<!DOCTYPE html>
@@ -3930,7 +3963,7 @@ class RecruitmentContractController extends Controller
         return response($html, 200, $headers);
     }
 
-    public function exportExcel()
+    public function exportExcel(Request $request)
     {
         // التحقق من صلاحية تصدير العقود
         if (!@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_EXPORT)) {
@@ -3940,7 +3973,8 @@ class RecruitmentContractController extends Controller
             ], 403);
         }
 
-        $contracts = Contract::RecruitmentContract()->with('user', 'maid', 'info')->get();
+        // Keep only one batch of Eloquent models in memory while building the sheet.
+        $contracts = $this->recruitmentContractExportQuery($request)->lazyById(250);
 
         // Create new Spreadsheet object
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
@@ -5140,14 +5174,14 @@ class RecruitmentContractController extends Controller
 
         // فلتر رقم جوال العميل
         if ($request->filled('client_phone')) {
-            $query->whereHas('user', function ($q) use ($request) {
+            $this->applyDisplayedClientFilter($query, function ($q) use ($request) {
                 $q->where('phone', 'like', '%' . $request->client_phone . '%');
             });
         }
 
         // فلتر اسم العميل
         if ($request->filled('client_name')) {
-            $query->whereHas('user', function ($q) use ($request) {
+            $this->applyDisplayedClientFilter($query, function ($q) use ($request) {
                 $q->where('name', 'like', '%' . $request->client_name . '%');
             });
         }
@@ -5198,7 +5232,7 @@ class RecruitmentContractController extends Controller
 
         // فلتر مدينة العميل
         if ($request->filled('city')) {
-            $query->whereHas('user', function ($q) use ($request) {
+            $this->applyDisplayedClientFilter($query, function ($q) use ($request) {
                 $q->where('city', 'like', '%' . $request->city . '%');
             });
         }
