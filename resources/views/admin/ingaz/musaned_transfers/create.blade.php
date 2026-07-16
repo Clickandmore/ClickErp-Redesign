@@ -127,39 +127,11 @@
             </div>
         @endif
 
-        @if ($eligibleInvoices->isEmpty())
+        @if (!$hasEligibleInvoices)
             <div class="alert alert-info">
                 لا توجد فواتير مؤهلة حالياً لتسجيل تحويل مساند. يجب أن تكون الفاتورة موجودة ولم يُسجل لها تحويل سابق.
             </div>
         @else
-            @php
-                $invoiceOptions = $eligibleInvoices
-                    ->map(function ($invoice) {
-                        $contract = $invoice->contract;
-                        $delegation = $invoice->ingazDelegation;
-                        $clientName = $contract?->user?->name ?: ($delegation?->user?->name ?: 'غير محدد');
-                        $msanedNumber = $contract?->info?->msaned_number ?: ($delegation?->msaned_contract_number ?: '-');
-                        $sourceType = $contract ? 'contract' : 'delegation';
-                        $sourceId = $contract?->id ?: $delegation?->id;
-                        $sourceLabel = $contract ? ('عقد #' . $contract->id) : ('تفويض #' . $delegation?->id);
-
-                        return [
-                            'contract_id' => $contract?->id,
-                            'ingaz_delegation_id' => $delegation?->id,
-                            'source_type' => $sourceType,
-                            'source_id' => $sourceId,
-                            'source_key' => $sourceType . ':' . $sourceId,
-                            'invoice_id' => $invoice->id,
-                            'label' => $sourceLabel . ' - ' . $clientName . ' - مساند ' . $msanedNumber,
-                            'client_name' => $clientName,
-                            'msaned_number' => $msanedNumber,
-                            'invoice_total' => (float) $invoice->total_due,
-                        ];
-                    })
-                    ->filter(fn ($item) => !empty($item['source_id']))
-                    ->values();
-            @endphp
-
             <form method="POST" action="{{ route('musaned-transfers.store') }}">
                 @csrf
 
@@ -198,7 +170,7 @@
                                     </button>
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center my-2">
-                                    <small class="text-muted">اضغط على العقد المطلوب لإضافته.</small>
+                                    <small class="text-muted">تظهر أحدث العقود غير المحولة، ويمكنك البحث للوصول إلى بقية العقود.</small>
                                     <span class="badge bg-primary" id="selected_sources_count">0 محدد</span>
                                 </div>
                                 <div id="contract_search_results" class="transfer-source-results mb-2"
@@ -309,7 +281,11 @@
             <script>
                 (function() {
                     const expenseTaxRate = {{ json_encode((float) $expenseTaxRate) }};
+                    const searchUrl = @json(route('musaned-transfers.search'));
                     const contractsLookup = @json($invoiceOptions);
+                    let displayedOptions = [];
+                    let searchTimer = null;
+                    let searchSequence = 0;
                     const selectedFromOld = @json(old('items', []));
                     const initialSelectedKeys = @json(
                         collect(old('items', []))
@@ -397,10 +373,10 @@
                         return normalizeSearch(searchText).includes(normalizedTerm);
                     }
 
-                    function renderSearchResults() {
+                    function renderSearchResults(message) {
                         const normalizedTerm = normalizeSearch(searchInput ? searchInput.value : '');
                         const selectedKeys = new Set(getSelectedKeys());
-                        const matches = contractsLookup
+                        const matches = displayedOptions
                             .filter(option => sourceMatchesSearch(option, normalizedTerm))
                             .slice(0, 50);
 
@@ -410,7 +386,7 @@
                         if (!matches.length) {
                             const emptyMessage = document.createElement('div');
                             emptyMessage.className = 'text-center text-muted py-3 px-2';
-                            emptyMessage.textContent = 'لا توجد نتائج مطابقة للبحث.';
+                            emptyMessage.textContent = message || 'لا توجد نتائج مطابقة للبحث.';
                             searchResults.appendChild(emptyMessage);
                             return;
                         }
@@ -440,6 +416,57 @@
 
                             searchResults.appendChild(result);
                         });
+                    }
+
+                    function mergeOptions(options) {
+                        options.forEach(function(option) {
+                            if (!contractsLookup.some(item => item.source_key === option.source_key)) {
+                                contractsLookup.push(option);
+                            }
+
+                            if (!Array.from(selector.options).some(item => item.value === option.source_key)) {
+                                const selectorOption = document.createElement('option');
+                                selectorOption.value = option.source_key;
+                                selectorOption.textContent = option.label;
+                                selector.appendChild(selectorOption);
+                            }
+                        });
+                    }
+
+                    function searchSources() {
+                        const term = searchInput ? searchInput.value.trim() : '';
+                        const currentSequence = ++searchSequence;
+
+                        if (normalizeSearch(term).length === 1) {
+                            displayedOptions = [];
+                            renderSearchResults('اكتب حرفين على الأقل للبحث.');
+                            return;
+                        }
+
+                        renderSearchResults('جارٍ البحث...');
+                        fetch(`${searchUrl}?q=${encodeURIComponent(term)}`, {
+                            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                        })
+                            .then(response => {
+                                if (!response.ok) {
+                                    throw new Error('Search request failed');
+                                }
+                                return response.json();
+                            })
+                            .then(payload => {
+                                if (currentSequence !== searchSequence) {
+                                    return;
+                                }
+                                displayedOptions = Array.isArray(payload.data) ? payload.data : [];
+                                mergeOptions(displayedOptions);
+                                renderSearchResults();
+                            })
+                            .catch(() => {
+                                if (currentSequence === searchSequence) {
+                                    displayedOptions = [];
+                                    renderSearchResults('تعذر إتمام البحث. حاول مرة أخرى.');
+                                }
+                            });
                     }
 
                     function calculateExpenseTax(commission) {
@@ -647,11 +674,14 @@
                     }
 
                     if (searchInput) {
-                        searchInput.addEventListener('input', renderSearchResults);
+                        searchInput.addEventListener('input', function() {
+                            window.clearTimeout(searchTimer);
+                            searchTimer = window.setTimeout(searchSources, 250);
+                        });
                         searchInput.addEventListener('keydown', function(event) {
                             if (event.key === 'Escape') {
                                 searchInput.value = '';
-                                renderSearchResults();
+                                searchSources();
                             }
 
                             if (event.key === 'Enter') {
@@ -667,7 +697,7 @@
                     if (clearSearchButton) {
                         clearSearchButton.addEventListener('click', function() {
                             searchInput.value = '';
-                            renderSearchResults();
+                            searchSources();
                             searchInput.focus();
                         });
                     }
@@ -679,7 +709,7 @@
                     }
 
                     renderRows();
-                    renderSearchResults();
+                    searchSources();
                 })();
             </script>
         @endif

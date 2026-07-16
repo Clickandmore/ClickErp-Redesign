@@ -486,6 +486,12 @@ class AdminRoutePermissionMatrix
                 PermKeys::REC_CONTRACTS_CREATE,
                 PermKeys::REC_CONTRACTS_MANAGE,
             ],
+            'musaned-transfers.search' => [
+                PermKeys::MUSANED_TRANSFERS_CREATE,
+                PermKeys::MUSANED_TRANSFERS_CONTROL,
+                PermKeys::REC_CONTRACTS_CREATE,
+                PermKeys::REC_CONTRACTS_MANAGE,
+            ],
             'musaned-transfers.store' => [
                 PermKeys::MUSANED_TRANSFERS_CREATE,
                 PermKeys::MUSANED_TRANSFERS_CONTROL,

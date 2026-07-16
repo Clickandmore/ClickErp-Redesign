@@ -44,8 +44,6 @@ class MusanedTransferController extends Controller
 
     public function create(Request $request)
     {
-        $eligibleInvoices = $this->getEligibleInvoicesQuery()->get();
-
         $selectedContractIds = collect((array) $request->query('contract_ids', []))
             ->push($request->query('contract_id'))
             ->filter()
@@ -62,26 +60,83 @@ class MusanedTransferController extends Controller
             ->values()
             ->all();
 
-        $selectedContractIds = array_values(array_intersect(
-            $selectedContractIds,
-            $eligibleInvoices->pluck('contract_id')->all()
-        ));
+        $oldItems = collect((array) session()->getOldInput('items', []));
+        $selectedContractIds = collect($selectedContractIds)
+            ->merge($oldItems->pluck('contract_id'))
+            ->filter()
+            ->map(fn ($value) => (int) $value)
+            ->unique()
+            ->values()
+            ->all();
+        $selectedIngazDelegationIds = collect($selectedIngazDelegationIds)
+            ->merge($oldItems->pluck('ingaz_delegation_id'))
+            ->filter()
+            ->map(fn ($value) => (int) $value)
+            ->unique()
+            ->values()
+            ->all();
 
-        $selectedIngazDelegationIds = array_values(array_intersect(
-            $selectedIngazDelegationIds,
-            $eligibleInvoices->pluck('ingaz_delegation_id')->filter()->all()
-        ));
+        $selectedInvoices = collect();
+        if ($selectedContractIds || $selectedIngazDelegationIds) {
+            $selectedInvoices = $this->getEligibleInvoicesQuery()
+                ->where(function ($query) use ($selectedContractIds, $selectedIngazDelegationIds) {
+                    if ($selectedContractIds) {
+                        $query->orWhereIn('contract_id', $selectedContractIds);
+                    }
+
+                    if ($selectedIngazDelegationIds) {
+                        $query->orWhereIn('ingaz_delegation_id', $selectedIngazDelegationIds);
+                    }
+                })
+                ->get();
+        }
+
+        $selectedContractIds = $selectedInvoices->pluck('contract_id')->filter()->map(fn ($id) => (int) $id)->values()->all();
+        $selectedIngazDelegationIds = $selectedInvoices->pluck('ingaz_delegation_id')->filter()->map(fn ($id) => (int) $id)->values()->all();
 
         $bankAccounts = $this->getBankAccounts();
         $expenseTaxRate = $this->resolveExpenseTaxRate();
 
         return view('admin.ingaz.musaned_transfers.create', [
-            'eligibleInvoices' => $eligibleInvoices,
+            'hasEligibleInvoices' => $selectedInvoices->isNotEmpty() || $this->getEligibleInvoicesQuery()->exists(),
+            'invoiceOptions' => $selectedInvoices->map(fn (Invoice $invoice) => $this->invoiceOption($invoice))->values(),
             'selectedContractIds' => $selectedContractIds,
             'selectedIngazDelegationIds' => $selectedIngazDelegationIds,
             'bankAccounts' => $bankAccounts,
             'expenseTaxRate' => $expenseTaxRate,
             'automaticEntriesEnabled' => AutomaticJournalEntries::enabled(),
+        ]);
+    }
+
+    public function search(Request $request)
+    {
+        $term = trim((string) $request->query('q', ''));
+        if ($term !== '' && mb_strlen($term) < 2) {
+            return response()->json(['data' => []]);
+        }
+
+        $query = $this->getEligibleInvoicesQuery();
+        $like = '%' . addcslashes($term, '%_\\') . '%';
+
+        if ($term !== '') {
+            $query->where(function ($query) use ($term, $like) {
+                if (ctype_digit($term)) {
+                    $query->orWhere('contract_id', (int) $term)
+                        ->orWhere('ingaz_delegation_id', (int) $term)
+                        ->orWhere('id', (int) $term);
+                }
+
+                $query->orWhereHas('contract.user', fn ($relation) => $relation->where('name', 'like', $like))
+                    ->orWhereHas('contract.info', fn ($relation) => $relation->where('msaned_number', 'like', $like))
+                    ->orWhereHas('ingazDelegation.user', fn ($relation) => $relation->where('name', 'like', $like))
+                    ->orWhereHas('ingazDelegation', fn ($relation) => $relation->where('msaned_contract_number', 'like', $like));
+            });
+        }
+
+        return response()->json([
+            'data' => $query->orderByDesc('id')->limit(50)->get()
+                ->map(fn (Invoice $invoice) => $this->invoiceOption($invoice))
+                ->values(),
         ]);
     }
 
@@ -530,6 +585,30 @@ class MusanedTransferController extends Controller
         return $invoice->contract_id
             ? ('contract:' . $invoice->contract_id)
             : ('delegation:' . $invoice->ingaz_delegation_id);
+    }
+
+    private function invoiceOption(Invoice $invoice): array
+    {
+        $contract = $invoice->contract;
+        $delegation = $invoice->ingazDelegation;
+        $clientName = $contract?->user?->name ?: ($delegation?->user?->name ?: 'غير محدد');
+        $msanedNumber = $contract?->info?->msaned_number ?: ($delegation?->msaned_contract_number ?: '-');
+        $sourceType = $contract ? 'contract' : 'delegation';
+        $sourceId = $contract?->id ?: $delegation?->id;
+        $sourceLabel = $contract ? ('عقد #' . $contract->id) : ('تفويض #' . $delegation?->id);
+
+        return [
+            'contract_id' => $contract?->id,
+            'ingaz_delegation_id' => $delegation?->id,
+            'source_type' => $sourceType,
+            'source_id' => $sourceId,
+            'source_key' => $sourceType . ':' . $sourceId,
+            'invoice_id' => $invoice->id,
+            'label' => $sourceLabel . ' - ' . $clientName . ' - مساند ' . $msanedNumber,
+            'client_name' => $clientName,
+            'msaned_number' => $msanedNumber,
+            'invoice_total' => (float) $invoice->total_due,
+        ];
     }
 
     private function storeSettlementConstraint(
