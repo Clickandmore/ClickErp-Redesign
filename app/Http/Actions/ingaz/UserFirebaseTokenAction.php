@@ -15,23 +15,28 @@ class UserFirebaseTokenAction extends MainAction
 
     public function storeUserFirebaseToken($data, $request)
     {
-        $data['user_id'] = Auth::user()->id;
+        $userId = Auth::user()->id;
+        $data['user_id'] = $userId;
 
-        $attributes = [
-            'phone_token' => $data['phone_token'],
-            'software_type' => $data['software_type']
-        ];
+        // نطابق على التوكن نفسه لا على نوع الجهاز: المستخدم قد يملك عدة أجهزة
+        // بنفس المنصة، والمطابقة على software_type وحده كانت ستمسح توكن جهازه
+        // الآخر عند كل تسجيل دخول.
+        $this->model->newQuery()->updateOrCreate(
+            [
+                'user_id' => $userId,
+                'phone_token' => $data['phone_token'],
+            ],
+            [
+                'software_type' => $data['software_type'],
+            ]
+        );
 
-        $exist = $this->model->where('user_id', Auth::user()->id)
-            ->where('software_type', $request->software_types)
-            ->first();
-
-        if (isset($exist)) {
-            $exist->update($attributes);
-        } else {
-            $attributes['user_id'] = Auth::user()->id;
-            $this->model->create($attributes);
-        }
+        // نفس الجهاز قد يُصدر توكناً جديداً بعد إعادة تثبيت التطبيق، فنحذف أي
+        // توكن قديم صار مملوكاً لمستخدم آخر (تسجيل دخول بحساب مختلف على الجهاز).
+        $this->model->newQuery()
+            ->where('phone_token', $data['phone_token'])
+            ->where('user_id', '!=', $userId)
+            ->delete();
 
         return $data;
     }
