@@ -4,6 +4,7 @@ namespace Nami\Finance\Services;
 
 use App\Services\ingaz\RentalMaidFinanceService;
 use App\Services\ingaz\ShelterLivingExpenseAccountingService;
+use App\Services\ingaz\NationalityFinanceAccountService;
 use Nami\Finance\MainService;
 use Nami\Finance\Enums\AccountStatusEnum;
 use Nami\Finance\Models\Account;
@@ -30,7 +31,7 @@ class ConfirmSettingService extends MainService
         return Account::query()
             ->whereDoesntHave('children')
             ->where(function ($query) {
-                $query->whereIn('parent_id', [122, 156])
+                $query->underMusanedParent()
                     ->orWhere('name', 'like', '%مساند%');
             })
             ->orderBy('code')
@@ -41,7 +42,7 @@ class ConfirmSettingService extends MainService
     {
         return Account::query()
             ->where(function ($query) {
-                $query->whereIn('parent_id', [122, 156])
+                $query->underMusanedParent()
                     ->orWhere('name', 'like', '%مساند%');
             })
             ->orderBy('code')
@@ -92,7 +93,7 @@ class ConfirmSettingService extends MainService
 
     public function getAllSettings()
     {
-        return $this->model->whereIn('title', array_merge([
+        $titles = array_merge([
             'tax_rate_expenditure',
             'tax_rate_revenue',
             'cost_center',
@@ -121,7 +122,12 @@ class ConfirmSettingService extends MainService
             'cost_center_general_sarf_bond',
             'cost_center_general_qabd_bond',
             'cost_center_account_transfer',
-        ], RentalMaidFinanceService::confirmSettingTitles(), ShelterLivingExpenseAccountingService::confirmSettingTitles()))
+        ], RentalMaidFinanceService::confirmSettingTitles(), ShelterLivingExpenseAccountingService::confirmSettingTitles(), NationalityFinanceAccountService::confirmSettingTitles());
+
+        return $this->model->where(function ($query) use ($titles) {
+            $query->whereIn('title', $titles)
+                ->orWhere('title', 'like', 'nationality_account_%');
+        })
             ->latest('updated_at')
             ->get()
             ->unique('title')

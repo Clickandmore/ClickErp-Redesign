@@ -155,6 +155,18 @@
             margin-top: 5px;
         }
 
+        .invoice-issuance-field .form-control {
+            background: #f8fafc;
+            color: var(--invoice-text);
+            font-weight: 900;
+        }
+
+        .invoice-issuance-field .form-control[type="date"] {
+            background: #fff;
+            direction: ltr;
+            text-align: right;
+        }
+
         .fixed-contract-strip {
             display: flex;
             align-items: center;
@@ -416,6 +428,9 @@
             : 'غير محدد';
         $currentClientIdentityLabel = $currentClient?->documentNumberLabel() ?? helperTrans('ingaz.national_num');
         $currentClientIdentity = $currentClient?->documentNumber() ?? 'غير محدد';
+        $nextInvoiceNumber = $nextInvoiceNumber ?? 1;
+        $invoiceIssuedAt = $invoiceIssuedAt ?? now();
+        $selectedInvoiceDate = old('invoice_date', now()->toDateString());
         $canCreateInvoice = true;
     @endphp
 
@@ -649,23 +664,35 @@
 
                         <div class="mini-section">
                             <div class="mini-title">
-                                <i class="fas fa-calendar-day"></i>
-                                تاريخ الفاتورة
+                                <i class="fas fa-file-circle-check"></i>
+                                بيانات الإصدار
                             </div>
 
                             <div class="row g-3">
-                                <div class="col-md-6 col-lg-4">
+                                <div class="col-md-4 invoice-issuance-field">
+                                    <label class="form-label" for="invoice_number_preview">رقم الفاتورة</label>
+                                    <input type="text" id="invoice_number_preview" class="form-control"
+                                        value="{{ $nextInvoiceNumber }}" readonly aria-readonly="true">
+                                    <div class="field-note">رقم تسلسلي بعد آخر فاتورة، ويُثبت نهائياً عند الحفظ.</div>
+                                </div>
+                                <div class="col-md-4 invoice-issuance-field">
                                     <label class="form-label" for="invoice_date">
                                         تاريخ الفاتورة
                                         <span class="text-danger">*</span>
                                     </label>
                                     <input type="date" name="invoice_date" id="invoice_date"
                                         class="form-control @error('invoice_date') is-invalid @enderror"
-                                        value="{{ old('invoice_date', now()->toDateString()) }}" required>
+                                        value="{{ $selectedInvoiceDate }}" required>
                                     @error('invoice_date')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
-                                    <div class="field-note">التاريخ الافتراضي هو تاريخ اليوم، ويمكن تغييره يدوياً قبل إصدار الفاتورة.</div>
+                                    <div class="field-note">يمكن تغيير تاريخ الفاتورة قبل الإصدار.</div>
+                                </div>
+                                <div class="col-md-4 invoice-issuance-field">
+                                    <label class="form-label" for="invoice_issued_at_preview">تاريخ الإصدار</label>
+                                    <input type="text" id="invoice_issued_at_preview" class="form-control"
+                                        value="{{ $invoiceIssuedAt->format('d/m/Y - H:i') }}" readonly aria-readonly="true">
+                                    <div class="field-note">وقت إنشاء الفاتورة في النظام.</div>
                                 </div>
                             </div>
                         </div>
@@ -862,6 +889,18 @@
                                         <strong class="meta-value"
                                             id="previewClientPhone">{{ $currentClientPhone }}</strong>
                                     </div>
+                                    <div class="meta-item">
+                                        <span class="meta-label">رقم الفاتورة</span>
+                                        <strong class="meta-value" id="previewInvoiceNumber">#{{ $nextInvoiceNumber }}</strong>
+                                    </div>
+                                    <div class="meta-item">
+                                        <span class="meta-label">تاريخ الفاتورة</span>
+                                        <strong class="meta-value" id="previewInvoiceDate">{{ \Carbon\Carbon::parse($selectedInvoiceDate)->format('d/m/Y') }}</strong>
+                                    </div>
+                                    <div class="meta-item">
+                                        <span class="meta-label">تاريخ الإصدار</span>
+                                        <strong class="meta-value" id="previewInvoiceIssuedAt">{{ $invoiceIssuedAt->format('d/m/Y - H:i') }}</strong>
+                                    </div>
                                 </div>
                             </div>
 
@@ -996,6 +1035,11 @@
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                 })} ريال`;
+            }
+
+            function formatInvoiceDate(value) {
+                const parts = String(value || '').split('-');
+                return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : '---';
             }
 
             function setPreviewValue(selector, value, fallback = 'غير محدد') {
@@ -1229,6 +1273,9 @@
 
             $('.calc-input').on('input', updateCalculation);
             $('.general-label-input').on('input', updateCalculation);
+            $('#invoice_date').on('change input', function() {
+                $('#previewInvoiceDate').text(formatInvoiceDate($(this).val()));
+            });
             $('#contract_id').on('change', updateContractPreview);
             $('#invoice_mode').on('change', updateModeSections);
             $('#client_id').on('change select2:select select2:clear', updateContractPreview);
@@ -1312,6 +1359,17 @@
                             .removeClass('btn-primary')
                             .addClass('btn-success')
                             .html('<i class="fas fa-check me-1"></i> تم إصدار الفاتورة');
+
+                        const issuedInvoiceNumber = response.invoice_number || response.data?.id;
+                        if (issuedInvoiceNumber) {
+                            $('#invoice_number_preview').val(issuedInvoiceNumber);
+                            $('#previewInvoiceNumber').text(`#${issuedInvoiceNumber}`);
+                        }
+
+                        if (response.issued_at) {
+                            $('#invoice_issued_at_preview').val(response.issued_at);
+                            $('#previewInvoiceIssuedAt').text(response.issued_at);
+                        }
 
                         revealPostSaveActions(response);
                     },

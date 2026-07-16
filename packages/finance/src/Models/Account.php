@@ -8,6 +8,8 @@ use Nami\Finance\Enums\AccountTypesEnum;
 
 class Account extends Finance
 {
+    public const MUSANED_PARENT_CODES = [122, 156];
+
     protected $guarded =[];
 
     protected $table = 'fn_accounts';
@@ -53,6 +55,13 @@ class Account extends Finance
     public function parent(): \Illuminate\Database\Eloquent\Relations\BelongsTo
     {
         return $this->belongsTo(Account::class, 'parent_id', 'id');
+    }
+
+    public function scopeUnderMusanedParent($query)
+    {
+        return $query->whereHas('parent', function ($parentQuery) {
+            $parentQuery->whereIn('code', self::MUSANED_PARENT_CODES);
+        });
     }
 
     public function admin()

@@ -767,7 +767,7 @@ class RentalContractFinanceService
         }
 
         $account = Account::query()
-            ->whereIn('parent_id', [122, 156])
+            ->underMusanedParent()
             ->where('status', 'debtor')
             ->orderBy('code')
             ->first();

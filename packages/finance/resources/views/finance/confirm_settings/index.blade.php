@@ -452,6 +452,13 @@
                         <span class="settings-nav__count">4 {{ __('finance::finance.settings_fields') }}</span>
                     </span>
                 </a>
+                <a class="settings-nav__item" href="#nationality-accounts-section">
+                    <span class="settings-nav__icon"><i class="fa fa-sitemap"></i></span>
+                    <span>
+                        <span class="settings-nav__title">{{ __('finance::finance.nationality_accounts') }}</span>
+                        <span class="settings-nav__count">{{ count($nationality_account_definitions) }} {{ __('finance::finance.settings_fields') }}</span>
+                    </span>
+                </a>
                 <a class="settings-nav__item" href="#rental-maid-settings-section">
                     <span class="settings-nav__icon"><i class="fa fa-list-ul"></i></span>
                     <span>
@@ -857,6 +864,85 @@
                 </div>
             </details>
 
+            <details class="settings-section" id="nationality-accounts-section" open>
+                <summary>
+                    <div>
+                        <h3 class="settings-section-title">{{ __('finance::finance.nationality_accounts') }}</h3>
+                        <p class="settings-section-hint">{{ __('finance::finance.nationality_accounts_hint') }}</p>
+                    </div>
+                    <span class="settings-section-icon"><i class="fa fa-chevron-down"></i></span>
+                </summary>
+                <div class="settings-section-body">
+                    <div class="alert alert-info">
+                        <i class="fa fa-info-circle"></i>
+                        {{ __('finance::finance.nationality_accounts_creation_hint') }}
+                    </div>
+                    <h4 class="mb-3">{{ __('finance::finance.nationality_existing_account_assignments') }}</h4>
+                    <p class="text-muted mb-3">{{ __('finance::finance.nationality_existing_account_assignments_hint') }}</p>
+                    @forelse ($nationality_account_assignments as $nationalityAssignment)
+                        <details class="settings-section mb-3">
+                            <summary>
+                                <div>
+                                    <h4 class="settings-section-title">{{ $nationalityAssignment['nationality_name'] }}</h4>
+                                    <p class="settings-section-hint">
+                                        {{ __('finance::finance.nationality_assigned_accounts_count', [
+                                            'selected' => collect($nationalityAssignment['accounts'])->whereNotNull('selected_account_id')->where('selected_account_id', '!=', '')->count(),
+                                            'total' => count($nationalityAssignment['accounts']),
+                                        ]) }}
+                                    </p>
+                                </div>
+                                <span class="settings-section-icon"><i class="fa fa-chevron-down"></i></span>
+                            </summary>
+                            <div class="settings-section-body">
+                                <div class="settings-grid settings-grid--three">
+                                    @foreach ($nationalityAssignment['accounts'] as $assignment)
+                                        <div class="setting-field">
+                                            <label class="mb-2" for="{{ $assignment['setting_key'] }}">{{ $assignment['label'] }}</label>
+                                            <input type="hidden" value="{{ $assignment['setting_key'] }}" name="data[{{ $assignment['setting_key'] }}][title]">
+                                            <select name="data[{{ $assignment['setting_key'] }}][value]"
+                                                    id="{{ $assignment['setting_key'] }}" class="form-control nationality-account-select">
+                                                <option value="">{{ __('finance::finance.create_from_default_parent') }}</option>
+                                                @if (!empty($assignment['selected_account_id']) && !empty($assignment['selected_account_label']))
+                                                    <option value="{{ $assignment['selected_account_id'] }}" selected>{{ $assignment['selected_account_label'] }}</option>
+                                                @endif
+                                            </select>
+                                            <small>{{ __('finance::finance.choose_existing_nationality_account_hint') }}</small>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            </div>
+                        </details>
+                    @empty
+                        <div class="alert alert-warning">{{ __('finance::finance.no_nationalities_for_account_assignment') }}</div>
+                    @endforelse
+
+                    <hr class="my-4">
+                    <h4 class="mb-3">{{ __('finance::finance.nationality_default_parent_accounts') }}</h4>
+                    <p class="text-muted mb-3">{{ __('finance::finance.nationality_default_parent_accounts_hint') }}</p>
+                    <div class="settings-grid settings-grid--three">
+                        @foreach ($nationality_account_definitions as $definition)
+                            <div class="setting-field">
+                                <div class="setting-field__top">
+                                    <label for="{{ $definition['setting_key'] }}">{{ $definition['label'] }}</label>
+                                    <span class="setting-field__tools">
+                                        {!! addUpButton(route('finance.accounts.create'), $definition['setting_key'], false, 'name', true) !!}
+                                    </span>
+                                </div>
+                                <input type="hidden" value="{{ $definition['setting_key'] }}" name="data[{{ $definition['setting_key'] }}][title]">
+                                <select name="data[{{ $definition['setting_key'] }}][value]"
+                                        id="{{ $definition['setting_key'] }}" class="form-control nationality-account-select">
+                                    <option value="">{{ __('finance::finance.choose') }}</option>
+                                    @if (!empty($definition['selected_account_id']) && !empty($definition['selected_account_label']))
+                                        <option value="{{ $definition['selected_account_id'] }}" selected>{{ $definition['selected_account_label'] }}</option>
+                                    @endif
+                                </select>
+                                <small>{{ __('finance::finance.nationality_parent_account_hint') }}</small>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+            </details>
+
             <details class="settings-section" id="rental-maid-settings-section" open>
                 <summary>
                     <div>
@@ -1030,6 +1116,25 @@
     <script>
         $('.select2').select2({
             width: '100%'
+        });
+
+        $('.nationality-account-select').select2({
+            width: '100%',
+            allowClear: true,
+            placeholder: '{{ __('finance::finance.search_chart_accounts') }}',
+            ajax: {
+                url: @json($nationality_account_options_route),
+                dataType: 'json',
+                delay: 250,
+                data: function (params) {
+                    return {q: params.term || ''};
+                },
+                processResults: function (data) {
+                    return {results: data.results || []};
+                },
+                cache: true
+            },
+            minimumInputLength: 0
         });
     </script>
 @endsection

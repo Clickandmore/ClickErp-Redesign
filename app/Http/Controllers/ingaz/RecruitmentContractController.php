@@ -631,6 +631,9 @@ class RecruitmentContractController extends Controller
 
             $this->applyStatusFilter($query, $statusFilter);
 
+            // فلاتر توفر المستندات والإجراءات المالية/التشغيلية
+            $this->applyDocumentPresenceFilters($query, $request);
+
             if ($request->boolean('exclude_back')) {
                 $query->where(function ($q) {
                     $q->whereNull('status')
@@ -5064,6 +5067,25 @@ class RecruitmentContractController extends Controller
         }
     }
 
+    private function applyDocumentPresenceFilters($query, Request $request): void
+    {
+        $relations = [
+            'has_invoice' => 'invoice',
+            'has_musaned_transfer' => 'invoice.musanedTransferItem.transfer',
+            'has_external_dispatch' => 'externalOfficeDispatch',
+        ];
+
+        foreach ($relations as $filter => $relation) {
+            $value = (string) $request->input($filter, '');
+
+            if ($value === '1') {
+                $query->whereHas($relation);
+            } elseif ($value === '0') {
+                $query->whereDoesntHave($relation);
+            }
+        }
+    }
+
     private function applyContractFilters($query, Request $request, bool $ignoreStatus = false, bool $ignoreWarranty = false): void
     {
         if ($this->branchesEnabledFor('contracts') && $request->filled('branch_id')) {
@@ -5082,6 +5104,8 @@ class RecruitmentContractController extends Controller
                     ->orWhere('status', '!=', ContractStatusEnum::Back->value);
             });
         }
+
+        $this->applyDocumentPresenceFilters($query, $request);
 
         // فلتر حالة الضمان
         if (!$ignoreWarranty && !$this->shouldTreatAsCompletedTotalRequest($request) && $request->filled('warranty_status')) {

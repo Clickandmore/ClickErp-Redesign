@@ -5,6 +5,7 @@ namespace Nami\Finance\Http\Controllers;
 use App\Http\Controllers\admin\Controller;
 use App\Services\ingaz\RentalMaidFinanceService;
 use App\Services\ingaz\ShelterLivingExpenseAccountingService;
+use App\Services\ingaz\NationalityFinanceAccountService;
 use Exception;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\View\Factory;
@@ -31,10 +32,16 @@ class ConfirmSettingController extends Controller
         Request $request,
         ObjService $service,
         RentalMaidFinanceService $rentalMaidFinanceService,
-        ShelterLivingExpenseAccountingService $shelterLivingExpenseAccountingService
+        ShelterLivingExpenseAccountingService $shelterLivingExpenseAccountingService,
+        NationalityFinanceAccountService $nationalityFinanceAccountService
     )
     {
         $settings = $service->getAllSettings();
+        $nationalityAccountAssignments = $nationalityFinanceAccountService->getNationalityAssignments($settings);
+        $settings = $nationalityFinanceAccountService->persistDetectedAssignments(
+            $settings,
+            $nationalityAccountAssignments
+        );
         $data = [
             "bladeTitle" => __("finance::finance.Account settings"),
             "addButtonText" => __("finance::finance.Account settings"),
@@ -48,6 +55,9 @@ class ConfirmSettingController extends Controller
             "tax_settings" => $service->getTaxSetting(),
             "rental_maid_expense_definitions" => $rentalMaidFinanceService->getSettingDefinitions($settings),
             "shelter_living_expense_account_id" => $shelterLivingExpenseAccountingService->defaultExpenseAccountId(),
+            "nationality_account_definitions" => $nationalityFinanceAccountService->getSettingDefinitions($settings),
+            "nationality_account_assignments" => $nationalityAccountAssignments,
+            "nationality_account_options_route" => route($this->mainRoute . '.account-options'),
         ];
         return view($this->folderPath . '.index', $data);
     }
@@ -61,6 +71,13 @@ class ConfirmSettingController extends Controller
     public function create(Request $request, ObjService $service)
     {
         //
+    }
+
+    public function accountOptions(Request $request, NationalityFinanceAccountService $service): JsonResponse
+    {
+        return response()->json([
+            'results' => $service->searchAccounts((string) $request->input('q', '')),
+        ]);
     }
 
     /**

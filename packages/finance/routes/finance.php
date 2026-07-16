@@ -216,7 +216,8 @@ Route::group(
         Route::resource('catch-checks-data', RefusedAcceptedCatchCheckController::class);
         Route::resource('tazher-check', TazherCheckController::class);
 
-
+        Route::get('confirm-settings/account-options', [ConfirmSettingController::class, 'accountOptions'])
+            ->name('confirm-settings.account-options');
         Route::resource('confirm-settings', ConfirmSettingController::class);
         Route::resource('audit-budget-supplier', AuditBudgetController::class);
         Route::resource('audit-budget-monthly', AuditBudgetMonthlyController::class);

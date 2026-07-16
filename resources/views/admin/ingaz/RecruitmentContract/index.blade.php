@@ -854,6 +854,32 @@
                             <input type="text" id="cityFilter" class="form-control" placeholder="ابحث بالمدينة">
                         </div>
                         <div class="col-md-3">
+                            <label for="invoicePresenceFilter" class="form-label">الفاتورة:</label>
+                            <select id="invoicePresenceFilter" class="form-select">
+                                <option value="">الكل</option>
+                                <option value="1">لها فاتورة</option>
+                                <option value="0">بدون فاتورة</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="musanedTransferPresenceFilter" class="form-label">تحويل مساند:</label>
+                            <select id="musanedTransferPresenceFilter" class="form-select">
+                                <option value="">الكل</option>
+                                <option value="1">تم تسجيل التحويل</option>
+                                <option value="0">لم يسجل التحويل</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="externalDispatchPresenceFilter" class="form-label">الإرسالية:</label>
+                            <select id="externalDispatchPresenceFilter" class="form-select">
+                                <option value="">الكل</option>
+                                <option value="1">لها إرسالية</option>
+                                <option value="0">بدون إرسالية</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-3">
                             <label class="form-label">&nbsp;</label>
                             <div>
 
@@ -1825,6 +1851,9 @@
                         d.city = $('#cityFilter').val();
                         d.marketer_id = $('#marketerFilter').val(); // Add marketer filter
                         d.branch_id = $('#branchFilter').length ? $('#branchFilter').val() : '';
+                        d.has_invoice = $('#invoicePresenceFilter').val();
+                        d.has_musaned_transfer = $('#musanedTransferPresenceFilter').val();
+                        d.has_external_dispatch = $('#externalDispatchPresenceFilter').val();
                         d.exclude_back = urlExcludeBack ? 1 : '';
 
                         // إضافة فلتر حالة الضمان فقط إذا كانت الحالة "عقود مكتملة"
@@ -2209,7 +2238,7 @@
             });
 
             // تحديث الجدول عند تغيير فلاتر البحث
-            $('#globalSearchFilter, #clientPhoneFilter, #clientNameFilter, #maidPassportFilter, #maidNameFilter, #contractNumberFilter, #nationalityFilter, #religionFilter, #officeFilter, #requestTypeFilter, #cityFilter, #marketerFilter, #branchFilter')
+            $('#globalSearchFilter, #clientPhoneFilter, #clientNameFilter, #maidPassportFilter, #maidNameFilter, #contractNumberFilter, #nationalityFilter, #religionFilter, #officeFilter, #requestTypeFilter, #cityFilter, #marketerFilter, #branchFilter, #invoicePresenceFilter, #musanedTransferPresenceFilter, #externalDispatchPresenceFilter')
                 .on('change', function() {
                     // لا تحدث الجدول تلقائياً - انتظر زر البحث
                 });
@@ -2231,7 +2260,7 @@
 
             // مسح الفلاتر
             $('#clearFilters').on('click', function() {
-                $('#globalSearchFilter, #statusFilter, #warrantyStatusFilter, #clientPhoneFilter, #clientNameFilter, #maidPassportFilter, #maidNameFilter, #contractNumberFilter, #nationalityFilter, #religionFilter, #officeFilter, #requestTypeFilter, #cityFilter, #marketerFilter, #branchFilter')
+                $('#globalSearchFilter, #statusFilter, #warrantyStatusFilter, #clientPhoneFilter, #clientNameFilter, #maidPassportFilter, #maidNameFilter, #contractNumberFilter, #nationalityFilter, #religionFilter, #officeFilter, #requestTypeFilter, #cityFilter, #marketerFilter, #branchFilter, #invoicePresenceFilter, #musanedTransferPresenceFilter, #externalDispatchPresenceFilter')
                     .val('');
                 $('#dateFromFilter, #dateToFilter').val('');
                 localStorage.removeItem('contractFilters'); // مسح الفلاتر المحفوظة
@@ -2253,7 +2282,9 @@
                     $('#maidPassportFilter').val() || $('#maidNameFilter').val() ||
                     $('#contractNumberFilter').val() || $('#nationalityFilter').val() ||
                     $('#religionFilter').val() || $('#officeFilter').val() || $('#requestTypeFilter').val() || $('#cityFilter').val() ||
-                    $('#marketerFilter').val() || ($('#branchFilter').length ? $('#branchFilter').val() : '');
+                    $('#marketerFilter').val() || $('#invoicePresenceFilter').val() ||
+                    $('#musanedTransferPresenceFilter').val() || $('#externalDispatchPresenceFilter').val() ||
+                    ($('#branchFilter').length ? $('#branchFilter').val() : '');
             }
 
             function handleEmptyTableNotice(tableApi) {
@@ -2340,6 +2371,9 @@
                         city: $('#cityFilter').val(),
                         marketer_id: $('#marketerFilter').val(),
                         branch_id: $('#branchFilter').length ? $('#branchFilter').val() : '',
+                        has_invoice: $('#invoicePresenceFilter').val(),
+                        has_musaned_transfer: $('#musanedTransferPresenceFilter').val(),
+                        has_external_dispatch: $('#externalDispatchPresenceFilter').val(),
                         exclude_back: urlExcludeBack ? 1 : ''
                     },
                     success: function(response) {
@@ -2381,7 +2415,10 @@
                     dateFrom: $('#dateFromFilter').val(),
                     dateTo: $('#dateToFilter').val(),
                     marketer: $('#marketerFilter').val(), // Save marketer filter
-                    branch: $('#branchFilter').length ? $('#branchFilter').val() : ''
+                    branch: $('#branchFilter').length ? $('#branchFilter').val() : '',
+                    invoicePresence: $('#invoicePresenceFilter').val(),
+                    musanedTransferPresence: $('#musanedTransferPresenceFilter').val(),
+                    externalDispatchPresence: $('#externalDispatchPresenceFilter').val()
                 };
                 localStorage.setItem('contractFilters', JSON.stringify(filters));
             }
@@ -2413,6 +2450,9 @@
                     $('#dateToFilter').val(filters.dateTo || '');
                     $('#marketerFilter').val(filters.marketer || ''); // Load marketer filter
                     $('#branchFilter').val(filters.branch || '');
+                    $('#invoicePresenceFilter').val(filters.invoicePresence || '');
+                    $('#musanedTransferPresenceFilter').val(filters.musanedTransferPresence || '');
+                    $('#externalDispatchPresenceFilter').val(filters.externalDispatchPresence || '');
                 }
             }
 

@@ -474,6 +474,10 @@ class InvoiceController extends Controller
             $selectedClient = ClientUser::query()->findOrFail($clientId);
         }
 
+        // The public invoice number currently follows the auto-incrementing invoice ID.
+        $nextInvoiceNumber = ((int) Invoice::query()->max('id')) + 1;
+        $invoiceIssuedAt = now();
+
         return view('admin.ingaz.invoices.create', compact(
             'contractId',
             'ingazDelegationId',
@@ -484,7 +488,9 @@ class InvoiceController extends Controller
             'selectedClient',
             'contractSearch',
             'contractSearchAttempted',
-            'contractSearchMessage'
+            'contractSearchMessage',
+            'nextInvoiceNumber',
+            'invoiceIssuedAt'
         ));
     }
 
@@ -728,6 +734,8 @@ class InvoiceController extends Controller
             'success' => true,
             'message' => 'تم إصدار الفاتورة بنجاح',
             'data' => $invoice,
+            'invoice_number' => $invoice->id,
+            'issued_at' => optional($invoice->updated_at)->format('d/m/Y - H:i') ?: now()->format('d/m/Y - H:i'),
             'redirect' => route('invoices.show', $invoice->id),
             'view_url' => route('invoices.show', $invoice->id),
             'print_url' => route('invoice.download', ['id' => $invoice->id, 'autoprint' => 1]),
@@ -2361,7 +2369,7 @@ class InvoiceController extends Controller
     {
         return Account::query()
             ->whereKey($accountId)
-            ->whereIn('parent_id', [122, 156])
+            ->underMusanedParent()
             ->first();
     }
 

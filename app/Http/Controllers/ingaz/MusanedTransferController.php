@@ -720,7 +720,7 @@ class MusanedTransferController extends Controller
     {
         return Account::query()
             ->whereKey($accountId)
-            ->whereIn('parent_id', [122, 156])
+            ->underMusanedParent()
             ->first();
     }
 
