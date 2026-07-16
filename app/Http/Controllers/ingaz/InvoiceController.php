@@ -509,6 +509,7 @@ class InvoiceController extends Controller
     public function store(Request $request, ObjService $service, YearService $yearService, BondService $bondService)
     {
         $request->validate([
+            'invoice_date' => ['required', 'date_format:Y-m-d'],
             'contract_id' => 'nullable|required_without_all:ingaz_delegation_id,client_id|exists:contracts,id',
             'ingaz_delegation_id' => 'nullable|required_without_all:contract_id,client_id|exists:ingaz_delegations,id',
             'client_id' => 'nullable|required_without_all:contract_id,ingaz_delegation_id|exists:users,id',
@@ -662,6 +663,7 @@ class InvoiceController extends Controller
                     'is_paid' => true,
                     'paid_at' => now(),
                     'send_to_zatca' => $sendToZatca,
+                    'created_at' => $this->resolveInvoiceDateTime($request),
                 ]);
 
                 $invoice->setRelation('contract', $contract);
@@ -1357,6 +1359,7 @@ class InvoiceController extends Controller
             'is_paid' => true,
             'paid_at' => now(),
             'send_to_zatca' => $sendToZatca,
+            'created_at' => $this->resolveInvoiceDateTime($request),
         ]);
 
         $invoice->setRelation('ingazDelegation', $delegation);
@@ -1451,6 +1454,7 @@ class InvoiceController extends Controller
             'is_paid' => true,
             'paid_at' => now(),
             'send_to_zatca' => $sendToZatca,
+            'created_at' => $this->resolveInvoiceDateTime($request),
         ]);
 
         $invoice->setRelation('client', $client);
@@ -1982,6 +1986,15 @@ class InvoiceController extends Controller
             'vat_amount' => $totals['vat_amount'],
             'total_due' => $totals['total_due'],
         ]);
+    }
+
+    private function resolveInvoiceDateTime(Request $request): \Carbon\Carbon
+    {
+        return \Carbon\Carbon::createFromFormat(
+            'Y-m-d H:i:s',
+            $request->input('invoice_date') . ' ' . now()->format('H:i:s'),
+            config('app.timezone')
+        );
     }
 
     private function persistMissingNationalityInvoiceCosts(?Nationality $nationality, array $invoicePayload): void

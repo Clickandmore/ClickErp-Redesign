@@ -284,6 +284,7 @@ return array (
   'tafwed' => 'التفويض',
   'taffez' => 'التفييز',
   'tazker' => 'التذكرة',
+  'trial' => 'فترة التجربة',
   'under_warranty' => 'تحت الضمان',
   'back' => 'رجوع',
   'confirm_accept' => 'تأكيد القبول',

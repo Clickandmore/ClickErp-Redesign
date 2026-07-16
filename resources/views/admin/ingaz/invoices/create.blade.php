@@ -649,6 +649,29 @@
 
                         <div class="mini-section">
                             <div class="mini-title">
+                                <i class="fas fa-calendar-day"></i>
+                                تاريخ الفاتورة
+                            </div>
+
+                            <div class="row g-3">
+                                <div class="col-md-6 col-lg-4">
+                                    <label class="form-label" for="invoice_date">
+                                        تاريخ الفاتورة
+                                        <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="date" name="invoice_date" id="invoice_date"
+                                        class="form-control @error('invoice_date') is-invalid @enderror"
+                                        value="{{ old('invoice_date', now()->toDateString()) }}" required>
+                                    @error('invoice_date')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                    <div class="field-note">التاريخ الافتراضي هو تاريخ اليوم، ويمكن تغييره يدوياً قبل إصدار الفاتورة.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mini-section">
+                            <div class="mini-title">
                                 <i class="fas fa-sack-dollar"></i>
                                 بنود التكلفة
                             </div>

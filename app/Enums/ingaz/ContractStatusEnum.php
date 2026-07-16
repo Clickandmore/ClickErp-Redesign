@@ -7,7 +7,7 @@ enum ContractStatusEnum: string
     case New = 'new'; // بانتظار الاعتماد
     case AccreditationContracts = 'accreditation_contracts'; // اعتماد العقود
     case Msaned = 'msaned'; // عقود مساند
-    case Tafwed = 'tafwed'; // تفويض
+    case Tafwed = 'tafwed'; // تفويض 
     case Taffez = 'taffez'; // التفييز
     case Tazker = 'tazker'; // تذكرة
     case Arrival = 'arrival'; // مرحلة الوصول
