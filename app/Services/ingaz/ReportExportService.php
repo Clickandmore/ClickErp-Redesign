@@ -2458,16 +2458,23 @@ class ReportExportService
                 ContractStatusEnum::Tafwed->value,
                 ContractStatusEnum::Taffez->value,
                 ContractStatusEnum::Tazker->value,
-            ]);
+                ContractStatusEnum::Sari->value,
+            ])->whereDoesntHave('travelHistory', function ($travelQuery) {
+                $travelQuery->where('status', 'completed');
+            });
             return;
         }
 
         if ($statusFilter === 'completed_stage') {
-            $query->whereIn('status', [
-                ContractStatusEnum::Arrival->value,
-                ContractStatusEnum::Completed->value,
-                ContractStatusEnum::Refunded->value,
-            ]);
+            $query->where(function ($completedQuery) {
+                $completedQuery->whereIn('status', [
+                    ContractStatusEnum::Arrival->value,
+                    ContractStatusEnum::Completed->value,
+                    ContractStatusEnum::Refunded->value,
+                ])->orWhereHas('travelHistory', function ($travelQuery) {
+                    $travelQuery->where('status', 'completed');
+                });
+            });
             return;
         }
 

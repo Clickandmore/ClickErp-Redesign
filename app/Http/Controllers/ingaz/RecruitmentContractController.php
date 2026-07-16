@@ -528,12 +528,21 @@ class RecruitmentContractController extends Controller
         }
 
         if ($statusFilter === 'current') {
-            $query->whereIn('status', $this->getCurrentContractStatuses());
+            $query->whereIn('status', $this->getCurrentContractStatuses())
+                ->whereDoesntHave('travelHistory', function ($travelQuery) {
+                    $travelQuery->where('status', 'completed');
+                });
             return;
         }
 
         if ($statusFilter === 'completed_stage') {
-            $query->whereIn('status', $this->getCompletedStageStatuses());
+            $query->where(function ($completedQuery) {
+                $completedQuery
+                    ->whereIn('status', $this->getCompletedStageStatuses())
+                    ->orWhereHas('travelHistory', function ($travelQuery) {
+                        $travelQuery->where('status', 'completed');
+                    });
+            });
             return;
         }
 
@@ -4957,14 +4966,7 @@ class RecruitmentContractController extends Controller
             $this->applyContractFilters($shelterQuery, $request, true, true);
 
             $today = \Carbon\Carbon::now()->toDateString();
-            $currentStatuses = [
-                ContractStatusEnum::PendingMaidSelection->value,
-                ContractStatusEnum::New->value,
-                ContractStatusEnum::Msaned->value,
-                ContractStatusEnum::Tafwed->value,
-                ContractStatusEnum::Taffez->value,
-                ContractStatusEnum::Tazker->value,
-            ];
+            $currentStatuses = $this->getCurrentContractStatuses();
             $completedStageStatuses = $this->getCompletedStageStatuses();
 
             $aggregateBindings = array_merge(
@@ -4993,8 +4995,20 @@ class RecruitmentContractController extends Controller
                 ->selectRaw(
                     '
                     COUNT(*) as total,
-                    SUM(CASE WHEN status IN (' . implode(',', array_fill(0, count($currentStatuses), '?')) . ') THEN 1 ELSE 0 END) as current_total,
-                    SUM(CASE WHEN status IN (' . implode(',', array_fill(0, count($completedStageStatuses), '?')) . ') THEN 1 ELSE 0 END) as completed_total,
+                    SUM(CASE WHEN status IN (' . implode(',', array_fill(0, count($currentStatuses), '?')) . ')
+                        AND NOT EXISTS (
+                            SELECT 1 FROM travel_histories th_current
+                            WHERE th_current.order_id = contracts.id
+                                AND th_current.status = \'completed\'
+                                AND th_current.deleted_at IS NULL
+                        ) THEN 1 ELSE 0 END) as current_total,
+                    SUM(CASE WHEN status IN (' . implode(',', array_fill(0, count($completedStageStatuses), '?')) . ')
+                        OR EXISTS (
+                            SELECT 1 FROM travel_histories th_completed
+                            WHERE th_completed.order_id = contracts.id
+                                AND th_completed.status = \'completed\'
+                                AND th_completed.deleted_at IS NULL
+                        ) THEN 1 ELSE 0 END) as completed_total,
                     SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as stage_back,
                     SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as stage_refunded,
                     SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as stage_pending_maid_selection,
