@@ -2448,16 +2448,16 @@ class RecruitmentContractController extends Controller
             ->sortBy(fn($log) => $log['resolved_at']->getTimestamp())
             ->values();
 
-        $createdAt = $contract->created_at ? Carbon::parse($contract->created_at) : now();
+        $contractStartedAt = $this->resolveEffectiveContractStartDate($contract);
         $isFinalStatus = in_array($contract->status, [
             ContractStatusEnum::Completed->value,
             ContractStatusEnum::Refunded->value,
             ContractStatusEnum::Back->value,
             ContractStatusEnum::Closed->value,
         ], true);
-        $endedAt = $this->resolveContractDurationEndDate($contract, $logs, $createdAt);
+        $endedAt = $this->resolveContractDurationEndDate($contract, $logs);
 
-        $totalDays = max($createdAt->copy()->startOfDay()->diffInDays($endedAt->copy()->startOfDay(), false), 0);
+        $totalDays = max($contractStartedAt->copy()->startOfDay()->diffInDays($endedAt->copy()->startOfDay(), false), 0);
         $msanedLog = $logs->firstWhere('status', ContractStatusEnum::Msaned->value);
         $msanedStartedAt = $msanedLog['resolved_at'] ?? null;
         $msanedDays = null;
@@ -2493,7 +2493,20 @@ class RecruitmentContractController extends Controller
         ];
     }
 
-    private function resolveContractDurationEndDate(Contract $contract, $logs, Carbon $fallbackDate): Carbon
+    private function resolveEffectiveContractStartDate(Contract $contract): Carbon
+    {
+        foreach ([$contract->info?->contract_date, $contract->contract_date] as $date) {
+            $contractDate = $this->normalizeContractStageDate($date);
+
+            if ($contractDate) {
+                return $contractDate->startOfDay();
+            }
+        }
+
+        return $this->normalizeContractStageDate($contract->created_at) ?: now();
+    }
+
+    private function resolveContractDurationEndDate(Contract $contract, $logs): Carbon
     {
         $finalStatuses = [
             ContractStatusEnum::Completed->value,
