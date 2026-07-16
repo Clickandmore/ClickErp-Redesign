@@ -420,6 +420,7 @@ return array (
     'tafwed' => 'تفويض',
     'taffez' => 'التفييز',
     'tazker' => 'تذكرة',
+    'trial' => 'فترة التجربة',
     'under_warranty' => 'تحت الضمان',
     'back' => 'مرتجع',
     'arrival' => 'مرحلة الوصول',
