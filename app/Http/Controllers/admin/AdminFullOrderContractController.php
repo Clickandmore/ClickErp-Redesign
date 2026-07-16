@@ -103,7 +103,8 @@ class AdminFullOrderContractController extends Controller
 
             $maid = Maid::find($request->maid_id);
             @$maid->update([
-                'available' => 0
+                'status' => 'reserved',
+                'available' => false,
             ]);
 
             $orderDetails = OrderDetail::updateOrCreate(

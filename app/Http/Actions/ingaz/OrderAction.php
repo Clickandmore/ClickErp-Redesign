@@ -203,6 +203,7 @@ class OrderAction extends MainAction
         }
 
         if ($data['status'] == 'done') {
+            $maid->status = 'available';
             $maid->available = 1;
             $maid->available_at = Carbon::now();
         }

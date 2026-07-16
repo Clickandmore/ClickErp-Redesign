@@ -181,10 +181,12 @@ class RecruitmentController extends Controller
                 'updated_at' => now()
             ]);
 
-            // Update maid availability status
-            Maid::where('id', $request->maid_id)->update([
+            // Keep the persisted business status and immediate availability in sync.
+            // Use a model instance so the maid activity log records the transition.
+            $maid = Maid::findOrFail($request->maid_id);
+            $maid->update([
                 'status' => 'reserved',
-                'updated_at' => now()
+                'available' => false,
             ]);
 
             DB::commit();

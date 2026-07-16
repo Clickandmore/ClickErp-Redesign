@@ -78,7 +78,11 @@ class AdminContractController extends Controller
 
                 // If no remaining contract days, update maid to available
                 if ($maidRemainingContractDays == 0) {
-                    $updated = $maid->update(['available' => 1]);
+                    $updated = $maid->update([
+                        'status' => 'available',
+                        'available' => true,
+                        'available_at' => now(),
+                    ]);
 
                     if ($updated) {
                         $count++;

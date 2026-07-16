@@ -909,11 +909,14 @@
                             </div>
                             <div>
                                 @if (@AdminGuardHasPerm(\App\NewPermKeys::REC_CONTRACTS_EXPORT))
-                                    <a href="{{ route('RecruitmentContract.export.pdf') }}" class="btn btn-danger me-2"
-                                        target="_blank">
+                                    <a href="{{ route('RecruitmentContract.export.pdf', request()->query()) }}"
+                                        data-export-url="{{ route('RecruitmentContract.export.pdf') }}"
+                                        class="btn btn-danger me-2 recruitment-contract-export" target="_blank">
                                         <i class="fa fa-file-pdf me-1"></i> {{ helperTrans('ingaz.export_pdf') }}
                                     </a>
-                                    <a href="{{ route('RecruitmentContract.export.excel') }}" class="btn btn-success">
+                                    <a href="{{ route('RecruitmentContract.export.excel', request()->query()) }}"
+                                        data-export-url="{{ route('RecruitmentContract.export.excel') }}"
+                                        class="btn btn-success recruitment-contract-export">
                                         <i class="fa fa-file-excel me-1"></i> {{ helperTrans('ingaz.export_excel') }}
                                     </a>
                                 @endif
@@ -2256,6 +2259,44 @@
                 dataTable.ajax.reload(function() {
                     $('#dataTableObject').removeClass('loading');
                 });
+            });
+
+            // Export exactly the records represented by the current table filters.
+            $('.recruitment-contract-export').on('click', function() {
+                const status = $('#statusFilter').val();
+                const filters = {
+                    global_search: $('#globalSearchFilter').val(),
+                    status: status,
+                    date_from: $('#dateFromFilter').val(),
+                    date_to: $('#dateToFilter').val(),
+                    client_phone: $('#clientPhoneFilter').val(),
+                    client_name: $('#clientNameFilter').val(),
+                    maid_passport: $('#maidPassportFilter').val(),
+                    maid_name: $('#maidNameFilter').val(),
+                    contract_number: $('#contractNumberFilter').val(),
+                    nationality: $('#nationalityFilter').val(),
+                    religion: $('#religionFilter').val(),
+                    office_id: $('#officeFilter').val(),
+                    request_type: $('#requestTypeFilter').val(),
+                    city: $('#cityFilter').val(),
+                    marketer_id: $('#marketerFilter').val(),
+                    branch_id: $('#branchFilter').length ? $('#branchFilter').val() : '',
+                    exclude_back: urlExcludeBack ? 1 : ''
+                };
+
+                if ((status === 'arrival' || status === 'completed' || status === 'completed_stage') &&
+                    $('#warrantyStatusFilter').val()) {
+                    filters.warranty_status = $('#warrantyStatusFilter').val();
+                }
+
+                const exportUrl = new URL($(this).data('export-url'), window.location.origin);
+                Object.entries(filters).forEach(function([key, value]) {
+                    if (value !== null && value !== undefined && value !== '') {
+                        exportUrl.searchParams.set(key, value);
+                    }
+                });
+
+                this.href = exportUrl.toString();
             });
 
             // مسح الفلاتر
