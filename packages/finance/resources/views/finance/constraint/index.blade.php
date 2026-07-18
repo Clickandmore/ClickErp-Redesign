@@ -181,49 +181,45 @@
             line-height: 1.6;
         }
 
-        #dataTableObject th:nth-child(1),
-        #dataTableObject td:nth-child(1) {
+        #dataTableObject .constraint-column--code {
             width: 95px;
         }
 
-        #dataTableObject th:nth-child(2),
-        #dataTableObject td:nth-child(2) {
+        #dataTableObject .constraint-column--date {
             width: 125px;
         }
 
-        #dataTableObject th:nth-child(3),
-        #dataTableObject td:nth-child(3) {
+        #dataTableObject .constraint-column--statement {
             width: 390px;
         }
 
-        #dataTableObject th:nth-child(4),
-        #dataTableObject td:nth-child(4) {
+        #dataTableObject .constraint-column--value {
             width: 125px;
         }
 
-        #dataTableObject th:nth-child(5),
-        #dataTableObject td:nth-child(5),
-        #dataTableObject th:nth-child(6),
-        #dataTableObject td:nth-child(6) {
+        #dataTableObject .constraint-column--debitors,
+        #dataTableObject .constraint-column--creditors {
             width: 285px;
             vertical-align: top;
         }
 
-        #dataTableObject th:nth-child(7),
-        #dataTableObject td:nth-child(7) {
+        #dataTableObject .constraint-column--document {
             width: 135px;
             text-align: center;
         }
 
-        #dataTableObject th:nth-child(8),
-        #dataTableObject td:nth-child(8) {
+        #dataTableObject .constraint-column--actions {
             width: 175px;
+            text-align: center;
         }
 
-        #dataTableObject th:nth-child(9),
-        #dataTableObject td:nth-child(9) {
+        #dataTableObject .constraint-column--approval-action {
             width: 155px;
             text-align: center;
+        }
+
+        #dataTableObject .constraint-column--approval-status {
+            width: 175px;
         }
 
         .constraint-actions-dropdown {
@@ -390,18 +386,18 @@
         <table id="dataTableObject" class="table display dataTable table-hover align-middle" style="width:100%">
             <thead>
                 <tr>
-                    <th>رقم القيد</th>
-                    <th>{{ __('finance::finance.date') }}</th>
-                    <th>{{ __('finance::finance.statement') }}</th>
-                    <th>{{ __('finance::finance.value') }}</th>
-                    <th>مدينون</th>
-                    <th>دائنون</th>
-                    <th>المستند المرتبط</th>
-                    <th>{{ __('finance::finance.actions') }}</th>
+                    <th class="constraint-column--code">رقم القيد</th>
                     @if ($approvalMode === 'pending')
-                        <th>{{ __('finance::finance.approval_status') }}</th>
-                        <th>{{ __('finance::finance.approval_action') }}</th>
+                        <th class="constraint-column--approval-action">{{ __('finance::finance.approval_action') }}</th>
+                        <th class="constraint-column--approval-status">{{ __('finance::finance.approval_status') }}</th>
                     @endif
+                    <th class="constraint-column--date">{{ __('finance::finance.date') }}</th>
+                    <th class="constraint-column--statement">{{ __('finance::finance.statement') }}</th>
+                    <th class="constraint-column--value">{{ __('finance::finance.value') }}</th>
+                    <th class="constraint-column--debitors">مدينون</th>
+                    <th class="constraint-column--creditors">دائنون</th>
+                    <th class="constraint-column--document">المستند المرتبط</th>
+                    <th class="constraint-column--actions">{{ __('finance::finance.actions') }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -459,60 +455,71 @@
                 "columns": [{
                         "data": "code_link",
                         "name": "fn_constraints.code",
+                        "className": "constraint-column--code",
                         orderable: false,
                         searchable: true
-                    },
+                    }
+                    @if ($approvalMode === 'pending')
+                        ,
+                        {
+                            "data": "approval_action",
+                            "className": "constraint-column--approval-action",
+                            orderable: false,
+                            searchable: false
+                        },
+                        {
+                            "data": "approval_status",
+                            "className": "constraint-column--approval-status",
+                            orderable: false,
+                            searchable: false
+                        }
+                    @endif
+                    ,
                     {
                         "data": "date",
                         "name": "fn_constraints.date",
+                        "className": "constraint-column--date",
                         orderable: false,
                         searchable: true
                     },
                     {
                         "data": "statement_preview",
                         "name": "fn_constraints.statement",
+                        "className": "constraint-column--statement",
                         orderable: false,
                         searchable: true
                     },
                     {
                         "data": "value",
                         "name": "fn_constraints.value",
+                        "className": "constraint-column--value",
                         orderable: false,
                         searchable: true
                     },
                     {
                         "data": "debitors_total",
+                        "className": "constraint-column--debitors",
                         orderable: false,
                         searchable: false
                     },
                     {
                         "data": "creditors_total",
+                        "className": "constraint-column--creditors",
                         orderable: false,
                         searchable: false
                     },
                     {
                         "data": "document_action",
+                        "className": "constraint-column--document",
                         orderable: false,
                         searchable: false
                     },
                     {
                         "data": "actions",
+                        "className": "constraint-column--actions",
                         orderable: false,
                         searchable: false
                     }
-                    @if ($approvalMode === 'pending')
-                        ,
-                        {
-                            "data": "approval_status",
-                            orderable: false,
-                            searchable: false
-                        },
-                        {
-                            "data": "approval_action",
-                            orderable: false,
-                            searchable: false
-                        }
-                    @endif
                 ],
             });
 

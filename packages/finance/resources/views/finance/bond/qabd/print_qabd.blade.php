@@ -123,6 +123,34 @@
             padding: 16px;
         }
 
+        .print-actions {
+            width: min(1080px, 100%);
+            margin: 20px auto 0;
+            padding: 0 16px;
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        .print-button {
+            border: 0;
+            border-radius: 8px;
+            padding: 10px 20px;
+            color: #fff;
+            background: var(--teal);
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .print-button:hover {
+            background: #0c6570;
+        }
+
+        .print-button:focus-visible {
+            outline: 3px solid rgba(15, 122, 135, 0.25);
+            outline-offset: 3px;
+        }
+
         .voucher {
             background: #fff;
             border: 1px solid #e5e7eb;
@@ -404,6 +432,10 @@
                 background: #fff;
             }
 
+            .print-actions {
+                display: none;
+            }
+
             .page {
                 width: 100%;
                 margin: 0;
@@ -413,6 +445,12 @@
     </style>
 </head>
 <body>
+    <div class="print-actions">
+        <button type="button" class="print-button" onclick="window.print()">
+            طباعة السند
+        </button>
+    </div>
+
     <div class="page">
         <div class="voucher">
             <div class="brand-bar">
@@ -537,12 +575,5 @@
             </div>
         </div>
     </div>
-
-    <script>
-        window.print();
-        window.onafterprint = function () {
-            window.close();
-        };
-    </script>
 </body>
 </html>
