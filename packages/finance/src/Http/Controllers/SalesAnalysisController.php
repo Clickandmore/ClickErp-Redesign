@@ -76,7 +76,7 @@ class SalesAnalysisController extends Controller
             'filters' => $dataSearch,
             'statementRoute' => route($this->mainRoute . '.index'),
             'printRoute' => route('finance.account-statement-print.index'),
-            'printPermission' => 'finance::finance.account-statement-print-read',
+            'printPermission' => 'finance_account_statement_export',
         ]);
     }
 

@@ -311,7 +311,7 @@
             <div class="logo-container">
                 <img src="{{ documentLogoUrl(asset('admin/assets/img/company_logo.png')) }}" alt="شعار الشركة">
             </div>
-            <h1>عقد نقل كفالة العمالة المنزلية</h1>
+            <h1>عقد نقل خدمات العمالة المنزلية</h1>
             <p style="font-size: 14pt; margin: 5px 0;">
                 {{ documentSetting('document_company_name', $contractSettings['company_name'] ?? documentSetting('website_name', config('app.name'))) }}
             </p>

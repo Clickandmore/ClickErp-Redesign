@@ -115,9 +115,11 @@
             {!! printButton(
                 route('finance.account-statement-clients-print.index', request()->all()),
                 null,
-                'finance::finance.account-statement-clients-print-read',
+                'finance_account_statement_clients_export',
             ) !!}
+            @if (@AdminGuardHasPerm('finance_account_statement_clients_export') || auth('admin')->user()?->admin_type == \App\Enums\AdminTypeisEnum::Developer->value)
             <button id="toExcel" class="btn btn-info"><i class="fa fa-file-excel-o"></i></button>
+            @endif
         </div>
     </div>
     <div class="row g-3 m-2" id="account_list"></div>

@@ -151,6 +151,14 @@
         <div class="card-header d-flex align-items-center justify-content-between">
             <strong><i class="fa fa-list text-success me-1"></i> سجل سندات القبض</strong>
             <div class="d-flex flex-wrap align-items-center gap-2">
+                @if (@AdminGuardHasPerm('finance_bonds_export') || auth('admin')->user()?->admin_type == \App\Enums\AdminTypeisEnum::Developer->value)
+                    <a href="#" class="btn btn-sm btn-outline-success bond-list-export" data-export-url="{{ route('finance.bonds-qabd.export', 'excel') }}">
+                        <i class="fa fa-file-excel-o"></i> Excel
+                    </a>
+                    <a href="#" class="btn btn-sm btn-outline-danger bond-list-export" data-export-url="{{ route('finance.bonds-qabd.export', 'pdf') }}">
+                        <i class="fa fa-file-pdf-o"></i> PDF
+                    </a>
+                @endif
                 <span class="badge bg-light text-dark border">عدد السندات: {{ number_format($archiveSummary->total_count ?? 0) }}</span>
                 <span class="badge bg-light text-dark border">إجمالي الحركة: {{ number_format($archiveSummary->total_movement ?? 0, 2) }} ريال</span>
                 <small class="text-muted">اضغط رقم السند للطباعة أو رقم القيد لعرض تفاصيله</small>

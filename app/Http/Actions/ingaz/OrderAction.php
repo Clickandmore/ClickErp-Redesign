@@ -84,7 +84,7 @@ class OrderAction extends MainAction
                 } elseif($order->job_type_id == 2){
                     $msg = "يوجد طلب إيجار عمالة جديد رقم $orderId";
                 } elseif($order->job_type_id == 3){
-                    $msg = "يوجد طلب نقل كفالة جديد رقم $orderId";
+                    $msg = "يوجد طلب نقل خدمات جديد رقم $orderId";
                 }
 
                 $result = $this->sendSMS($adminPhone, $msg);
@@ -191,7 +191,7 @@ class OrderAction extends MainAction
                     'user_id' => $order->user_id
                 ]);
             } elseif ($order->job_type_id == 3) {
-                // توجيه إلى صفحة إنشاء طلب نقل كفالة
+                // توجيه إلى صفحة إنشاء طلب نقل خدمات
                 // لا يتم إنشاء عقد هنا - العميل يذهب إلى SponsorshipTransfer/create
                 \Log::info('Instant receipt order completed - redirect to SponsorshipTransfer/create', [
                     'order_id' => $order->id,

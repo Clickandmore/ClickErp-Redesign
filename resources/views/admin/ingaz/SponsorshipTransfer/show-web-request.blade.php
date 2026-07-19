@@ -274,7 +274,7 @@
                                 <a href="{{ route('SponsorshipTransfer.create', ['order_id' => $order->id]) }}"
                                    class="btn btn-success">
                                     <i class="fas fa-exchange-alt me-2"></i>
-                                    إنشاء طلب نقل كفالة
+                                    إنشاء طلب نقل خدمات
                                 </a>
                             @endif
 

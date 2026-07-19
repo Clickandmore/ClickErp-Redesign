@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Nami\Finance\Enums\AccountTypesEnum;
 use Nami\Finance\Services\AccountService;
+use Nami\Finance\Services\AccountStatementExportService;
 use Nami\Finance\Services\ConstraintService as ObjService;
 use Throwable;
 
@@ -75,9 +76,23 @@ class AccountStatementClientController extends Controller
         $data["filters"] = $dataSearch;
         $data["statementRoute"] = route($this->mainRoute . ".index");
         $data["printRoute"] = route("finance.account-statement-clients-print.index");
-        $data["printPermission"] = "finance::finance.account-statement-clients-print-read";
+        $data["printPermission"] = 'finance_account_statement_clients_export';
+        $data["exportExcelRoute"] = route($this->mainRoute . '.export', 'excel');
+        $data["exportPdfRoute"] = route($this->mainRoute . '.export', 'pdf');
+        $data["exportScopeDescription"] = 'جميع حسابات العملاء عند ترك الحساب فارغًا';
 
         return view('finance::finance.account_statement.index', $data);
+    }
+
+    public function export(Request $request, AccountStatementExportService $exporter, string $format)
+    {
+        return $exporter->download(
+            $request,
+            $format,
+            AccountTypesEnum::Client->value,
+            'التصدير الشامل لكشوف حسابات العملاء',
+            'client-account-statements'
+        );
     }
 
     /**

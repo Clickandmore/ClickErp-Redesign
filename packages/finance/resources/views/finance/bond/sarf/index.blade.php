@@ -187,7 +187,17 @@
     <div class="card sarf-table-card">
         <div class="card-header d-flex align-items-center justify-content-between">
             <strong><i class="fa fa-list text-primary me-1"></i> سجل سندات الصرف</strong>
-            <small class="text-muted">اضغط رقم السند للطباعة أو رقم القيد لعرض تفاصيله</small>
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                @if (@AdminGuardHasPerm('finance_bonds_export') || auth('admin')->user()?->admin_type == \App\Enums\AdminTypeisEnum::Developer->value)
+                    <a href="#" class="btn btn-sm btn-outline-success bond-list-export" data-export-url="{{ route('finance.bonds-sarf.export', 'excel') }}">
+                        <i class="fa fa-file-excel-o"></i> Excel
+                    </a>
+                    <a href="#" class="btn btn-sm btn-outline-danger bond-list-export" data-export-url="{{ route('finance.bonds-sarf.export', 'pdf') }}">
+                        <i class="fa fa-file-pdf-o"></i> PDF
+                    </a>
+                @endif
+                <small class="text-muted">اضغط رقم السند للطباعة أو رقم القيد لعرض تفاصيله</small>
+            </div>
         </div>
         <div class="table-responsive">
             <table id="dataTableObject" class="table table-hover align-middle mb-0" style="width:100%">
