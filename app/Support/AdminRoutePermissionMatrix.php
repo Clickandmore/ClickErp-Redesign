@@ -294,6 +294,10 @@ class AdminRoutePermissionMatrix
             'dash.developers.perms.toggleStatus' => [PermKeys::DEVELOPERS_PERMS],
             'dash.developers.perms.delete' => [PermKeys::PERMISSIONS_DELETE],
             'dash.activity.log' => [PermKeys::ACTIVITY_VIEW],
+            'admins.impersonate' => [PermKeys::USERS_EDIT],
+            'admins.reset-password' => [PermKeys::USERS_EDIT],
+            'reports.export' => [NewPermKeys::REPORTS_EXPORT, NewPermKeys::REPORTS_MANAGE],
+            'form-settings.preview.print' => [PermKeys::SETTINGS_VIEW, PermKeys::SETTINGS_CONTROL],
         ];
     }
 
@@ -330,6 +334,8 @@ class AdminRoutePermissionMatrix
             'maids.attachments.view' => [PermKeys::MAIDS_VIEW, PermKeys::MAIDS_SHOW, PermKeys::MAIDS_RENTAL_VIEW],
             'maids.attachments.download.single' => [PermKeys::MAIDS_VIEW, PermKeys::MAIDS_SHOW, PermKeys::MAIDS_RENTAL_VIEW],
             'maids.attachments.delete' => [PermKeys::MAIDS_EDIT],
+            'maids.export.pdf' => [PermKeys::MAIDS_EXPORT_PDF, PermKeys::MAIDS_EXPORT],
+            'maids.export.excel' => [PermKeys::MAIDS_EXPORT_EXCEL, PermKeys::MAIDS_EXPORT],
             'noneAvailableMaids' => [PermKeys::MAIDS_BACKOUT_VIEW],
             'maids.deleted_cvs' => [PermKeys::MAIDS_DELETED_VIEW],
         ];
@@ -425,6 +431,7 @@ class AdminRoutePermissionMatrix
             'RecruitmentContract.externalOfficeDispatch.store' => [NewPermKeys::REC_CONTRACTS_EDIT, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.externalOfficeDispatch.bulkStore' => [NewPermKeys::REC_CONTRACTS_EDIT, NewPermKeys::REC_CONTRACTS_MANAGE],
             'RecruitmentContract.externalOfficeDispatch.print' => [NewPermKeys::REC_CONTRACTS_VIEW, NewPermKeys::REC_CONTRACTS_MANAGE],
+            'print.contract' => [NewPermKeys::REC_CONTRACTS_VIEW, NewPermKeys::REC_CONTRACTS_MANAGE],
             'ingaz-delegations.index' => [
                 PermKeys::INGAZ_DELEGATIONS_VIEW,
                 PermKeys::INGAZ_DELEGATIONS_CONTROL,
@@ -435,6 +442,12 @@ class AdminRoutePermissionMatrix
                 PermKeys::INGAZ_DELEGATIONS_CREATE,
                 PermKeys::INGAZ_DELEGATIONS_CONTROL,
                 PermKeys::REC_CONTRACTS_CREATE,
+                PermKeys::REC_CONTRACTS_MANAGE,
+            ],
+            'ingaz-delegations.print' => [
+                PermKeys::INGAZ_DELEGATIONS_PRINT,
+                PermKeys::INGAZ_DELEGATIONS_CONTROL,
+                PermKeys::REC_CONTRACTS_PRINT,
                 PermKeys::REC_CONTRACTS_MANAGE,
             ],
             'invoices.index' => [
@@ -525,6 +538,7 @@ class AdminRoutePermissionMatrix
         return [
             'RentContract.index' => [PermKeys::RENT_CONTRACT_VIEW, PermKeys::RENT_CONTRACT_CONTROL],
             'RentContract.create' => [PermKeys::RENT_CONTRACT_CREATE, PermKeys::RENT_CONTRACT_CONTROL],
+            'RentContract.export.excel' => [PermKeys::RENT_CONTRACT_VIEW, PermKeys::RENT_CONTRACT_CONTROL],
             'RentContract.sendExpiryReminder' => [PermKeys::RENT_CONTRACT_CONTROL],
             'rental-orders.index' => [PermKeys::RENTAL_ORDERS_VIEW, PermKeys::ORDERS_VIEW],
             'rent-contract.settings' => [PermKeys::CONTRACT_SETTINGS],
@@ -571,6 +585,7 @@ class AdminRoutePermissionMatrix
             'ShelterContract.deportationStage' => [PermKeys::SHELTER_CONTRACT_DEPORTATION_STAGE_VIEW, PermKeys::SHELTER_CONTRACT_VIEW, PermKeys::SHELTER_CONTRACT_CONTROL],
             'ShelterContract.outside' => [PermKeys::SHELTER_CONTRACT_INSIDE_VIEW, PermKeys::SHELTER_CONTRACT_VIEW, PermKeys::SHELTER_CONTRACT_CONTROL],
             'ShelterContract.deported' => [PermKeys::SHELTER_CONTRACT_DEPORTED_VIEW, PermKeys::SHELTER_CONTRACT_VIEW, PermKeys::SHELTER_CONTRACT_CONTROL],
+            'ShelterContract.export' => [PermKeys::SHELTER_CONTRACT_VIEW, PermKeys::SHELTER_CONTRACT_CONTROL],
             'shelter_workers' => [PermKeys::SHELTER_WORKERS_VIEW, PermKeys::SHELTER_WORKERS_CONTROL],
             'shelter-places.index' => [PermKeys::SHELTER_PLACES_VIEW, PermKeys::SHELTER_PLACES_CONTROL],
         ];
@@ -580,7 +595,11 @@ class AdminRoutePermissionMatrix
     {
         return [
             'DeportationTravel.index' => [PermKeys::TRAVEL_VIEW, PermKeys::TRAVEL_CONTROL],
+            'DeportationTravel.export' => [PermKeys::TRAVEL_VIEW, PermKeys::TRAVEL_CONTROL],
+            'DeportationTravel.print' => [PermKeys::TRAVEL_VIEW, PermKeys::TRAVEL_CONTROL],
             'travel' => [PermKeys::TRAVEL_VIEW, PermKeys::TRAVEL_CONTROL],
+            'travel.export' => [PermKeys::TRAVEL_VIEW, PermKeys::TRAVEL_CONTROL],
+            'travel.print' => [PermKeys::TRAVEL_VIEW, PermKeys::TRAVEL_CONTROL],
             'travel.calendar.events' => [PermKeys::TRAVEL_VIEW, PermKeys::DASHBOARD_CALENDAR_EVENTS],
         ];
     }
@@ -625,6 +644,8 @@ class AdminRoutePermissionMatrix
             ]),
             [
                 'SponsorshipTransfer.webRequests' => [PermKeys::SPONSOR_TRANSFER_WEB_REQUESTS_VIEW, PermKeys::SPONSOR_TRANSFER_CONTROL],
+                'print.transfer-service-contract' => [PermKeys::SPONSOR_TRANSFER_VIEW, PermKeys::SPONSOR_TRANSFER_CONTROL],
+                'print.sponsorship-transfer-contract' => [PermKeys::SPONSOR_TRANSFER_VIEW, PermKeys::SPONSOR_TRANSFER_CONTROL],
                 'SponsorshipTransfer.webRequest.show' => [PermKeys::SPONSOR_TRANSFER_WEB_REQUESTS_VIEW, PermKeys::SPONSOR_TRANSFER_CONTROL],
                 'SponsorshipTransfer.webRequest.cancel' => [PermKeys::SPONSOR_TRANSFER_EDIT, PermKeys::SPONSOR_TRANSFER_CONTROL],
                 'SponsorshipTransfer.trial' => [PermKeys::SPONSOR_TRANSFER_VIEW, PermKeys::SPONSOR_TRANSFER_CONTROL],
@@ -775,6 +796,13 @@ class AdminRoutePermissionMatrix
                 'destroy' => [PermKeys::PACKAGES_DELETE, PermKeys::PACKAGES_CONTROL],
             ]),
             self::resource('offices', [
+                'index' => [PermKeys::OFFICE_VIEW, PermKeys::OFFICE_CONTROL],
+                'show' => [PermKeys::OFFICE_VIEW, PermKeys::OFFICE_CONTROL],
+                'create' => [PermKeys::OFFICE_CREATE, PermKeys::OFFICE_CONTROL],
+                'edit' => [PermKeys::OFFICE_EDIT, PermKeys::OFFICE_CONTROL],
+                'destroy' => [PermKeys::OFFICE_DELETE, PermKeys::OFFICE_CONTROL],
+            ]),
+            self::resource('recruitment-offices', [
                 'index' => [PermKeys::OFFICE_VIEW, PermKeys::OFFICE_CONTROL],
                 'show' => [PermKeys::OFFICE_VIEW, PermKeys::OFFICE_CONTROL],
                 'create' => [PermKeys::OFFICE_CREATE, PermKeys::OFFICE_CONTROL],

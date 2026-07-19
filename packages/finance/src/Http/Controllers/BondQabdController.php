@@ -17,6 +17,7 @@ use Nami\Finance\Models\Bond;
 use Nami\Finance\Models\CostCenter;
 use Nami\Finance\Services\AccountService;
 use Nami\Finance\Services\BondService as ObjService;
+use Nami\Finance\Services\BondListExportService;
 use Nami\Finance\Services\YearService;
 use Yajra\DataTables\DataTables;
 
@@ -89,7 +90,7 @@ class BondQabdController extends Controller
                 })
                 ->addColumn('actions', function ($row) {
                     $buttons = '<div class="bond-actions">';
-                    $buttons .= printButton(route("finance.bonds-print.show", $row->id) . '?type=qabd', null, 'finance.bonds-print-read') . ' ';
+                    $buttons .= printButton(route("finance.bonds-print.show", $row->id) . '?type=qabd', null, 'finance_bonds_export') . ' ';
                     $buttons .= '<button type="button" class="btn btn-dark editButton" data-bs-toggle="modal" data-bs-target="#createModal"'
                         . ' model-route="' . route('finance.bonds-qabd.show', $row->id) . '" model-title="تفاصيل سند القبض" title="التفاصيل">'
                         . '<i class="fa fa-eye"></i></button> ';
@@ -112,6 +113,11 @@ class BondQabdController extends Controller
         $data["filterOptionsRoute"] = route($this->mainRoute . '.filter-options');
         $data["archiveSummary"] = $service->getBondArchiveSummary(BondTypes::Qabd->value);
         return view($this->folderPath . '.index', $data)->with('results', $service->getReportBondQabd());
+    }
+
+    public function export(Request $request, ObjService $service, BondListExportService $exporter, string $format)
+    {
+        return $exporter->download($request, $service, BondTypes::Qabd, $format);
     }
 
     public function filterOptions(Request $request)

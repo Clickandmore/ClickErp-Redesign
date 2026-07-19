@@ -82,7 +82,7 @@ class ApiSponsorshipTransferController extends Controller
             if ($contract->user_id != auth()->id()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'لا يمكن نقل كفالة عقد لا يخصك'
+                    'message' => 'لا يمكن نقل خدمات عقد لا يخصك'
                 ], 403);
             }
 
@@ -117,7 +117,7 @@ class ApiSponsorshipTransferController extends Controller
                 ]);
             }
 
-            // إنشاء طلب نقل كفالة
+            // إنشاء طلب نقل خدمات
             $transferData = [
                 'contract_id' => $contract->id,
                 'old_sponsor_id' => auth()->id(),

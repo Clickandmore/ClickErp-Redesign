@@ -470,6 +470,17 @@
             <div class="alert alert-info mb-0" style="color:red;">{{ trans('finance::finance.the year is not active') }}</div>
         @endif
 
+        @if (@AdminGuardHasPerm('finance_trail_balance_export') || auth('admin')->user()?->admin_type == \App\Enums\AdminTypeisEnum::Developer->value)
+        <div class="trial-actions comprehensive-export-buttons">
+            <a href="#" class="btn btn-success comprehensive-export"
+                data-url="{{ route('finance.trail-balance.export', 'excel') }}">
+                <i class="fa fa-file-excel-o"></i> تصدير شامل Excel
+            </a>
+            <a href="#" class="btn btn-danger comprehensive-export"
+                data-url="{{ route('finance.trail-balance.export', 'pdf') }}" data-new-window="true">
+                <i class="fa fa-file-pdf-o"></i> طباعة / حفظ PDF شامل
+            </a>
+        </div>
         <div class="trial-actions print-and-excel-buttons d-none">
             <button onclick="window.print()" class="btn btn-primary">
                 <i class="fa fa-print"></i>
@@ -480,6 +491,7 @@
                 {{ helperTrans('dataTable.Export to Excel') }}
             </button>
         </div>
+        @endif
 
         <div class="trial-result" id="result">
             <div class="trial-result__empty">{{ __('finance::finance.no_data_found') }}</div>
@@ -498,6 +510,20 @@
         }
 
         const validateDateRangeDebounced = debounce(validateDateRange, 1300);
+
+        $('.comprehensive-export').on('click', function(e) {
+            e.preventDefault();
+            if (!validateDateRange()) {
+                return;
+            }
+            const query = $('.search_keys').serialize();
+            const url = $(this).data('url') + (query ? '?' + query : '');
+            if ($(this).data('new-window')) {
+                window.open(url, '_blank', 'noopener');
+                return;
+            }
+            window.location.href = url;
+        });
 
         $('#from_date, #to_date').on('input', validateDateRangeDebounced);
 

@@ -91,12 +91,14 @@
             <small class="text-muted">متابعة فواتير المبيعات وحالة مشاركتها مع هيئة الزكاة.</small>
         </div>
         <div class="bill-sales-actions">
+            @if (@AdminGuardHasPerm('finance_bill_sales_export') || auth('admin')->user()?->admin_type == \App\Enums\AdminTypeisEnum::Developer->value)
             <a href="{{ route('finance.bill-sales.export.excel') }}" id="exportExcelLink" class="btn btn-outline-success">
                 <i class="fa fa-file-excel me-1"></i> Excel
             </a>
             <a href="{{ route('finance.bill-sales.export.pdf') }}" id="exportPdfLink" class="btn btn-outline-danger">
                 <i class="fa fa-file-pdf me-1"></i> PDF
             </a>
+            @endif
             <a href="{{ $createRoute }}" class="btn btn-success">
                 <i class="fa fa-plus-circle me-1"></i>
                 {{ __('buttons.add button') }} {{ $addButtonText }}

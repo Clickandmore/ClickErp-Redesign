@@ -1230,7 +1230,7 @@
                                                 <input class="form-check-input" type="checkbox"
                                                     id="sendTransferClosureMessageToggle">
                                                 <label class="form-check-label" for="sendTransferClosureMessageToggle">
-                                                    إرسال رسالة إغلاق ونقل كفالة للعميل
+                                                    إرسال رسالة إغلاق ونقل خدمات للعميل
                                                 </label>
                                             </div>
                                         </div>

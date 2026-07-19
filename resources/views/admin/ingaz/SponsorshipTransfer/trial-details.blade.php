@@ -1,6 +1,6 @@
 @extends('admin.layout.indexs.index')
 
-@section('title', 'تفاصيل فترة التجربة - طلب نقل كفالة #' . $transfer->id)
+@section('title', 'تفاصيل فترة التجربة - طلب نقل خدمات #' . $transfer->id)
 
 @section('page-title')
 تفاصيل فترة التجربة

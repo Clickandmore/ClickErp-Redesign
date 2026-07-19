@@ -5,6 +5,7 @@ namespace App\Http\Controllers\admin\auth;
 use App\Http\Actions\auth\ChangePasswordAction as ObjAction;
 use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\auth\profile\CahngePasswordRequest as UpdateRequest;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
 
@@ -72,7 +73,11 @@ class ChangePasswordController extends Controller
 
     public function update(UpdateRequest $request,$id,ObjAction $action)
     {
-        $action->find($id)->update(['password'=> Hash::make($request->new_password)]);
+        $currentAdminId = Auth::guard('admin')->id();
+
+        abort_unless($currentAdminId && (int) $id === (int) $currentAdminId, 403);
+
+        $action->find($currentAdminId)->update(['password'=> Hash::make($request->new_password)]);
 
         return jsonSuccess('','تم تغير كلمه المرور بنجاح',201);
     }

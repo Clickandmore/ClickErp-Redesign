@@ -7,7 +7,7 @@ return [
         'absent' => 'متغيب عن العمل',
         'exit' => 'خروج نهائي',
         // 'rent' => 'تأجير',
-        // 'transferred' => 'نقل كفالة',
+        // 'transferred' => 'نقل خدمات',
     ],
 
     'worker_status' => [

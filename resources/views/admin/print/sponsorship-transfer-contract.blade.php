@@ -232,7 +232,7 @@
 
         <!-- رأس العقد -->
         <div class="header">
-            <h1>عقد نقل كفالة العمالة المنزلية</h1>
+            <h1>عقد نقل خدمات العمالة المنزلية</h1>
             <div class="company-info">
                 {{ documentSetting('document_company_name', $contractSettings['company_name'] ?? documentSetting('website_name', config('app.name'))) }}
             </div>

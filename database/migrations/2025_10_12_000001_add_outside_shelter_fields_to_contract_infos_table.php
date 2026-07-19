@@ -30,7 +30,7 @@ return new class extends Migration
                 $table->string('outside_shelter_reason')
                     ->nullable()
                     ->after('outside_shelter_at')
-                    ->comment('السبب أو السياق (تأجير، نقل كفالة، ...)');
+                    ->comment('السبب أو السياق (تأجير، نقل خدمات، ...)');
             }
 
             if (!Schema::hasColumn('contract_infos', 'outside_shelter_reference_type')) {

@@ -12,6 +12,7 @@ use App\Models\auth\Admin as objModel;
 use App\Models\Contract;
 use App\Models\ingaz\Order;
 use App\Models\RentalContract;
+use App\PermKeys;
 use App\Support\AdminRoutePermissionMatrix;
 use App\Support\SystemModuleManager;
 use Illuminate\Http\Request;
@@ -610,6 +611,8 @@ class AdminController extends Controller
 
     public function resetPassword($id, Request $request)
     {
+        $this->authorize(PermKeys::USERS_EDIT);
+
         $admin = ObjModel::findOrFail($id);
 
         $validated = $request->validate([
@@ -675,6 +678,8 @@ class AdminController extends Controller
 
     public function impersonate($id, Request $request)
     {
+        $this->authorize(PermKeys::USERS_EDIT);
+
         $admin = ObjModel::findOrFail($id);
 
         if ((int) $admin->id === (int) Auth::guard('admin')->id()) {

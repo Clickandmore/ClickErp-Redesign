@@ -5,6 +5,8 @@ namespace Nami\Finance\Http\Controllers;
 use App\Http\Controllers\admin\Controller;
 use Illuminate\Http\Request;
 use Nami\Finance\Services\AccountStatementService as objService;
+use Nami\Finance\Services\ComprehensiveTableExportService;
+use Nami\Finance\Services\DoubleAccountStatementExportService;
 
 class DoubleAccountStatementController extends Controller
 {
@@ -30,6 +32,15 @@ class DoubleAccountStatementController extends Controller
         $data["double_accounts"] =  $service->getDoubleAccounts();
         $data["bladeTitle"] = __("finance::finance.double-account-statment");
         return view($this->folderPath . '.index', $data);
+    }
+
+    public function export(
+        Request $request,
+        DoubleAccountStatementExportService $service,
+        ComprehensiveTableExportService $exporter,
+        string $format
+    ) {
+        return $service->download($request, $format, $exporter);
     }
 
     /**

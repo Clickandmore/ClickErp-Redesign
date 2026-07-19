@@ -1900,7 +1900,7 @@ class ShelterContractController extends Controller
 
                         return match ($reason) {
                             'rental_delivery' => '<span class="badge bg-primary">تسليم عقد إيجار</span>',
-                            'transfer_delivery' => '<span class="badge bg-success">تسليم نقل كفالة</span>',
+                            'transfer_delivery' => '<span class="badge bg-success">تسليم نقل خدمات</span>',
                             default => '<span class="badge bg-secondary">غير محدد</span>',
                         };
                     })
@@ -2849,8 +2849,8 @@ class ShelterContractController extends Controller
 
                     if ($canCreateTransferRequest && $row->info && $row->info->wants_to_work === 'yes') {
                         $actions .= '<li><hr class="dropdown-divider"></li>';
-                        $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="transfer" data-id="' . $row->id . '" data-text="سيتم فتح صفحة إضافة طلب نقل كفالة">
-                                        <i class="fas fa-exchange-alt"></i> إضافة طلب نقل كفالة
+                        $actions .= '<li><a class="dropdown-item confirm-action" href="#" data-action="transfer" data-id="' . $row->id . '" data-text="سيتم فتح صفحة إضافة طلب نقل خدمات">
+                                        <i class="fas fa-exchange-alt"></i> إضافة طلب نقل خدمات
                                     </a></li>';
 
                         // إضافة معلومات إضافية

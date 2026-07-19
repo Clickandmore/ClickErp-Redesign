@@ -1419,7 +1419,7 @@
                         url = '{{ route('ShelterContract.back', ':id') }}'.replace(':id', id);
                         break;
                     case 'transfer':
-                        // فتح صفحة إضافة طلب نقل كفالة
+                        // فتح صفحة إضافة طلب نقل خدمات
                         window.location.href = '{{ route('SponsorshipTransfer.create') }}?contract_id=' + id;
                         return;
                     case 'start-deportation':

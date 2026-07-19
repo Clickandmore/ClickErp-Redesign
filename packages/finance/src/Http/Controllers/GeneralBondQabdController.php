@@ -58,7 +58,7 @@ class GeneralBondQabdController extends Controller
                     return getEnumValue("bond_payment_type", $row->payment_type);
                 })
                 ->addColumn('actions', function ($row) {
-                    $buttons = printButton(route("finance.bonds-print.show", $row->id) . '?type=qabd', null, 'finance.bonds-print-read') . ' ';
+                    $buttons = printButton(route("finance.bonds-print.show", $row->id) . '?type=qabd', null, 'finance_bonds_export') . ' ';
                     $buttons .= editButton(route($this->mainRoute . ".edit", $row->id), $row->name) . " " ;
                     $buttons .= deleteButton(route($this->mainRoute . ".destroy", $row->id))." " ;
                     $buttons .= '<button type="button" class="btn btn-dark editButton" data-bs-toggle="modal" data-bs-target="#createModal"

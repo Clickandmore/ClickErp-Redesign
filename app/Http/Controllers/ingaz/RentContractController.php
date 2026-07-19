@@ -3355,7 +3355,7 @@ class RentContractController extends Controller
                     'paid_amount' => $request->paid_amount,
                     'remaining_amount' => $request->remaining_amount,
                     'payment_date' => now(),
-                    'notes' => 'نقل كفالة من العقد رقم ' . $oldContract->id
+                    'notes' => 'نقل خدمات من العقد رقم ' . $oldContract->id
                 ]);
             }
 
@@ -3519,7 +3519,7 @@ class RentContractController extends Controller
                 'type' => $item['type'],
                 'label' => $item['label'],
                 'amount' => $item['amount'],
-                'notes' => 'نقل كفالة من عقد إيجار بقيمة ' . number_format($transferAmount, 2) . ' ريال',
+                'notes' => 'نقل خدمات من عقد إيجار بقيمة ' . number_format($transferAmount, 2) . ' ريال',
                 'context' => 'transfer',
                 'created_by' => $adminId,
                 'settled_at' => now(),
