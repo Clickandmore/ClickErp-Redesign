@@ -41,6 +41,7 @@
         if ($oldSection === 'whatsapp') {
             $whatsappData = array_replace_recursive($whatsappData, old('whatsapp', []));
         }
+        $webhookVerifyToken = data_get($whatsappData, 'meta.webhook_verify_token') ?: \Illuminate\Support\Str::random(48);
 
         $ultraMsgInstances = data_get($whatsappData, 'ultramsg.instances', []);
         if (empty($ultraMsgInstances)) {
@@ -79,6 +80,10 @@
                 <a href="{{ route('whatsapp.notifications.index') }}" class="btn btn-outline-success">
                     <i class="fa fa-whatsapp me-1"></i>
                     إرسال واتساب
+                </a>
+                <a href="{{ route('whatsapp.inbox.index') }}" class="btn btn-success">
+                    <i class="fa fa-comments me-1"></i>
+                    محادثات واتساب
                 </a>
                 <a href="{{ route('messages.index') }}" class="btn btn-outline-secondary">
                     <i class="fa fa-inbox me-1"></i>
@@ -447,8 +452,14 @@
                                 <div class="row g-3 small mb-3">
                                     <div class="col-md-3"><strong>Graph Version:</strong> {{ data_get($currentSettings, 'whatsapp.meta.graph_version', 'v23.0') }}</div>
                                     <div class="col-md-3"><strong>Phone Number ID:</strong> {{ data_get($currentSettings, 'whatsapp.meta.phone_number_id') ?: 'غير محدد' }}</div>
-                                    <div class="col-md-3"><strong>Access Token:</strong> {{ $maskSecret(data_get($currentSettings, 'whatsapp.meta.access_token')) }}</div>
-                                    <div class="col-md-3"><strong>Webhook Verify Token:</strong> {{ $maskSecret(data_get($currentSettings, 'whatsapp.meta.webhook_verify_token')) }}</div>
+                                    <div class="col-md-2"><strong>Access Token:</strong> {{ $maskSecret(data_get($currentSettings, 'whatsapp.meta.access_token')) }}</div>
+                                    <div class="col-md-2"><strong>Webhook Verify Token:</strong> {{ $maskSecret(data_get($currentSettings, 'whatsapp.meta.webhook_verify_token')) }}</div>
+                                    <div class="col-md-2"><strong>App Secret:</strong> {{ $maskSecret(data_get($currentSettings, 'whatsapp.meta.app_secret')) }}</div>
+                                </div>
+                                <div class="alert alert-info small">
+                                    <div><strong>Callback URL داخل Meta:</strong> <code>{{ route('api.webhooks.whatsapp.receive') }}</code></div>
+                                    <div class="mt-1"><strong>Verify Token:</strong> استخدم نفس القيمة التي تحفظها أدناه.</div>
+                                    <div class="mt-1">يجب أن يكون رابط النظام عامًا ويعمل عبر HTTPS؛ العنوان المحلي 127.0.0.1 لا يمكن لـ Meta الوصول إليه.</div>
                                 </div>
                                 <div class="row g-3">
                                     <div class="col-md-3">
@@ -468,9 +479,27 @@
                                     </div>
                                     <div class="col-md-3">
                                         <label class="form-label">Webhook Verify Token</label>
-                                        <input type="password" name="whatsapp[meta][webhook_verify_token]" class="form-control"
-                                            placeholder="{{ data_get($currentSettings, 'whatsapp.meta.webhook_verify_token') ? 'هناك Webhook Token محفوظ، اترك الحقل فارغًا للإبقاء عليه' : 'اتركه فارغًا إذا لا توجد قيمة' }}">
+                                        <div class="input-group">
+                                            <input type="text" id="metaWebhookVerifyToken" name="whatsapp[meta][webhook_verify_token]" class="form-control"
+                                                value="{{ $webhookVerifyToken }}" autocomplete="off" dir="ltr">
+                                            <button class="btn btn-outline-secondary" type="button" id="copyMetaWebhookToken" title="نسخ">
+                                                <i class="fa fa-copy"></i>
+                                            </button>
+                                        </div>
+                                        <div class="form-text">انسخ هذه القيمة إلى Verify Token في إعدادات Meta.</div>
                                     </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">App Secret</label>
+                                        <input type="password" name="whatsapp[meta][app_secret]" class="form-control"
+                                            placeholder="{{ data_get($currentSettings, 'whatsapp.meta.app_secret') ? 'هناك App Secret محفوظ، اترك الحقل فارغًا للإبقاء عليه' : 'أدخل App Secret من Meta' }}">
+                                        <div class="form-text">يُستخدم للتحقق من توقيع X-Hub-Signature-256 للرسائل الواردة.</div>
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-end mt-3">
+                                    <button type="submit" form="testMetaConnectionForm" class="btn btn-outline-success btn-sm">
+                                        <i class="fa fa-check-circle me-1"></i>
+                                        اختبار الإعدادات المحفوظة
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -594,6 +623,9 @@
                 </form>
             </div>
         </div>
+        <form id="testMetaConnectionForm" method="post" action="{{ route('notifications.settings.whatsapp.test') }}" class="d-none">
+            @csrf
+        </form>
     </div>
 @else
     @include('components.no_permissions')
@@ -689,6 +721,14 @@
 
         $(document).on('click', '.js-remove-ultramsg-instance', function () {
             $(this).closest('.ultramsg-instance').remove();
+        });
+
+        $('#copyMetaWebhookToken').on('click', function () {
+            const input = document.getElementById('metaWebhookVerifyToken');
+            if (!input) return;
+            navigator.clipboard.writeText(input.value).then(function () {
+                $('#copyMetaWebhookToken').attr('title', 'تم النسخ');
+            });
         });
     });
 </script>

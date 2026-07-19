@@ -77,6 +77,7 @@ return [
         'route_patterns' => [
             'notifications.*',
             'whatsapp.notifications.*',
+            'whatsapp.inbox.*',
             'messages.*',
             'admin.sms-templates.*',
         ],

@@ -49,6 +49,7 @@ return [
         'phone_number_id' => env('WHATSAPP_PHONE_NUMBER_ID'),
         'access_token' => env('WHATSAPP_ACCESS_TOKEN'),
         'webhook_verify_token' => env('WHATSAPP_WEBHOOK_VERIFY_TOKEN'),
+        'app_secret' => env('WHATSAPP_APP_SECRET'),
         'default_country_code' => env('WHATSAPP_DEFAULT_COUNTRY_CODE', '966'),
         'timeout' => (int) env('WHATSAPP_TIMEOUT', 15),
         'bulk_send_limit' => (int) env('WHATSAPP_BULK_SEND_LIMIT', 200),

@@ -38,6 +38,7 @@ use App\Http\Controllers\ingaz\MusanedTransferController;
 use App\Http\Controllers\ingaz\NationalityController;
 use App\Http\Controllers\ingaz\NotificationController;
 use App\Http\Controllers\ingaz\NotificationSettingsController;
+use App\Http\Controllers\ingaz\WhatsAppInboxController;
 use App\Http\Controllers\ingaz\OfferController;
 use App\Http\Controllers\ingaz\OrderController;
 use App\Http\Controllers\ingaz\PackageController;
@@ -462,9 +463,13 @@ Route::group(
             Route::post('sms-dispatch', [NotificationController::class, 'store'])->name('notifications.store');
             Route::get('whatsapp-dispatch', [NotificationController::class, 'indexWhatsApp'])->name('whatsapp.notifications.index');
             Route::post('whatsapp-dispatch', [NotificationController::class, 'storeWhatsApp'])->name('whatsapp.notifications.store');
+            Route::get('whatsapp-inbox', [WhatsAppInboxController::class, 'index'])->name('whatsapp.inbox.index');
+            Route::get('whatsapp-inbox/{conversation}/messages', [WhatsAppInboxController::class, 'messages'])->name('whatsapp.inbox.messages');
+            Route::post('whatsapp-inbox/{conversation}/messages', [WhatsAppInboxController::class, 'send'])->name('whatsapp.inbox.send');
             Route::get('notifications-settings', [NotificationSettingsController::class, 'edit'])->name('notifications.settings');
             Route::get('notifications-settings/alerts', [NotificationSettingsController::class, 'editAlerts'])->name('notifications.settings.alerts');
             Route::post('notifications-settings', [NotificationSettingsController::class, 'update'])->name('notifications.settings.update');
+            Route::post('notifications-settings/whatsapp/test', [NotificationSettingsController::class, 'testWhatsApp'])->name('notifications.settings.whatsapp.test');
             Route::resource('statistics', StatisticController::class);
 
             Route::resource('steps', StepController::class);

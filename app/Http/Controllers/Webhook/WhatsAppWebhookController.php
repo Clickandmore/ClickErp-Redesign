@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Webhook;
 
 use App\Http\Controllers\admin\Controller;
 use App\Services\WhatsApp\MetaWhatsAppService;
+use App\Services\WhatsApp\WhatsAppWebhookService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -16,7 +17,13 @@ class WhatsAppWebhookController extends Controller
         $verifyToken = (string) $request->query('hub_verify_token', $request->query('hub.verify_token', ''));
         $challenge = (string) $request->query('hub_challenge', $request->query('hub.challenge', ''));
 
-        if ($mode === 'subscribe' && hash_equals($whatsAppService->webhookVerifyToken(), $verifyToken)) {
+        $expectedToken = $whatsAppService->webhookVerifyToken();
+
+        if ($mode === 'subscribe'
+            && $expectedToken !== ''
+            && $verifyToken !== ''
+            && hash_equals($expectedToken, $verifyToken)
+        ) {
             return response($challenge, 200)->header('Content-Type', 'text/plain');
         }
 
@@ -29,25 +36,30 @@ class WhatsAppWebhookController extends Controller
         return response('Forbidden', 403);
     }
 
-    public function receive(Request $request): JsonResponse
+    public function receive(
+        Request $request,
+        MetaWhatsAppService $whatsAppService,
+        WhatsAppWebhookService $webhookService
+    ): JsonResponse
     {
-        $payload = $request->all();
+        if (!$whatsAppService->verifyWebhookSignature(
+            (string) $request->getContent(),
+            $request->header('X-Hub-Signature-256')
+        )) {
+            Log::warning('Rejected WhatsApp webhook with invalid signature', [
+                'ip' => $request->ip(),
+            ]);
 
-        $entries = (array) data_get($payload, 'entry', []);
-        $messagesCount = 0;
-        $statusesCount = 0;
-
-        foreach ($entries as $entry) {
-            foreach ((array) data_get($entry, 'changes', []) as $change) {
-                $messagesCount += count((array) data_get($change, 'value.messages', []));
-                $statusesCount += count((array) data_get($change, 'value.statuses', []));
-            }
+            return response()->json(['message' => 'Invalid signature'], 403);
         }
 
+        $payload = $request->all();
+        $result = $webhookService->handle($payload);
+
         Log::info('Meta WhatsApp webhook received', [
-            'entries_count' => count($entries),
-            'messages_count' => $messagesCount,
-            'statuses_count' => $statusesCount,
+            'entries_count' => count((array) data_get($payload, 'entry', [])),
+            'messages_count' => $result['messages'],
+            'statuses_count' => $result['statuses'],
         ]);
 
         return response()->json(['status' => 'received']);

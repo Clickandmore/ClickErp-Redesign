@@ -6,6 +6,7 @@ use App\Http\Controllers\admin\Controller;
 use App\Support\CommunicationSettings;
 use App\Support\AutomationSettings;
 use App\Support\NotificationAlertSettings;
+use App\Services\WhatsApp\MetaWhatsAppService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -93,6 +94,38 @@ class NotificationSettingsController extends Controller
                 ->withInput()
                 ->with('error', 'تعذر حفظ إعدادات الربط حالياً.');
         }
+    }
+
+    public function testWhatsApp(MetaWhatsAppService $metaWhatsAppService)
+    {
+        if (!@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL)) {
+            abort(403, __('admin.no_permissions'));
+        }
+
+        $result = $metaWhatsAppService->connectionStatus();
+
+        if ($result['success'] ?? false) {
+            $phone = (string) data_get($result, 'response.display_phone_number', '');
+            $name = (string) data_get($result, 'response.verified_name', '');
+
+            return redirect()
+                ->to(route('notifications.settings') . '#whatsapp-settings')
+                ->with('success', 'تم الاتصال بـ Meta بنجاح'
+                    . ($name !== '' ? " — {$name}" : '')
+                    . ($phone !== '' ? " ({$phone})" : '')
+                    . '.');
+        }
+
+        $error = (string) (
+            data_get($result, 'response.error.message')
+            ?: data_get($result, 'response.message')
+            ?: implode(', ', (array) data_get($result, 'response.missing', []))
+            ?: 'تعذر التحقق من الاتصال.'
+        );
+
+        return redirect()
+            ->to(route('notifications.settings') . '#whatsapp-settings')
+            ->with('error', 'فشل اختبار اتصال Meta: ' . $error);
     }
 
     private function validateEmailSection(Request $request): array
@@ -245,6 +278,7 @@ class NotificationSettingsController extends Controller
             'whatsapp.meta.phone_number_id' => 'nullable|string|max:255',
             'whatsapp.meta.access_token' => 'nullable|string|max:5000',
             'whatsapp.meta.webhook_verify_token' => 'nullable|string|max:255',
+            'whatsapp.meta.app_secret' => 'nullable|string|max:1000',
 
             'whatsapp.ultramsg' => 'required|array',
             'whatsapp.ultramsg.api_url' => 'nullable|url|max:255',

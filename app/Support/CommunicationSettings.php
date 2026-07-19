@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\NewSettings;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -81,7 +82,10 @@ class CommunicationSettings
 
         NewSettings::query()->updateOrCreate(
             ['key' => self::SETTINGS_KEY],
-            ['value' => json_encode($normalized, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]
+            ['value' => json_encode(
+                self::encryptSecretsForStorage($normalized),
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            )]
         );
 
         self::applyRuntimeConfig($normalized);
@@ -132,6 +136,7 @@ class CommunicationSettings
                 'services.whatsapp.phone_number_id' => $settings['whatsapp']['meta']['phone_number_id'],
                 'services.whatsapp.access_token' => $settings['whatsapp']['meta']['access_token'],
                 'services.whatsapp.webhook_verify_token' => $settings['whatsapp']['meta']['webhook_verify_token'],
+                'services.whatsapp.app_secret' => $settings['whatsapp']['meta']['app_secret'],
                 'services.whatsapp.default_country_code' => $settings['whatsapp']['default_country_code'],
                 'services.whatsapp.timeout' => (int) $settings['whatsapp']['timeout'],
                 'services.whatsapp.bulk_send_limit' => (int) $settings['whatsapp']['bulk_send_limit'],
@@ -197,6 +202,8 @@ class CommunicationSettings
         if (!is_array($decoded)) {
             return $defaults;
         }
+
+        $decoded = self::decryptSecretsFromStorage($decoded);
 
         return self::mergeStoredSettings($defaults, $decoded);
     }
@@ -300,6 +307,11 @@ class CommunicationSettings
             $current['whatsapp']['meta']['webhook_verify_token'] ?? '',
             $preserveSecrets
         );
+        $data['whatsapp']['meta']['app_secret'] = self::preserveSecret(
+            $data['whatsapp']['meta']['app_secret'] ?? '',
+            $current['whatsapp']['meta']['app_secret'] ?? '',
+            $preserveSecrets
+        );
 
         $data['whatsapp']['ultramsg']['api_url'] = rtrim(
             self::trimString($data['whatsapp']['ultramsg']['api_url'] ?? $defaults['whatsapp']['ultramsg']['api_url'])
@@ -395,6 +407,12 @@ class CommunicationSettings
             if ($payload['whatsapp']['meta']['access_token'] === '') {
                 $errors['whatsapp.meta.access_token'] = 'رمز الوصول لـ Meta مطلوب.';
             }
+            if ($payload['whatsapp']['meta']['webhook_verify_token'] === '') {
+                $errors['whatsapp.meta.webhook_verify_token'] = 'Webhook Verify Token مطلوب لاستقبال الرسائل.';
+            }
+            if ($payload['whatsapp']['meta']['app_secret'] === '') {
+                $errors['whatsapp.meta.app_secret'] = 'App Secret مطلوب للتحقق من أمان الرسائل الواردة.';
+            }
         }
 
         if (in_array('whatsapp', $validatedSections, true) && $payload['whatsapp']['driver'] === 'ultramsg') {
@@ -467,6 +485,7 @@ class CommunicationSettings
                     'phone_number_id' => (string) config('services.whatsapp.phone_number_id', ''),
                     'access_token' => (string) config('services.whatsapp.access_token', ''),
                     'webhook_verify_token' => (string) config('services.whatsapp.webhook_verify_token', ''),
+                    'app_secret' => (string) config('services.whatsapp.app_secret', ''),
                 ],
                 'ultramsg' => [
                     'api_url' => (string) config('services.whatsapp.ultramsg.api_url', 'https://api.ultramsg.com'),
@@ -542,5 +561,69 @@ class CommunicationSettings
     private static function isBlankStoredValue($value): bool
     {
         return $value === null || (is_string($value) && trim($value) === '');
+    }
+
+    private static function encryptSecretsForStorage(array $settings): array
+    {
+        foreach ([
+            'email.password',
+            'sms.api_key',
+            'sms.taqnyat.bearer_token',
+            'whatsapp.meta.access_token',
+            'whatsapp.meta.webhook_verify_token',
+            'whatsapp.meta.app_secret',
+        ] as $path) {
+            $value = trim((string) data_get($settings, $path, ''));
+            if ($value !== '' && !str_starts_with($value, 'encrypted:')) {
+                data_set($settings, $path, 'encrypted:' . Crypt::encryptString($value));
+            }
+        }
+
+        foreach ((array) data_get($settings, 'whatsapp.ultramsg.instances', []) as $index => $instance) {
+            $value = trim((string) ($instance['token'] ?? ''));
+            if ($value !== '' && !str_starts_with($value, 'encrypted:')) {
+                data_set(
+                    $settings,
+                    "whatsapp.ultramsg.instances.{$index}.token",
+                    'encrypted:' . Crypt::encryptString($value)
+                );
+            }
+        }
+
+        return $settings;
+    }
+
+    private static function decryptSecretsFromStorage(array $settings): array
+    {
+        foreach ([
+            'email.password',
+            'sms.api_key',
+            'sms.taqnyat.bearer_token',
+            'whatsapp.meta.access_token',
+            'whatsapp.meta.webhook_verify_token',
+            'whatsapp.meta.app_secret',
+        ] as $path) {
+            self::decryptSecretAtPath($settings, $path);
+        }
+
+        foreach ((array) data_get($settings, 'whatsapp.ultramsg.instances', []) as $index => $instance) {
+            self::decryptSecretAtPath($settings, "whatsapp.ultramsg.instances.{$index}.token");
+        }
+
+        return $settings;
+    }
+
+    private static function decryptSecretAtPath(array &$settings, string $path): void
+    {
+        $value = (string) data_get($settings, $path, '');
+        if (!str_starts_with($value, 'encrypted:')) {
+            return;
+        }
+
+        try {
+            data_set($settings, $path, Crypt::decryptString(substr($value, 10)));
+        } catch (\Throwable $exception) {
+            data_set($settings, $path, '');
+        }
     }
 }
