@@ -5,6 +5,8 @@ namespace Nami\Finance\Http\Controllers;
 use App\Http\Controllers\admin\Controller;
 use Illuminate\Http\Request;
 use Nami\Finance\Services\TrailBalanceService;
+use Nami\Finance\Services\TrailBalanceExportService;
+use Nami\Finance\Services\ComprehensiveTableExportService;
 use Nami\Finance\Services\YearService;
 
 class TrailBalanceController extends Controller
@@ -41,6 +43,17 @@ class TrailBalanceController extends Controller
         $data["dataTableRoute"] = route($this->mainRoute . ".index");
         $data["bladeTitle"] = helperTrans("finance::finance.trail-balance");
         return view($this->folderPath . '.index', $data);
+    }
+
+    public function export(
+        Request $request,
+        TrailBalanceExportService $exportService,
+        TrailBalanceService $service,
+        YearService $yearService,
+        ComprehensiveTableExportService $exporter,
+        string $format
+    ) {
+        return $exportService->download($request, $format, $service, $yearService, $exporter);
     }
 
     /**

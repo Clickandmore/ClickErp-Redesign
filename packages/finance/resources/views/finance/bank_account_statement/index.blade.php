@@ -109,15 +109,32 @@
 
     </div>
 
+    @if (@AdminGuardHasPerm('finance_bank_account_statement_export') || auth('admin')->user()?->admin_type == \App\Enums\AdminTypeisEnum::Developer->value)
+    <div class="row mt-3">
+        <div class="col-12" style="text-align: left">
+            <a href="#" class="btn btn-success comprehensive-export"
+                data-url="{{ route('finance.bank-account-statement.export', 'excel') }}">
+                <i class="fa fa-file-excel-o"></i> تصدير شامل Excel
+            </a>
+            <a href="#" class="btn btn-danger comprehensive-export"
+                data-url="{{ route('finance.bank-account-statement.export', 'pdf') }}" data-new-window="true">
+                <i class="fa fa-file-pdf-o"></i> طباعة / حفظ PDF شامل
+            </a>
+        </div>
+    </div>
+    @endif
+
     <div class="row print-and-excel-buttons d-none">
         <div class="col-12 mt-4" style="text-align: left">
             {{-- <button onclick="window.print()" class="btn btn-primary"><i class="fa fa-print"></i></button> --}}
             {!! printButton(
                 route('finance.bank-account-statement-print.index', request()->all()),
                 null,
-                'finance::finance.bank-account-statement-print-read',
+                'finance_bank_account_statement_export',
             ) !!}
+            @if (@AdminGuardHasPerm('finance_bank_account_statement_export') || auth('admin')->user()?->admin_type == \App\Enums\AdminTypeisEnum::Developer->value)
             <button id="toExcel" class="btn btn-info"><i class="fa fa-file-excel-o"></i></button>
+            @endif
         </div>
     </div>
     <div class="row g-3 m-2" id="account_list"></div>
@@ -125,6 +142,16 @@
 @section('js')
     <script>
         $('.select2').select2();
+        $('.comprehensive-export').on('click', function(e) {
+            e.preventDefault();
+            const query = $('.search_keys').serialize();
+            const url = $(this).data('url') + (query ? '?' + query : '');
+            if ($(this).data('new-window')) {
+                window.open(url, '_blank', 'noopener');
+                return;
+            }
+            window.location.href = url;
+        });
         $("#search_button").on("click", function(e) {
             e.preventDefault()
             var data = $(".search_keys").serialize();

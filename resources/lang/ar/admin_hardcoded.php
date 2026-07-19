@@ -274,7 +274,7 @@ return array (
   'Shelter Contracts List' => 'قائمة عقود الإيواء',
   'View Shelter Contract Details' => 'عرض تفاصيل عقد الملجأ',
   'Rental Delivery' => 'تسليم إيجار',
-  'Sponsorship Transfer Delivery' => 'تسليم نقل كفالة',
+  'Sponsorship Transfer Delivery' => 'تسليم نقل خدمات',
   'Add a short completed contract and send it directly to shelter.' => 'إضافة عقد مكتمل مختصر ثم توجيهه مباشرة إلى الإيواء.',
   'Shelter Admission Date' => 'تاريخ إدخالها للإيواء',
   'This date represents the review and admission date inside shelter, and will be set automatically to today.' => 'هذا التاريخ يمثل تاريخ مراجعتها وإيداعها داخل الإيواء وسيُعيّن تلقائياً إلى اليوم الحالي.',

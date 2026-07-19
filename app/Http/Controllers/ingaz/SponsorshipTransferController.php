@@ -416,10 +416,10 @@ class SponsorshipTransferController extends Controller
                                     </a></li>';
                     }
 
-                    // إنشاء طلب نقل كفالة
+                    // إنشاء طلب نقل خدمات
                     if (($row->status == 'new' || $row->status == 'paid') && @AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_CREATE)) {
                         $actions .= '<li><a class="dropdown-item" href="' . route('SponsorshipTransfer.create', ['order_id' => $row->id]) . '">
-                                        <i class="fas fa-exchange-alt"></i> إنشاء طلب نقل كفالة
+                                        <i class="fas fa-exchange-alt"></i> إنشاء طلب نقل خدمات
                                     </a></li>';
                     }
 
@@ -599,7 +599,7 @@ class SponsorshipTransferController extends Controller
 
             if (!$contract->user_id) {
                 throw ValidationException::withMessages([
-                    'contract_id' => 'لا يمكن إنشاء طلب نقل كفالة لهذا العقد لأنه لا يحتوي على كفيل حالي. يرجى ربط العقد بالعميل الحالي أولا.',
+                    'contract_id' => 'لا يمكن إنشاء طلب نقل خدمات لهذا العقد لأنه لا يحتوي على كفيل حالي. يرجى ربط العقد بالعميل الحالي أولا.',
                 ]);
             }
 
@@ -666,7 +666,7 @@ class SponsorshipTransferController extends Controller
                 'status' => 'waiting_contract_send', // الحالة الجديدة: انتظار إرسال العقد
             ];
 
-            // إنشاء طلب نقل كفالة جديد
+            // إنشاء طلب نقل خدمات جديد
             $transfer = SponsorshipTransfer::create($transferData);
 
             DB::commit();
@@ -2032,7 +2032,7 @@ class SponsorshipTransferController extends Controller
         $transfer->contract->contract_status_logs()->create([
             'status' => ContractStatusEnum::Trial->value,
             'date' => now(),
-            'notes' => 'تم إخراج العاملة من داخل الإيواء بسبب بدء فترة تجربة نقل كفالة رقم ' . $transfer->id,
+            'notes' => 'تم إخراج العاملة من داخل الإيواء بسبب بدء فترة تجربة نقل خدمات رقم ' . $transfer->id,
         ]);
     }
 
@@ -2081,8 +2081,8 @@ class SponsorshipTransferController extends Controller
 
         app(AdminNotificationService::class)->sendToAdmins(
             $recipientIds,
-            'طلب نقل كفالة جديد #' . $transfer->id,
-            'تم إنشاء طلب نقل كفالة جديد من "' . ($transfer->oldSponsor?->name ?? 'كفيل غير محدد') . '" إلى "' . ($transfer->newSponsor?->name ?? 'كفيل غير محدد') . '".',
+            'طلب نقل خدمات جديد #' . $transfer->id,
+            'تم إنشاء طلب نقل خدمات جديد من "' . ($transfer->oldSponsor?->name ?? 'كفيل غير محدد') . '" إلى "' . ($transfer->newSponsor?->name ?? 'كفيل غير محدد') . '".',
             'sponsorship_transfer_created',
             route('SponsorshipTransfer.show', $transfer->id),
             [
@@ -2168,7 +2168,7 @@ class SponsorshipTransferController extends Controller
         $contract->contract_status_logs()->create([
             'status' => ContractStatusEnum::Shelter->value,
             'date' => now(),
-            'notes' => 'تمت إعادة العاملة إلى داخل الإيواء بعد فشل/إلغاء نقل كفالة رقم ' . $transfer->id
+            'notes' => 'تمت إعادة العاملة إلى داخل الإيواء بعد فشل/إلغاء نقل خدمات رقم ' . $transfer->id
                 . ($reason ? ' - السبب: ' . $reason : ''),
         ]);
     }

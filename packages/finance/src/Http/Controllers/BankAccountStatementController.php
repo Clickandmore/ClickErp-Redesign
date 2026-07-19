@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Nami\Finance\Enums\AccountTypesEnum;
 use Nami\Finance\Services\BankAccountStatementService as ObjService;
+use Nami\Finance\Services\AccountStatementExportService;
 use Throwable;
 
 class BankAccountStatementController extends Controller
@@ -45,6 +46,17 @@ class BankAccountStatementController extends Controller
         $data["ajaxRoute"] = route($this->mainRoute . ".index");
         $data["bladeTitle"] = __("finance::finance.bank-account-statement");
         return view($this->folderPath . '.index', $data);
+    }
+
+    public function export(Request $request, AccountStatementExportService $exporter, string $format)
+    {
+        return $exporter->download(
+            $request,
+            $format,
+            AccountTypesEnum::Bank->value,
+            'التصدير الشامل لكشوف الحسابات البنكية',
+            'bank-account-statements'
+        );
     }
 
     /**

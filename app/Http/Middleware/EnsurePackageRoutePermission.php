@@ -54,6 +54,12 @@ class EnsurePackageRoutePermission
 
     private function financePermissions(string $routeName): array
     {
+        $exportPermission = $this->financeExportPermission($routeName);
+
+        if ($exportPermission !== null) {
+            return [$exportPermission];
+        }
+
         if ($routeName === 'finance.constraints.approve') {
             return ['finance.constraints-approve', 'finance_module'];
         }
@@ -62,6 +68,34 @@ class EnsurePackageRoutePermission
         $resource = $resource === 'home' ? 'dashboard' : $resource;
 
         return $this->resourcePermissions('finance', $resource, $action, 'finance_module');
+    }
+
+    private function financeExportPermission(string $routeName): ?string
+    {
+        foreach ([
+            'finance.constraints.export' => 'finance_constraints_export',
+            'finance.accounting-guide-management.export' => 'finance_accounting_guide_management_export',
+            'finance.bill-sales.export.*' => 'finance_bill_sales_export',
+            'finance.account-statement.export' => 'finance_account_statement_export',
+            'finance.account-statement-print.*' => 'finance_account_statement_export',
+            'finance.account-statement-clients-print.*' => 'finance_account_statement_clients_export',
+            'finance.account-statement-clients.export' => 'finance_account_statement_clients_export',
+            'finance.account-statement-supplier-print.*' => 'finance_account_statement_suppliers_export',
+            'finance.bank-account-statement-print.*' => 'finance_bank_account_statement_export',
+            'finance.bank-account-statement.export' => 'finance_bank_account_statement_export',
+            'finance.double-account-statement-print.*' => 'finance_double_account_statement_export',
+            'finance.double-account-statement.export' => 'finance_double_account_statement_export',
+            'finance.trail-balance.export' => 'finance_trail_balance_export',
+            'finance.bonds-qabd.export' => 'finance_bonds_export',
+            'finance.bonds-sarf.export' => 'finance_bonds_export',
+            'finance.bonds-print.*' => 'finance_bonds_export',
+        ] as $pattern => $permission) {
+            if (Str::is($pattern, $routeName)) {
+                return $permission;
+            }
+        }
+
+        return null;
     }
 
     private function hrPermissions(string $routeName): array

@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Nami\Finance\Models\Account;
 use Nami\Finance\Services\AccountService;
+use Nami\Finance\Services\AccountStatementExportService;
 use Nami\Finance\Services\ConstraintService as ObjService;
 use Throwable;
 
@@ -83,6 +84,11 @@ class AccountStatementController extends Controller
         }
 
         return view($this->folderPath . '.index', $data);
+    }
+
+    public function export(Request $request, AccountStatementExportService $exporter, string $format)
+    {
+        return $exporter->download($request, $format);
     }
 
     private function buildStatementResult(

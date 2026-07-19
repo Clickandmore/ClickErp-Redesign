@@ -106,7 +106,7 @@ return array (
   'return_request_contract_status' => 'حالة العقد:',
   'return_request_contract_date' => 'تاريخ العقد:',
   'create_rental_contract' => 'إنشاء عقد إيجار',
-  'create_sponsorship_transfer' => 'إنشاء طلب نقل كفالة',
+  'create_sponsorship_transfer' => 'إنشاء طلب نقل خدمات',
   'return_request_form' => 'طلب الاسترجاع',
   'return_request_send' => 'إرسال طلب الاسترجاع',
   'return_request_cancel' => 'إلغاء الطلب',

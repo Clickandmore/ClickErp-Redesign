@@ -350,8 +350,8 @@ return array (
       'name' => 'sponsor_transfer_create',
       'group' => 'sponsor_transfer',
       'section' => 'additional_services',
-      'display_name' => 'إضافة طلب نقل كفالة',
-      'description' => 'إمكانية إنشاء طلب نقل كفالة جديد.',
+      'display_name' => 'إضافة طلب نقل خدمات',
+      'description' => 'إمكانية إنشاء طلب نقل خدمات جديد.',
     ),
     38 =>
     array (

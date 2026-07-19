@@ -75,7 +75,7 @@ class AccountStatementSupplierController extends Controller
         $data["filters"] = $dataSearch;
         $data["statementRoute"] = route($this->mainRoute . ".index");
         $data["printRoute"] = route("finance.account-statement-supplier-print.index");
-        $data["printPermission"] = "finance::finance.account-statement-supplier-print-read";
+        $data["printPermission"] = 'finance_account_statement_suppliers_export';
 
         return view('finance::finance.account_statement.index', $data);
     }

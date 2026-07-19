@@ -170,9 +170,15 @@ Route::group(
         Route::resource('account-transfer-files', AccountTransferFileController::class);
         Route::resource('constraint-files', ConstraintFileController::class);
         Route::resource('bonds-print', BondPrintController::class);
+        Route::get('bonds-sarf/export/{format}', [BondSarfController::class, 'export'])
+            ->where('format', 'pdf|excel|xlsx')
+            ->name('bonds-sarf.export');
         Route::get('bonds-sarf/filter-options', [BondSarfController::class, 'filterOptions'])
             ->name('bonds-sarf.filter-options');
         Route::resource('bonds-sarf', BondSarfController::class);
+        Route::get('bonds-qabd/export/{format}', [BondQabdController::class, 'export'])
+            ->where('format', 'pdf|excel|xlsx')
+            ->name('bonds-qabd.export');
         Route::get('bonds-qabd/{bond}/attachments/{attachment}/download', [BondQabdController::class, 'downloadAttachment'])
             ->where('attachment', 'file|transfer_file')
             ->name('bonds-qabd.download-attachment');
@@ -186,8 +192,14 @@ Route::group(
         Route::resource('cost-centers', CostCenterController::class);
         Route::resource('child-code', ChildCodeController::class);
         Route::resource('double-account', DoubleAccountController::class);
+        Route::get('double-account-statement/export/{format}', [DoubleAccountStatementController::class, 'export'])
+            ->where('format', 'pdf|excel|xlsx')
+            ->name('double-account-statement.export');
         Route::resource('double-account-statement', DoubleAccountStatementController::class);
         Route::resource('double-account-statement-print', DoubleAccountStatementPrintController::class);
+        Route::get('trail-balance/export/{format}', [TrailBalanceController::class, 'export'])
+            ->where('format', 'pdf|excel|xlsx')
+            ->name('trail-balance.export');
         Route::resource('trail-balance', TrailBalanceController::class);
         Route::resource('opening-balance', OpeningBalanceController::class);
         Route::get('fiscal-year-closing', [FiscalYearClosingController::class, 'index'])
@@ -198,16 +210,25 @@ Route::group(
             ->name('fiscal-year-closing.reverse');
         Route::resource('boxes', BoxController::class);
         Route::resource('principles', PrincipleController::class);
+        Route::get('account-statement/export/{format}', [AccountStatementController::class, 'export'])
+            ->where('format', 'pdf|excel|xlsx')
+            ->name('account-statement.export');
         Route::get('account-statement/account-options', [AccountStatementController::class, 'accountOptions'])
             ->name('account-statement.account-options');
         Route::resource('account-statement', AccountStatementController::class);
         Route::resource('account-statement-print', AccountStatementPrintController::class);
+        Route::get('account-statement-clients/export/{format}', [AccountStatementClientController::class, 'export'])
+            ->where('format', 'pdf|excel|xlsx')
+            ->name('account-statement-clients.export');
         Route::resource('account-statement-clients', AccountStatementClientController::class);
         Route::resource('account-statement-clients-print', AccountStatementClientPrintController::class);
         Route::resource('account-statement-suppliers', AccountStatementSupplierController::class);
         Route::resource('account-statement-supplier-print', AccountStatementSuppliePrintController::class);
         Route::resource('account-cost-centers', AccountCostCenterController::class);
         Route::resource('cash-movements', CashMovementController::class);
+        Route::get('bank-account-statement/export/{format}', [BankAccountStatementController::class, 'export'])
+            ->where('format', 'pdf|excel|xlsx')
+            ->name('bank-account-statement.export');
         Route::resource('bank-account-statement', BankAccountStatementController::class);
         Route::resource('bank-account-statement-print', BankAccountStatementPrintController::class);
         Route::resource('exchange-checks', ExchangeCheckController::class);

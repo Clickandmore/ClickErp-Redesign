@@ -3,8 +3,14 @@
 @php
     $statementRoute = $statementRoute ?? route('finance.account-statement.index');
     $printRoute = $printRoute ?? route('finance.account-statement-print.index');
-    $printPermission = $printPermission ?? 'finance::finance.account-statement-print-read';
+    $printPermission = $printPermission ?? 'finance_account_statement_export';
+    $canExport = @AdminGuardHasPerm($printPermission)
+        || auth('admin')->user()?->admin_type == \App\Enums\AdminTypeisEnum::Developer->value;
     $accountSearchRoute = $accountSearchRoute ?? null;
+    $exportExcelRoute = $exportExcelRoute ?? route('finance.account-statement.export', 'excel');
+    $exportPdfRoute = $exportPdfRoute ?? route('finance.account-statement.export', 'pdf');
+    $exportScopeDescription = $exportScopeDescription
+        ?? 'جميع الحسابات عند ترك الحساب فارغًا';
 @endphp
 
 @section('style')
@@ -939,11 +945,31 @@
             </div>
         </form>
 
+        @if ($canExport)
+            <div class="statement-action-bar mb-3">
+                <p class="statement-action-copy">
+                    التصدير الشامل يشمل {{ $exportScopeDescription }}، أو الحساب المحدد فقط، مع تطبيق الفترة ونوع الحركة.
+                </p>
+                <div class="statement-action-buttons">
+                    <a href="#" class="btn btn-success comprehensive-statement-export"
+                        data-export-url="{{ $exportExcelRoute }}">
+                        <i class="fa fa-file-excel-o"></i> تصدير شامل Excel
+                    </a>
+                    <a href="#" class="btn btn-danger comprehensive-statement-export"
+                        data-export-url="{{ $exportPdfRoute }}"
+                        data-new-window="true">
+                        <i class="fa fa-file-pdf-o"></i> طباعة / حفظ PDF شامل
+                    </a>
+                </div>
+            </div>
+        @endif
+
         <div class="print-and-excel-buttons {{ ($initialResultCount ?? 0) > 0 ? '' : 'd-none' }}">
             <div class="statement-action-bar">
                 <p class="statement-action-copy">الطباعة والتصدير يعتمدان دائمًا على نفس الفلاتر الحالية ونتيجة البحث
                     المعروضة أسفلها.</p>
 
+                @if ($canExport)
                 <div class="statement-action-buttons">
                     {!! printButton(
                         $printRoute . '?' . http_build_query(array_merge(request()->all(), ['autoprint' => 1])),
@@ -955,6 +981,7 @@
                         Excel
                     </button>
                 </div>
+                @endif
             </div>
         </div>
 
@@ -1004,6 +1031,19 @@
         const statementBaseUrl = @json($statementRoute);
         const printBaseUrl = @json($printRoute);
         const resultsContainer = $('#account_list');
+
+        $('.comprehensive-statement-export').on('click', function(event) {
+            event.preventDefault();
+            const query = filtersContainer.find('.search_keys').serialize();
+            const exportUrl = $(this).data('export-url') + (query ? '?' + query : '');
+
+            if ($(this).data('new-window')) {
+                window.open(exportUrl, '_blank', 'noopener');
+                return;
+            }
+
+            window.location.href = exportUrl;
+        });
 
         function updatePrintHref() {
             if (printButton.length === 0) {

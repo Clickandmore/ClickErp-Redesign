@@ -62,7 +62,7 @@
                     </div>
                     <div class="col-md-3">
                         <div class="stat-card">
-                            <span class="text-muted">تسليم نقل كفالة</span>
+                            <span class="text-muted">تسليم نقل خدمات</span>
                             <strong>{{ $statistics['transfer'] ?? 0 }}</strong>
                         </div>
                     </div>
@@ -89,7 +89,7 @@
                                 <select id="filterOutsideReason" class="form-select">
                                     <option value="">الكل</option>
                                     <option value="rental_delivery">تسليم عقد إيجار</option>
-                                    <option value="transfer_delivery">تسليم نقل كفالة</option>
+                                    <option value="transfer_delivery">تسليم نقل خدمات</option>
                                 </select>
                             </div>
                             <div class="col-md-3">

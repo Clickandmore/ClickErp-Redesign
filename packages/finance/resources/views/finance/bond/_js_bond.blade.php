@@ -107,6 +107,31 @@
         });
     });
 
+    $(document).on('click', '.bond-list-export', function (event) {
+        event.preventDefault();
+
+        const params = new URLSearchParams();
+        const filters = {
+            bond_search: $('#bond_search').val(),
+            from_date: $('#from_date').val(),
+            to_date: $('#to_date').val(),
+            cost_center_id: $('#cost_center_id').val(),
+            debit_account_id: $('#debit_account_id').val(),
+            credit_account_id: $('#credit_account_id').val(),
+            payment_type: $('#payment_type_filter').val(),
+            is_confirm: $('#is_confirm_filter').val(),
+        };
+
+        Object.entries(filters).forEach(function ([key, value]) {
+            if (value !== null && value !== undefined && String(value) !== '') {
+                params.set(key, value);
+            }
+        });
+
+        const query = params.toString();
+        window.location.href = $(this).data('export-url') + (query ? '?' + query : '');
+    });
+
         $(document).ready(function () {
             const bondTableType = @json($bondTableType ?? null);
             const isManagedBondTable = ['sarf', 'qabd'].includes(bondTableType);

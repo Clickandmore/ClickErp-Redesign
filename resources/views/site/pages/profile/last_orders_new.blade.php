@@ -1394,14 +1394,14 @@
                                                                     </div>
                                                                 </div>
                                                             @elseif($current_order->jobType->id == 3)
-                                                                {{-- طلب استلام فوري - توجيه إلى إنشاء طلب نقل كفالة --}}
+                                                                {{-- طلب استلام فوري - توجيه إلى إنشاء طلب نقل خدمات --}}
                                                                 <div class="cta">
-                                                                    <p>إنشاء طلب نقل كفالة</p>
+                                                                    <p>إنشاء طلب نقل خدمات</p>
                                                                     <div class="btns">
                                                                         <a href="/admin/SponsorshipTransfer/create?order_id={{ $current_order->id }}&maid_id={{ $current_order->maid_id }}&user_id={{ $current_order->user_id }}"
                                                                             class="btn btn-success" target="_blank">
                                                                             <i class="fa-light fa-exchange"></i>
-                                                                            إنشاء طلب نقل كفالة
+                                                                            إنشاء طلب نقل خدمات
                                                                         </a>
                                                                     </div>
                                                                 </div>

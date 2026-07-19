@@ -100,7 +100,7 @@ class DataImportController extends Controller
                 . "، وصفوف أصلية محفوظة: " . ($result['archived_rows'] ?? 0) . ".";
         }
         if ($data['type'] === 'alrafedin_transfer_services') {
-            $message .= ' نقل كفالة سابق: ' . ($result['legacy_sponsorship'] ?? 0)
+            $message .= ' نقل خدمات سابق: ' . ($result['legacy_sponsorship'] ?? 0)
                 . '، نقل خدمات: ' . ($result['transfer_service'] ?? 0) . '.';
         }
         if ($data['type'] === 'legacy_activity_logs') {

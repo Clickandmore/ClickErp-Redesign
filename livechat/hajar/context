@@ -3,7 +3,7 @@ info answers;
 companyName = "شركة هجر للاستقدام";
 webUrl = "https://hajar.sa";
 apiUrl = "https://hajar.sa/api";
-mainOptions = {"طلب استقدام","تأجير","نقل كفالة","متابعة طلب","شكوى","اتصال","إنهاء"};
+mainOptions = {"طلب استقدام","تأجير","نقل خدمات","متابعة طلب","شكوى","اتصال","إنهاء"};
 afterOptions = {"القائمة الرئيسية","متابعة طلب","إنهاء"};
 branchOptions = {"فرع الرياض","فرع الأحساء","القائمة الرئيسية","إنهاء"};
 welcomeText = "حياكم وبياكم في موقع شركة هجر للاستقدام ✨\nنفرح بزيارتكم، ونسعد بخدمتكم على أكمل وجه.\n\nوش حاب تسوّي اليوم؟\nحدد الخيار اللي يناسبك خلنا نخدمك بأفضل شكل 😊";
@@ -183,7 +183,7 @@ else if(context_id.equals("service_rent") || context_id.equals("service_transfer
 	if(context_id.equals("service_transfer"))
 	{
 		serviceType = "transfer";
-		serviceText = "نقل كفالة";
+		serviceText = "نقل خدمات";
 	}
 	url = webUrl + "/all-workers?type=" + serviceType + "&branch=" + branchCode;
 	response.put("action","reply");
