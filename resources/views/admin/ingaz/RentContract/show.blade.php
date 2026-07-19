@@ -1145,6 +1145,29 @@
                                     <span class="value">{{ number_format((float) ($closureSummary['daily_rate'] ?? 0), 2) }} ريال</span>
                                 </li>
                             </ul>
+
+                            @php
+                                $closureAdjustments = $contract->financialAdjustments
+                                    ->where('context', 'closure');
+                            @endphp
+                            @if ($closureAdjustments->isNotEmpty())
+                                <div class="d-flex flex-wrap gap-2 mb-4">
+                                    @foreach ($closureAdjustments as $adjustment)
+                                        <a href="{{ route('rental.credit-note.download', ['id' => $adjustment->id, 'autoprint' => 1]) }}"
+                                            target="_blank" class="btn btn-outline-primary">
+                                            <i class="fas fa-file-invoice-dollar me-1"></i>
+                                            {{ $adjustment->type === 'expense' ? 'طباعة الإشعار الدائن' : 'طباعة الإشعار المدين' }}
+                                        </a>
+                                        @if ($adjustment->constraint_id)
+                                            <a href="{{ route('finance.add-constraint.show', ['add_constraint' => $adjustment->constraint_id, 'autoprint' => 1]) }}"
+                                                target="_blank" class="btn btn-outline-secondary">
+                                                <i class="fas fa-rotate-left me-1"></i>
+                                                {{ $adjustment->type === 'expense' ? 'قيد إشعار دائن / استرجاع' : 'قيد مستحق الشركة' }}
+                                            </a>
+                                        @endif
+                                    @endforeach
+                                </div>
+                            @endif
                         @endif
 
                         @if ($contract->financeInvoice)

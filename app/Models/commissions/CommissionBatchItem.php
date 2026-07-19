@@ -10,7 +10,9 @@ class CommissionBatchItem extends Model
     protected $table = 'commission_batch_items';
 
     protected $fillable = [
-        'batch_id', 'ingaz_delegation_id', 'service_type',
+        'batch_id', 'ingaz_delegation_id', 'source_type', 'source_id',
+        'order_id', 'contract_id', 'operation_reference',
+        'client_name', 'operation_date', 'service_type',
         'base_amount', 'method', 'rate_or_amount', 'commission_amount',
     ];
 
@@ -18,6 +20,7 @@ class CommissionBatchItem extends Model
         'base_amount' => 'decimal:2',
         'rate_or_amount' => 'decimal:2',
         'commission_amount' => 'decimal:2',
+        'operation_date' => 'date',
     ];
 
     public function batch()

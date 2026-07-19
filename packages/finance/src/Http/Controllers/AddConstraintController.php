@@ -71,7 +71,11 @@ class AddConstraintController extends Controller
             'logs.admin',
         ]);
 
-        return view($this->folderPath . ".show_constraint")->with([
+        $view = $request->boolean('print')
+            ? $this->folderPath . ".print_constraint"
+            : $this->folderPath . ".show_constraint";
+
+        return view($view)->with([
             "obj" => $constraint,
             "bladeTitle" => __("finance::finance.constraint_details_page") . " #{$constraint->code}",
             "createRoute" => route($this->mainRoute . ".create"),

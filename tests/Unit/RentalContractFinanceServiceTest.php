@@ -5,6 +5,7 @@ namespace Tests\Unit;
 use App\Models\ingaz\Package;
 use App\Models\RentalContract;
 use App\Models\RentalContractInfo;
+use App\Models\RentalContractInvoice;
 use App\Services\ingaz\RentalContractFinanceService;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
@@ -81,6 +82,74 @@ class RentalContractFinanceServiceTest extends TestCase
         $this->assertStringContainsString('مرتب العامل (معفى ضريبياً)', $statement);
         $this->assertStringContainsString('AYNALEM KEBEDE NEGASH', $statement);
         $this->assertStringContainsString('1000.00 ريال', $statement);
+    }
+
+    public function test_it_splits_early_closure_credit_note_between_revenue_salary_and_vat(): void
+    {
+        $contract = new RentalContract();
+        $info = new RentalContractInfo([
+            'monthly_salary' => 900,
+            'contract_duration_months' => 1,
+            'contract_duration_days' => 30,
+            'contract_value' => 1890.26,
+        ]);
+        $info->setRelation('package', null);
+        $contract->setRelation('info', $info);
+        $contract->setRelation('maid', null);
+
+        $invoice = new RentalContractInvoice([
+            'total_due' => 1890.26,
+            'vat_amount' => 129.13,
+        ]);
+
+        $reflection = new ReflectionClass(RentalContractFinanceService::class);
+        $service = $reflection->newInstanceWithoutConstructor();
+        $method = $reflection->getMethod('closureAdjustmentAmounts');
+        $method->setAccessible(true);
+
+        $amounts = $method->invoke($service, $invoice, $contract, 1701.14);
+
+        $this->assertSame(1701.14, $amounts['total']);
+        $this->assertSame(
+            1701.14,
+            round(
+                $amounts['taxable_subtotal']
+                + $amounts['salary_exempt_amount']
+                + $amounts['vat_amount'],
+                2
+            )
+        );
+        $this->assertGreaterThan(0, $amounts['taxable_subtotal']);
+        $this->assertGreaterThan(0, $amounts['salary_exempt_amount']);
+        $this->assertGreaterThan(0, $amounts['vat_amount']);
+    }
+
+    public function test_closure_reversal_debits_revenue_and_credits_client(): void
+    {
+        $reflection = new ReflectionClass(RentalContractFinanceService::class);
+        $service = $reflection->newInstanceWithoutConstructor();
+        $method = $reflection->getMethod('appendReversalPair');
+        $method->setAccessible(true);
+        $lines = [];
+
+        $method->invokeArgs($service, [&$lines, 178, 220, 500.25, 'إشعار دائن', 15]);
+
+        $this->assertSame([
+            'account_id' => 178,
+            'account_type' => 'debtor',
+            'debtor_value' => 500.25,
+            'creditor_value' => 0,
+            'statement' => 'إشعار دائن',
+            'cost_center_id' => 15,
+        ], $lines[0]);
+        $this->assertSame([
+            'account_id' => 220,
+            'account_type' => 'creditor',
+            'debtor_value' => 0,
+            'creditor_value' => 500.25,
+            'statement' => 'إشعار دائن',
+            'cost_center_id' => null,
+        ], $lines[1]);
     }
 
     private function buildInvoiceAmounts(array $infoAttributes, ?Package $package = null): array

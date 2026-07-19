@@ -4,7 +4,9 @@ namespace App\Services\commissions;
 
 use App\Models\commissions\CommissionBalanceTransaction;
 use App\Models\commissions\CommissionPayment;
+use App\Models\auth\Admin;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class CommissionPaymentService
 {
@@ -15,6 +17,15 @@ class CommissionPaymentService
     public function issuePayment(int $marketerId, float $amount, string $paymentDate, ?string $notes, int $adminId): CommissionPayment
     {
         return DB::transaction(function () use ($marketerId, $amount, $paymentDate, $notes, $adminId) {
+            Admin::query()->whereKey($marketerId)->lockForUpdate()->firstOrFail();
+            $currentBalance = $this->profileService->getMarketerBalance($marketerId);
+
+            if ($amount <= 0 || $amount > $currentBalance) {
+                throw ValidationException::withMessages([
+                    'amount' => 'مبلغ سند الصرف يجب أن يكون أكبر من صفر وألا يتجاوز الرصيد المتاح.',
+                ]);
+            }
+
             $payment = CommissionPayment::create([
                 'marketer_id'  => $marketerId,
                 'amount'       => $amount,
@@ -26,8 +37,7 @@ class CommissionPaymentService
                 'created_by'   => $adminId,
             ]);
 
-            $currentBalance = $this->profileService->getMarketerBalance($marketerId);
-            $balanceAfter = max(0, $currentBalance - $amount);
+            $balanceAfter = round($currentBalance - $amount, 2);
 
             CommissionBalanceTransaction::create([
                 'marketer_id'    => $marketerId,

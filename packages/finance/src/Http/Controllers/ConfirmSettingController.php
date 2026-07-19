@@ -50,6 +50,8 @@ class ConfirmSettingController extends Controller
             "accounts" => $service->getAccounts(),
             "debtor_accounts" => $service->getDebtorAccounts(),
             "revenue_tax_accounts" => $service->getRevenueTaxAccounts(),
+            "rental_client_parent_accounts" => $service->getRentalClientParentAccounts(),
+            "rental_receipt_accounts" => $service->getRentalReceiptAccounts(),
             "musaned_source_accounts" => $service->getMusanedSourceAccounts(),
             "musaned_accounts" => $service->getMusanedIntermediateAccounts(),
             "tax_settings" => $service->getTaxSetting(),

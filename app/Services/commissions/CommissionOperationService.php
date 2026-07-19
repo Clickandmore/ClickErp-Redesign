@@ -1,0 +1,341 @@
+<?php
+
+namespace App\Services\commissions;
+
+use App\Enums\ingaz\OrderEnum;
+use App\Models\Contract;
+use App\Models\IngazDelegation;
+use App\Models\RentalContract;
+use App\Models\TransferServiceContract;
+use App\Models\commissions\CommissionBatchItem;
+use App\Models\ingaz\Order;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
+
+class CommissionOperationService
+{
+    public const SOURCE_ORDER = 'order';
+    public const SOURCE_RECRUITMENT_CONTRACT = 'recruitment_contract';
+    public const SOURCE_RENTAL_CONTRACT = 'rental_contract';
+    public const SOURCE_TRANSFER_CONTRACT = 'transfer_service_contract';
+    public const SOURCE_DELEGATION = 'ingaz_delegation';
+
+    public function getOperations(int $adminId, array $filters = []): Collection
+    {
+        $operations = collect()
+            ->concat($this->orders($adminId))
+            ->concat($this->recruitmentContracts($adminId))
+            ->concat($this->rentalContracts($adminId))
+            ->concat($this->transferContracts($adminId))
+            ->concat($this->delegations($adminId));
+
+        $commissioned = CommissionBatchItem::query()
+            ->whereNotNull('source_type')
+            ->whereNotNull('source_id')
+            ->whereIn('source_type', $operations->pluck('source_type')->unique())
+            ->whereIn('source_id', $operations->pluck('source_id')->unique())
+            ->with('batch:id,status')
+            ->get()
+            ->keyBy(fn (CommissionBatchItem $item) => $this->key($item->source_type, $item->source_id));
+
+        $operations = $operations->map(function (array $operation) use ($commissioned) {
+            $item = $commissioned->get($operation['key']);
+            $operation['commissioned'] = $item !== null;
+            $operation['commission_batch_id'] = $item?->batch_id;
+            $operation['commission_amount'] = (float) ($item?->commission_amount ?? 0);
+
+            return $operation;
+        });
+
+        if (! empty($filters['service_type'])) {
+            $operations = $operations->where('service_type', $filters['service_type']);
+        }
+
+        if (($filters['commission_status'] ?? '') === 'pending') {
+            $operations = $operations->where('commissioned', false);
+        } elseif (($filters['commission_status'] ?? '') === 'commissioned') {
+            $operations = $operations->where('commissioned', true);
+        }
+
+        $from = $this->filterStartDate($filters);
+        $to = $this->filterEndDate($filters);
+
+        if ($from) {
+            $operations = $operations->filter(fn (array $item) => $item['operation_date'] && $item['operation_date']->gte($from));
+        }
+        if ($to) {
+            $operations = $operations->filter(fn (array $item) => $item['operation_date'] && $item['operation_date']->lte($to));
+        }
+
+        return $operations->sortByDesc('operation_date')->values();
+    }
+
+    public function findSelected(int $adminId, array $keys): Collection
+    {
+        $wanted = collect($keys)->filter(fn ($key) => is_string($key) && str_contains($key, ':'))->unique();
+
+        return $this->getOperations($adminId)
+            ->whereIn('key', $wanted)
+            ->where('commissioned', false)
+            ->values();
+    }
+
+    public function summary(int $adminId): array
+    {
+        $operations = $this->getOperations($adminId);
+
+        return [
+            'total' => $operations->count(),
+            'pending' => $operations->where('commissioned', false)->count(),
+            'commissioned' => $operations->where('commissioned', true)->count(),
+            'orders' => $operations->where('source_type', self::SOURCE_ORDER)->count(),
+            'recruitment' => $operations->where('service_type', 'recruitment')->count(),
+            'rental' => $operations->where('service_type', 'rental')->count(),
+            'transfer' => $operations->where('service_type', 'service_transfer')->count(),
+            'delegation' => $operations->where('service_type', 'electronic_ingaz_delegation')->count(),
+        ];
+    }
+
+    public function key(string $sourceType, int $sourceId): string
+    {
+        return $sourceType . ':' . $sourceId;
+    }
+
+    private function orders(int $adminId): Collection
+    {
+        return Order::query()
+            ->whereResponsibleAdmin($adminId)
+            ->whereDoesntHave('contracts')
+            ->whereDoesntHave('rentalContracts')
+            ->with(['user:id,name', 'jobType', 'details.package'])
+            ->get()
+            ->map(function (Order $order) {
+                $package = $order->details?->package;
+                $base = (float) ($package?->price_with_tax
+                    ?? $package?->price_after_discount
+                    ?? $package?->original_price
+                    ?? 0);
+
+                return $this->operation(
+                    self::SOURCE_ORDER,
+                    $order->id,
+                    'recruitment',
+                    'طلب',
+                    $order->order_code ?: (string) $order->id,
+                    null,
+                    $order->user?->name,
+                    $this->orderStatus($order->status),
+                    $base,
+                    null,
+                    $order->created_at,
+                    $order->id,
+                    null
+                );
+            });
+    }
+
+    private function recruitmentContracts(int $adminId): Collection
+    {
+        return Contract::query()
+            ->where(function (Builder $query) use ($adminId) {
+                $query->where('marketer_id', $adminId)
+                    ->orWhere(function (Builder $fallback) use ($adminId) {
+                        $fallback->whereNull('marketer_id')
+                            ->whereHas('order', fn (Builder $order) => $order->whereResponsibleAdmin($adminId));
+                    });
+            })
+            ->with(['user:id,name', 'order:id,order_code', 'invoice', 'info'])
+            ->get()
+            ->map(function (Contract $contract) {
+                $base = (float) ($contract->invoice?->total_due
+                    ?? $contract->info?->contract_value
+                    ?? $contract->contract_cost
+                    ?? 0);
+
+                return $this->operation(
+                    self::SOURCE_RECRUITMENT_CONTRACT,
+                    $contract->id,
+                    'recruitment',
+                    'عقد استقدام',
+                    (string) $contract->id,
+                    $contract->order?->order_code,
+                    $contract->user?->name,
+                    $this->contractStatus($contract->status),
+                    $base,
+                    $contract->invoice?->is_paid,
+                    $contract->contract_date ?: $contract->created_at,
+                    $contract->order_id,
+                    $contract->id
+                );
+            });
+    }
+
+    private function rentalContracts(int $adminId): Collection
+    {
+        return RentalContract::query()
+            ->where(function (Builder $query) use ($adminId) {
+                $query->where('marketer_id', $adminId)
+                    ->orWhere(function (Builder $fallback) use ($adminId) {
+                        $fallback->whereNull('marketer_id')
+                            ->whereHas('order', fn (Builder $order) => $order->whereResponsibleAdmin($adminId));
+                    });
+            })
+            ->with(['user:id,name', 'order:id,order_code', 'financeInvoice', 'info'])
+            ->get()
+            ->map(function (RentalContract $contract) {
+                $base = (float) ($contract->financeInvoice?->total_due
+                    ?? $contract->info?->contract_value
+                    ?? $contract->info?->package_total_with_tax
+                    ?? 0);
+
+                return $this->operation(
+                    self::SOURCE_RENTAL_CONTRACT,
+                    $contract->id,
+                    'rental',
+                    'عقد تأجير',
+                    $contract->contract_number ?: (string) $contract->id,
+                    $contract->order?->order_code,
+                    $contract->user?->name,
+                    $this->rentalStatus($contract->status),
+                    $base,
+                    $contract->financeInvoice?->is_paid,
+                    $contract->contract_date ?: $contract->created_at,
+                    $contract->order_id,
+                    $contract->id
+                );
+            });
+    }
+
+    private function transferContracts(int $adminId): Collection
+    {
+        return TransferServiceContract::query()
+            ->where('created_by', $adminId)
+            ->with(['newSponsor:id,name'])
+            ->get()
+            ->map(fn (TransferServiceContract $contract) => $this->operation(
+                self::SOURCE_TRANSFER_CONTRACT,
+                $contract->id,
+                'service_transfer',
+                'عقد نقل خدمة',
+                $contract->contract_number ?: (string) $contract->id,
+                null,
+                $contract->newSponsor?->name,
+                $this->transferStatus($contract->status),
+                (float) $contract->contract_value,
+                (float) $contract->remaining_amount <= 0,
+                $contract->contract_start_date ?: $contract->created_at,
+                null,
+                $contract->contract_id
+            ));
+    }
+
+    private function delegations(int $adminId): Collection
+    {
+        return IngazDelegation::query()
+            ->where('marketer_id', $adminId)
+            ->with(['user:id,name', 'invoice'])
+            ->get()
+            ->map(fn (IngazDelegation $delegation) => $this->operation(
+                self::SOURCE_DELEGATION,
+                $delegation->id,
+                'electronic_ingaz_delegation',
+                'تفويض إنجاز',
+                $delegation->ingaz_number ?: (string) $delegation->id,
+                null,
+                $delegation->user?->name,
+                (string) ($delegation->status ?: '-'),
+                (float) ($delegation->invoice?->total_due ?? 0),
+                $delegation->invoice?->is_paid,
+                $delegation->delegation_date_gregorian ?: $delegation->created_at,
+                null,
+                null
+            ));
+    }
+
+    private function operation(
+        string $sourceType,
+        int $sourceId,
+        string $serviceType,
+        string $sourceLabel,
+        ?string $reference,
+        ?string $orderReference,
+        ?string $clientName,
+        string $status,
+        float $baseAmount,
+        ?bool $isPaid,
+        mixed $date,
+        ?int $orderId,
+        ?int $contractId
+    ): array {
+        return [
+            'key' => $this->key($sourceType, $sourceId),
+            'source_type' => $sourceType,
+            'source_id' => $sourceId,
+            'source_label' => $sourceLabel,
+            'reference' => $reference ?: '-',
+            'order_reference' => $orderReference ?: '-',
+            'service_type' => $serviceType,
+            'client_name' => $clientName ?: '-',
+            'status' => $status,
+            'base_amount' => round($baseAmount, 2),
+            'is_paid' => $isPaid,
+            'operation_date' => $date ? Carbon::parse($date)->startOfDay() : null,
+            'order_id' => $orderId,
+            'contract_id' => $contractId,
+        ];
+    }
+
+    private function filterStartDate(array $filters): ?Carbon
+    {
+        if (($filters['date_filter'] ?? '') === 'range' && ! empty($filters['from_date'])) {
+            return Carbon::parse($filters['from_date'])->startOfDay();
+        }
+        if (($filters['date_filter'] ?? '') === 'month_year' && ! empty($filters['year'])) {
+            return Carbon::create((int) $filters['year'], (int) ($filters['month'] ?: 1), 1)->startOfDay();
+        }
+
+        return null;
+    }
+
+    private function filterEndDate(array $filters): ?Carbon
+    {
+        if (($filters['date_filter'] ?? '') === 'range' && ! empty($filters['to_date'])) {
+            return Carbon::parse($filters['to_date'])->endOfDay();
+        }
+        if (($filters['date_filter'] ?? '') === 'month_year' && ! empty($filters['year'])) {
+            $date = Carbon::create((int) $filters['year'], (int) ($filters['month'] ?: 12), 1);
+            return ! empty($filters['month']) ? $date->endOfMonth() : $date->endOfYear();
+        }
+
+        return null;
+    }
+
+    private function orderStatus(?string $status): string
+    {
+        return OrderEnum::tryFrom((string) $status)?->lang() ?? ($status ?: '-');
+    }
+
+    private function contractStatus(?string $status): string
+    {
+        return \App\Support\RecruitmentContractStageLabels::label((string) $status, app()->getLocale())
+            ?? ($status ?: '-');
+    }
+
+    private function rentalStatus(?string $status): string
+    {
+        return ['active' => 'ساري', 'completed' => 'مكتمل', 'cancelled' => 'ملغي'][$status] ?? ($status ?: '-');
+    }
+
+    private function transferStatus(?string $status): string
+    {
+        return [
+            'draft' => 'مسودة',
+            'sent' => 'مرسل',
+            'signed' => 'موقع',
+            'active' => 'ساري',
+            'completed' => 'مكتمل',
+            'cancelled' => 'ملغي',
+        ][$status] ?? ($status ?: '-');
+    }
+}

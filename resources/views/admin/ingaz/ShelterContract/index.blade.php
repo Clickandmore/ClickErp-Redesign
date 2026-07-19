@@ -817,7 +817,8 @@
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label" for="livingExpenseAccount">حساب مصروف الإعاشة</label>
-                                        <select id="livingExpenseAccount" name="expense_account_id" class="form-select" required>
+                                        <select id="livingExpenseAccount" name="expense_account_id"
+                                            class="form-select living-expense-searchable" required>
                                             <option value="">اختر الحساب</option>
                                             @foreach ($livingExpenseAccounts as $account)
                                                 <option value="{{ $account->id }}"
@@ -826,22 +827,43 @@
                                                 </option>
                                             @endforeach
                                         </select>
-                                        <small class="text-muted">يمكن ضبط الحساب الافتراضي من إعدادات النظام المحاسبي.</small>
+                                        <small class="text-muted">يمكن البحث باسم الحساب أو رقمه، وضبط الحساب الافتراضي من الإعدادات المحاسبية.</small>
                                     </div>
-                                    <div class="col-md-6">
+                                    <div class="col-md-3">
+                                        <label class="form-label" for="livingPaymentSourceType">مصدر الصرف</label>
+                                        <select id="livingPaymentSourceType" name="payment_source_type"
+                                            class="form-select" required>
+                                            @if ($paymentAccounts->isNotEmpty())
+                                                <option value="bank">حساب بنكي أو صندوق</option>
+                                            @endif
+                                            @if ($custodyAccounts->isNotEmpty())
+                                                <option value="custody" {{ $paymentAccounts->isEmpty() ? 'selected' : '' }}>
+                                                    عهدة على موظف
+                                                </option>
+                                            @endif
+                                        </select>
+                                        @if ($paymentAccounts->isEmpty() && $custodyAccounts->isEmpty())
+                                            <small class="text-danger">لا يوجد حساب صرف أو عهدة موظف نشطة.</small>
+                                        @endif
+                                    </div>
+                                    <div class="col-md-3">
                                         <label class="form-label" for="livingPaymentAccount">حساب الصرف</label>
-                                        <select id="livingPaymentAccount" name="payment_account_id" class="form-select" required>
-                                            <option value="">اختر حساب الصندوق أو البنك</option>
+                                        <select id="livingPaymentAccount" name="payment_account_id"
+                                            class="form-select living-expense-searchable" required>
+                                            <option value="">اختر الحساب</option>
                                             @foreach ($paymentAccounts as $account)
-                                                <option value="{{ $account->id }}"
+                                                <option value="{{ $account->id }}" data-source-type="bank"
                                                     {{ (string) ($defaultPaymentAccountId ?? '') === (string) $account->id ? 'selected' : '' }}>
                                                     {{ $account->code }} / {{ $account->name }}
                                                 </option>
                                             @endforeach
+                                            @foreach ($custodyAccounts as $account)
+                                                <option value="{{ $account->id }}" data-source-type="custody">
+                                                    {{ $account->code }} / {{ $account->name }}
+                                                </option>
+                                            @endforeach
                                         </select>
-                                        @if ($paymentAccounts->isEmpty())
-                                            <small class="text-danger">لا توجد حسابات بنك أو صندوق معرفة في النظام المحاسبي.</small>
-                                        @endif
+                                        <small class="text-muted">يمكن البحث باسم الحساب أو رقمه.</small>
                                     </div>
                                     <div class="col-12">
                                         <label class="form-label" for="livingExpenseNotes">ملاحظات</label>
@@ -867,12 +889,13 @@
                                                 <th>الإجمالي</th>
                                                 <th>عدد العاملات</th>
                                                 <th>نصيب العاملة</th>
+                                                <th>مصدر الصرف</th>
                                                 <th>القيد</th>
                                             </tr>
                                         </thead>
                                         <tbody id="livingExpensesRows">
                                             <tr>
-                                                <td colspan="7" class="text-muted text-center">لم يتم التحميل بعد</td>
+                                                <td colspan="8" class="text-muted text-center">لم يتم التحميل بعد</td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -1669,13 +1692,47 @@
 
             const livingExpenseModal = $('#livingExpenseModal');
 
+            $('.living-expense-searchable').select2({
+                dropdownParent: livingExpenseModal,
+                width: '100%',
+                language: {
+                    noResults: function() {
+                        return 'لا توجد نتائج مطابقة';
+                    },
+                    searching: function() {
+                        return 'جاري البحث...';
+                    }
+                }
+            });
+
+            function filterLivingPaymentAccounts() {
+                const sourceType = String($('#livingPaymentSourceType').val() || '');
+                const paymentAccountSelect = $('#livingPaymentAccount');
+                const selectedOption = paymentAccountSelect.find('option:selected');
+
+                paymentAccountSelect.find('option').each(function() {
+                    const option = $(this);
+                    const optionSourceType = String(option.data('source-type') || '');
+                    const isPlaceholder = option.val() === '';
+                    const shouldShow = isPlaceholder || optionSourceType === sourceType;
+
+                    option.prop('disabled', !shouldShow).prop('hidden', !shouldShow);
+                });
+
+                if (selectedOption.val() && String(selectedOption.data('source-type') || '') !== sourceType) {
+                    paymentAccountSelect.val('');
+                }
+
+                paymentAccountSelect.trigger('change.select2');
+            }
+
             function loadLivingExpenses() {
                 $.get('{{ route('ShelterContract.livingExpenses') }}')
                     .done(function(response) {
                         const rows = response.data || [];
                         if (!rows.length) {
                             $('#livingExpensesRows').html(
-                                '<tr><td colspan="7" class="text-muted text-center">لا توجد مصروفات إعاشة مسجلة</td></tr>'
+                                '<tr><td colspan="8" class="text-muted text-center">لا توجد مصروفات إعاشة مسجلة</td></tr>'
                             );
                             return;
                         }
@@ -1684,6 +1741,9 @@
                             const constraint = row.constraint_url ?
                                 '<a href="' + row.constraint_url + '" target="_blank" class="btn btn-sm btn-outline-primary">عرض القيد</a>' :
                                 '<span class="text-muted">بدون قيد</span>';
+                            const paymentSource = (row.payment_source_type === 'custody' ?
+                                    'عهدة موظف' : 'حساب بنكي أو صندوق') +
+                                (row.payment_account ? '<br><small>' + row.payment_account + '</small>' : '');
 
                             return '<tr>' +
                                 '<td>' + row.expense_date + '</td>' +
@@ -1692,13 +1752,14 @@
                                 '<td>' + row.total_amount + '</td>' +
                                 '<td>' + row.worker_count + '</td>' +
                                 '<td>' + row.amount_per_worker + '</td>' +
+                                '<td>' + paymentSource + '</td>' +
                                 '<td>' + constraint + '</td>' +
                                 '</tr>';
                         }).join(''));
                     })
                     .fail(function(xhr) {
                         $('#livingExpensesRows').html(
-                            '<tr><td colspan="7" class="text-danger text-center">' +
+                            '<tr><td colspan="8" class="text-danger text-center">' +
                             (xhr.responseJSON?.message || 'تعذر تحميل مصروفات الإعاشة') +
                             '</td></tr>'
                         );
@@ -1736,6 +1797,8 @@
 
             $('#refreshLivingExpenses').on('click', loadLivingExpenses);
             $('#livingExpenseShelter').on('change', filterLivingExpenseWorkers);
+            $('#livingPaymentSourceType').on('change', filterLivingPaymentAccounts);
+            filterLivingPaymentAccounts();
 
             $('#livingExpenseForm').on('submit', function(e) {
                 e.preventDefault();

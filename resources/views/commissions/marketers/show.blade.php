@@ -1,11 +1,15 @@
 @extends('admin.layout.indexs.index')
 
-@section('page-title')
-    ملف المسوّق — {{ $admin->name }}
-@endsection
+@section('page-title', 'مراجعة عمولات ' . $admin->name)
 
 @section('css')
     <link rel="stylesheet" href="{{ asset('admin') }}/assets/cssbundle/dataTables.min.css">
+    <style>
+        .employee-head { background: linear-gradient(135deg, #075985, #0f766e); color: #fff; border-radius: 16px; }
+        .summary-tile { border: 0; border-radius: 13px; box-shadow: 0 3px 14px rgba(15, 23, 42, .07); }
+        #operationsTable thead th { white-space: nowrap; }
+        .sticky-selection { position: sticky; bottom: 0; z-index: 5; background: #fff8db; box-shadow: 0 -5px 18px rgba(15, 23, 42, .09); }
+    </style>
 @endsection
 
 @section('page-links')
@@ -14,293 +18,178 @@
 @endsection
 
 @section('content')
-
-{{-- بطاقة معلومات الموظف والرصيد --}}
-<div class="row mb-4">
-    <div class="col-md-8">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body">
-                <div class="d-flex align-items-center gap-3">
-                    <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
-                         style="width:56px;height:56px;font-size:1.4rem;font-weight:900;">
-                        {{ mb_substr($admin->name, 0, 1) }}
-                    </div>
-                    <div>
-                        <h5 class="mb-1 fw-bold">{{ $admin->name }}</h5>
-                        <div class="text-muted small">
-                            {{ $admin->email }} &nbsp;|&nbsp; {{ $admin->phone ?? 'لا يوجد هاتف' }}
-                        </div>
-                        <span class="badge bg-secondary mt-1">{{ optional($admin->role)->name ?? 'بدون دور' }}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-body d-flex flex-column justify-content-center text-center">
-                <div class="text-muted small mb-1">الرصيد المستحق الحالي</div>
-                <div class="fw-bold {{ $balance > 0 ? 'text-danger' : 'text-success' }}"
-                     style="font-size:1.8rem;">
-                    {{ number_format($balance, 2) }} <small class="fs-6">ريال</small>
-                </div>
-                @if($balance > 0)
-                <a href="{{ route('commissions.marketers.payments.index', $admin->id) }}"
-                   class="btn btn-success btn-sm mt-2">
-                    <i class="fa fa-money-bill-wave me-1"></i>إصدار سند صرف
-                </a>
-                @endif
-            </div>
-        </div>
-    </div>
-</div>
-
-{{-- فلاتر التاريخ --}}
-<div class="card mb-3">
-    <div class="card-body">
-        <form method="GET" action="{{ route('commissions.marketers.show', $admin->id) }}" id="filterForm">
-            <div class="row g-2 align-items-end">
-                <div class="col-md-3">
-                    <label class="form-label fw-semibold">نوع الفلتر</label>
-                    <select class="form-select" id="dateFilterType" name="date_filter">
-                        <option value="" {{ empty($filters['date_filter']) ? 'selected' : '' }}>كافة التواريخ</option>
-                        <option value="month_year" {{ ($filters['date_filter'] ?? '') === 'month_year' ? 'selected' : '' }}>شهر / سنة</option>
-                        <option value="range" {{ ($filters['date_filter'] ?? '') === 'range' ? 'selected' : '' }}>نطاق من-إلى</option>
-                    </select>
-                </div>
-
-                {{-- شهر/سنة --}}
-                <div class="col-md-2 filter-month-year" style="display:none;">
-                    <label class="form-label fw-semibold">الشهر</label>
-                    <select class="form-select" name="month">
-                        <option value="">الكل</option>
-                        @for($m = 1; $m <= 12; $m++)
-                            <option value="{{ $m }}" {{ ($filters['month'] ?? '') == $m ? 'selected' : '' }}>{{ $m }}</option>
-                        @endfor
-                    </select>
-                </div>
-                <div class="col-md-2 filter-month-year" style="display:none;">
-                    <label class="form-label fw-semibold">السنة</label>
-                    <select class="form-select" name="year">
-                        <option value="">الكل</option>
-                        @for($y = date('Y'); $y >= 2020; $y--)
-                            <option value="{{ $y }}" {{ ($filters['year'] ?? '') == $y ? 'selected' : '' }}>{{ $y }}</option>
-                        @endfor
-                    </select>
-                </div>
-
-                {{-- نطاق --}}
-                <div class="col-md-2 filter-range" style="display:none;">
-                    <label class="form-label fw-semibold">من تاريخ</label>
-                    <input type="date" class="form-control" name="from_date"
-                           value="{{ $filters['from_date'] ?? '' }}">
-                </div>
-                <div class="col-md-2 filter-range" style="display:none;">
-                    <label class="form-label fw-semibold">إلى تاريخ</label>
-                    <input type="date" class="form-control" name="to_date"
-                           value="{{ $filters['to_date'] ?? '' }}">
-                </div>
-
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="fa fa-filter me-1"></i>تطبيق
-                    </button>
-                </div>
-                <div class="col-md-1">
-                    <a href="{{ route('commissions.marketers.show', $admin->id) }}" class="btn btn-outline-secondary w-100">
-                        <i class="fa fa-times"></i>
-                    </a>
-                </div>
-            </div>
-        </form>
-    </div>
-</div>
-
-{{-- جدول الطلبات --}}
-<div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <h6 class="mb-0 fw-bold">
-            <i class="fa fa-list me-2"></i>
-            طلبات المسوّق
-            <span class="badge bg-primary ms-2" id="filteredCount">...</span>
-            <span class="text-muted small">/ {{ $totalCount }}</span>
-        </h6>
-        <div class="d-flex gap-2">
-            <button type="button" class="btn btn-sm btn-outline-secondary" id="selectAllBtn">
-                تحديد الكل غير المحتسب
-            </button>
-            <button type="button" class="btn btn-sm btn-outline-danger" id="deselectAllBtn">
-                إلغاء الكل
-            </button>
-        </div>
-    </div>
-
-    <div class="card-body p-0">
-        <form id="commissionForm" method="POST"
-              action="{{ route('commissions.marketers.preview', $admin->id) }}">
-            @csrf
-            <div class="table-responsive">
-                <table id="delegationsTable" class="table table-hover mb-0" style="width:100%">
-                    <thead class="table-light">
-                        <tr>
-                            <th style="width:40px;"></th>
-                            <th>#</th>
-                            <th>رقم التفويض</th>
-                            <th>رقم التأشيرة</th>
-                            <th>نوع الخدمة</th>
-                            <th>الجنسية</th>
-                            <th>المهنة</th>
-                            <th>العميل</th>
-                            <th>الحالة</th>
-                            <th class="text-end">التكلفة (ريال)</th>
-                            <th>حالة الوصل</th>
-                            <th>احتساب العمولة</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-
-            {{-- ملخص التحديد --}}
-            <div id="selectionSummary" class="bg-light border-top p-3" style="display:none;">
-                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-                    <div>
-                        <span class="fw-bold">الطلبات المحددة:</span>
-                        <span id="selectedCount" class="badge bg-primary ms-1">0</span>
-                        &nbsp;&nbsp;
-                        <span class="fw-bold">إجمالي التكلفة:</span>
-                        <span id="selectedTotal" class="text-primary fw-bold ms-1">0.00</span> ريال
-                    </div>
-                    <button type="submit" class="btn btn-warning" id="previewBtn" disabled>
-                        <i class="fa fa-calculator me-1"></i>احتساب العمولة للمحددين
-                    </button>
-                </div>
-            </div>
-        </form>
-    </div>
-</div>
-
-{{-- سجل الحركات الأخيرة --}}
-@if($balanceTransactions->count())
-<div class="card mt-4">
-    <div class="card-header">
-        <h6 class="mb-0 fw-bold"><i class="fa fa-history me-2"></i>آخر حركات الرصيد</h6>
-    </div>
-    <div class="card-body p-0">
-        <table class="table table-sm mb-0">
-            <thead class="table-light">
-                <tr>
-                    <th>النوع</th>
-                    <th class="text-end">المبلغ</th>
-                    <th class="text-end">الرصيد بعد</th>
-                    <th>البيان</th>
-                    <th>التاريخ</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach($balanceTransactions as $tx)
-                <tr>
-                    <td>
-                        @if($tx->type === 'credit')
-                            <span class="badge bg-success">إضافة</span>
-                        @else
-                            <span class="badge bg-danger">خصم</span>
-                        @endif
-                    </td>
-                    <td class="text-end {{ $tx->type === 'credit' ? 'text-success' : 'text-danger' }}">
-                        {{ $tx->type === 'credit' ? '+' : '-' }}{{ number_format($tx->amount, 2) }}
-                    </td>
-                    <td class="text-end fw-bold">{{ number_format($tx->balance_after, 2) }}</td>
-                    <td class="text-muted small">{{ $tx->notes }}</td>
-                    <td class="text-muted small">{{ $tx->created_at->format('Y-m-d H:i') }}</td>
-                </tr>
-                @endforeach
-            </tbody>
-        </table>
-    </div>
-</div>
+@if(isset($errors) && $errors->any())
+    <div class="alert alert-danger">{{ $errors->first() }}</div>
+@endif
+@if(session('success'))
+    <div class="alert alert-success">{{ session('success') }}</div>
 @endif
 
+<div class="employee-head p-4 mb-3 d-flex flex-wrap justify-content-between align-items-center gap-3">
+    <div class="d-flex align-items-center gap-3">
+        <div class="bg-white text-primary rounded-circle d-grid place-items-center fw-bold text-center pt-3" style="width:58px;height:58px;font-size:1.4rem;">{{ mb_substr($admin->name, 0, 1) }}</div>
+        <div><h4 class="mb-1 fw-bold">{{ $admin->name }}</h4><div class="opacity-75">موظف خدمة عملاء · رقم #{{ $admin->id }}</div></div>
+    </div>
+    <div class="text-end">
+        <div class="small opacity-75">الرصيد المستحق</div>
+        <div class="fs-3 fw-bold">{{ number_format($balance, 2) }} <small class="fs-6">ر.س</small></div>
+        @if($balance > 0)
+            <a href="{{ route('commissions.marketers.payments.index', $admin->id) }}" class="btn btn-light btn-sm"><i class="fa fa-money-bill-wave me-1"></i> إصدار سند صرف</a>
+        @endif
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    @foreach([
+        ['إجمالي العمليات', $summary['total'], 'primary'],
+        ['غير محتسبة', $summary['pending'], 'warning'],
+        ['محتسبة', $summary['commissioned'], 'success'],
+        ['عقود الاستقدام', $summary['recruitment'], 'info'],
+    ] as [$label, $value, $color])
+        <div class="col-lg-3 col-6"><div class="card summary-tile h-100"><div class="card-body">
+            <div class="text-muted small">{{ $label }}</div><div class="fs-4 fw-bold text-{{ $color }}">{{ number_format($value) }}</div>
+        </div></div></div>
+    @endforeach
+</div>
+
+<div class="card border-0 shadow-sm mb-3">
+    <div class="card-body">
+        <form method="GET" action="{{ route('commissions.marketers.show', $admin->id) }}">
+            <div class="row g-2 align-items-end">
+                <div class="col-lg-2 col-md-4">
+                    <label class="form-label">نوع العملية</label>
+                    <select class="form-select" name="service_type">
+                        <option value="">كل الأنواع</option>
+                        @foreach($visaTypeOptions as $type => $label)
+                            <option value="{{ $type }}" @selected(($filters['service_type'] ?? '') === $type)>{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="col-lg-2 col-md-4">
+                    <label class="form-label">حالة العمولة</label>
+                    <select class="form-select" name="commission_status">
+                        <option value="">الكل</option>
+                        <option value="pending" @selected(($filters['commission_status'] ?? '') === 'pending')>غير محتسبة</option>
+                        <option value="commissioned" @selected(($filters['commission_status'] ?? '') === 'commissioned')>محتسبة</option>
+                    </select>
+                </div>
+                <div class="col-lg-2 col-md-4">
+                    <label class="form-label">فلتر التاريخ</label>
+                    <select class="form-select" id="dateFilterType" name="date_filter">
+                        <option value="">كل التواريخ</option>
+                        <option value="month_year" @selected(($filters['date_filter'] ?? '') === 'month_year')>شهر / سنة</option>
+                        <option value="range" @selected(($filters['date_filter'] ?? '') === 'range')>من / إلى</option>
+                    </select>
+                </div>
+                <div class="col-lg-1 col-md-3 filter-month-year">
+                    <label class="form-label">الشهر</label>
+                    <select class="form-select" name="month"><option value="">الكل</option>@for($m=1;$m<=12;$m++)<option value="{{ $m }}" @selected(($filters['month'] ?? '') == $m)>{{ $m }}</option>@endfor</select>
+                </div>
+                <div class="col-lg-1 col-md-3 filter-month-year">
+                    <label class="form-label">السنة</label>
+                    <select class="form-select" name="year">@for($y=date('Y');$y>=2020;$y--)<option value="{{ $y }}" @selected(($filters['year'] ?? date('Y')) == $y)>{{ $y }}</option>@endfor</select>
+                </div>
+                <div class="col-lg-2 col-md-3 filter-range">
+                    <label class="form-label">من</label><input type="date" class="form-control" name="from_date" value="{{ $filters['from_date'] ?? '' }}">
+                </div>
+                <div class="col-lg-2 col-md-3 filter-range">
+                    <label class="form-label">إلى</label><input type="date" class="form-control" name="to_date" value="{{ $filters['to_date'] ?? '' }}">
+                </div>
+                <div class="col-lg-2 col-md-4 d-flex gap-2">
+                    <button class="btn btn-primary flex-grow-1"><i class="fa fa-filter me-1"></i> عرض</button>
+                    <a href="{{ route('commissions.marketers.show', $admin->id) }}" class="btn btn-outline-secondary"><i class="fa fa-times"></i></a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div><h5 class="mb-1 fw-bold">الطلبات والعقود المرتبطة بالموظف</h5><div class="small text-muted">تُعرض قيمة الفاتورة، وإن لم توجد فقيمة العقد أو الباقة.</div></div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-sm btn-outline-primary" id="selectAllBtn">تحديد غير المحتسب في الصفحة</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="deselectAllBtn">إلغاء التحديد</button>
+        </div>
+    </div>
+    <form id="commissionForm" method="POST" action="{{ route('commissions.marketers.preview', $admin->id) }}">
+        @csrf
+        <div class="table-responsive">
+            <table id="operationsTable" class="table table-hover align-middle mb-0" style="width:100%">
+                <thead class="table-light"><tr>
+                    <th></th><th>#</th><th>المصدر</th><th>رقم العملية</th><th>رقم الطلب</th><th>الخدمة</th><th>العميل</th><th>الحالة</th><th>التاريخ</th><th>قيمة الأساس</th><th>السداد</th><th>العمولة</th>
+                </tr></thead>
+            </table>
+        </div>
+        <div id="selectionSummary" class="sticky-selection border-top p-3" style="display:none;">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div><strong>المحدد:</strong> <span id="selectedCount" class="badge bg-primary">0</span> عملية · <strong>إجمالي الأساس:</strong> <span id="selectedTotal" class="text-primary fw-bold">0.00</span> ر.س</div>
+                <button class="btn btn-warning fw-bold"><i class="fa fa-calculator me-1"></i> مراجعة وتحديد العمولة</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+@if($balanceTransactions->count())
+<div class="card border-0 shadow-sm mt-4">
+    <div class="card-header bg-white"><h6 class="mb-0 fw-bold"><i class="fa fa-history me-2"></i>آخر حركات الرصيد</h6></div>
+    <div class="table-responsive"><table class="table table-sm align-middle mb-0">
+        <thead class="table-light"><tr><th>الحركة</th><th>المبلغ</th><th>الرصيد بعد</th><th>البيان</th><th>التاريخ</th></tr></thead>
+        <tbody>@foreach($balanceTransactions as $tx)<tr>
+            <td><span class="badge {{ $tx->type === 'credit' ? 'bg-success' : 'bg-danger' }}">{{ $tx->type === 'credit' ? 'إضافة' : 'صرف' }}</span></td>
+            <td class="fw-bold">{{ $tx->type === 'credit' ? '+' : '-' }}{{ number_format($tx->amount, 2) }}</td>
+            <td>{{ number_format($tx->balance_after, 2) }}</td><td>{{ $tx->notes }}</td><td>{{ $tx->created_at->format('Y-m-d H:i') }}</td>
+        </tr>@endforeach</tbody>
+    </table></div>
+</div>
+@endif
 @endsection
 
 @section('js')
-    <script src="{{ asset('admin') }}/assets/js/bundle/dataTables.bundle.js"></script>
+<script src="{{ asset('admin') }}/assets/js/bundle/dataTables.bundle.js"></script>
+<script>
+$(function () {
+    function toggleDateFilters() {
+        const type = $('#dateFilterType').val();
+        $('.filter-month-year').toggle(type === 'month_year');
+        $('.filter-range').toggle(type === 'range');
+    }
+    toggleDateFilters();
+    $('#dateFilterType').on('change', toggleDateFilters);
 
-    <script>
-    $(document).ready(function () {
-        // تبديل حقول الفلتر
-        function toggleFilterFields() {
-            const val = $('#dateFilterType').val();
-            $('.filter-month-year').toggle(val === 'month_year');
-            $('.filter-range').toggle(val === 'range');
-        }
-        toggleFilterFields();
-        $('#dateFilterType').on('change', toggleFilterFields);
-
-        // DataTable
-        const table = $('#delegationsTable').DataTable({
-            responsive: true,
-            processing: true,
-            serverSide: true,
-            ordering: false,
-            searching: false,
-            language: { url: '{{ asset("admin/assets/js/bundle/ar.json") }}' },
-            ajax: {
-                url: '{{ route("commissions.marketers.show", $admin->id) }}',
-                data: function (d) {
-                    d.date_filter = '{{ $filters["date_filter"] ?? "" }}';
-                    d.month       = '{{ $filters["month"] ?? "" }}';
-                    d.year        = '{{ $filters["year"] ?? "" }}';
-                    d.from_date   = '{{ $filters["from_date"] ?? "" }}';
-                    d.to_date     = '{{ $filters["to_date"] ?? "" }}';
-                }
-            },
-            columns: [
-                { data: 'checkbox', orderable: false, searchable: false },
-                { data: 'DT_RowIndex', orderable: false, searchable: false },
-                { data: 'ingaz_number' },
-                { data: 'visa_number' },
-                { data: 'visa_type_label' },
-                { data: 'nationality_name' },
-                { data: 'profession_name' },
-                { data: 'client_name' },
-                { data: 'status' },
-                { data: 'total_due', className: 'text-end' },
-                { data: 'is_paid_label', orderable: false },
-                { data: 'commissioned_label', orderable: false },
-            ],
-            drawCallback: function (settings) {
-                const info = this.api().page.info();
-                $('#filteredCount').text(info.recordsDisplay);
-                updateSummary();
-            }
-        });
-
-        // تتبع التفويضات المحددة والتكلفة (عبر data-amount)
-        function updateSummary() {
-            const checked = $('.delegation-check:checked');
-            const count = checked.length;
-            let total = 0;
-            checked.each(function() {
-                total += parseFloat($(this).data('amount') || 0);
-            });
-            $('#selectedCount').text(count);
-            $('#selectedTotal').text(total.toFixed(2));
-            $('#selectionSummary').toggle(count > 0);
-            $('#previewBtn').prop('disabled', count === 0);
-        }
-
-        $(document).on('change', '.delegation-check', updateSummary);
-
-        $('#selectAllBtn').on('click', function () {
-            $('.delegation-check').prop('checked', true);
-            updateSummary();
-        });
-
-        $('#deselectAllBtn').on('click', function () {
-            $('.delegation-check').prop('checked', false);
-            updateSummary();
-        });
+    const table = $('#operationsTable').DataTable({
+        responsive: true, processing: true, serverSide: true, ordering: false, searching: true,
+        language: { url: '{{ asset("admin/assets/js/bundle/ar.json") }}' },
+        ajax: { url: '{{ route("commissions.marketers.show", $admin->id) }}', data: {
+            service_type: @json($filters['service_type'] ?? ''),
+            commission_status: @json($filters['commission_status'] ?? ''),
+            date_filter: @json($filters['date_filter'] ?? ''),
+            month: @json($filters['month'] ?? ''),
+            year: @json($filters['year'] ?? ''),
+            from_date: @json($filters['from_date'] ?? ''),
+            to_date: @json($filters['to_date'] ?? '')
+        }},
+        columns: [
+            {data:'checkbox', searchable:false}, {data:'DT_RowIndex', searchable:false},
+            {data:'source_label'}, {data:'reference'}, {data:'order_reference'},
+            {data:'service_type_label'}, {data:'client_name'}, {data:'status'},
+            {data:'operation_date'}, {data:'base_amount', className:'text-end'},
+            {data:'is_paid_label', searchable:false}, {data:'commissioned_label', searchable:false}
+        ],
+        drawCallback: updateSummary
     });
-    </script>
+
+    function updateSummary() {
+        const checked = $('.operation-check:checked');
+        let total = 0;
+        checked.each(function () { total += Number($(this).data('amount') || 0); });
+        $('#selectedCount').text(checked.length);
+        $('#selectedTotal').text(total.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}));
+        $('#selectionSummary').toggle(checked.length > 0);
+    }
+    $(document).on('change', '.operation-check', updateSummary);
+    $('#selectAllBtn').on('click', function () { $('.operation-check').prop('checked', true); updateSummary(); });
+    $('#deselectAllBtn').on('click', function () { $('.operation-check').prop('checked', false); updateSummary(); });
+});
+</script>
 @endsection

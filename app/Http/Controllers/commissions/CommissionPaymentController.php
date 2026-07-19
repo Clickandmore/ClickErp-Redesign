@@ -17,6 +17,8 @@ class CommissionPaymentController extends Controller
 
     public function index(Admin $admin)
     {
+        abort_unless($admin->admin_type === 'customer_service', 404);
+
         $payments = $this->paymentService->getPaymentsForMarketer($admin->id);
         $balance = $this->profileService->getMarketerBalance($admin->id);
 
@@ -25,6 +27,8 @@ class CommissionPaymentController extends Controller
 
     public function store(Request $request, Admin $admin)
     {
+        abort_unless($admin->admin_type === 'customer_service', 404);
+
         $balance = $this->profileService->getMarketerBalance($admin->id);
 
         $request->validate([
@@ -48,6 +52,8 @@ class CommissionPaymentController extends Controller
 
     public function print(Admin $admin, int $payment)
     {
+        abort_unless($admin->admin_type === 'customer_service', 404);
+
         $payment = $this->paymentService->getPaymentsForMarketer($admin->id)
             ->where('id', $payment)->first();
 

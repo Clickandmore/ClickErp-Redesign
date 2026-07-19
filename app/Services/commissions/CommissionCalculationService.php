@@ -2,17 +2,20 @@
 
 namespace App\Services\commissions;
 
-use App\Models\auth\Admin;
 use App\Models\commissions\CommissionBalanceTransaction;
 use App\Models\commissions\CommissionBatch;
 use App\Models\commissions\CommissionBatchItem;
 use App\Models\commissions\CommissionMarketerOverride;
 use App\Models\commissions\CommissionSetting;
-use App\Models\IngazDelegation;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class CommissionCalculationService
 {
+    public function __construct(
+        private readonly CommissionOperationService $operationService
+    ) {}
+
     public function getApplicableSetting(int $marketerId, string $serviceType): ?array
     {
         // Check per-marketer + per-service-type override first
@@ -44,41 +47,28 @@ class CommissionCalculationService
         return null;
     }
 
-    public function previewBatch(int $marketerId, array $delegationIds): array
+    public function previewBatch(int $marketerId, array $operationKeys, array $adjustments = []): array
     {
-        $delegations = IngazDelegation::query()
-            ->with('invoice')
-            ->whereIn('id', $delegationIds)
-            ->where('marketer_id', $marketerId)
-            ->whereNull('commission_batch_id')
-            ->get();
+        $operations = $this->operationService->findSelected($marketerId, $operationKeys);
 
         $items = [];
         $totalBase = 0;
         $totalCommission = 0;
 
-        foreach ($delegations as $delegation) {
-            $baseAmount = (float) optional($delegation->invoice)->total_due ?? 0;
-            $serviceType = $delegation->visa_type ?? 'electronic_ingaz_delegation';
+        foreach ($operations as $operation) {
+            $baseAmount = (float) $operation['base_amount'];
+            $serviceType = $operation['service_type'];
             $setting = $this->getApplicableSetting($marketerId, $serviceType);
-
-            if (! $setting) {
-                $method = 'fixed';
-                $rateOrAmount = 0;
-                $commissionAmount = 0;
-            } else {
-                $method = $setting['method'];
-                $rateOrAmount = $setting['value'];
-                $commissionAmount = $method === 'percentage'
-                    ? round($baseAmount * $rateOrAmount / 100, 2)
-                    : $rateOrAmount;
-            }
+            $adjustment = $adjustments[$operation['key']] ?? null;
+            $method = $adjustment['method'] ?? $setting['method'] ?? 'fixed';
+            $rateOrAmount = (float) ($adjustment['value'] ?? $setting['value'] ?? 0);
+            $commissionAmount = $this->calculateAmount($baseAmount, $method, $rateOrAmount);
 
             $totalBase += $baseAmount;
             $totalCommission += $commissionAmount;
 
             $items[] = [
-                'delegation'       => $delegation,
+                'operation'        => $operation,
                 'service_type'     => $serviceType,
                 'base_amount'      => $baseAmount,
                 'method'           => $method,
@@ -95,10 +85,27 @@ class CommissionCalculationService
         ];
     }
 
-    public function approveBatch(int $marketerId, array $delegationIds, ?string $notes, int $adminId): CommissionBatch
+    public function approveBatch(
+        int $marketerId,
+        array $operationKeys,
+        array $adjustments,
+        ?string $notes,
+        int $adminId
+    ): CommissionBatch
     {
-        return DB::transaction(function () use ($marketerId, $delegationIds, $notes, $adminId) {
-            $preview = $this->previewBatch($marketerId, $delegationIds);
+        return DB::transaction(function () use ($marketerId, $operationKeys, $adjustments, $notes, $adminId) {
+            $preview = $this->previewBatch($marketerId, $operationKeys, $adjustments);
+
+            if ($preview['total_requests'] !== count(array_unique($operationKeys))) {
+                throw ValidationException::withMessages([
+                    'operations' => 'تعذر اعتماد بعض العمليات: قد تكون احتُسبت سابقًا أو لا تخص هذا الموظف.',
+                ]);
+            }
+            if ($preview['total_commission'] <= 0) {
+                throw ValidationException::withMessages([
+                    'values' => 'يجب أن يكون إجمالي العمولة أكبر من صفر قبل الاعتماد.',
+                ]);
+            }
 
             $batch = CommissionBatch::create([
                 'marketer_id'       => $marketerId,
@@ -113,9 +120,19 @@ class CommissionCalculationService
             ]);
 
             foreach ($preview['items'] as $item) {
+                $operation = $item['operation'];
                 CommissionBatchItem::create([
                     'batch_id'             => $batch->id,
-                    'ingaz_delegation_id'  => $item['delegation']->id,
+                    'ingaz_delegation_id'  => $operation['source_type'] === CommissionOperationService::SOURCE_DELEGATION
+                        ? $operation['source_id']
+                        : null,
+                    'source_type'          => $operation['source_type'],
+                    'source_id'            => $operation['source_id'],
+                    'order_id'             => $operation['order_id'],
+                    'contract_id'          => $operation['contract_id'],
+                    'operation_reference'  => $operation['reference'],
+                    'client_name'          => $operation['client_name'],
+                    'operation_date'       => $operation['operation_date'],
                     'service_type'         => $item['service_type'],
                     'base_amount'          => $item['base_amount'],
                     'method'               => $item['method'],
@@ -123,11 +140,14 @@ class CommissionCalculationService
                     'commission_amount'    => $item['commission_amount'],
                 ]);
 
-                // Mark delegation as commissioned
-                $item['delegation']->update([
-                    'commissioned_at'      => now(),
-                    'commission_batch_id'  => $batch->id,
-                ]);
+                if ($operation['source_type'] === CommissionOperationService::SOURCE_DELEGATION) {
+                    \App\Models\IngazDelegation::query()
+                        ->whereKey($operation['source_id'])
+                        ->update([
+                            'commissioned_at' => now(),
+                            'commission_batch_id' => $batch->id,
+                        ]);
+                }
             }
 
             // Add to marketer balance
@@ -147,5 +167,12 @@ class CommissionCalculationService
 
             return $batch;
         });
+    }
+
+    public function calculateAmount(float $baseAmount, string $method, float $rateOrAmount): float
+    {
+        return $method === 'percentage'
+            ? round($baseAmount * $rateOrAmount / 100, 2)
+            : round($rateOrAmount, 2);
     }
 }

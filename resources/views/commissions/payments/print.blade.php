@@ -30,7 +30,7 @@
 
 <table class="info">
     <tr>
-        <td>اسم المسوّق</td>
+        <td>اسم الموظف</td>
         <td>{{ $admin->name }}</td>
     </tr>
     <tr>
@@ -63,7 +63,7 @@
 </div>
 
 <div class="signatures">
-    <div class="sig-box">المسوّق<br>{{ $admin->name }}</div>
+    <div class="sig-box">الموظف المستلم<br>{{ $admin->name }}</div>
     <div class="sig-box">المعتمد<br>{{ optional($payment->approvedBy)->name ?? '...' }}</div>
     <div class="sig-box">الختم الرسمي</div>
 </div>

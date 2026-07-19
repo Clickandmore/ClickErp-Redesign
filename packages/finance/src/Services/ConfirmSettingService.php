@@ -3,9 +3,11 @@
 namespace Nami\Finance\Services;
 
 use App\Services\ingaz\RentalMaidFinanceService;
+use App\Services\ingaz\RentalContractFinanceService;
 use App\Services\ingaz\ShelterLivingExpenseAccountingService;
 use App\Services\ingaz\NationalityFinanceAccountService;
 use Nami\Finance\MainService;
+use Nami\Finance\Enums\AccountTypesEnum;
 use Nami\Finance\Enums\AccountStatusEnum;
 use Nami\Finance\Models\Account;
 use Nami\Finance\Models\ConfirmSetting;
@@ -63,6 +65,32 @@ class ConfirmSettingService extends MainService
             ->get();
     }
 
+    public function getRentalClientParentAccounts()
+    {
+        return Account::query()
+            ->where('status', AccountStatusEnum::Debtor->value)
+            ->where(function ($query) {
+                $query->where('type', AccountTypesEnum::Clients->value)
+                    ->orWhereHas('children');
+            })
+            ->orderBy('code')
+            ->get();
+    }
+
+    public function getRentalReceiptAccounts()
+    {
+        return Account::query()
+            ->whereDoesntHave('children')
+            ->where('status', AccountStatusEnum::Debtor->value)
+            ->whereIn('type', [
+                AccountTypesEnum::Bank->value,
+                AccountTypesEnum::Box->value,
+                AccountTypesEnum::ElectronicWallet->value,
+            ])
+            ->orderBy('code')
+            ->get();
+    }
+
     public function storeData($data)
     {
         foreach (($data['data'] ?? []) as $value) {
@@ -116,7 +144,7 @@ class ConfirmSettingService extends MainService
             'cost_center_general_sarf_bond',
             'cost_center_general_qabd_bond',
             'cost_center_account_transfer',
-        ], RentalMaidFinanceService::confirmSettingTitles(), ShelterLivingExpenseAccountingService::confirmSettingTitles(), NationalityFinanceAccountService::confirmSettingTitles());
+        ], RentalContractFinanceService::confirmSettingTitles(), RentalMaidFinanceService::confirmSettingTitles(), ShelterLivingExpenseAccountingService::confirmSettingTitles(), NationalityFinanceAccountService::confirmSettingTitles());
 
         return $this->model->where(function ($query) use ($titles) {
             $query->whereIn('title', $titles)

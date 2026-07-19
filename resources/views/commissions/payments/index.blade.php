@@ -1,7 +1,7 @@
 @extends('admin.layout.indexs.index')
 
 @section('page-title')
-    سندات صرف العمولة — {{ $admin->name }}
+    سندات صرف عمولة الموظف — {{ $admin->name }}
 @endsection
 
 @section('page-links')

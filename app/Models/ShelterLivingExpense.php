@@ -10,6 +10,7 @@ class ShelterLivingExpense extends Model
         'shelter_id',
         'expense_account_id',
         'payment_account_id',
+        'payment_source_type',
         'constraint_id',
         'expense_date',
         'title',

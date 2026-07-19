@@ -5,7 +5,9 @@ namespace App\Http\Controllers\ingaz;
 use App\Http\Controllers\admin\Controller;
 use App\Models\ingaz\Setting;
 use App\Models\RentalContractInvoice;
+use App\Models\RentalFinancialAdjustment;
 use App\Services\ingaz\InvoiceCalculationService;
+use App\Services\ingaz\RentalContractFinanceService;
 use App\Support\InvoiceQrCode;
 use Illuminate\Support\Facades\Auth;
 use PDF;
@@ -33,6 +35,118 @@ class RentalContractInvoiceController extends Controller
         }
 
         return $pdf->stream('rental-invoice-' . $id . '.pdf');
+    }
+
+    public function creditNote(int $id, RentalContractFinanceService $financeService)
+    {
+        $adjustment = RentalFinancialAdjustment::query()
+            ->with([
+                'rentalContract.info.package',
+                'rentalContract.financeInvoice',
+            ])
+            ->where('context', 'closure')
+            ->findOrFail($id);
+        $contract = $adjustment->rentalContract;
+        $invoice = $contract?->financeInvoice;
+
+        abort_unless($contract && $invoice, 404);
+
+        $viewData = $this->prepareInvoiceViewData($invoice->id);
+        $breakdown = $financeService->closureAdjustmentAmounts(
+            $invoice,
+            $contract,
+            (float) $adjustment->amount
+        );
+        $isCreditNote = $adjustment->type === 'expense';
+        $taxableSubtotal = (float) $breakdown['taxable_subtotal'];
+        $salaryExemptAmount = (float) $breakdown['salary_exempt_amount'];
+        $vatAmount = (float) $breakdown['vat_amount'];
+        $grandTotal = (float) $breakdown['total'];
+        $items = [];
+
+        if ($taxableSubtotal > 0 || $vatAmount > 0) {
+            $items[] = [
+                'key' => 'rental_closure_service',
+                'label' => ($isCreditNote ? 'عكس' : 'إضافة') . ' خدمات التأجير عند إنهاء العقد',
+                'qty' => 1,
+                'unit' => $taxableSubtotal,
+                'line_subtotal' => $taxableSubtotal,
+                'line_discount' => 0.0,
+                'line_total' => $taxableSubtotal,
+                'vat_rate' => $vatAmount > 0 ? InvoiceCalculationService::VAT_RATE : 0.0,
+                'vat_amount' => $vatAmount,
+                'line_grand_total' => round($taxableSubtotal + $vatAmount, 2),
+            ];
+        }
+
+        if ($salaryExemptAmount > 0) {
+            $items[] = [
+                'key' => 'rental_closure_salary',
+                'label' => ($isCreditNote ? 'عكس' : 'إضافة') . ' راتب العاملة المعفى من الضريبة',
+                'qty' => 1,
+                'unit' => $salaryExemptAmount,
+                'line_subtotal' => $salaryExemptAmount,
+                'line_discount' => 0.0,
+                'line_total' => $salaryExemptAmount,
+                'vat_rate' => 0.0,
+                'vat_amount' => 0.0,
+                'line_grand_total' => $salaryExemptAmount,
+            ];
+        }
+
+        $documentDateTime = optional($adjustment->created_at)->format('Y-m-d H:i:s')
+            ?: optional($contract->closed_at)->format('Y-m-d H:i:s')
+            ?: now()->format('Y-m-d H:i:s');
+        $documentUrl = route('rental.credit-note.download', ['id' => $adjustment->id, 'autoprint' => 1]);
+        $barcodeValue = $this->buildInvoiceQrSerial(
+            $viewData['supplierName'],
+            $viewData['supplierTaxNumber'],
+            $documentDateTime,
+            $grandTotal,
+            $vatAmount
+        );
+
+        $viewData = array_merge($viewData, [
+            'invoiceTitle' => $isCreditNote ? 'إشعار دائن ضريبي' : 'إشعار مدين ضريبي',
+            'invoiceSubtitle' => $isCreditNote ? 'Tax Credit Note' : 'Tax Debit Note',
+            'documentNumberLabel' => $isCreditNote ? 'رقم الإشعار الدائن' : 'رقم الإشعار المدين',
+            'documentNumber' => $adjustment->id,
+            'invoiceStatus' => 'معتمد',
+            'serviceDesc' => 'تسوية إنهاء عقد تأجير',
+            'serviceLongDescription' => ($isCreditNote ? 'استرجاع للعميل' : 'مستحق للشركة')
+                . ' عند إنهاء عقد التأجير رقم '
+                . ($contract->contract_number ?: $contract->id)
+                . ' المرتبط بالفاتورة #'
+                . $invoice->id,
+            'items' => $items,
+            'invoiceDate' => substr($documentDateTime, 0, 10),
+            'invoiceDateTime' => $documentDateTime,
+            'invoiceUrl' => $documentUrl,
+            'invoiceBarcodeValue' => $barcodeValue,
+            'qrImage' => InvoiceQrCode::render($barcodeValue, $viewData['qrImage']),
+            'subtotalBeforeDiscount' => round($taxableSubtotal + $salaryExemptAmount, 2),
+            'discountTotal' => 0.0,
+            'netSubtotal' => round($taxableSubtotal + $salaryExemptAmount, 2),
+            'vatAmount' => $vatAmount,
+            'grandTotal' => $grandTotal,
+            'backUrl' => route('RentContract.show', $contract->id),
+        ]);
+
+        if (request()->query('driver') !== 'dompdf') {
+            return response()->view('admin.ingaz.invoices.print', $viewData, 200, [
+                'Content-Type' => 'text/html; charset=UTF-8',
+            ]);
+        }
+
+        $pdf = PDF::loadView('admin.ingaz.invoices.print', $viewData)->setPaper('a4', 'portrait');
+        $pdf->setOptions([
+            'defaultFont' => 'dejavu sans',
+            'isHtml5ParserEnabled' => true,
+        ]);
+
+        return request()->boolean('download')
+            ? $pdf->download('rental-credit-note-' . $id . '.pdf')
+            : $pdf->stream('rental-credit-note-' . $id . '.pdf');
     }
 
     private function prepareInvoiceViewData(int $id): array

@@ -438,6 +438,13 @@
                         <span class="settings-nav__count">2 {{ __('finance::finance.settings_fields') }}</span>
                     </span>
                 </a>
+                <a class="settings-nav__item" href="#rental-contract-settings-section">
+                    <span class="settings-nav__icon"><i class="fa fa-file-contract"></i></span>
+                    <span>
+                        <span class="settings-nav__title">{{ __('finance::finance.rental_contract_accounts_section') }}</span>
+                        <span class="settings-nav__count">5 {{ __('finance::finance.settings_fields') }}</span>
+                    </span>
+                </a>
                 <a class="settings-nav__item" href="#musaned-settings-section">
                     <span class="settings-nav__icon"><i class="fa fa-credit-card"></i></span>
                     <span>
@@ -697,6 +704,82 @@
                                 <strong>{{ $accountTreeLabel }}:</strong> {{ __('finance::finance.bond_qabd_account_tree_hint') }}
                             </div>
                         </div>
+                    </div>
+                </div>
+            </details>
+
+            <details class="settings-section" id="rental-contract-settings-section" open>
+                <summary>
+                    <div>
+                        <h3 class="settings-section-title">{{ __('finance::finance.rental_contract_accounts_section') }}</h3>
+                        <p class="settings-section-hint">{{ __('finance::finance.rental_contract_accounts_section_hint') }}</p>
+                    </div>
+                    <span class="settings-section-icon"><i class="fa fa-chevron-down"></i></span>
+                </summary>
+                <div class="settings-section-body">
+                    <div class="settings-grid">
+                        <div class="setting-field">
+                            <div class="setting-field__top">
+                                <label for="rental_contract_revenue_account">{{ __('finance::finance.rental_contract_revenue_account') }}</label>
+                                <span class="setting-field__tools">
+                                    {!! addUpButton(route('finance.accounts.create'), 'rental_contract_revenue_account', false, 'name', true) !!}
+                                </span>
+                            </div>
+                            <input type="hidden" value="rental_contract_revenue_account" name="data[rental_contract_revenue_account][title]">
+                            <select name="data[rental_contract_revenue_account][value]" id="rental_contract_revenue_account" class="form-control select2">
+                                <option value="">{{ __('finance::finance.choose') }}</option>
+                                @foreach ($revenue_tax_accounts as $item)
+                                    <option value="{{ $item->id }}" {{ $selected('rental_contract_revenue_account', $item->id) }}>
+                                        {{ $item->code }} / {{ $item->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <small>{{ __('finance::finance.rental_contract_revenue_account_hint') }}</small>
+                        </div>
+
+                        <div class="setting-field">
+                            <div class="setting-field__top">
+                                <label for="rental_contract_clients_parent_account">{{ __('finance::finance.rental_contract_clients_parent_account') }}</label>
+                                <span class="setting-field__tools">
+                                    {!! addUpButton(route('finance.accounts.create'), 'rental_contract_clients_parent_account', false, 'name', true) !!}
+                                </span>
+                            </div>
+                            <input type="hidden" value="rental_contract_clients_parent_account" name="data[rental_contract_clients_parent_account][title]">
+                            <select name="data[rental_contract_clients_parent_account][value]" id="rental_contract_clients_parent_account" class="form-control select2">
+                                <option value="">{{ __('finance::finance.choose') }}</option>
+                                @foreach ($rental_client_parent_accounts as $item)
+                                    <option value="{{ $item->id }}" {{ $selected('rental_contract_clients_parent_account', $item->id) }}>
+                                        {{ $item->code }} / {{ $item->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <small>{{ __('finance::finance.rental_contract_clients_parent_account_hint') }}</small>
+                        </div>
+
+                        @foreach ([
+                            'rental_contract_cash_account' => 'rental_contract_cash_account',
+                            'rental_contract_bank_account' => 'rental_contract_bank_account',
+                            'rental_contract_electronic_account' => 'rental_contract_electronic_account',
+                        ] as $settingKey => $translationKey)
+                            <div class="setting-field">
+                                <div class="setting-field__top">
+                                    <label for="{{ $settingKey }}">{{ __('finance::finance.' . $translationKey) }}</label>
+                                    <span class="setting-field__tools">
+                                        {!! addUpButton(route('finance.accounts.create'), $settingKey, false, 'name', true) !!}
+                                    </span>
+                                </div>
+                                <input type="hidden" value="{{ $settingKey }}" name="data[{{ $settingKey }}][title]">
+                                <select name="data[{{ $settingKey }}][value]" id="{{ $settingKey }}" class="form-control select2">
+                                    <option value="">{{ __('finance::finance.choose') }}</option>
+                                    @foreach ($rental_receipt_accounts as $item)
+                                        <option value="{{ $item->id }}" {{ $selected($settingKey, $item->id) }}>
+                                            {{ $item->code }} / {{ $item->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                <small>{{ __('finance::finance.' . $translationKey . '_hint') }}</small>
+                            </div>
+                        @endforeach
                     </div>
                 </div>
             </details>

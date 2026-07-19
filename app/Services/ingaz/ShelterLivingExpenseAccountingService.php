@@ -8,6 +8,7 @@ use App\Models\ShelterLivingExpense;
 use App\Support\AutomaticJournalEntries;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Nami\Finance\Enums\CostCenterTypeEnum;
 use Nami\Finance\Enums\AccountTypesEnum;
 use Nami\Finance\Models\Account;
@@ -60,8 +61,13 @@ class ShelterLivingExpenseAccountingService
                 throw new \RuntimeException('يجب اختيار حسابات محاسبية نهائية صحيحة للإعاشة والصرف.');
             }
 
-            if (!$this->isPaymentAccount($paymentAccount)) {
-                throw new \RuntimeException('حساب الصرف يجب أن يكون حساب بنك أو صندوق.');
+            $paymentSourceType = (string) ($data['payment_source_type'] ?? 'bank');
+            if (!$this->isAllowedPaymentAccount($paymentAccount, $paymentSourceType)) {
+                throw new \RuntimeException(
+                    $paymentSourceType === 'custody'
+                        ? 'يجب اختيار عهدة نشطة مرتبطة بموظف.'
+                        : 'حساب الصرف يجب أن يكون حساب بنك أو صندوق.'
+                );
             }
 
             $contracts = $this->eligibleContracts($data['shelter_id'] ?? null, $data['contract_id'] ?? null)->get();
@@ -85,6 +91,7 @@ class ShelterLivingExpenseAccountingService
                 'shelter_id' => $expenseShelterId,
                 'expense_account_id' => $expenseAccount->id,
                 'payment_account_id' => $paymentAccount->id,
+                'payment_source_type' => $paymentSourceType,
                 'expense_date' => $entryDate,
                 'title' => $data['title'] ?: 'إعاشة الإيواء',
                 'total_amount' => $totalAmount,
@@ -281,8 +288,32 @@ class ShelterLivingExpenseAccountingService
             ->first();
     }
 
-    private function isPaymentAccount(Account $account): bool
+    private function isAllowedPaymentAccount(Account $account, string $sourceType): bool
     {
+        if ($sourceType === 'custody') {
+            $isCustodyChartAccount = $account->parent()
+                ->where(function ($query) {
+                    $query
+                        ->where('type', AccountTypesEnum::Custody->value)
+                        ->orWhere('code', 126);
+                })
+                ->exists();
+
+            if ($isCustodyChartAccount) {
+                return true;
+            }
+
+            return Schema::hasTable('hr_employee_custodies')
+                && DB::table('hr_employee_custodies')
+                ->where('account_id', $account->id)
+                ->where('status', 'active')
+                ->exists();
+        }
+
+        if ($sourceType !== 'bank') {
+            return false;
+        }
+
         $type = $account->type;
         $typeValue = $type instanceof AccountTypesEnum ? $type->value : (int) $type;
 

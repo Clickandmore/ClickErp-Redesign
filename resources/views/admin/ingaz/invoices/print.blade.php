@@ -388,7 +388,7 @@
 
     <div class="page">
         <div class="tools">
-            <button type="button" class="btn" data-action="print">طباعة الفاتورة</button>
+            <button type="button" class="btn" data-action="print">طباعة المستند</button>
             <button type="button" class="btn" data-action="save-pdf">حفظ PDF</button>
             <a class="btn secondary" href="{{ $backUrl ?? route('invoices.index') }}">رجوع</a>
         </div>
@@ -411,8 +411,8 @@
             <div class="top-grid">
                 <div class="cell">
                     <div class="invoice-no-box">
-                        <div class="label">رقم الفاتورة</div>
-                        <div class="value">{{ $invoice->id }}</div>
+                        <div class="label">{{ $documentNumberLabel ?? 'رقم الفاتورة' }}</div>
+                        <div class="value">{{ $documentNumber ?? $invoice->id }}</div>
                     </div>
                 </div>
                 <div class="cell qr-wrap">
@@ -426,7 +426,7 @@
 
             <table class="info-table">
                 <tr>
-                    <td class="info-label">تاريخ الفاتورة</td>
+                    <td class="info-label">{{ isset($documentNumberLabel) ? 'تاريخ المستند' : 'تاريخ الفاتورة' }}</td>
                     <td class="info-value">{{ $invoiceDateTime }}</td>
                     <td class="info-label">التاريخ الموافق</td>
                     <td class="info-value">{{ $matchedHijriDate }}</td>

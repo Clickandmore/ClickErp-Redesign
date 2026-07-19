@@ -27,27 +27,30 @@ class CommissionMarketerController extends Controller
 
     public function show(Request $request, Admin $admin)
     {
-        $filters = $request->only(['date_filter', 'month', 'year', 'from_date', 'to_date']);
+        abort_unless($admin->admin_type === 'customer_service', 404);
+
+        $filters = $request->only([
+            'date_filter', 'month', 'year', 'from_date', 'to_date',
+            'service_type', 'commission_status',
+        ]);
 
         $balance = $this->profileService->getMarketerBalance($admin->id);
-        $totalCount = $this->profileService->getTotalDelegationsCount($admin->id);
+        $summary = $this->profileService->getOperationSummary($admin->id);
 
         if ($request->ajax()) {
-            $query = $this->profileService->getDelegationsQuery($admin->id, $filters);
+            $operations = $this->profileService->getOperations($admin->id, $filters);
 
-            return DataTables::of($query)
+            return DataTables::of($operations)
                 ->addIndexColumn()
-                ->addColumn('checkbox', fn ($row) => $row->commissioned_at ? '' : '<input type="checkbox" class="delegation-check" name="delegation_ids[]" value="' . $row->id . '">')
-                ->editColumn('delegation_date_gregorian', fn ($row) => $row->delegation_date_gregorian?->format('Y-m-d') ?? '-')
-                ->addColumn('nationality_name', fn ($row) => optional($row->nationality)->name ?? '-')
-                ->addColumn('country_name', fn ($row) => optional($row->country)->name ?? '-')
-                ->addColumn('profession_name', fn ($row) => optional($row->profession)->name ?? '-')
-                ->addColumn('client_name', fn ($row) => optional($row->user)->name ?? '-')
-                ->addColumn('visa_type_label', fn ($row) => $this->visaTypeLabel($row->visa_type))
-                ->addColumn('total_due', fn ($row) => number_format((float) optional($row->invoice)->total_due, 2))
-                ->addColumn('is_paid_label', fn ($row) => $this->isPaidLabel($row->invoice))
-                ->addColumn('commissioned_label', fn ($row) => $row->commissioned_at
-                    ? '<span class="badge bg-success">محتسبة</span>'
+                ->addColumn('checkbox', fn ($row) => $row['commissioned'] ? '' :
+                    '<input type="checkbox" class="operation-check" name="operations[]" value="' . e($row['key']) .
+                    '" data-amount="' . $row['base_amount'] . '">')
+                ->editColumn('operation_date', fn ($row) => $row['operation_date']?->format('Y-m-d') ?? '-')
+                ->editColumn('base_amount', fn ($row) => number_format($row['base_amount'], 2))
+                ->addColumn('service_type_label', fn ($row) => $this->visaTypeLabel($row['service_type']))
+                ->addColumn('is_paid_label', fn ($row) => $this->isPaidLabel($row['is_paid']))
+                ->addColumn('commissioned_label', fn ($row) => $row['commissioned']
+                    ? '<span class="badge bg-success">محتسبة — دفعة #' . $row['commission_batch_id'] . '</span>'
                     : '<span class="badge bg-secondary">غير محتسبة</span>')
                 ->rawColumns(['checkbox', 'commissioned_label', 'is_paid_label'])
                 ->make(true);
@@ -69,34 +72,64 @@ class CommissionMarketerController extends Controller
         $visaTypeOptions = \App\Models\commissions\CommissionSetting::serviceTypeOptions();
 
         return view('commissions.marketers.show', compact(
-            'admin', 'balance', 'totalCount', 'filters',
+            'admin', 'balance', 'summary', 'filters',
             'balanceTransactions', 'batches', 'visaTypeOptions'
         ));
     }
 
     public function preview(Request $request, Admin $admin)
     {
+        abort_unless($admin->admin_type === 'customer_service', 404);
+
         $request->validate([
-            'delegation_ids'   => ['required', 'array', 'min:1'],
-            'delegation_ids.*' => ['integer'],
+            'operations'   => ['required', 'array', 'min:1'],
+            'operations.*' => ['required', 'string', 'max:100'],
         ]);
 
-        $preview = $this->calculationService->previewBatch($admin->id, $request->delegation_ids);
+        $preview = $this->calculationService->previewBatch($admin->id, $request->operations);
+
+        if ($preview['total_requests'] === 0) {
+            return redirect()
+                ->route('commissions.marketers.show', $admin->id)
+                ->withErrors(['operations' => 'لم يتم العثور على عمليات مؤهلة للاحتساب.']);
+        }
 
         return view('commissions.calculation.preview', compact('admin', 'preview'));
     }
 
     public function approve(Request $request, Admin $admin)
     {
+        abort_unless($admin->admin_type === 'customer_service', 404);
+
         $request->validate([
-            'delegation_ids'   => ['required', 'array', 'min:1'],
-            'delegation_ids.*' => ['integer'],
+            'operations'       => ['required', 'array', 'min:1'],
+            'operations.*'     => ['required', 'string', 'max:100'],
+            'methods'          => ['required', 'array'],
+            'methods.*'        => ['required', 'in:percentage,fixed'],
+            'values'           => ['required', 'array'],
+            'values.*'         => ['required', 'numeric', 'min:0'],
             'notes'            => ['nullable', 'string', 'max:1000'],
         ]);
 
+        if (count($request->operations) !== count($request->methods) ||
+            count($request->operations) !== count($request->values)) {
+            return back()->withErrors(['operations' => 'بيانات تفاصيل العمولة غير مكتملة.'])->withInput();
+        }
+
+        $adjustments = [];
+        foreach ($request->operations as $index => $key) {
+            $method = $request->methods[$index];
+            $value = (float) $request->values[$index];
+            if ($method === 'percentage' && $value > 100) {
+                return back()->withErrors(['values' => 'نسبة العمولة لا يمكن أن تتجاوز 100%.'])->withInput();
+            }
+            $adjustments[$key] = ['method' => $method, 'value' => $value];
+        }
+
         $batch = $this->calculationService->approveBatch(
             $admin->id,
-            $request->delegation_ids,
+            $request->operations,
+            $adjustments,
             $request->notes,
             auth('admin')->id()
         );
@@ -111,12 +144,12 @@ class CommissionMarketerController extends Controller
         return \App\Models\commissions\CommissionSetting::serviceTypeOptions()[$type] ?? ($type ?? '-');
     }
 
-    private function isPaidLabel($invoice): string
+    private function isPaidLabel(?bool $isPaid): string
     {
-        if (! $invoice) {
-            return '<span class="badge bg-secondary">لا توجد فاتورة</span>';
+        if ($isPaid === null) {
+            return '<span class="badge bg-light text-dark border">غير محدد</span>';
         }
-        return $invoice->is_paid
+        return $isPaid
             ? '<span class="badge bg-success">مسدد</span>'
             : '<span class="badge bg-warning text-dark">غير مسدد</span>';
     }

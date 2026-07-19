@@ -2758,7 +2758,11 @@ class RentContractController extends Controller
     /**
      * Close contract and make maid available
      */
-    public function closeAndMakeAvailable($id, Request $request)
+    public function closeAndMakeAvailable(
+        $id,
+        Request $request,
+        RentalContractFinanceService $rentalContractFinanceService
+    )
     {
         $validated = $request->validate([
             'closure_date' => 'nullable|date',
@@ -2835,6 +2839,12 @@ class RentContractController extends Controller
                 $contract->info->update($infoUpdates);
             }
 
+            $contract->refresh()->loadMissing(['user', 'maid.nationality', 'info.package', 'financeInvoice']);
+            $rentalContractFinanceService->syncPaymentForContract(
+                $contract,
+                $contract->info?->package
+            );
+
             $isEarlyClosure = $this->isRentalContractEarlyClosure($contract, $closureDate);
 
             $contract->status = $isEarlyClosure ? 'cancelled' : 'completed';
@@ -2860,7 +2870,7 @@ class RentContractController extends Controller
                     : 'استرجاع مسجل أثناء إنهاء عقد الإيجار. القيمة المقترحة حسب الأيام: ')
                     . number_format($suggestedAmount, 2) . ' ريال'
                     . ($closureReturnReason !== '' ? "\nسبب الإرجاع: " . $closureReturnReason : '');
-                $contract->financialAdjustments()->create([
+                $adjustment = $contract->financialAdjustments()->create([
                     'maid_id' => $contract->maid_id,
                     'type' => $isCompanyDue ? 'income' : 'expense',
                     'label' => $adjustmentLabel,
@@ -2869,6 +2879,12 @@ class RentContractController extends Controller
                     'context' => 'closure',
                     'created_by' => auth('admin')->id(),
                 ]);
+
+                $rentalContractFinanceService->recordClosureAdjustment(
+                    $contract,
+                    $adjustment,
+                    $closureDate
+                );
             }
 
             if ($contract->maid) {

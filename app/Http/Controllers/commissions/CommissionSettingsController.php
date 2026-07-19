@@ -16,7 +16,8 @@ class CommissionSettingsController extends Controller
         $serviceTypeOptions = CommissionSetting::serviceTypeOptions();
 
         $marketers = Admin::query()
-            ->whereHas('ingazDelegations')
+            ->where('admin_type', 'customer_service')
+            ->activeForOperations()
             ->with(['commissionOverrides'])
             ->orderBy('name')
             ->get();

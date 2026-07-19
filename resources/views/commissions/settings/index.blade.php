@@ -62,7 +62,7 @@
     {{-- استثناءات الموظفين --}}
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <h6 class="mb-0 fw-bold"><i class="fa fa-user-edit me-2"></i>استثناءات خاصة بالموظفين</h6>
+            <h6 class="mb-0 fw-bold"><i class="fa fa-user-edit me-2"></i>استثناءات موظفي خدمة العملاء</h6>
             <button type="button" class="btn btn-sm btn-outline-primary" id="addOverrideBtn">
                 <i class="fa fa-plus me-1"></i>إضافة استثناء
             </button>

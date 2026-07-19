@@ -4,9 +4,11 @@ namespace App\Services\ingaz;
 
 use App\Models\RentalContract;
 use App\Models\RentalContractInvoice;
+use App\Models\RentalFinancialAdjustment;
 use App\Models\ingaz\Package;
 use App\Models\ingaz\User as ClientUser;
 use App\Support\AutomaticJournalEntries;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Nami\Finance\Enums\AccountTypesEnum;
 use Nami\Finance\Enums\BondPaymentTypes;
@@ -25,6 +27,12 @@ use Nami\Finance\Services\YearService;
 
 class RentalContractFinanceService
 {
+    public const RENTAL_REVENUE_ACCOUNT_SETTING = 'rental_contract_revenue_account';
+    public const RENTAL_CLIENTS_PARENT_ACCOUNT_SETTING = 'rental_contract_clients_parent_account';
+    public const RENTAL_CASH_ACCOUNT_SETTING = 'rental_contract_cash_account';
+    public const RENTAL_BANK_ACCOUNT_SETTING = 'rental_contract_bank_account';
+    public const RENTAL_ELECTRONIC_ACCOUNT_SETTING = 'rental_contract_electronic_account';
+
     public function __construct(
         protected ConstraintService $constraintService,
         protected YearService $yearService,
@@ -170,6 +178,149 @@ class RentalContractFinanceService
             'receipt_constraint' => $receiptConstraint,
             'receipt_created' => $receiptCreated,
         ];
+    }
+
+    public static function confirmSettingTitles(): array
+    {
+        return [
+            self::RENTAL_REVENUE_ACCOUNT_SETTING,
+            self::RENTAL_CLIENTS_PARENT_ACCOUNT_SETTING,
+            self::RENTAL_CASH_ACCOUNT_SETTING,
+            self::RENTAL_BANK_ACCOUNT_SETTING,
+            self::RENTAL_ELECTRONIC_ACCOUNT_SETTING,
+        ];
+    }
+
+    public function recordClosureAdjustment(
+        RentalContract $contract,
+        RentalFinancialAdjustment $adjustment,
+        Carbon|string|null $closureDate = null
+    ): ?Constraint {
+        if (
+            !AutomaticJournalEntries::enabled()
+            || (float) $adjustment->amount <= 0
+            || $adjustment->constraint_id
+        ) {
+            return $adjustment->constraint;
+        }
+
+        $contract->loadMissing(['user', 'maid.nationality', 'info.package', 'financeInvoice']);
+        $invoice = $contract->financeInvoice;
+
+        if (!$invoice) {
+            throw new \RuntimeException('لا توجد فاتورة مرتبطة بعقد الإيجار لإنشاء قيد تسوية الإنهاء.');
+        }
+
+        $date = $closureDate instanceof Carbon
+            ? $closureDate->toDateString()
+            : ($closureDate ? Carbon::parse($closureDate)->toDateString() : now()->toDateString());
+        $activeYear = $this->yearService->checkDateRange($date);
+
+        if (!$activeYear) {
+            throw new \RuntimeException('لا توجد سنة مالية نشطة لتاريخ إنهاء عقد الإيجار المحدد.');
+        }
+
+        $clientAccountId = $this->ensureClientAccountId($contract);
+        $costCenterId = $this->ensureRentalContractCostCenter($contract)->id;
+        $amount = $this->roundMoney((float) $adjustment->amount);
+        $breakdown = $this->closureAdjustmentAmounts($invoice, $contract, $amount);
+        $isRefund = $adjustment->type === 'expense';
+        $statement = ($isRefund ? 'إشعار دائن' : 'قيد مستحق للشركة')
+            . ' لإنهاء عقد تأجير رقم '
+            . ($contract->contract_number ?: $contract->id)
+            . ' / الفاتورة #'
+            . $invoice->id
+            . ' / العميل '
+            . ($contract->user?->name ?: 'غير محدد');
+        $revenueAccountId = $this->resolveDeferredRevenueAccountId();
+        $lines = [];
+
+        foreach ([
+            'taxable_subtotal' => 'خدمات التأجير',
+            'salary_exempt_amount' => 'راتب العاملة المعفى من الضريبة',
+        ] as $key => $label) {
+            $lineAmount = (float) ($breakdown[$key] ?? 0);
+            if ($lineAmount <= 0) {
+                continue;
+            }
+
+            if ($isRefund) {
+                $this->appendReversalPair(
+                    $lines,
+                    $revenueAccountId,
+                    $clientAccountId,
+                    $lineAmount,
+                    $statement . ' / ' . $label,
+                    $costCenterId
+                );
+            } else {
+                $this->appendConstraintPair(
+                    $lines,
+                    $revenueAccountId,
+                    $clientAccountId,
+                    $lineAmount,
+                    $statement . ' / ' . $label,
+                    $costCenterId
+                );
+            }
+        }
+
+        if ((float) $breakdown['vat_amount'] > 0) {
+            $taxAccountId = $this->resolveRevenueTaxAccountId();
+            if (!$taxAccountId) {
+                throw new \RuntimeException(
+                    'لا يوجد حساب ضريبة إيرادات محدد. الرجاء تعريفه من إعدادات النظام المحاسبي أولاً.'
+                );
+            }
+
+            if ($isRefund) {
+                $this->appendReversalPair(
+                    $lines,
+                    $taxAccountId,
+                    $clientAccountId,
+                    (float) $breakdown['vat_amount'],
+                    $statement . ' / عكس ضريبة القيمة المضافة'
+                );
+            } else {
+                $this->appendConstraintPair(
+                    $lines,
+                    $taxAccountId,
+                    $clientAccountId,
+                    (float) $breakdown['vat_amount'],
+                    $statement . ' / ضريبة القيمة المضافة'
+                );
+            }
+        }
+
+        if (empty($lines)) {
+            return null;
+        }
+
+        $data = [
+            'code' => $this->constraintService->lastCode(),
+            'date' => $date,
+            'statement' => $statement,
+            'account_id' => array_column($lines, 'account_id'),
+            'account_type' => array_column($lines, 'account_type'),
+            'debtor_value' => array_column($lines, 'debtor_value'),
+            'creditor_value' => array_column($lines, 'creditor_value'),
+            'statement_account' => array_column($lines, 'statement'),
+            'cost_center_required' => 'off',
+            'cost_center_id' => array_column($lines, 'cost_center_id'),
+            'value' => $amount,
+        ];
+
+        $constraint = $this->constraintService->storeConstraint($data, $activeYear);
+        $this->constraintService->storeConstraintDetails($data['account_id'], $constraint->id, $data);
+        $this->constraintService->storeFiles($constraint, $data);
+
+        $adjustment->update([
+            'constraint_id' => $constraint->id,
+            'account_id' => $revenueAccountId,
+            'cost_center_id' => $costCenterId,
+        ]);
+
+        return $constraint;
     }
 
     private function buildInvoiceAmounts(RentalContract $contract, ?Package $package): array
@@ -412,6 +563,76 @@ class RentalContractFinanceService
         ];
     }
 
+    private function appendReversalPair(
+        array &$lines,
+        int $debitAccountId,
+        int $creditAccountId,
+        float $amount,
+        string $statement,
+        ?int $costCenterId = null
+    ): void {
+        $amount = $this->roundMoney($amount);
+        if ($amount <= 0) {
+            return;
+        }
+
+        $lines[] = [
+            'account_id' => $debitAccountId,
+            'account_type' => 'debtor',
+            'debtor_value' => $amount,
+            'creditor_value' => 0,
+            'statement' => $statement,
+            'cost_center_id' => $costCenterId,
+        ];
+
+        $lines[] = [
+            'account_id' => $creditAccountId,
+            'account_type' => 'creditor',
+            'debtor_value' => 0,
+            'creditor_value' => $amount,
+            'statement' => $statement,
+            'cost_center_id' => null,
+        ];
+    }
+
+    public function closureAdjustmentAmounts(
+        RentalContractInvoice $invoice,
+        RentalContract $contract,
+        float $adjustmentAmount
+    ): array {
+        $invoiceTotal = $this->roundMoney((float) $invoice->total_due);
+        $adjustmentAmount = $this->roundMoney(max(0, $adjustmentAmount));
+
+        if ($invoiceTotal <= 0 || $adjustmentAmount <= 0) {
+            return [
+                'taxable_subtotal' => 0.0,
+                'salary_exempt_amount' => 0.0,
+                'vat_amount' => 0.0,
+                'total' => 0.0,
+            ];
+        }
+
+        $ratio = min(1, $adjustmentAmount / $invoiceTotal);
+        $invoiceAmounts = $this->buildInvoiceAmounts($contract, $contract->info?->package);
+        $vatAmount = $this->roundMoney((float) $invoiceAmounts['vat_amount'] * $ratio);
+        $salaryExemptAmount = $this->roundMoney((float) $invoiceAmounts['salary_exempt_amount'] * $ratio);
+        $taxableSubtotal = $this->roundMoney(max(0, $adjustmentAmount - $vatAmount - $salaryExemptAmount));
+        $allocatedTotal = $this->roundMoney($taxableSubtotal + $salaryExemptAmount + $vatAmount);
+
+        if ($allocatedTotal !== $adjustmentAmount) {
+            $taxableSubtotal = $this->roundMoney(
+                max(0, $taxableSubtotal + ($adjustmentAmount - $allocatedTotal))
+            );
+        }
+
+        return [
+            'taxable_subtotal' => $taxableSubtotal,
+            'salary_exempt_amount' => $salaryExemptAmount,
+            'vat_amount' => $vatAmount,
+            'total' => $adjustmentAmount,
+        ];
+    }
+
     private function buildInvoiceStatement(RentalContractInvoice $invoice, RentalContract $contract): string
     {
         return 'قيد فاتورة عقد تأجير رقم '
@@ -516,10 +737,16 @@ class RentalContractFinanceService
             $user->update(['account_id' => null]);
         }
 
-        $parentAccount = Account::query()
-            ->where('type', AccountTypesEnum::Clients->value)
-            ->lockForUpdate()
-            ->first();
+        $configuredParentId = $this->configuredAccountId(
+            self::RENTAL_CLIENTS_PARENT_ACCOUNT_SETTING,
+            'debtor'
+        );
+        $parentAccount = $configuredParentId
+            ? Account::query()->lockForUpdate()->find($configuredParentId)
+            : Account::query()
+                ->where('type', AccountTypesEnum::Clients->value)
+                ->lockForUpdate()
+                ->first();
 
         if (!$parentAccount) {
             throw new \RuntimeException(
@@ -616,6 +843,15 @@ class RentalContractFinanceService
 
     private function resolveDeferredRevenueAccountId(): int
     {
+        $configuredAccountId = $this->configuredAccountId(
+            self::RENTAL_REVENUE_ACCOUNT_SETTING,
+            'creditor'
+        );
+
+        if ($configuredAccountId) {
+            return $configuredAccountId;
+        }
+
         $preferredNames = [
             'إيراد مقدم خدمات تأجير',
             'إيراد مقدم عمالة تأجير',
@@ -663,6 +899,21 @@ class RentalContractFinanceService
             if ($accountId) {
                 return (int) $accountId;
             }
+        }
+
+        $accountId = Account::query()
+            ->where('status', 'creditor')
+            ->where(function ($query) {
+                $query->where('name', 'like', '%تأجير%')
+                    ->orWhere('name', 'like', '%تاجير%')
+                    ->orWhere('name', 'like', '%إيجار%')
+                    ->orWhere('name', 'like', '%ايجار%');
+            })
+            ->orderBy('code')
+            ->value('id');
+
+        if ($accountId) {
+            return (int) $accountId;
         }
 
         throw new \RuntimeException(
@@ -718,6 +969,17 @@ class RentalContractFinanceService
 
     private function resolveReceiptAccount(string $paymentType): Account
     {
+        $settingTitle = match ($paymentType) {
+            'cash' => self::RENTAL_CASH_ACCOUNT_SETTING,
+            'tabby', 'tamara', 'moyasar' => self::RENTAL_ELECTRONIC_ACCOUNT_SETTING,
+            default => self::RENTAL_BANK_ACCOUNT_SETTING,
+        };
+        $configuredAccountId = $this->configuredAccountId($settingTitle, 'debtor');
+
+        if ($configuredAccountId) {
+            return Account::query()->findOrFail($configuredAccountId);
+        }
+
         $account = match ($paymentType) {
             'cash' => $this->findReceiptAccountByTypes([AccountTypesEnum::Box, AccountTypesEnum::Bank]),
             'mada' => $this->findReceiptAccountByTypes([AccountTypesEnum::Bank]),
@@ -796,5 +1058,29 @@ class RentalContractFinanceService
     private function roundMoney(float $amount): float
     {
         return round($amount, 2);
+    }
+
+    private function configuredAccountId(string $settingTitle, string $expectedStatus): ?int
+    {
+        $accountId = ConfirmSetting::query()
+            ->where('title', $settingTitle)
+            ->latest('updated_at')
+            ->value('value');
+
+        if (!$accountId) {
+            return null;
+        }
+
+        $account = Account::query()->find($accountId);
+        $status = $account?->status;
+        $statusValue = $status instanceof \BackedEnum ? $status->value : (string) $status;
+
+        if (!$account || $statusValue !== $expectedStatus) {
+            throw new \RuntimeException(
+                'الحساب المحدد في إعدادات عقود التأجير غير موجود أو طبيعته المحاسبية غير صحيحة.'
+            );
+        }
+
+        return (int) $account->id;
     }
 }

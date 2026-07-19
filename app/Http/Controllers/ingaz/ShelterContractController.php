@@ -327,6 +327,29 @@ class ShelterContractController extends Controller
             ->whereIn('type', [AccountTypesEnum::Bank->value, AccountTypesEnum::Box->value])
             ->orderBy('code')
             ->get(['id', 'code', 'name', 'type']);
+        $custodyAccountIds = collect();
+        if (Schema::hasTable('hr_employee_custodies')) {
+            $custodyAccountIds = DB::table('hr_employee_custodies')
+                ->whereNotNull('account_id')
+                ->where('status', 'active')
+                ->distinct()
+                ->pluck('account_id');
+        }
+        $custodyAccounts = Account::query()
+            ->whereDoesntHave('children')
+            ->where(function ($query) use ($custodyAccountIds) {
+                $query->whereHas('parent', function ($parentQuery) {
+                    $parentQuery
+                        ->where('type', AccountTypesEnum::Custody->value)
+                        ->orWhere('code', 126);
+                });
+
+                if ($custodyAccountIds->isNotEmpty()) {
+                    $query->orWhereIn('id', $custodyAccountIds);
+                }
+            })
+            ->orderBy('code')
+            ->get(['id', 'code', 'name', 'type']);
         $livingExpenseWorkerOptions = Contract::insideShelter()
             ->with(['maid:id,name,passport_num', 'info.shelter.translations'])
             ->whereNotNull('maid_id')
@@ -370,6 +393,7 @@ class ShelterContractController extends Controller
             'shelters',
             'livingExpenseAccounts',
             'paymentAccounts',
+            'custodyAccounts',
             'livingExpenseWorkerOptions',
             'defaultLivingExpenseAccountId',
             'defaultPaymentAccountId'
@@ -385,6 +409,7 @@ class ShelterContractController extends Controller
             'title' => ['nullable', 'string', 'max:255'],
             'total_amount' => ['required', 'numeric', 'min:0.01'],
             'expense_account_id' => ['required', 'integer', 'exists:fn_accounts,id'],
+            'payment_source_type' => ['required', 'in:bank,custody'],
             'payment_account_id' => ['required', 'integer', 'exists:fn_accounts,id'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
@@ -432,6 +457,7 @@ class ShelterContractController extends Controller
                     'worker_count' => $expense->worker_count,
                     'amount_per_worker' => number_format((float) $expense->amount_per_worker, 2),
                     'expense_account' => trim(($expense->expenseAccount?->code ? $expense->expenseAccount->code . ' / ' : '') . ($expense->expenseAccount?->name ?? '')),
+                    'payment_source_type' => $expense->payment_source_type ?: 'bank',
                     'payment_account' => trim(($expense->paymentAccount?->code ? $expense->paymentAccount->code . ' / ' : '') . ($expense->paymentAccount?->name ?? '')),
                     'constraint_url' => $expense->constraint_id
                         ? route('finance.add-constraint.show', ['add_constraint' => $expense->constraint_id, 'autoprint' => 1])
