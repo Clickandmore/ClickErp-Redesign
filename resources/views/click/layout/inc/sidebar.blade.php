@@ -70,7 +70,7 @@
                 $canViewShelterContracts = @AdminGuardHasAnyPerm([\App\PermKeys::SHELTER_CONTRACT_VIEW, \App\PermKeys::SHELTER_CONTRACT_CREATE, \App\PermKeys::SHELTER_CONTRACT_CONTROL, \App\PermKeys::SHELTER_CONTRACT_ADDITION_CREATE, \App\PermKeys::SHELTER_CONTRACT_INSIDE_VIEW, \App\PermKeys::SHELTER_CONTRACT_AVAILABLE_FOR_TRANSFER_VIEW, \App\PermKeys::SHELTER_CONTRACT_DEPORTATION_STAGE_VIEW, \App\PermKeys::SHELTER_CONTRACT_DEPORTED_VIEW, \App\PermKeys::SHELTER_PLACES_VIEW, \App\PermKeys::SHELTER_PLACES_CREATE, \App\PermKeys::SHELTER_PLACES_EDIT, \App\PermKeys::SHELTER_PLACES_DELETE, \App\PermKeys::SHELTER_PLACES_CONTROL]);
                 $canViewLogistics = @AdminGuardHasAnyPerm([\App\PermKeys::TRAVEL_VIEW, \App\PermKeys::TRAVEL_CREATE, \App\PermKeys::TRAVEL_EDIT, \App\PermKeys::TRAVEL_DELETE, \App\PermKeys::TRAVEL_CONTROL]);
                 $canViewFinancialRequests = @AdminGuardHasAnyPerm([\App\PermKeys::FINANCIAL_REQUESTS_VIEW, \App\PermKeys::FINANCIAL_REQUESTS_CREATE, \App\PermKeys::FINANCIAL_REQUESTS_CHANGE_STATUS, \App\PermKeys::FINANCIAL_REQUESTS_APPROVE, \App\PermKeys::FINANCIAL_REQUESTS_CONTROL]);
-                $canViewCommissions = @SystemModuleEnabled('commissions') && @AdminGuardHasAnyPerm([\App\PermKeys::COMMISSIONS_VIEW, \App\PermKeys::COMMISSIONS_CALCULATE, \App\PermKeys::COMMISSIONS_PAY, \App\PermKeys::COMMISSIONS_SETTINGS]);
+                $canViewOperationalCommissions = @SystemModuleEnabled('commissions') && @AdminGuardHasAnyPerm([\App\PermKeys::COMMISSIONS_VIEW, \App\PermKeys::COMMISSIONS_CALCULATE, \App\PermKeys::COMMISSIONS_SETTINGS]);
             @endphp
             <ul class="menu-list">
                 <!-- Dashboard Section -->
@@ -100,7 +100,14 @@
                         request()->routeIs('offices.*') ||
                         request()->routeIs('offices-file.*') ||
                         request()->routeIs('admin.agent-imports.*');
-                    $isOperationsManagementOpen = $isDashboardHome || $isOfficeManagementRoute;
+                    $isOperationsManagementOpen =
+                        $isDashboardHome ||
+                        $isOfficeManagementRoute ||
+                        request()->routeIs('commissions.marketers.index') ||
+                        request()->routeIs('commissions.marketers.show') ||
+                        request()->routeIs('commissions.marketers.preview') ||
+                        request()->routeIs('commissions.marketers.approve') ||
+                        request()->routeIs('commissions.settings.*');
                 @endphp
                 <li class="{{ $isOperationsManagementOpen ? '' : 'collapsed' }}">
                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#Operations_Management" href="#">
@@ -721,6 +728,7 @@
                                 </ul>
                             </li>
                         @endif
+                        @include('commissions.partials.operations_sidebar')
                         <!-- طلبات استرجاع العقود -->
                         {{--                        <li class="collapsed"> --}}
                         {{--                            <a class="m-link" data-bs-toggle="collapse" data-bs-target="#returnRequestsMenu" href="#"> --}}
@@ -742,37 +750,6 @@
                         <!-- Website Management Section -->
                     </ul>
                 </li>
-
-                @if ($canViewCommissions)
-                    @php $isCommissions = request()->routeIs('commissions.*'); @endphp
-                    <li class="{{ $isCommissions ? '' : 'collapsed' }}">
-                        <a class="m-link" data-bs-toggle="collapse" data-bs-target="#commissions_menu_click" href="#">
-                            <i class="fa fa-percent me-2"></i>
-                            <span class="ms-2">نظام العمولات</span>
-                            <span class="arrow fa fa-angle-left ms-auto text-end"></span>
-                        </a>
-                        <ul class="sub-menu collapse {{ $isCommissions ? 'show' : '' }}" id="commissions_menu_click">
-                            @if(@AdminGuardHasAnyPerm([\App\PermKeys::COMMISSIONS_VIEW, \App\PermKeys::COMMISSIONS_CALCULATE, \App\PermKeys::COMMISSIONS_PAY]))
-                            <li>
-                                <a class="m-link {{ request()->routeIs('commissions.marketers.*') ? 'active' : '' }}"
-                                   href="{{ route('commissions.marketers.index') }}">
-                                    <i class="fa fa-users me-2"></i>
-                                    <span class="ms-2">المسوّقون والأرصدة</span>
-                                </a>
-                            </li>
-                            @endif
-                            @if(@AdminGuardHasPerm(\App\PermKeys::COMMISSIONS_SETTINGS))
-                            <li>
-                                <a class="m-link {{ request()->routeIs('commissions.settings.*') ? 'active' : '' }}"
-                                   href="{{ route('commissions.settings.index') }}">
-                                    <i class="fa fa-cog me-2"></i>
-                                    <span class="ms-2">إعدادات العمولات</span>
-                                </a>
-                            </li>
-                            @endif
-                        </ul>
-                    </li>
-                @endif
 
                 @if ($canViewCrm)
                     <li class="{{ $isCrm || request()->routeIs('admin.sms-templates.*') ? '' : 'collapsed' }}">
@@ -820,7 +797,10 @@
                     </ul>
                 </li>
                 @php
-                    $isFinance = request()->is('finance*');
+                    $isFinance =
+                        request()->is('finance*') ||
+                        request()->routeIs('commissions.finance.*') ||
+                        request()->routeIs('commissions.marketers.payments.*');
                 @endphp
                 <li class="{{ $isFinance ? '' : 'collapsed' }}">
                     <a class="m-link" data-bs-toggle="collapse" data-bs-target="#finance" href="#">

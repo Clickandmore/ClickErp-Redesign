@@ -950,6 +950,8 @@ class RentContractController extends Controller
             'resumedBy',
             'order.details.package',
             'financeInvoice.receiptAccount',
+            'financeBonds.debitAccount',
+            'financeBonds.constraint',
             'extensions',
             'financialAdjustments',
         ])->findOrFail($id);
@@ -1005,6 +1007,50 @@ class RentContractController extends Controller
         $closureSummaryDate = $contract->closed_at ? Carbon::parse($contract->closed_at) : Carbon::now();
         $closureSummary = $this->buildRentalClosureSummary($contract, $closureSummaryDate);
         $paymentReceipts = $this->rentalPaymentReceiptItems($contract->info);
+        $receiptBonds = $contract->financeBonds
+            ->where('type', 'qabd')
+            ->where('is_confirm', 1)
+            ->sortByDesc(fn ($bond) => sprintf('%s-%010d', $bond->date, $bond->id))
+            ->values();
+        $receiptBondsTotal = round((float) $receiptBonds->sum('value'), 2);
+        $closureIncome = round((float) $contract->financialAdjustments
+            ->where('context', 'closure')
+            ->where('type', 'income')
+            ->sum('amount'), 2);
+        $closureRefund = round((float) $contract->financialAdjustments
+            ->where('context', 'closure')
+            ->where('type', 'expense')
+            ->sum('amount'), 2);
+        $contractLedgerBalance = round(
+            (float) ($contract->financeInvoice?->total_due ?? $contract->info?->contract_value ?? 0)
+            + $closureIncome
+            - $closureRefund
+            - $receiptBondsTotal,
+            2
+        );
+        $clientAccountBalance = null;
+        $clientAccountApprovedBalance = null;
+
+        if ($contract->user?->account_id) {
+            $clientBalanceQuery = DB::table('fn_constraint_details as details')
+                ->join('fn_constraints as constraints', 'constraints.id', '=', 'details.constraint_id')
+                ->where('details.account_id', $contract->user->account_id)
+                ->whereNull('details.deleted_at')
+                ->whereNull('constraints.deleted_at');
+
+            $clientAccountBalance = round((float) (clone $clientBalanceQuery)
+                ->selectRaw('COALESCE(SUM(details.debtor_value - details.creditor_value), 0) AS balance')
+                ->value('balance'), 2);
+
+            if (Schema::hasColumn('fn_constraints', 'approval_status')) {
+                $clientAccountApprovedBalance = round((float) (clone $clientBalanceQuery)
+                    ->where('constraints.approval_status', 'approved')
+                    ->selectRaw('COALESCE(SUM(details.debtor_value - details.creditor_value), 0) AS balance')
+                    ->value('balance'), 2);
+            } else {
+                $clientAccountApprovedBalance = $clientAccountBalance;
+            }
+        }
 
         return view($this->folderPath . '.show', compact(
             'contract',
@@ -1013,7 +1059,14 @@ class RentContractController extends Controller
             'maidChangeHistory',
             'contractAttachments',
             'closureSummary',
-            'paymentReceipts'
+            'paymentReceipts',
+            'receiptBonds',
+            'receiptBondsTotal',
+            'closureIncome',
+            'closureRefund',
+            'contractLedgerBalance',
+            'clientAccountBalance',
+            'clientAccountApprovedBalance'
         ));
     }
 
@@ -1371,9 +1424,10 @@ class RentContractController extends Controller
     public function updatePayment(Request $request, RentalContractFinanceService $rentalContractFinanceService, $id)
     {
         $validated = $request->validate([
-            'payment_type' => ['required', 'string', 'in:cash,bank_transfer,mada,tabby,tamara,moyasar,pay_later,other'],
-            'payment_status' => ['required', 'string', 'in:paid,partial,pending,later,bank_pending'],
-            'paid_amount' => ['nullable', 'numeric', 'min:0'],
+            'payment_type' => ['required', 'string', 'in:cash,bank_transfer,mada,tabby,tamara,moyasar,other'],
+            'payment_amount' => ['nullable', 'required_without:paid_amount', 'numeric', 'gt:0'],
+            'paid_amount' => ['nullable', 'required_without:payment_amount', 'numeric', 'gt:0'],
+            'payment_date' => ['nullable', 'date'],
             'payment_receipt' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
         ]);
 
@@ -1390,58 +1444,31 @@ class RentContractController extends Controller
                 return redirect()->back()->with('error', 'لا توجد بيانات مالية مرتبطة بهذا العقد');
             }
 
-            $contractValue = (float) ($contract->info->contract_value ?? 0);
-            $paidAmount = match ($validated['payment_status']) {
-                'paid' => $contractValue,
-                'partial' => min((float) ($validated['paid_amount'] ?? 0), $contractValue),
-                default => 0.0,
-            };
-
-            if ($validated['payment_status'] === 'partial' && $paidAmount <= 0) {
-                DB::rollBack();
-
-                return redirect()->back()
-                    ->withInput()
-                    ->with('error', 'أدخل المبلغ المدفوع عند اختيار حالة مدفوع جزئياً');
-            }
-
-            if ($validated['payment_status'] === 'partial' && $contractValue > 0 && $paidAmount >= $contractValue) {
-                DB::rollBack();
-
-                return redirect()->back()
-                    ->withInput()
-                    ->with('error', 'إذا تم سداد كامل المبلغ اختر حالة تم الدفع بدلاً من مدفوع جزئياً');
-            }
-
-            $updates = [
-                'payment_type' => $validated['payment_type'],
-                'payment_status' => $validated['payment_status'],
-                'paid_amount' => $paidAmount,
-                'remaining_amount' => max(0, $contractValue - $paidAmount),
-                'payment_confirmed_at' => $paidAmount > 0
-                    ? ($contract->info->payment_confirmed_at ?: now())
-                    : null,
-                'payment_confirmed_by' => $paidAmount > 0
-                    ? ($contract->info->payment_confirmed_by ?: auth('admin')->id())
-                    : null,
-            ];
+            $paymentAmount = (float) ($validated['payment_amount'] ?? $validated['paid_amount'] ?? 0);
+            $financeResult = $rentalContractFinanceService->recordPaymentForContract(
+                $contract,
+                $paymentAmount,
+                $validated['payment_type'],
+                $validated['payment_date'] ?? now()
+            );
 
             if ($request->hasFile('payment_receipt')) {
                 $newPaymentReceiptPath = $request->file('payment_receipt')
                     ->store('rental-contracts/payments/receipts', 'public');
-                $updates = array_merge(
-                    $updates,
+                $contract->info->update(
                     $this->buildPaymentReceiptUpdatePayload($contract->info, $newPaymentReceiptPath)
                 );
             }
 
-            $contract->info->update($updates);
-            $contract->refresh()->loadMissing(['user', 'maid', 'info.package', 'financeInvoice']);
-            $rentalContractFinanceService->syncPaymentForContract($contract, $contract->info?->package);
-
             DB::commit();
 
-            return redirect()->back()->with('success', 'تم تحديث بيانات الدفع وإيصالات العقد بنجاح');
+            $bond = $financeResult['receipt_bond'] ?? null;
+            $message = 'تم تسجيل دفعة بقيمة ' . number_format($paymentAmount, 2)
+                . ' ريال وإنشاء سند قبض'
+                . ($bond ? ' رقم ' . ($bond->code ?: $bond->id) : '')
+                . ' وربطه بحساب العميل.';
+
+            return redirect()->back()->with('success', $message);
         } catch (\Throwable $e) {
             if (DB::transactionLevel() > 0) {
                 DB::rollBack();

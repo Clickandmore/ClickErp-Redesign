@@ -21,6 +21,8 @@ use App\Models\SponsorshipTransfer;
 use App\Models\Contract;
 use App\Models\ingaz\Maid;
 use App\Models\auth\Admin;
+use Nami\Finance\Models\Account;
+use Nami\Finance\Models\ClientCategory;
 
 class User extends Authenticatable implements JWTSubject
 {
@@ -132,6 +134,16 @@ class User extends Authenticatable implements JWTSubject
     public function createdBy()
     {
         return $this->belongsTo(Admin::class, 'created_by');
+    }
+
+    public function financeAccount(): BelongsTo
+    {
+        return $this->belongsTo(Account::class, 'account_id');
+    }
+
+    public function financeCategory(): BelongsTo
+    {
+        return $this->belongsTo(ClientCategory::class, 'client_category_id');
     }
 
     public function getJWTIdentifier()

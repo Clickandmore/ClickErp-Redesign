@@ -61,7 +61,9 @@ class InvoiceController extends Controller
      */
     public function index(Request $request)
     {
-        $legacyMode = $this->usesLegacyInvoiceIndex();
+        // The index is a unified operational screen: imported invoices and
+        // application-generated rental invoices must remain visible together.
+        $legacyMode = false;
 
         if ($request->ajax()) {
             if (!$legacyMode) {

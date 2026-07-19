@@ -234,10 +234,29 @@ class AdminRoutePermissionMatrix
             self::travelDefinitions(),
             self::complaintsDefinitions(),
             self::transfersDefinitions(),
+            self::commissionsDefinitions(),
             self::settingsDefinitions(),
             self::contentDefinitions(),
             self::referenceDataDefinitions()
         );
+    }
+
+    private static function commissionsDefinitions(): array
+    {
+        return [
+            'commissions.marketers.index' => [PermKeys::COMMISSIONS_VIEW, PermKeys::COMMISSIONS_CALCULATE],
+            'commissions.marketers.show' => [PermKeys::COMMISSIONS_VIEW, PermKeys::COMMISSIONS_CALCULATE],
+            'commissions.marketers.preview' => [PermKeys::COMMISSIONS_CALCULATE],
+            'commissions.marketers.approve' => [PermKeys::COMMISSIONS_CALCULATE],
+            'commissions.finance.index' => [PermKeys::COMMISSIONS_PAY],
+            'commissions.payment-options' => [PermKeys::COMMISSIONS_PAY],
+            'commissions.marketers.payments.index' => [PermKeys::COMMISSIONS_PAY],
+            'commissions.marketers.payments.store' => [PermKeys::COMMISSIONS_PAY],
+            'commissions.marketers.payments.finance-bond.store' => [PermKeys::COMMISSIONS_PAY],
+            'commissions.marketers.payments.print' => [PermKeys::COMMISSIONS_PAY],
+            'commissions.settings.index' => [PermKeys::COMMISSIONS_SETTINGS],
+            'commissions.settings.store' => [PermKeys::COMMISSIONS_SETTINGS],
+        ];
     }
 
     private static function dashboardDefinitions(): array

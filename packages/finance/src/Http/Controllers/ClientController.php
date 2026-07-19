@@ -4,10 +4,10 @@ namespace Nami\Finance\Http\Controllers;
 
 use Nami\Finance\Http\Requests\ClientRequest as ObjRequest;
 use Illuminate\Http\Request;
-use Nami\Finance\Enums\ClientStatusEnum;
 use Nami\Finance\Http\MainController;
 use Nami\Finance\Services\ClientService as ObjService;
 use Yajra\DataTables\DataTables;
+use Carbon\Carbon;
 
 class ClientController extends MainController
 {
@@ -27,33 +27,115 @@ class ClientController extends MainController
     public function index(Request $request, ObjService $action)
     {
         if ($request->ajax()) {
-            $dataTable = $action->getClientDataTable();
+            $dataTable = $action->getFinancialClientsDataTable($request->only([
+                'category_id',
+                'account_link',
+                'client_status',
+                'balance_state',
+            ]));
+
             return DataTables::of($dataTable)
-                ->addIndexColumn()
-                ->editColumn('client_category_id', function ($row) {
-                    return $row->category->name;
-                })->addColumn('current_balance', function ($row) {
-                    return 0;
+                ->addColumn('client', function ($row) {
+                    $type = $row->client_type === 'company' ? 'شركة' : 'فرد';
+                    $category = $row->category_name ?: 'غير مصنف';
+
+                    return '<div class="finance-client-name">
+                                <strong>' . e($row->name) . '</strong>
+                                <span>#' . (int) $row->id . ' · ' . e($type) . ' · ' . e($category) . '</span>
+                            </div>';
+                })
+                ->addColumn('contact', function ($row) {
+                    $phones = collect([$row->phone, $row->phone2])->filter()->map(function ($phone) {
+                        return '<a href="tel:' . e($phone) . '">' . e($phone) . '</a>';
+                    })->implode('<br>');
+                    $email = $row->email
+                        ? '<a href="mailto:' . e($row->email) . '">' . e($row->email) . '</a>'
+                        : '';
+
+                    return $phones . ($phones && $email ? '<br>' : '') . $email ?: '<span class="text-muted">—</span>';
+                })
+                ->addColumn('document', function ($row) {
+                    $isCompany = $row->client_type === 'company';
+                    $number = $isCompany ? $row->tax_number : $row->national_num;
+                    $label = $isCompany ? 'الرقم الضريبي' : 'رقم الهوية';
+
+                    return $number
+                        ? '<span class="finance-document"><small>' . e($label) . '</small>' . e($number) . '</span>'
+                        : '<span class="text-muted">—</span>';
+                })
+                ->addColumn('account', function ($row) {
+                    if (!$row->account_id || !$row->account_code) {
+                        return '<span class="badge bg-danger-subtle text-danger border border-danger-subtle">غير مرتبط بالشجرة</span>';
+                    }
+
+                    $statementUrl = route('finance.account-statement-clients.index', [
+                        'account_id' => $row->account_id,
+                        'other_account' => 'yes',
+                    ]);
+
+                    return '<a class="finance-account-link" href="' . e($statementUrl) . '" target="_blank" rel="noopener">
+                                <strong>' . e($row->account_code) . '</strong>
+                                <span>' . e($row->account_name ?: $row->name) . '</span>
+                            </a>';
+                })
+                ->editColumn('total_debtor', function ($row) {
+                    return number_format((float) $row->total_debtor, 2);
+                })
+                ->editColumn('total_creditor', function ($row) {
+                    return number_format((float) $row->total_creditor, 2);
+                })
+                ->addColumn('movement', function ($row) {
+                    $lastMovement = $row->last_movement_at
+                        ? Carbon::parse($row->last_movement_at)->format('Y-m-d')
+                        : 'لا توجد حركة';
+
+                    return '<div class="finance-movement">
+                                <strong>' . number_format((int) $row->movement_count) . ' حركة</strong>
+                                <span>آخر حركة: ' . e($lastMovement) . '</span>
+                            </div>';
+                })
+                ->editColumn('created_at', function ($row) {
+                    if (!$row->created_at) {
+                        return '<span class="text-muted">—</span>';
+                    }
+
+                    $createdAt = Carbon::parse($row->created_at);
+
+                    return '<div class="finance-created-at">
+                                <strong>' . e($createdAt->format('Y-m-d')) . '</strong>
+                                <span>' . e($createdAt->diffForHumans()) . '</span>
+                            </div>';
                 })
                 ->editColumn('status', function ($row) {
-                    $status = ClientStatusEnum::from($row->status);
-
-                    return '
-                        <button class="btn btn-sm '.$status->class().' '.$status->updateStatusButtonClass().'" id="update-status" data-id="' . $row->id . '">' . $status->lang() . '</button>';
+                    return $row->is_blocked
+                        ? '<span class="badge bg-danger">موقوف</span>'
+                        : '<span class="badge bg-success">نشط</span>';
                 })
                 ->addColumn('actions', function ($row) {
-                    $editButton = editButton(route($this->mainRoute . ".edit", $row->id), $row->name);
-                    $deleteButton = deleteButton(route($this->mainRoute . ".destroy", $row->id));
-                    $showButton = showButton(route("finance.clients-show", $row->id));
+                    $buttons = '<a href="' . e(route('clients.show', $row->id)) . '"
+                                    class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener"
+                                    title="ملف العميل"><i class="fa fa-user"></i></a>';
 
-                    return $editButton . " " . $deleteButton.' '.$showButton;
+                    if ($row->account_id && $row->account_code) {
+                        $statementUrl = route('finance.account-statement-clients.index', [
+                            'account_id' => $row->account_id,
+                            'other_account' => 'yes',
+                        ]);
+                        $buttons .= ' <a href="' . e($statementUrl) . '"
+                                        class="btn btn-sm btn-primary" target="_blank" rel="noopener"
+                                        title="كشف الحساب"><i class="fa fa-file-text-o"></i></a>';
+                    }
+
+                    return $buttons;
                 })->escapeColumns([])->make(true);
         }
-        $data["createRoute"] = route($this->mainRoute . ".create");
+
         $data["dataTableRoute"] = route($this->mainRoute . ".index");
         $data["bladeTitle"] = __("finance::finance.clients");
-        $data["addButtonText"] = __("finance::finance.client");
-        $data["canPermission"] = __("ClientCategory add");
+        $data["summary"] = $action->getFinancialClientsSummary();
+        $data["categories"] = \Nami\Finance\Models\ClientCategory::query()->orderBy('name')->get(['id', 'name']);
+        $data["makeAccountsRoute"] = route('make-accounts-for-clients.store');
+
         return view($this->folderPath . '.index', $data);
     }
 

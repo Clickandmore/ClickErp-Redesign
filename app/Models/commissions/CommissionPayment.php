@@ -4,6 +4,7 @@ namespace App\Models\commissions;
 
 use App\Models\auth\Admin;
 use Illuminate\Database\Eloquent\Model;
+use Nami\Finance\Models\Bond;
 
 class CommissionPayment extends Model
 {
@@ -36,5 +37,10 @@ class CommissionPayment extends Model
     public function createdBy()
     {
         return $this->belongsTo(Admin::class, 'created_by');
+    }
+
+    public function bond()
+    {
+        return $this->belongsTo(Bond::class, 'bond_id');
     }
 }

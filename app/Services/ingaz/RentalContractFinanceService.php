@@ -45,11 +45,13 @@ class RentalContractFinanceService
         $contract->loadMissing(['user', 'maid.nationality', 'info', 'financeInvoice']);
 
         if ($contract->financeInvoice) {
+            $invoice = $this->linkExistingInvoiceConstraint($contract->financeInvoice);
+
             return [
-                'invoice' => $contract->financeInvoice,
-                'invoice_constraint' => $contract->financeInvoice->invoiceConstraint,
-                'receipt_bond' => $contract->financeInvoice->receiptBond,
-                'receipt_constraint' => $contract->financeInvoice->receiptConstraint,
+                'invoice' => $invoice,
+                'invoice_constraint' => $invoice->invoiceConstraint,
+                'receipt_bond' => $invoice->receiptBond,
+                'receipt_constraint' => $invoice->receiptConstraint,
             ];
         }
 
@@ -125,6 +127,7 @@ class RentalContractFinanceService
         }
 
         $invoice = $contract->financeInvoice;
+        $invoice = $this->linkExistingInvoiceConstraint($invoice);
         $info = $contract->info;
 
         if (!$info) {
@@ -177,6 +180,82 @@ class RentalContractFinanceService
             'receipt_bond' => $receiptBond,
             'receipt_constraint' => $receiptConstraint,
             'receipt_created' => $receiptCreated,
+        ];
+    }
+
+    public function recordPaymentForContract(
+        RentalContract $contract,
+        float $paymentAmount,
+        string $paymentType,
+        Carbon|string|null $paymentDate = null
+    ): array {
+        $contract->loadMissing(['user', 'maid.nationality', 'info.package', 'financeInvoice']);
+
+        if (!$contract->info) {
+            throw new \RuntimeException('لا توجد بيانات مالية مرتبطة بعقد الإيجار.');
+        }
+
+        if (!$contract->financeInvoice) {
+            $this->createForContract($contract, $contract->info?->package);
+            $contract->refresh()->loadMissing(['user', 'maid.nationality', 'info.package', 'financeInvoice']);
+        }
+
+        $paymentAmount = $this->roundMoney($paymentAmount);
+        if ($paymentAmount <= 0) {
+            throw new \InvalidArgumentException('قيمة الدفعة يجب أن تكون أكبر من صفر.');
+        }
+
+        $invoice = $this->linkExistingInvoiceConstraint($contract->financeInvoice);
+        $clientAccountId = $this->ensureClientAccountId($contract);
+        $receipt = $this->storeReceiptBond(
+            $invoice,
+            $contract,
+            $clientAccountId,
+            $paymentAmount,
+            $paymentType,
+            $paymentDate
+        );
+
+        $invoiceTotal = $this->roundMoney((float) $invoice->total_due);
+        $allocatedInvoicePaid = $this->roundMoney(min(
+            $invoiceTotal,
+            max(0, (float) $invoice->paid_amount) + $paymentAmount
+        ));
+        $invoiceRemaining = $this->roundMoney(max(0, $invoiceTotal - $allocatedInvoicePaid));
+        $invoiceStatus = $allocatedInvoicePaid <= 0
+            ? 'pending'
+            : ($invoiceRemaining <= 0 ? 'paid' : 'partial');
+
+        $invoiceUpdates = [
+            'paid_amount' => $allocatedInvoicePaid,
+            'remaining_amount' => $invoiceRemaining,
+            'payment_type' => $paymentType,
+            'payment_status' => $invoiceStatus,
+            'is_paid' => $invoiceRemaining <= 0,
+            'paid_at' => $allocatedInvoicePaid > 0 ? now() : null,
+            'receipt_account_id' => $receipt['bond']?->debit_account_id,
+        ];
+
+        if (!$invoice->receipt_bond_id) {
+            $invoiceUpdates['receipt_bond_id'] = $receipt['bond']?->id;
+            $invoiceUpdates['receipt_constraint_id'] = $receipt['constraint']?->id;
+        }
+
+        $invoice->update($invoiceUpdates);
+        $contract->info->update([
+            'paid_amount' => $allocatedInvoicePaid,
+            'remaining_amount' => $invoiceRemaining,
+            'payment_type' => $paymentType,
+            'payment_status' => $invoiceStatus,
+            'payment_confirmed_at' => now(),
+            'payment_confirmed_by' => Auth::guard('admin')->id() ?: Auth::id(),
+        ]);
+
+        return [
+            'invoice' => $invoice->fresh(['invoiceConstraint', 'receiptBond', 'receiptConstraint', 'receiptAccount']),
+            'receipt_bond' => $receipt['bond'],
+            'receipt_constraint' => $receipt['constraint'],
+            'payment_amount' => $paymentAmount,
         ];
     }
 
@@ -495,19 +574,26 @@ class RentalContractFinanceService
         RentalContractInvoice $invoice,
         RentalContract $contract,
         int $clientAccountId,
-        float $paidAmount
+        float $paidAmount,
+        ?string $paymentType = null,
+        Carbon|string|null $paymentDate = null
     ): array {
-        $date = optional($contract->contract_date)->format('Y-m-d') ?: now()->toDateString();
+        $date = $paymentDate instanceof Carbon
+            ? $paymentDate->toDateString()
+            : ($paymentDate
+                ? Carbon::parse($paymentDate)->toDateString()
+                : (optional($contract->contract_date)->format('Y-m-d') ?: now()->toDateString()));
 
         if (!$this->yearService->checkDateRange($date)) {
             throw new \RuntimeException('لا يوجد سنة مالية نشطة لتاريخ سند القبض المحدد.');
         }
 
-        $receiptAccount = $this->resolveReceiptAccount((string) $invoice->payment_type);
-        $paymentType = $this->mapBondPaymentType((string) $invoice->payment_type);
+        $paymentType = $paymentType ?: (string) $invoice->payment_type;
+        $receiptAccount = $this->resolveReceiptAccount($paymentType);
+        $bondPaymentType = $this->mapBondPaymentType($paymentType);
 
         $bond = $this->bondService->storeQabdBond([
-            'payment_type' => $paymentType->value,
+            'payment_type' => $bondPaymentType->value,
             'bond_book_num' => ' ',
             'debit_account_id' => $receiptAccount->id,
             'credit_account_id' => $clientAccountId,
@@ -517,6 +603,7 @@ class RentalContractFinanceService
             'code' => $this->bondService->lastCode(BondTypes::Qabd->value),
             'is_tax' => 0,
             'general_type' => 0,
+            'rental_contract_id' => $contract->id,
         ])->fresh();
 
         if ((int) $bond->is_confirm !== 1 || !$bond->constraint_id) {
@@ -529,6 +616,47 @@ class RentalContractFinanceService
             'bond' => $bond,
             'constraint' => $bond?->constraint,
         ];
+    }
+
+    private function linkExistingInvoiceConstraint(RentalContractInvoice $invoice): RentalContractInvoice
+    {
+        if ($invoice->invoice_constraint_id) {
+            return $invoice;
+        }
+
+        $invoiceNumbers = collect([
+            $invoice->id,
+            $invoice->legacy_invoice_id ?? null,
+        ])->filter()->map(fn ($value) => (int) $value)->unique()->values();
+
+        foreach ($invoiceNumbers as $invoiceNumber) {
+            $matches = Constraint::query()
+                ->where('statement', 'فاتورة: ' . $invoiceNumber)
+                ->get();
+
+            if ($matches->isEmpty()) {
+                $matches = Constraint::query()
+                    ->where(
+                        'statement',
+                        'like',
+                        'قيد فاتورة عقد تأجير رقم % / الفاتورة #' . $invoiceNumber . ' / العميل %'
+                    )
+                    ->get();
+            }
+
+            if ($matches->count() === 1) {
+                $invoice->update(['invoice_constraint_id' => $matches->first()->id]);
+
+                return $invoice->fresh([
+                    'invoiceConstraint',
+                    'receiptBond',
+                    'receiptConstraint',
+                    'receiptAccount',
+                ]);
+            }
+        }
+
+        return $invoice;
     }
 
     private function appendConstraintPair(

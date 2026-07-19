@@ -56,7 +56,15 @@ class BondPrintController extends Controller
      */
     public function show(Request $request, ObjService $service , $id)
     {
-        $data['bond'] = $service->find($id)->loadMissing(['creditAccount', 'debitAccount', 'createdBy', 'check', 'bondTax']);
+        $data['bond'] = $service->find($id)->loadMissing([
+            'creditAccount',
+            'debitAccount',
+            'costCenter',
+            'createdBy',
+            'constraint',
+            'check',
+            'bondTax',
+        ]);
         if($request->type == 'qabd'){
             return view('finance::finance.bond.qabd.print_qabd', $data);
         }

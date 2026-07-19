@@ -28,9 +28,18 @@
         <h4 class="mb-2 fw-bold">طلبات وعقود خدمة العملاء في مكان واحد</h4>
         <div class="opacity-75">راجع العمليات، حدّد النسبة أو المبلغ، اعتمد الرصيد ثم أصدر سند الصرف.</div>
     </div>
-    <a href="{{ route('commissions.settings.index') }}" class="btn btn-light">
-        <i class="fa fa-sliders-h me-1"></i> إعدادات العمولات
-    </a>
+    <div class="d-flex flex-wrap gap-2">
+        @if(@AdminGuardHasPerm(\App\PermKeys::COMMISSIONS_SETTINGS))
+            <a href="{{ route('commissions.settings.index') }}" class="btn btn-light">
+                <i class="fa fa-sliders-h me-1"></i> إعدادات العمولات
+            </a>
+        @endif
+        @if(@AdminGuardHasPerm(\App\PermKeys::COMMISSIONS_PAY))
+            <a href="{{ route('commissions.finance.index') }}" class="btn btn-outline-light">
+                <i class="fa fa-wallet me-1"></i> مركز الصرف المالي
+            </a>
+        @endif
+    </div>
 </div>
 
 <div class="row g-3 mb-4">

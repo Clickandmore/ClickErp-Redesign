@@ -167,6 +167,62 @@
             height: 100%;
         }
 
+        .section-card.compact-card {
+            height: auto;
+            padding-top: 18px;
+            padding-bottom: 18px;
+        }
+
+        .section-card.compact-card .section-header {
+            margin-bottom: 12px;
+        }
+
+        .section-card.compact-card .detail-list {
+            gap: 8px;
+        }
+
+        .section-card.compact-card .detail-list li {
+            padding-bottom: 8px;
+        }
+
+        .page-section-divider {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin: 8px 0 -4px;
+        }
+
+        .page-section-divider::after {
+            content: "";
+            height: 1px;
+            flex: 1;
+            background: linear-gradient(90deg, transparent, #cbd5e1);
+        }
+
+        .page-section-divider .divider-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .page-section-divider h2 {
+            margin: 0;
+            color: #0f172a;
+            font-size: 18px;
+            font-weight: 800;
+        }
+
+        .page-section-divider p {
+            margin: 3px 0 0;
+            color: #64748b;
+            font-size: 12px;
+        }
+
         .section-header {
             display: flex;
             align-items: center;
@@ -276,16 +332,31 @@
         }
 
         .workflow-grid {
-            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 12px;
         }
 
         .workflow-step {
             position: relative;
-            padding: 18px;
+            padding: 18px 16px;
             border-radius: 18px;
             border: 1px solid #e2e8f0;
             background: #f8fafc;
-            min-height: 170px;
+            min-height: 190px;
+        }
+
+        .workflow-step:not(:last-child)::after {
+            content: "";
+            position: absolute;
+            top: 39px;
+            left: -13px;
+            width: 13px;
+            height: 2px;
+            background: #cbd5e1;
+        }
+
+        .workflow-step.done:not(:last-child)::after {
+            background: #10b981;
         }
 
         .workflow-step.done {
@@ -314,6 +385,23 @@
             color: #334155;
             margin-bottom: 14px;
             font-size: 16px;
+        }
+
+        .workflow-step .step-number {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 25px;
+            height: 25px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #fff;
+            border: 1px solid #cbd5e1;
+            color: #475569;
+            font-size: 11px;
+            font-weight: 800;
         }
 
         .workflow-step.done .step-icon {
@@ -347,6 +435,14 @@
             color: #334155;
             font-size: 12px;
             font-weight: 700;
+        }
+
+        .workflow-step .step-state {
+            display: block;
+            margin-bottom: 7px;
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 800;
         }
 
         .history-table {
@@ -430,7 +526,7 @@
         .attachment-item {
             border: 1px solid #e2e8f0;
             border-radius: 14px;
-            padding: 12px;
+            padding: 15px;
             background: #f8fafc;
         }
 
@@ -543,6 +639,23 @@
                 flex-wrap: wrap;
                 margin-top: 18px;
             }
+
+            .workflow-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .workflow-step {
+                min-height: auto;
+            }
+
+            .workflow-step:not(:last-child)::after {
+                top: auto;
+                bottom: -13px;
+                right: 38px;
+                left: auto;
+                width: 2px;
+                height: 13px;
+            }
         }
 
         @media print {
@@ -604,6 +717,11 @@
                 'later' => 'الدفع لاحقاً',
                 'bank_pending' => 'بانتظار التحويل',
             ];
+            $warrantyStatuses = [
+                'not_applicable' => 'غير قابل للتطبيق',
+                'active' => 'نشط',
+                'expired' => 'منتهي',
+            ];
             $closureCompanyDue = (float) ($closureSummary['company_due_value'] ?? $closureSummary['calculated_company_due_value'] ?? 0);
             $closureClientRefund = (float) ($closureSummary['refund_value'] ?? $closureSummary['calculated_refund_value'] ?? 0);
             $showClosureSettlement = $closureCompanyDue > 0 || $closureClientRefund > 0;
@@ -621,44 +739,67 @@
                     : 'ألغي قبل اكتمال مدة العقد';
             }
 
+            $isWorkflowClosed = in_array($contract->status, ['completed', 'cancelled'], true);
+            $isWorkflowActivated = (bool) $contract->trial_started_at
+                || in_array($contract->status, ['active', 'frozen', 'suspended', 'completed', 'cancelled'], true);
+            $isWorkflowDelivered = (bool) $contract->maid_delivered_at
+                || in_array($contract->status, ['maid_delivered', 'active', 'frozen', 'suspended', 'completed', 'cancelled'], true);
+            $isWorkflowSigned = (bool) $contract->contract_signed_at
+                || in_array($contract->status, ['contract_signed', 'maid_delivered', 'active', 'frozen', 'suspended', 'completed', 'cancelled'], true);
+            $workflowStateLabel = static fn (string $state) => match ($state) {
+                'done' => 'مكتملة',
+                'current' => 'المرحلة الحالية',
+                default => 'لم تبدأ',
+            };
+
             $workflowSteps = [
                 [
-                    'title' => 'بانتظار التوقيع',
-                    'icon' => 'fas fa-file-signature',
-                    'description' => 'تم إنشاء العقد وهو الآن جاهز لتوقيع العميل دون مرحلة إرسال مستقلة.',
-                    'date' => optional($contract->contract_sent_at ?? $contract->created_at)?->format('Y-m-d H:i'),
-                    'state' => in_array($contract->status, ['waiting_contract_send', 'contract_sent'], true)
-                        ? 'current'
-                        : ((bool) $contract->contract_signed_at || in_array($contract->status, ['contract_signed', 'maid_delivered', 'active', 'completed'], true) ? 'done' : 'pending'),
+                    'title' => 'إنشاء العقد',
+                    'icon' => 'fas fa-file-circle-check',
+                    'description' => 'إنشاء سجل العقد واعتماد بيانات العميل والعاملة والباقة.',
+                    'date' => optional($contract->legacy_created_at ?? $contract->contract_date ?? $contract->created_at)?->format('Y-m-d H:i'),
+                    'state' => 'done',
                 ],
                 [
-                    'title' => 'تم توقيع العقد',
+                    'title' => 'توقيع العميل',
                     'icon' => 'fas fa-signature',
                     'description' => 'اعتماد توقيع العميل على العقد.',
                     'date' => optional($contract->contract_signed_at)?->format('Y-m-d H:i'),
-                    'state' => $contract->contract_signed_at
-                        ? 'done'
-                        : ($contract->status === 'contract_signed' ? 'current' : 'pending'),
+                    'state' => $isWorkflowSigned ? 'done' : 'current',
                 ],
                 [
-                    'title' => 'تم تسليم العاملة',
+                    'title' => 'تسليم العاملة',
                     'icon' => 'fas fa-handshake',
                     'description' => 'توثيق التسليم الفعلي للعاملة للعميل.',
                     'date' => optional($contract->maid_delivered_at)?->format('Y-m-d H:i'),
-                    'state' => $contract->maid_delivered_at
-                        ? 'done'
-                        : ($contract->status === 'maid_delivered' ? 'current' : 'pending'),
+                    'state' => $isWorkflowDelivered ? 'done' : ($isWorkflowSigned ? 'current' : 'pending'),
                 ],
                 [
-                    'title' => 'العقد نشط',
+                    'title' => 'تفعيل العقد',
                     'icon' => 'fas fa-bolt',
-                    'description' => 'العقد مفعل والخدمة دخلت مرحلة التشغيل.',
+                    'description' => 'دخول العقد مرحلة التشغيل وبدء احتساب مدة الخدمة.',
                     'date' => optional($contract->trial_started_at)?->format('Y-m-d H:i'),
-                    'state' => $contract->status === 'active'
-                        ? 'current'
-                        : (in_array($contract->status, ['completed'], true) ? 'done' : 'pending'),
+                    'state' => $isWorkflowClosed
+                        ? 'done'
+                        : ($isWorkflowActivated || $isWorkflowDelivered ? 'current' : 'pending'),
+                ],
+                [
+                    'title' => $contract->status === 'cancelled' ? 'إلغاء العقد' : 'إغلاق العقد',
+                    'icon' => $contract->status === 'cancelled' ? 'fas fa-ban' : 'fas fa-flag-checkered',
+                    'description' => $contract->status === 'cancelled'
+                        ? 'إنهاء العقد قبل اكتمال مدته وتسجيل التسوية المرتبطة.'
+                        : 'إنهاء مدة العقد وتسجيل التسوية والمستندات المالية.',
+                    'date' => optional($contract->closed_at)?->format('Y-m-d H:i'),
+                    'state' => $isWorkflowClosed ? 'done' : 'pending',
                 ],
             ];
+
+            $workflowSteps = collect($workflowSteps)->map(function (array $step, int $index) use ($workflowStateLabel) {
+                $step['number'] = $index + 1;
+                $step['state_label'] = $workflowStateLabel($step['state']);
+
+                return $step;
+            })->all();
         @endphp
 
         <div class="rental-show-page">
@@ -670,7 +811,7 @@
                             عقد تأجير عاملة منزلية
                         </span>
                         <h1>العقد رقم {{ $contract->contract_number ?? $contract->id }}</h1>
-                        <p>عرض منظم لبيانات عقد الإيجار، حالة التنفيذ، وسجل تبديل العاملات المرتبط بهذا العقد.</p>
+                        <p>بيانات العقد، الفاتورة، سندات القبض، تسوية الإنهاء، والرصيد المحاسبي الفعلي في شاشة واحدة.</p>
                     </div>
 
                     <div class="d-flex flex-column align-items-end gap-2">
@@ -744,11 +885,30 @@
                     <div class="value">{{ $remainingMetricValue }}</div>
                     <div class="sub-value">{{ $remainingMetricSubValue }}</div>
                 </div>
+                <div class="metric-card">
+                    <div class="label">الرصيد المحاسبي للعقد</div>
+                    <div class="value {{ $contractLedgerBalance > 0 ? 'text-danger' : ($contractLedgerBalance < 0 ? 'text-success' : '') }}">
+                        {{ number_format(abs($contractLedgerBalance), 2) }}
+                    </div>
+                    <div class="sub-value">
+                        {{ $contractLedgerBalance > 0 ? 'مطلوب من العميل' : ($contractLedgerBalance < 0 ? 'رصيد لصالح العميل' : 'مسوّى بالكامل') }}
+                    </div>
+                </div>
             </div>
 
             <div class="row g-4">
+                <div class="col-12">
+                    <div class="page-section-divider">
+                        <span class="divider-icon"><i class="fas fa-address-card"></i></span>
+                        <div>
+                            <h2>البيانات الأساسية والمالية</h2>
+                            <p>بيانات العميل، الفوترة، الدفعات، ورصيد العقد.</p>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="col-xl-6">
-                    <div class="section-card">
+                    <div class="section-card compact-card">
                         <div class="section-header">
                             <h3 class="section-title">
                                 <i class="fas fa-user"></i>
@@ -810,7 +970,7 @@
                         <div class="section-header">
                             <h3 class="section-title">
                                 <i class="fas fa-receipt"></i>
-                                الباقة والدفع
+                                ملخص الفوترة والرصيد
                             </h3>
                         </div>
 
@@ -828,30 +988,68 @@
                                 </span>
                             </li>
                             <li>
-                                <span class="label">إجمالي العقد</span>
+                                <span class="label">قيمة الفاتورة الأساسية</span>
                                 <span class="value">{{ number_format((float) ($contract->info?->contract_value ?? 0), 2) }} ريال</span>
                             </li>
                             <li>
-                                <span class="label">المدفوع</span>
-                                <span class="value">{{ number_format((float) ($contract->info?->paid_amount ?? 0), 2) }} ريال</span>
+                                <span class="label">المسدد المخصص للفاتورة</span>
+                                <span class="value">{{ number_format((float) ($contract->financeInvoice?->paid_amount ?? $contract->info?->paid_amount ?? 0), 2) }} ريال</span>
                             </li>
                             <li>
-                                <span class="label">المتبقي</span>
-                                <span class="value">{{ number_format((float) ($contract->info?->remaining_amount ?? 0), 2) }} ريال</span>
+                                <span class="label">متبقي الفاتورة الأساسية</span>
+                                <span class="value">{{ number_format((float) ($contract->financeInvoice?->remaining_amount ?? $contract->info?->remaining_amount ?? 0), 2) }} ريال</span>
                             </li>
                             <li>
-                                <span class="label">طريقة الدفع</span>
-                                <span class="value">{{ $paymentTypes[$contract->info?->payment_type] ?? 'غير محدد' }}</span>
+                                <span class="label">إجمالي سندات القبض المرتبطة بالعقد</span>
+                                <span class="value highlight">{{ number_format((float) $receiptBondsTotal, 2) }} ريال</span>
                             </li>
                             <li>
-                                <span class="label">حالة الدفع</span>
-                                <span class="value">{{ $paymentStatuses[$contract->info?->payment_status] ?? 'غير محدد' }}</span>
+                                <span class="label">صافي تسويات الإنهاء</span>
+                                <span class="value">
+                                    {{ number_format($closureIncome - $closureRefund, 2) }} ريال
+                                    <small class="text-muted d-block">مستحقات {{ number_format($closureIncome, 2) }} - استرجاعات {{ number_format($closureRefund, 2) }}</small>
+                                </span>
                             </li>
+                            <li>
+                                <span class="label">رصيد هذا العقد</span>
+                                <span class="value {{ $contractLedgerBalance > 0 ? 'text-danger' : ($contractLedgerBalance < 0 ? 'text-success' : 'text-muted') }}">
+                                    {{ number_format(abs($contractLedgerBalance), 2) }} ريال
+                                    <small class="d-block">
+                                        {{ $contractLedgerBalance > 0 ? 'مطلوب من العميل' : ($contractLedgerBalance < 0 ? 'رصيد دائن للعميل' : 'العقد مسوّى') }}
+                                    </small>
+                                </span>
+                            </li>
+                            <li>
+                                <span class="label">رصيد حساب العميل بعد جميع القيود</span>
+                                <span class="value {{ ($clientAccountBalance ?? 0) > 0 ? 'text-danger' : (($clientAccountBalance ?? 0) < 0 ? 'text-success' : 'text-muted') }}">
+                                    {{ $clientAccountBalance === null ? 'لا يوجد حساب محاسبي' : number_format(abs($clientAccountBalance), 2) . ' ريال' }}
+                                    @if ($clientAccountBalance !== null)
+                                        <small class="d-block">
+                                            {{ $clientAccountBalance > 0 ? 'مدين - مطلوب من العميل' : ($clientAccountBalance < 0 ? 'دائن - لصالح العميل' : 'متوازن') }}
+                                            (يشمل القيود بانتظار الاعتماد)
+                                        </small>
+                                    @endif
+                                </span>
+                            </li>
+                            @if ($clientAccountApprovedBalance !== null && $clientAccountApprovedBalance !== $clientAccountBalance)
+                                <li>
+                                    <span class="label">الرصيد المرحّل من القيود المعتمدة فقط</span>
+                                    <span class="value {{ $clientAccountApprovedBalance > 0 ? 'text-danger' : ($clientAccountApprovedBalance < 0 ? 'text-success' : 'text-muted') }}">
+                                        {{ number_format(abs($clientAccountApprovedBalance), 2) }} ريال
+                                        <small class="d-block">
+                                            {{ $clientAccountApprovedBalance > 0 ? 'مدين - مطلوب من العميل' : ($clientAccountApprovedBalance < 0 ? 'دائن - لصالح العميل' : 'متوازن') }}
+                                        </small>
+                                    </span>
+                                </li>
+                            @endif
                         </ul>
 
                         @if(!empty($paymentReceipts))
                             <div id="paymentReceiptsList" class="mb-4">
-                                <div class="fw-bold mb-2">إيصالات الدفع</div>
+                                <div class="fw-bold mb-1">مرفقات إثبات الدفع</div>
+                                <p class="small text-muted mb-2">
+                                    هذه ملفات مرفقة فقط؛ الدفعات المحتسبة محاسبياً هي سندات القبض الظاهرة في السجل أدناه.
+                                </p>
                                 @foreach($paymentReceipts as $receipt)
                                     <div class="payment-receipt-item d-flex align-items-center justify-content-between gap-2 border rounded p-2 mb-2">
                                         <a href="{{ route('RentContract.attachments.view', [$contract->id, $receipt['key']]) }}" target="_blank" class="small">
@@ -872,13 +1070,18 @@
                         @endif
 
                         @if (@AdminGuardHasPerm(\App\PermKeys::RENT_CONTRACT_EDIT))
-                            <form method="POST" action="{{ route('RentContract.payment.update', $contract->id) }}" enctype="multipart/form-data" class="no-print">
+                            <form method="POST" action="{{ route('RentContract.payment.update', $contract->id) }}" enctype="multipart/form-data" class="no-print border rounded-3 p-3 mb-4 bg-light">
                                 @csrf
+                                <div class="fw-bold mb-1">تسجيل دفعة جديدة</div>
+                                <p class="small text-muted mb-3">
+                                    المبلغ هنا دفعة جديدة وليس إجمالي المدفوع السابق. عند الحفظ سيُنشأ سند قبض وقيد مستقل ويُحدّث رصيد العميل.
+                                </p>
                                 <div class="row g-3">
                                     <div class="col-md-6">
                                         <label for="show_payment_type" class="form-label">طريقة الدفع</label>
                                         <select name="payment_type" id="show_payment_type" class="form-select" required>
                                             @foreach($paymentTypes as $value => $label)
+                                                @continue($value === 'pay_later')
                                                 <option value="{{ $value }}" {{ ($contract->info?->payment_type ?? '') === $value ? 'selected' : '' }}>
                                                     {{ $label }}
                                                 </option>
@@ -886,19 +1089,14 @@
                                         </select>
                                     </div>
                                     <div class="col-md-6">
-                                        <label for="show_payment_status" class="form-label">حالة الدفع</label>
-                                        <select name="payment_status" id="show_payment_status" class="form-select" required>
-                                            @foreach($paymentStatuses as $value => $label)
-                                                <option value="{{ $value }}" {{ ($contract->info?->payment_status ?? '') === $value ? 'selected' : '' }}>
-                                                    {{ $label }}
-                                                </option>
-                                            @endforeach
-                                        </select>
+                                        <label for="show_payment_amount" class="form-label">قيمة الدفعة الجديدة</label>
+                                        <input type="number" id="show_payment_amount" name="payment_amount" class="form-control"
+                                            step="0.01" min="0.01" value="{{ old('payment_amount') }}" required>
                                     </div>
                                     <div class="col-md-6">
-                                        <label for="show_paid_amount" class="form-label">المبلغ المدفوع</label>
-                                        <input type="number" id="show_paid_amount" name="paid_amount" class="form-control" step="0.01" min="0"
-                                            value="{{ $contract->info?->paid_amount ?? '0.00' }}">
+                                        <label for="show_payment_date" class="form-label">تاريخ الدفعة</label>
+                                        <input type="date" id="show_payment_date" name="payment_date" class="form-control"
+                                            value="{{ old('payment_date', now()->format('Y-m-d')) }}" required>
                                     </div>
                                     <div class="col-md-6">
                                         <label for="show_payment_receipt" class="form-label">إرفاق إيصال دفع</label>
@@ -906,11 +1104,62 @@
                                     </div>
                                 </div>
                                 <button type="submit" class="btn btn-primary mt-3">
-                                    <i class="fas fa-save me-1"></i>
-                                    حفظ بيانات الدفع
+                                    <i class="fas fa-receipt me-1"></i>
+                                    تسجيل الدفعة وإنشاء سند قبض
                                 </button>
                             </form>
                         @endif
+
+                        <div class="fw-bold mb-2">سجل سندات القبض المرتبطة بالعقد</div>
+                        @if ($receiptBonds->isEmpty())
+                            <div class="empty-state">لا توجد سندات قبض مرتبطة بهذا العقد حتى الآن.</div>
+                        @else
+                            <div class="table-responsive">
+                                <table class="table table-sm align-middle mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>السند</th>
+                                            <th>التاريخ</th>
+                                            <th>الحساب</th>
+                                            <th>القيمة</th>
+                                            <th class="text-end">المستندات</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($receiptBonds as $bond)
+                                            <tr>
+                                                <td>#{{ $bond->code ?: $bond->id }}</td>
+                                                <td>{{ $bond->date ?: '-' }}</td>
+                                                <td>{{ $bond->debitAccount?->name ?: '-' }}</td>
+                                                <td>{{ number_format((float) $bond->value, 2) }} ريال</td>
+                                                <td class="text-end">
+                                                    <a href="{{ route('finance.bonds-print.show', ['bonds_print' => $bond->id, 'type' => 'qabd']) }}"
+                                                        target="_blank" class="btn btn-sm btn-outline-primary" title="طباعة سند القبض">
+                                                        <i class="fas fa-receipt"></i>
+                                                    </a>
+                                                    @if ($bond->constraint_id)
+                                                        <a href="{{ route('finance.add-constraint.show', ['add_constraint' => $bond->constraint_id, 'autoprint' => 1]) }}"
+                                                            target="_blank" class="btn btn-sm btn-outline-secondary" title="عرض قيد سند القبض">
+                                                            <i class="fas fa-book-open"></i>
+                                                        </a>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="page-section-divider">
+                        <span class="divider-icon"><i class="fas fa-briefcase"></i></span>
+                        <div>
+                            <h2>بيانات العقد والتشغيل</h2>
+                            <p>العاملة، مدة العقد، بيانات التشغيل، والمستندات المالية.</p>
+                        </div>
                     </div>
                 </div>
 
@@ -994,18 +1243,24 @@
                                 <span class="label">ساعات العمل يومياً</span>
                                 <span class="value">{{ $contract->info?->working_hours_per_day ? $contract->info->working_hours_per_day . ' ساعة' : 'غير محدد' }}</span>
                             </li>
-                            <li>
-                                <span class="label">أجرة الساعة</span>
-                                <span class="value">{{ $contract->info?->hourly_rate ? number_format($contract->info->hourly_rate, 2) . ' ريال' : 'غير محدد' }}</span>
-                            </li>
-                            <li>
-                                <span class="label">الراتب الشهري</span>
-                                <span class="value">{{ $contract->info?->monthly_salary ? number_format($contract->info->monthly_salary, 2) . ' ريال' : 'غير محدد' }}</span>
-                            </li>
-                            <li>
-                                <span class="label">مبلغ نقل الكفالة</span>
-                                <span class="value">{{ $contract->info?->sponsorship_transfer_amount ? number_format($contract->info->sponsorship_transfer_amount, 2) . ' ريال' : 'غير محدد' }}</span>
-                            </li>
+                            @if ((float) ($contract->info?->hourly_rate ?? 0) > 0)
+                                <li>
+                                    <span class="label">أجرة الساعة</span>
+                                    <span class="value">{{ number_format((float) $contract->info->hourly_rate, 2) }} ريال</span>
+                                </li>
+                            @endif
+                            @if ((float) ($contract->info?->monthly_salary ?? 0) > 0)
+                                <li>
+                                    <span class="label">الراتب الشهري</span>
+                                    <span class="value">{{ number_format((float) $contract->info->monthly_salary, 2) }} ريال</span>
+                                </li>
+                            @endif
+                            @if ((float) ($contract->info?->sponsorship_transfer_amount ?? 0) > 0)
+                                <li>
+                                    <span class="label">مبلغ نقل الكفالة</span>
+                                    <span class="value">{{ number_format((float) $contract->info->sponsorship_transfer_amount, 2) }} ريال</span>
+                                </li>
+                            @endif
                             @if($contract->info?->sponsorship_transfer_total_amount || $contract->info?->sponsorship_transfer_payment_type || $contract->info?->sponsorship_transfer_payment_status)
                                 @php
                                     $transferPaymentTypes = [
@@ -1054,13 +1309,15 @@
                                     </li>
                                 @endif
                             @endif
-                            <li>
-                                <span class="label">الراتب بعد نقل الكفالة</span>
-                                <span class="value">{{ $contract->info?->salary_after_sponsorship ? number_format($contract->info->salary_after_sponsorship, 2) . ' ريال' : 'غير محدد' }}</span>
-                            </li>
+                            @if ((float) ($contract->info?->salary_after_sponsorship ?? 0) > 0)
+                                <li>
+                                    <span class="label">الراتب بعد نقل الكفالة</span>
+                                    <span class="value">{{ number_format((float) $contract->info->salary_after_sponsorship, 2) }} ريال</span>
+                                </li>
+                            @endif
                             <li>
                                 <span class="label">حالة الضمان</span>
-                                <span class="value">{{ $contract->warranty_status ?? 'غير محدد' }}</span>
+                                <span class="value">{{ $warrantyStatuses[$contract->warranty_status] ?? ($contract->warranty_status ?: 'غير محدد') }}</span>
                             </li>
                             @if ($contract->status === 'frozen' || $contract->frozen_at)
                                 <li>
@@ -1086,7 +1343,7 @@
                     </div>
                 </div>
 
-                <div class="col-xl-6">
+                <div class="col-12">
                     <div class="section-card">
                         <div class="section-header">
                             <h3 class="section-title">
@@ -1177,15 +1434,15 @@
                                     <span class="value highlight">#{{ $contract->financeInvoice->id }}</span>
                                 </li>
                                 <li>
-                                    <span class="label">إجمالي الفاتورة</span>
+                                    <span class="label">قيمة الفاتورة الأساسية</span>
                                     <span class="value">{{ number_format((float) $contract->financeInvoice->total_due, 2) }} ريال</span>
                                 </li>
                                 <li>
-                                    <span class="label">المبلغ المسدد</span>
+                                    <span class="label">المسدد المخصص للفاتورة</span>
                                     <span class="value">{{ number_format((float) $contract->financeInvoice->paid_amount, 2) }} ريال</span>
                                 </li>
                                 <li>
-                                    <span class="label">المتبقي</span>
+                                    <span class="label">متبقي الفاتورة</span>
                                     <span class="value">{{ number_format((float) $contract->financeInvoice->remaining_amount, 2) }} ريال</span>
                                 </li>
                                 <li>
@@ -1200,12 +1457,16 @@
                                     <i class="fas fa-file-invoice me-1"></i>
                                     طباعة الفاتورة
                                 </a>
+                                <a href="{{ route('invoices.index') }}" class="btn btn-outline-primary">
+                                    <i class="fas fa-list me-1"></i>
+                                    جميع الفواتير
+                                </a>
 
                                 @if ($contract->financeInvoice->receipt_bond_id)
                                     <a href="{{ route('finance.bonds-print.show', ['bonds_print' => $contract->financeInvoice->receipt_bond_id, 'type' => 'qabd']) }}"
                                         target="_blank" class="btn btn-outline-primary">
                                         <i class="fas fa-receipt me-1"></i>
-                                        طباعة سند القبض
+                                        سند القبض الأساسي
                                     </a>
                                 @endif
 
@@ -1245,86 +1506,11 @@
                 </div>
 
                 <div class="col-12">
-                    <div class="section-card">
-                        <div class="section-header">
-                            <h3 class="section-title">
-                                <i class="fas fa-paperclip"></i>
-                                مرفقات العقد
-                            </h3>
-                            @if (!empty($contractAttachments))
-                                <a href="{{ route('RentContract.attachments.download', $contract->id) }}"
-                                    class="btn btn-sm btn-primary no-print">
-                                    <i class="fas fa-file-zipper me-1"></i>
-                                    تحميل الكل
-                                </a>
-                            @endif
-                        </div>
-
-                        @if (!empty($contractAttachments))
-                            <form method="GET" action="{{ route('RentContract.attachments.download', $contract->id) }}" class="no-print">
-                                <input type="hidden" name="selected_only" value="1">
-                                <div class="attachment-list mb-3">
-                                    @foreach ($contractAttachments as $attachment)
-                                        <label class="attachment-item">
-                                            <input type="checkbox" name="attachments[]" value="{{ $attachment['key'] }}" checked>
-                                            <span class="fw-bold">{{ $attachment['label'] }}</span>
-                                            <span class="d-flex flex-wrap gap-2 mt-2">
-                                                <a href="{{ $attachment['url'] }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">
-                                                    <i class="fas fa-eye me-1"></i>
-                                                    عرض
-                                                </a>
-                                                <a href="{{ $attachment['download_url'] }}" class="btn btn-sm btn-outline-primary">
-                                                    <i class="fas fa-download me-1"></i>
-                                                    تحميل منفرد
-                                                </a>
-                                            </span>
-                                        </label>
-                                    @endforeach
-                                </div>
-                                <button type="submit" class="btn btn-outline-primary">
-                                    <i class="fas fa-download me-1"></i>
-                                    تحميل المحدد
-                                </button>
-                            </form>
-                        @else
-                            <div class="empty-state">
-                                لا توجد مرفقات مسجلة على هذا العقد حتى الآن.
-                            </div>
-                        @endif
-                    </div>
-                </div>
-
-                <div class="col-xl-6">
-                    <div class="section-card">
-                        <div class="section-header">
-                            <h3 class="section-title">
-                                <i class="fas fa-route"></i>
-                                مراحل العقد
-                            </h3>
-                        </div>
-                        <p class="section-subtitle">تم إلغاء مرحلة إرسال العقد. أول مرحلة تشغيلية الآن هي انتظار توقيع العميل.</p>
-
-                        <div class="workflow-grid">
-                            @foreach ($workflowSteps as $step)
-                                <div class="workflow-step {{ $step['state'] }}">
-                                    <span class="step-icon">
-                                        <i class="{{ $step['icon'] }}"></i>
-                                    </span>
-                                    <h4>{{ $step['title'] }}</h4>
-                                    <p>{{ $step['description'] }}</p>
-                                    @if (!empty($step['date']))
-                                        <span class="step-date">
-                                            <i class="fas fa-clock"></i>
-                                            {{ $step['date'] }}
-                                        </span>
-                                    @else
-                                        <span class="step-date">
-                                            <i class="fas fa-hourglass-half"></i>
-                                            بانتظار التنفيذ
-                                        </span>
-                                    @endif
-                                </div>
-                            @endforeach
+                    <div class="page-section-divider">
+                        <span class="divider-icon"><i class="fas fa-clock-rotate-left"></i></span>
+                        <div>
+                            <h2>السجلات والملاحظات</h2>
+                            <p>تغييرات العاملة، المعلومات الإضافية، والمراجعة التاريخية للعقد.</p>
                         </div>
                     </div>
                 </div>
@@ -1400,9 +1586,17 @@
                                 <span class="value">{{ $contract->marketer?->email ?? 'غير محدد' }}</span>
                             </li>
                             <li>
-                                <span class="label">أنشئ في</span>
-                                <span class="value">{{ optional($contract->created_at)->format('Y-m-d H:i') ?? 'غير محدد' }}</span>
+                                <span class="label">تاريخ إنشاء العقد</span>
+                                <span class="value">
+                                    {{ optional($contract->legacy_created_at ?? $contract->contract_date ?? $contract->created_at)->format('Y-m-d H:i') ?? 'غير محدد' }}
+                                </span>
                             </li>
+                            @if ($contract->legacy_created_at)
+                                <li>
+                                    <span class="label">تاريخ استيراد السجل للنظام</span>
+                                    <span class="value">{{ optional($contract->created_at)->format('Y-m-d H:i') ?? 'غير محدد' }}</span>
+                                </li>
+                            @endif
                             <li>
                                 <span class="label">آخر تحديث</span>
                                 <span class="value">{{ optional($contract->updated_at)->format('Y-m-d H:i') ?? 'غير محدد' }}</span>
@@ -1439,6 +1633,138 @@
                                 @endforeach
                             </div>
                         @endif
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="page-section-divider">
+                        <span class="divider-icon"><i class="fas fa-route"></i></span>
+                        <div>
+                            <h2>مسار العقد</h2>
+                            <p>التسلسل التشغيلي للعقد من الإنشاء حتى الإغلاق.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="section-card">
+                        <div class="section-header">
+                            <h3 class="section-title">
+                                <i class="fas fa-route"></i>
+                                مراحل العقد
+                            </h3>
+                            <span class="change-pill">
+                                <i class="fas fa-location-dot"></i>
+                                {{ $contract->status_text }}
+                            </span>
+                        </div>
+
+                        <div class="workflow-grid">
+                            @foreach ($workflowSteps as $step)
+                                <div class="workflow-step {{ $step['state'] }}">
+                                    <span class="step-number">{{ $step['number'] }}</span>
+                                    <span class="step-icon">
+                                        <i class="{{ $step['icon'] }}"></i>
+                                    </span>
+                                    <span class="step-state">{{ $step['state_label'] }}</span>
+                                    <h4>{{ $step['title'] }}</h4>
+                                    <p>{{ $step['description'] }}</p>
+                                    @if (!empty($step['date']))
+                                        <span class="step-date">
+                                            <i class="fas fa-clock"></i>
+                                            {{ $step['date'] }}
+                                        </span>
+                                    @elseif ($step['state'] === 'done')
+                                        <span class="step-date">
+                                            <i class="fas fa-circle-check"></i>
+                                            مكتملة دون تاريخ موثق
+                                        </span>
+                                    @else
+                                        <span class="step-date">
+                                            <i class="fas fa-hourglass-half"></i>
+                                            بانتظار التنفيذ
+                                        </span>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="page-section-divider">
+                        <span class="divider-icon"><i class="fas fa-paperclip"></i></span>
+                        <div>
+                            <h2>المرفقات والتنزيل</h2>
+                            <p>عرض ملفات العقد وتنزيلها منفردة أو مجمعة.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12" id="contract-attachments">
+                    <div class="section-card">
+                        <div class="section-header">
+                            <h3 class="section-title">
+                                <i class="fas fa-paperclip"></i>
+                                مرفقات العقد
+                            </h3>
+                            @if (!empty($contractAttachments))
+                                <span class="change-pill">
+                                    <i class="fas fa-files"></i>
+                                    {{ count($contractAttachments) }} مرفق
+                                </span>
+                            @endif
+                        </div>
+
+                        @if (!empty($contractAttachments))
+                            <form method="GET" action="{{ route('RentContract.attachments.download', $contract->id) }}" class="no-print">
+                                <input type="hidden" name="selected_only" value="1">
+                                <div class="attachment-list mb-3">
+                                    @foreach ($contractAttachments as $attachment)
+                                        <label class="attachment-item">
+                                            <span class="d-flex align-items-center gap-2">
+                                                <input type="checkbox" name="attachments[]" value="{{ $attachment['key'] }}" checked>
+                                                <span class="fw-bold">{{ $attachment['label'] }}</span>
+                                            </span>
+                                            <span class="d-flex flex-wrap gap-2 mt-3">
+                                                <a href="{{ $attachment['url'] }}" target="_blank" rel="noopener" class="btn btn-sm btn-outline-secondary">
+                                                    <i class="fas fa-eye me-1"></i>
+                                                    عرض
+                                                </a>
+                                                <a href="{{ $attachment['download_url'] }}" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-download me-1"></i>
+                                                    تنزيل الملف
+                                                </a>
+                                            </span>
+                                        </label>
+                                    @endforeach
+                                </div>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-download me-1"></i>
+                                        تنزيل المرفقات المحددة
+                                    </button>
+                                    <a href="{{ route('RentContract.attachments.download', $contract->id) }}" class="btn btn-outline-primary">
+                                        <i class="fas fa-file-zipper me-1"></i>
+                                        تنزيل جميع المرفقات
+                                    </a>
+                                </div>
+                            </form>
+                        @else
+                            <div class="empty-state">
+                                لا توجد مرفقات مسجلة على هذا العقد حتى الآن.
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="page-section-divider">
+                        <span class="divider-icon"><i class="fas fa-history"></i></span>
+                        <div>
+                            <h2>السجل الزمني</h2>
+                            <p>آخر قسم في الصفحة لمراجعة جميع العمليات والتغييرات على العقد.</p>
+                        </div>
                     </div>
                 </div>
 
@@ -1519,7 +1845,7 @@
             </a>
 
             @if (!empty($contractAttachments))
-                <a href="{{ route('RentContract.attachments.download', $contract->id) }}" class="btn-icon btn-back" title="تحميل كل المرفقات">
+                <a href="#contract-attachments" class="btn-icon btn-back" title="الانتقال إلى المرفقات">
                     <i class="fas fa-paperclip"></i>
                 </a>
             @endif

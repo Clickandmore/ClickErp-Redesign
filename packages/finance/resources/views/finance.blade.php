@@ -243,19 +243,17 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
 @endphp
 <li class="collapsed">
     <a class="m-link
-                {{ $isSuppliersMenuOpen ? 'active' : '' }}"
-        data-bs-toggle="collapse" data-bs-target="#suppliers" href="#">
+                {{ $isSuppliersMenuOpen ? 'active' : '' }}" data-bs-toggle="collapse"
+        data-bs-target="#suppliers" href="#">
         <i class="fa fa-truck"></i>
         <span class="ms-2">{{ __('finance::finance.suppliers') }}</span>
         <span class="arrow fa fa-angle-left ms-auto text-end"></span>
     </a>
     <ul class="sub-menu collapse
-            {{ $isSuppliersMenuOpen ? 'show' : '' }}"
-        id="suppliers">
+            {{ $isSuppliersMenuOpen ? 'show' : '' }}" id="suppliers">
 
         <li>
-            <a class="m-link {{ $isSuppliersPage ? 'active' : '' }}"
-                href="{{ route('finance.suppliers.index') }}">
+            <a class="m-link {{ $isSuppliersPage ? 'active' : '' }}" href="{{ route('finance.suppliers.index') }}">
                 <span class="ms-2"> {{ trans('finance::finance.suppliers') }} </span>
             </a>
         </li>
@@ -466,7 +464,11 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
 
 <li class="collapsed">
     <a class="m-link
-    {{ in_array(Route::currentRouteName(), ['finance.add-constraint.create', 'finance.constraints.index', 'finance.constraints.pending']) &&
+    {{ in_array(Route::currentRouteName(), [
+        'finance.add-constraint.create',
+        'finance.constraints.index',
+        'finance.constraints.pending',
+    ]) &&
     (request()->query('status') == null || in_array(request()->query('status'), ['collected', 'refused']))
         ? 'active'
         : '' }}"
@@ -477,7 +479,11 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
     </a>
 
     <ul class="sub-menu collapse
-            {{ in_array(Route::currentRouteName(), ['finance.add-constraint.create', 'finance.constraints.index', 'finance.constraints.pending']) &&
+            {{ in_array(Route::currentRouteName(), [
+                'finance.add-constraint.create',
+                'finance.constraints.index',
+                'finance.constraints.pending',
+            ]) &&
             (request()->query('status') == null || in_array(request()->query('status'), ['collected', 'refused']))
                 ? 'show'
                 : '' }}"
@@ -525,6 +531,9 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
                                     'finance.account-transfer.index',
                                     'finance.general-bonds-sarf.index',
                                     'finance.general-bonds-qabd.index',
+                                    'commissions.finance.index',
+                                    'commissions.marketers.payments.index',
+                                    'commissions.marketers.payments.print',
                                     'invoices.index',
                                     'invoices.create',
                                     'invoices.show',
@@ -544,6 +553,9 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
                                          'finance.account-transfer.index',
                                          'finance.general-bonds-sarf.index',
                                          'finance.general-bonds-qabd.index',
+                                         'commissions.finance.index',
+                                         'commissions.marketers.payments.index',
+                                         'commissions.marketers.payments.print',
                                          'invoices.index',
                                          'invoices.create',
                                          'invoices.show',
@@ -560,6 +572,15 @@ $permissions = ['printSettings.create', 'letters.index', 'officialVacations.inde
                 <span class="ms-2"> {{ trans('finance::finance.sarf_bonds') }} </span>
             </a>
         </li>
+        @if (@SystemModuleEnabled('commissions') && @AdminGuardHasPerm(\App\PermKeys::COMMISSIONS_PAY))
+            <li>
+                <a class="m-link {{ request()->routeIs('commissions.finance.*') || request()->routeIs('commissions.marketers.payments.*') ? 'active' : '' }}"
+                    href="{{ route('commissions.finance.index') }}">
+                    {{-- <i class="fa fa-percent me-1"></i> --}}
+                    <span class="ms-2">صرف عمولات المسوقين</span>
+                </a>
+            </li>
+        @endif
         {{--        @endif --}}
         {{--        @if (in_array('finance.general-bonds-read', $user_permission_list)) --}}
         <li>

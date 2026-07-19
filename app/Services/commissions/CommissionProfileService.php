@@ -26,6 +26,21 @@ class CommissionProfileService
             });
     }
 
+    public function getCustomerServiceEmployeesWithBalance()
+    {
+        return Admin::query()
+            ->where('admin_type', 'customer_service')
+            ->activeForOperations()
+            ->with('role')
+            ->orderBy('name')
+            ->get()
+            ->map(function (Admin $admin) {
+                $admin->commission_balance = $this->getMarketerBalance($admin->id);
+
+                return $admin;
+            });
+    }
+
     public function getMarketerBalance(int $marketerId): float
     {
         $credit = CommissionBalanceTransaction::query()

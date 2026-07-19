@@ -223,7 +223,7 @@ class BondSarfController extends Controller
     {
         if ($request->ajax()) {
             $obj = $service->find($id)->loadMissing([
-                'debitAccount', 'creditAccount', 'costCenter', 'createdBy', 'bondTax', 'constraint',
+                'debitAccount', 'creditAccount', 'costCenter', 'createdBy', 'bondTax', 'constraint', 'check',
             ]);
             $returnHTML = view($this->folderPath . ".show")->with([
                 "bond_payment_type" => $service->getBondPaymentTypies(),
