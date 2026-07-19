@@ -11,6 +11,9 @@ class ComplaintFeedback extends Model
 {
     use AssignsBranch, HasFactory;
 
+    // "feedback" is uncountable, so Eloquent would infer `complaint_feedback`.
+    protected $table = 'complaint_feedbacks';
+
     protected $fillable = [
         'complaint_id',
         'branch_id',
@@ -53,7 +56,7 @@ class ComplaintFeedback extends Model
      */
     public function user()
     {
-        return $this->belongsTo(\App\Models\User::class);
+        return $this->belongsTo(\App\Models\ingaz\User::class);
     }
 
     /**

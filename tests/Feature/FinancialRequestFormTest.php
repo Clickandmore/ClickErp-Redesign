@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\auth\Admin;
+use App\Models\Branch;
 use App\Models\FinancialRequest;
 use Nami\Finance\Models\Account;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -17,7 +18,14 @@ class FinancialRequestFormTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->actingAs(Admin::query()->where('admin_type', 'super_admin')->firstOrFail(), 'admin');
+        // Create the actor rather than borrowing whichever super admin happens to exist,
+        // so the test is independent of the contents of the database it runs against.
+        $branch = Branch::factory()->main()->create(['name_ar' => 'الفرع الرئيسي']);
+
+        $admin = Admin::factory()->superAdmin()->forBranch($branch)->create();
+        $admin->assignRole('Administrator');
+
+        $this->actingAs($admin, 'admin');
     }
 
     /** @dataProvider paymentMethods */

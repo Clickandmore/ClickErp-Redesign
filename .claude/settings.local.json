@@ -1,7 +1,14 @@
 {
   "permissions": {
     "allow": [
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"http://127.0.0.1:8000/dashboard\")"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" \"http://127.0.0.1:8000/dashboard\")",
+      "Bash(vendor/bin/phpunit --list-suites)",
+      "Bash(DB_CONNECTION=sqlite DB_DATABASE=/private/tmp/claude-501/-Applications-MAMP-htdocs-ClickERP/b148969b-64dd-42fb-8c17-47e440bfbe48/scratchpad/t.sqlite php -r 'touch\\(\"/private/tmp/claude-501/-Applications-MAMP-htdocs-ClickERP/b148969b-64dd-42fb-8c17-47e440bfbe48/scratchpad/t.sqlite\"\\);')",
+      "Bash(DB_CONNECTION=sqlite DB_DATABASE=/private/tmp/claude-501/-Applications-MAMP-htdocs-ClickERP/b148969b-64dd-42fb-8c17-47e440bfbe48/scratchpad/t.sqlite php artisan migrate --force)",
+      "Bash(mkdir -p /private/tmp/claude-501/-Applications-MAMP-htdocs-ClickERP/b148969b-64dd-42fb-8c17-47e440bfbe48/scratchpad)",
+      "Bash(touch /private/tmp/claude-501/-Applications-MAMP-htdocs-ClickERP/b148969b-64dd-42fb-8c17-47e440bfbe48/scratchpad/t.sqlite)",
+      "Bash(/Applications/MAMP/Library/bin/mysql -h127.0.0.1 -P8889 -uroot -proot -e \"SELECT COUNT\\(*\\) tables_count FROM information_schema.tables WHERE table_schema='rafdain_test';\")",
+      "Bash(/Applications/MAMP/Library/bin/mysql -h127.0.0.1 -P8889 -uroot -proot -e \"SELECT COUNT\\(*\\) FROM rafdain_test.branches; SELECT COUNT\\(*\\) FROM rafdain_test.admins;\")"
     ]
   }
 }

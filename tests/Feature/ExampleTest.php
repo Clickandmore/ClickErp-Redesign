@@ -2,20 +2,18 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class ExampleTest extends TestCase
 {
     /**
-     * A basic test example.
-     *
-     * @return void
+     * The public homepage renders. `/` itself redirects into the localised prefix
+     * (mcamara/laravel-localization), so the redirect has to be followed.
      */
-    public function test_example()
+    public function test_the_public_homepage_renders(): void
     {
-        $response = $this->get('/');
-
-        $response->assertStatus(200);
+        $this->followingRedirects()
+            ->get('/')
+            ->assertOk();
     }
 }
