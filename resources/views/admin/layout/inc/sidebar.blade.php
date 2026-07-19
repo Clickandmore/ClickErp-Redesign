@@ -193,7 +193,7 @@
                             <span class="ms-2">{{ __('ingaz.crm') }}</span>
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
-                        <ul class="sub-menu collapse {{ $isCrm || in_array(Route::currentRouteName(), ['clients.index']) ? 'show' : '' }}"
+                        <ul class="sub-menu collapse {{ $isCrm || request()->routeIs('clients.*') || request()->routeIs('website-visitors.*') ? 'show' : '' }}"
                             id="crm">
                             @if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_VIEW))
                                 <li>
@@ -201,6 +201,15 @@
                                         href="{{ route('clients.index') }}">
                                         <i class="fa fa-user"></i>
                                         <span class="ms-2"> {{ helperTrans('ingaz.clients') }}</span>
+                                    </a>
+                                </li>
+                            @endif
+                            @if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_VIEW))
+                                <li>
+                                    <a class="m-link {{ request()->routeIs('website-visitors.*') ? 'active' : '' }}"
+                                        href="{{ route('website-visitors.index') }}">
+                                        <i class="fa fa-globe"></i>
+                                        <span class="ms-2">زوار الموقع</span>
                                     </a>
                                 </li>
                             @endif

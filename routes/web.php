@@ -19,6 +19,7 @@ use App\Http\Controllers\Web\OrderController;
 use App\Http\Controllers\Web\RentalContractExpiryReminderController;
 use App\Http\Controllers\Web\ReturnRequestController;
 use App\Http\Controllers\Web\UserAddressController;
+use App\Http\Controllers\Web\VisitorChatController;
 use App\Services\Zoho\SalesIqClient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
@@ -72,6 +73,12 @@ Route::get('/check-tazker-contracts', [AdminContractController::class, 'checkTaz
 Route::get('/check-warranty-contracts', [AdminContractController::class, 'checkWarrantyContracts'])->name('check.warranty.contracts');
 Route::get('/rental-contract-reminders/{token}', [RentalContractExpiryReminderController::class, 'show'])->name('rental-contract-reminders.show');
 Route::post('/rental-contract-reminders/{token}', [RentalContractExpiryReminderController::class, 'respond'])->name('rental-contract-reminders.respond');
+
+Route::prefix('visitor-chat')->middleware('throttle:120,1')->name('visitor-chat.')->group(function () {
+    Route::post('/heartbeat', [VisitorChatController::class, 'heartbeat'])->name('heartbeat');
+    Route::get('/messages', [VisitorChatController::class, 'messages'])->name('messages');
+    Route::post('/messages', [VisitorChatController::class, 'send'])->name('send');
+});
 
 /** END NEW ROUTES */
 Route::get('/zoho/salesiq/oauth/callback', function (Request $request, SalesIqClient $salesIq) {

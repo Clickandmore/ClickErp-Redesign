@@ -55,6 +55,7 @@ class AdminRoutePermissionMatrix
         return [
             'dashboard.index',
             'clients.index',
+            'website-visitors.index',
             'maids.index',
             'noneAvailableMaids',
             'maids.deleted_cvs',
@@ -315,6 +316,7 @@ class AdminRoutePermissionMatrix
                 'clients.attachments.view' => [PermKeys::CLIENTS_SHOW, PermKeys::CLIENTS_VIEW],
                 'clients.attachments.download.single' => [PermKeys::CLIENTS_SHOW, PermKeys::CLIENTS_VIEW],
                 'clients.attachments.delete' => [PermKeys::CLIENTS_EDIT],
+                'website-visitors.*' => [PermKeys::CLIENTS_VIEW],
             ]
         );
     }

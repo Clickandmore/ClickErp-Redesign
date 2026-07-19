@@ -2,13 +2,21 @@
 
 namespace App\Http\Controllers\ingaz;
 
+use App\Constants;
 use App\Http\Controllers\admin\Controller;
+use App\Models\AdminNotification;
+use App\Models\auth\Admin;
 use App\Models\Contract;
 use App\Models\DeportationProcedure;
 use App\Models\TravelHistory;
+use App\Models\TravelHistoryFiles;
+use App\Support\TravelAirports;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Yajra\DataTables\Facades\DataTables;
 
 class DeportationTravelController extends Controller
@@ -61,7 +69,9 @@ class DeportationTravelController extends Controller
                     $html = '<div class="travel-details">';
                     $html .= '<i class="fa fa-plane"></i> ' . $row->arrival_airport . '<br>';
                     $html .= '<i class="fa fa-calendar"></i> ' . ($row->arrival_date ? \Carbon\Carbon::parse($row->arrival_date)->format('Y-m-d') : 'غير محدد') . '<br>';
-                    $html .= '<i class="fa fa-clock"></i> ' . ($row->arrival_time ?? 'غير محدد');
+                    $html .= '<i class="fa fa-clock"></i> ' . ($row->arrival_time ?? 'غير محدد') . '<br>';
+                    $html .= '<i class="fa fa-user-check"></i> '
+                        . ($row->assignedTo ? e($row->assignedTo->name) : 'غير مسندة');
                     $html .= '</div>';
                     return $html;
                 })
@@ -139,13 +149,21 @@ class DeportationTravelController extends Controller
      */
     public function create(Request $request)
     {
-        $contract = null;
         $travel = null;
-        if ($request->has('contract_id')) {
-            $contract = Contract::with(['maid', 'user', 'info'])->find($request->contract_id);
-        }
+        $contract = $request->filled('contract_id')
+            ? Contract::with(['maid', 'user', 'info'])->find($request->integer('contract_id'))
+            : null;
+        $contracts = $this->availableDeportationContracts($contract);
+        $arrivalAirports = TravelAirports::options();
+        $assignableStaff = $this->assignableStaff();
 
-        return view('admin.ingaz.DeportationTravel.create', compact('contract', 'travel'));
+        return view('admin.ingaz.DeportationTravel.create', compact(
+            'contract',
+            'contracts',
+            'travel',
+            'arrivalAirports',
+            'assignableStaff'
+        ));
     }
 
     /**
@@ -155,12 +173,14 @@ class DeportationTravelController extends Controller
     {
         $validated = $this->validateTravelData($request);
         $contract = Contract::with(['maid', 'user'])->findOrFail($validated['contract_id']);
+        $assigneeId = $validated['assigned_to'] ?? null;
 
         // إنشاء رحلة الترحيل
         $travel = TravelHistory::create([
             'user_id' => $contract->user_id,
             'maid_id' => $contract->maid_id,
             'order_id' => $contract->id,
+            'trip_group_code' => null,
             'travel_type' => 'deportation',
             'travel_with' => $validated['travel_with'],
             'status' => 'scheduled',
@@ -170,7 +190,13 @@ class DeportationTravelController extends Controller
             'flight_company' => $validated['flight_company'] ?? null,
             'flight_number' => $validated['flight_number'] ?? null,
             'notes' => $validated['notes'] ?? null,
+            'assigned_to' => $assigneeId,
+            'assigned_by' => $assigneeId ? auth('admin')->id() : null,
+            'assigned_at' => $assigneeId ? now() : null,
+            'assignment_note' => $assigneeId ? ($validated['assignment_note'] ?? null) : null,
         ]);
+
+        $this->storeTravelFiles($request, $travel);
 
         // تحديث إجراءات الترحيل
         $procedure = DeportationProcedure::where('contract_id', $contract->id)->first();
@@ -180,6 +206,11 @@ class DeportationTravelController extends Controller
                 'trip_id' => $travel->id
             ]);
         }
+
+        if ($assigneeId) {
+            $this->notifyAssignee($travel, $contract);
+        }
+
         return  jsonSuccess(['url'=>route('DeportationTravel.index')] , __("تم جدولة رحلة الترحيل بنجاح") , 201);
 
 //        return redirect()->route('DeportationTravel.index')
@@ -198,7 +229,7 @@ class DeportationTravelController extends Controller
 
     public function edit($id)
     {
-        $travel = TravelHistory::with(['order.maid', 'order.user', 'order.info'])
+        $travel = TravelHistory::with(['order.maid', 'order.user', 'order.info', 'files'])
             ->where('travel_type', 'deportation')
             ->findOrFail($id);
 
@@ -208,8 +239,17 @@ class DeportationTravelController extends Controller
         }
 
         $contract = $travel->order;
+        $contracts = $this->availableDeportationContracts($contract);
+        $arrivalAirports = TravelAirports::options();
+        $assignableStaff = $this->assignableStaff();
 
-        return view('admin.ingaz.DeportationTravel.create', compact('contract', 'travel'));
+        return view('admin.ingaz.DeportationTravel.create', compact(
+            'contract',
+            'contracts',
+            'travel',
+            'arrivalAirports',
+            'assignableStaff'
+        ));
     }
 
     public function update(Request $request, $id)
@@ -225,11 +265,15 @@ class DeportationTravelController extends Controller
         }
 
         $contract = Contract::with(['maid', 'user'])->findOrFail($validated['contract_id']);
+        $previousAssigneeId = $travel->assigned_to;
+        $assigneeId = $validated['assigned_to'] ?? null;
+        $assigneeChanged = (string) $previousAssigneeId !== (string) $assigneeId;
 
         $travel->update([
             'user_id' => $contract->user_id,
             'maid_id' => $contract->maid_id,
             'order_id' => $contract->id,
+            'trip_group_code' => null,
             'travel_with' => $validated['travel_with'],
             'arrival_airport' => $validated['arrival_airport'],
             'arrival_date' => $validated['arrival_date'],
@@ -237,7 +281,21 @@ class DeportationTravelController extends Controller
             'flight_company' => $validated['flight_company'] ?? null,
             'flight_number' => $validated['flight_number'] ?? null,
             'notes' => $validated['notes'] ?? null,
+            'assigned_to' => $assigneeId,
+            'assigned_by' => $assigneeId
+                ? ($assigneeChanged ? auth('admin')->id() : ($travel->assigned_by ?: auth('admin')->id()))
+                : null,
+            'assigned_at' => $assigneeId
+                ? ($assigneeChanged ? now() : ($travel->assigned_at ?: now()))
+                : null,
+            'assignment_note' => $assigneeId ? ($validated['assignment_note'] ?? null) : null,
         ]);
+
+        $this->storeTravelFiles($request, $travel);
+
+        if ($assigneeId && $assigneeChanged) {
+            $this->notifyAssignee($travel, $contract);
+        }
 
         return jsonSuccess(['url' => route('DeportationTravel.index')], __('تم تحديث رحلة الترحيل بنجاح'));
     }
@@ -398,24 +456,144 @@ class DeportationTravelController extends Controller
 
     private function validateTravelData(Request $request): array
     {
-        return $request->validate([
-            'contract_id' => 'required|exists:contracts,id',
+        $validated = $request->validate([
+            'contract_id' => ['required', 'integer', 'exists:contracts,id'],
             'arrival_airport' => 'required',
             'arrival_date' => 'required|date',
             'arrival_time' => 'required',
-            'travel_with' => 'required',
+            'travel_with' => ['required', Rule::in(['مطار', 'نقل جماعي', 'قطار'])],
             'flight_company' => 'nullable|string|max:255',
             'flight_number' => 'nullable|string|max:255',
             'notes' => 'nullable|string',
+            'assigned_to' => 'nullable|integer|exists:admins,id',
+            'assignment_note' => 'nullable|string|max:2000',
+            'files' => 'nullable|array',
+            'files.*' => 'nullable|file|mimes:jpeg,png,jpg,pdf|max:4096',
         ], [
             'contract_id.required' => 'يجب اختيار العقد.',
+            'contract_id.integer' => 'يجب اختيار عقد واحد فقط لرحلة الترحيل.',
             'contract_id.exists' => 'العقد غير موجود في النظام.',
-            'arrival_airport.required' => 'حقل مطار الوصول مطلوب.',
-            'arrival_date.required' => 'حقل تاريخ الوصول مطلوب.',
-            'arrival_date.date' => 'صيغة تاريخ الوصول غير صحيحة.',
-            'arrival_time.required' => 'حقل وقت الوصول مطلوب.',
-            'travel_with.required' => 'يجب تحديد المرافق في السفر.',
+            'arrival_airport.required' => 'يجب اختيار المطار.',
+            'arrival_date.required' => 'تاريخ الرحلة مطلوب.',
+            'arrival_date.date' => 'صيغة تاريخ الرحلة غير صحيحة.',
+            'arrival_time.required' => 'وقت الرحلة مطلوب.',
+            'travel_with.required' => 'يجب تحديد وسيلة السفر.',
+            'travel_with.in' => 'وسيلة السفر المختارة غير صحيحة.',
+            'assigned_to.exists' => 'السائق أو الموظف المختار غير موجود.',
+            'assignment_note.max' => 'ملاحظة التكليف يجب ألا تتجاوز 2000 حرف.',
+            'files.*.file' => 'أحد المرفقات المرفوعة غير صالح.',
+            'files.*.mimes' => 'المرفقات المسموحة هي PDF أو JPG أو PNG فقط.',
+            'files.*.max' => 'حجم كل مرفق يجب ألا يتجاوز 4 ميجابايت.',
         ]);
+
+        $travelId = $request->route('id');
+        $alreadyScheduled = TravelHistory::query()
+            ->where('travel_type', 'deportation')
+            ->where('order_id', $validated['contract_id'])
+            ->whereNotIn('status', ['completed', 'cancelled'])
+            ->when($travelId, fn ($query) => $query->where('id', '!=', $travelId))
+            ->exists();
+
+        if ($alreadyScheduled) {
+            throw ValidationException::withMessages([
+                'contract_id' => 'هذا العقد مرتبط بالفعل برحلة ترحيل غير مكتملة.',
+            ]);
+        }
+
+        return $validated;
+    }
+
+    private function assignableStaff(): Collection
+    {
+        return Admin::query()
+            ->activeForOperations()
+            ->select('id', 'name', 'phone', 'admin_type', 'status')
+            ->orderBy('name')
+            ->get();
+    }
+
+    private function storeTravelFiles(Request $request, TravelHistory $travel): void
+    {
+        foreach ($request->file('files', []) as $file) {
+            $extension = strtolower((string) $file->getClientOriginalExtension());
+            $baseName = trim((string) pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME));
+            $baseName = trim((string) preg_replace('/[^\pL\pN_-]+/u', '-', $baseName), '-_');
+            $baseName = $baseName !== '' ? Str::limit($baseName, 80, '') : 'travel-file';
+            $fileName = $baseName . '-' . now()->format('YmdHis') . '-' . Str::random(8) . '.' . $extension;
+
+            $file->move(Constants::PUBLIC_TRAVEL_DIR, $fileName);
+
+            TravelHistoryFiles::create([
+                'travel_id' => $travel->id,
+                'file' => $fileName,
+            ]);
+        }
+    }
+
+    private function notifyAssignee(TravelHistory $travel, Contract $contract): void
+    {
+        $assigneeId = $travel->assigned_to;
+        if (! $assigneeId) {
+            return;
+        }
+
+        $message = 'تم إسناد رحلة ترحيل العقد #' . $contract->id
+            . ' للعاملة ' . ($contract->maid?->name ?: 'غير محدد')
+            . ' بتاريخ ' . ($travel->arrival_date ?: 'غير محدد')
+            . ' الساعة ' . ($travel->arrival_time ?: 'غير محدد') . '.';
+
+        if ($travel->assignment_note) {
+            $message .= ' ملاحظة الإسناد: ' . $travel->assignment_note;
+        }
+
+        AdminNotification::create([
+            'admin_id' => $assigneeId,
+            'created_by' => auth('admin')->id(),
+            'title' => 'إسناد رحلة ترحيل',
+            'message' => $message,
+            'type' => 'travel_assignment',
+            'link' => route('DeportationTravel.index'),
+            'data' => [
+                'trip_id' => $travel->id,
+                'travel_type' => 'deportation',
+                'order_id' => $contract->id,
+                'arrival_date' => $travel->arrival_date,
+                'arrival_time' => $travel->arrival_time,
+                'arrival_airport' => TravelAirports::label($travel->arrival_airport),
+            ],
+        ]);
+    }
+
+    /**
+     * عقود مرحلة الترحيل التي لا ترتبط برحلة نشطة. يظل العقد الحالي ظاهراً أثناء التعديل
+     * أو عند فتح النموذج مباشرة من صفحة إجراءات الترحيل.
+     */
+    private function availableDeportationContracts(?Contract $selectedContract = null): Collection
+    {
+        $contracts = Contract::query()
+            ->where(function ($query) {
+                $query->whereHas('deportationProcedure', function ($procedureQuery) {
+                    $procedureQuery->whereNotIn('status', ['completed', 'cancelled']);
+                })->orWhere(function ($stageQuery) {
+                    $stageQuery->insideShelter()
+                        ->whereHas('info', function ($infoQuery) {
+                            $infoQuery->where('wants_to_work', 'no');
+                        });
+                });
+            })
+            ->whereDoesntHave('travelHistory', function ($query) {
+                $query->where('travel_type', 'deportation')
+                    ->whereNotIn('status', ['completed', 'cancelled']);
+            })
+            ->with(['maid', 'user', 'info'])
+            ->latest('id')
+            ->get();
+
+        if ($selectedContract && ! $contracts->contains('id', $selectedContract->id)) {
+            $contracts->prepend($selectedContract->loadMissing(['maid', 'user', 'info']));
+        }
+
+        return $contracts;
     }
 
     private function deportationTravelQuery(Request $request)
@@ -424,7 +602,8 @@ class DeportationTravelController extends Controller
             'user',
             'maid',
             'maid.nationality.translations',
-            'order'
+            'order',
+            'assignedTo',
         ])->where('travel_type', 'deportation')
             ->orderBy('id', 'desc');
 

@@ -8,11 +8,109 @@
 
 @section('css')
 <style>
+    .travel-control-page {
+        max-width: 1180px;
+        margin: 0 auto;
+    }
+
+    .travel-control-hero {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 22px;
+        padding: 22px 24px;
+        color: #fff;
+        border-radius: 18px;
+        background: linear-gradient(135deg, #174a7e 0%, #2475b8 100%);
+        box-shadow: 0 12px 28px rgba(23, 74, 126, .18);
+    }
+
+    .travel-control-hero h1 {
+        margin: 0 0 5px;
+        color: inherit;
+        font-size: 24px;
+    }
+
+    .travel-control-hero p {
+        margin: 0;
+        color: rgba(255, 255, 255, .82);
+    }
+
+    .travel-control-hero__icon {
+        display: grid;
+        place-items: center;
+        width: 58px;
+        height: 58px;
+        flex: 0 0 58px;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, .14);
+        font-size: 25px;
+    }
+
+    .travel-control-form {
+        overflow: hidden;
+        padding: 0;
+        border: 1px solid #e4eaf1;
+        border-radius: 18px;
+        background: #fff;
+        box-shadow: 0 8px 26px rgba(31, 51, 73, .07);
+    }
+
+    .travel-control-form > .row {
+        margin-right: 0;
+        margin-left: 0;
+        padding-right: 24px;
+        padding-left: 24px;
+    }
+
+    .travel-section-heading {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0 !important;
+        padding-top: 22px !important;
+        padding-bottom: 15px !important;
+        color: #163b60;
+        border-top: 1px solid #edf1f5;
+        font-size: 17px;
+        font-weight: 700;
+    }
+
+    .travel-section-heading:first-of-type {
+        border-top: 0;
+    }
+
+    .travel-section-heading span {
+        display: grid;
+        place-items: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 10px;
+        color: #2475b8;
+        background: #eaf4fc;
+    }
+
+    .travel-control-form .col-form-label {
+        color: #34475a;
+        font-weight: 600;
+    }
+
+    .travel-control-form .form-control,
+    .travel-control-form .select2-selection {
+        border-color: #d7e0e9;
+        border-radius: 10px;
+    }
+
+    .travel-control-form .form-control:not(textarea):not([type="file"]) {
+        min-height: 45px;
+    }
+
     .travel-form-panel {
-        border: 1px solid #e5e7eb;
+        border: 1px solid #dce6ef;
         border-radius: 12px;
         padding: 16px;
-        background: #fcfdff;
+        background: #f9fbfd;
     }
 
     .contracts-preview {
@@ -48,6 +146,61 @@
         border: 1px solid #d1d9e6;
         padding: 4px 6px;
     }
+
+    .travel-form-actions {
+        margin-top: 8px !important;
+        padding-top: 18px !important;
+        padding-bottom: 18px !important;
+        background: #f8fafc;
+        border-top: 1px solid #edf1f5;
+    }
+
+    .travel-form-actions .btn {
+        min-width: 130px;
+        padding: 10px 18px;
+        border-radius: 10px;
+    }
+
+    .travel-files-card {
+        margin-top: 22px;
+        padding: 20px;
+        border: 1px solid #e4eaf1;
+        border-radius: 18px;
+        background: #fff;
+        box-shadow: 0 8px 26px rgba(31, 51, 73, .06);
+    }
+
+    @media (min-width: 768px) {
+        .travel-control-form > .row > .col-sm-5,
+        .travel-control-form > .row > .col-sm-7 {
+            width: 66.666667%;
+        }
+    }
+
+    @media (max-width: 767px) {
+        .travel-control-hero {
+            padding: 18px;
+        }
+
+        .travel-control-hero h1 {
+            font-size: 20px;
+        }
+
+        .travel-control-form > .row {
+            padding-right: 16px;
+            padding-left: 16px;
+        }
+
+        .travel-form-actions .text-end {
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 10px;
+        }
+
+        .travel-form-actions .btn {
+            width: 100%;
+        }
+    }
 </style>
 @endsection
 
@@ -61,14 +214,20 @@
 
 @if ($canManageTravelForm)
 
-<h1>
-    @if (@$data)
-    {{ __('admin.travel-edit') }}
-    @else
-    {{ __('admin.travel-add') }}
-    @endif
-</h1>
-<hr>
+<div class="travel-control-page">
+<div class="travel-control-hero">
+    <div>
+        <h1>
+            @if (@$data)
+                {{ __('admin.travel-edit') }}
+            @else
+                {{ __('admin.travel-add') }}
+            @endif
+        </h1>
+        <p>اختر عقداً واحداً أو عدة عقود، ثم أدخل بيانات رحلة الاستقدام المشتركة.</p>
+    </div>
+    <div class="travel-control-hero__icon"><i class="fa fa-plane-arrival"></i></div>
+</div>
 
 <div class="">
     @if (session('error'))
@@ -100,7 +259,7 @@
     @endif
 </div>
 
-<form class="row" method="POST" @if (@$data) action="{{ route('travel.update', $data->id) }}" @else action='{{ route('travel.store') }}' @endif enctype="multipart/form-data">
+<form class="travel-control-form" method="POST" @if (@$data) action="{{ route('travel.update', $data->id) }}" @else action='{{ route('travel.store') }}' @endif enctype="multipart/form-data">
 
     @if (@$data)
     {{-- @method('PATCH') --}}
@@ -125,6 +284,11 @@
         $selectedTravelWith = 'airport';
         $selectedAssignedTo = old('assigned_to') ?: (@$data->assigned_to ?? '');
     @endphp
+
+    <div class="row travel-section-heading">
+        <span><i class="fa fa-file-contract"></i></span>
+        اختيار العقود
+    </div>
 
     {{-- اختيار العقود (يدعم متعدد) --}}
     <div class="mb-4 row">
@@ -218,6 +382,11 @@
         </div>
     </div> --}}
 
+    <div class="row travel-section-heading">
+        <span><i class="fa fa-route"></i></span>
+        بيانات الرحلة
+    </div>
+
     <div class="mb-3 row">
         <label for="" class="col-sm-3 col-form-label">{{ __('admin.travel_type') }}</label>
         <div class="col-sm-5">
@@ -256,7 +425,8 @@
             <select name="arrival_airport" id="arrival_airport" class="form-control cu-form-design select2">
                 <option value="">{{ helperTrans('ingaz.select_arrival_airport') }}</option>
                 @foreach (($arrivalAirports ?? []) as $airport)
-                    <option value="{{ $airport['value'] }}" @selected($selectedArrivalAirport == $airport['value'])>{{ $airport['label'] }}</option>
+                    <option value="{{ $airport['value'] }}"
+                        {{ $selectedArrivalAirport == $airport['value'] ? 'selected' : '' }}>{{ $airport['label'] }}</option>
                 @endforeach
             </select>
             <div>
@@ -332,6 +502,11 @@
         </div>
     </div>
 
+    <div class="row travel-section-heading">
+        <span><i class="fa fa-user-check"></i></span>
+        التكليف والتنفيذ
+    </div>
+
     <div class="mb-3 row">
         <label for="assigned_to" class="col-sm-3 col-form-label">{{ helperTrans('ingaz.assign_trip_to_employee_driver') }}</label>
         <div class="col-sm-5">
@@ -391,6 +566,11 @@
         </div>
     </div> --}}
 
+    <div class="row travel-section-heading">
+        <span><i class="fa fa-paperclip"></i></span>
+        المرفقات
+    </div>
+
     <div class="mb-3 row">
         <label for="" class="col-sm-3 col-form-label">{{ __('admin.files') }}</label>
         <div class="col-sm-5">
@@ -400,7 +580,7 @@
     </div>
 
 
-    <div class="mb-3 row">
+    <div class="row travel-form-actions">
         <div class="mt-10 col-sm-12 text-end">
             <a href="{{ route('travel') }}" class="btn btn-danger">{{ __('admin.back') }}</a>
             <button type="submit" class="btn btn-success">{{ __('admin.confirm') }}</button>
@@ -411,6 +591,7 @@
 
 
 @if (@$data)
+<div class="travel-files-card">
 <div class="d-flex justify-content-between align-items-center">
     <!-- Title on the right -->
     <h5 class="mb-4">
@@ -456,7 +637,10 @@
         </table>
     </div>
 </div>
+</div>
 @endif
+
+</div>
 
 @else
     @include('components.no_permissions')
@@ -466,7 +650,6 @@
 @endsection
 
 @push('js')
-<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
 <script>
 $(document).ready(function () {
     const contracts = @json($contracts);
