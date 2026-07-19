@@ -31,6 +31,11 @@ class VisitorChatController extends Controller
                 'referrer' => $validated['referrer'] ?? null,
                 'visited_at' => now(),
             ]);
+        } elseif (!empty($validated['page_title']) && !$latestPageView->title) {
+            $latestPageView->update([
+                'title' => $validated['page_title'],
+                'referrer' => $latestPageView->referrer ?: ($validated['referrer'] ?? null),
+            ]);
         }
 
         $sessionStartedAt = $visitor->session_started_at;

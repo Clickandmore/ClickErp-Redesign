@@ -194,7 +194,7 @@ Route::group(
     [
         'as' => 'web.',
         'prefix' => LaravelLocalization::setLocale(),
-        'middleware' => ["webLocale", 'public_site_enabled', 'localeSessionRedirect', 'localizationRedirect', 'localeViewPath']
+        'middleware' => ["webLocale", 'public_site_enabled', 'track.website.visitor', 'localeSessionRedirect', 'localizationRedirect', 'localeViewPath']
     ],
     function () {
         Route::get('/', [HomeController::class, 'index'])->name('home');

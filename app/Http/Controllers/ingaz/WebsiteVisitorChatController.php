@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 
 class WebsiteVisitorChatController extends Controller
 {
+    private const ONLINE_SECONDS = 150;
+
     public function index()
     {
         return view('admin.ingaz.website_visitors.index');
@@ -15,7 +17,7 @@ class WebsiteVisitorChatController extends Controller
 
     public function data()
     {
-        $onlineSince = now()->subSeconds(70);
+        $onlineSince = now()->subSeconds(self::ONLINE_SECONDS);
 
         $visitors = WebsiteVisitor::query()
             ->with('user:id,name,phone,email')
@@ -53,6 +55,84 @@ class WebsiteVisitorChatController extends Controller
         ]);
     }
 
+    public function history(Request $request)
+    {
+        $validated = $request->validate([
+            'days' => ['nullable', 'integer', 'in:1,7,30,90'],
+            'search' => ['nullable', 'string', 'max:100'],
+        ]);
+        $days = (int) ($validated['days'] ?? 30);
+        $search = trim((string) ($validated['search'] ?? ''));
+
+        $visitors = WebsiteVisitor::query()
+            ->with('user:id,name,phone,email')
+            ->withCount(['pageViews', 'messages'])
+            ->where('last_seen_at', '>=', now()->subDays($days))
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($nested) use ($search) {
+                    $nested->where('id', $search)
+                        ->orWhere('ip_address', 'like', '%' . $search . '%')
+                        ->orWhereHas('user', fn ($userQuery) => $userQuery
+                            ->where('name', 'like', '%' . $search . '%')
+                            ->orWhere('phone', 'like', '%' . $search . '%'));
+                });
+            })
+            ->latest('last_seen_at')
+            ->limit(300)
+            ->get();
+
+        return response()->json([
+            'total' => $visitors->count(),
+            'visitors' => $visitors->map(fn (WebsiteVisitor $visitor) => $this->historyPayload($visitor)),
+        ]);
+    }
+
+    public function conversations(Request $request)
+    {
+        $validated = $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+        ]);
+        $search = trim((string) ($validated['search'] ?? ''));
+
+        $visitors = WebsiteVisitor::query()
+            ->with(['user:id,name,phone,email', 'latestMessage'])
+            ->withCount('messages')
+            ->whereHas('messages')
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($nested) use ($search) {
+                    $nested->where('id', $search)
+                        ->orWhereHas('user', fn ($userQuery) => $userQuery
+                            ->where('name', 'like', '%' . $search . '%')
+                            ->orWhere('phone', 'like', '%' . $search . '%'));
+                });
+            })
+            ->orderByDesc(
+                \App\Models\WebsiteVisitorMessage::select('created_at')
+                    ->whereColumn('website_visitor_id', 'website_visitors.id')
+                    ->latest('created_at')
+                    ->limit(1)
+            )
+            ->limit(300)
+            ->get();
+
+        return response()->json([
+            'total' => $visitors->count(),
+            'conversations' => $visitors->map(function (WebsiteVisitor $visitor) {
+                return [
+                    'id' => $visitor->id,
+                    'label' => $this->label($visitor),
+                    'registered_client' => (bool) $visitor->user_id,
+                    'phone' => $visitor->user?->phone,
+                    'messages_count' => $visitor->messages_count,
+                    'last_message' => $visitor->latestMessage?->body,
+                    'last_sender' => $visitor->latestMessage?->sender,
+                    'last_message_at' => optional($visitor->latestMessage?->created_at)->toIso8601String(),
+                    'online' => $visitor->last_seen_at && $visitor->last_seen_at->gte(now()->subSeconds(self::ONLINE_SECONDS)),
+                ];
+            }),
+        ]);
+    }
+
     public function show(WebsiteVisitor $visitor)
     {
         $visitor->load('user:id,name,phone,email');
@@ -81,7 +161,7 @@ class WebsiteVisitorChatController extends Controller
             'visitor' => [
                 'id' => $visitor->id,
                 'label' => $visitor->user?->name ?: 'زائر #' . str_pad((string) $visitor->id, 4, '0', STR_PAD_LEFT),
-                'online' => $visitor->last_seen_at && $visitor->last_seen_at->gte(now()->subSeconds(70)),
+                'online' => $visitor->last_seen_at && $visitor->last_seen_at->gte(now()->subSeconds(self::ONLINE_SECONDS)),
                 'name' => $visitor->user?->name,
                 'phone' => $visitor->user?->phone,
                 'email' => $visitor->user?->email,
@@ -139,7 +219,7 @@ class WebsiteVisitorChatController extends Controller
             'visitor' => [
                 'id' => $visitor->id,
                 'label' => $visitor->user?->name ?: 'زائر #' . str_pad((string) $visitor->id, 4, '0', STR_PAD_LEFT),
-                'online' => $visitor->last_seen_at && $visitor->last_seen_at->gte(now()->subSeconds(70)),
+                'online' => $visitor->last_seen_at && $visitor->last_seen_at->gte(now()->subSeconds(self::ONLINE_SECONDS)),
             ],
             'messages' => $messages->map(fn ($message) => [
                 'id' => $message->id,
@@ -223,5 +303,34 @@ class WebsiteVisitorChatController extends Controller
         $minutes = min(20, (int) floor(max(0, $startedAt?->diffInSeconds(now()) ?? 0) / 60));
 
         return min(100, ($pageViews * 8) + ($messages * 12) + ($minutes * 2));
+    }
+
+    private function label(WebsiteVisitor $visitor): string
+    {
+        return $visitor->user?->name ?: 'زائر #' . str_pad((string) $visitor->id, 4, '0', STR_PAD_LEFT);
+    }
+
+    private function historyPayload(WebsiteVisitor $visitor): array
+    {
+        return [
+            'id' => $visitor->id,
+            'label' => $this->label($visitor),
+            'registered_client' => (bool) $visitor->user_id,
+            'phone' => $visitor->user?->phone,
+            'ip_address' => $visitor->ip_address,
+            'browser' => $this->browser($visitor->user_agent),
+            'operating_system' => $this->operatingSystem($visitor->user_agent),
+            'device' => $this->device($visitor->user_agent),
+            'source' => $visitor->referrer
+                ? (parse_url($visitor->referrer, PHP_URL_HOST) ?: $visitor->referrer)
+                : 'دخول مباشر',
+            'landing_url' => $visitor->landing_url,
+            'current_url' => $visitor->current_url,
+            'page_views_count' => $visitor->page_views_count,
+            'messages_count' => $visitor->messages_count,
+            'first_seen_at' => optional($visitor->created_at)->toIso8601String(),
+            'last_seen_at' => optional($visitor->last_seen_at)->toIso8601String(),
+            'online' => $visitor->last_seen_at && $visitor->last_seen_at->gte(now()->subSeconds(self::ONLINE_SECONDS)),
+        ];
     }
 }

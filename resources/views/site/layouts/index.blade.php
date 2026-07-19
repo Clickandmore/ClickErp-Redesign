@@ -95,7 +95,7 @@
     <input type="color" id="colorInput" class="color-input">
 </div> -->
     @include('site.partials.whatsapp_float')
-    @include('site.partials.visitor_chat')
+    @include('site.partials.visitor_tracking')
     <footer class="footer">
         @include('site.layouts.footer')
     </footer>

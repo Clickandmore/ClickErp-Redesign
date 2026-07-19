@@ -41,6 +41,11 @@ class WebsiteVisitor extends Model
         return $this->hasMany(WebsiteVisitorMessage::class);
     }
 
+    public function latestMessage()
+    {
+        return $this->hasOne(WebsiteVisitorMessage::class)->latestOfMany();
+    }
+
     public function pageViews()
     {
         return $this->hasMany(WebsiteVisitorPageView::class);

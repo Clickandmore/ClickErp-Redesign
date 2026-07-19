@@ -63,7 +63,7 @@ Route::get('/', function () {
 Route::group(
     [
         'prefix' => LaravelLocalization::setLocale(),
-        'middleware' => ['check_system_subscription', 'public_site_enabled', 'localeSessionRedirect', 'localizationRedirect', 'localeViewPath']
+        'middleware' => ['check_system_subscription', 'public_site_enabled', 'track.website.visitor', 'localeSessionRedirect', 'localizationRedirect', 'localeViewPath']
     ],
     function () {
         Route::group(['as' => 'site.'], function () {

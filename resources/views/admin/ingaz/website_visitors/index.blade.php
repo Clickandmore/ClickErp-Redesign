@@ -33,6 +33,16 @@
     .visitors-empty{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;color:#778196;z-index:4}.visitors-empty i{font-size:54px;margin-bottom:15px;display:block}
     .visitors-list{display:none;padding:25px;overflow:auto}.visitors-list.active{display:block}.visitors-stage.hidden{display:none}
     .visitors-list .table{color:#dce2ec}.visitors-list .table>:not(caption)>*>*{border-color:#283142;background:transparent}.visitors-list .table-hover>tbody>tr:hover>*{color:#fff;background:#171d29}
+    .visitors-sound-btn{border:1px solid #34516a;background:#172638;color:#7fd7e6;border-radius:10px;padding:9px 13px;font-size:13px}.visitors-sound-btn.enabled{background:#1763a6;color:#fff;border-color:#287fc8}
+    .visitor-tabs{display:flex;gap:7px;padding:12px 20px;background:#0f141f;border-bottom:1px solid rgba(255,255,255,.08);overflow-x:auto}
+    .visitor-tab{border:0;border-radius:9px;padding:9px 16px;background:transparent;color:#8f9aad;white-space:nowrap}.visitor-tab.active{background:#1d2a3d;color:#fff}.visitor-tab i{margin-left:6px}
+    .visitor-tab-panel{display:none}.visitor-tab-panel.active{display:block}
+    .records-panel{min-height:700px;padding:24px;background:#10141f}.records-header{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:20px}.records-title{color:#fff;margin:0}.records-filters{display:flex;gap:8px}
+    .records-input,.records-select{background:#171e2b!important;border-color:#2b3547!important;color:#dce3ed!important}
+    .records-table-wrap{border:1px solid #242e3e;border-radius:14px;overflow:hidden;background:#111722}.records-table{color:#dce3ed;margin:0}.records-table>:not(caption)>*>*{background:transparent;border-color:#273142;padding:14px}.records-table thead{background:#171e2b;color:#8f9bad}.records-table tbody tr:hover{background:#161d29}
+    .record-status{display:inline-flex;align-items:center;gap:7px;padding:5px 9px;border-radius:14px;font-size:11px}.record-status.online{background:rgba(46,204,113,.12);color:#43dc82}.record-status.offline{background:rgba(143,154,173,.12);color:#929cad}
+    .visitor-alert-toast{position:fixed;top:90px;left:24px;z-index:2200;display:none;align-items:center;gap:12px;min-width:280px;padding:14px 17px;border-radius:13px;background:#172638;color:#fff;border:1px solid #2e789c;box-shadow:0 15px 45px rgba(0,0,0,.3)}.visitor-alert-toast.show{display:flex;animation:visitorToastIn .25s ease}.visitor-alert-toast i{font-size:22px;color:#45d5ec}
+    @keyframes visitorToastIn{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
     .visitor-detail-modal .modal-dialog{max-width:1180px}.visitor-detail-modal .modal-content{background:#121722;color:#e9eef7;border:1px solid #252d3d;border-radius:22px;overflow:hidden}
     .visitor-detail-modal .modal-header{padding:20px 24px;border-color:#2a3242;background:linear-gradient(135deg,#171e2c,#121722)}.visitor-detail-modal .btn-close{filter:invert(1);opacity:.8}
     .visitor-profile{display:flex;align-items:center;gap:14px}.detail-avatar{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#172337;border:3px solid #345271;color:#9ca9ba;font-size:27px;position:relative}.detail-avatar:after{content:"";position:absolute;width:16px;height:16px;background:#39d968;border:3px solid #121722;border-radius:50%;bottom:0;right:0}
@@ -60,13 +70,21 @@
                     <div class="text-muted small">مراقبة حركة الزوار وبدء المحادثات في الوقت الفعلي</div>
                 </div>
                 <div class="visitors-actions">
+                    <button class="visitors-sound-btn" id="visitorSoundButton"><i class="fas fa-volume-mute me-1"></i><span>تفعيل صوت الدخول</span></button>
                     <button class="visitors-icon-btn active" id="radarViewButton" title="العرض الدائري"><i class="fas fa-bullseye"></i></button>
                     <button class="visitors-icon-btn" id="listViewButton" title="عرض القائمة"><i class="fas fa-list"></i></button>
                     <button class="visitors-icon-btn" id="refreshVisitorsButton" title="تحديث"><i class="fas fa-sync-alt"></i></button>
                 </div>
             </div>
 
-            <div class="visitors-layout">
+            <div class="visitor-tabs">
+                <button class="visitor-tab active" data-panel="liveVisitorsPanel"><i class="fas fa-circle text-success"></i>الزوار المباشرون <span class="badge bg-primary ms-1" id="liveTabCount">0</span></button>
+                <button class="visitor-tab" data-panel="visitsHistoryPanel"><i class="fas fa-history"></i>سجل الزيارات</button>
+                <button class="visitor-tab" data-panel="conversationsPanel"><i class="fas fa-comments"></i>سجل الدردشات</button>
+            </div>
+
+            <div class="visitor-tab-panel active" id="liveVisitorsPanel">
+              <div class="visitors-layout">
                 <aside class="visitors-sidebar">
                     <div><span class="online-pulse"></span><span class="online-label">زوار متصلون</span></div>
                     <div class="online-total mt-3" id="onlineVisitorsCount">0</div>
@@ -100,9 +118,47 @@
                         </table>
                     </div>
                 </section>
+              </div>
+            </div>
+
+            <div class="visitor-tab-panel records-panel" id="visitsHistoryPanel">
+                <div class="records-header">
+                    <div><h4 class="records-title">سجل زيارات الموقع</h4><div class="text-muted small mt-1">جميع الزوار والصفحات والمصادر والأجهزة المسجلة</div></div>
+                    <div class="records-filters">
+                        <input class="form-control records-input" id="historySearch" placeholder="بحث بالاسم، الرقم أو IP">
+                        <select class="form-select records-select" id="historyDays">
+                            <option value="1">اليوم</option><option value="7">آخر 7 أيام</option>
+                            <option value="30" selected>آخر 30 يومًا</option><option value="90">آخر 90 يومًا</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="records-table-wrap table-responsive">
+                    <table class="table records-table align-middle">
+                        <thead><tr><th>الزائر</th><th>الحالة</th><th>الجهاز</th><th>المصدر</th><th>IP</th><th>الصفحات</th><th>آخر زيارة</th><th></th></tr></thead>
+                        <tbody id="visitsHistoryBody"><tr><td colspan="8" class="text-center py-5">جاري تحميل السجل...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="visitor-tab-panel records-panel" id="conversationsPanel">
+                <div class="records-header">
+                    <div><h4 class="records-title">سجل الدردشات</h4><div class="text-muted small mt-1">المحادثات السابقة والرسائل المرتبطة بكل زائر</div></div>
+                    <input class="form-control records-input" id="conversationSearch" style="max-width:300px" placeholder="بحث في الزوار">
+                </div>
+                <div class="records-table-wrap table-responsive">
+                    <table class="table records-table align-middle">
+                        <thead><tr><th>الزائر</th><th>الحالة</th><th>آخر رسالة</th><th>مرسل الرسالة</th><th>عدد الرسائل</th><th>آخر تحديث</th><th></th></tr></thead>
+                        <tbody id="conversationsBody"><tr><td colspan="7" class="text-center py-5">جاري تحميل الدردشات...</td></tr></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
+</div>
+
+<div class="visitor-alert-toast" id="visitorAlertToast">
+    <i class="fas fa-user-plus"></i>
+    <div><strong>زائر جديد دخل الموقع</strong><div class="small text-light" id="visitorAlertLabel"></div></div>
 </div>
 
 <div class="modal fade visitor-detail-modal" id="visitorDetailModal" tabindex="-1" aria-hidden="true">
@@ -140,11 +196,11 @@
                     </div>
                     <div class="detail-panel">
                         <div class="detail-panel-title d-flex justify-content-between align-items-center">
-                            <span><i class="fas fa-comments me-2 text-primary"></i>المحادثة</span>
-                            <button type="button" class="proactive-btn btn-sm" id="focusVisitorChat">بدء دردشة استباقية</button>
+                            <span><i class="fas fa-comments me-2 text-primary"></i>سجل المحادثة</span>
+                            <span class="badge bg-secondary">الدردشة مخفية عن الموقع</span>
                         </div>
                         <div class="detail-chat-messages" id="detailChatMessages"></div>
-                        <form class="detail-chat-form" id="detailChatForm">
+                        <form class="detail-chat-form d-none" id="detailChatForm">
                             <input type="text" class="form-control detail-chat-input" id="detailChatInput" maxlength="2000" placeholder="اكتب رسالتك للزائر..." autocomplete="off">
                             <button class="btn btn-primary" type="submit"><i class="fas fa-paper-plane"></i></button>
                         </form>
@@ -160,12 +216,18 @@
 <script>
 (function () {
     const dataUrl = @json(route('website-visitors.data'));
+    const historyUrl = @json(route('website-visitors.history'));
+    const conversationsUrl = @json(route('website-visitors.conversations'));
     const detailUrl = @json(route('website-visitors.show', ['visitor' => '__VISITOR__']));
     const sendUrl = @json(route('website-visitors.send', ['visitor' => '__VISITOR__']));
     const csrf = @json(csrf_token());
     let allVisitors = [];
     let activeVisitorId = null;
     let detailModal = null;
+    let audioContext = null;
+    let soundEnabled = localStorage.getItem('websiteVisitorSound') === 'enabled';
+    let historyTimer = null;
+    let conversationTimer = null;
 
     function escapeText(value) {
         return $('<div>').text(value == null ? '' : value).html();
@@ -185,6 +247,63 @@
         if (seconds < 10) return 'الآن';
         if (seconds < 60) return 'منذ ' + seconds + ' ثانية';
         return 'منذ ' + Math.floor(seconds / 60) + ' دقيقة';
+    }
+
+    function fullDate(value) {
+        if (!value) return '-';
+        return new Intl.DateTimeFormat('ar-SA', {
+            year: 'numeric', month: 'short', day: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        }).format(new Date(value));
+    }
+
+    function updateSoundButton() {
+        const button = $('#visitorSoundButton');
+        button.toggleClass('enabled', soundEnabled);
+        button.find('i').attr('class', soundEnabled ? 'fas fa-volume-up me-1' : 'fas fa-volume-mute me-1');
+        button.find('span').text(soundEnabled ? 'صوت الدخول مفعّل' : 'تفعيل صوت الدخول');
+    }
+
+    function playVisitorSound() {
+        if (!soundEnabled) return;
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
+        audioContext = audioContext || new AudioContextClass();
+        if (audioContext.state === 'suspended') audioContext.resume();
+        const now = audioContext.currentTime;
+        [660, 880].forEach(function (frequency, index) {
+            const oscillator = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+            oscillator.type = 'sine';
+            oscillator.frequency.value = frequency;
+            gain.gain.setValueAtTime(0.0001, now + (index * .16));
+            gain.gain.exponentialRampToValueAtTime(.2, now + (index * .16) + .02);
+            gain.gain.exponentialRampToValueAtTime(.0001, now + (index * .16) + .14);
+            oscillator.connect(gain).connect(audioContext.destination);
+            oscillator.start(now + (index * .16));
+            oscillator.stop(now + (index * .16) + .15);
+        });
+    }
+
+    function notifyNewVisitors(visitors) {
+        const currentIds = visitors.map(function (visitor) { return Number(visitor.id); });
+        const saved = sessionStorage.getItem('knownWebsiteVisitorIds');
+        if (saved !== null) {
+            let knownIds = [];
+            try { knownIds = JSON.parse(saved); } catch (error) {}
+            const newVisitors = visitors.filter(function (visitor) {
+                return !knownIds.includes(Number(visitor.id));
+            });
+            if (newVisitors.length) {
+                playVisitorSound();
+                $('#visitorAlertLabel').text(newVisitors.length === 1
+                    ? newVisitors[0].label
+                    : newVisitors.length + ' زوار جدد');
+                $('#visitorAlertToast').addClass('show');
+                window.setTimeout(function () { $('#visitorAlertToast').removeClass('show'); }, 4500);
+            }
+        }
+        sessionStorage.setItem('knownWebsiteVisitorIds', JSON.stringify(currentIds));
     }
 
     function ringFor(seconds) {
@@ -241,10 +360,55 @@
     function loadVisitors() {
         $('#refreshVisitorsButton i').addClass('fa-spin');
         $.getJSON(dataUrl).done(function (data) {
+            notifyNewVisitors(data.visitors || []);
             allVisitors = data.visitors || [];
+            $('#liveTabCount').text(allVisitors.length);
             renderVisitors();
         }).always(function () {
             $('#refreshVisitorsButton i').removeClass('fa-spin');
+        });
+    }
+
+    function statusBadge(online) {
+        return '<span class="record-status ' + (online ? 'online' : 'offline') + '"><i class="fas fa-circle"></i>' +
+            (online ? 'متصل الآن' : 'غير متصل') + '</span>';
+    }
+
+    function loadHistory() {
+        const params = {
+            days: $('#historyDays').val(),
+            search: $('#historySearch').val().trim()
+        };
+        $('#visitsHistoryBody').html('<tr><td colspan="8" class="text-center py-5">جاري تحميل السجل...</td></tr>');
+        $.getJSON(historyUrl, params).done(function (data) {
+            const visitors = data.visitors || [];
+            $('#visitsHistoryBody').html(visitors.length ? visitors.map(function (visitor) {
+                return '<tr><td><strong>' + escapeText(visitor.label) + '</strong>' +
+                    (visitor.registered_client ? '<div class="small text-info">عميل مسجل</div>' : '<div class="small text-muted">زائر مجهول</div>') + '</td>' +
+                    '<td>' + statusBadge(visitor.online) + '</td>' +
+                    '<td>' + escapeText(visitor.device + ' · ' + visitor.operating_system + ' · ' + visitor.browser) + '</td>' +
+                    '<td>' + escapeText(visitor.source) + '</td><td style="direction:ltr">' + escapeText(visitor.ip_address || '-') + '</td>' +
+                    '<td><span class="badge bg-info text-dark">' + visitor.page_views_count + '</span></td>' +
+                    '<td>' + escapeText(fullDate(visitor.last_seen_at)) + '</td>' +
+                    '<td><button class="btn btn-outline-info btn-sm open-visitor-detail" data-id="' + visitor.id + '">التفاصيل</button></td></tr>';
+            }).join('') : '<tr><td colspan="8" class="text-center text-muted py-5">لا توجد زيارات مطابقة</td></tr>');
+        });
+    }
+
+    function loadConversations() {
+        $('#conversationsBody').html('<tr><td colspan="7" class="text-center py-5">جاري تحميل الدردشات...</td></tr>');
+        $.getJSON(conversationsUrl, {search: $('#conversationSearch').val().trim()}).done(function (data) {
+            const conversations = data.conversations || [];
+            $('#conversationsBody').html(conversations.length ? conversations.map(function (conversation) {
+                return '<tr><td><strong>' + escapeText(conversation.label) + '</strong>' +
+                    (conversation.phone ? '<div class="small text-muted">' + escapeText(conversation.phone) + '</div>' : '') + '</td>' +
+                    '<td>' + statusBadge(conversation.online) + '</td>' +
+                    '<td><div class="text-truncate" style="max-width:330px">' + escapeText(conversation.last_message || '-') + '</div></td>' +
+                    '<td>' + (conversation.last_sender === 'admin' ? 'الموظف' : 'الزائر') + '</td>' +
+                    '<td><span class="badge bg-primary">' + conversation.messages_count + '</span></td>' +
+                    '<td>' + escapeText(fullDate(conversation.last_message_at)) + '</td>' +
+                    '<td><button class="btn btn-primary btn-sm open-visitor-detail" data-id="' + conversation.id + '">فتح السجل</button></td></tr>';
+            }).join('') : '<tr><td colspan="7" class="text-center text-muted py-5">لا توجد دردشات مسجلة</td></tr>');
         });
     }
 
@@ -321,6 +485,7 @@
             input.val('');
             loadDetails(true);
             loadVisitors();
+            loadConversations();
         }).always(function () {
             input.prop('disabled', false).trigger('focus');
         });
@@ -328,7 +493,35 @@
 
     $('#focusVisitorChat').on('click', function () { $('#detailChatInput').trigger('focus'); });
     $('#visitorSearch').on('input', renderVisitors);
-    $('#refreshVisitorsButton').on('click', loadVisitors);
+    $('#refreshVisitorsButton').on('click', function () {
+        loadVisitors();
+        if ($('#visitsHistoryPanel').hasClass('active')) loadHistory();
+        if ($('#conversationsPanel').hasClass('active')) loadConversations();
+    });
+    $('#visitorSoundButton').on('click', function () {
+        soundEnabled = !soundEnabled;
+        localStorage.setItem('websiteVisitorSound', soundEnabled ? 'enabled' : 'disabled');
+        updateSoundButton();
+        if (soundEnabled) playVisitorSound();
+    });
+    $('.visitor-tab').on('click', function () {
+        const panel = $(this).data('panel');
+        $('.visitor-tab').removeClass('active');
+        $(this).addClass('active');
+        $('.visitor-tab-panel').removeClass('active');
+        $('#' + panel).addClass('active');
+        if (panel === 'visitsHistoryPanel') loadHistory();
+        if (panel === 'conversationsPanel') loadConversations();
+    });
+    $('#historyDays').on('change', loadHistory);
+    $('#historySearch').on('input', function () {
+        window.clearTimeout(historyTimer);
+        historyTimer = window.setTimeout(loadHistory, 350);
+    });
+    $('#conversationSearch').on('input', function () {
+        window.clearTimeout(conversationTimer);
+        conversationTimer = window.setTimeout(loadConversations, 350);
+    });
     $('#radarViewButton').on('click', function () {
         $(this).addClass('active'); $('#listViewButton').removeClass('active');
         $('#visitorsStage').removeClass('hidden'); $('#visitorsList').removeClass('active');
@@ -338,6 +531,7 @@
         $('#visitorsStage').addClass('hidden'); $('#visitorsList').addClass('active');
     });
 
+    updateSoundButton();
     loadVisitors();
     window.setInterval(loadVisitors, 5000);
     window.setInterval(function () {
