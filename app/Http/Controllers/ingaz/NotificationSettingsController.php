@@ -7,6 +7,7 @@ use App\Support\CommunicationSettings;
 use App\Support\AutomationSettings;
 use App\Support\NotificationAlertSettings;
 use App\Services\WhatsApp\MetaWhatsAppService;
+use App\Services\WhatsApp\MetaWhatsAppOnboardingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -126,6 +127,43 @@ class NotificationSettingsController extends Controller
         return redirect()
             ->to(route('notifications.settings') . '#whatsapp-settings')
             ->with('error', 'فشل اختبار اتصال Meta: ' . $error);
+    }
+
+    public function completeWhatsAppEmbeddedSignup(
+        Request $request,
+        MetaWhatsAppOnboardingService $onboardingService
+    ) {
+        if (!@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL)) {
+            return response()->json(['message' => __('admin.no_permissions')], 403);
+        }
+
+        $validated = $request->validate([
+            'code' => ['required', 'string', 'max:5000'],
+            'waba_id' => ['required', 'string', 'max:255'],
+            'phone_number_id' => ['nullable', 'string', 'max:255'],
+            'pin' => ['nullable', 'digits:6'],
+        ], [
+            'pin.digits' => 'رمز تسجيل الرقم يجب أن يتكون من 6 أرقام.',
+        ]);
+
+        $result = $onboardingService->complete(
+            $validated['code'],
+            $validated['waba_id'],
+            $validated['phone_number_id'] ?? null,
+            $validated['pin'] ?? null
+        );
+
+        if (!($result['success'] ?? false)) {
+            return response()->json([
+                'message' => $result['error'] ?? 'تعذر إكمال الربط مع Meta.',
+                'result' => $result,
+            ], 422);
+        }
+
+        return response()->json([
+            'message' => 'اكتمل ربط حساب واتساب مع Meta وحفظ بياناته بنجاح.',
+            'result' => $result,
+        ]);
     }
 
     private function validateEmailSection(Request $request): array
@@ -276,6 +314,9 @@ class NotificationSettingsController extends Controller
             'whatsapp.meta' => 'required|array',
             'whatsapp.meta.graph_version' => 'nullable|string|max:20',
             'whatsapp.meta.phone_number_id' => 'nullable|string|max:255',
+            'whatsapp.meta.business_account_id' => 'nullable|string|max:255',
+            'whatsapp.meta.app_id' => 'nullable|string|max:255',
+            'whatsapp.meta.configuration_id' => 'nullable|string|max:255',
             'whatsapp.meta.access_token' => 'nullable|string|max:5000',
             'whatsapp.meta.webhook_verify_token' => 'nullable|string|max:255',
             'whatsapp.meta.app_secret' => 'nullable|string|max:1000',

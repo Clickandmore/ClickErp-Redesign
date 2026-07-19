@@ -464,12 +464,16 @@ Route::group(
             Route::get('whatsapp-dispatch', [NotificationController::class, 'indexWhatsApp'])->name('whatsapp.notifications.index');
             Route::post('whatsapp-dispatch', [NotificationController::class, 'storeWhatsApp'])->name('whatsapp.notifications.store');
             Route::get('whatsapp-inbox', [WhatsAppInboxController::class, 'index'])->name('whatsapp.inbox.index');
+            Route::post('whatsapp-inbox/templates', [WhatsAppInboxController::class, 'createTemplate'])->name('whatsapp.templates.store');
+            Route::post('whatsapp-inbox/templates/send-to-client', [WhatsAppInboxController::class, 'sendTemplateToClient'])->name('whatsapp.templates.send-to-client');
             Route::get('whatsapp-inbox/{conversation}/messages', [WhatsAppInboxController::class, 'messages'])->name('whatsapp.inbox.messages');
             Route::post('whatsapp-inbox/{conversation}/messages', [WhatsAppInboxController::class, 'send'])->name('whatsapp.inbox.send');
+            Route::post('whatsapp-inbox/{conversation}/template', [WhatsAppInboxController::class, 'sendTemplate'])->name('whatsapp.inbox.template.send');
             Route::get('notifications-settings', [NotificationSettingsController::class, 'edit'])->name('notifications.settings');
             Route::get('notifications-settings/alerts', [NotificationSettingsController::class, 'editAlerts'])->name('notifications.settings.alerts');
             Route::post('notifications-settings', [NotificationSettingsController::class, 'update'])->name('notifications.settings.update');
             Route::post('notifications-settings/whatsapp/test', [NotificationSettingsController::class, 'testWhatsApp'])->name('notifications.settings.whatsapp.test');
+            Route::post('notifications-settings/whatsapp/embedded-signup', [NotificationSettingsController::class, 'completeWhatsAppEmbeddedSignup'])->name('notifications.settings.whatsapp.embedded-signup');
             Route::resource('statistics', StatisticController::class);
 
             Route::resource('steps', StepController::class);

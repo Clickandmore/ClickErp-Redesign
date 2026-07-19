@@ -42,6 +42,15 @@
             $whatsappData = array_replace_recursive($whatsappData, old('whatsapp', []));
         }
         $webhookVerifyToken = data_get($whatsappData, 'meta.webhook_verify_token') ?: \Illuminate\Support\Str::random(48);
+        $metaAppId = (string) data_get($currentSettings, 'whatsapp.meta.app_id', '');
+        $metaConfigurationId = (string) data_get($currentSettings, 'whatsapp.meta.configuration_id', '');
+        $metaEmbeddedSignupReady = $metaAppId !== ''
+            && $metaConfigurationId !== ''
+            && (string) data_get($currentSettings, 'whatsapp.meta.app_secret', '') !== '';
+        $metaEmbeddedSignupAvailable = $metaEmbeddedSignupReady && request()->secure();
+        $metaConnected = (string) data_get($currentSettings, 'whatsapp.meta.business_account_id', '') !== ''
+            && (string) data_get($currentSettings, 'whatsapp.meta.phone_number_id', '') !== ''
+            && (string) data_get($currentSettings, 'whatsapp.meta.access_token', '') !== '';
 
         $ultraMsgInstances = data_get($whatsappData, 'ultramsg.instances', []);
         if (empty($ultraMsgInstances)) {
@@ -449,8 +458,54 @@
                         <div id="metaSettingsBox" class="{{ data_get($whatsappData, 'driver') === 'meta' ? '' : 'd-none' }}">
                             <div class="bg-light rounded-3 p-3">
                                 <h6 class="mb-3">إعدادات Meta API</h6>
+                                <div class="card border-success mb-3">
+                                    <div class="card-body bg-white">
+                                        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+                                            <div>
+                                                <h6 class="text-success mb-1">
+                                                    <i class="fab fa-facebook me-1"></i>
+                                                    الربط المباشر مع Meta
+                                                </h6>
+                                                <div class="text-muted small">
+                                                    احفظ App ID وConfiguration ID وApp Secret أولًا، ثم افتح معالج Meta لإكمال اختيار النشاط والرقم.
+                                                </div>
+                                            </div>
+                                            <span class="badge {{ $metaConnected ? 'bg-success' : 'bg-secondary' }}">
+                                                {{ $metaConnected ? 'الحساب متصل' : 'غير متصل' }}
+                                            </span>
+                                        </div>
+                                        <div class="row g-3 align-items-end mt-1">
+                                            <div class="col-md-3">
+                                                <label class="form-label">PIN تسجيل الرقم (اختياري)</label>
+                                                <input type="text" id="metaRegistrationPin" class="form-control" inputmode="numeric"
+                                                    pattern="\d{6}" maxlength="6" placeholder="6 أرقام">
+                                            </div>
+                                            <div class="col-md-5">
+                                                <button type="button" id="launchMetaEmbeddedSignup" class="btn btn-success"
+                                                    {{ $metaEmbeddedSignupAvailable ? '' : 'disabled' }}>
+                                                    <i class="fab fa-facebook me-1"></i>
+                                                    {{ $metaConnected ? 'إعادة الربط أو تغيير الرقم' : 'فتح Meta ومتابعة الربط' }}
+                                                </button>
+                                            </div>
+                                            <div class="col-12">
+                                                <div id="metaEmbeddedStatus" class="alert d-none mb-0"></div>
+                                                @unless($metaEmbeddedSignupReady)
+                                                    <div class="alert alert-warning mb-0">
+                                                        أدخل بيانات تطبيق Meta أدناه واضغط «حفظ إعدادات واتساب»، ثم سيعمل زر الربط المباشر.
+                                                    </div>
+                                                @endunless
+                                                @if($metaEmbeddedSignupReady && !request()->secure())
+                                                    <div class="alert alert-warning mb-0">
+                                                        Meta تمنع Embedded Signup على HTTP. افتح هذه الصفحة من رابط عام HTTPS أو نفق تطوير HTTPS لتفعيل الزر.
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="row g-3 small mb-3">
                                     <div class="col-md-3"><strong>Graph Version:</strong> {{ data_get($currentSettings, 'whatsapp.meta.graph_version', 'v23.0') }}</div>
+                                    <div class="col-md-3"><strong>WABA ID:</strong> {{ data_get($currentSettings, 'whatsapp.meta.business_account_id') ?: 'غير محدد' }}</div>
                                     <div class="col-md-3"><strong>Phone Number ID:</strong> {{ data_get($currentSettings, 'whatsapp.meta.phone_number_id') ?: 'غير محدد' }}</div>
                                     <div class="col-md-2"><strong>Access Token:</strong> {{ $maskSecret(data_get($currentSettings, 'whatsapp.meta.access_token')) }}</div>
                                     <div class="col-md-2"><strong>Webhook Verify Token:</strong> {{ $maskSecret(data_get($currentSettings, 'whatsapp.meta.webhook_verify_token')) }}</div>
@@ -466,6 +521,22 @@
                                         <label class="form-label">Graph Version</label>
                                         <input type="text" name="whatsapp[meta][graph_version]" class="form-control"
                                             value="{{ data_get($whatsappData, 'meta.graph_version', 'v23.0') }}">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Meta App ID</label>
+                                        <input type="text" name="whatsapp[meta][app_id]" class="form-control"
+                                            value="{{ data_get($whatsappData, 'meta.app_id') }}" dir="ltr">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Embedded Signup Configuration ID</label>
+                                        <input type="text" name="whatsapp[meta][configuration_id]" class="form-control"
+                                            value="{{ data_get($whatsappData, 'meta.configuration_id') }}" dir="ltr">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">WhatsApp Business Account ID</label>
+                                        <input type="text" name="whatsapp[meta][business_account_id]" class="form-control"
+                                            value="{{ data_get($whatsappData, 'meta.business_account_id') }}" dir="ltr"
+                                            placeholder="يُملأ تلقائيًا بعد الربط">
                                     </div>
                                     <div class="col-md-3">
                                         <label class="form-label">Phone Number ID</label>
@@ -633,6 +704,7 @@
 @endsection
 
 @section('js')
+<div id="fb-root"></div>
 <script>
     function toggleSmsProviderSettings() {
         const provider = $('#smsProvider').val();
@@ -730,6 +802,118 @@
                 $('#copyMetaWebhookToken').attr('title', 'تم النسخ');
             });
         });
+
+        @if($metaEmbeddedSignupAvailable)
+        let embeddedSignupCode = null;
+        let embeddedSignupSession = null;
+        let embeddedSignupSubmitting = false;
+
+        window.fbAsyncInit = function () {
+            FB.init({
+                appId: @json($metaAppId),
+                cookie: true,
+                xfbml: false,
+                version: @json(data_get($currentSettings, 'whatsapp.meta.graph_version', 'v23.0'))
+            });
+        };
+
+        function showMetaEmbeddedStatus(type, message) {
+            $('#metaEmbeddedStatus')
+                .removeClass('d-none alert-success alert-danger alert-info')
+                .addClass('alert-' + type)
+                .text(message);
+        }
+
+        function completeMetaEmbeddedSignupIfReady() {
+            if (!embeddedSignupCode || !embeddedSignupSession || embeddedSignupSubmitting) return;
+            if (!embeddedSignupSession.waba_id) {
+                showMetaEmbeddedStatus('danger', 'لم ترسل Meta رقم WABA ID. أعد المحاولة واختر حساب واتساب كاملًا.');
+                return;
+            }
+
+            embeddedSignupSubmitting = true;
+            showMetaEmbeddedStatus('info', 'جاري حفظ الحساب والاشتراك في Webhook...');
+
+            $.ajax({
+                url: @json(route('notifications.settings.whatsapp.embedded-signup')),
+                method: 'POST',
+                data: {
+                    _token: @json(csrf_token()),
+                    code: embeddedSignupCode,
+                    waba_id: embeddedSignupSession.waba_id,
+                    phone_number_id: embeddedSignupSession.phone_number_id || '',
+                    pin: ($('#metaRegistrationPin').val() || '').trim()
+                }
+            }).done(function (response) {
+                const warnings = response.result && response.result.warnings ? response.result.warnings : [];
+                showMetaEmbeddedStatus('success', response.message + (warnings.length ? ' ' + warnings.join(' ') : ''));
+                window.setTimeout(function () { window.location.reload(); }, 1400);
+            }).fail(function (xhr) {
+                embeddedSignupSubmitting = false;
+                showMetaEmbeddedStatus('danger', (xhr.responseJSON && xhr.responseJSON.message) || 'تعذر إكمال الربط مع Meta.');
+            });
+        }
+
+        window.addEventListener('message', function (event) {
+            if (!['https://www.facebook.com', 'https://web.facebook.com'].includes(event.origin)) return;
+
+            let data = event.data;
+            try {
+                data = typeof data === 'string' ? JSON.parse(data) : data;
+            } catch (error) {
+                return;
+            }
+
+            if (!data || data.type !== 'WA_EMBEDDED_SIGNUP') return;
+            if (data.event === 'FINISH' || data.event === 'FINISH_ONLY_WABA') {
+                embeddedSignupSession = data.data || {};
+                showMetaEmbeddedStatus('info', 'اكتملت خطوات Meta، جاري إنهاء الربط داخل كليك...');
+                completeMetaEmbeddedSignupIfReady();
+            } else if (data.event === 'CANCEL') {
+                showMetaEmbeddedStatus('danger', 'تم إلغاء عملية الربط من Meta.');
+            } else if (data.event === 'ERROR') {
+                showMetaEmbeddedStatus('danger', 'أبلغت Meta عن خطأ أثناء الربط.');
+            }
+        });
+
+        $('#launchMetaEmbeddedSignup').on('click', function () {
+            if (typeof FB === 'undefined') {
+                showMetaEmbeddedStatus('danger', 'لم يكتمل تحميل Facebook SDK. تحقق من الاتصال ثم أعد المحاولة.');
+                return;
+            }
+
+            embeddedSignupCode = null;
+            embeddedSignupSession = null;
+            embeddedSignupSubmitting = false;
+            showMetaEmbeddedStatus('info', 'سيتم فتح نافذة Meta الآن...');
+
+            FB.login(function (response) {
+                const code = response && response.authResponse ? response.authResponse.code : null;
+                if (!code) {
+                    showMetaEmbeddedStatus('danger', 'لم يتم منح كود الربط من Meta أو تم إغلاق النافذة.');
+                    return;
+                }
+                embeddedSignupCode = code;
+                completeMetaEmbeddedSignupIfReady();
+            }, {
+                config_id: @json($metaConfigurationId),
+                response_type: 'code',
+                override_default_response_type: true,
+                extras: {
+                    setup: {},
+                    featureType: '',
+                    sessionInfoVersion: '3'
+                }
+            });
+        });
+
+        const facebookSdk = document.createElement('script');
+        facebookSdk.async = true;
+        facebookSdk.defer = true;
+        facebookSdk.crossOrigin = 'anonymous';
+        facebookSdk.src = 'https://connect.facebook.net/en_US/sdk.js';
+        document.head.appendChild(facebookSdk);
+        @endif
     });
 </script>
 @endsection

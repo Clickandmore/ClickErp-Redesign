@@ -134,6 +134,9 @@ class CommunicationSettings
                 'services.whatsapp.driver' => $settings['whatsapp']['driver'],
                 'services.whatsapp.graph_version' => $settings['whatsapp']['meta']['graph_version'],
                 'services.whatsapp.phone_number_id' => $settings['whatsapp']['meta']['phone_number_id'],
+                'services.whatsapp.business_account_id' => $settings['whatsapp']['meta']['business_account_id'],
+                'services.whatsapp.app_id' => $settings['whatsapp']['meta']['app_id'],
+                'services.whatsapp.configuration_id' => $settings['whatsapp']['meta']['configuration_id'],
                 'services.whatsapp.access_token' => $settings['whatsapp']['meta']['access_token'],
                 'services.whatsapp.webhook_verify_token' => $settings['whatsapp']['meta']['webhook_verify_token'],
                 'services.whatsapp.app_secret' => $settings['whatsapp']['meta']['app_secret'],
@@ -297,6 +300,9 @@ class CommunicationSettings
         $data['whatsapp']['meta']['graph_version'] = self::trimString($data['whatsapp']['meta']['graph_version'] ?? '')
             ?: $defaults['whatsapp']['meta']['graph_version'];
         $data['whatsapp']['meta']['phone_number_id'] = self::trimString($data['whatsapp']['meta']['phone_number_id'] ?? '');
+        $data['whatsapp']['meta']['business_account_id'] = self::trimString($data['whatsapp']['meta']['business_account_id'] ?? '');
+        $data['whatsapp']['meta']['app_id'] = self::trimString($data['whatsapp']['meta']['app_id'] ?? '');
+        $data['whatsapp']['meta']['configuration_id'] = self::trimString($data['whatsapp']['meta']['configuration_id'] ?? '');
         $data['whatsapp']['meta']['access_token'] = self::preserveSecret(
             $data['whatsapp']['meta']['access_token'] ?? '',
             $current['whatsapp']['meta']['access_token'] ?? '',
@@ -401,10 +407,14 @@ class CommunicationSettings
         }
 
         if (in_array('whatsapp', $validatedSections, true) && $payload['whatsapp']['driver'] === 'meta') {
-            if ($payload['whatsapp']['meta']['phone_number_id'] === '') {
+            $embeddedSignupReady = $payload['whatsapp']['meta']['app_id'] !== ''
+                && $payload['whatsapp']['meta']['configuration_id'] !== ''
+                && $payload['whatsapp']['meta']['app_secret'] !== '';
+
+            if ($payload['whatsapp']['meta']['phone_number_id'] === '' && !$embeddedSignupReady) {
                 $errors['whatsapp.meta.phone_number_id'] = 'رقم تعريف الهاتف في Meta مطلوب.';
             }
-            if ($payload['whatsapp']['meta']['access_token'] === '') {
+            if ($payload['whatsapp']['meta']['access_token'] === '' && !$embeddedSignupReady) {
                 $errors['whatsapp.meta.access_token'] = 'رمز الوصول لـ Meta مطلوب.';
             }
             if ($payload['whatsapp']['meta']['webhook_verify_token'] === '') {
@@ -483,6 +493,9 @@ class CommunicationSettings
                 'meta' => [
                     'graph_version' => (string) config('services.whatsapp.graph_version', 'v23.0'),
                     'phone_number_id' => (string) config('services.whatsapp.phone_number_id', ''),
+                    'business_account_id' => (string) config('services.whatsapp.business_account_id', ''),
+                    'app_id' => (string) config('services.whatsapp.app_id', ''),
+                    'configuration_id' => (string) config('services.whatsapp.configuration_id', ''),
                     'access_token' => (string) config('services.whatsapp.access_token', ''),
                     'webhook_verify_token' => (string) config('services.whatsapp.webhook_verify_token', ''),
                     'app_secret' => (string) config('services.whatsapp.app_secret', ''),

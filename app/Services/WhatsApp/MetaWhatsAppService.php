@@ -186,17 +186,115 @@ class MetaWhatsAppService
         }
     }
 
+    public function sendTemplate(
+        string $to,
+        string $templateName,
+        string $language,
+        array $bodyParameters = [],
+        array $context = []
+    ): array {
+        $normalizedPhone = $this->normalizePhone($to);
+        if ($normalizedPhone === null) {
+            return [
+                'success' => false,
+                'to' => $to,
+                'normalized_to' => null,
+                'message_id' => null,
+                'status_code' => null,
+                'error' => 'invalid_phone',
+                'response' => ['message' => 'رقم الهاتف غير صالح للإرسال.'],
+            ];
+        }
+
+        if (!$this->isConfigured()) {
+            return [
+                'success' => false,
+                'to' => $to,
+                'normalized_to' => $normalizedPhone,
+                'message_id' => null,
+                'status_code' => null,
+                'error' => 'not_configured',
+                'response' => ['missing' => $this->missingConfigKeys()],
+            ];
+        }
+
+        $template = [
+            'name' => $templateName,
+            'language' => ['code' => $language],
+        ];
+        $parameters = array_values(array_map(
+            static fn ($value): array => ['type' => 'text', 'text' => (string) $value],
+            $bodyParameters
+        ));
+        if ($parameters !== []) {
+            $template['components'] = [[
+                'type' => 'body',
+                'parameters' => $parameters,
+            ]];
+        }
+
+        try {
+            $response = Http::withToken($this->accessToken())
+                ->acceptJson()
+                ->asJson()
+                ->timeout($this->timeoutSeconds())
+                ->post($this->messagesEndpoint(), [
+                    'messaging_product' => 'whatsapp',
+                    'recipient_type' => 'individual',
+                    'to' => $normalizedPhone,
+                    'type' => 'template',
+                    'template' => $template,
+                ]);
+
+            $decoded = $response->json();
+            $success = $response->successful() && $this->responseHasMessageId($decoded);
+
+            if (!$success) {
+                Log::warning('Meta WhatsApp template send failed', [
+                    'to' => $normalizedPhone,
+                    'template' => $templateName,
+                    'status' => $response->status(),
+                    'response' => $decoded,
+                    'context' => $context,
+                ]);
+            }
+
+            return [
+                'success' => $success,
+                'to' => $to,
+                'normalized_to' => $normalizedPhone,
+                'message_id' => $success ? (string) Arr::get($decoded, 'messages.0.id', '') : null,
+                'status_code' => $response->status(),
+                'error' => $success ? null : 'api_error',
+                'response' => $decoded,
+            ];
+        } catch (Throwable $exception) {
+            Log::error('Meta WhatsApp template exception', [
+                'to' => $normalizedPhone,
+                'template' => $templateName,
+                'message' => $exception->getMessage(),
+                'context' => $context,
+            ]);
+
+            return [
+                'success' => false,
+                'to' => $to,
+                'normalized_to' => $normalizedPhone,
+                'message_id' => null,
+                'status_code' => null,
+                'error' => 'exception',
+                'response' => ['message' => $exception->getMessage()],
+            ];
+        }
+    }
+
     public function markAsRead(string $messageId): bool
     {
         if (!$this->isConfigured() || trim($messageId) === '') {
             return false;
         }
 
-        $endpoint = sprintf(
-            'https://graph.facebook.com/%s/%s/messages',
-            $this->graphVersion(),
-            $this->phoneNumberId()
-        );
+        $endpoint = $this->messagesEndpoint();
 
         try {
             return Http::withToken($this->accessToken())
@@ -266,6 +364,15 @@ class MetaWhatsAppService
     private function graphVersion(): string
     {
         return trim((string) config('services.whatsapp.graph_version', 'v23.0'));
+    }
+
+    private function messagesEndpoint(): string
+    {
+        return sprintf(
+            'https://graph.facebook.com/%s/%s/messages',
+            $this->graphVersion(),
+            $this->phoneNumberId()
+        );
     }
 
     private function phoneNumberId(): string

@@ -85,6 +85,33 @@ class MetaWhatsAppServiceTest extends TestCase
         $this->assertSame('Click ERP', data_get($result, 'response.verified_name'));
     }
 
+    public function test_it_sends_an_approved_template_with_body_parameters(): void
+    {
+        Http::fake([
+            'graph.facebook.com/*' => Http::response([
+                'messaging_product' => 'whatsapp',
+                'messages' => [['id' => 'wamid.template-message']],
+            ], 200),
+        ]);
+
+        $result = $this->service->sendTemplate(
+            '0501234567',
+            'customer_follow_up',
+            'ar',
+            ['محمد', 'ORD-1001']
+        );
+
+        $this->assertTrue($result['success']);
+        $this->assertSame('wamid.template-message', $result['message_id']);
+
+        Http::assertSent(function ($request) {
+            return $request['type'] === 'template'
+                && data_get($request->data(), 'template.name') === 'customer_follow_up'
+                && data_get($request->data(), 'template.language.code') === 'ar'
+                && data_get($request->data(), 'template.components.0.parameters.1.text') === 'ORD-1001';
+        });
+    }
+
     public function test_communication_secrets_are_encrypted_for_storage_and_restored(): void
     {
         $settings = [
