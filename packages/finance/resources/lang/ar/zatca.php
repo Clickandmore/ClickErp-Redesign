@@ -16,6 +16,8 @@ return [
     "CRN_number" => "رقم السجل التجاري",
     "VAT_number example" => "(3*************3)",
     'date end of csr' => 'تاريخ انتهاء صلاحية شهادة توقيع الفواتير',
+    'signing certificate issued' => 'تم إصدار شهادة توقيع الفواتير بنجاح',
+    'certificate request id' => 'رقم طلب الشهادة',
     'remaining days' => 'عدد الأيام المتبقية',
     'expired csr' => 'الشهادة منتهية',
     'day' => 'يوم',

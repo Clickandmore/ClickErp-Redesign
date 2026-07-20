@@ -6,6 +6,7 @@ use App\Http\Controllers\admin\Controller;
 use Illuminate\Http\Request;
 use Nami\Finance\Services\BillSalesService as ObjService;
 use Nami\Finance\Services\YearService;
+use Nami\Finance\Services\ZatcaSettingService;
 
 class BillSalePrintController extends Controller
 {
@@ -53,9 +54,16 @@ class BillSalePrintController extends Controller
      * @param int $id
      * @return \Illuminate\Http\Response
      */
-    public function show(Request $request, ObjService $service , $id)
+    public function show(
+        Request $request,
+        ObjService $service,
+        ZatcaSettingService $zatcaSettingService,
+        $id
+    )
     {
-        $data['obj'] = $service->find($id);
+        $data = $service->getInvoiceDocumentData((int) $id);
+        $data['zatcaSetting'] = $zatcaSettingService->getSetting();
+
         return view($this->folderPath . '.print', $data);
     }
 

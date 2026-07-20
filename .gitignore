@@ -36,3 +36,4 @@ migration_system/data
 /.package-backups/
 public/upload/
 error_log
+/certificate

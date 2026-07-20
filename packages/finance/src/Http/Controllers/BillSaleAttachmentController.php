@@ -85,7 +85,10 @@ class BillSaleAttachmentController extends Controller
      */
     public function update(Request $request, $id, ObjService $service)
     {
-        $dataInsert = $request->all();
+        $dataInsert = $request->validate([
+            'file' => ['required', 'array', 'min:1'],
+            'file.*' => ['required', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:10240'],
+        ]);
         $data = $service->storeAttachments($id, $dataInsert);
         return jsonSuccess($data);
     }

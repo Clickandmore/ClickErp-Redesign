@@ -16,6 +16,8 @@ return [
     "CRN_number" => "CRN number",
     "VAT_number example" => "(3*************3)",
     'date end of csr' => 'CSR Expiration date',
+    'signing certificate issued' => 'The invoice signing certificate has been issued',
+    'certificate request id' => 'Certificate request ID',
     'remaining days' => 'Remaining days',
     'expired csr' => 'Expired CSR',
     'day' => 'Day',

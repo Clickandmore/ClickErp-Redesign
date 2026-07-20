@@ -21,6 +21,20 @@
             font-weight: 900;
         }
 
+        .bill-sales-context {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 7px;
+            padding: 5px 10px;
+            border-radius: 999px;
+            background: #fff7e6;
+            color: #8a5a00;
+            border: 1px solid #f3d28f;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
         .bill-sales-actions {
             display: flex;
             flex-wrap: wrap;
@@ -63,6 +77,47 @@
             vertical-align: middle;
         }
 
+        #dataTableObject td:last-child {
+            min-width: 245px;
+        }
+
+        .invoice-row-actions {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+        }
+
+        .invoice-row-actions .btn {
+            min-width: 34px;
+            height: 34px;
+            margin: 0 !important;
+            padding: 6px 9px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            border-radius: 7px;
+            font-size: 12px;
+        }
+
+        .invoice-row-actions .invoice-action-view {
+            min-width: 66px;
+        }
+
+        .invoice-attachment-count {
+            min-width: 17px;
+            height: 17px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 999px;
+            background: #ffc107;
+            color: #212529;
+            font-size: 10px;
+            font-weight: 900;
+        }
+
         @media (max-width: 767.98px) {
             .bill-sales-toolbar {
                 align-items: stretch;
@@ -89,6 +144,17 @@
         <div class="bill-sales-heading">
             <h4 class="bill-sales-title">{{ $bladeTitle }}</h4>
             <small class="text-muted">متابعة فواتير المبيعات وحالة مشاركتها مع هيئة الزكاة.</small>
+            @if (request('shared') === '0')
+                <div class="bill-sales-context">
+                    <i class="fa fa-clock"></i>
+                    الفواتير غير المشاركة مع الهيئة
+                </div>
+            @elseif (request('shared') === '1')
+                <div class="bill-sales-context" style="background:#eaf7ef;color:#18713a;border-color:#bfe3cc">
+                    <i class="fa fa-check-circle"></i>
+                    الفواتير المشاركة مع الهيئة
+                </div>
+            @endif
         </div>
         <div class="bill-sales-actions">
             <a href="{{ route('invoices.index') }}" class="btn btn-outline-primary">
@@ -195,9 +261,11 @@
                     [10, 25, 50, "الكل"]
                 ],
                 "processing": true,
-                "responsive": true,
+                "responsive": false,
                 "serverSide": true,
                 "sort": false,
+                "scrollX": true,
+                "autoWidth": false,
                 "ajax": {
                     "url": "{{ $dataTableRoute }}",
                     "type": "GET",

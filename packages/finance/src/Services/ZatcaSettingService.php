@@ -24,7 +24,14 @@ class ZatcaSettingService extends MainService
 
     public function getSetting()
     {
-        return $this->model->firstOrCreate([]);
+        $setting = $this->model->firstOrCreate([]);
+
+        // Backfill certificates issued before their data was persisted in the database.
+        if (!$setting->binarySecurityToken || !$setting->csr_expire_date) {
+            $this->syncIssuedCertificateFromFile($setting);
+        }
+
+        return $setting;
     }
 
     public function updateZatca($data)
@@ -35,8 +42,76 @@ class ZatcaSettingService extends MainService
             $csr = $this->createCSR();
             $privateKey = $this->savePrivateKey($csr);
             $publicKey  = $this->savePublicKey($privateKey,$csr);
+            $companyData->update([
+                'csr' => $csr->getCsrContent(),
+                'private_key' => file_get_contents(base_path('certificate/private_key.pem')),
+            ]);
             $this->registerDevice();
         });
+    }
+
+    private function syncIssuedCertificateFromFile(Model $setting): void
+    {
+        $responsePath = base_path('certificate/response.json');
+
+        if (!is_readable($responsePath)) {
+            return;
+        }
+
+        $response = json_decode(file_get_contents($responsePath), true);
+
+        if (!is_array($response) || ($response['dispositionMessage'] ?? null) !== 'ISSUED') {
+            return;
+        }
+
+        $this->persistIssuedCertificate($setting, $response);
+    }
+
+    private function persistIssuedCertificate(Model $setting, array $response): void
+    {
+        $token = $response['binarySecurityToken'] ?? null;
+        $secret = $response['secret'] ?? null;
+
+        if (!$token || !$secret) {
+            throw new \RuntimeException('ZATCA did not return a valid signing certificate.');
+        }
+
+        $decodedCertificate = base64_decode($token, true);
+
+        if ($decodedCertificate === false) {
+            throw new \RuntimeException('Unable to decode the ZATCA signing certificate.');
+        }
+
+        $pemCertificate = str_contains($decodedCertificate, 'BEGIN CERTIFICATE')
+            ? $decodedCertificate
+            : "-----BEGIN CERTIFICATE-----\n"
+                . chunk_split($decodedCertificate, 64, "\n")
+                . "-----END CERTIFICATE-----\n";
+
+        $certificateData = openssl_x509_parse($pemCertificate);
+
+        if ($certificateData === false || empty($certificateData['validTo_time_t'])) {
+            throw new \RuntimeException('Unable to read the ZATCA signing certificate expiry date.');
+        }
+
+        $values = [
+            'requestID' => $response['requestID'] ?? $setting->requestID,
+            'binarySecurityToken' => $token,
+            'secret' => $secret,
+            'csr_expire_date' => date('Y-m-d', $certificateData['validTo_time_t']),
+        ];
+
+        $csrPath = base_path('certificate/csr_content.csr');
+        if (is_readable($csrPath)) {
+            $values['csr'] = file_get_contents($csrPath);
+        }
+
+        $privateKeyPath = base_path('certificate/private_key.pem');
+        if (is_readable($privateKeyPath)) {
+            $values['private_key'] = file_get_contents($privateKeyPath);
+        }
+
+        $setting->update($values);
     }
 
     public function createCSR()
@@ -1759,6 +1834,17 @@ class ZatcaSettingService extends MainService
         // dd($status_code,$response);
 
         $response = json_decode($response, true);
+
+        if (
+            $status_code < 200 ||
+            $status_code >= 300 ||
+            !is_array($response) ||
+            ($response['dispositionMessage'] ?? null) !== 'ISSUED'
+        ) {
+            throw new \RuntimeException('ZATCA did not issue the production signing certificate.');
+        }
+
+        $this->persistIssuedCertificate($this->getSetting(), $response);
     }
 
     public function zatcaURL()

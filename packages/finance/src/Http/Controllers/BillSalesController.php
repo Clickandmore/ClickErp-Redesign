@@ -10,6 +10,7 @@ use Nami\Finance\Http\Requests\SalesOrderRequest as ObjRequest;
 use Nami\Finance\Http\Requests\SalesRequest;
 use Nami\Finance\Services\BillSalesService as ObjService;
 use Nami\Finance\Services\SalesOrderService;
+use Nami\Finance\Services\ZatcaSettingService;
 use PDF;
 use Yajra\DataTables\DataTables;
 
@@ -74,6 +75,11 @@ class BillSalesController extends Controller
                 ->addColumn('profit_margin', function ($row) {
                     return @$row->profit_with_margin;
                 })
+                ->editColumn('date', fn ($row) => optional($row->date ? \Carbon\Carbon::parse($row->date) : null)->format('Y-m-d'))
+                ->editColumn('total_item', fn ($row) => number_format((float) $row->total_item, 2))
+                ->editColumn('discount', fn ($row) => number_format((float) $row->discount, 2))
+                ->editColumn('total_tax_value', fn ($row) => number_format((float) $row->total_tax_value, 2))
+                ->editColumn('final_total', fn ($row) => number_format((float) $row->final_total, 2))
                 ->editColumn('zatca_status', function ($row) {
                     if ($row->zatca) {
                         return match ($row->zatca->zatca_status) {
@@ -87,20 +93,38 @@ class BillSalesController extends Controller
                     return '<span class="badge bg-warning-subtle text-warning border">معلقة للهيئة</span>';
                 })
                 ->addColumn('actions', function ($row) {
-                    $imageButton = showButton(route("finance.bill-sales-attachments.edit", $row->id), $row->name,"image", 'warning');
-                    $printButton = printButton(route("finance.bill-sales-print.show", $row->id), null, 'finance.bill-sales-print-read');
-                    $detailsButton = editHyperButton(route($this->mainRoute . ".show", $row->id), $row->name, "eye", true);
+                    $detailsButton = '<a href="' . route($this->mainRoute . '.show', $row->id) . '"'
+                        . ' class="btn btn-sm btn-primary invoice-action-view" title="عرض الفاتورة">'
+                        . '<i class="fa fa-eye"></i><span>عرض</span></a>';
+
+                    $imageButton = '<button type="button" class="btn btn-sm btn-outline-warning editButton"'
+                        . ' data-bs-toggle="modal" data-bs-target="#createModal"'
+                        . ' model-route="' . route('finance.bill-sales-attachments.edit', $row->id) . '"'
+                        . ' model-title="مرفقات الفاتورة رقم ' . e((string) $row->code) . '"'
+                        . ' title="المرفقات"><i class="fa fa-paperclip"></i>'
+                        . (($row->sale_attachments_count ?? 0) > 0
+                            ? '<span class="invoice-attachment-count">' . (int) $row->sale_attachments_count . '</span>'
+                            : '')
+                        . '</button>';
+
+                    $printButton = printButton(
+                        route('finance.bill-sales-print.show', $row->id),
+                        '',
+                        'finance.bill-sales-print-read'
+                    );
                     $shareButton = (!$row->zatca || ($row->zatca->zatca_status !== "REPORTED" && $row->zatca->zatca_status !== "CLEARED"))
                         ? shareZatcaBtn($row->id)
                         : '';
                     $downloadXMLButton = ($row->zatca && ($row->zatca->xml_file !== null))
-                        ? downloadFileBtn(showFile($row->zatca->xml_file), "{$row->id}فاتورة_رقم_")
+                        ? '<a href="' . showFile($row->zatca->xml_file) . '" class="btn btn-sm btn-outline-secondary"'
+                            . ' download="invoice-' . (int) $row->id . '.xml" title="تحميل XML">'
+                            . '<i class="fa fa-code"></i></a>'
                         : '';
                     $confirmButton = (!$row->is_confirmed) ? confirmBtn(route('finance.confirm-bill-sales.update',$row->id)) : '';
 
-
-
-                    return implode(' ', [$downloadXMLButton,$confirmButton, $imageButton, $printButton, $shareButton, $detailsButton]);
+                    return '<div class="invoice-row-actions">'
+                        . implode('', [$detailsButton, $printButton, $imageButton, $downloadXMLButton, $shareButton, $confirmButton])
+                        . '</div>';
                 })
                 ->escapeColumns([])->make(true);
         }
@@ -190,7 +214,8 @@ class BillSalesController extends Controller
                 'client',
                 'zatca',
                 'sourceInvoice:id,legacy_invoice_number,legacy_order_number,contract_id,ingaz_delegation_id,finance_sale_id',
-            ]);
+            ])
+            ->withCount('saleAttachments');
         $fromDate = $request->input('from_date');
         $toDate = $request->input('to_date');
 
@@ -302,18 +327,23 @@ class BillSalesController extends Controller
     }
 
 
-    public function show(int $id, Request $request, ObjService $service)
+    public function show(
+        int $id,
+        Request $request,
+        ObjService $service,
+        ZatcaSettingService $zatcaSettingService
+    )
     {
+        $data = $service->getInvoiceDocumentData($id);
+        $data['zatcaSetting'] = $zatcaSettingService->getSetting();
+        $data['bladeTitle'] = __('finance::finance.bill-sales');
+
         if ($request->ajax()) {
-            $returnHTML = view($this->folderPath . '.show')->with([
-                "obj" => $service->find($id),
-            ])->render();
+            $returnHTML = view($this->folderPath . '._document', $data)->render();
             return jsonSuccess(["html" => $returnHTML]);
-        } else {
-            $obj = $service->find($id);
-            $bladeTitle = __('finance::finance.bill-sales');
-            return view($this->folderPath . ".show", compact('obj', 'bladeTitle'));
         }
+
+        return view($this->folderPath . '.show', $data);
     }
 
     public function edit(int $id, Request $request, ObjService $service)

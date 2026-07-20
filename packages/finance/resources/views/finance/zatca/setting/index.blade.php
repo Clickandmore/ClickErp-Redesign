@@ -189,6 +189,12 @@
                             </div>
                             <div class="p-3 bg-light border rounded">
                                 @if ($zatca_setting->csr_expire_date)
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="fas fa-check-circle text-success me-2"></i>
+                                        <span class="fw-bolder text-success">
+                                            {{ __('finance::zatca.signing certificate issued') }}
+                                        </span>
+                                    </div>
                                     <div class="d-flex align-items-center">
                                         <i class="far fa-calendar-alt text-primary me-2"></i>
                                         <p class="mb-0">
@@ -198,6 +204,15 @@
                                             </span>
                                         </p>
                                     </div>
+                                    @if ($zatca_setting->requestID)
+                                        <div class="mt-2 d-flex align-items-center">
+                                            <i class="far fa-fingerprint text-primary me-2"></i>
+                                            <span>
+                                                {{ __('finance::zatca.certificate request id') }}:
+                                                <span class="fw-bolder">{{ $zatca_setting->requestID }}</span>
+                                            </span>
+                                        </div>
+                                    @endif
                                     @php
                                         $remainingDays = \Carbon\Carbon::now()->diffInDays(
                                             \Carbon\Carbon::parse($zatca_setting->csr_expire_date),

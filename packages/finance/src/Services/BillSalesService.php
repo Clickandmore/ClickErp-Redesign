@@ -425,6 +425,91 @@ class BillSalesService extends MainService
         return $query;
     }
 
+    public function getInvoiceDocumentData(int $id): array
+    {
+        $sale = $this->model
+            ->with([
+                'client',
+                'items.item',
+                'zatca',
+                'saleAttachments',
+                'sourceInvoice',
+            ])
+            ->findOrFail($id);
+
+        $warnings = [];
+        $lines = $sale->items->map(function ($item, int $index) use (&$warnings) {
+            $quantity = (float) $item->amount;
+            $unitPrice = (float) $item->price;
+            $discount = (float) $item->discount_value;
+            $taxRate = (float) $item->tax_per;
+            $taxAmount = (float) $item->tax_value;
+            $exclusiveAmount = round(($unitPrice * $quantity) - $discount, 2);
+            $inclusiveAmount = round($exclusiveAmount + $taxAmount, 2);
+            $expectedTax = round($exclusiveAmount * ($taxRate / 100), 2);
+
+            if (abs($expectedTax - $taxAmount) > 0.01) {
+                $warnings[] = sprintf(
+                    'ضريبة البند رقم %d لا تطابق النسبة المسجلة: المتوقع %.2f ر.س والمسجل %.2f ر.س.',
+                    $index + 1,
+                    $expectedTax,
+                    $taxAmount
+                );
+            }
+
+            if (abs($inclusiveAmount - (float) $item->final_total) > 0.01) {
+                $warnings[] = sprintf(
+                    'إجمالي البند رقم %d لا يطابق السعر والخصم والضريبة المسجلة.',
+                    $index + 1
+                );
+            }
+
+            return [
+                'code' => $item->item?->code ?: ($index + 1),
+                'description' => $item->item?->name ?: 'بند مبيعات',
+                'quantity' => $quantity,
+                'unit_price' => $unitPrice,
+                'discount' => $discount,
+                'tax_rate' => $taxRate,
+                'tax_amount' => $taxAmount,
+                'exclusive_amount' => $exclusiveAmount,
+                'inclusive_amount' => $inclusiveAmount,
+            ];
+        });
+
+        $calculated = [
+            'subtotal' => round((float) $lines->sum(
+                fn (array $line) => ($line['unit_price'] * $line['quantity'])
+            ), 2),
+            'discount' => round((float) $lines->sum('discount'), 2),
+            'tax_exclusive' => round((float) $lines->sum('exclusive_amount'), 2),
+            'tax' => round((float) $lines->sum('tax_amount'), 2),
+            'payable' => round((float) $lines->sum('inclusive_amount'), 2),
+        ];
+
+        $stored = [
+            'subtotal' => round((float) $sale->total_item, 2),
+            'discount' => round((float) $sale->discount, 2),
+            'tax_exclusive' => round((float) $sale->total_item - (float) $sale->discount, 2),
+            'tax' => round((float) $sale->total_tax_value, 2),
+            'payable' => round((float) $sale->final_total, 2),
+        ];
+
+        foreach (['subtotal', 'discount', 'tax', 'payable'] as $field) {
+            if (abs($stored[$field] - $calculated[$field]) > 0.01) {
+                $warnings[] = 'إجماليات الفاتورة المحفوظة لا تطابق مجموع البنود.';
+                break;
+            }
+        }
+
+        return [
+            'obj' => $sale,
+            'invoiceLines' => $lines,
+            'invoiceTotals' => $stored,
+            'invoiceWarnings' => array_values(array_unique($warnings)),
+        ];
+    }
+
 
     public function sumDiscountAndTax($salesData, $itemsData)
     {
