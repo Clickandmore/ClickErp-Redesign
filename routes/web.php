@@ -194,7 +194,7 @@ Route::get('/migration/legacy', function () {
     return redirect('/migration/file_only_migration.php');
 })->name('migration.legacy');
 
-Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin', 'admin.route.permission']], function () {
+Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin', 'admin', 'admin.route.permission']], function () {
     Route::group(['prefix' => 'ingaz'], function () {
         Route::get('/', [HomeController::class, 'index'])->name('home');
     });
@@ -374,7 +374,7 @@ Route::group(
     }
 );
 
-Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin', 'admin.route.permission']], function () {
+Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin', 'admin', 'admin.route.permission']], function () {
     // Orders routes will be handled by routes/ingaz.php
 
     Route::group(['prefix' => 'ingaz'], function () {
@@ -447,7 +447,7 @@ Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin', 'admin.route.p
 });
 
 // Notification routes
-Route::prefix('admin')->middleware(['auth:admin', 'admin.route.permission'])->group(function () {
+Route::prefix('admin')->middleware(['auth:admin', 'admin', 'admin.route.permission'])->group(function () {
     Route::get('/notifications', [App\Http\Controllers\admin\NotificationController::class, 'index'])->name('admin.notifications.dropdown');
     Route::post('/notifications/{id}/mark-as-read', [App\Http\Controllers\admin\NotificationController::class, 'markAsRead'])->name('admin.notifications.mark-as-read');
     Route::post('/notifications/mark-all-read', [App\Http\Controllers\admin\NotificationController::class, 'markAllAsRead'])->name('admin.notifications.mark-all-read');

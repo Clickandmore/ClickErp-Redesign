@@ -116,7 +116,7 @@ Route::group(
                 ->name('public.form-settings.preview.rental-contract');
         });
 
-        Route::group(["prefix" => "admin", "middleware" => ["auth:admin", "admin.route.permission"]], function () {
+        Route::group(["prefix" => "admin", "middleware" => ["auth:admin", "admin", "admin.route.permission"]], function () {
 
             Route::resource('partenrs', ClientController::class);
             Route::resource('why-us', WhyUsController::class);
@@ -670,7 +670,7 @@ Route::group(
         'middleware' => ['localeSessionRedirect', 'localizationRedirect', 'localeViewPath'],
     ],
     function () {
-        Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin', 'admin.route.permission']], function () {
+        Route::group(['prefix' => 'admin', 'middleware' => ['auth:admin', 'admin', 'admin.route.permission']], function () {
             Route::prefix('DeportationTravel')->name('DeportationTravel.')->group(function () {
                 Route::get('/', [DeportationTravelController::class, 'index'])->name('index');
                 Route::get('/create', [DeportationTravelController::class, 'create'])->name('create');

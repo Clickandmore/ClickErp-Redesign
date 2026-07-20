@@ -27,7 +27,7 @@ Route::group(
         'middleware' => ['localeSessionRedirect', 'localizationRedirect', 'localeViewPath'],
     ],
     function () {
-        Route::group(["prefix" => "admin", "middleware" => ["auth:admin", "admin.route.permission"]], function () {
+        Route::group(["prefix" => "admin", "middleware" => ["auth:admin", "admin", "admin.route.permission"]], function () {
 
             Route::get('offices/{office}/login-as-agent', [OfficeController::class, 'loginAsAgent'])
                 ->middleware('signed')
