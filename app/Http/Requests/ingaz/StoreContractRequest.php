@@ -168,7 +168,13 @@ class StoreContractRequest extends MainRequest
             ],
             'manual_maid_nationality_id' => 'required_if:maid_selection_mode,manual|nullable|exists:nationalities,id',
             'manual_maid_job_title_id' => 'required_if:maid_selection_mode,manual|nullable|exists:job_titles,id',
-            'manual_maid_office_id' => 'required_if:maid_selection_mode,manual|nullable|exists:recruitment_offices,id',
+            'manual_maid_office_id' => [
+                'required_if:maid_selection_mode,manual',
+                'nullable',
+                Rule::exists('recruitment_offices', 'id')->where(function ($query) {
+                    $query->where('nationality_id', $this->input('manual_maid_nationality_id'));
+                }),
+            ],
             'manual_maid_attachment' => 'nullable|file|max:5120|mimes:jpg,jpeg,png,pdf,doc,docx',
             'marketer_id' => $marketerRules,
             'required_maid_nationality' => 'nullable|exists:nationalities,id',
@@ -211,7 +217,7 @@ class StoreContractRequest extends MainRequest
             'manual_maid_job_title_id.required_if' => 'يرجى اختيار مهنة العامل/ة المختصر/ة',
             'manual_maid_job_title_id.exists' => 'مهنة العامل/ة المختصر/ة غير موجودة',
             'manual_maid_office_id.required_if' => 'يرجى اختيار المكتب الخارجي للعامل/ة المختصر/ة',
-            'manual_maid_office_id.exists' => 'المكتب الخارجي المختار غير موجود',
+            'manual_maid_office_id.exists' => 'المكتب الخارجي المختار غير موجود أو لا يتبع الجنسية المختارة',
             'manual_maid_attachment.file' => 'مرفق العامل/ة المختصر/ة غير صالح',
             'manual_maid_attachment.max' => 'حجم مرفق العامل/ة المختصر/ة يجب ألا يتجاوز 5 ميجابايت',
             'manual_maid_attachment.mimes' => 'صيغة مرفق العامل/ة المختصر/ة غير مدعومة',

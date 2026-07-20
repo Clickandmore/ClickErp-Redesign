@@ -730,7 +730,7 @@
                                                     class="form-select select2" data-placeholder="{{ __('ingaz.select_nationality') }}">
                                                     <option value="">{{ __('ingaz.select_nationality_placeholder') }}</option>
                                                     @foreach ($maidNationalities as $nationality)
-                                                        <option value="{{ $nationality->id }}">{{ $nationality->sub_title }}
+                                                        <option value="{{ $nationality->id }}">{{ $nationality->display_name }}
                                                         </option>
                                                     @endforeach
                                                 </select>
@@ -781,7 +781,7 @@
                                                         class="form-select" data-validation="required">
                                                         <option value="">اختر الجنسية المطلوبة...</option>
                                                         @foreach ($maidNationalities as $nationality)
-                                                            <option value="{{ $nationality->id }}">{{ $nationality->sub_title }}
+                                                            <option value="{{ $nationality->id }}">{{ $nationality->display_name }}
                                                             </option>
                                                         @endforeach
                                                     </select>
@@ -2029,13 +2029,84 @@
                     $('#new_new_maid_id').removeClass('is-invalid');
                     $('#err_new_new_maid_id').remove();
                 }
+
+                if (mode === 'manual') {
+                    loadManualMaidOfficesByNationality();
+                }
+            }
+
+            var $manualMaidOfficeSelect = $('#manual_maid_office_id');
+            var allManualMaidOfficeOptions = $manualMaidOfficeSelect.children().clone();
+            var manualMaidOfficeRequest = null;
+
+            function loadManualMaidOfficesByNationality() {
+                var nationalityId = String($('#manual_maid_nationality_id').val() || '');
+
+                if (manualMaidOfficeRequest) {
+                    manualMaidOfficeRequest.abort();
+                    manualMaidOfficeRequest = null;
+                }
+
+                if (!nationalityId) {
+                    $manualMaidOfficeSelect.empty()
+                        .append(allManualMaidOfficeOptions.clone())
+                        .val('')
+                        .trigger('change.select2');
+                    return;
+                }
+
+                $manualMaidOfficeSelect.empty()
+                    .append($('<option>', {
+                        value: '',
+                        text: @json(__('ingaz.select_external_office_placeholder'))
+                    }))
+                    .val('')
+                    .trigger('change.select2');
+
+                var request = $.ajax({
+                    url: @json(route('getOfficesByNationality')),
+                    type: 'GET',
+                    data: { nationality_id: nationalityId },
+                    success: function(offices) {
+                        if (String($('#manual_maid_nationality_id').val() || '') !== nationalityId) {
+                            return;
+                        }
+
+                        (offices || []).forEach(function(office) {
+                            $manualMaidOfficeSelect.append($('<option>', {
+                                value: office.id,
+                                text: office.title
+                            }));
+                        });
+                        $manualMaidOfficeSelect.trigger('change.select2');
+                    },
+                    error: function(xhr) {
+                        if (xhr.statusText === 'abort') {
+                            return;
+                        }
+                        Swal.fire({
+                            icon: 'error',
+                            title: @json(__('ingaz.error')),
+                            text: @json(__('ingaz.office_fetch_error'))
+                        });
+                    },
+                    complete: function() {
+                        if (manualMaidOfficeRequest === request) {
+                            manualMaidOfficeRequest = null;
+                        }
+                    }
+                });
+                manualMaidOfficeRequest = request;
             }
 
             $('input[name="maid_selection_mode"]').on('change', function() {
                 applyNewMaidMode($(this).val());
             });
 
+            $('#manual_maid_nationality_id').on('change', loadManualMaidOfficesByNationality);
+
             applyNewMaidMode(getNewMaidMode());
+            loadManualMaidOfficesByNationality();
 
             $('#manual_maid_passport_num').on('input', function() {
                 var passportNum = $(this).val().trim();
