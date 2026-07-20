@@ -634,9 +634,20 @@
         $('#conversationsPanel').addClass('active');
         updateSectionChrome('conversationsPanel');
         loadConversations();
+    } else if (requestedTab === 'history') {
+        $('.visitor-tab').removeClass('active');
+        $('.visitor-tab-panel').removeClass('active');
+        $('.visitor-tab[data-tab-name="history"]').addClass('active');
+        $('#visitsHistoryPanel').addClass('active');
+        updateSectionChrome('visitsHistoryPanel');
+        loadHistory();
     }
     $('#visitorSearch').on('input', renderVisitors);
     $('#refreshVisitorsButton').on('click', function () {
+        if ($('#trackingCodesPanel').hasClass('active')) {
+            window.location.reload();
+            return;
+        }
         loadVisitors();
         if ($('#visitsHistoryPanel').hasClass('active')) loadHistory();
         if ($('#conversationsPanel').hasClass('active')) loadConversations();
