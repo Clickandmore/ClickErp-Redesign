@@ -27,8 +27,9 @@ class OfficeManagementController extends Controller
         }
 
         if ($request->filled('office_id')) {
-            $query->whereHas('agentOfficeLinks', function ($subQuery) use ($request) {
-                $subQuery->where('office_id', $request->integer('office_id'));
+            $officeId = (int) $request->input('office_id');
+            $query->whereHas('agentOfficeLinks', function ($subQuery) use ($officeId) {
+                $subQuery->where('office_id', $officeId);
             });
         }
 

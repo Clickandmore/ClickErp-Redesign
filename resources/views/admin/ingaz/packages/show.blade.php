@@ -28,6 +28,11 @@
         <div>{!! $obj->is_show ? '<span class="badge bg-success">ظاهر</span>' : '<span class="badge bg-secondary">مخفي</span>' !!}</div>
     </div>
 
+    <div class="col-md-4">
+        <label class="form-label text-muted mb-1">حالة الضريبة</label>
+        <div>{!! ($obj->is_taxable ?? true) ? '<span class="badge bg-primary">بضريبة 15%</span>' : '<span class="badge bg-secondary">بدون ضريبة</span>' !!}</div>
+    </div>
+
     <div class="col-md-3">
         <label class="form-label text-muted mb-1">السعر بدون الضريبة</label>
         <div>{{ number_format((float) $obj->original_price, 2) }}</div>

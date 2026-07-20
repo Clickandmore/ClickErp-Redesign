@@ -79,6 +79,13 @@ class MaidSidebarPermissionsSeeder extends Seeder
                 'section_name' => 'cv_management',
             ],
             [
+                'name' => PermKeys::MAIDS_BULK_VISIBILITY,
+                'display_name' => 'إظهار وإخفاء جميع السير',
+                'description' => 'إمكانية إظهار أو إخفاء جميع السير الذاتية دفعة واحدة',
+                'group_name' => 'maids',
+                'section_name' => 'cv_management',
+            ],
+            [
                 'name' => PermKeys::MAIDS_TOGGLE_PIN,
                 'display_name' => 'تثبيت/إلغاء تثبيت',
                 'description' => 'إمكانية تثبيت أو إلغاء تثبيت السيرة الذاتية',

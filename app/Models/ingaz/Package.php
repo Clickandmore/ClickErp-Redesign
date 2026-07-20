@@ -19,6 +19,7 @@ class Package extends Model
         'discount_amount' => 'decimal:2',
         'price_after_discount' => 'decimal:2',
         'price_with_tax' => 'decimal:2',
+        'is_taxable' => 'boolean',
         'offer_amount' => 'decimal:2',
         'offer_starts_at' => 'date',
         'offer_ends_at' => 'date',

@@ -132,6 +132,11 @@
                         </div>
                     </div>
                     <div class="btn-toolbar gap-2">
+                        @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_BULK_VISIBILITY))
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="bulkMaidVisibilityButton">
+                                <i class="fas fa-eye me-1"></i>{{ helperTrans('ingaz.maids_bulk_visibility') }}
+                            </button>
+                        @endif
                         @if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_CREATE))
                             <a href="{{ $createRoute }}" class="btn btn-primary btn-sm">
                                 <i class="fas fa-user-plus me-1"></i>{{ helperTrans('ingaz.add_maid') }}
@@ -823,6 +828,56 @@
             const csrfToken = $('meta[name=\"csrf-token\"]').attr('content');
             const daysLabel = "{{ helperTrans('ingaz.days') }}";
             const notSpecifiedLabel = "{{ helperTrans('ingaz.not_specified') }}";
+
+            $('#bulkMaidVisibilityButton').on('click', function() {
+                const button = $(this);
+
+                Swal.fire({
+                    icon: 'question',
+                    title: @json(helperTrans('ingaz.maids_bulk_visibility_confirm_title')),
+                    text: @json(helperTrans('ingaz.maids_bulk_visibility_confirm_text')),
+                    showDenyButton: true,
+                    showCancelButton: true,
+                    confirmButtonText: @json(helperTrans('ingaz.show_all_maids')),
+                    denyButtonText: @json(helperTrans('ingaz.hide_all_maids')),
+                    cancelButtonText: @json(helperTrans('ingaz.cancel')),
+                    confirmButtonColor: '#198754',
+                    denyButtonColor: '#dc3545'
+                }).then((result) => {
+                    if (!result.isConfirmed && !result.isDenied) {
+                        return;
+                    }
+
+                    button.prop('disabled', true);
+                    $.ajax({
+                        url: @json(route('maids.bulk-visibility')),
+                        method: 'POST',
+                        data: {
+                            _token: csrfToken,
+                            is_show: result.isConfirmed ? 1 : 0
+                        },
+                        success: function(response) {
+                            table.ajax.reload(null, false);
+                            Swal.fire({
+                                icon: 'success',
+                                title: response.message || @json(helperTrans('ingaz.updated_successfully')),
+                                timer: 2500,
+                                showConfirmButton: false
+                            });
+                        },
+                        error: function(xhr) {
+                            Swal.fire({
+                                icon: 'error',
+                                title: @json(helperTrans('ingaz.error')),
+                                text: xhr.responseJSON?.message || @json(helperTrans('ingaz.unexpected_error'))
+                            });
+                        },
+                        complete: function() {
+                            button.prop('disabled', false);
+                        }
+                    });
+                });
+            });
 
             const resetOfferErrors = () => {
                 offerErrors.addClass('d-none').empty();
