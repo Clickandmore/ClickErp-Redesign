@@ -10,6 +10,8 @@ namespace App;
  */
 class NewPermKeys
 {
+    const BRANCHES_VIEW_ALL = 'branches_view_all';
+
     // ========================================
     // الصلاحيات الأساسية (Basic Permissions)
     // ========================================

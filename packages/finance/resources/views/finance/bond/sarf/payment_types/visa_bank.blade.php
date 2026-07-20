@@ -6,7 +6,8 @@
 </div>
 <div class="col-4">
     <label for="TextInput" class="form-label"> الرقم المرجعى </label>
-    <input type="text" name="transfer_number" value="{{@$obj->transfer_number}}" class="form-control">
+    <input type="text" name="transfer_number" value="{{@$obj->transfer_number}}" class="form-control"
+           maxlength="500" data-validation="required">
 </div>
 
 <div class="col-4">

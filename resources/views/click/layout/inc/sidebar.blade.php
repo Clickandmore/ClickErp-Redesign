@@ -47,7 +47,8 @@
 </div> --}}
 
         <div class="main-menu flex-grow-1">
-            @php
+@php
+    $contractsCount = app(\App\Services\RecruitmentContractSidebarCountService::class)->counts(request());
                 $newStatus = \App\Enums\ingaz\ContractStatusEnum::New;
                 $msanedStatus = \App\Enums\ingaz\ContractStatusEnum::Msaned;
                 $tafwedStatus = \App\Enums\ingaz\ContractStatusEnum::Tafwed;

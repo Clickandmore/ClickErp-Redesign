@@ -34,9 +34,21 @@ class Contract extends Model
 
     protected function resolveBranchIdForCreate(): ?int
     {
-        return $this->resolveBranchIdFromOrder($this->order_id ?? null)
-            ?: $this->resolveBranchIdFromAdmin($this->marketer_id ?? null)
-            ?: $this->resolveBranchIdFromCurrentAdmin();
+        $marketerId = (int) ($this->marketer_id ?? 0);
+        if ($marketerId > 0) {
+            return $this->resolveBranchIdFromAdmin($marketerId)
+                ?: $this->resolveMainBranchId();
+        }
+
+        $orderId = (int) ($this->order_id ?? 0);
+        if ($orderId > 0) {
+            return $this->resolveBranchIdFromOrder($orderId)
+                ?: $this->resolveBranchIdFromOrderResponsibleAdmin($orderId)
+                ?: $this->resolveMainBranchId();
+        }
+
+        return $this->resolveBranchIdFromCurrentAdmin()
+            ?: $this->resolveMainBranchId();
     }
 
     public function getDescAttribute()

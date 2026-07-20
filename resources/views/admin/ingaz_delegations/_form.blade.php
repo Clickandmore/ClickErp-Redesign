@@ -140,7 +140,8 @@
                     <div class="col-12 existing-client-section">
                         <label class="form-label">العميل من المستخدمين <span class="text-danger">*</span></label>
                         <select name="existing_user_id" id="existing_user_id"
-                                class="form-select @error('existing_user_id') is-invalid @enderror">
+                                class="form-select select2 @error('existing_user_id') is-invalid @enderror"
+                                data-placeholder="ابحث باسم العميل أو رقم الهوية أو الجوال">
                             <option value="">اختر العميل</option>
                             @foreach ($existingUsers as $user)
                                 <option value="{{ $user->id }}"
@@ -592,6 +593,23 @@
 
         if (existingUserSelect) {
             existingUserSelect.addEventListener('change', updateExistingPreview);
+
+            if (window.jQuery && typeof window.jQuery.fn.select2 === 'function') {
+                const $existingUserSelect = window.jQuery(existingUserSelect);
+
+                if ($existingUserSelect.hasClass('select2-hidden-accessible')) {
+                    $existingUserSelect.select2('destroy');
+                }
+
+                $existingUserSelect
+                    .select2({
+                        width: '100%',
+                        direction: document.documentElement.dir || 'rtl',
+                        placeholder: existingUserSelect.dataset.placeholder || 'ابحث عن العميل',
+                        minimumResultsForSearch: 0,
+                    })
+                    .on('select2:select select2:clear', updateExistingPreview);
+            }
         }
 
         placeExternalOfficePicker();

@@ -62,9 +62,18 @@
 
                 <div class="col-4">
                     <label for="TextInput" class="form-label">{{ helperTrans('ingaz.contracts') }}</label>
+                    <label for="contract_search_type" class="form-label small text-muted">طريقة البحث</label>
+                    <select id="contract_search_type" class="form-select mb-2">
+                        <option value="contract_number">رقم العقد</option>
+                        <option value="client">رقم العميل أو اسمه أو جواله</option>
+                        <option value="maid">رقم العاملة أو اسمها</option>
+                        <option value="identity">هوية العميل أو العاملة أو رقم الحدود</option>
+                        <option value="passport">رقم جواز العاملة</option>
+                        <option value="musaned">رقم عقد مساند</option>
+                    </select>
                     <div class="input-group mb-2">
                         <input type="text" id="contract_number_search" class="form-control"
-                            placeholder="ابحث برقم العقد، العميل، العاملة، الهوية، الجواز أو رقم مساند" value="{{ $selectedContractId ?: '' }}">
+                            placeholder="اكتب رقم العقد" value="{{ $selectedContractId ?: '' }}">
                         <button type="button" id="search_contract_number_btn" class="btn btn-primary">
                             بحث
                         </button>
@@ -680,14 +689,31 @@
             });
 
             $('#search_contract_number_btn').on('click', function() {
-                searchContractByNumber($('#contract_number_search').val(), false, true);
+                searchContractByNumber($('#contract_number_search').val(), false, false);
             });
 
             $('#contract_number_search').on('keypress', function(e) {
                 if (e.which === 13) {
                     e.preventDefault();
-                    searchContractByNumber($(this).val(), false, true);
+                    searchContractByNumber($(this).val(), false, false);
                 }
+            });
+
+            const contractSearchPlaceholders = {
+                contract_number: 'اكتب رقم العقد',
+                client: 'اكتب رقم العميل أو اسمه أو جواله',
+                maid: 'اكتب رقم العاملة أو اسمها',
+                identity: 'اكتب رقم الهوية',
+                passport: 'اكتب رقم الجواز',
+                musaned: 'اكتب رقم مساند'
+            };
+
+            $('#contract_search_type').on('change', function() {
+                $('#contract_number_search').attr(
+                    'placeholder',
+                    contractSearchPlaceholders[this.value] || 'اكتب قيمة البحث'
+                );
+                $('#contract_search_feedback').removeClass('text-success text-danger').text('');
             });
 
             $('#contract_id').on('select2:clear', function() {
@@ -707,7 +733,8 @@
                     url: "{{ route('search.contracts.by.passport') }}",
                     type: 'GET',
                     data: {
-                        passport_number: passportNumber
+                        passport_number: passportNumber,
+                        search_type: 'passport'
                     },
                     beforeSend: function() {
                         $('#search_passport_btn').html(
@@ -839,9 +866,17 @@
                     return;
                 }
 
-                let requestData = exactContractNumber
-                    ? { contract_number: contractNumber }
-                    : { search: contractNumber };
+                let searchType = exactContractNumber
+                    ? 'contract_number'
+                    : ($('#contract_search_type').val() || 'contract_number');
+                let requestData = {
+                    search: contractNumber,
+                    search_type: searchType
+                };
+
+                if (exactContractNumber) {
+                    requestData.contract_number = contractNumber;
+                }
 
                 $.ajax({
                     url: "{{ route('search.contracts.by.passport') }}",

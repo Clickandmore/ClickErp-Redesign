@@ -1129,11 +1129,18 @@ class ShelterContractController extends Controller
     {
         $contractNumber = trim((string) $request->input('contract_number'));
         $searchTerm = trim((string) ($contractNumber ?: ($request->input('passport_number') ?: $request->input('search'))));
+        $searchType = trim((string) $request->input('search_type'));
+
+        if (!in_array($searchType, $this->shelterSearchTypes(), true)) {
+            $searchType = '';
+        }
 
         $query = $this->shelterSelectableContractsQuery();
 
         if ($contractNumber !== '') {
             $query->whereKey($contractNumber);
+        } elseif ($searchType !== '' && $searchTerm !== '') {
+            $this->applyShelterSearchType($query, $searchType, $searchTerm);
         } elseif ($searchTerm !== '') {
             $query->where(function ($query) use ($searchTerm) {
                 $query->where('id', 'like', '%' . $searchTerm . '%')
@@ -1167,7 +1174,7 @@ class ShelterContractController extends Controller
 
         $ineligibility = null;
         if ($contracts->isEmpty() && $searchTerm !== '') {
-            $candidate = $this->findShelterSearchCandidate($contractNumber, $searchTerm);
+            $candidate = $this->findShelterSearchCandidate($contractNumber, $searchTerm, $searchType);
             $ineligibility = $this->shelterIneligibilityDetails($candidate);
         }
 
@@ -1177,13 +1184,108 @@ class ShelterContractController extends Controller
         ]);
     }
 
-    private function findShelterSearchCandidate(string $contractNumber, string $searchTerm): ?Contract
+    private function shelterSearchTypes(): array
+    {
+        return ['contract_number', 'client', 'maid', 'identity', 'passport', 'musaned'];
+    }
+
+    private function applyShelterSearchType($query, string $searchType, string $searchTerm): void
+    {
+        $likeSearch = '%' . $searchTerm . '%';
+
+        switch ($searchType) {
+            case 'contract_number':
+                $query->whereKey($searchTerm);
+                break;
+
+            case 'client':
+                $query->whereHas('user', function ($userQuery) use ($searchTerm, $likeSearch) {
+                    $userQuery->where(function ($userQuery) use ($searchTerm, $likeSearch) {
+                        $userQuery->where('id', $searchTerm)
+                            ->orWhere('name', 'like', $likeSearch)
+                            ->orWhere('phone', 'like', $likeSearch);
+                    });
+                });
+                break;
+
+            case 'maid':
+                $query->where(function ($query) use ($searchTerm, $likeSearch) {
+                    $query->whereHas('maid', function ($maidQuery) use ($searchTerm, $likeSearch) {
+                        $maidQuery->where(function ($maidQuery) use ($searchTerm, $likeSearch) {
+                            $maidQuery->where('id', $searchTerm)
+                                ->orWhere('name', 'like', $likeSearch)
+                                ->orWhere('arabia_worker_number', 'like', $likeSearch);
+                        });
+                    })->orWhereHas('info', function ($infoQuery) use ($likeSearch) {
+                        $infoQuery->where('manual_maid_name', 'like', $likeSearch);
+                    });
+                });
+                break;
+
+            case 'identity':
+                $query->where(function ($query) use ($likeSearch) {
+                    $query->whereHas('user', function ($userQuery) use ($likeSearch) {
+                        $userQuery->where(function ($userQuery) use ($likeSearch) {
+                            $userQuery->where('national_num', 'like', $likeSearch)
+                                ->orWhere('tax_number', 'like', $likeSearch)
+                                ->orWhere('license_number', 'like', $likeSearch);
+                        });
+                    })->orWhereHas('maid', function ($maidQuery) use ($likeSearch) {
+                        $maidQuery->where(function ($maidQuery) use ($likeSearch) {
+                            $maidQuery->where('id_number', 'like', $likeSearch)
+                                ->orWhere('border_number', 'like', $likeSearch);
+                        });
+                    });
+                });
+                break;
+
+            case 'passport':
+                $query->where(function ($query) use ($likeSearch) {
+                    $query->whereHas('maid', function ($maidQuery) use ($likeSearch) {
+                        $maidQuery->where('passport_num', 'like', $likeSearch);
+                    })->orWhereHas('info', function ($infoQuery) use ($likeSearch) {
+                        $infoQuery->where('manual_maid_passport_num', 'like', $likeSearch);
+                    });
+                });
+                break;
+
+            case 'musaned':
+                $query->where(function ($query) use ($likeSearch) {
+                    if (Schema::hasColumn('contracts', 'msaned_number')) {
+                        $query->where('msaned_number', 'like', $likeSearch)
+                            ->orWhereHas('info', function ($infoQuery) use ($likeSearch) {
+                                $infoQuery->where('msaned_number', 'like', $likeSearch);
+                            });
+                    } else {
+                        $query->whereHas('info', function ($infoQuery) use ($likeSearch) {
+                            $infoQuery->where('msaned_number', 'like', $likeSearch);
+                        });
+                    }
+                });
+                break;
+        }
+    }
+
+    private function findShelterSearchCandidate(string $contractNumber, string $searchTerm, string $searchType = ''): ?Contract
     {
         $query = Contract::query()
             ->with(['maid.nationality.translations', 'info', 'user', 'travelHistory']);
 
-        if ($contractNumber !== '' || ctype_digit($searchTerm)) {
+        if ($contractNumber !== '') {
             $contract = (clone $query)->whereKey((int) ($contractNumber ?: $searchTerm))->first();
+            if ($contract) {
+                return $contract;
+            }
+        }
+
+        if ($searchType !== '') {
+            $this->applyShelterSearchType($query, $searchType, $searchTerm);
+
+            return $query->first();
+        }
+
+        if (ctype_digit($searchTerm)) {
+            $contract = (clone $query)->whereKey((int) $searchTerm)->first();
             if ($contract) {
                 return $contract;
             }

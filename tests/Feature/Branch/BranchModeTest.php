@@ -301,8 +301,9 @@ class BranchModeTest extends TestCase
     }
 
     /** @test */
-    public function on_legacy_records_without_a_branch_remain_visible(): void
+    public function on_records_without_a_branch_are_hidden_from_branch_users(): void
     {
+        $this->makeBranch(['is_main' => true]);
         $own = $this->makeBranch();
         $legacy = $this->makeRequestFor(null, 'FR-LEGACY-' . uniqid());
 
@@ -311,7 +312,7 @@ class BranchModeTest extends TestCase
 
         $this->get(route('financial-requests.index'))
             ->assertOk()
-            ->assertSee($legacy->request_no, false);
+            ->assertDontSee($legacy->request_no, false);
     }
 
     // ---------------------------------------------------------------- records are guarded

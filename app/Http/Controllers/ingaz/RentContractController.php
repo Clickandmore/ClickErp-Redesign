@@ -1863,9 +1863,7 @@ class RentContractController extends Controller
             if ($request->marketer_id) {
                 $query->where('marketer_id', $request->marketer_id);
             }
-            if ($this->branchesEnabledFor('rental_contracts') && $request->filled('branch_id')) {
-                $query->where('branch_id', $request->branch_id);
-            }
+            $this->applyRequestBranchFilter($query, $request, 'rental_contracts');
             if ($request->client_phone) {
                 $phone = $request->client_phone;
                 $query->whereHas('user', function ($userQuery) use ($phone) {
@@ -2024,9 +2022,7 @@ class RentContractController extends Controller
             $query->where('marketer_id', $request->marketer_id);
         }
 
-        if ($this->branchesEnabledFor('rental_contracts') && $request->filled('branch_id')) {
-            $query->where('branch_id', $request->branch_id);
-        }
+        $this->applyRequestBranchFilter($query, $request, 'rental_contracts');
 
         if ($request->filled('client_phone')) {
             $phone = $request->client_phone;

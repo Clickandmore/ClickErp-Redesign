@@ -156,7 +156,11 @@ class UserController extends Controller
             }
 
             if ($branchesEnabled && $canViewAllBranches && $request->filled('branch_id')) {
-                $units->where('branch_id', $request->get('branch_id'));
+                app(\App\Services\BranchAccessService::class)->applyBranchIdToQuery(
+                    $units,
+                    (int) $request->get('branch_id'),
+                    'users'
+                );
             }
 
             if ($request->filled('has_orders')) {
@@ -519,9 +523,11 @@ class UserController extends Controller
         $cities = \App\Models\City::active()->ordered()->get();
         $branchesEnabled = $this->branchesEnabled();
         $canViewAllBranches = $this->canViewAllClientBranches();
-        $branches = $branchesEnabled
-            ? Branch::query()->active()->ordered()->get(['id', 'name_ar', 'name_en', 'is_main'])
-            : collect();
+        $branches = !$branchesEnabled
+            ? collect()
+            : ($canViewAllBranches
+                ? Branch::query()->active()->ordered()->get(['id', 'name_ar', 'name_en', 'is_main'])
+                : app(\App\Services\BranchAccessService::class)->selectorBranches());
         $defaultBranch = $branchesEnabled
             ? ($branches->firstWhere('is_main', true) ?: $branches->first())
             : null;
@@ -573,7 +579,9 @@ class UserController extends Controller
         ];
 
         if ($this->branchesEnabled()) {
-            $rules['branch_id'] = 'required|exists:branches,id';
+            $rules['branch_id'] = $this->canViewAllClientBranches()
+                ? 'required|exists:branches,id'
+                : 'nullable|exists:branches,id';
         }
 
         $data = $request->validate($rules, [
@@ -619,7 +627,13 @@ class UserController extends Controller
         $data = $this->normalizeClientTypeData($data);
 
         if ($this->branchesEnabled()) {
-            $data['branch_id'] = $this->mainBranchId() ?: ($data['branch_id'] ?? null);
+            if ($this->canViewAllClientBranches()) {
+                $data['branch_id'] = (int) $data['branch_id'];
+            } else {
+                $data['branch_id'] = app(\App\Services\BranchAccessService::class)->adminBranchId();
+
+                abort_unless($data['branch_id'], 403, __('ingaz.permission_denied_add_client'));
+            }
         }
 
         return DB::transaction(function () use ($data) {
@@ -1225,8 +1239,8 @@ class UserController extends Controller
     private function canViewAllClientBranches(): bool
     {
         return !$this->branchesEnabled()
-            || @AdminGuardHasPerm(\App\PermKeys::CLIENTS_VIEW_ALL_BRANCHES)
-            || @AdminGuardHasPerm(\App\PermKeys::BRANCHES_CONTROL);
+            || @AdminGuardHasPerm(\App\PermKeys::BRANCHES_VIEW_ALL)
+            || @AdminGuardHasPerm(\App\PermKeys::CLIENTS_VIEW_ALL_BRANCHES);
     }
 
     private function applyBranchScope($query): void
@@ -1238,7 +1252,8 @@ class UserController extends Controller
         $branchId = Auth::guard('admin')->user()?->branch_id;
 
         if ($branchId) {
-            $query->where('branch_id', $branchId);
+            app(\App\Services\BranchAccessService::class)
+                ->applyBranchIdToQuery($query, (int) $branchId, 'users');
             return;
         }
 

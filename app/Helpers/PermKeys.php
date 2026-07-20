@@ -271,6 +271,7 @@ const PARTENR_CONTROL = 'partenr_control';
     const BRANCHES_EDIT = 'branches_edit';
     const BRANCHES_DELETE = 'branches_delete';
     const BRANCHES_CONTROL = 'branches_control';
+    const BRANCHES_VIEW_ALL = 'branches_view_all';
 
     // ========================================
     // إدارة المستخدمين
