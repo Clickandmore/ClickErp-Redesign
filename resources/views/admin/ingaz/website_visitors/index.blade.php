@@ -55,8 +55,15 @@
     .detail-chat-messages{height:270px;overflow:auto;padding:15px}.detail-chat-row{display:flex;margin-bottom:9px}.detail-chat-row.visitor{justify-content:flex-start}.detail-chat-row.admin{justify-content:flex-end}.detail-chat-bubble{max-width:82%;padding:8px 11px;border-radius:12px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px}.detail-chat-row.visitor .detail-chat-bubble{background:#202838}.detail-chat-row.admin .detail-chat-bubble{background:#277ccd;color:#fff}
     .detail-chat-form{display:flex;gap:8px;padding:12px;border-top:1px solid #252e3d}.detail-chat-input{background:#151c29!important;border-color:#303a4d!important;color:#fff!important}
     .proactive-btn{background:#2e85d5;border:0;color:#fff;border-radius:8px;padding:10px 16px}
-    @media(max-width:991px){.visitors-layout{grid-template-columns:1fr}.visitors-sidebar{border-left:0;border-bottom:1px solid rgba(255,255,255,.08)}.visitor-legend{display:flex;gap:15px;flex-wrap:wrap}.visitors-stage{min-height:650px}.detail-lower{grid-template-columns:1fr}}
-    @media(max-width:575px){.visitors-page{border-radius:12px}.visitors-toolbar{align-items:flex-start}.visitors-layout{min-height:600px}.visitors-stage{min-height:580px}.radar{width:95%}.visitor-tag{display:none}.detail-grid{grid-template-columns:repeat(2,1fr)}.visitor-detail-body{padding:12px}}
+    .tracking-panel{min-height:700px;padding:28px;background:#0f141f}.tracking-hero{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:24px;border:1px solid #273247;border-radius:18px;background:linear-gradient(135deg,#182338,#101722);margin-bottom:22px}.tracking-hero-icon{width:62px;height:62px;border-radius:16px;display:flex;align-items:center;justify-content:center;background:rgba(52,127,239,.15);color:#5d9cff;font-size:25px}.tracking-hero-copy{display:flex;align-items:center;gap:16px}.tracking-hero h4{margin:0;color:#fff}.tracking-hero p{margin:6px 0 0;color:#929db0}
+    .tracking-summary{display:flex;gap:12px}.tracking-summary-item{min-width:105px;padding:12px 16px;border-radius:13px;background:#0d1420;border:1px solid #263247;text-align:center}.tracking-summary-item strong{display:block;font-size:22px;color:#fff}.tracking-summary-item span{font-size:11px;color:#8995a9}
+    .tracking-create{padding:20px;border:1px solid #293449;border-radius:16px;background:#131a27;margin-bottom:24px}.tracking-section-title{display:flex;align-items:center;gap:10px;color:#fff;margin-bottom:17px}.tracking-section-title i{color:#53b8d7}
+    .tracking-form .form-control,.tracking-form .form-select{background:#0e1521;border-color:#303c51;color:#fff}.tracking-form .form-control::placeholder{color:#657187}.tracking-form .form-label{color:#aeb8c8;font-size:12px;margin-bottom:6px}
+    .tracking-sites-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.tracking-site-card{background:#131a27;border:1px solid #28354a;border-radius:18px;overflow:hidden;box-shadow:0 12px 25px rgba(0,0,0,.12)}.tracking-site-head{display:flex;align-items:center;gap:12px;padding:17px 18px;border-bottom:1px solid #273247}.tracking-site-logo{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:#1c2a40;color:#61a1ff}.tracking-site-title{min-width:0;flex:1}.tracking-site-title strong{display:block;color:#fff}.tracking-site-title small{color:#7f8ba0}.tracking-status{padding:5px 9px;border-radius:20px;font-size:11px}.tracking-status.active{background:rgba(45,204,113,.13);color:#43db83}.tracking-status.inactive{background:rgba(143,154,173,.13);color:#929cad}
+    .tracking-site-body{padding:18px}.domain-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:15px}.domain-chip{direction:ltr;padding:5px 9px;border-radius:8px;background:#0e1521;border:1px solid #2a374c;color:#aeb9ca;font-size:11px}.embed-label{display:flex;justify-content:space-between;color:#8894a8;font-size:11px;margin-bottom:7px}.embed-code-wrap{position:relative}.embed-code{width:100%;min-height:78px;padding:12px 13px 44px!important;border:1px solid #2d3b51!important;border-radius:12px!important;background:#0a1019!important;color:#7fd7e6!important;direction:ltr;text-align:left;font-family:monospace;font-size:11px;resize:none}.copy-embed-code{position:absolute;bottom:8px;left:8px;border-radius:8px}
+    .tracking-config{border-top:1px solid #273247}.tracking-config summary{padding:13px 18px;color:#93a0b4;cursor:pointer;list-style:none}.tracking-config summary::-webkit-details-marker{display:none}.tracking-config summary:after{content:"⌄";float:left}.tracking-config[open] summary:after{content:"⌃"}.tracking-config-form{padding:5px 18px 18px}.tracking-danger{padding:0 18px 16px}.tracking-empty{grid-column:1/-1;padding:55px 20px;text-align:center;border:1px dashed #31405a;border-radius:18px;color:#7f8ba0}.tracking-empty i{display:block;font-size:42px;margin-bottom:13px;color:#3f526d}
+    @media(max-width:991px){.visitors-layout{grid-template-columns:1fr}.visitors-sidebar{border-left:0;border-bottom:1px solid rgba(255,255,255,.08)}.visitor-legend{display:flex;gap:15px;flex-wrap:wrap}.visitors-stage{min-height:650px}.detail-lower{grid-template-columns:1fr}.tracking-sites-grid{grid-template-columns:1fr}.tracking-hero{align-items:flex-start;flex-direction:column}}
+    @media(max-width:575px){.visitors-page{border-radius:12px}.visitors-toolbar{align-items:flex-start}.visitors-layout{min-height:600px}.visitors-stage{min-height:580px}.radar{width:95%}.visitor-tag{display:none}.detail-grid{grid-template-columns:repeat(2,1fr)}.visitor-detail-body{padding:12px}.tracking-panel{padding:15px}.tracking-summary{width:100%;flex-wrap:wrap}.tracking-summary-item{flex:1}.tracking-hero-copy{align-items:flex-start}.tracking-create{padding:15px}}
 </style>
 @endsection
 
@@ -66,21 +73,22 @@
         <div class="visitors-page">
             <div class="visitors-toolbar">
                 <div>
-                    <h3 class="mb-1"><i class="fas fa-satellite-dish me-2 text-info"></i>زوار الموقع المباشرون</h3>
-                    <div class="text-muted small">مراقبة حركة الزوار وبدء المحادثات في الوقت الفعلي</div>
+                    <h3 class="mb-1" id="visitorSectionTitle"><i class="fas fa-satellite-dish me-2 text-info"></i>زوار الموقع المباشرون</h3>
+                    <div class="text-muted small" id="visitorSectionSubtitle">مراقبة حركة الزوار وبدء المحادثات في الوقت الفعلي</div>
                 </div>
                 <div class="visitors-actions">
-                    <button class="visitors-sound-btn" id="visitorSoundButton"><i class="fas fa-volume-mute me-1"></i><span>تفعيل صوت الدخول</span></button>
-                    <button class="visitors-icon-btn active" id="radarViewButton" title="العرض الدائري"><i class="fas fa-bullseye"></i></button>
-                    <button class="visitors-icon-btn" id="listViewButton" title="عرض القائمة"><i class="fas fa-list"></i></button>
+                    <button class="visitors-sound-btn" id="visitorSoundButton" data-live-action><i class="fas fa-volume-mute me-1"></i><span>تفعيل صوت الدخول</span></button>
+                    <button class="visitors-icon-btn active" id="radarViewButton" data-live-action title="العرض الدائري"><i class="fas fa-bullseye"></i></button>
+                    <button class="visitors-icon-btn" id="listViewButton" data-live-action title="عرض القائمة"><i class="fas fa-list"></i></button>
                     <button class="visitors-icon-btn" id="refreshVisitorsButton" title="تحديث"><i class="fas fa-sync-alt"></i></button>
                 </div>
             </div>
 
             <div class="visitor-tabs">
-                <button class="visitor-tab active" data-panel="liveVisitorsPanel"><i class="fas fa-circle text-success"></i>الزوار المباشرون <span class="badge bg-primary ms-1" id="liveTabCount">0</span></button>
-                <button class="visitor-tab" data-panel="visitsHistoryPanel"><i class="fas fa-history"></i>سجل الزيارات</button>
-                <button class="visitor-tab" data-panel="conversationsPanel"><i class="fas fa-comments"></i>سجل الدردشات</button>
+                <button class="visitor-tab active" data-panel="liveVisitorsPanel" data-tab-name="live"><i class="fas fa-circle text-success"></i>الزوار المباشرون <span class="badge bg-primary ms-1" id="liveTabCount">0</span></button>
+                <button class="visitor-tab" data-panel="visitsHistoryPanel" data-tab-name="history"><i class="fas fa-history"></i>سجل الزيارات</button>
+                <button class="visitor-tab" data-panel="conversationsPanel" data-tab-name="messages"><i class="fas fa-inbox"></i>إدارة الرسائل</button>
+                <button class="visitor-tab" data-panel="trackingCodesPanel" data-tab-name="tracking"><i class="fas fa-code"></i>أكواد التتبع <span class="badge bg-secondary ms-1">{{ $sites->count() }}</span></button>
             </div>
 
             <div class="visitor-tab-panel active" id="liveVisitorsPanel">
@@ -142,14 +150,97 @@
 
             <div class="visitor-tab-panel records-panel" id="conversationsPanel">
                 <div class="records-header">
-                    <div><h4 class="records-title">سجل الدردشات</h4><div class="text-muted small mt-1">المحادثات السابقة والرسائل المرتبطة بكل زائر</div></div>
-                    <input class="form-control records-input" id="conversationSearch" style="max-width:300px" placeholder="بحث في الزوار">
+                    <div><h4 class="records-title">إدارة الرسائل</h4><div class="text-muted small mt-1">صندوق مستقل لمتابعة محادثات المواقع والرد على العملاء</div></div>
+                    <input class="form-control records-input" id="conversationSearch" style="max-width:300px" placeholder="بحث في المحادثات">
                 </div>
                 <div class="records-table-wrap table-responsive">
                     <table class="table records-table align-middle">
-                        <thead><tr><th>الزائر</th><th>الحالة</th><th>آخر رسالة</th><th>مرسل الرسالة</th><th>عدد الرسائل</th><th>آخر تحديث</th><th></th></tr></thead>
-                        <tbody id="conversationsBody"><tr><td colspan="7" class="text-center py-5">جاري تحميل الدردشات...</td></tr></tbody>
+                        <thead><tr><th>المحادثة</th><th>الموقع</th><th>الحالة</th><th>آخر رسالة</th><th>مرسل الرسالة</th><th>الرسائل</th><th>آخر تحديث</th><th></th></tr></thead>
+                        <tbody id="conversationsBody"><tr><td colspan="8" class="text-center py-5">جاري تحميل الرسائل...</td></tr></tbody>
                     </table>
+                </div>
+            </div>
+
+            <div class="visitor-tab-panel tracking-panel" id="trackingCodesPanel">
+                <div class="tracking-hero">
+                    <div class="tracking-hero-copy">
+                        <div class="tracking-hero-icon"><i class="fas fa-code"></i></div>
+                        <div><h4>إدارة أكواد التتبع</h4><p>كود مستقل وآمن لكل موقع، مع تخصيص نافذة المحادثة والنطاقات المسموحة.</p></div>
+                    </div>
+                    <div class="tracking-summary">
+                        <div class="tracking-summary-item"><strong>{{ $sites->count() }}</strong><span>إجمالي المواقع</span></div>
+                        <div class="tracking-summary-item"><strong>{{ $sites->where('is_active', true)->count() }}</strong><span>أكواد فعالة</span></div>
+                        <div class="tracking-summary-item"><strong>{{ $sites->sum('visitors_count') }}</strong><span>زوار خارجيون</span></div>
+                    </div>
+                </div>
+
+                @if($errors->any())
+                    <div class="alert alert-danger">{{ $errors->first() }}</div>
+                @endif
+
+                <div class="tracking-create">
+                    <div class="tracking-section-title"><i class="fas fa-plus-circle"></i><strong>إضافة موقع جديد</strong></div>
+                    <form class="tracking-form" method="POST" action="{{ route('website-visitors.sites.store', ['tab' => 'tracking']) }}">
+                        @csrf
+                        <div class="row g-3">
+                            <div class="col-md-4"><label class="form-label">اسم الموقع</label><input class="form-control" name="name" value="{{ old('name') }}" required placeholder="مثال: الموقع الرئيسي"></div>
+                            <div class="col-md-8"><label class="form-label">النطاقات المسموحة</label><input class="form-control" name="allowed_domains" value="{{ old('allowed_domains') }}" required placeholder="example.com, www.example.com, *.example.com"></div>
+                            <div class="col-md-4"><label class="form-label">عنوان نافذة المحادثة</label><input class="form-control" name="widget_title" value="{{ old('widget_title', 'تحدث معنا') }}" required></div>
+                            <div class="col-md-4"><label class="form-label">رسالة الترحيب</label><input class="form-control" name="welcome_message" value="{{ old('welcome_message', 'مرحبًا، كيف يمكننا مساعدتك؟') }}"></div>
+                            <div class="col-md-2"><label class="form-label">اللون</label><input class="form-control form-control-color w-100" type="color" name="primary_color" value="{{ old('primary_color', '#277ccd') }}"></div>
+                            <div class="col-md-2"><label class="form-label">موضع الأيقونة</label><select class="form-select" name="position"><option value="right">يمين</option><option value="left">يسار</option></select></div>
+                            <div class="col-12 d-flex justify-content-between align-items-center">
+                                <label class="text-light"><input type="hidden" name="is_active" value="0"><input class="form-check-input" type="checkbox" name="is_active" value="1" checked> تفعيل الكود مباشرة</label>
+                                <button class="btn btn-primary px-4" type="submit"><i class="fas fa-plus me-1"></i>إنشاء كود التتبع</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="tracking-section-title"><i class="fas fa-layer-group"></i><strong>المواقع المربوطة</strong></div>
+                <div class="tracking-sites-grid">
+                    @forelse($sites as $site)
+                        <article class="tracking-site-card">
+                            <div class="tracking-site-head">
+                                <div class="tracking-site-logo"><i class="fas fa-globe"></i></div>
+                                <div class="tracking-site-title"><strong>{{ $site->name }}</strong><small>{{ $site->visitors_count }} زائر مسجل</small></div>
+                                <span class="tracking-status {{ $site->is_active ? 'active' : 'inactive' }}"><i class="fas fa-circle me-1"></i>{{ $site->is_active ? 'فعال' : 'متوقف' }}</span>
+                            </div>
+                            <div class="tracking-site-body">
+                                <div class="domain-chips">
+                                    @foreach($site->allowed_domains ?? [] as $domain)
+                                        <span class="domain-chip">{{ $domain }}</span>
+                                    @endforeach
+                                </div>
+                                <div class="embed-label"><span>كود التثبيت</span><span>ضعه قبل &lt;/body&gt;</span></div>
+                                <div class="embed-code-wrap">
+                                    <textarea class="embed-code" id="embedCode{{ $site->id }}" readonly>{{ $site->embedCode() }}</textarea>
+                                    <button class="btn btn-sm btn-outline-info copy-embed-code" type="button" data-target="embedCode{{ $site->id }}"><i class="far fa-copy"></i> نسخ الكود</button>
+                                </div>
+                            </div>
+                            <details class="tracking-config">
+                                <summary><i class="fas fa-sliders-h me-2"></i>تعديل إعدادات الموقع والواجهة</summary>
+                                <form class="tracking-form tracking-config-form" method="POST" action="{{ route('website-visitors.sites.update', ['site' => $site, 'tab' => 'tracking']) }}">
+                                    @csrf @method('PUT')
+                                    <div class="row g-3">
+                                        <div class="col-md-4"><label class="form-label">اسم الموقع</label><input class="form-control" name="name" value="{{ $site->name }}" required></div>
+                                        <div class="col-md-8"><label class="form-label">النطاقات</label><input class="form-control" name="allowed_domains" value="{{ implode(', ', $site->allowed_domains ?? []) }}" required></div>
+                                        <div class="col-md-4"><label class="form-label">عنوان المحادثة</label><input class="form-control" name="widget_title" value="{{ $site->widget_title }}" required></div>
+                                        <div class="col-md-4"><label class="form-label">رسالة الترحيب</label><input class="form-control" name="welcome_message" value="{{ $site->welcome_message }}"></div>
+                                        <div class="col-md-2"><label class="form-label">اللون</label><input class="form-control form-control-color w-100" type="color" name="primary_color" value="{{ $site->primary_color }}"></div>
+                                        <div class="col-md-2"><label class="form-label">الموضع</label><select class="form-select" name="position"><option value="right" @selected($site->position === 'right')>يمين</option><option value="left" @selected($site->position === 'left')>يسار</option></select></div>
+                                        <div class="col-12 d-flex justify-content-between align-items-center"><label class="text-light"><input type="hidden" name="is_active" value="0"><input class="form-check-input" type="checkbox" name="is_active" value="1" @checked($site->is_active)> الكود فعال</label><button class="btn btn-outline-primary" type="submit">حفظ التعديلات</button></div>
+                                    </div>
+                                </form>
+                                <form method="POST" action="{{ route('website-visitors.sites.destroy', ['site' => $site, 'tab' => 'tracking']) }}" class="tracking-danger" onsubmit="return confirm('حذف هذا الكود وإيقافه نهائيًا؟')">
+                                    @csrf @method('DELETE')
+                                    <button class="btn btn-sm btn-outline-danger" type="submit"><i class="far fa-trash-alt"></i> حذف الكود</button>
+                                </form>
+                            </details>
+                        </article>
+                    @empty
+                        <div class="tracking-empty"><i class="fas fa-code"></i>لا توجد مواقع مربوطة حتى الآن.<br><small>استخدم النموذج بالأعلى لإنشاء أول كود تتبع.</small></div>
+                    @endforelse
                 </div>
             </div>
         </div>
@@ -197,7 +288,7 @@
                     <div class="detail-panel">
                         <div class="detail-panel-title d-flex justify-content-between align-items-center">
                             <span><i class="fas fa-comments me-2 text-primary"></i>سجل المحادثة</span>
-                            <span class="badge bg-secondary">الدردشة مخفية عن الموقع</span>
+                            <span class="badge bg-secondary" id="detailChatState">الدردشة مخفية عن الموقع</span>
                         </div>
                         <div class="detail-chat-messages" id="detailChatMessages"></div>
                         <form class="detail-chat-form d-none" id="detailChatForm">
@@ -210,6 +301,7 @@
         </div>
     </div>
 </div>
+
 @endsection
 
 @section('js')
@@ -262,6 +354,19 @@
         button.toggleClass('enabled', soundEnabled);
         button.find('i').attr('class', soundEnabled ? 'fas fa-volume-up me-1' : 'fas fa-volume-mute me-1');
         button.find('span').text(soundEnabled ? 'صوت الدخول مفعّل' : 'تفعيل صوت الدخول');
+    }
+
+    function updateSectionChrome(panel) {
+        const sections = {
+            liveVisitorsPanel: ['fas fa-satellite-dish', 'زوار الموقع المباشرون', 'مراقبة حركة الزوار وبدء المحادثات في الوقت الفعلي'],
+            visitsHistoryPanel: ['fas fa-history', 'سجل الزيارات', 'مراجعة مصادر الزيارات والصفحات والأجهزة المسجلة'],
+            conversationsPanel: ['fas fa-inbox', 'إدارة الرسائل', 'صندوق مستقل لمتابعة محادثات العملاء والرد عليها'],
+            trackingCodesPanel: ['fas fa-code', 'أكواد التتبع', 'إدارة المواقع المربوطة وتخصيص نافذة المحادثة']
+        };
+        const section = sections[panel] || sections.liveVisitorsPanel;
+        $('#visitorSectionTitle').html('<i class="' + section[0] + ' me-2 text-info"></i>' + section[1]);
+        $('#visitorSectionSubtitle').text(section[2]);
+        $('[data-live-action]').toggle(panel === 'liveVisitorsPanel');
     }
 
     function playVisitorSound() {
@@ -396,19 +501,21 @@
     }
 
     function loadConversations() {
-        $('#conversationsBody').html('<tr><td colspan="7" class="text-center py-5">جاري تحميل الدردشات...</td></tr>');
+        $('#conversationsBody').html('<tr><td colspan="8" class="text-center py-5">جاري تحميل الرسائل...</td></tr>');
         $.getJSON(conversationsUrl, {search: $('#conversationSearch').val().trim()}).done(function (data) {
             const conversations = data.conversations || [];
             $('#conversationsBody').html(conversations.length ? conversations.map(function (conversation) {
                 return '<tr><td><strong>' + escapeText(conversation.label) + '</strong>' +
                     (conversation.phone ? '<div class="small text-muted">' + escapeText(conversation.phone) + '</div>' : '') + '</td>' +
+                    '<td><span class="badge bg-dark">' + escapeText(conversation.site_name) + '</span></td>' +
                     '<td>' + statusBadge(conversation.online) + '</td>' +
                     '<td><div class="text-truncate" style="max-width:330px">' + escapeText(conversation.last_message || '-') + '</div></td>' +
                     '<td>' + (conversation.last_sender === 'admin' ? 'الموظف' : 'الزائر') + '</td>' +
-                    '<td><span class="badge bg-primary">' + conversation.messages_count + '</span></td>' +
+                    '<td><span class="badge bg-primary">' + conversation.messages_count + '</span>' +
+                    (conversation.unread_messages_count ? ' <span class="badge bg-danger">' + conversation.unread_messages_count + ' جديد</span>' : '') + '</td>' +
                     '<td>' + escapeText(fullDate(conversation.last_message_at)) + '</td>' +
                     '<td><button class="btn btn-primary btn-sm open-visitor-detail" data-id="' + conversation.id + '">فتح السجل</button></td></tr>';
-            }).join('') : '<tr><td colspan="7" class="text-center text-muted py-5">لا توجد دردشات مسجلة</td></tr>');
+            }).join('') : '<tr><td colspan="8" class="text-center text-muted py-5">لا توجد رسائل مسجلة</td></tr>');
         });
     }
 
@@ -441,6 +548,7 @@
             $('#detailLeadScore').text(visitor.lead_score + '%');
             $('#detailVisitorTags').html(
                 '<span class="detail-tag"><i class="fas fa-circle text-success"></i>' + (visitor.online ? 'متصل الآن' : 'غير متصل') + '</span>' +
+                '<span class="detail-tag"><i class="fas fa-globe"></i>' + escapeText(visitor.site_name) + '</span>' +
                 '<span class="detail-tag"><i class="fas fa-language"></i>' + escapeText(visitor.locale) + '</span>' +
                 '<span class="detail-tag"><i class="fas fa-tv"></i>' + escapeText(visitor.screen) + '</span>' +
                 '<span class="detail-tag"><i class="fas fa-clock"></i>' + escapeText(visitor.timezone) + '</span>'
@@ -453,6 +561,11 @@
             $('#detailIpAddress').text(visitor.ip_address || '-');
             $('#detailSource').text(visitor.source || 'دخول مباشر');
             $('#detailPageCount').text(visitor.page_views_count);
+            $('#detailChatForm').toggleClass('d-none', !visitor.chat_available);
+            $('#detailChatState')
+                .toggleClass('bg-secondary', !visitor.chat_available)
+                .toggleClass('bg-success', visitor.chat_available)
+                .text(visitor.chat_available ? 'المحادثة ظاهرة للزائر' : 'الدردشة مخفية عن الموقع');
 
             const views = data.page_views || [];
             $('#visitorTimeline').html(views.length ? views.map(function (view) {
@@ -492,6 +605,36 @@
     });
 
     $('#focusVisitorChat').on('click', function () { $('#detailChatInput').trigger('focus'); });
+    $('.copy-embed-code').on('click', function () {
+        const button = $(this);
+        const field = document.getElementById(button.data('target'));
+        const copied = navigator.clipboard && window.isSecureContext
+            ? navigator.clipboard.writeText(field.value)
+            : new Promise(function (resolve) {
+                field.select();
+                document.execCommand('copy');
+                resolve();
+            });
+        copied.then(function () {
+            button.html('<i class="fas fa-check"></i> تم النسخ');
+            window.setTimeout(function () { button.html('<i class="far fa-copy"></i> نسخ الكود'); }, 1600);
+        });
+    });
+    const requestedTab = new URLSearchParams(window.location.search).get('tab');
+    if (requestedTab === 'tracking' || @json($errors->any())) {
+        $('.visitor-tab').removeClass('active');
+        $('.visitor-tab-panel').removeClass('active');
+        $('.visitor-tab[data-tab-name="tracking"]').addClass('active');
+        $('#trackingCodesPanel').addClass('active');
+        updateSectionChrome('trackingCodesPanel');
+    } else if (requestedTab === 'messages') {
+        $('.visitor-tab').removeClass('active');
+        $('.visitor-tab-panel').removeClass('active');
+        $('.visitor-tab[data-tab-name="messages"]').addClass('active');
+        $('#conversationsPanel').addClass('active');
+        updateSectionChrome('conversationsPanel');
+        loadConversations();
+    }
     $('#visitorSearch').on('input', renderVisitors);
     $('#refreshVisitorsButton').on('click', function () {
         loadVisitors();
@@ -510,6 +653,12 @@
         $(this).addClass('active');
         $('.visitor-tab-panel').removeClass('active');
         $('#' + panel).addClass('active');
+        updateSectionChrome(panel);
+        const tabName = $(this).data('tab-name');
+        const url = new URL(window.location.href);
+        if (tabName === 'live') url.searchParams.delete('tab');
+        else url.searchParams.set('tab', tabName);
+        window.history.replaceState({}, '', url);
         if (panel === 'visitsHistoryPanel') loadHistory();
         if (panel === 'conversationsPanel') loadConversations();
     });
@@ -532,6 +681,7 @@
     });
 
     updateSoundButton();
+    if (!requestedTab) updateSectionChrome('liveVisitorsPanel');
     loadVisitors();
     window.setInterval(loadVisitors, 5000);
     window.setInterval(function () {

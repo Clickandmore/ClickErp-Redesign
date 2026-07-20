@@ -226,6 +226,9 @@ Route::group(
             Route::get('website-visitors/data', [WebsiteVisitorChatController::class, 'data'])->name('website-visitors.data');
             Route::get('website-visitors/history', [WebsiteVisitorChatController::class, 'history'])->name('website-visitors.history');
             Route::get('website-visitors/conversations', [WebsiteVisitorChatController::class, 'conversations'])->name('website-visitors.conversations');
+            Route::post('website-visitors/sites', [WebsiteVisitorChatController::class, 'storeSite'])->name('website-visitors.sites.store');
+            Route::put('website-visitors/sites/{site}', [WebsiteVisitorChatController::class, 'updateSite'])->name('website-visitors.sites.update');
+            Route::delete('website-visitors/sites/{site}', [WebsiteVisitorChatController::class, 'destroySite'])->name('website-visitors.sites.destroy');
             Route::get('website-visitors/{visitor}', [WebsiteVisitorChatController::class, 'show'])->name('website-visitors.show');
             Route::get('website-visitors/{visitor}/messages', [WebsiteVisitorChatController::class, 'messages'])->name('website-visitors.messages');
             Route::post('website-visitors/{visitor}/messages', [WebsiteVisitorChatController::class, 'send'])->name('website-visitors.send');

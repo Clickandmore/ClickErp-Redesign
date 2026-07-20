@@ -9,6 +9,7 @@ class WebsiteVisitor extends Model
 {
     protected $fillable = [
         'token',
+        'website_visitor_site_id',
         'user_id',
         'ip_address',
         'user_agent',
@@ -34,6 +35,11 @@ class WebsiteVisitor extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function site()
+    {
+        return $this->belongsTo(WebsiteVisitorSite::class, 'website_visitor_site_id');
     }
 
     public function messages()

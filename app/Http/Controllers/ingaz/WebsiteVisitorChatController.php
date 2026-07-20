@@ -4,7 +4,9 @@ namespace App\Http\Controllers\ingaz;
 
 use App\Http\Controllers\Controller;
 use App\Models\WebsiteVisitor;
+use App\Models\WebsiteVisitorSite;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class WebsiteVisitorChatController extends Controller
 {
@@ -12,7 +14,39 @@ class WebsiteVisitorChatController extends Controller
 
     public function index()
     {
-        return view('admin.ingaz.website_visitors.index');
+        $sites = WebsiteVisitorSite::query()
+            ->withCount('visitors')
+            ->latest()
+            ->get();
+
+        return view('admin.ingaz.website_visitors.index', compact('sites'));
+    }
+
+    public function storeSite(Request $request)
+    {
+        $site = WebsiteVisitorSite::create($this->siteData($request));
+
+        return redirect()
+            ->route('website-visitors.index', ['tab' => 'tracking'])
+            ->with('success', 'تم إنشاء كود التتبع لموقع ' . $site->name);
+    }
+
+    public function updateSite(Request $request, WebsiteVisitorSite $site)
+    {
+        $site->update($this->siteData($request));
+
+        return redirect()
+            ->route('website-visitors.index', ['tab' => 'tracking'])
+            ->with('success', 'تم تحديث إعدادات كود التتبع.');
+    }
+
+    public function destroySite(WebsiteVisitorSite $site)
+    {
+        $site->delete();
+
+        return redirect()
+            ->route('website-visitors.index', ['tab' => 'tracking'])
+            ->with('success', 'تم حذف كود التتبع. بقي سجل الزيارات محفوظًا.');
     }
 
     public function data()
@@ -20,7 +54,7 @@ class WebsiteVisitorChatController extends Controller
         $onlineSince = now()->subSeconds(self::ONLINE_SECONDS);
 
         $visitors = WebsiteVisitor::query()
-            ->with('user:id,name,phone,email')
+            ->with(['user:id,name,phone,email', 'site:id,name'])
             ->withCount(['pageViews', 'messages'])
             ->withCount([
                 'messages as unread_messages_count' => fn ($query) => $query
@@ -50,6 +84,8 @@ class WebsiteVisitorChatController extends Controller
                     'last_seen_at' => optional($visitor->last_seen_at)->toIso8601String(),
                     'unread_messages_count' => $visitor->unread_messages_count,
                     'conversation_started' => (bool) $visitor->conversation_started_at,
+                    'site_name' => $visitor->site?->name ?: 'موقع ClickERP',
+                    'chat_available' => (bool) $visitor->website_visitor_site_id,
                 ];
             }),
         ]);
@@ -65,7 +101,7 @@ class WebsiteVisitorChatController extends Controller
         $search = trim((string) ($validated['search'] ?? ''));
 
         $visitors = WebsiteVisitor::query()
-            ->with('user:id,name,phone,email')
+            ->with(['user:id,name,phone,email', 'site:id,name'])
             ->withCount(['pageViews', 'messages'])
             ->where('last_seen_at', '>=', now()->subDays($days))
             ->when($search !== '', function ($query) use ($search) {
@@ -95,8 +131,13 @@ class WebsiteVisitorChatController extends Controller
         $search = trim((string) ($validated['search'] ?? ''));
 
         $visitors = WebsiteVisitor::query()
-            ->with(['user:id,name,phone,email', 'latestMessage'])
-            ->withCount('messages')
+            ->with(['user:id,name,phone,email', 'site:id,name', 'latestMessage'])
+            ->withCount([
+                'messages',
+                'messages as unread_messages_count' => fn ($query) => $query
+                    ->where('sender', 'visitor')
+                    ->whereNull('read_at'),
+            ])
             ->whereHas('messages')
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($nested) use ($search) {
@@ -124,10 +165,12 @@ class WebsiteVisitorChatController extends Controller
                     'registered_client' => (bool) $visitor->user_id,
                     'phone' => $visitor->user?->phone,
                     'messages_count' => $visitor->messages_count,
+                    'unread_messages_count' => $visitor->unread_messages_count,
                     'last_message' => $visitor->latestMessage?->body,
                     'last_sender' => $visitor->latestMessage?->sender,
                     'last_message_at' => optional($visitor->latestMessage?->created_at)->toIso8601String(),
                     'online' => $visitor->last_seen_at && $visitor->last_seen_at->gte(now()->subSeconds(self::ONLINE_SECONDS)),
+                    'site_name' => $visitor->site?->name ?: 'موقع ClickERP',
                 ];
             }),
         ]);
@@ -135,7 +178,7 @@ class WebsiteVisitorChatController extends Controller
 
     public function show(WebsiteVisitor $visitor)
     {
-        $visitor->load('user:id,name,phone,email');
+        $visitor->load(['user:id,name,phone,email', 'site:id,name']);
 
         $pageViews = $visitor->pageViews()
             ->latest('visited_at')
@@ -186,6 +229,8 @@ class WebsiteVisitorChatController extends Controller
                 'page_views_count' => $visitor->pageViews()->count(),
                 'messages_count' => $visitor->messages()->count(),
                 'lead_score' => $this->leadScore($visitor),
+                'site_name' => $visitor->site?->name ?: 'موقع ClickERP',
+                'chat_available' => (bool) $visitor->website_visitor_site_id,
             ],
             'page_views' => $pageViews->map(fn ($view) => [
                 'id' => $view->id,
@@ -331,6 +376,55 @@ class WebsiteVisitorChatController extends Controller
             'first_seen_at' => optional($visitor->created_at)->toIso8601String(),
             'last_seen_at' => optional($visitor->last_seen_at)->toIso8601String(),
             'online' => $visitor->last_seen_at && $visitor->last_seen_at->gte(now()->subSeconds(self::ONLINE_SECONDS)),
+            'site_name' => $visitor->site?->name ?: 'موقع ClickERP',
+            'chat_available' => (bool) $visitor->website_visitor_site_id,
+        ];
+    }
+
+    private function siteData(Request $request): array
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:120'],
+            'allowed_domains' => ['required', 'string', 'max:4000'],
+            'widget_title' => ['required', 'string', 'max:120'],
+            'welcome_message' => ['nullable', 'string', 'max:1000'],
+            'primary_color' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
+            'position' => ['required', Rule::in(['right', 'left'])],
+            'is_active' => ['nullable', 'boolean'],
+        ]);
+
+        $domains = collect(preg_split('/[\s,]+/', $validated['allowed_domains']))
+            ->map(function ($domain) {
+                $domain = strtolower(trim((string) $domain));
+                if ($domain === '*') {
+                    return '*';
+                }
+                $wildcard = str_starts_with($domain, '*.');
+                $candidate = $wildcard ? substr($domain, 2) : $domain;
+                if (!str_contains($candidate, '://')) {
+                    $candidate = 'https://' . $candidate;
+                }
+                $host = parse_url($candidate, PHP_URL_HOST);
+
+                return $host ? ($wildcard ? '*.' . strtolower($host) : strtolower($host)) : null;
+            })
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($domains === []) {
+            abort(422, 'يجب إدخال نطاق صحيح واحد على الأقل.');
+        }
+
+        return [
+            'name' => $validated['name'],
+            'allowed_domains' => $domains,
+            'widget_title' => $validated['widget_title'],
+            'welcome_message' => $validated['welcome_message'] ?? null,
+            'primary_color' => strtolower($validated['primary_color']),
+            'position' => $validated['position'],
+            'is_active' => $request->boolean('is_active'),
         ];
     }
 }

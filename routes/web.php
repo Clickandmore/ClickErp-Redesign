@@ -20,6 +20,7 @@ use App\Http\Controllers\Web\RentalContractExpiryReminderController;
 use App\Http\Controllers\Web\ReturnRequestController;
 use App\Http\Controllers\Web\UserAddressController;
 use App\Http\Controllers\Web\VisitorChatController;
+use App\Http\Controllers\Web\VisitorWidgetController;
 use App\Services\Zoho\SalesIqClient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
@@ -79,6 +80,15 @@ Route::prefix('visitor-chat')->middleware('throttle:120,1')->name('visitor-chat.
     Route::get('/messages', [VisitorChatController::class, 'messages'])->name('messages');
     Route::post('/messages', [VisitorChatController::class, 'send'])->name('send');
 });
+
+Route::get('/visitor-widget/{siteKey}.js', [VisitorWidgetController::class, 'script'])
+    ->where('siteKey', '[A-Za-z0-9]{40,64}')
+    ->middleware('throttle:120,1')
+    ->name('visitor-widget.script');
+Route::get('/visitor-widget/{siteKey}/frame', [VisitorWidgetController::class, 'frame'])
+    ->where('siteKey', '[A-Za-z0-9]{40,64}')
+    ->middleware('throttle:240,1')
+    ->name('visitor-widget.frame');
 
 /** END NEW ROUTES */
 Route::get('/zoho/salesiq/oauth/callback', function (Request $request, SalesIqClient $salesIq) {

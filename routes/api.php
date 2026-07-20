@@ -11,6 +11,7 @@ use App\Http\Controllers\APPAPIControllers\AppComplaintController;
 use App\Http\Controllers\APPAPIControllers\RentalOrderPaymentController;
 use App\Http\Middleware\AppApiLang;
 use App\Http\Controllers\Webhook\WhatsAppWebhookController;
+use App\Http\Controllers\Api\ExternalVisitorWidgetController;
 use \Api\ApiSettingController;
 use \Api\ApiUserAddressController;
 use \Api\ApiSliderController;
@@ -55,6 +56,16 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 Route::get('webhooks/whatsapp', [WhatsAppWebhookController::class, 'verify'])->name('api.webhooks.whatsapp.verify');
 Route::post('webhooks/whatsapp', [WhatsAppWebhookController::class, 'receive'])->name('api.webhooks.whatsapp.receive');
+
+Route::prefix('visitor-widget/{siteKey}')
+    ->where(['siteKey' => '[A-Za-z0-9]{40,64}'])
+    ->middleware('throttle:240,1')
+    ->name('api.visitor-widget.')
+    ->group(function () {
+        Route::post('heartbeat', [ExternalVisitorWidgetController::class, 'heartbeat'])->name('heartbeat');
+        Route::get('messages', [ExternalVisitorWidgetController::class, 'messages'])->name('messages');
+        Route::post('messages', [ExternalVisitorWidgetController::class, 'send'])->name('send');
+    });
 
 Route::group(
     [
@@ -226,4 +237,3 @@ Route::group(['middleware' => AppApiLang::class, 'prefix' => 'home'], function (
 });
 
 // *************************************************************************************************************
-
