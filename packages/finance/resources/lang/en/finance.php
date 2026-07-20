@@ -1698,4 +1698,5 @@ return array (
   'rental_contract_bank_account_hint' => 'The debit account used for transfers, Mada, and other bank payments.',
   'rental_contract_electronic_account' => 'Rental Payment Gateway Account',
   'rental_contract_electronic_account_hint' => 'The debit account used for Moyasar, Tabby, Tamara, and electronic wallets.',
+  'all_accounts' => 'All accounts',
 );
