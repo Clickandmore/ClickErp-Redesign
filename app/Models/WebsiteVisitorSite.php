@@ -15,6 +15,8 @@ class WebsiteVisitorSite extends Model
         'welcome_message',
         'primary_color',
         'position',
+        'launcher_mode',
+        'trigger_selector',
         'is_active',
     ];
 

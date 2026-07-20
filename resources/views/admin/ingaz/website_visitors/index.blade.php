@@ -62,6 +62,7 @@
     .tracking-sites-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.tracking-site-card{background:#131a27;border:1px solid #28354a;border-radius:18px;overflow:hidden;box-shadow:0 12px 25px rgba(0,0,0,.12)}.tracking-site-head{display:flex;align-items:center;gap:12px;padding:17px 18px;border-bottom:1px solid #273247}.tracking-site-logo{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:#1c2a40;color:#61a1ff}.tracking-site-title{min-width:0;flex:1}.tracking-site-title strong{display:block;color:#fff}.tracking-site-title small{color:#7f8ba0}.tracking-status{padding:5px 9px;border-radius:20px;font-size:11px}.tracking-status.active{background:rgba(45,204,113,.13);color:#43db83}.tracking-status.inactive{background:rgba(143,154,173,.13);color:#929cad}
     .tracking-site-body{padding:18px}.domain-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:15px}.domain-chip{direction:ltr;padding:5px 9px;border-radius:8px;background:#0e1521;border:1px solid #2a374c;color:#aeb9ca;font-size:11px}.embed-label{display:flex;justify-content:space-between;color:#8894a8;font-size:11px;margin-bottom:7px}.embed-code-wrap{position:relative}.embed-code{width:100%;min-height:78px;padding:12px 13px 44px!important;border:1px solid #2d3b51!important;border-radius:12px!important;background:#0a1019!important;color:#7fd7e6!important;direction:ltr;text-align:left;font-family:monospace;font-size:11px;resize:none}.copy-embed-code{position:absolute;bottom:8px;left:8px;border-radius:8px}
     .tracking-config{border-top:1px solid #273247}.tracking-config summary{padding:13px 18px;color:#93a0b4;cursor:pointer;list-style:none}.tracking-config summary::-webkit-details-marker{display:none}.tracking-config summary:after{content:"⌄";float:left}.tracking-config[open] summary:after{content:"⌃"}.tracking-config-form{padding:5px 18px 18px}.tracking-danger{padding:0 18px 16px}.tracking-empty{grid-column:1/-1;padding:55px 20px;text-align:center;border:1px dashed #31405a;border-radius:18px;color:#7f8ba0}.tracking-empty i{display:block;font-size:42px;margin-bottom:13px;color:#3f526d}
+    .trigger-help{margin-top:12px;padding:10px 12px;border-radius:10px;background:rgba(243,173,27,.08);border:1px solid rgba(243,173,27,.22);color:#c8af77;font-size:12px}.trigger-help code{direction:ltr;display:inline-block;color:#ffd477}
     @media(max-width:991px){.visitors-layout{grid-template-columns:1fr}.visitors-sidebar{border-left:0;border-bottom:1px solid rgba(255,255,255,.08)}.visitor-legend{display:flex;gap:15px;flex-wrap:wrap}.visitors-stage{min-height:650px}.detail-lower{grid-template-columns:1fr}.tracking-sites-grid{grid-template-columns:1fr}.tracking-hero{align-items:flex-start;flex-direction:column}}
     @media(max-width:575px){.visitors-page{border-radius:12px}.visitors-toolbar{align-items:flex-start}.visitors-layout{min-height:600px}.visitors-stage{min-height:580px}.radar{width:95%}.visitor-tag{display:none}.detail-grid{grid-template-columns:repeat(2,1fr)}.visitor-detail-body{padding:12px}.tracking-panel{padding:15px}.tracking-summary{width:100%;flex-wrap:wrap}.tracking-summary-item{flex:1}.tracking-hero-copy{align-items:flex-start}.tracking-create{padding:15px}}
 </style>
@@ -189,6 +190,8 @@
                             <div class="col-md-4"><label class="form-label">رسالة الترحيب</label><input class="form-control" name="welcome_message" value="{{ old('welcome_message', 'مرحبًا، كيف يمكننا مساعدتك؟') }}"></div>
                             <div class="col-md-2"><label class="form-label">اللون</label><input class="form-control form-control-color w-100" type="color" name="primary_color" value="{{ old('primary_color', '#277ccd') }}"></div>
                             <div class="col-md-2"><label class="form-label">موضع الأيقونة</label><select class="form-select" name="position"><option value="right">يمين</option><option value="left">يسار</option></select></div>
+                            <div class="col-md-4"><label class="form-label">طريقة ظهور المحادثة</label><select class="form-select launcher-mode-select" name="launcher_mode"><option value="always" @selected(old('launcher_mode', 'always') === 'always')>أيقونة ظاهرة دائمًا</option><option value="trigger" @selected(old('launcher_mode') === 'trigger')>تظهر عند الضغط على زر</option></select></div>
+                            <div class="col-md-8 trigger-selector-field"><label class="form-label">محدد زر «تواصل معنا»</label><input class="form-control" name="trigger_selector" value="{{ old('trigger_selector', '[data-clickerp-chat]') }}" placeholder="[data-clickerp-chat]"><small class="text-muted">أضف الخاصية <code>data-clickerp-chat</code> إلى زر التواصل في الموقع.</small></div>
                             <div class="col-12 d-flex justify-content-between align-items-center">
                                 <label class="text-light"><input type="hidden" name="is_active" value="0"><input class="form-check-input" type="checkbox" name="is_active" value="1" checked> تفعيل الكود مباشرة</label>
                                 <button class="btn btn-primary px-4" type="submit"><i class="fas fa-plus me-1"></i>إنشاء كود التتبع</button>
@@ -212,11 +215,20 @@
                                         <span class="domain-chip">{{ $domain }}</span>
                                     @endforeach
                                 </div>
+                                <div class="mb-3">
+                                    <span class="tracking-status {{ $site->launcher_mode === 'trigger' ? 'inactive' : 'active' }}">
+                                        <i class="fas {{ $site->launcher_mode === 'trigger' ? 'fa-mouse-pointer' : 'fa-eye' }} me-1"></i>
+                                        {{ $site->launcher_mode === 'trigger' ? 'يظهر عند زر التواصل' : 'ظاهر دائمًا' }}
+                                    </span>
+                                </div>
                                 <div class="embed-label"><span>كود التثبيت</span><span>ضعه قبل &lt;/body&gt;</span></div>
                                 <div class="embed-code-wrap">
                                     <textarea class="embed-code" id="embedCode{{ $site->id }}" readonly>{{ $site->embedCode() }}</textarea>
                                     <button class="btn btn-sm btn-outline-info copy-embed-code" type="button" data-target="embedCode{{ $site->id }}"><i class="far fa-copy"></i> نسخ الكود</button>
                                 </div>
+                                @if($site->launcher_mode === 'trigger')
+                                    <div class="trigger-help"><i class="fas fa-info-circle me-1"></i>ضع الخاصية على زر التواصل: <code>&lt;button data-clickerp-chat&gt;تواصل معنا&lt;/button&gt;</code></div>
+                                @endif
                             </div>
                             <details class="tracking-config">
                                 <summary><i class="fas fa-sliders-h me-2"></i>تعديل إعدادات الموقع والواجهة</summary>
@@ -229,6 +241,8 @@
                                         <div class="col-md-4"><label class="form-label">رسالة الترحيب</label><input class="form-control" name="welcome_message" value="{{ $site->welcome_message }}"></div>
                                         <div class="col-md-2"><label class="form-label">اللون</label><input class="form-control form-control-color w-100" type="color" name="primary_color" value="{{ $site->primary_color }}"></div>
                                         <div class="col-md-2"><label class="form-label">الموضع</label><select class="form-select" name="position"><option value="right" @selected($site->position === 'right')>يمين</option><option value="left" @selected($site->position === 'left')>يسار</option></select></div>
+                                        <div class="col-md-4"><label class="form-label">طريقة الظهور</label><select class="form-select launcher-mode-select" name="launcher_mode"><option value="always" @selected($site->launcher_mode !== 'trigger')>أيقونة ظاهرة دائمًا</option><option value="trigger" @selected($site->launcher_mode === 'trigger')>تظهر عند الضغط على زر</option></select></div>
+                                        <div class="col-md-8 trigger-selector-field"><label class="form-label">محدد زر التواصل</label><input class="form-control" name="trigger_selector" value="{{ $site->trigger_selector ?: '[data-clickerp-chat]' }}"><small class="text-muted">المقترح: <code>data-clickerp-chat</code></small></div>
                                         <div class="col-12 d-flex justify-content-between align-items-center"><label class="text-light"><input type="hidden" name="is_active" value="0"><input class="form-check-input" type="checkbox" name="is_active" value="1" @checked($site->is_active)> الكود فعال</label><button class="btn btn-outline-primary" type="submit">حفظ التعديلات</button></div>
                                     </div>
                                 </form>
@@ -620,6 +634,15 @@
             window.setTimeout(function () { button.html('<i class="far fa-copy"></i> نسخ الكود'); }, 1600);
         });
     });
+    function syncTriggerField(select) {
+        const form = $(select).closest('form');
+        const field = form.find('.trigger-selector-field');
+        const triggered = $(select).val() === 'trigger';
+        field.toggle(triggered);
+        field.find('input').prop('required', triggered);
+    }
+    $('.launcher-mode-select').each(function () { syncTriggerField(this); });
+    $('.launcher-mode-select').on('change', function () { syncTriggerField(this); });
     const requestedTab = new URLSearchParams(window.location.search).get('tab');
     if (requestedTab === 'tracking' || @json($errors->any())) {
         $('.visitor-tab').removeClass('active');

@@ -36,6 +36,8 @@
 (function () {
     const apiBase = @json($apiBase);
     const token = @json($token);
+    const allowedDomains = @json($site->allowed_domains ?? []);
+    const autoOpenAdmin = @json($site->launcher_mode !== 'trigger');
     const panel = document.getElementById('panel');
     const messages = document.getElementById('messages');
     const input = document.getElementById('input');
@@ -55,6 +57,22 @@
     }
     document.getElementById('launcher').addEventListener('click', () => resize(true));
     document.getElementById('close').addEventListener('click', () => resize(false));
+    window.addEventListener('message', function (event) {
+        if (event.source !== parent || !event.data || event.data.type !== 'clickerp-widget-open') return;
+        let host = '';
+        try { host = new URL(event.origin).hostname.toLowerCase(); } catch (error) { return; }
+        const allowed = allowedDomains.some(function (domain) {
+            domain = String(domain).toLowerCase();
+            if (domain === '*') return true;
+            if (domain.indexOf('*.') === 0) {
+                const base = domain.slice(2);
+                return host === base || host.endsWith('.' + base);
+            }
+            return host === domain;
+        });
+        if (!allowed) return;
+        resize(true);
+    });
 
     function addMessage(message) {
         if (document.querySelector('[data-message-id="' + message.id + '"]')) return;
@@ -80,7 +98,7 @@
                   if (message.sender === 'admin') newAdminMessage = true;
                   addMessage(message);
               });
-              if (newAdminMessage && !opened) {
+              if (newAdminMessage && !opened && autoOpenAdmin) {
                   unread.style.display = 'block';
                   resize(true);
               }

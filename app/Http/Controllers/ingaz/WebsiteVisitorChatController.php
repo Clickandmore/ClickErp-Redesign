@@ -390,6 +390,8 @@ class WebsiteVisitorChatController extends Controller
             'welcome_message' => ['nullable', 'string', 'max:1000'],
             'primary_color' => ['required', 'regex:/^#[0-9a-fA-F]{6}$/'],
             'position' => ['required', Rule::in(['right', 'left'])],
+            'launcher_mode' => ['required', Rule::in(['always', 'trigger'])],
+            'trigger_selector' => ['nullable', 'string', 'max:255', 'required_if:launcher_mode,trigger'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
@@ -424,6 +426,10 @@ class WebsiteVisitorChatController extends Controller
             'welcome_message' => $validated['welcome_message'] ?? null,
             'primary_color' => strtolower($validated['primary_color']),
             'position' => $validated['position'],
+            'launcher_mode' => $validated['launcher_mode'],
+            'trigger_selector' => $validated['launcher_mode'] === 'trigger'
+                ? trim($validated['trigger_selector'])
+                : null,
             'is_active' => $request->boolean('is_active'),
         ];
     }

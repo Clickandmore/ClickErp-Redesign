@@ -24,6 +24,8 @@ class VisitorWidgetController extends Controller
         $frameUrl = route('visitor-widget.frame', ['siteKey' => $site->public_key]);
         $storageKey = 'clickerp_visitor_' . $site->public_key;
         $side = $site->position === 'left' ? 'left' : 'right';
+        $launcherMode = $site->launcher_mode === 'trigger' ? 'trigger' : 'always';
+        $triggerSelector = $site->trigger_selector ?: '[data-clickerp-chat]';
 
         $javascript = <<<'JS'
 (function () {
@@ -35,6 +37,8 @@ class VisitorWidgetController extends Controller
     var apiBase = __API_BASE__;
     var frameBase = __FRAME_URL__;
     var widgetOrigin = new URL(frameBase).origin;
+    var launcherMode = __LAUNCHER_MODE__;
+    var triggerSelector = __TRIGGER_SELECTOR__;
     var token = localStorage.getItem(storageKey);
     if (!token) {
         token = (window.crypto && window.crypto.randomUUID)
@@ -48,7 +52,7 @@ class VisitorWidgetController extends Controller
 
     var wrapper = document.createElement('div');
     wrapper.id = 'clickerp-visitor-widget';
-    wrapper.style.cssText = 'position:fixed;bottom:16px;__SIDE__:16px;width:76px;height:76px;z-index:2147483000;border:0;background:transparent;transition:width .2s ease,height .2s ease';
+    wrapper.style.cssText = 'position:fixed;bottom:16px;__SIDE__:16px;width:76px;height:76px;z-index:2147483000;border:0;background:transparent;transition:width .2s ease,height .2s ease;display:' + (launcherMode === 'trigger' ? 'none' : 'block');
 
     var iframe = document.createElement('iframe');
     iframe.title = 'محادثة خدمة العملاء';
@@ -104,15 +108,49 @@ class VisitorWidgetController extends Controller
     window.addEventListener('message', function (event) {
         if (event.origin !== widgetOrigin || !event.data || event.data.type !== 'clickerp-widget-resize') return;
         var open = Boolean(event.data.open);
+        if (open && launcherMode !== 'trigger') wrapper.style.display = 'block';
+        if (!open && launcherMode === 'trigger') wrapper.style.display = 'none';
         wrapper.style.width = open ? 'min(390px, calc(100vw - 24px))' : '76px';
         wrapper.style.height = open ? 'min(600px, calc(100vh - 24px))' : '76px';
     });
+
+    function openWidget() {
+        wrapper.style.display = 'block';
+        wrapper.style.width = 'min(390px, calc(100vw - 24px))';
+        wrapper.style.height = 'min(600px, calc(100vh - 24px))';
+        iframe.contentWindow.postMessage({type: 'clickerp-widget-open'}, widgetOrigin);
+    }
+
+    window.ClickERPChat = window.ClickERPChat || {};
+    window.ClickERPChat.open = openWidget;
+    window.ClickERPChat.show = function () {
+        wrapper.style.display = 'block';
+    };
+
+    if (launcherMode === 'trigger') {
+        document.addEventListener('click', function (event) {
+            var trigger = null;
+            try {
+                trigger = event.target.closest(triggerSelector);
+            } catch (error) {
+                return;
+            }
+            if (!trigger) return;
+            event.preventDefault();
+            openWidget();
+        });
+        iframe.addEventListener('load', function () {
+            if (wrapper.style.width !== '76px') {
+                iframe.contentWindow.postMessage({type: 'clickerp-widget-open'}, widgetOrigin);
+            }
+        });
+    }
 })();
 JS;
 
         $javascript = str_replace(
-            ['__STORAGE_KEY__', '__API_BASE__', '__FRAME_URL__', '__SIDE__'],
-            [json_encode($storageKey), json_encode($apiBase), json_encode($frameUrl), $side],
+            ['__STORAGE_KEY__', '__API_BASE__', '__FRAME_URL__', '__SIDE__', '__LAUNCHER_MODE__', '__TRIGGER_SELECTOR__'],
+            [json_encode($storageKey), json_encode($apiBase), json_encode($frameUrl), $side, json_encode($launcherMode), json_encode($triggerSelector)],
             $javascript
         );
 
