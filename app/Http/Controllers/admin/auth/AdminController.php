@@ -62,6 +62,8 @@ class AdminController extends Controller
                 ->with(['role', 'branch', 'agentOffices'])
                 ->orderBy('id', 'asc');
 
+            $this->applyRequestBranchFilter($dataTable, $request, 'admins');
+
             // Filters
             if ($request->filled('admin_type')) {
                 $dataTable->where('admin_type', $request->admin_type);
@@ -69,10 +71,6 @@ class AdminController extends Controller
             if ($request->filled('sex_type')) {
                 $dataTable->where('sex_type', $request->sex_type);
             }
-            if ($branchesEnabled && $request->filled('branch_id') && Schema::hasColumn('admins', 'branch_id')) {
-                $dataTable->where('branch_id', $request->branch_id);
-            }
-
             $filterScope = $request->get('filter_scope');
             if ($filterScope === 'branch') {
                 $dataTable->whereNotNull('branch_id');
@@ -347,16 +345,16 @@ class AdminController extends Controller
             ],
             'suspension' => true
         ];
-        $data["branches"] = $data["branchesEnabled"]
-            ? Branch::query()->active()->ordered()->get(['id', 'name_ar', 'name_en'])
-            : collect();
-        $data["reassignmentAdmins"] = ObjModel::query()
+        $branchSelector = $this->branchSelectorData($request);
+        $data["branches"] = $branchSelector['branches'];
+        $reassignmentAdmins = ObjModel::query()
             ->notExternalOfficeAgents()
             ->select('id', 'name')
             ->whereNull('deleted_at')
             ->where('status', 'active')
-            ->orderBy('name')
-            ->get();
+            ->orderBy('name');
+        $this->applyRequestBranchFilter($reassignmentAdmins, $request, 'admins');
+        $data["reassignmentAdmins"] = $reassignmentAdmins->get();
         $data["roles"] = $this->adminRolesQuery()->get(['id', 'name']);
         $data["recruitmentOffices"] = DB::table('recruitment_offices')
             ->leftJoin('recruitment_office_translations as t', function ($j) {

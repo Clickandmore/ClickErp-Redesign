@@ -56,6 +56,12 @@ class NewPermissionsSeeder extends Seeder
                 'section_name' => 'general',
                 'guard_name' => 'admin',
             ],
+            [
+                'name' => NewPermKeys::BRANCHES_VIEW_ALL,
+                'group_name' => 'branches',
+                'section_name' => 'users_management',
+                'guard_name' => 'admin',
+            ],
         ];
 
         foreach ($permissions as $permission) {

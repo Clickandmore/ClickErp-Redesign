@@ -36,7 +36,12 @@ class StoreBondRequest extends MainRequest
             'is_tax' => 'required|boolean',
             'net' => 'nullable|required_if:is_tax,1|numeric',
             'code' => 'required',
-            'transfer_number' => ['nullable'],
+            'transfer_number' => [
+                'nullable',
+                'string',
+                'max:500',
+                Rule::requiredIf(fn () => in_array($this->input('payment_type'), $transferArray)),
+            ],
             'transfer_file' => ["file",Rule::requiredIf(fn () => (in_array(request()->payment_type,$transferArray )))],
             'check_num' =>[ Rule::requiredIf(fn () => ( request()->payment_type == BondPaymentTypes::Check->value))],
             'check_date' => ['date_format:Y-m-d',Rule::requiredIf(fn () => ( request()->payment_type == BondPaymentTypes::Check->value))],
@@ -61,6 +66,7 @@ class StoreBondRequest extends MainRequest
         return [
             'credit_account_id.required' => __('finance.credit_account_id.required'),
             'debit_account_id.required' => __('finance.debit_account_id.required'),
+            'transfer_number.required' => 'رقم التحويل مطلوب لطريقة الدفع المختارة.',
         ];
     }
 
