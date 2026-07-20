@@ -16,6 +16,7 @@ class PackageController extends Controller
     public $postData = [
         "original_price",
         'nationality_id',
+        "is_taxable",
         "price_with_tax",
         "days_count",
         "rental_type",

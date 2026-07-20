@@ -279,6 +279,7 @@ Route::group(
             });
             // Limit maid parameter to numeric IDs to avoid catching custom pages like create_rapid_cv
             Route::post('maids/extract-cv-data', [MaidController::class, 'extractCvData'])->name('maids.extract-cv-data');
+            Route::post('maids/bulk-visibility', [MaidController::class, 'bulkVisibility'])->name('maids.bulk-visibility');
             Route::resource('maids', MaidController::class)->whereNumber('maid');
             Route::get('maids/create_rapid_cv', [MaidController::class, 'create_rapid_cv'])->name('maids.create_rapid_cv');
             Route::post('maids/store_rapid_cv', [MaidController::class, 'store_rapid_cv'])->name('maids.store_rapid_cv');

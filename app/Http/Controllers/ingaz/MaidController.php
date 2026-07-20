@@ -48,6 +48,7 @@ class MaidController extends Controller
         $this->middleware('permission:maids_edit,admin', ['only' => ['edit', 'update', 'update_cv', 'updateOffer', 'backout', 'clearBackout', 'suspendCv']]);
         $this->middleware('permission:maids_delete,admin', ['only' => ['destroy', 'restore']]);
         $this->middleware('permission:maids_toggle_status,admin', ['only' => ['show']]);
+        $this->middleware('permission:maids_bulk_visibility,admin', ['only' => ['bulkVisibility']]);
         $this->middleware('permission:maids_toggle_pin,admin', ['only' => ['togglePin']]);
         $this->middleware('permission:maids_export|maids_export_pdf,admin', ['only' => ['exportPdf']]);
         $this->middleware('permission:maids_export|maids_export_excel,admin', ['only' => ['exportExcel']]);
@@ -1817,6 +1818,45 @@ class MaidController extends Controller
                 'message' => __('ingaz.status_update_error', ['message' => $e->getMessage()])
             ], 500);
         }
+    }
+
+    public function bulkVisibility(Request $request)
+    {
+        $validated = $request->validate([
+            'is_show' => ['required', 'boolean'],
+        ]);
+
+        $isVisible = (bool) $validated['is_show'];
+        $query = objModel::query();
+        $this->applyRecruitmentMaidsScope($query);
+
+        $totalCount = (clone $query)->count();
+        $updatedCount = (clone $query)
+            ->where(function ($visibilityQuery) use ($isVisible) {
+                $visibilityQuery->where('is_show', '!=', $isVisible)
+                    ->orWhereNull('is_show');
+            })
+            ->update([
+                'is_show' => $isVisible,
+                'updated_at' => now(),
+            ]);
+
+        \Log::info('Maid visibility updated in bulk', [
+            'new_status' => $isVisible,
+            'updated_count' => $updatedCount,
+            'total_count' => $totalCount,
+            'admin_id' => auth('admin')->id(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => __($isVisible
+                ? 'ingaz.maids_bulk_visibility_shown'
+                : 'ingaz.maids_bulk_visibility_hidden', ['count' => $updatedCount]),
+            'is_show' => $isVisible,
+            'updated_count' => $updatedCount,
+            'total_count' => $totalCount,
+        ]);
     }
 
     public function edit(Request $request, $id, NationalityAction $act, RecruitmentOfficeAction $officeAct, ReligionAction $relAct, JobTitleAction $jobTitleAction, JobTypeAction $jobTypesAction, SkillAction $skillAction)

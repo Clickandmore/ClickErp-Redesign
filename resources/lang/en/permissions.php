@@ -75,6 +75,7 @@ return [
     'maids_export_excel' => 'Export CVs as Excel',
     'maids_show' => 'Show CV Details',
     'maids_toggle_status' => 'Toggle Visibility Status',
+    'maids_bulk_visibility' => 'Show or Hide All CVs',
     'maids_toggle_pin' => 'Toggle Pin Status',
     'maids_control' => 'Control CVs',
     'maids_rental_view' => 'View Rental Maids CVs',

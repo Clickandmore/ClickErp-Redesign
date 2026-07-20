@@ -71,6 +71,12 @@ class MaidsPermissionsSeeder extends Seeder
                 'guard_name' => 'admin'
             ],
             [
+                'name' => 'maids_bulk_visibility',
+                'display_name' => 'إظهار وإخفاء جميع السير',
+                'description' => 'إمكانية إظهار أو إخفاء جميع السير الذاتية دفعة واحدة',
+                'guard_name' => 'admin'
+            ],
+            [
                 'name' => 'maids_toggle_pin',
                 'display_name' => 'تثبيت/إلغاء تثبيت',
                 'description' => 'إمكانية تثبيت أو إلغاء تثبيت السيرة الذاتية',
