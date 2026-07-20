@@ -75,7 +75,7 @@ class NationalityController extends Controller
                 ->addIndexColumn()
                 ->addColumn('meta', function (objModel $row) {
                     $logo = $row->logo ? showFile($row->logo) : asset('images/no-image.png');
-                    $title = e($row->sub_title ?? $row->title ?? helperTrans('ingaz.not_specified'));
+                    $title = e($row->display_name ?: helperTrans('ingaz.not_specified'));
                     $createdAt = $row->created_at ? $row->created_at->format('Y-m-d') : helperTrans('ingaz.not_specified');
                     $phoneCode = $row->phone_code
                         ? (Str::startsWith($row->phone_code, '+') ? $row->phone_code : '+' . $row->phone_code)
@@ -153,7 +153,7 @@ class NationalityController extends Controller
                 })
                 ->addColumn('actions', function ($row) {
                     $menu = '';
-                    $title = e($row->sub_title ?? $row->title ?? helperTrans('ingaz.not_specified'));
+                    $title = e($row->display_name ?: helperTrans('ingaz.not_specified'));
 
                     if (@AdminGuardHasPerm(\App\PermKeys::NATIONALITIES_CONTROL)) {
                         $menu .= '<button type="button" class="btn btn-sm btn-info text-white generate-nationality-accounts ms-1"
@@ -163,7 +163,7 @@ class NationalityController extends Controller
                             <i class="fas fa-sitemap"></i>
                         </button> ';
 
-                        $menu .= editButton(route($this->mainRoute . ".edit", $row->id), $row->title);
+                        $menu .= editButton(route($this->mainRoute . ".edit", $row->id), $row->display_name);
                     }
 
                     if (@AdminGuardHasPerm(\App\PermKeys::NATIONALITIES_DELETE)) {
@@ -172,7 +172,7 @@ class NationalityController extends Controller
                     return $menu;
                 })
                 ->addColumn('sub_title_plain', function ($row) {
-                    return $row->sub_title ?? $row->title ?? '';
+                    return $row->display_name;
                 })
                 ->filterColumn('sub_title_plain', function ($query, $keyword) {
                     $query->whereTranslationLike('sub_title', '%' . $keyword . '%');
