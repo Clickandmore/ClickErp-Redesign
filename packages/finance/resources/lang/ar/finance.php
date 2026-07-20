@@ -1698,4 +1698,5 @@ return array (
   'rental_contract_bank_account_hint' => 'الحساب المدين للتحويل البنكي ومدى وطرق الدفع البنكية.',
   'rental_contract_electronic_account' => 'حساب بوابات ومحافظ دفع التأجير',
   'rental_contract_electronic_account_hint' => 'الحساب المدين لمدفوعات ميسر وتابي وتمارا والمحافظ الإلكترونية.',
+  'all_accounts' => 'كل الحسابات',
 );

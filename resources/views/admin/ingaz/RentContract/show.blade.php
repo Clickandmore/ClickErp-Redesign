@@ -1347,6 +1347,93 @@
                     <div class="section-card">
                         <div class="section-header">
                             <h3 class="section-title">
+                                <i class="fas fa-calendar-plus"></i>
+                                سجل تمديدات العقد
+                            </h3>
+                            @if ($contract->extensions->isNotEmpty())
+                                <span class="badge bg-info">{{ $contract->extensions->count() }} تمديد</span>
+                            @endif
+                        </div>
+
+                        @if ($contract->extensions->isEmpty())
+                            <div class="empty-state">لم يتم تمديد هذا العقد حتى الآن.</div>
+                        @else
+                            @php
+                                $extensionValueTotal = $contract->extensions->sum(fn ($extension) => (float) ($extension->extension_value ?? 0));
+                                $contractValueWithExtensions = (float) ($contract->info?->contract_value ?? 0) + $extensionValueTotal;
+                            @endphp
+
+                            <div class="metric-grid mb-4">
+                                <div class="metric-card">
+                                    <div class="label">قيمة العقد الأصلية</div>
+                                    <div class="value">{{ number_format((float) ($contract->info?->contract_value ?? 0), 2) }}</div>
+                                    <div class="sub-value">ريال</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="label">إجمالي قيمة التمديدات</div>
+                                    <div class="value">{{ number_format($extensionValueTotal, 2) }}</div>
+                                    <div class="sub-value">ريال</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="label">الإجمالي بعد التمديدات</div>
+                                    <div class="value">{{ number_format($contractValueWithExtensions, 2) }}</div>
+                                    <div class="sub-value">ريال</div>
+                                </div>
+                            </div>
+
+                            <div class="table-responsive">
+                                <table class="table table-bordered align-middle mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>المدة</th>
+                                            <th>من</th>
+                                            <th>إلى</th>
+                                            <th>قيمة التمديد</th>
+                                            <th>حالة الدفع</th>
+                                            <th>الإيصال</th>
+                                            <th>بواسطة</th>
+                                            <th>تاريخ التسجيل</th>
+                                            <th>ملاحظات</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($contract->extensions->sortBy('start_date')->values() as $index => $extension)
+                                            <tr>
+                                                <td>{{ $index + 1 }}</td>
+                                                <td>
+                                                    {{ $extension->extension_months ? $extension->extension_months . ' شهر / ' : '' }}
+                                                    {{ $extension->extension_days ?? 0 }} يوم
+                                                </td>
+                                                <td>{{ optional($extension->start_date)->format('Y-m-d') ?? 'غير محدد' }}</td>
+                                                <td>{{ optional($extension->end_date)->format('Y-m-d') ?? 'غير محدد' }}</td>
+                                                <td>
+                                                    {{ $extension->extension_value !== null ? number_format((float) $extension->extension_value, 2) . ' ريال' : 'غير مسجل' }}
+                                                </td>
+                                                <td>{{ $paymentStatuses[$extension->payment_status] ?? ($extension->payment_status ?: 'غير محدد') }}</td>
+                                                <td>
+                                                    @if ($extension->payment_receipt_url)
+                                                        <a href="{{ $extension->payment_receipt_url }}" target="_blank" rel="noopener">عرض الإيصال</a>
+                                                    @else
+                                                        -
+                                                    @endif
+                                                </td>
+                                                <td>{{ $extension->createdBy?->name ?? 'غير محدد' }}</td>
+                                                <td>{{ optional($extension->created_at)->format('Y-m-d H:i') ?? 'غير محدد' }}</td>
+                                                <td>{{ $extension->notes ?: '-' }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="section-card">
+                        <div class="section-header">
+                            <h3 class="section-title">
                                 <i class="fas fa-file-invoice-dollar"></i>
                                 المستندات المالية
                             </h3>

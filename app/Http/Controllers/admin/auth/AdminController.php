@@ -44,7 +44,7 @@ class AdminController extends Controller
     {
         $this->middleware('permission:users_view,admin', ['only' => ['index']]);
         $this->middleware('permission:users_create,admin', ['only' => ['create', 'store']]);
-        $this->middleware('permission:users_edit,admin', ['only' => ['edit', 'update']]);
+        $this->middleware('permission:users_edit,admin', ['only' => ['edit', 'update', 'toggleStatus']]);
         $this->middleware('permission:users_delete,admin', ['only' => ['destroy', 'restore', 'forceDelete']]);
     }
 

@@ -171,7 +171,7 @@
                 $branchExpanded = $startsCollapsed ? 'false' : 'true';
                 $branchClass = $startsCollapsed ? 'collapse account-tree-branch' : 'collapse in show account-tree-branch';
 
-                echo '<li data-account-level="' . (int) $account->level . '">';
+                echo '<li data-account-id="' . (int) $account->id . '" data-account-level="' . (int) $account->level . '">';
                 if ($isParent) {
                     echo '<span data-account-item>
                             ' .
@@ -251,6 +251,8 @@
         collectAccountLevels($accountTree, $accountLevels);
         $accountLevels = array_values(array_unique($accountLevels));
         sort($accountLevels);
+
+        $accountFilterOptions = $accountTree;
     @endphp
 
     {!! addButton($createRoute, $addButtonText) !!}
@@ -265,6 +267,14 @@
                     <option value="">{{ __('finance::finance.all_levels') }}</option>
                     @foreach ($accountLevels as $level)
                         <option value="{{ $level }}">{{ __('finance::finance.level_number', ['level' => $level]) }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-4 col-sm-6 col-xs-12">
+                <select id="accountFilter" class="form-control">
+                    <option value="">{{ __('finance::finance.all_accounts') }}</option>
+                    @foreach ($accountFilterOptions as $account)
+                        <option value="{{ $account->id }}">{{ $account->code }} / {{ $account->name }}</option>
                     @endforeach
                 </select>
             </div>
@@ -307,16 +317,28 @@
         function applyAccountTreeFilters() {
             const filter = ($('#filterUl').val() || '').trim().toLowerCase();
             const level = $('#levelFilter').val();
+            const accountId = $('#accountFilter').val();
             const rootNodes = $('#account-tree-container > ul > li');
 
-            if (!filter.length && !level.length) {
+            if (!filter.length && !level.length && !accountId.length) {
                 $('#account-tree-container li').show();
                 return;
+            }
+
+            let branchAccountIds = null;
+            if (accountId.length) {
+                branchAccountIds = new Set();
+                const selectedNode = $('#account-tree-container li[data-account-id="' + accountId + '"]').first();
+
+                selectedNode.add(selectedNode.find('li[data-account-id]')).each(function() {
+                    branchAccountIds.add(String($(this).data('accountId')));
+                });
             }
 
             const evaluateNode = function($node) {
                 const ownText = ($node.children('[data-account-item]').first().text() || '').toLowerCase();
                 const ownLevel = String($node.data('accountLevel') || '');
+                const ownAccountId = String($node.data('accountId') || '');
                 let childMatch = false;
 
                 $node.children('ul.account-tree-branch').children('li').each(function() {
@@ -327,7 +349,8 @@
 
                 const matchesText = !filter.length || ownText.includes(filter);
                 const matchesLevel = !level.length || ownLevel === level;
-                const ownMatch = matchesText && matchesLevel;
+                const matchesBranch = branchAccountIds === null || branchAccountIds.has(ownAccountId);
+                const ownMatch = matchesText && matchesLevel && matchesBranch;
                 const isMatch = ownMatch || childMatch;
 
                 $node.toggle(isMatch);
@@ -356,6 +379,8 @@
                 const parsed = $.parseHTML(html);
                 const newTree = $(parsed).find('#account-tree-container').html();
                 const newLevels = $(parsed).find('#levelFilter').html();
+                const newAccounts = $(parsed).find('#accountFilter').html();
+                const selectedAccount = $('#accountFilter').val();
 
                 if (newTree) {
                     container.html(newTree);
@@ -363,6 +388,10 @@
 
                 if (newLevels) {
                     $('#levelFilter').html(newLevels);
+                }
+
+                if (newAccounts) {
+                    $('#accountFilter').html(newAccounts).val(selectedAccount);
                 }
 
                 applyAccountTreeFilters();
@@ -374,6 +403,10 @@
         });
 
         $('#levelFilter').on('change', function() {
+            applyAccountTreeFilters();
+        });
+
+        $('#accountFilter').on('change', function() {
             applyAccountTreeFilters();
         });
     </script>

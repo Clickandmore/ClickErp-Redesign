@@ -298,6 +298,7 @@ class AdminRoutePermissionMatrix
             'dash.activity.log' => [PermKeys::ACTIVITY_VIEW],
             'admins.impersonate' => [PermKeys::USERS_EDIT],
             'admins.reset-password' => [PermKeys::USERS_EDIT],
+            'admins.toggle-status' => [PermKeys::USERS_EDIT],
             'reports.export' => [NewPermKeys::REPORTS_EXPORT, NewPermKeys::REPORTS_MANAGE],
             'form-settings.preview.print' => [PermKeys::SETTINGS_VIEW, PermKeys::SETTINGS_CONTROL],
         ];

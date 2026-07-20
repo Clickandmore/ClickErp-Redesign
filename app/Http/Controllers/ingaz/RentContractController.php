@@ -952,7 +952,7 @@ class RentContractController extends Controller
             'financeInvoice.receiptAccount',
             'financeBonds.debitAccount',
             'financeBonds.constraint',
-            'extensions',
+            'extensions.createdBy',
             'financialAdjustments',
         ])->findOrFail($id);
         $this->assertCanAccessBranchModel($contract, 'rental_contracts');
@@ -3893,7 +3893,7 @@ class RentContractController extends Controller
         try {
             DB::beginTransaction();
 
-            $contract = RentalContract::with('info')->findOrFail($id);
+            $contract = RentalContract::with('info')->lockForUpdate()->findOrFail($id);
 
             if (!$contract->info) {
                 throw new \RuntimeException('بيانات العقد غير مكتملة');
@@ -3923,18 +3923,6 @@ class RentContractController extends Controller
                     ->store('rental-contracts/extensions/receipts', 'public');
             }
 
-            RentalContractExtension::create([
-                'rental_contract_id' => $contract->id,
-                'extension_months' => $extensionMonths,
-                'extension_days' => $extensionDays,
-                'start_date' => $extensionStart,
-                'end_date' => $extensionEnd,
-                'payment_status' => $validated['extension_payment_status'],
-                'payment_receipt_path' => $extensionReceiptPath,
-                'notes' => $validated['extension_notes'] ?? null,
-                'created_by' => auth('admin')->id(),
-            ]);
-
             $monthlyCost = (float) ($contract->info->monthly_cost ?? 0);
             $currentContractValue = (float) ($contract->info->contract_value ?? 0);
             $currentDurationDays = (int) ($contract->info->contract_duration_days ?? 0);
@@ -3946,10 +3934,20 @@ class RentContractController extends Controller
                 : $monthlyCost / 30;
             $extensionValue = round($dailyRate * $extensionDays, 2);
 
+            RentalContractExtension::create([
+                'rental_contract_id' => $contract->id,
+                'extension_months' => $extensionMonths,
+                'extension_days' => $extensionDays,
+                'extension_value' => $extensionValue,
+                'start_date' => $extensionStart,
+                'end_date' => $extensionEnd,
+                'payment_status' => $validated['extension_payment_status'],
+                'payment_receipt_path' => $extensionReceiptPath,
+                'notes' => $validated['extension_notes'] ?? null,
+                'created_by' => auth('admin')->id(),
+            ]);
+
             $contract->info->update([
-                'contract_duration_months' => $extensionMonths,
-                'contract_duration_days' => $extensionDays,
-                'contract_value' => $extensionValue,
                 'ingaz_to' => $extensionEnd,
             ]);
 

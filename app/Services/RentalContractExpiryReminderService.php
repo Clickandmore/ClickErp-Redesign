@@ -309,6 +309,7 @@ class RentalContractExpiryReminderService
                 'rental_contract_id' => $contract->id,
                 'extension_months' => $extensionMonths,
                 'extension_days' => $durationDays,
+                'extension_value' => $extensionValue,
                 'start_date' => $extensionStart,
                 'end_date' => $extensionEnd,
                 'payment_status' => 'paid',
@@ -318,13 +319,6 @@ class RentalContractExpiryReminderService
             ]);
 
             $contract->info->update([
-                'contract_duration_months' => $extensionMonths,
-                'contract_duration_days' => $durationDays,
-                'contract_value' => $extensionValue,
-                'paid_amount' => $extensionValue,
-                'remaining_amount' => 0,
-                'payment_type' => 'moyasar',
-                'payment_status' => 'paid',
                 'moyasar_payment_status' => 'paid',
                 'moyasar_paid_at' => now(),
                 'payment_confirmed_at' => now(),

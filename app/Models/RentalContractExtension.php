@@ -16,6 +16,7 @@ class RentalContractExtension extends Model
         'branch_id',
         'extension_months',
         'extension_days',
+        'extension_value',
         'start_date',
         'end_date',
         'payment_status',
@@ -29,6 +30,7 @@ class RentalContractExtension extends Model
         'end_date' => 'date',
         'extension_months' => 'integer',
         'extension_days' => 'integer',
+        'extension_value' => 'decimal:2',
         'branch_id' => 'integer',
     ];
 
