@@ -3,6 +3,8 @@
 namespace Tests\Feature\Branch;
 
 use App\Models\Branch;
+use App\Models\Contract;
+use App\Models\Permission;
 use App\Services\BranchAccessService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\Request;
@@ -27,6 +29,21 @@ class BranchAccessServiceTest extends TestCase
         $this->setUpBranches();
         $this->enableBranchesModule();
         $this->service = app(BranchAccessService::class);
+    }
+
+    private function grantViewAllBranchesPermission($admin): void
+    {
+        Permission::withoutGlobalScopes()->updateOrCreate(
+            ['name' => \App\PermKeys::BRANCHES_VIEW_ALL, 'guard_name' => 'admin'],
+            [
+                'display_name' => 'عرض بيانات جميع الفروع',
+                'group_name' => 'branches',
+                'section_name' => 'users_management',
+                'is_active' => true,
+            ]
+        );
+
+        $admin->givePermissionTo(\App\PermKeys::BRANCHES_VIEW_ALL);
     }
 
     /** @test */
@@ -58,6 +75,41 @@ class BranchAccessServiceTest extends TestCase
             $this->service->selectedBranchId($request, $admin),
             'A branch-scoped admin must stay pinned to their own branch.'
         );
+    }
+
+    /** @test */
+    public function the_view_all_permission_allows_a_branch_admin_to_select_another_branch(): void
+    {
+        $own = $this->makeBranch();
+        $other = $this->makeBranch();
+        $admin = $this->branchAdmin($own);
+        $this->grantViewAllBranchesPermission($admin);
+
+        $request = Request::create('/', 'GET', ['branch_id' => $other->id]);
+
+        $this->assertTrue($this->service->canViewAllBranches($admin));
+        $this->assertSame($other->id, $this->service->selectedBranchId($request, $admin));
+        $this->assertCount(2, $this->service->selectorBranches($admin));
+    }
+
+    /** @test */
+    public function the_view_all_permission_allows_a_branch_admin_to_view_all_rows(): void
+    {
+        $own = $this->makeBranch();
+        $other = $this->makeBranch();
+        $admin = $this->branchAdmin($own);
+        $this->grantViewAllBranchesPermission($admin);
+
+        $ownEmployee = $this->branchAdmin($own)->id;
+        $otherEmployee = $this->branchAdmin($other)->id;
+        $query = DB::table('admins')->whereIn('id', [$ownEmployee, $otherEmployee]);
+
+        $ids = $this->service
+            ->applyToQuery($query, Request::create('/'), 'admins', null, $admin)
+            ->pluck('id')
+            ->all();
+
+        $this->assertEqualsCanonicalizing([$ownEmployee, $otherEmployee], $ids);
     }
 
     /** @test */
@@ -140,7 +192,7 @@ class BranchAccessServiceTest extends TestCase
     }
 
     /** @test */
-    public function applying_the_filter_restricts_a_branch_admin_to_their_own_and_unassigned_rows(): void
+    public function applying_the_filter_restricts_a_branch_admin_to_their_own_rows_only(): void
     {
         $own = $this->makeBranch();
         $other = $this->makeBranch();
@@ -161,15 +213,123 @@ class BranchAccessServiceTest extends TestCase
             ->all();
 
         $this->assertContains($inMyBranch, $ids);
-        $this->assertContains($unassigned, $ids, 'Legacy rows with a null branch_id stay visible by design.');
+        $this->assertNotContains($unassigned, $ids, 'Unassigned rows must not leak into a branch-scoped account.');
         $this->assertNotContains($inOtherBranch, $ids);
 
         unset($mine, $theirs);
     }
 
     /** @test */
+    public function the_main_branch_includes_legacy_unassigned_rows(): void
+    {
+        $main = $this->makeBranch(['is_main' => true]);
+        $other = $this->makeBranch();
+        $admin = $this->branchAdmin($main);
+        $inMainBranch = $this->branchAdmin($main)->id;
+        $inOtherBranch = $this->branchAdmin($other)->id;
+        $unassigned = $this->globalAdmin()->id;
+
+        $query = DB::table('admins')->whereIn('id', [$inMainBranch, $inOtherBranch, $unassigned]);
+        $ids = $this->service
+            ->applyToQuery($query, Request::create('/'), 'admins', null, $admin)
+            ->pluck('id')
+            ->all();
+
+        $this->assertContains($inMainBranch, $ids);
+        $this->assertContains($unassigned, $ids);
+        $this->assertNotContains($inOtherBranch, $ids);
+        $this->assertTrue($this->service->canAccessModel($this->globalAdmin(), $admin));
+    }
+
+    /** @test */
+    public function a_legacy_contract_follows_its_responsible_employee_branch(): void
+    {
+        $main = $this->makeBranch(['is_main' => true]);
+        $riyadh = $this->makeBranch();
+        $marketer = $this->branchAdmin($riyadh);
+        $contractId = DB::table('contracts')->insertGetId([
+            'status' => 'new',
+            'marketer_id' => $marketer->id,
+            'branch_id' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $riyadhIds = $this->service
+            ->applyBranchIdToQuery(DB::table('contracts')->where('id', $contractId), $riyadh->id, 'contracts')
+            ->pluck('id')
+            ->all();
+        $mainIds = $this->service
+            ->applyBranchIdToQuery(DB::table('contracts')->where('id', $contractId), $main->id, 'contracts')
+            ->pluck('id')
+            ->all();
+
+        $this->assertSame([$contractId], $riyadhIds);
+        $this->assertSame([], $mainIds);
+        $this->assertTrue($this->service->canAccessModel(Contract::findOrFail($contractId), $marketer));
+    }
+
+    /** @test */
+    public function a_legacy_contract_whose_employee_has_no_branch_belongs_to_main(): void
+    {
+        $main = $this->makeBranch(['is_main' => true]);
+        $other = $this->makeBranch();
+        $unassignedEmployee = $this->globalAdmin();
+        $contractId = DB::table('contracts')->insertGetId([
+            'status' => 'new',
+            'marketer_id' => $unassignedEmployee->id,
+            'branch_id' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $mainIds = $this->service
+            ->applyBranchIdToQuery(DB::table('contracts')->where('id', $contractId), $main->id, 'contracts')
+            ->pluck('id')
+            ->all();
+        $otherIds = $this->service
+            ->applyBranchIdToQuery(DB::table('contracts')->where('id', $contractId), $other->id, 'contracts')
+            ->pluck('id')
+            ->all();
+
+        $this->assertSame([$contractId], $mainIds);
+        $this->assertSame([], $otherIds);
+        $this->assertTrue($this->service->canAccessModel(
+            Contract::findOrFail($contractId),
+            $this->branchAdmin($main)
+        ));
+    }
+
+    /** @test */
+    public function branch_inference_honours_query_table_aliases(): void
+    {
+        $main = $this->makeBranch(['is_main' => true]);
+
+        $ordersCount = $this->service
+            ->applyBranchIdToQuery(
+                DB::table('orders as gender_orders')->whereRaw('1 = 0'),
+                $main->id,
+                'orders',
+                'gender_orders.branch_id'
+            )
+            ->count();
+        $contractsCount = $this->service
+            ->applyBranchIdToQuery(
+                DB::table('contracts as dashboard_contracts')->whereRaw('1 = 0'),
+                $main->id,
+                'contracts',
+                'dashboard_contracts.branch_id'
+            )
+            ->count();
+
+        $this->assertSame(0, $ordersCount);
+        $this->assertSame(0, $contractsCount);
+    }
+
+    /** @test */
     public function a_global_admin_selecting_a_branch_sees_only_that_branch(): void
     {
+        $this->makeBranch(['is_main' => true]);
         $target = $this->makeBranch();
         $other = $this->makeBranch();
 
@@ -240,11 +400,12 @@ class BranchAccessServiceTest extends TestCase
     }
 
     /** @test */
-    public function a_branch_admin_may_open_an_unassigned_record(): void
+    public function a_branch_admin_may_not_open_an_unassigned_record(): void
     {
+        $this->makeBranch(['is_main' => true]);
         $admin = $this->branchAdmin($this->makeBranch());
 
-        $this->assertTrue($this->service->canAccessModel($this->globalAdmin(), $admin));
+        $this->assertFalse($this->service->canAccessModel($this->globalAdmin(), $admin));
     }
 
     /** @test */

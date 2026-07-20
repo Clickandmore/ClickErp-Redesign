@@ -3818,8 +3818,6 @@ class RecruitmentContractController extends Controller
             });
         }
 
-        $this->applyRequestBranchFilter($query, $request, 'contracts');
-
         return $query;
     }
 
@@ -5135,9 +5133,7 @@ class RecruitmentContractController extends Controller
 
     private function applyContractFilters($query, Request $request, bool $ignoreStatus = false, bool $ignoreWarranty = false): void
     {
-        if ($this->branchesEnabledFor('contracts') && $request->filled('branch_id')) {
-            $query->where('branch_id', $request->branch_id);
-        }
+        $this->applyRequestBranchFilter($query, $request, 'contracts');
 
         // فلتر الحالة - استخدام query parameter فقط
         if (!$ignoreStatus) {

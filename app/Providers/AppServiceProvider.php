@@ -2,8 +2,6 @@
 
 namespace App\Providers;
 
-use App\Enums\ingaz\ContractStatusEnum;
-use App\Models\Contract;
 use App\Models\Country;
 use App\Models\Feature;
 use App\Models\ingaz\AboutUs;
@@ -137,59 +135,6 @@ class AppServiceProvider extends ServiceProvider
                 : collect();
             $view->with('fastnews', $fastnews);
         });
-
-        // count contracts by status
-        $contractsCount = [
-            'new' => 0,
-            'msaned' => 0,
-            'tafwed' => 0,
-            'taffez' => 0,
-            'tazker' => 0,
-            'under_warranty' => 0,
-            'back' => 0,
-            'arrival' => 0,
-            'closed' => 0,
-            'completed' => 0,
-            'pending_maid_selection' => 0,
-            'all' => 0,
-            'external_office_dispatch_pending' => 0,
-        ];
-
-        if (Schema::hasTable('contracts')) {
-            // $contractsCount['new'] = Contract::where('status', 'new')->count();
-            // $contractsCount['msaned'] = Contract::where('status', 'msaned')->count();
-            // $contractsCount['tafwed'] = Contract::where('status', 'tafwed')->count();
-            // $contractsCount['taffez'] = Contract::where('status', 'taffez')->count();
-            // $contractsCount['tazker'] = Contract::where('status', 'tazker')->count();
-            $contractsCount['under_warranty'] = Contract::where('status', ContractStatusEnum::Arrival->value)
-                ->whereNotNull('warranty_end_date')
-                ->whereDate('warranty_end_date', '>=', now()->toDateString())
-                ->count();
-            $contractsCount['back'] = Contract::where('status', 'back')->count();
-            $contractsCount['arrival'] = Contract::where('status', ContractStatusEnum::Arrival->value)->count();
-            $contractsCount['closed'] = Contract::where('status', 'closed')->count();
-            $contractsCount['pending_maid_selection'] = Contract::where('status', 'pending_maid_selection')->count();
-            // $contractsCount['all'] = Contract::count();
-            $contractsCount['are_valid'] = Contract::whereIn('status', [ContractStatusEnum::PendingMaidSelection, ContractStatusEnum::New, ContractStatusEnum::Msaned, ContractStatusEnum::Tafwed, ContractStatusEnum::Taffez, ContractStatusEnum::Tazker])->count();
-            $contractsCount['completed'] = Contract::where('status', ContractStatusEnum::Completed->value)->count();
-
-            if (Schema::hasTable('contract_external_office_dispatches')) {
-                $contractsCount['external_office_dispatch_pending'] = Contract::query()
-                    ->whereIn('type', ['recruitment', 'maid'])
-                    ->whereIn('status', [
-                        ContractStatusEnum::PendingMaidSelection->value,
-                        ContractStatusEnum::New->value,
-                        ContractStatusEnum::Msaned->value,
-                        ContractStatusEnum::Tafwed->value,
-                        ContractStatusEnum::Taffez->value,
-                        ContractStatusEnum::Tazker->value,
-                    ])
-                    ->whereDoesntHave('externalOfficeDispatch')
-                    ->count();
-            }
-        }
-
-        View::share('contractsCount', $contractsCount);
 
         RateLimiter::for('register', function ($request) {
             return Limit::perMinute(1)->by($request->phone);

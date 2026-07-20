@@ -22,7 +22,6 @@ use App\Models\RecruitmentOffices;
 use App\Models\RentalContract;
 use App\Models\SponsorshipTransfer;
 use App\Models\TravelHistory;
-use App\Support\SystemModuleManager;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -1802,47 +1801,19 @@ class DashboardController extends Controller
 
     protected function resolveDashboardBranchContext(Request $request): array
     {
-        $branchesEnabled = SystemModuleManager::isEnabled('branches')
-            && Schema::hasTable('branches');
-
-        $branches = collect();
-        $activeBranchId = null;
-        $selectedBranch = null;
-        $canSelectBranch = false;
-
-        if ($branchesEnabled) {
-            $branches = Branch::query()
-                ->active()
-                ->ordered()
-                ->get(['id', 'name_ar', 'name_en']);
-        }
-
-        $admin = auth('admin')->user();
-        $adminBranchId = $branchesEnabled && $this->tableHasBranchColumn('admins') && !empty($admin?->branch_id)
-            ? (int) $admin->branch_id
+        $branchAccess = app(\App\Services\BranchAccessService::class);
+        $selector = $branchAccess->selectorData($request);
+        $branchesEnabled = $selector['enabled'] && Schema::hasTable('branches');
+        $branches = $branchesEnabled ? $selector['branches'] : collect();
+        $activeBranchId = $branchesEnabled ? $selector['selected_branch_id'] : null;
+        $selectedBranch = $activeBranchId
+            ? ($branches->firstWhere('id', $activeBranchId)
+                ?: Branch::query()->whereKey($activeBranchId)->first(['id', 'name_ar', 'name_en']))
             : null;
-
-        if ($adminBranchId) {
-            $activeBranchId = $adminBranchId;
-            $selectedBranch = $branches->firstWhere('id', $adminBranchId)
-                ?: Branch::query()->whereKey($adminBranchId)->first(['id', 'name_ar', 'name_en']);
-        } elseif ($branchesEnabled && $branches->isNotEmpty()) {
-            $canSelectBranch = $branches->count() > 1
-                && (
-                    AdminGuardHasPerm(PermKeys::DASHBOARD_MANAGE)
-                    || AdminGuardHasPerm(PermKeys::BRANCHES_VIEW)
-                    || AdminGuardHasPerm(PermKeys::BRANCHES_CONTROL)
-                );
-
-            $requestedBranchId = (int) $request->query('branch_id', 0);
-            if ($requestedBranchId > 0) {
-                $requestedBranch = $branches->firstWhere('id', $requestedBranchId);
-                if ($requestedBranch) {
-                    $activeBranchId = (int) $requestedBranch->id;
-                    $selectedBranch = $requestedBranch;
-                }
-            }
-        }
+        $canSelectBranch = $branchesEnabled
+            && $selector['can_view_all_branches']
+            && $branchAccess->canViewAllBranches()
+            && $branches->count() > 1;
 
         return [
             'enabled' => $branchesEnabled,
@@ -1851,25 +1822,15 @@ class DashboardController extends Controller
             'activeBranchId' => $activeBranchId,
             'selectedBranchId' => $activeBranchId,
             'selectedBranch' => $selectedBranch,
-            'isForced' => (bool) $adminBranchId,
+            'isForced' => ! empty($selector['forced_branch_id']),
         ];
     }
 
     protected function applyDashboardBranchFilter($query, ?int $branchId, string $qualifiedColumn, string $table)
     {
         if ($branchId && $this->tableHasBranchColumn($table)) {
-            $adminBranchId = app(\App\Services\BranchAccessService::class)->adminBranchId();
-
-            if ($adminBranchId === $branchId) {
-                // Legacy records without a branch are visible to branch-bound
-                // admins throughout the detail pages and must be counted here too.
-                $query->where(function ($branchQuery) use ($qualifiedColumn, $branchId) {
-                    $branchQuery->where($qualifiedColumn, $branchId)
-                        ->orWhereNull($qualifiedColumn);
-                });
-            } else {
-                $query->where($qualifiedColumn, $branchId);
-            }
+            app(\App\Services\BranchAccessService::class)
+                ->applyBranchIdToQuery($query, $branchId, $table, $qualifiedColumn);
         }
 
         return $query;

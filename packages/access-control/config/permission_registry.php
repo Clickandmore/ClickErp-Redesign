@@ -817,6 +817,14 @@ return array (
       'display_name' => 'عرض السير الذاتية المحذوفة',
       'description' => 'إمكانية عرض قائمة السير الذاتية المحذوفة من القائمة الجانبية.',
     ),
+    97 =>
+    array (
+      'name' => 'branches_view_all',
+      'group' => 'branches',
+      'section' => 'users_management',
+      'display_name' => 'عرض بيانات جميع الفروع',
+      'description' => 'السماح للمستخدم بعرض بيانات جميع الفروع واستخدام فلتر الفروع عند تفعيل موديول الفروع.',
+    ),
     96 =>
     array (
       'name' => 'finance.constraints-approve',

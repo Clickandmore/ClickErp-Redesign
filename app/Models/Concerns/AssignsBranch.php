@@ -66,6 +66,36 @@ trait AssignsBranch
         return $branchId ? (int) $branchId : null;
     }
 
+    protected function resolveBranchIdFromOrderResponsibleAdmin(?int $orderId): ?int
+    {
+        if (!$orderId || !Schema::hasTable('orders')) {
+            return null;
+        }
+
+        $adminId = null;
+        if (Schema::hasTable('order_details') && Schema::hasColumn('order_details', 'admin_id')) {
+            $adminId = DB::table('order_details')->where('order_id', $orderId)->value('admin_id');
+        }
+
+        if (!$adminId && Schema::hasColumn('orders', 'customer_id')) {
+            $adminId = DB::table('orders')->where('id', $orderId)->value('customer_id');
+        }
+
+        return $this->resolveBranchIdFromAdmin($adminId ? (int) $adminId : null);
+    }
+
+    protected function resolveMainBranchId(): ?int
+    {
+        if (!Schema::hasTable('branches')) {
+            return null;
+        }
+
+        $branchId = Branch::query()->where('is_main', true)->value('id')
+            ?: Branch::query()->active()->ordered()->value('id');
+
+        return $branchId ? (int) $branchId : null;
+    }
+
     protected function resolveBranchIdFromUser(?int $userId): ?int
     {
         if (!$userId || !Schema::hasTable('users') || !Schema::hasColumn('users', 'branch_id')) {

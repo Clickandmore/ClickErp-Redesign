@@ -37,7 +37,9 @@ trait AssignsOrderBranch
             return;
         }
 
-        $branchId = $this->resolveOrderBranchIdFromAdmin($adminId);
+        $branchId = $adminId
+            ? ($this->resolveOrderBranchIdFromAdmin($adminId) ?: $this->resolveOrderMainBranchId())
+            : $this->resolveOrderMainBranchId();
 
         if ($branchId) {
             $this->forceFill(['branch_id' => $branchId])->saveQuietly();
@@ -46,13 +48,14 @@ trait AssignsOrderBranch
 
     protected function resolveOrderBranchIdForCreate(): ?int
     {
-        $responsibleBranchId = $this->resolveOrderBranchIdFromAdmin($this->customer_id ?? null);
-
-        if ($responsibleBranchId) {
-            return $responsibleBranchId;
+        $responsibleAdminId = (int) ($this->customer_id ?? 0);
+        if ($responsibleAdminId > 0) {
+            return $this->resolveOrderBranchIdFromAdmin($responsibleAdminId)
+                ?: $this->resolveOrderMainBranchId();
         }
 
-        return $this->resolveOrderBranchIdFromCurrentAdmin();
+        return $this->resolveOrderBranchIdFromCurrentAdmin()
+            ?: $this->resolveOrderMainBranchId();
     }
 
     protected function resolveOrderBranchIdFromCurrentAdmin(): ?int
@@ -69,6 +72,18 @@ trait AssignsOrderBranch
         }
 
         $branchId = Admin::query()->whereKey($adminId)->value('branch_id');
+
+        return $branchId ? (int) $branchId : null;
+    }
+
+    protected function resolveOrderMainBranchId(): ?int
+    {
+        if (!Schema::hasTable('branches')) {
+            return null;
+        }
+
+        $branchId = Branch::query()->where('is_main', true)->value('id')
+            ?: Branch::query()->active()->ordered()->value('id');
 
         return $branchId ? (int) $branchId : null;
     }
