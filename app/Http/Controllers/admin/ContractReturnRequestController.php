@@ -6,6 +6,7 @@ use App\Models\ContractReturnRequest;
 use App\Services\ingaz\RecruitmentContractWarrantyReturnService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class ContractReturnRequestController extends Controller
 {
@@ -38,34 +39,42 @@ class ContractReturnRequestController extends Controller
             "admin_notes" => "required|string|max:1000",
         ]);
 
-        $returnRequest = ContractReturnRequest::findOrFail($id);
-        $this->assertCanAccessBranchModel($returnRequest);
+        try {
+            $returnRequest = DB::transaction(function () use ($request, $id) {
+                $returnRequest = ContractReturnRequest::query()
+                    ->lockForUpdate()
+                    ->findOrFail($id);
+                $this->assertCanAccessBranchModel($returnRequest);
 
-        if ($returnRequest->status !== "pending") {
+                if ($returnRequest->status !== 'pending') {
+                    throw new \DomainException('لا يمكن معالجة طلب تم معالجته مسبقاً');
+                }
+
+                $returnRequest->update([
+                    'status' => $request->status,
+                    'admin_notes' => $request->admin_notes,
+                    'processed_by' => Auth::guard('admin')->id(),
+                    'processed_at' => now(),
+                ]);
+
+                if ($request->status === 'approved') {
+                    $returnRequest->loadMissing('contract');
+                    app(RecruitmentContractWarrantyReturnService::class)
+                        ->record($returnRequest->contract, $returnRequest);
+                }
+
+                return $returnRequest;
+            });
+        } catch (\DomainException $e) {
             return response()->json([
-                "success" => false,
-                "message" => "لا يمكن معالجة طلب تم معالجته مسبقاً"
+                'success' => false,
+                'message' => $e->getMessage(),
             ], 400);
-        }
-
-        $returnRequest->update([
-            "status" => $request->status,
-            "admin_notes" => $request->admin_notes,
-            "processed_by" => Auth::id(),
-            "processed_at" => now()
-        ]);
-
-        if ($request->status === 'approved') {
-            $returnRequest->loadMissing('contract');
-            try {
-                app(RecruitmentContractWarrantyReturnService::class)
-                    ->record($returnRequest->contract, $returnRequest);
-            } catch (\RuntimeException $e) {
-                return response()->json([
-                    "success" => false,
-                    "message" => "تمت الموافقة على الطلب لكن فشل إنشاء القيد المحاسبي: " . $e->getMessage(),
-                ], 422);
-            }
+        } catch (\RuntimeException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'فشل إنشاء القيد المحاسبي ولم تتم الموافقة على الطلب: ' . $e->getMessage(),
+            ], 422);
         }
 
         return response()->json([
