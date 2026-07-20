@@ -75,6 +75,7 @@ const PARTENR_CONTROL = 'partenr_control';
     const MAIDS_EXPORT_EXCEL = 'maids_export_excel';
     const MAIDS_SHOW = 'maids_show';
     const MAIDS_TOGGLE_STATUS = 'maids_toggle_status';
+    const MAIDS_BULK_VISIBILITY = 'maids_bulk_visibility';
     const MAIDS_TOGGLE_PIN = 'maids_toggle_pin';
     const MAIDS_CONTROL = 'maids_control';
     const MAIDS_RENTAL_VIEW = 'maids_rental_view';

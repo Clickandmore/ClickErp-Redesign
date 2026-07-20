@@ -237,6 +237,7 @@ class NewPermKeys
     // صلاحيات العرض والتحكم
     const MAIDS_SHOW = 'maids_show';
     const MAIDS_TOGGLE_STATUS = 'maids_toggle_status';
+    const MAIDS_BULK_VISIBILITY = 'maids_bulk_visibility';
     const MAIDS_TOGGLE_PIN = 'maids_toggle_pin';
 
     // ========================================

@@ -151,7 +151,7 @@ class DeportationTravelController extends Controller
     {
         $travel = null;
         $contract = $request->filled('contract_id')
-            ? Contract::with(['maid', 'user', 'info'])->find($request->integer('contract_id'))
+            ? Contract::with(['maid', 'user', 'info'])->find((int) $request->input('contract_id'))
             : null;
         $contracts = $this->availableDeportationContracts($contract);
         $arrivalAirports = TravelAirports::options();

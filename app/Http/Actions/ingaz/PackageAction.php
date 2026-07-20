@@ -41,8 +41,11 @@ class PackageAction extends MainAction
         $data['sort_order'] = max(0, (int) ($data['sort_order'] ?? 0));
         $priceWithTax = round((float) ($data['price_with_tax'] ?? 0), 2);
         $originalPrice = round((float) ($data['original_price'] ?? 0), 2);
+        $isTaxable = filter_var($data['is_taxable'] ?? true, FILTER_VALIDATE_BOOLEAN);
 
-        if ($priceWithTax > 0 && abs($priceWithTax - round($originalPrice * 1.15, 2)) >= 0.05) {
+        if (!$isTaxable) {
+            $priceWithTax = $originalPrice;
+        } elseif ($priceWithTax > 0 && abs($priceWithTax - round($originalPrice * 1.15, 2)) >= 0.05) {
             $originalPrice = round($priceWithTax / 1.15, 2);
         } else {
             $priceWithTax = round($originalPrice * 1.15, 2);
@@ -52,6 +55,7 @@ class PackageAction extends MainAction
         $data['discount_amount'] = 0;
         $data['price_after_discount'] = $originalPrice;
         $data['price_with_tax'] = $priceWithTax;
+        $data['is_taxable'] = $isTaxable;
         $data['is_show'] = array_key_exists('is_show', $data) ? (bool) $data['is_show'] : true;
 
         return $data;

@@ -56,6 +56,20 @@
         <small class="text-muted">الأقل يظهر أولاً في الموقع وعقود الإيجار.</small>
     </div>
 
+    <div class="col-12">
+        <label class="form-label d-block">احتساب الضريبة</label>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input js-package-taxable" type="radio" name="is_taxable"
+                   id="packageTaxableCreate" value="1" checked>
+            <label class="form-check-label" for="packageTaxableCreate">بضريبة 15%</label>
+        </div>
+        <div class="form-check form-check-inline">
+            <input class="form-check-input js-package-taxable" type="radio" name="is_taxable"
+                   id="packageNotTaxableCreate" value="0">
+            <label class="form-check-label" for="packageNotTaxableCreate">بدون ضريبة</label>
+        </div>
+    </div>
+
     <div class="col-6">
         <label class="form-label">السعر بدون الضريبة</label>
         <input type="number" min="0" step="0.01" name="original_price" class="form-control js-package-original" data-validation="required">
@@ -65,7 +79,7 @@
     <div class="col-6">
         <label class="form-label">الإجمالي بعد الضريبة</label>
         <input type="number" min="0" step="0.01" name="price_with_tax" class="form-control js-package-total">
-        <small class="text-muted">تكلفة الباقة الأساسية بعد الضريبة ويمكن تعديلها.</small>
+        <small class="text-muted js-package-total-help">تكلفة الباقة الأساسية بعد الضريبة ويمكن تعديلها.</small>
     </div>
 
     <div class="col-6">
@@ -95,6 +109,23 @@
     function calculatePackagePrices(changedField) {
         let original = parseFloat($('.js-package-original').val()) || 0;
         let total = parseFloat($('.js-package-total').val()) || 0;
+        const isTaxable = $('input[name="is_taxable"]:checked').val() !== '0';
+
+        if (!isTaxable) {
+            if (changedField === 'total') {
+                original = total;
+                $('.js-package-original').val(original.toFixed(2));
+            } else {
+                total = original;
+                $('.js-package-total').val(total.toFixed(2));
+            }
+
+            $('.js-package-vat').val('0.00');
+            $('.js-package-total-help').text('لا توجد ضريبة؛ الإجمالي يساوي السعر الأساسي.');
+            return;
+        }
+
+        $('.js-package-total-help').text('تكلفة الباقة الأساسية بعد الضريبة ويمكن تعديلها.');
 
         if (changedField === 'total') {
             original = total > 0 ? total / 1.15 : 0;
@@ -114,6 +145,10 @@
 
     $('.js-package-total').on('input', function () {
         calculatePackagePrices('total');
+    });
+
+    $('.js-package-taxable').on('change', function () {
+        calculatePackagePrices('original');
     });
 </script>
 @else

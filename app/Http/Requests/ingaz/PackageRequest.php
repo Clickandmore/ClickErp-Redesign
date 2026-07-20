@@ -34,6 +34,7 @@ class PackageRequest extends MainRequest
             'offer_description' => 'nullable|string|max:500',
             'price_after_discount' => 'nullable|numeric|min:0|lte:original_price',
             'price_with_tax' => 'nullable|numeric|min:0',
+            'is_taxable' => 'required|boolean',
             'nationality_id' => 'nullable|exists:nationalities,id',
             'days_count' => 'nullable|numeric|min:0',
             'rental_type' => 'required|string|in:hourly,daily,weekly,monthly,yearly',

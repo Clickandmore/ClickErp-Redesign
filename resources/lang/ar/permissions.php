@@ -301,6 +301,7 @@ return array (
   'maids_export_excel' => 'تصدير السير الذاتية بصيغة Excel',
   'maids_show' => 'عرض تفاصيل السيرة الذاتية',
   'maids_toggle_status' => 'تغيير حالة الظهور',
+  'maids_bulk_visibility' => 'إظهار وإخفاء جميع السير',
   'maids_toggle_pin' => 'تثبيت/إلغاء تثبيت',
   'maids_control' => 'التحكم في السير الذاتية',
   'maids_rental_view' => 'عرض سير عاملات الإيجار',

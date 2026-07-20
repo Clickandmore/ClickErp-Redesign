@@ -181,7 +181,7 @@ class ComplaintController extends Controller
             ->orderBy('name')
             ->get();
         $admins = Admin::query()->activeForOperations()->orderBy('name')->get();
-        $orders = Order::query()->with('user')->latest('id')->limit(1000)->get(['id', 'order_code', 'user_id', 'status']);
+        $orders = Order::query()->with(['user', 'maid'])->latest('id')->limit(1000)->get(['id', 'order_code', 'user_id', 'maid_id', 'status']);
         $contracts = Contract::query()->with(['user', 'maid'])->latest('id')->limit(1000)->get(['id', 'user_id', 'maid_id', 'order_id', 'status']);
         $recruitmentOffices = RecruitmentOffices::query()->with('translations')->orderBy('id')->get();
         $partyTypes = ComplaintType::partyTypes();
@@ -302,14 +302,12 @@ class ComplaintController extends Controller
         $data['related_user_id'] = $relationType === 'client' ? ($data['related_user_id'] ?? null) : null;
 
         if ($relationType === 'order') {
-            $order = Order::with('user')->findOrFail($data['order_id']);
-            $data['against_name'] = $order->user?->name;
-            $data['against_phone'] = $order->user?->phone;
+            $order = Order::with(['user', 'maid', 'contracts.maid'])->findOrFail($data['order_id']);
+            $this->applyResolvedAgainstParty($data, $this->resolveOrderAgainstParty($order, $data['against_type'] ?? null));
             $data['relation_reference'] = ($data['relation_reference'] ?? null) ?: ($order->order_code ?: (string) $order->id);
         } elseif ($relationType === 'contract') {
-            $contract = Contract::with('user')->findOrFail($data['contract_id']);
-            $data['against_name'] = $contract->user?->name;
-            $data['against_phone'] = $contract->user?->phone;
+            $contract = Contract::with(['user', 'maid'])->findOrFail($data['contract_id']);
+            $this->applyResolvedAgainstParty($data, $this->resolveContractAgainstParty($contract, $data['against_type'] ?? null));
             $data['relation_reference'] = ($data['relation_reference'] ?? null) ?: (string) $contract->id;
         } elseif ($relationType === 'office') {
             $office = RecruitmentOffices::findOrFail($data['recruitment_office_id']);
@@ -336,14 +334,80 @@ class ComplaintController extends Controller
             : null;
     }
 
+    private function resolveOrderAgainstParty(Order $order, ?string $againstType): array
+    {
+        if ($againstType !== 'worker') {
+            return [
+                'name' => $order->user?->name,
+                'phone' => $order->user?->phone,
+            ];
+        }
+
+        $contract = $order->contracts->first(function (Contract $contract) {
+            return $contract->maid || filled($contract->info?->manual_maid_name);
+        });
+        $maid = $order->maid ?: $contract?->maid;
+
+        return [
+            'name' => $maid?->name ?: $contract?->info?->manual_maid_name,
+            'phone' => null,
+            'maid_passport' => $maid?->passport_num ?: $contract?->info?->manual_maid_passport_num,
+            'maid_nationality_id' => $maid?->nationality_id ?: $contract?->info?->manual_maid_nationality_id,
+        ];
+    }
+
+    private function resolveContractAgainstParty(Contract $contract, ?string $againstType): array
+    {
+        if ($againstType !== 'worker') {
+            return [
+                'name' => $contract->user?->name,
+                'phone' => $contract->user?->phone,
+            ];
+        }
+
+        return [
+            'name' => $contract->maid?->name ?: $contract->info?->manual_maid_name,
+            'phone' => null,
+            'maid_passport' => $contract->maid?->passport_num ?: $contract->info?->manual_maid_passport_num,
+            'maid_nationality_id' => $contract->maid?->nationality_id ?: $contract->info?->manual_maid_nationality_id,
+        ];
+    }
+
+    private function applyResolvedAgainstParty(array &$data, array $party): void
+    {
+        $data['against_name'] = $party['name'] ?? null;
+        $data['against_phone'] = $party['phone'] ?? null;
+
+        if (empty($data['maid_passport']) && !empty($party['maid_passport'])) {
+            $data['maid_passport'] = $party['maid_passport'];
+        }
+        if (empty($data['maid_nationality_id']) && !empty($party['maid_nationality_id'])) {
+            $data['maid_nationality_id'] = $party['maid_nationality_id'];
+        }
+    }
+
     public function show($id)
     {
         $complaint = objModel::with([
-            'user', 'complaintType', 'assignedTo', 'resolvedBy', 'maidNationality', 'contract',
-            'order.user', 'relatedUser', 'recruitmentOffice',
+            'user', 'complaintType', 'assignedTo', 'resolvedBy', 'maidNationality', 'contract.maid',
+            'order.user', 'order.maid', 'order.contracts.maid', 'relatedUser', 'recruitmentOffice',
         ])
             ->findOrFail($id);
         $this->assertCanAccessBranchModel($complaint);
+
+        $againstParty = [
+            'name' => $complaint->against_name,
+            'phone' => $complaint->against_phone,
+        ];
+        if (($complaint->against_type ?: $complaint->complaintType?->against_type) === 'worker') {
+            $resolvedParty = $complaint->relation_type === 'contract' && $complaint->contract
+                ? $this->resolveContractAgainstParty($complaint->contract, 'worker')
+                : ($complaint->relation_type === 'order' && $complaint->order
+                    ? $this->resolveOrderAgainstParty($complaint->order, 'worker')
+                    : []);
+            $againstParty['name'] = $resolvedParty['name'] ?? $againstParty['name'];
+            $againstParty['phone'] = $resolvedParty['phone'] ?? null;
+        }
 
         $admins = Admin::query()->activeForOperations()->orderBy('name')->get();
 
@@ -351,7 +415,7 @@ class ComplaintController extends Controller
         $complaint->statusBadge = $this->getStatusBadge($complaint->status);
         $complaint->priorityBadge = $this->getPriorityBadge($complaint->priority);
 
-        return view($this->folderPath . '.show', compact('complaint', 'admins'));
+        return view($this->folderPath . '.show', compact('complaint', 'admins', 'againstParty'));
     }
 
     public function edit($id)

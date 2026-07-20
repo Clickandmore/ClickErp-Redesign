@@ -15,6 +15,17 @@ class Admin
         Config::set('auth.defaults.guard', 'admin');
         if (Auth::guard('admin')->check()) {
             $admin = Auth::guard('admin')->user();
+
+            if (($admin->status ?? 'active') === 'suspended') {
+                Auth::guard('admin')->logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                return redirect()
+                    ->route('admin.form.login')
+                    ->with('status', __('admin.account_suspended_now'));
+            }
+
             $lastCheck = (int) $request->session()->get('admin_session_checked_at', 0);
 
             if (time() - $lastCheck >= 60) {

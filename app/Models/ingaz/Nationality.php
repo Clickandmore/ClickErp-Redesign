@@ -62,7 +62,10 @@ class Nationality extends Model
 
     public function getDisplayNameAttribute(): string
     {
-        $name = trim((string) ($this->sub_title ?: $this->title));
+        $locale = strtolower(substr((string) app()->getLocale(), 0, 2));
+        $locale = in_array($locale, ['ar', 'en'], true) ? $locale : 'ar';
+        $translation = $this->translations->firstWhere('locale', $locale);
+        $name = trim((string) ($translation?->sub_title ?: $translation?->title));
 
         if ($name !== '') {
             return $name;

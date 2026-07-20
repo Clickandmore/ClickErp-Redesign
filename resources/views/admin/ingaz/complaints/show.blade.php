@@ -465,7 +465,7 @@
                                     @default بدون ربط
                                 @endswitch
                                 @if($complaint->relation_reference)<small class="text-muted d-block">المرجع: {{ $complaint->relation_reference }}</small>@endif
-                                @if($complaint->against_phone)<small class="text-muted d-block">التواصل: {{ $complaint->against_phone }}</small>@endif
+                                @if($againstParty['phone'])<small class="text-muted d-block">التواصل: {{ $againstParty['phone'] }}</small>@endif
                                 @if($complaint->relation_notes)<div class="mt-1">{{ $complaint->relation_notes }}</div>@endif
                             </div>
                         </div>
@@ -482,10 +482,10 @@
                         </div>
                     @endif
 
-                    @if ($complaint->against_name)
+                    @if ($againstParty['name'])
                         <div class="info-row">
                             <div class="info-label">اسم المشتكى عليه:</div>
-                            <div class="info-value">{{ $complaint->against_name }}</div>
+                            <div class="info-value">{{ $againstParty['name'] }}</div>
                         </div>
                     @endif
 

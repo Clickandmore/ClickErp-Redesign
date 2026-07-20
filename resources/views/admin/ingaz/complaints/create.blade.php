@@ -134,7 +134,7 @@
 
                 <div class="relation-panel" data-relation="order">
                     <label class="form-label">اختر الطلب <span class="required">*</span></label>
-                    <select name="order_id" class="form-select select2 relation-input"><option value="">ابحث برقم الطلب أو اسم العميل</option>@foreach($orders as $order)<option value="{{ $order->id }}" {{ old('order_id') == $order->id ? 'selected' : '' }}>طلب #{{ $order->order_code ?: $order->id }} — {{ $order->user?->name ?: 'بدون عميل' }}</option>@endforeach</select>
+                    <select name="order_id" class="form-select select2 relation-input"><option value="">ابحث برقم الطلب أو اسم العميل أو العاملة</option>@foreach($orders as $order)<option value="{{ $order->id }}" {{ old('order_id') == $order->id ? 'selected' : '' }}>طلب #{{ $order->order_code ?: $order->id }} — {{ $order->user?->name ?: 'بدون عميل' }} @if($order->maid) — {{ $order->maid->name }} @endif</option>@endforeach</select>
                 </div>
                 <div class="relation-panel" data-relation="contract">
                     <label class="form-label">اختر العقد <span class="required">*</span></label>
