@@ -2,6 +2,7 @@
 
 namespace Nami\Finance\Models;
 
+use App\Models\ingaz\Invoice;
 use App\Models\auth\Admin;
 use Nami\Finance\Models\ZatcaInvoice;
 use Illuminate\Support\Facades\DB;
@@ -95,5 +96,16 @@ class Sale extends Model
     public function zatca()
     {
         return $this->belongsTo(ZatcaInvoice::class, 'zatca_invoice_id');
+    }
+
+    /**
+     * The operational invoice that created this financial sale.
+     *
+     * The foreign key intentionally lives on invoices so manually-created
+     * financial sales can continue to exist without an operational invoice.
+     */
+    public function sourceInvoice()
+    {
+        return $this->hasOne(Invoice::class, 'finance_sale_id');
     }
 }

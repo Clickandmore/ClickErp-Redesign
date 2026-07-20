@@ -10,7 +10,6 @@ use DOMDocument;
 use Illuminate\Http\Request;
 use Salla\ZATCA\GenerateCSR;
 use Salla\ZATCA\Helpers\Certificate;
-use Salla\ZATCA\Models\C14N;
 use Salla\ZATCA\Models\CSRRequest;
 use Salla\ZATCA\Models\InvoiceSign;
 
@@ -1893,7 +1892,7 @@ class ZatcaSettingService extends MainService
 
 
 
-        return C14N::canonicalizar($doc->saveXML());
+        return $doc->documentElement->C14N(false, false);
     }
 
 

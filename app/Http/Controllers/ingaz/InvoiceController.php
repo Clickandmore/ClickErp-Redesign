@@ -139,30 +139,236 @@ class InvoiceController extends Controller
     {
         $invoiceBranchesEnabled = $this->branchesEnabledFor('invoices');
         $rentalBranchesEnabled = $this->branchesEnabledFor('rental_contracts');
-        $invoiceRelations = ['contract.user', 'ingazDelegation.user', 'client', 'financeSale.zatca'];
+
+        $invoiceQuery = DB::table('invoices as invoice')
+            ->leftJoin('contracts as recruitment_contract', 'recruitment_contract.id', '=', 'invoice.contract_id')
+            ->leftJoin('users as recruitment_client', 'recruitment_client.id', '=', 'recruitment_contract.user_id')
+            ->leftJoin('ingaz_delegations as delegation', 'delegation.id', '=', 'invoice.ingaz_delegation_id')
+            ->leftJoin('users as delegation_client', 'delegation_client.id', '=', 'delegation.user_id')
+            ->leftJoin('users as direct_client', 'direct_client.id', '=', 'invoice.client_id')
+            ->leftJoin('fn_sales as finance_sale', 'finance_sale.id', '=', 'invoice.finance_sale_id')
+            ->leftJoin('zatca_invoices as zatca_invoice', 'zatca_invoice.id', '=', 'finance_sale.zatca_invoice_id');
+
         if ($invoiceBranchesEnabled) {
-            $invoiceRelations[] = 'branch';
+            $invoiceQuery->leftJoin('branches as invoice_branch', 'invoice_branch.id', '=', 'invoice.branch_id');
         }
 
-        $invoiceQuery = Invoice::with($invoiceRelations);
-        $this->applyRequestBranchFilter($invoiceQuery, $request, 'invoices');
-        $invoices = $invoiceQuery->latest()->get()
-            ->map(fn (Invoice $invoice) => $this->formatInvoiceIndexRow($invoice, $invoiceBranchesEnabled));
+        $this->applyRequestBranchFilter($invoiceQuery, $request, 'invoices', 'invoice.branch_id');
+        $invoiceQuery->select([
+            DB::raw("'invoice' as row_type"),
+            'invoice.id',
+            DB::raw('COALESCE(invoice.legacy_invoice_number, invoice.id) as invoice_sort_number'),
+            'invoice.legacy_invoice_number',
+            'invoice.legacy_order_number',
+            'invoice.contract_id',
+            'invoice.ingaz_delegation_id',
+            DB::raw('NULL as rental_contract_id'),
+            DB::raw('NULL as rental_contract_number'),
+            DB::raw('COALESCE(recruitment_client.name, delegation_client.name, direct_client.name, "-") as client_name'),
+            DB::raw('COALESCE(recruitment_client.phone, delegation_client.phone, direct_client.phone, "") as client_phone'),
+            $invoiceBranchesEnabled
+                ? DB::raw('COALESCE(invoice_branch.name_ar, "-") as branch')
+                : DB::raw('"-" as branch'),
+            'invoice.subtotal',
+            'invoice.vat_amount',
+            'invoice.discount',
+            'invoice.total_due',
+            'invoice.is_paid',
+            'invoice.send_to_zatca',
+            'invoice.finance_sale_id',
+            'invoice.legacy_zatca_shared',
+            'zatca_invoice.zatca_status',
+            'invoice.created_at',
+        ]);
 
-        $rentalRelations = ['rentalContract.user', 'rentalContract.maid', 'invoiceConstraint'];
+        $rentalQuery = DB::table('rental_contract_invoices as rental_invoice')
+            ->leftJoin('rental_contracts as rental_contract', 'rental_contract.id', '=', 'rental_invoice.rental_contract_id')
+            ->leftJoin('users as rental_client', 'rental_client.id', '=', 'rental_contract.user_id');
+
         if ($rentalBranchesEnabled) {
-            $rentalRelations[] = 'rentalContract.branch';
+            $rentalQuery->leftJoin('branches as rental_branch', 'rental_branch.id', '=', 'rental_contract.branch_id');
         }
 
-        $rentalQuery = RentalContractInvoice::with($rentalRelations);
-        $this->applyRequestBranchFilter($rentalQuery, $request, 'rental_contract_invoices');
-        $rentalInvoices = $rentalQuery->latest()->get()
-            ->map(fn (RentalContractInvoice $invoice) => $this->formatRentalInvoiceIndexRow($invoice, $rentalBranchesEnabled));
+        $this->applyRequestBranchFilter($rentalQuery, $request, 'rental_contracts', 'rental_contract.branch_id');
+        $rentalQuery->select([
+            DB::raw("'rental' as row_type"),
+            'rental_invoice.id',
+            DB::raw('rental_invoice.id as invoice_sort_number'),
+            DB::raw('NULL as legacy_invoice_number'),
+            DB::raw('NULL as legacy_order_number'),
+            DB::raw('NULL as contract_id'),
+            DB::raw('NULL as ingaz_delegation_id'),
+            'rental_invoice.rental_contract_id',
+            'rental_contract.contract_number as rental_contract_number',
+            DB::raw('COALESCE(rental_client.name, "-") as client_name'),
+            DB::raw('COALESCE(rental_client.phone, "") as client_phone'),
+            $rentalBranchesEnabled
+                ? DB::raw('COALESCE(rental_branch.name_ar, "-") as branch')
+                : DB::raw('"-" as branch'),
+            'rental_invoice.subtotal',
+            'rental_invoice.vat_amount',
+            'rental_invoice.discount',
+            'rental_invoice.total_due',
+            'rental_invoice.is_paid',
+            DB::raw('0 as send_to_zatca'),
+            DB::raw('NULL as finance_sale_id'),
+            DB::raw('NULL as legacy_zatca_shared'),
+            DB::raw('NULL as zatca_status'),
+            'rental_invoice.created_at',
+        ]);
 
-        return DataTables::of($invoices->concat($rentalInvoices)->sortByDesc('created_at_sort')->values())
+        $query = DB::query()->fromSub($invoiceQuery->unionAll($rentalQuery), 'invoice_rows');
+
+        return DataTables::query($query)
+            ->filter(function ($query) use ($request) {
+                $search = trim((string) data_get($request->input('search'), 'value'));
+                if ($search === '') {
+                    return;
+                }
+
+                $query->where(function ($query) use ($search) {
+                    $query->where('invoice_sort_number', 'like', "%{$search}%")
+                        ->orWhere('legacy_order_number', 'like', "%{$search}%")
+                        ->orWhere('contract_id', 'like', "%{$search}%")
+                        ->orWhere('rental_contract_number', 'like', "%{$search}%")
+                        ->orWhere('client_name', 'like', "%{$search}%")
+                        ->orWhere('client_phone', 'like', "%{$search}%");
+                });
+            })
             ->addIndexColumn()
+            ->addColumn('invoice_number', fn ($row) => $this->standardInvoiceNumberLink($row))
+            ->addColumn('invoice_source', fn ($row) => $this->standardInvoiceSourceBadge($row))
+            ->editColumn('subtotal', fn ($row) => number_format((float) $row->subtotal, 2))
+            ->editColumn('vat_amount', fn ($row) => number_format((float) $row->vat_amount, 2))
+            ->editColumn('discount', fn ($row) => number_format((float) $row->discount, 2))
+            ->editColumn('total_due', fn ($row) => number_format((float) $row->total_due, 2))
+            ->addColumn('status', fn ($row) => $this->standardInvoicePaymentBadge($row))
+            ->editColumn('zatca_status', fn ($row) => $this->standardInvoiceZatcaBadge($row))
+            ->editColumn('created_at', fn ($row) => $row->created_at ? substr((string) $row->created_at, 0, 16) : '-')
+            ->addColumn('actions', fn ($row) => $this->standardInvoiceActions($row))
+            ->removeColumn(
+                'row_type',
+                'id',
+                'invoice_sort_number',
+                'legacy_invoice_number',
+                'legacy_order_number',
+                'contract_id',
+                'ingaz_delegation_id',
+                'rental_contract_id',
+                'rental_contract_number',
+                'client_phone',
+                'is_paid',
+                'send_to_zatca',
+                'finance_sale_id',
+                'legacy_zatca_shared'
+            )
             ->rawColumns(['invoice_number', 'invoice_source', 'status', 'zatca_status', 'actions'])
             ->make(true);
+    }
+
+    private function standardInvoiceNumberLink($row): string
+    {
+        if ($row->row_type === 'rental') {
+            $url = route('rental.invoice.download', ['id' => $row->id, 'autoprint' => 1]);
+
+            return '<a href="' . $url . '" target="_blank" rel="noopener" class="fw-bold text-decoration-none">إيجار #' . e((string) $row->id) . '</a>';
+        }
+
+        $url = route('invoice.download', ['id' => $row->id, 'autoprint' => 1]);
+
+        return '<a href="' . $url . '" target="_blank" rel="noopener" class="fw-bold text-decoration-none">#' . e((string) $row->invoice_sort_number) . '</a>';
+    }
+
+    private function standardInvoiceSourceBadge($row): string
+    {
+        if ($row->row_type === 'rental') {
+            $contractNumber = $row->rental_contract_number ?: $row->rental_contract_id;
+
+            return '<span class="badge bg-success-subtle text-success border">عقد تأجير #' . e((string) $contractNumber) . '</span>';
+        }
+
+        if ($row->legacy_invoice_number) {
+            return $row->legacy_order_number
+                ? '<span class="badge bg-info-subtle text-info border">طلب رقم ' . e((string) $row->legacy_order_number) . '</span>'
+                : '<span class="text-muted">بدون طلب مرتبط</span>';
+        }
+
+        if ($row->contract_id) {
+            return '<span class="badge bg-info-subtle text-info border">عقد استقدام #' . e((string) $row->contract_id) . '</span>';
+        }
+
+        if ($row->ingaz_delegation_id) {
+            return '<span class="badge bg-primary-subtle text-primary border">تفويض إنجاز #' . e((string) $row->ingaz_delegation_id) . '</span>';
+        }
+
+        return '<span class="badge bg-secondary-subtle text-secondary border">فاتورة عامة</span>';
+    }
+
+    private function standardInvoicePaymentBadge($row): string
+    {
+        $paid = (bool) $row->is_paid || (float) $row->total_due <= 0;
+        $class = $paid ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning';
+
+        return '<span class="badge ' . $class . '">' . ($paid ? 'مدفوعة' : 'غير مدفوعة') . '</span>';
+    }
+
+    private function standardInvoiceZatcaBadge($row): string
+    {
+        if ($row->row_type === 'rental') {
+            return '<span class="badge bg-secondary-subtle text-secondary border">غير مطلوب</span>';
+        }
+
+        if ((int) $row->legacy_zatca_shared === 1) {
+            return '<span class="badge bg-success">مشارك سابقاً مع الهيئة</span>';
+        }
+
+        if ($row->legacy_invoice_number && $row->legacy_zatca_shared !== null) {
+            return '<span class="badge bg-secondary-subtle text-secondary border">غير مشارك في المصدر</span>';
+        }
+
+        if (!(bool) $row->send_to_zatca) {
+            return '<span class="badge bg-secondary-subtle text-secondary border">غير مطلوب</span>';
+        }
+
+        if (!$row->finance_sale_id) {
+            return '<span class="badge bg-warning-subtle text-warning border">لم يدرج</span>';
+        }
+
+        return match ($row->zatca_status) {
+            'REPORTED' => '<span class="badge bg-success">مرحل للهيئة</span>',
+            'CLEARED' => '<span class="badge bg-primary">معتمد من الهيئة</span>',
+            'NOT_REPORTED', 'NOT_CLEARED' => '<span class="badge bg-danger">مرفوض من الهيئة</span>',
+            default => '<span class="badge bg-warning-subtle text-warning border">معلق في المبيعات</span>',
+        };
+    }
+
+    private function standardInvoiceActions($row): string
+    {
+        if ($row->row_type === 'rental') {
+            $contractUrl = $row->rental_contract_id ? route('RentContract.show', $row->rental_contract_id) : '#';
+            $printUrl = route('rental.invoice.download', ['id' => $row->id, 'autoprint' => 1]);
+
+            return '<div class="d-flex justify-content-end gap-2">
+                        <a href="' . $contractUrl . '" class="btn btn-sm btn-outline-primary" title="عرض عقد التأجير"><i class="fas fa-eye"></i></a>
+                        <a href="' . $printUrl . '" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener" title="طباعة الفاتورة"><i class="fas fa-print"></i></a>
+                    </div>';
+        }
+
+        $queueButton = (int) $row->legacy_zatca_shared === 1
+            ? '<span class="btn btn-sm btn-outline-success disabled" title="مشاركة سابقة محفوظة من نظام الرافدين"><i class="fas fa-check-circle"></i></span>'
+            : (!$row->finance_sale_id
+                ? '<form method="post" action="' . route('invoices.queue-zatca-sale', $row->id) . '" class="d-inline queue-zatca-form">'
+                    . csrf_field()
+                    . '<button type="submit" class="btn btn-sm btn-outline-success" title="إدراج في فواتير الزكاة"><i class="fas fa-receipt"></i></button></form>'
+                : '<a href="' . route('finance.bill-sales.show', $row->finance_sale_id) . '" class="btn btn-sm btn-outline-success" title="فاتورة المبيعات"><i class="fas fa-link"></i></a>');
+        $showUrl = route('invoices.show', $row->id);
+        $printUrl = route('invoice.download', ['id' => $row->id, 'autoprint' => 1]);
+
+        return '<div class="d-flex justify-content-end gap-2">
+                    ' . $queueButton . '
+                    <a href="' . $showUrl . '" class="btn btn-sm btn-outline-primary" title="عرض التفاصيل"><i class="fas fa-eye"></i></a>
+                    <a href="' . $printUrl . '" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener" title="طباعة الفاتورة"><i class="fas fa-print"></i></a>
+                </div>';
     }
 
     private function applyInvoiceIndexFilters($query, Request $request, bool $includeSearch = true): void

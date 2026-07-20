@@ -6,7 +6,6 @@ use Nami\Finance\Models\ZatcaSetting;
 use DateTime;
 use Illuminate\Support\Facades\Http;
 use Salla\ZATCA\Helpers\Certificate;
-use Salla\ZATCA\Models\C14N;
 use DOMDocument;
 
 
@@ -304,7 +303,7 @@ trait ZatcaInvoicesTrait
             $oldchapter = $book->removeChild($chapter);
 
 
-        return C14N::canonicalizar($doc->saveXML());
+        return $doc->documentElement->C14N(false, false);
     }
 
 

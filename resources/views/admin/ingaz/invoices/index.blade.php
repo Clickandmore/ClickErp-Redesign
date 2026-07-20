@@ -193,11 +193,12 @@
                     },
                     {
                         data: 'invoice_number',
-                        name: "{{ ($legacyMode ?? false) ? 'legacy_invoice_number' : 'id' }}"
+                        name: "{{ ($legacyMode ?? false) ? 'legacy_invoice_number' : 'invoice_sort_number' }}"
                     },
                     {
                         data: 'invoice_source',
                         name: "{{ ($legacyMode ?? false) ? 'legacy_order_number' : 'contract_id' }}",
+                        orderable: false,
                         searchable: false
                     },
                     {
@@ -254,7 +255,7 @@
                     }
                 ],
                 order: [
-                    [1, 'desc']
+                    [{{ ($branchesEnabled ?? false) ? 11 : 10 }}, 'desc']
                 ],
                 language: {
                     search: 'بحث سريع:',

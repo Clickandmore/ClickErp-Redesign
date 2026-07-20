@@ -46,6 +46,8 @@
         <thead>
             <tr>
                 <th>{{ __('finance::finance.Invoice Number') }}</th>
+                <th>رقم المبيعات</th>
+                <th>مرتبطة بـ</th>
                 <th>{{ __('finance::finance.date') }}</th>
                 <th>{{ __('finance::finance.client') }}</th>
                 <th>{{ __('finance::finance.Total before discount') }}</th>
@@ -58,7 +60,21 @@
         <tbody>
             @foreach ($sales as $sale)
                 <tr>
+                    <td>{{ $sale->sourceInvoice?->legacy_invoice_number ?: ($sale->sourceInvoice?->id ?: $sale->code) }}</td>
                     <td>{{ $sale->code }}</td>
+                    <td>
+                        @if($sale->sourceInvoice?->contract_id)
+                            عقد استقدام #{{ $sale->sourceInvoice->contract_id }}
+                        @elseif($sale->sourceInvoice?->ingaz_delegation_id)
+                            تفويض إنجاز #{{ $sale->sourceInvoice->ingaz_delegation_id }}
+                        @elseif($sale->sourceInvoice?->legacy_order_number)
+                            طلب رقم {{ $sale->sourceInvoice->legacy_order_number }}
+                        @elseif($sale->sourceInvoice)
+                            فاتورة النظام
+                        @else
+                            فاتورة مبيعات يدوية
+                        @endif
+                    </td>
                     <td>{{ $sale->date }}</td>
                     <td>{{ $sale->client?->name ?: '-' }}</td>
                     <td>{{ number_format((float) $sale->total_item, 2) }}</td>

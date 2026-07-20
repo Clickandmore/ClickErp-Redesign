@@ -3,6 +3,7 @@
 namespace Nami\Finance\Http\Controllers;
 
 use App\Http\Controllers\admin\Controller;
+use App\Models\ingaz\Invoice;
 use Illuminate\Http\Request;
 use Nami\Finance\Enums\SalesTypeEnum;
 use Nami\Finance\Http\Requests\SalesOrderRequest as ObjRequest;
@@ -25,6 +26,45 @@ class BillSalesController extends Controller
         if ($request->ajax()) {
             return DataTables::of($dataTable)
                 ->addIndexColumn()
+                ->editColumn('code', function ($row) {
+                    $invoice = $row->sourceInvoice;
+                    if (!$invoice) {
+                        return '<span class="fw-bold">#' . e((string) $row->code) . '</span>'
+                            . '<div class="small text-muted">فاتورة مبيعات يدوية</div>';
+                    }
+
+                    $invoiceNumber = $invoice->legacy_invoice_number ?: $invoice->id;
+
+                    return '<a href="' . route('invoices.show', $invoice->id) . '" class="fw-bold text-decoration-none">'
+                        . '#' . e((string) $invoiceNumber)
+                        . '</a><div class="small text-muted">رقم المبيعات: ' . e((string) $row->code) . '</div>';
+                })
+                ->addColumn('invoice_source', function ($row) {
+                    $invoice = $row->sourceInvoice;
+                    if (!$invoice) {
+                        return '<span class="badge bg-secondary-subtle text-secondary border">فاتورة مالية</span>';
+                    }
+
+                    if ($invoice->contract_id) {
+                        return '<a href="' . route('invoices.show', $invoice->id) . '" class="badge bg-info-subtle text-info border text-decoration-none">'
+                            . 'عقد استقدام #' . e((string) $invoice->contract_id)
+                            . '</a>';
+                    }
+
+                    if ($invoice->ingaz_delegation_id) {
+                        return '<a href="' . route('invoices.show', $invoice->id) . '" class="badge bg-primary-subtle text-primary border text-decoration-none">'
+                            . 'تفويض إنجاز #' . e((string) $invoice->ingaz_delegation_id)
+                            . '</a>';
+                    }
+
+                    if ($invoice->legacy_order_number) {
+                        return '<a href="' . route('invoices.show', $invoice->id) . '" class="badge bg-info-subtle text-info border text-decoration-none">'
+                            . 'طلب رقم ' . e((string) $invoice->legacy_order_number)
+                            . '</a>';
+                    }
+
+                    return '<a href="' . route('invoices.show', $invoice->id) . '" class="badge bg-light text-dark border text-decoration-none">فاتورة النظام</a>';
+                })
                 ->editColumn('client_id', function ($row) {
                     return $row->client->name ?? "";
                 })
@@ -86,6 +126,8 @@ class BillSalesController extends Controller
         fwrite($stream, "\xEF\xBB\xBF");
         fputcsv($stream, [
             __('finance::finance.Invoice Number'),
+            'رقم المبيعات',
+            'مرتبطة بـ',
             __('finance::finance.date'),
             __('finance::finance.client'),
             __('finance::finance.Total before discount'),
@@ -97,7 +139,9 @@ class BillSalesController extends Controller
 
         foreach ($sales as $sale) {
             fputcsv($stream, [
+                $this->sourceInvoiceNumber($sale),
                 $sale->code,
+                $this->sourceInvoiceLabel($sale),
                 $sale->date,
                 $sale->client?->name ?: '',
                 number_format((float) $sale->total_item, 2, '.', ''),
@@ -141,7 +185,12 @@ class BillSalesController extends Controller
 
     private function filteredBillSalesQuery(Request $request, ObjService $service)
     {
-        $dataTable = $service->getDataTableOfBill($request);
+        $dataTable = $service->getDataTableOfBill($request)
+            ->with([
+                'client',
+                'zatca',
+                'sourceInvoice:id,legacy_invoice_number,legacy_order_number,contract_id,ingaz_delegation_id,finance_sale_id',
+            ]);
         $fromDate = $request->input('from_date');
         $toDate = $request->input('to_date');
 
@@ -154,7 +203,14 @@ class BillSalesController extends Controller
         }
 
         if ($request->filled('code')) {
-            $dataTable->where('code', $request->code);
+            $invoiceNumber = trim((string) $request->code);
+            $dataTable->where(function ($query) use ($invoiceNumber) {
+                $query->where('code', $invoiceNumber)
+                    ->orWhereHas('sourceInvoice', function ($invoiceQuery) use ($invoiceNumber) {
+                        $invoiceQuery->where('id', $invoiceNumber)
+                            ->orWhere('legacy_invoice_number', $invoiceNumber);
+                    });
+            });
         }
 
         if ($request->filled('client_id')) {
@@ -168,7 +224,17 @@ class BillSalesController extends Controller
             });
         }
 
-        return $dataTable;
+        // Keep the ZATCA queue in the same newest-first sequence used by the
+        // operational invoices screen. Manual financial sales are ordered next
+        // by their own id and remain visible.
+        return $dataTable
+            ->orderByDesc(
+                Invoice::query()
+                    ->select('id')
+                    ->whereColumn('finance_sale_id', 'fn_sales.id')
+                    ->limit(1)
+            )
+            ->orderByDesc('fn_sales.id');
     }
 
     private function zatcaStatusLabel($sale): string
@@ -180,6 +246,35 @@ class BillSalesController extends Controller
             'NOT_CLEARED' => 'NOT_CLEARED',
             default => 'معلقة للهيئة',
         };
+    }
+
+    private function sourceInvoiceNumber($sale): string
+    {
+        $invoice = $sale->sourceInvoice;
+
+        return (string) ($invoice?->legacy_invoice_number ?: ($invoice?->id ?: $sale->code));
+    }
+
+    private function sourceInvoiceLabel($sale): string
+    {
+        $invoice = $sale->sourceInvoice;
+        if (!$invoice) {
+            return 'فاتورة مبيعات يدوية';
+        }
+
+        if ($invoice->contract_id) {
+            return 'عقد استقدام #' . $invoice->contract_id;
+        }
+
+        if ($invoice->ingaz_delegation_id) {
+            return 'تفويض إنجاز #' . $invoice->ingaz_delegation_id;
+        }
+
+        if ($invoice->legacy_order_number) {
+            return 'طلب رقم ' . $invoice->legacy_order_number;
+        }
+
+        return 'فاتورة النظام';
     }
 
     public function create(Request $request, ObjService $service)

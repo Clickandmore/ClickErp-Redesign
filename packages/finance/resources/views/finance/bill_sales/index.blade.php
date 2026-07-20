@@ -91,6 +91,9 @@
             <small class="text-muted">متابعة فواتير المبيعات وحالة مشاركتها مع هيئة الزكاة.</small>
         </div>
         <div class="bill-sales-actions">
+            <a href="{{ route('invoices.index') }}" class="btn btn-outline-primary">
+                <i class="fa fa-link me-1"></i> الفواتير المرتبطة
+            </a>
             @if (@AdminGuardHasPerm('finance_bill_sales_export') || auth('admin')->user()?->admin_type == \App\Enums\AdminTypeisEnum::Developer->value)
             <a href="{{ route('finance.bill-sales.export.excel') }}" id="exportExcelLink" class="btn btn-outline-success">
                 <i class="fa fa-file-excel me-1"></i> Excel
@@ -116,7 +119,7 @@
             <input type="date" name="to_date" id="to_date" class="form-control">
         </div>
         <div class="col-md-2">
-            <label for="">{{ __('finance::finance.code') }}</label>
+            <label for="">رقم الفاتورة / رقم المبيعات</label>
             <input type="text" name="code" id="code" class="form-control">
         </div>
         <div class="col-md-3">
@@ -138,6 +141,7 @@
                 <tr>
                     <th>{{ __('finance::finance.SL') }}</th>
                     <th>{{ __('finance::finance.Invoice Number') }}</th>
+                    <th>مرتبطة بـ</th>
                     <th>{{ __('finance::finance.date') }}</th>
                     <th>{{ __('finance::finance.the_stock') }}</th>
                     <th>{{ __('finance::finance.client') }}</th>
@@ -213,6 +217,11 @@
                     },
                     {
                         "data": "code",
+                        orderable: false,
+                        searchable: false
+                    },
+                    {
+                        "data": "invoice_source",
                         orderable: false,
                         searchable: false
                     },

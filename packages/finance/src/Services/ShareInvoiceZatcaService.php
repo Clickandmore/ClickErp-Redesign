@@ -11,7 +11,6 @@ use Nami\Finance\Traits\ZatcaInvoicesTrait;
 use DOMDocument;
 use DB;
 use Salla\ZATCA\Helpers\Certificate;
-use Salla\ZATCA\Models\C14N;
 
 class ShareInvoiceZatcaService extends MainService
 {
