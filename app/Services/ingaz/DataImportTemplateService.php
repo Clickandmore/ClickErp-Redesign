@@ -655,7 +655,7 @@ class DataImportTemplateService
     {
         return array_merge(
             $this->clientBundleColumns(),
-            $this->maidBundleColumns(false),
+            $this->maidBundleColumns(false, true),
             [
                 ['key' => 'contract_number', 'label' => 'رقم عقد الاستقدام', 'required' => false, 'example' => 'RC-0001'],
                 ['key' => 'msaned_number', 'label' => 'رقم مساند', 'required' => false, 'example' => 'MS-0001'],
@@ -713,16 +713,16 @@ class DataImportTemplateService
         ];
     }
 
-    private function maidBundleColumns(bool $rental): array
+    private function maidBundleColumns(bool $rental, bool $optional = false): array
     {
         $columns = [
             ['key' => 'maid_code', 'label' => 'رقم السيرة', 'required' => false, 'example' => $rental ? 'RNT-001' : 'CV-001'],
-            ['key' => 'maid_name_en', 'label' => 'اسم العاملة بالإنجليزية', 'required' => true, 'example' => 'EDIT_ME_NAME'],
-            ['key' => 'maid_passport', 'label' => 'رقم جواز العاملة', 'required' => true, 'example' => 'P0000001'],
-            ['key' => 'maid_nationality', 'label' => 'جنسية العاملة', 'required' => true, 'example' => $rental ? 'أوغندا' : 'الفلبين'],
+            ['key' => 'maid_name_en', 'label' => 'اسم العاملة بالإنجليزية', 'required' => !$optional, 'example' => 'EDIT_ME_NAME'],
+            ['key' => 'maid_passport', 'label' => 'رقم جواز العاملة', 'required' => !$optional, 'example' => 'P0000001'],
+            ['key' => 'maid_nationality', 'label' => 'جنسية العاملة', 'required' => !$optional, 'example' => $rental ? 'أوغندا' : 'الفلبين'],
             ['key' => 'maid_office', 'label' => 'مكتب الاستقدام', 'required' => $rental, 'example' => 'مكتب خارجي'],
-            ['key' => 'maid_type', 'label' => 'نوع السيرة', 'required' => true, 'example' => $rental ? 'إيجار' : 'استقدام'],
-            ['key' => 'maid_job_titles', 'label' => 'مهنة العاملة', 'required' => true, 'example' => 'عاملة منزلية'],
+            ['key' => 'maid_type', 'label' => 'نوع السيرة', 'required' => !$optional, 'example' => $rental ? 'إيجار' : 'استقدام'],
+            ['key' => 'maid_job_titles', 'label' => 'مهنة العاملة', 'required' => !$optional, 'example' => 'عاملة منزلية'],
             ['key' => 'maid_religion', 'label' => 'ديانة العاملة', 'required' => false, 'example' => 'مسلمة'],
             ['key' => 'maid_request_type', 'label' => 'نوع طلب السيرة', 'required' => false, 'example' => 'حسب المواصفات'],
             ['key' => 'maid_salary', 'label' => 'راتب العاملة', 'required' => false, 'example' => '1500'],
@@ -736,7 +736,7 @@ class DataImportTemplateService
             ['key' => 'maid_marital_status', 'label' => 'الحالة الاجتماعية للعاملة', 'required' => false, 'example' => 'عازبة'],
             ['key' => 'maid_childrens_count', 'label' => 'عدد أطفال العاملة', 'required' => false, 'example' => '0'],
             ['key' => 'maid_duration', 'label' => 'مدة عقد العاملة', 'required' => false, 'example' => '24 شهر'],
-            ['key' => 'maid_experience_status', 'label' => 'حالة خبرة العاملة', 'required' => true, 'example' => 'سبق لها العمل'],
+            ['key' => 'maid_experience_status', 'label' => 'حالة خبرة العاملة', 'required' => !$optional, 'example' => 'سبق لها العمل'],
             ['key' => 'maid_experience_years', 'label' => 'سنوات خبرة العاملة', 'required' => false, 'example' => '2'],
             ['key' => 'maid_skills', 'label' => 'مهارات العاملة', 'required' => false, 'example' => 'طبخ|تنظيف'],
             ['key' => 'maid_languages', 'label' => 'لغات العاملة', 'required' => false, 'example' => 'arabic|english'],

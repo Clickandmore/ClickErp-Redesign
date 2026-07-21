@@ -2811,7 +2811,16 @@ class DataImportExecutionService
             throw new \InvalidArgumentException('اسم العميل ورقم الجوال ورقم الهوية مطلوبة.');
         }
 
-        $phoneIsDuplicate = $this->findUserByPhone($phone) !== null;
+        $userByPhone = $this->findUserByPhone($phone);
+        $client = $databaseId ? User::query()->whereKey($databaseId)->first() : null;
+        $client = $client ?: User::query()->where('national_num', $idNumber)->first();
+        if (!$client && $userByPhone
+            && (blank($userByPhone->national_num)
+                || $this->normalizeIdNumber($userByPhone->national_num) === $idNumber)) {
+            $client = $userByPhone;
+        }
+        $phoneIsDuplicate = $userByPhone !== null
+            && (!$client || (int) $userByPhone->id !== (int) $client->id);
         $databaseIdExists = $databaseId ? User::whereKey($databaseId)->exists() : false;
         $createdBy = $this->resolveImportedAdminId(
             $row['created_by'] ?? $row['created_by_name'] ?? null,
@@ -2848,7 +2857,26 @@ class DataImportExecutionService
             $payload['password'] = $this->defaultImportPasswordHash();
         }
 
-        User::create(array_filter($payload, fn ($value) => $value !== null && $value !== ''));
+        $payload = array_filter($payload, fn ($value) => $value !== null && $value !== '');
+
+        if ($client) {
+            unset($payload['id'], $payload['password']);
+
+            if ($phoneIsDuplicate) {
+                unset($payload['phone'], $payload['phone_code']);
+                if (Schema::hasColumn('users', 'phone2') && blank($client->phone2)) {
+                    $payload['phone2'] = $phone;
+                } elseif (blank($row['phone2'] ?? null)) {
+                    unset($payload['phone2']);
+                }
+            }
+
+            $client->update($payload);
+
+            return 'updated';
+        }
+
+        User::create($payload);
 
         return 'created';
     }
@@ -3239,7 +3267,7 @@ class DataImportExecutionService
         return $this->importMaid($row, $adminId, true);
     }
 
-    private function importMaid(array $row, ?int $adminId, bool $rental): string
+    private function importMaid(array $row, ?int $adminId, bool $rental, bool $allowSparseRelations = false): string
     {
         $passport = $this->normalizePassportNumber($row['passport_num'] ?? $row['maid_passport'] ?? '');
 
@@ -3259,7 +3287,8 @@ class DataImportExecutionService
             throw new \InvalidArgumentException('مكتب الاستقدام مطلوب لعاملة التأجير أو غير موجود في النظام.');
         }
 
-        if ($this->resolveTranslatableIds(JobTitle::class, $row['job_titles'] ?? $row['job_title'] ?? null) === []) {
+        if (!$allowSparseRelations
+            && $this->resolveTranslatableIds(JobTitle::class, $row['job_titles'] ?? $row['job_title'] ?? null) === []) {
             throw new \InvalidArgumentException('المهنة مطلوبة أو غير موجودة في النظام.');
         }
 
@@ -3288,10 +3317,33 @@ class DataImportExecutionService
     private function importRecruitmentBundle(array $row, ?int $adminId): string
     {
         $clientOutcome = $this->importClient($this->clientRowFromBundle($row), $adminId);
-        $maidOutcome = $this->importMaid($this->maidRowFromBundle($row), $adminId, false);
-        $contractOutcome = $this->importRecruitmentContract($this->recruitmentContractRowFromBundle($row), $adminId);
+        $contractRow = $this->recruitmentContractRowFromBundle($row);
+        $status = $this->normalizeRecruitmentContractStatus($contractRow['status'] ?? null);
+        $maidRow = $this->maidRowFromBundle($row);
+        $maidOutcome = 'skipped';
+
+        if ($this->recruitmentBundleHasMaidData($maidRow)) {
+            // Historical recruitment sheets commonly contain the worker identity
+            // but omit optional CV relations such as job title and experience.
+            $maidOutcome = $this->importMaid($maidRow, $adminId, false, true);
+        } elseif ($status !== ContractStatusEnum::PendingMaidSelection->value) {
+            throw new \InvalidArgumentException(
+                'بيانات العاملة مطلوبة ما لم تكن حالة العقد بانتظار اختيار العاملة.'
+            );
+        }
+
+        $contractOutcome = $this->importRecruitmentContract($contractRow, $adminId);
 
         return in_array('created', [$clientOutcome, $maidOutcome, $contractOutcome], true) ? 'created' : 'updated';
+    }
+
+    private function recruitmentBundleHasMaidData(array $row): bool
+    {
+        return collect([
+            $row['passport_num'] ?? $row['maid_passport'] ?? null,
+            $row['name_en'] ?? $row['maid_name'] ?? null,
+            $row['nationality'] ?? null,
+        ])->contains(fn ($value) => filled($value));
     }
 
     private function importRentBundle(array $row, ?int $adminId): string
@@ -3321,8 +3373,12 @@ class DataImportExecutionService
 
         $contractId = $this->optionalInteger($row['contract_number'] ?? null);
 
-        $contract = ($contractId ? Contract::whereKey($contractId)->first() : null)
-            ?: $this->findContract($row['contract_number'] ?? null, $maid?->id, $user->id);
+        // An explicit numeric legacy contract number is the authoritative primary
+        // key. Do not merge two distinct contracts merely because the same client
+        // recruited the same worker more than once.
+        $contract = $contractId
+            ? Contract::whereKey($contractId)->first()
+            : $this->findContract($row['contract_number'] ?? null, $maid?->id, $user->id);
         $payload = $this->filterColumns('contracts', [
             'user_id' => $user->id,
             'maid_id' => $maid?->id,
@@ -4044,16 +4100,24 @@ class DataImportExecutionService
 
     private function syncRecruitmentContractWarrantyFromArrivalDate(Contract $contract, ?string $arrivalDate): void
     {
-        if (!$arrivalDate) {
+        if (!$arrivalDate || !in_array($contract->status, [
+            ContractStatusEnum::Arrival->value,
+            ContractStatusEnum::Completed->value,
+        ], true)) {
             return;
         }
 
-        $contract->forceFill([
-            'status' => ContractStatusEnum::Arrival->value,
-        ])->save();
-
+        $importedStatus = $contract->status;
         $contract->load('info', 'maid');
         $contract->calculateWarrantyStatus();
+
+        // The source status is authoritative for completed historical contracts.
+        // Warranty calculation may otherwise reopen a recently completed contract
+        // as "arrival" merely because its warranty end date is still in the future.
+        if ($importedStatus === ContractStatusEnum::Completed->value
+            && $contract->status !== ContractStatusEnum::Completed->value) {
+            $contract->forceFill(['status' => ContractStatusEnum::Completed->value])->save();
+        }
     }
 
     private function findIngazDelegation(array $row): ?IngazDelegation
@@ -4291,10 +4355,19 @@ class DataImportExecutionService
             return (int) $value;
         }
 
+        $normalizedValue = $this->normalizeComparableText($value);
+        $aliases = [
+            'اوغنده' => 'اوغندا',
+        ];
+        $values = array_values(array_unique(array_filter([
+            $value,
+            $aliases[$normalizedValue] ?? null,
+        ])));
+
         return Nationality::query()
-            ->whereHas('translations', function ($query) use ($value) {
-                $query->where('title', $value)
-                    ->orWhere('sub_title', $value);
+            ->whereHas('translations', function ($query) use ($values) {
+                $query->whereIn('title', $values)
+                    ->orWhereIn('sub_title', $values);
             })
             ->value('id');
     }
@@ -5538,7 +5611,12 @@ class DataImportExecutionService
     private function recruitmentStatusAliases(): array
     {
         return [
-            ContractStatusEnum::PendingMaidSelection->value => ['بانتظار اختيار العاملة', 'انتظار اختيار العاملة'],
+            ContractStatusEnum::PendingMaidSelection->value => [
+                'بانتظار اختيار العاملة',
+                'انتظار اختيار العاملة',
+                'بانتظار اختيار العمالة',
+                'انتظار اختيار العمالة',
+            ],
             ContractStatusEnum::New->value => ['بانتظار الاعتماد', 'عقود جديدة', 'جديد', 'نشط', 'نشطة', 'ساري', 'سارية', 'active'],
             ContractStatusEnum::AccreditationContracts->value => ['اعتماد العقود'],
             ContractStatusEnum::Msaned->value => ['عقود مساند', 'مساند'],
@@ -5549,7 +5627,7 @@ class DataImportExecutionService
             ContractStatusEnum::Completed->value => ['عقد مكتمل', 'مكتمل', 'مكتملة', 'completed'],
             ContractStatusEnum::Refunded->value => ['مسترد', 'مسترده', 'مستردة', 'تم استرداده', 'تم إسترداده', 'refunded'],
             ContractStatusEnum::Back->value => ['مرتجع', 'راجع'],
-            ContractStatusEnum::Sari->value => ['عقد ساري'],
+            ContractStatusEnum::Sari->value => ['عقد ساري', 'عقد سار', 'سار'],
             ContractStatusEnum::Shelter->value => ['عقد إيواء', 'عقد ايواء', 'إيواء', 'ايواء'],
             ContractStatusEnum::Trial->value => ['في فترة التجربة', 'فترة التجربة', 'تجربة'],
             ContractStatusEnum::InProgress->value => ['مرحلة الاجراءات', 'مرحلة الإجراءات', 'قيد التنفيذ'],
