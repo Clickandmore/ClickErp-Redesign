@@ -1426,16 +1426,56 @@
                                     <option value="bank_pending">بانتظار التحويل</option>
                                 </select>
                             </div>
+                            <div class="col-md-6 extend-receipt-fields d-none">
+                                <label for="extend_extension_payment_type" class="form-label">طريقة الدفع <span class="text-danger">*</span></label>
+                                <select class="form-select" id="extend_extension_payment_type" name="extension_payment_type">
+                                    <option value="">اختر طريقة الدفع</option>
+                                    <option value="cash">نقدي</option>
+                                    <option value="bank_transfer">تحويل بنكي</option>
+                                    <option value="mada">مدى / شبكة</option>
+                                    <option value="tabby">تابي</option>
+                                    <option value="tamara">تمارا</option>
+                                    <option value="moyasar">ميسر</option>
+                                    <option value="other">أخرى</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 extend-receipt-fields d-none">
+                                <label for="extend_extension_receipt_account_id" class="form-label">البنك / حساب القبض <span class="text-danger">*</span></label>
+                                <select class="form-select" id="extend_extension_receipt_account_id" name="extension_receipt_account_id">
+                                    <option value="">اختر الحساب الذي سيصدر عليه السند</option>
+                                    @foreach ($extensionReceiptAccounts as $account)
+                                        @php
+                                            $accountType = (int) $account->getRawOriginal('type');
+                                            $accountTypeLabel = match ($accountType) {
+                                                \Nami\Finance\Enums\AccountTypesEnum::Bank->value => 'بنك',
+                                                \Nami\Finance\Enums\AccountTypesEnum::Box->value => 'صندوق',
+                                                \Nami\Finance\Enums\AccountTypesEnum::ElectronicWallet->value => 'محفظة إلكترونية',
+                                                default => 'حساب قبض',
+                                            };
+                                        @endphp
+                                        <option value="{{ $account->id }}">{{ $account->code }} - {{ $account->name }} ({{ $accountTypeLabel }})</option>
+                                    @endforeach
+                                </select>
+                                @if ($extensionReceiptAccounts->isEmpty())
+                                    <small class="text-danger">لا توجد حسابات بنك/صندوق معرفة في النظام المالي.</small>
+                                @endif
+                            </div>
+                            <div class="col-md-6 extend-receipt-fields d-none">
+                                <label for="extend_extension_payment_amount" class="form-label">مبلغ سند القبض <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="extend_extension_payment_amount"
+                                    name="extension_payment_amount" min="0.01" step="0.01">
+                            </div>
+                            <div class="col-md-6 extend-receipt-fields d-none">
+                                <label for="extend_extension_payment_date" class="form-label">تاريخ سند القبض <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="extend_extension_payment_date"
+                                    name="extension_payment_date" value="{{ now()->format('Y-m-d') }}">
+                            </div>
                             <div class="col-md-6">
                                 <label for="extend_extension_payment_receipt" class="form-label">
-                                    إيصال الدفع
-                                    <span class="text-danger d-none" id="extendReceiptRequiredMark">*</span>
+                                    إرفاق إثبات الدفع (اختياري)
                                 </label>
                                 <input type="file" class="form-control" id="extend_extension_payment_receipt"
                                     name="extension_payment_receipt" accept=".pdf,.jpg,.jpeg,.png">
-                                <small class="text-danger d-none" id="extendReceiptRequiredNote">
-                                    يجب إرفاق الإيصال عند تحديد تم الدفع أو مدفوع جزئياً.
-                                </small>
                             </div>
                             <div class="col-12">
                                 <label for="extend_extension_notes" class="form-label">ملاحظات</label>
@@ -1982,6 +2022,7 @@
                     $('#extend_extension_value').text('-');
                     $('#extend_new_duration_text').text('-');
                     $('#extend_new_contract_value_text').text('-');
+                    $('#extend_extension_payment_amount').val('');
                     return;
                 }
 
@@ -1992,6 +2033,7 @@
                     $('#extend_extension_value').text('-');
                     $('#extend_new_duration_text').text('-');
                     $('#extend_new_contract_value_text').text('-');
+                    $('#extend_extension_payment_amount').val('');
                     return;
                 }
 
@@ -2003,15 +2045,16 @@
                 $('#extend_extension_value').text(formatCurrency(extensionValue) + ' ريال');
                 $('#extend_new_duration_text').text(extensionDays + ' يوم');
                 $('#extend_new_contract_value_text').text(formatCurrency(extensionValue) + ' ريال');
+                $('#extend_extension_payment_amount').val(extensionValue.toFixed(2));
             }
 
             function toggleExtendReceiptRequirement() {
                 const paymentStatus = $('#extend_extension_payment_status').val();
                 const receiptRequired = paymentStatus === 'paid' || paymentStatus === 'partial';
 
-                $('#extend_extension_payment_receipt').prop('required', receiptRequired);
-                $('#extendReceiptRequiredMark').toggleClass('d-none', !receiptRequired);
-                $('#extendReceiptRequiredNote').toggleClass('d-none', !receiptRequired);
+                $('.extend-receipt-fields').toggleClass('d-none', !receiptRequired);
+                $('#extend_extension_payment_type, #extend_extension_receipt_account_id, #extend_extension_payment_amount, #extend_extension_payment_date')
+                    .prop('required', receiptRequired);
             }
 
             function resetExtendModal() {
@@ -2038,8 +2081,10 @@
                 $('#extend_extensions_count_text').text('-');
                 $('#extend_extension_months').val('0');
                 $('#extend_extension_extra_days').val('0');
-                $('#extend_extension_payment_receipt').prop('required', false);
-                $('#extendReceiptRequiredMark, #extendReceiptRequiredNote').addClass('d-none');
+                $('#extend_extension_payment_date').val('{{ now()->format('Y-m-d') }}');
+                $('.extend-receipt-fields').addClass('d-none');
+                $('#extend_extension_payment_type, #extend_extension_receipt_account_id, #extend_extension_payment_amount, #extend_extension_payment_date')
+                    .prop('required', false);
                 setExtendStatusBadge(null);
             }
 
@@ -2106,27 +2151,12 @@
                 const paymentStatus = $('#extend_extension_payment_status').val();
                 const months = parseInt($('#extend_extension_months').val(), 10) || 0;
                 const extraDays = parseInt($('#extend_extension_extra_days').val(), 10) || 0;
-                const receiptInput = $('#extend_extension_payment_receipt')[0];
-                const hasReceipt = !!(receiptInput && receiptInput.files && receiptInput.files.length > 0);
 
                 $('#extendContractErrors').addClass('d-none').empty();
                 submitBtn.prop('disabled', true);
 
                 if ((months * 30) + extraDays <= 0) {
                     const message = 'يرجى تحديد مدة التمديد بالشهور أو الأيام.';
-                    $('#extendContractErrors').removeClass('d-none').html(message);
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'خطأ',
-                        text: message
-                    });
-                    submitBtn.prop('disabled', false);
-                    return;
-                }
-
-                if ((paymentStatus === 'paid' || paymentStatus === 'partial') && !hasReceipt) {
-                    const message =
-                        'يجب إرفاق إيصال الدفع عند تحديد حالة الدفع "تم الدفع" أو "مدفوع جزئياً".';
                     $('#extendContractErrors').removeClass('d-none').html(message);
                     Swal.fire({
                         icon: 'error',
@@ -2149,11 +2179,21 @@
                     },
                     success: function(response) {
                         $('#extendContractModal').modal('hide');
-                        Swal.fire({
+                        const successAlert = Swal.fire({
                             icon: 'success',
                             title: 'تم بنجاح',
-                            text: response.message || 'تم تمديد عقد التأجير بنجاح'
+                            text: response.message || 'تم تمديد عقد التأجير بنجاح',
+                            showCancelButton: !!response.receipt_bond_print_url,
+                            confirmButtonText: response.receipt_bond_print_url ? 'طباعة سند القبض' : 'حسناً',
+                            cancelButtonText: 'إغلاق'
                         });
+                        if (response.receipt_bond_print_url) {
+                            successAlert.then(function(result) {
+                                if (result.isConfirmed) {
+                                    window.open(response.receipt_bond_print_url, '_blank');
+                                }
+                            });
+                        }
                         dataTable.ajax.reload(null, false);
                     },
                     error: function(xhr) {

@@ -8,6 +8,7 @@ use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\StoreRentalContractRequest;
 use App\Http\Traits\SendSMSTrait;
 use App\Models\Branch;
+use App\Models\City;
 use App\Models\auth\Admin;
 use App\Models\Contract;
 use App\Models\ContractPayment;
@@ -35,6 +36,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Nami\Finance\Enums\AccountTypesEnum;
+use Nami\Finance\Models\Account;
 use Yajra\DataTables\Facades\DataTables;
 
 class RentContractController extends Controller
@@ -269,7 +272,6 @@ class RentContractController extends Controller
                                     <div class="rent-person-main">
                                         <div class="rent-person-name">' . e($row->maid->name) . '</div>
                                         <div class="rent-person-meta"><i class="fas fa-passport me-1"></i>' . e($row->maid->passport_num ?: 'بدون جواز') . '</div>
-                                        <div class="rent-person-meta">' . helperTrans('ingaz.request_type') . ': ' . e($row->maid->request_type_label) . '</div>
                                     </div>
                                 </div>';
                     }
@@ -355,20 +357,10 @@ class RentContractController extends Controller
                         }
                     }
 
-                    // Preserve the original day figures from the imported Excel
-                    // sheet; calculate them only for contracts created in-system.
-                    if ($row->legacy_source) {
-                        $usedDays = $row->info?->legacy_used_days !== null
-                            ? (int) $row->info->legacy_used_days
-                            : null;
-                    }
-
+                    // Imported day figures are only a historical snapshot from the
+                    // source sheet. Always calculate the live listing from dates so
+                    // an expired contract cannot keep showing positive days left.
                     $remainingDays = $row->calculateRemainingDays();
-                    if ($row->legacy_source) {
-                        $remainingDays = $row->info?->legacy_remaining_days !== null
-                            ? (int) $row->info->legacy_remaining_days
-                            : null;
-                    }
 
                     $usedValue = $usedDays !== null ? (string) $usedDays : '—';
                     $usedClass = $usedDays !== null ? '' : ' is-muted';
@@ -603,6 +595,17 @@ class RentContractController extends Controller
             ? Branch::query()->active()->ordered()->get(['id', 'name_ar', 'name_en'])
             : collect();
         $data['marketers'] = Admin::query()->activeForOperations()->orderBy('name')->get(['id', 'name']);
+        $data['extensionReceiptAccounts'] = Schema::hasTable('fn_accounts')
+            ? Account::query()
+                ->where('status', 'debtor')
+                ->whereIn('type', [
+                    AccountTypesEnum::Bank->value,
+                    AccountTypesEnum::Box->value,
+                    AccountTypesEnum::ElectronicWallet->value,
+                ])
+                ->orderBy('code')
+                ->get(['id', 'code', 'name', 'type'])
+            : collect();
         return view($this->folderPath . '.index', $data);
     }
 
@@ -668,6 +671,13 @@ class RentContractController extends Controller
         }
 
         $countries = Country::active()->ordered()->get();
+        $saudiCities = City::query()
+            ->whereHas('country', function ($query) {
+                $query->where('code', 'SA');
+            })
+            ->active()
+            ->ordered()
+            ->get(['id', 'name_ar', 'name_en']);
 
         \Log::info('RentContract create view data', [
             'selectedOrder' => $selectedOrder ? [
@@ -689,6 +699,7 @@ class RentContractController extends Controller
             'packages',
             'marketers',
             'countries',
+            'saudiCities',
             'selectedOrder',
             'selectedClientId',
             'selectedClient',
@@ -771,10 +782,7 @@ class RentContractController extends Controller
             }
 
             $selectedMaid = Maid::with('nationality')->find($request->maid_id);
-            $monthlySalary = (float) ($request->monthly_salary ?: 0);
-            if ($monthlySalary <= 0 && $selectedMaid) {
-                $monthlySalary = (float) ($selectedMaid->resolved_salary ?: 0);
-            }
+            $monthlySalary = (float) $request->monthly_salary;
 
             // إنشاء عقد التأجير
             $rentalContract = RentalContract::create([
@@ -953,6 +961,10 @@ class RentContractController extends Controller
             'financeBonds.debitAccount',
             'financeBonds.constraint',
             'extensions.createdBy',
+            'extensions.receiptAccount',
+            'extensions.invoiceConstraint',
+            'extensions.receiptBond',
+            'extensions.receiptConstraint',
             'financialAdjustments',
         ])->findOrFail($id);
         $this->assertCanAccessBranchModel($contract, 'rental_contracts');
@@ -1023,6 +1035,7 @@ class RentContractController extends Controller
             ->sum('amount'), 2);
         $contractLedgerBalance = round(
             (float) ($contract->financeInvoice?->total_due ?? $contract->info?->contract_value ?? 0)
+            + (float) $contract->extensions->sum('extension_value')
             + $closureIncome
             - $closureRefund
             - $receiptBondsTotal,
@@ -1676,6 +1689,19 @@ class RentContractController extends Controller
             return '<span class="badge bg-danger">' . $label . '</span>';
         }
 
+        if ($status === 'active' && $contract?->info?->ingaz_to) {
+            $endDate = Carbon::parse($contract->info->ingaz_to)->startOfDay();
+            $today = Carbon::today();
+
+            if ($endDate->lt($today)) {
+                return '<span class="badge bg-danger">منتهي - بانتظار الإغلاق أو التمديد</span>';
+            }
+
+            if ($endDate->isSameDay($today)) {
+                return '<span class="badge bg-warning text-dark">ينتهي اليوم</span>';
+            }
+        }
+
         $frozenBadge = '<span class="badge bg-dark">مجمد</span>';
         if (
             $contract
@@ -2166,7 +2192,7 @@ class RentContractController extends Controller
         if ($expiryFilter === 'expired') {
             $query->whereHas('info', function ($infoQuery) {
                 $infoQuery->whereNotNull('ingaz_to')
-                    ->whereDate('ingaz_to', '<=', Carbon::today());
+                    ->whereDate('ingaz_to', '<', Carbon::today());
             });
             return;
         }
@@ -2174,7 +2200,7 @@ class RentContractController extends Controller
         if ($expiryFilter === 'not_expired') {
             $query->whereHas('info', function ($infoQuery) {
                 $infoQuery->whereNotNull('ingaz_to')
-                    ->whereDate('ingaz_to', '>', Carbon::today());
+                    ->whereDate('ingaz_to', '>=', Carbon::today());
             });
         }
     }
@@ -2830,6 +2856,13 @@ class RentContractController extends Controller
                 'remaining_amount' => $newRemainingAmount,
                 'closure_return_reason' => $closureReturnReason !== '' ? $closureReturnReason : null,
             ];
+
+            if ((float) $contract->info->contract_value <= 0 && (float) ($summary['contract_value'] ?? 0) > 0) {
+                $infoUpdates['contract_value'] = (float) $summary['contract_value'];
+                $infoUpdates['monthly_cost'] = (float) ($summary['monthly_cost'] ?? 0);
+                $infoUpdates['contract_duration_months'] = (int) ($summary['duration_months'] ?? 0);
+                $infoUpdates['contract_duration_days'] = (int) ($summary['duration_days'] ?? 0);
+            }
 
             if (!empty($validated['close_payment_status'])) {
                 $infoUpdates['payment_status'] = $validated['close_payment_status'];
@@ -3850,13 +3883,17 @@ class RentContractController extends Controller
         }
     }
 
-    public function extend(Request $request, $id)
+    public function extend(Request $request, RentalContractFinanceService $rentalContractFinanceService, $id)
     {
         $validated = $request->validate([
             'extension_months' => 'nullable|integer|min:0',
             'extension_days' => 'nullable|integer|min:0',
             'extension_payment_status' => 'required|in:paid,partial,pending,later,bank_pending',
             'extension_payment_receipt' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+            'extension_payment_type' => 'nullable|required_if:extension_payment_status,paid,partial|in:cash,bank_transfer,mada,tabby,tamara,moyasar,other',
+            'extension_receipt_account_id' => 'nullable|required_if:extension_payment_status,paid,partial|integer|exists:fn_accounts,id',
+            'extension_payment_amount' => 'nullable|required_if:extension_payment_status,paid,partial|numeric|gt:0',
+            'extension_payment_date' => 'nullable|required_if:extension_payment_status,paid,partial|date',
             'extension_notes' => 'nullable|string|max:1000',
         ], [
             'extension_months.integer' => 'مدة التمديد يجب أن تكون رقماً صحيحاً',
@@ -3868,13 +3905,13 @@ class RentContractController extends Controller
             'extension_payment_receipt.file' => 'صيغة إيصال الدفع غير صحيحة',
             'extension_payment_receipt.mimes' => 'صيغة إيصال الدفع يجب أن تكون pdf أو jpg أو jpeg أو png',
             'extension_payment_receipt.max' => 'حجم إيصال الدفع يجب ألا يتجاوز 4 ميجابايت',
+            'extension_payment_type.required_if' => 'يرجى تحديد طريقة الدفع لإصدار سند القبض',
+            'extension_receipt_account_id.required_if' => 'يرجى تحديد البنك أو حساب القبض',
+            'extension_receipt_account_id.exists' => 'حساب البنك أو القبض المحدد غير صالح',
+            'extension_payment_amount.required_if' => 'يرجى تحديد مبلغ سند القبض',
+            'extension_payment_amount.gt' => 'مبلغ سند القبض يجب أن يكون أكبر من صفر',
+            'extension_payment_date.required_if' => 'يرجى تحديد تاريخ سند القبض',
         ]);
-
-        if (in_array($validated['extension_payment_status'], ['paid', 'partial'], true) && !$request->hasFile('extension_payment_receipt')) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
-                'extension_payment_receipt' => ['يجب إرفاق إيصال الدفع عند تحديد حالة الدفع "تم الدفع" أو "مدفوع جزئياً".'],
-            ]);
-        }
 
         $extensionMonths = (int) ($validated['extension_months'] ?? 0);
         $extraExtensionDays = (int) ($validated['extension_days'] ?? 0);
@@ -3930,7 +3967,19 @@ class RentContractController extends Controller
                 : $monthlyCost / 30;
             $extensionValue = round($dailyRate * $extensionDays, 2);
 
-            RentalContractExtension::create([
+            $paymentAmount = in_array($validated['extension_payment_status'], ['paid', 'partial'], true)
+                ? round((float) ($validated['extension_payment_amount'] ?? 0), 2)
+                : 0.0;
+
+            if ($paymentAmount > $extensionValue + 0.01) {
+                throw new \RuntimeException('مبلغ سند القبض لا يمكن أن يتجاوز قيمة التمديد.');
+            }
+
+            if ($validated['extension_payment_status'] === 'paid' && abs($paymentAmount - $extensionValue) > 0.01) {
+                throw new \RuntimeException('عند اختيار "تم الدفع" يجب أن يساوي مبلغ السند قيمة التمديد. استخدم "مدفوع جزئياً" للمبالغ الأقل.');
+            }
+
+            $extension = RentalContractExtension::create([
                 'rental_contract_id' => $contract->id,
                 'extension_months' => $extensionMonths,
                 'extension_days' => $extensionDays,
@@ -3938,10 +3987,38 @@ class RentContractController extends Controller
                 'start_date' => $extensionStart,
                 'end_date' => $extensionEnd,
                 'payment_status' => $validated['extension_payment_status'],
+                'payment_type' => $validated['extension_payment_type'] ?? null,
+                'payment_amount' => $paymentAmount ?: null,
+                'payment_date' => $validated['extension_payment_date'] ?? null,
+                'receipt_account_id' => $validated['extension_receipt_account_id'] ?? null,
                 'payment_receipt_path' => $extensionReceiptPath,
                 'notes' => $validated['extension_notes'] ?? null,
                 'created_by' => auth('admin')->id(),
             ]);
+
+            $receiptBond = null;
+            $receiptConstraint = null;
+            if ($paymentAmount > 0) {
+                $financeResult = $rentalContractFinanceService->recordExtensionPaymentForContract(
+                    $contract,
+                    $extension,
+                    $paymentAmount,
+                    $validated['extension_payment_type'],
+                    (int) $validated['extension_receipt_account_id'],
+                    $validated['extension_payment_date']
+                );
+                $receiptBond = $financeResult['receipt_bond'] ?? null;
+                $receiptConstraint = $financeResult['receipt_constraint'] ?? null;
+                $extensionConstraint = $financeResult['extension_constraint'] ?? null;
+
+                $extension->update([
+                    'invoice_constraint_id' => $extensionConstraint?->id,
+                    'receipt_bond_id' => $receiptBond?->id,
+                    'receipt_constraint_id' => $receiptConstraint?->id,
+                    'receipt_account_id' => $receiptBond?->debit_account_id
+                        ?: $validated['extension_receipt_account_id'],
+                ]);
+            }
 
             $contract->info->update([
                 'ingaz_to' => $extensionEnd,
@@ -3951,7 +4028,11 @@ class RentContractController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'تم تمديد عقد التأجير بنجاح',
+                'message' => 'تم تمديد عقد التأجير بنجاح'
+                    . ($receiptBond ? ' وإصدار سند قبض رقم ' . ($receiptBond->code ?: $receiptBond->id) : ''),
+                'receipt_bond_print_url' => $receiptBond
+                    ? route('finance.bonds-print.show', ['bonds_print' => $receiptBond->id, 'type' => 'qabd'])
+                    : null,
                 'redirect_url' => route('RentContract.show', $contract->id),
             ]);
         } catch (\Throwable $e) {

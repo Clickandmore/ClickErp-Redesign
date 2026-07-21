@@ -67,6 +67,23 @@ class RentalContractFinanceServiceTest extends TestCase
         $this->assertSame(1466.0, $amounts['total_due']);
     }
 
+    public function test_it_recovers_imported_invoice_total_from_paid_and_remaining_balance(): void
+    {
+        $amounts = $this->buildInvoiceAmounts([
+            'contract_value' => 0,
+            'paid_amount' => 0,
+            'remaining_amount' => 3335,
+            'package_price_after_discount' => 0,
+            'package_total_with_tax' => 0,
+            'monthly_salary' => 0,
+        ]);
+
+        $this->assertSame(3335.0, $amounts['total_due']);
+        $this->assertSame(2900.0, $amounts['subtotal']);
+        $this->assertSame(435.0, $amounts['vat_amount']);
+        $this->assertSame(3335.0, $amounts['remaining_amount']);
+    }
+
     public function test_it_labels_worker_salary_in_constraint_statement(): void
     {
         $contract = new RentalContract();

@@ -3,6 +3,7 @@
 namespace App\Services\ingaz;
 
 use App\Models\RentalContract;
+use App\Models\RentalContractExtension;
 use App\Models\RentalContractInvoice;
 use App\Models\RentalFinancialAdjustment;
 use App\Models\ingaz\Package;
@@ -139,6 +140,16 @@ class RentalContractFinanceService
 
         $amounts = $this->buildInvoiceAmounts($contract, $package);
 
+        if ((float) $info->contract_value <= 0 && (float) $amounts['total_due'] > 0) {
+            $durationMonths = max(1, (int) ($info->contract_duration_months ?? 1));
+            $info->update([
+                'contract_value' => $amounts['total_due'],
+                'monthly_cost' => (float) $info->monthly_cost > 0
+                    ? $info->monthly_cost
+                    : $this->roundMoney((float) $amounts['total_due'] / $durationMonths),
+            ]);
+        }
+
         $invoice->update([
             'package_id' => $info->package_id,
             'subtotal' => $amounts['subtotal'],
@@ -155,6 +166,22 @@ class RentalContractFinanceService
                 : null,
             'service_description' => $this->buildServiceDescription($contract, $package),
         ]);
+
+        $invoiceConstraint = $invoice->invoiceConstraint;
+        if (
+            AutomaticJournalEntries::enabled()
+            && (float) $amounts['total_due'] > 0
+            && !$invoice->invoice_constraint_id
+        ) {
+            $clientAccountId = $this->ensureClientAccountId($contract);
+            $invoiceConstraint = $this->storeInvoiceConstraint(
+                $invoice->fresh(),
+                $contract,
+                $clientAccountId,
+                $amounts
+            );
+            $invoice->update(['invoice_constraint_id' => $invoiceConstraint?->id]);
+        }
 
         $receiptBond = $invoice->receiptBond;
         $receiptConstraint = $invoice->receiptConstraint;
@@ -176,7 +203,7 @@ class RentalContractFinanceService
 
         return [
             'invoice' => $invoice->fresh(['invoiceConstraint', 'receiptBond', 'receiptConstraint', 'receiptAccount']),
-            'invoice_constraint' => $invoice->invoiceConstraint,
+            'invoice_constraint' => $invoiceConstraint,
             'receipt_bond' => $receiptBond,
             'receipt_constraint' => $receiptConstraint,
             'receipt_created' => $receiptCreated,
@@ -187,7 +214,8 @@ class RentalContractFinanceService
         RentalContract $contract,
         float $paymentAmount,
         string $paymentType,
-        Carbon|string|null $paymentDate = null
+        Carbon|string|null $paymentDate = null,
+        ?int $receiptAccountId = null
     ): array {
         $contract->loadMissing(['user', 'maid.nationality', 'info.package', 'financeInvoice']);
 
@@ -213,7 +241,8 @@ class RentalContractFinanceService
             $clientAccountId,
             $paymentAmount,
             $paymentType,
-            $paymentDate
+            $paymentDate,
+            $receiptAccountId
         );
 
         $invoiceTotal = $this->roundMoney((float) $invoice->total_due);
@@ -257,6 +286,140 @@ class RentalContractFinanceService
             'receipt_constraint' => $receipt['constraint'],
             'payment_amount' => $paymentAmount,
         ];
+    }
+
+    public function recordExtensionPaymentForContract(
+        RentalContract $contract,
+        RentalContractExtension $extension,
+        float $paymentAmount,
+        string $paymentType,
+        int $receiptAccountId,
+        Carbon|string|null $paymentDate = null
+    ): array {
+        $contract->loadMissing(['user', 'maid.nationality', 'info.package', 'financeInvoice']);
+
+        if (!$contract->financeInvoice) {
+            $this->createForContract($contract, $contract->info?->package);
+            $contract->refresh()->loadMissing(['user', 'maid.nationality', 'info.package', 'financeInvoice']);
+        }
+
+        $paymentAmount = $this->roundMoney($paymentAmount);
+        if ($paymentAmount <= 0) {
+            throw new \InvalidArgumentException('قيمة سند قبض التمديد يجب أن تكون أكبر من صفر.');
+        }
+
+        $clientAccountId = $this->ensureClientAccountId($contract);
+        $invoice = $this->linkExistingInvoiceConstraint($contract->financeInvoice);
+        $extensionConstraint = $this->storeExtensionConstraint(
+            $invoice,
+            $contract,
+            $extension,
+            $clientAccountId,
+            $paymentDate
+        );
+        $statement = 'سند قبض تمديد عقد تأجير رقم '
+            . ($contract->contract_number ?: $contract->id)
+            . ' / التمديد #'
+            . $extension->id
+            . ' / العميل '
+            . ($contract->user?->name ?: 'غير محدد');
+
+        $receipt = $this->storeReceiptBond(
+            $invoice,
+            $contract,
+            $clientAccountId,
+            $paymentAmount,
+            $paymentType,
+            $paymentDate,
+            $receiptAccountId,
+            $statement
+        );
+
+        return [
+            'extension_constraint' => $extensionConstraint,
+            'receipt_bond' => $receipt['bond'],
+            'receipt_constraint' => $receipt['constraint'],
+            'payment_amount' => $paymentAmount,
+        ];
+    }
+
+    private function storeExtensionConstraint(
+        RentalContractInvoice $invoice,
+        RentalContract $contract,
+        RentalContractExtension $extension,
+        int $clientAccountId,
+        Carbon|string|null $date = null
+    ): Constraint {
+        $date = $date instanceof Carbon
+            ? $date->toDateString()
+            : ($date ? Carbon::parse($date)->toDateString() : now()->toDateString());
+        $activeYear = $this->yearService->checkDateRange($date);
+
+        if (!$activeYear) {
+            throw new \RuntimeException('لا توجد سنة مالية نشطة لتاريخ تمديد عقد الإيجار المحدد.');
+        }
+
+        $extensionValue = $this->roundMoney((float) $extension->extension_value);
+        $invoiceTotal = $this->roundMoney((float) $invoice->total_due);
+        $vatRatio = $invoiceTotal > 0
+            ? min(1, max(0, (float) $invoice->vat_amount / $invoiceTotal))
+            : (InvoiceCalculationService::VAT_RATE / (1 + InvoiceCalculationService::VAT_RATE));
+        $vatAmount = $this->roundMoney($extensionValue * $vatRatio);
+        $revenueAmount = $this->roundMoney($extensionValue - $vatAmount);
+        $statement = 'قيد تمديد عقد تأجير رقم '
+            . ($contract->contract_number ?: $contract->id)
+            . ' / التمديد #'
+            . $extension->id
+            . ' / العميل '
+            . ($contract->user?->name ?: 'غير محدد');
+        $lines = [];
+        $costCenterId = $this->ensureRentalContractCostCenter($contract)->id;
+
+        if ($revenueAmount > 0) {
+            $this->appendConstraintPair(
+                $lines,
+                $this->resolveDeferredRevenueAccountId(),
+                $clientAccountId,
+                $revenueAmount,
+                $statement,
+                $costCenterId
+            );
+        }
+
+        if ($vatAmount > 0) {
+            $taxAccountId = $this->resolveRevenueTaxAccountId();
+            if (!$taxAccountId) {
+                throw new \RuntimeException('لا يوجد حساب ضريبة إيرادات محدد لإثبات قيمة تمديد عقد الإيجار.');
+            }
+
+            $this->appendConstraintPair(
+                $lines,
+                $taxAccountId,
+                $clientAccountId,
+                $vatAmount,
+                $statement
+            );
+        }
+
+        $data = [
+            'code' => $this->constraintService->lastCode(),
+            'date' => $date,
+            'statement' => $statement,
+            'account_id' => array_column($lines, 'account_id'),
+            'account_type' => array_column($lines, 'account_type'),
+            'debtor_value' => array_column($lines, 'debtor_value'),
+            'creditor_value' => array_column($lines, 'creditor_value'),
+            'statement_account' => array_column($lines, 'statement'),
+            'cost_center_required' => 'off',
+            'cost_center_id' => array_column($lines, 'cost_center_id'),
+            'value' => $extensionValue,
+        ];
+
+        $constraint = $this->constraintService->storeConstraint($data, $activeYear);
+        $this->constraintService->storeConstraintDetails($data['account_id'], $constraint->id, $data);
+        $this->constraintService->storeFiles($constraint, $data);
+
+        return $constraint;
     }
 
     public static function confirmSettingTitles(): array
@@ -405,9 +568,16 @@ class RentalContractFinanceService
     private function buildInvoiceAmounts(RentalContract $contract, ?Package $package): array
     {
         $grossTotal = $this->roundMoney((float) ($contract->info?->contract_value ?? 0));
+        $storedPaidAmount = $this->roundMoney((float) ($contract->info?->paid_amount ?? 0));
+        $storedRemainingAmount = $this->roundMoney((float) ($contract->info?->remaining_amount ?? 0));
+
+        if ($grossTotal <= 0 && ($storedPaidAmount > 0 || $storedRemainingAmount > 0)) {
+            $grossTotal = $this->roundMoney($storedPaidAmount + $storedRemainingAmount);
+        }
+
         $paidAmount = min(
             $grossTotal,
-            $this->roundMoney((float) ($contract->info?->paid_amount ?? 0))
+            $storedPaidAmount
         );
         $remainingAmount = $this->roundMoney(max(0, $grossTotal - $paidAmount));
         $salaryExemptAmount = $this->resolveSalaryExemptAmount($contract, $grossTotal);
@@ -433,7 +603,10 @@ class RentalContractFinanceService
             ];
         }
 
-        if ($contract->info?->package_price_after_discount !== null && $contract->info?->package_total_with_tax !== null) {
+        if (
+            (float) ($contract->info?->package_price_after_discount ?? 0) > 0
+            && (float) ($contract->info?->package_total_with_tax ?? 0) > 0
+        ) {
             $subtotal = $this->roundMoney((float) ($contract->info->package_original_price ?? $contract->info->package_price_after_discount));
             $netSubtotal = $this->roundMoney((float) $contract->info->package_price_after_discount);
             $discount = $this->roundMoney((float) ($contract->info->package_discount_amount ?? max(0, $subtotal - $netSubtotal)));
@@ -576,7 +749,9 @@ class RentalContractFinanceService
         int $clientAccountId,
         float $paidAmount,
         ?string $paymentType = null,
-        Carbon|string|null $paymentDate = null
+        Carbon|string|null $paymentDate = null,
+        ?int $receiptAccountId = null,
+        ?string $statement = null
     ): array {
         $date = $paymentDate instanceof Carbon
             ? $paymentDate->toDateString()
@@ -589,7 +764,9 @@ class RentalContractFinanceService
         }
 
         $paymentType = $paymentType ?: (string) $invoice->payment_type;
-        $receiptAccount = $this->resolveReceiptAccount($paymentType);
+        $receiptAccount = $receiptAccountId
+            ? $this->resolveSelectedReceiptAccount($receiptAccountId)
+            : $this->resolveReceiptAccount($paymentType);
         $bondPaymentType = $this->mapBondPaymentType($paymentType);
 
         $bond = $this->bondService->storeQabdBond([
@@ -599,7 +776,9 @@ class RentalContractFinanceService
             'credit_account_id' => $clientAccountId,
             'value' => $this->roundMoney($paidAmount),
             'date' => $date,
-            'statement' => $this->buildReceiptStatement($invoice, $contract, $receiptAccount->name),
+            'statement' => $statement
+                ? $statement . ' / إلى حساب ' . $receiptAccount->name
+                : $this->buildReceiptStatement($invoice, $contract, $receiptAccount->name),
             'code' => $this->bondService->lastCode(BondTypes::Qabd->value),
             'is_tax' => 0,
             'general_type' => 0,
@@ -1122,6 +1301,26 @@ class RentalContractFinanceService
         }
 
         return $this->resolveFallbackReceiptAccount();
+    }
+
+    private function resolveSelectedReceiptAccount(int $accountId): Account
+    {
+        $account = Account::query()->find($accountId);
+        $allowedTypes = [
+            AccountTypesEnum::Bank->value,
+            AccountTypesEnum::Box->value,
+            AccountTypesEnum::ElectronicWallet->value,
+        ];
+
+        if (
+            !$account
+            || !in_array((int) $account->getRawOriginal('type'), $allowedTypes, true)
+            || $account->status?->value !== 'debtor'
+        ) {
+            throw new \RuntimeException('حساب القبض المحدد يجب أن يكون حساب بنك أو صندوق أو محفظة إلكترونية صالحاً.');
+        }
+
+        return $account;
     }
 
     private function findReceiptAccountByTypes(array $types): ?Account

@@ -164,6 +164,9 @@ class InvoiceController extends Controller
             'invoice.ingaz_delegation_id',
             DB::raw('NULL as rental_contract_id'),
             DB::raw('NULL as rental_contract_number'),
+            DB::raw('NULL as adjustment_type'),
+            DB::raw('NULL as adjustment_constraint_id'),
+            DB::raw('NULL as base_rental_invoice_id'),
             DB::raw('COALESCE(recruitment_client.name, delegation_client.name, direct_client.name, "-") as client_name'),
             DB::raw('COALESCE(recruitment_client.phone, delegation_client.phone, direct_client.phone, "") as client_phone'),
             $invoiceBranchesEnabled
@@ -200,6 +203,9 @@ class InvoiceController extends Controller
             DB::raw('NULL as ingaz_delegation_id'),
             'rental_invoice.rental_contract_id',
             'rental_contract.contract_number as rental_contract_number',
+            DB::raw('NULL as adjustment_type'),
+            DB::raw('NULL as adjustment_constraint_id'),
+            DB::raw('rental_invoice.id as base_rental_invoice_id'),
             DB::raw('COALESCE(rental_client.name, "-") as client_name'),
             DB::raw('COALESCE(rental_client.phone, "") as client_phone'),
             $rentalBranchesEnabled
@@ -217,7 +223,58 @@ class InvoiceController extends Controller
             'rental_invoice.created_at',
         ]);
 
-        $query = DB::query()->fromSub($invoiceQuery->unionAll($rentalQuery), 'invoice_rows');
+        $adjustmentVatExpression = 'ROUND(LEAST(1, closure_adjustment.amount / NULLIF(base_rental_invoice.total_due, 0)) * base_rental_invoice.vat_amount, 2)';
+        $closureAdjustmentQuery = DB::table('rental_financial_adjustments as closure_adjustment')
+            ->join('rental_contracts as adjustment_contract', 'adjustment_contract.id', '=', 'closure_adjustment.rental_contract_id')
+            ->join('rental_contract_invoices as base_rental_invoice', 'base_rental_invoice.rental_contract_id', '=', 'adjustment_contract.id')
+            ->leftJoin('users as adjustment_client', 'adjustment_client.id', '=', 'adjustment_contract.user_id')
+            ->where('closure_adjustment.context', 'closure')
+            ->where('closure_adjustment.amount', '>', 0);
+
+        if ($rentalBranchesEnabled) {
+            $closureAdjustmentQuery->leftJoin('branches as adjustment_branch', 'adjustment_branch.id', '=', 'adjustment_contract.branch_id');
+        }
+
+        $this->applyRequestBranchFilter(
+            $closureAdjustmentQuery,
+            $request,
+            'rental_contracts',
+            'adjustment_contract.branch_id'
+        );
+        $closureAdjustmentQuery->select([
+            DB::raw("'rental_adjustment' as row_type"),
+            'closure_adjustment.id',
+            DB::raw('closure_adjustment.id as invoice_sort_number'),
+            DB::raw('NULL as legacy_invoice_number'),
+            DB::raw('NULL as legacy_order_number'),
+            DB::raw('NULL as contract_id'),
+            DB::raw('NULL as ingaz_delegation_id'),
+            'closure_adjustment.rental_contract_id',
+            'adjustment_contract.contract_number as rental_contract_number',
+            'closure_adjustment.type as adjustment_type',
+            'closure_adjustment.constraint_id as adjustment_constraint_id',
+            'base_rental_invoice.id as base_rental_invoice_id',
+            DB::raw('COALESCE(adjustment_client.name, "-") as client_name'),
+            DB::raw('COALESCE(adjustment_client.phone, "") as client_phone'),
+            $rentalBranchesEnabled
+                ? DB::raw('COALESCE(adjustment_branch.name_ar, "-") as branch')
+                : DB::raw('"-" as branch'),
+            DB::raw('(closure_adjustment.amount - ' . $adjustmentVatExpression . ') as subtotal'),
+            DB::raw($adjustmentVatExpression . ' as vat_amount'),
+            DB::raw('0 as discount'),
+            'closure_adjustment.amount as total_due',
+            DB::raw("CASE WHEN closure_adjustment.type = 'expense' THEN 1 ELSE 0 END as is_paid"),
+            DB::raw('0 as send_to_zatca'),
+            DB::raw('NULL as finance_sale_id'),
+            DB::raw('NULL as legacy_zatca_shared'),
+            DB::raw('NULL as zatca_status'),
+            'closure_adjustment.created_at',
+        ]);
+
+        $query = DB::query()->fromSub(
+            $invoiceQuery->unionAll($rentalQuery)->unionAll($closureAdjustmentQuery),
+            'invoice_rows'
+        );
 
         return DataTables::query($query)
             ->filter(function ($query) use ($request) {
@@ -256,6 +313,9 @@ class InvoiceController extends Controller
                 'ingaz_delegation_id',
                 'rental_contract_id',
                 'rental_contract_number',
+                'adjustment_type',
+                'adjustment_constraint_id',
+                'base_rental_invoice_id',
                 'client_phone',
                 'is_paid',
                 'send_to_zatca',
@@ -268,6 +328,14 @@ class InvoiceController extends Controller
 
     private function standardInvoiceNumberLink($row): string
     {
+        if ($row->row_type === 'rental_adjustment') {
+            $url = route('rental.credit-note.download', ['id' => $row->id, 'autoprint' => 1]);
+            $label = $row->adjustment_type === 'expense' ? 'إشعار دائن' : 'إشعار مدين';
+
+            return '<a href="' . $url . '" target="_blank" rel="noopener" class="fw-bold text-decoration-none">'
+                . $label . ' #' . e((string) $row->id) . '</a>';
+        }
+
         if ($row->row_type === 'rental') {
             $url = route('rental.invoice.download', ['id' => $row->id, 'autoprint' => 1]);
 
@@ -281,10 +349,13 @@ class InvoiceController extends Controller
 
     private function standardInvoiceSourceBadge($row): string
     {
-        if ($row->row_type === 'rental') {
+        if (in_array($row->row_type, ['rental', 'rental_adjustment'], true)) {
             $contractNumber = $row->rental_contract_number ?: $row->rental_contract_id;
+            $class = $row->row_type === 'rental_adjustment'
+                ? 'bg-warning-subtle text-warning'
+                : 'bg-success-subtle text-success';
 
-            return '<span class="badge bg-success-subtle text-success border">عقد تأجير #' . e((string) $contractNumber) . '</span>';
+            return '<span class="badge ' . $class . ' border">عقد تأجير #' . e((string) $contractNumber) . '</span>';
         }
 
         if ($row->legacy_invoice_number) {
@@ -306,6 +377,12 @@ class InvoiceController extends Controller
 
     private function standardInvoicePaymentBadge($row): string
     {
+        if ($row->row_type === 'rental_adjustment') {
+            return $row->adjustment_type === 'expense'
+                ? '<span class="badge bg-info-subtle text-info border">رصيد لصالح العميل</span>'
+                : '<span class="badge bg-danger-subtle text-danger border">مستحق على العميل</span>';
+        }
+
         $paid = (bool) $row->is_paid || (float) $row->total_due <= 0;
         $class = $paid ? 'bg-success-subtle text-success' : 'bg-warning-subtle text-warning';
 
@@ -314,7 +391,7 @@ class InvoiceController extends Controller
 
     private function standardInvoiceZatcaBadge($row): string
     {
-        if ($row->row_type === 'rental') {
+        if (in_array($row->row_type, ['rental', 'rental_adjustment'], true)) {
             return '<span class="badge bg-secondary-subtle text-secondary border">غير مطلوب</span>';
         }
 
@@ -344,6 +421,21 @@ class InvoiceController extends Controller
 
     private function standardInvoiceActions($row): string
     {
+        if ($row->row_type === 'rental_adjustment') {
+            $contractUrl = route('RentContract.show', $row->rental_contract_id);
+            $printUrl = route('rental.credit-note.download', ['id' => $row->id, 'autoprint' => 1]);
+            $constraintButton = $row->adjustment_constraint_id
+                ? '<a href="' . route('finance.add-constraint.show', ['add_constraint' => $row->adjustment_constraint_id])
+                    . '" class="btn btn-sm btn-outline-dark" target="_blank" rel="noopener" title="عرض قيد التسوية"><i class="fas fa-book-open"></i></a>'
+                : '';
+
+            return '<div class="d-flex justify-content-end gap-2">
+                        <a href="' . $contractUrl . '" class="btn btn-sm btn-outline-primary" title="عرض عقد التأجير"><i class="fas fa-eye"></i></a>
+                        ' . $constraintButton . '
+                        <a href="' . $printUrl . '" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener" title="طباعة مستند الإغلاق"><i class="fas fa-print"></i></a>
+                    </div>';
+        }
+
         if ($row->row_type === 'rental') {
             $contractUrl = $row->rental_contract_id ? route('RentContract.show', $row->rental_contract_id) : '#';
             $printUrl = route('rental.invoice.download', ['id' => $row->id, 'autoprint' => 1]);

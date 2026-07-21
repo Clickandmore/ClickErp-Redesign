@@ -474,6 +474,7 @@
         $initialPaymentType = (string) old('payment_type', $defaultSelectedPaymentType);
         $initialPaymentStatus = (string) old('payment_status', '');
         $initialPaidAmount = (string) old('paid_amount', '');
+        $saudiCountryId = optional($countries->firstWhere('code', 'SA'))->id;
         $isOrderLinked = (bool) filled(optional($selectedOrder ?? null)->id);
         $isClientAutoSelected = (bool) filled($selectedClientId ?? null);
     @endphp
@@ -518,7 +519,7 @@
                                         class="text-danger">*</span></label>
                                 <select name="new_existing_client_id" id="new_existing_client_id"
                                         class="form-select select2" style="width:100%">
-                                    <option value="" @selected(!isset($selectedClient) || !$selectedClient) disabled>اختر عميل...</option>
+                                    <option value="" {{ !isset($selectedClient) || !$selectedClient ? 'selected' : '' }} disabled>اختر عميل...</option>
                                     @if(isset($selectedClient) && $selectedClient)
                                         <option value="{{ $selectedClient->id }}"
                                                 selected
@@ -630,7 +631,7 @@
                                             <option value="">{{helperTrans('ingaz.choose')}}</option>
                                             @foreach($countries as $country)
                                                 <option
-                                                    value="{{$country->id}}" {{ $country->code === 'SA' ? 'selected' : '' }}>{{$country->name_ar}}</option>
+                                                    value="{{$country->id}}" {{ (string) old('client_nationality_id', $saudiCountryId) === (string) $country->id ? 'selected' : '' }}>{{$country->name_ar}}</option>
                                             @endforeach
                                         </select>
                                         <div class="invalid-feedback" id="err_client_nationality_id"></div>
@@ -648,10 +649,19 @@
                                                class="form-control">
                                     </div>
                                     <div class="col-md-6 mb-2">
-                                        <label class="form-label">المدينة/العنوان <span
+                                        <label class="form-label">المدينة <span
                                                 class="text-danger">*</span></label>
-                                        <input type="text" id="new_client_city" name="new_client_city"
-                                               class="form-control" data-validation="required">
+                                        <select id="new_client_city" name="new_client_city"
+                                                class="form-select select2" data-validation="required"
+                                                data-placeholder="اختر مدينة سعودية">
+                                            <option value="">اختر المدينة</option>
+                                            @foreach($saudiCities as $city)
+                                                <option value="{{ $city->name_ar }}" {{ old('new_client_city') === $city->name_ar ? 'selected' : '' }}>
+                                                    {{ $city->name_ar }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        <div class="invalid-feedback" id="err_new_client_city"></div>
                                     </div>
                                     <div class="col-md-6 mb-2">
                                         <label class="form-label">البريد الإلكتروني <small
@@ -751,10 +761,6 @@
                                                class="form-control">
                                     </div>
                                     <div class="col-md-6 mb-2">
-                                        <label class="form-label">الراتب</label>
-                                        <input type="text" id="maid_salary" name="maid_salary" class="form-control">
-                                    </div>
-                                    <div class="col-md-6 mb-2">
                                         <label class="form-label">سنوات الخبرة</label>
                                         <input type="text" id="maid_experience_years" name="maid_experience_years"
                                                class="form-control">
@@ -835,6 +841,17 @@
                                     <div class="col-12">
                                         <div class="payment-box">
                                             <div class="row g-3">
+                                                <div class="col-md-4">
+                                                    <label for="monthly_salary" class="form-label">راتب العاملة الشهري <span class="text-danger">*</span></label>
+                                                    <input type="number" id="monthly_salary" name="monthly_salary"
+                                                           class="form-control" step="0.01" min="0.01"
+                                                           value="{{ old('monthly_salary') }}" data-validation="required" required>
+                                                    <div class="invalid-feedback" id="err_monthly_salary"></div>
+                                                    <div class="alert alert-warning py-2 px-3 mt-2 mb-0 small" role="alert">
+                                                        <i class="fas fa-triangle-exclamation ms-1"></i>
+                                                        الراتب معفى من الضريبة. أدخل الراتب الصحيح لأن الصفر يجعل الضريبة تُحتسب على كامل قيمة العقد.
+                                                    </div>
+                                                </div>
                                                 <div class="col-md-4">
                                                     <label for="payment_type" class="form-label">طريقة الدفع <span class="text-danger">*</span></label>
                                                     <select name="payment_type" id="payment_type" class="form-select" data-validation="required" disabled>
@@ -1021,13 +1038,6 @@
                                     </div> --}}
 
                                     <div class="col-md-6">
-                                        <label class="form-label">الراتب الشهري <small
-                                                class="text-muted">(اختياري)</small></label>
-                                        <input type="number" id="monthly_salary" name="monthly_salary"
-                                               class="form-control" step="0.01">
-                                    </div>
-
-                                    <div class="col-md-6">
                                         <label class="form-label">الأجر بالساعة <small
                                                 class="text-muted">(اختياري)</small></label>
                                         <input type="number" id="hourly_rate" name="hourly_rate" class="form-control"
@@ -1093,6 +1103,7 @@
                 orderLinked: @json($isOrderLinked),
                 clientAutoSelected: @json($isClientAutoSelected),
             };
+            const saudiCountryId = @json((string) $saudiCountryId);
 
             $('.select2').not('#new_existing_client_id').select2({
                 placeholder: 'اختر...',
@@ -1248,7 +1259,7 @@
                 $('#new_client_birthdate').val(selectedOption.data('birthdate') || '');
                 $('#new_client_phone2').val(selectedOption.data('phone2') || '');
                 $('#new_client_address').val(selectedOption.data('address') || '');
-                $('#new_client_city').val(selectedOption.data('city') || '');
+                $('#new_client_city').val(selectedOption.data('city') || '').trigger('change');
                 $('#new_client_beds_num').val(selectedOption.data('beds-num') || '');
                 $('#new_client_family_num').val(selectedOption.data('family-num') || '');
                 $('#new_client_children').val(selectedOption.data('children') || '');
@@ -1257,8 +1268,9 @@
             }
 
             function clearClientData() {
-                $('#new_client_name, #new_client_phone, #new_client_email, #new_client_national_num, #new_client_license_number, #new_client_birthdate, #new_client_phone2, #new_client_address, #new_client_city, #new_client_beds_num, #new_client_family_num, #new_client_children, #new_client_job, #monthly_income').val('');
-                $('#client_nationality_id').val('').trigger('change');
+                $('#new_client_name, #new_client_phone, #new_client_email, #new_client_national_num, #new_client_license_number, #new_client_birthdate, #new_client_phone2, #new_client_address, #new_client_beds_num, #new_client_family_num, #new_client_children, #new_client_job, #monthly_income').val('');
+                $('#new_client_city').val('').trigger('change');
+                $('#client_nationality_id').val(saudiCountryId).trigger('change');
                 resetRentClientDocumentMode();
             }
 
@@ -1329,7 +1341,6 @@
                 $('#maid_job').val(selectedOption.data('job') || '');
                 $('#maid_request_type').val(selectedOption.data('request-type-label') || '');
                 $('#maid_nationality').val(selectedOption.data('nationality') || '');
-                $('#maid_salary').val(selectedOption.data('salary') || '');
                 $('#maid_experience_years').val(selectedOption.data('experience') || '');
                 $('#maid_age').val(selectedOption.data('age') || '');
 
@@ -1339,7 +1350,7 @@
             }
 
             function clearMaidData() {
-                $('#maid_name, #maid_passport, #maid_religion, #maid_job, #maid_request_type, #maid_nationality, #maid_salary, #maid_experience_years, #maid_age').val('');
+                $('#maid_name, #maid_passport, #maid_religion, #maid_job, #maid_request_type, #maid_nationality, #maid_experience_years, #maid_age').val('');
             }
 
             function calculateIngazTo() {
@@ -1800,6 +1811,18 @@
                 const totalContractValue = parseFloat($('#total_contract_value').val()) || 0;
                 const paidAmount = parseFloat($('#paid_amount').val()) || 0;
                 const paymentStatus = $('#payment_status').val();
+                const monthlySalary = parseFloat($('#monthly_salary').val()) || 0;
+
+                if (monthlySalary <= 0) {
+                    $('#monthly_salary').addClass('is-invalid').trigger('focus');
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'يجب تأكيد الراتب',
+                        text: 'أدخل راتباً شهرياً أكبر من صفر. الراتب معفى من الضريبة، وتركه صفراً يجعل الضريبة تُحتسب على كامل قيمة العقد.',
+                        confirmButtonText: 'حسناً'
+                    });
+                    return;
+                }
 
                 if (paymentStatus === 'partial' && paidAmount <= 0) {
                     Swal.fire('خطأ', 'أدخل المبلغ المدفوع عند اختيار حالة مدفوع جزئياً', 'error');
@@ -1823,7 +1846,8 @@
 
                 Swal.fire({
                     title: 'تأكيد الحفظ',
-                    text: 'هل أنت متأكد من حفظ عقد التأجير؟',
+                    html: '<div dir="rtl">هل أنت متأكد من حفظ عقد التأجير؟<br>' +
+                        '<strong>الراتب الشهري المعفى من الضريبة: ' + formatCurrency(monthlySalary) + '</strong></div>',
                     icon: 'question',
                     showCancelButton: true,
                     confirmButtonColor: '#3085d6',

@@ -1,7 +1,7 @@
 @extends('admin.layout.indexs.index')
 
 @section('page-title')
-    جميع الفواتير
+    الفواتير والإشعارات المالية
 @endsection
 
 @section('style')
@@ -52,9 +52,9 @@
             <div class="card-body">
                 <div class="invoice-index-toolbar">
                     <div>
-                        <h4 class="invoice-index-title">جميع الفواتير</h4>
+                        <h4 class="invoice-index-title">الفواتير والإشعارات المالية</h4>
                         <small class="text-muted">
-                            {{ ($legacyMode ?? false) ? 'يعرض فقط فواتير الرافدين الموجودة في ملف الاستيراد، مع البحث والطباعة حسب رقم الفاتورة.' : 'متابعة فواتير الاستقدام والتأجير وحالة الإدراج في فواتير هيئة الزكاة.' }}
+                            {{ ($legacyMode ?? false) ? 'يعرض فقط فواتير الرافدين الموجودة في ملف الاستيراد، مع البحث والطباعة حسب رقم الفاتورة.' : 'متابعة الفواتير الأساسية وإشعارات الدائن والمدين الناتجة عن إغلاق عقود التأجير.' }}
                         </small>
                     </div>
                     <div class="invoice-index-actions">
@@ -138,7 +138,7 @@
                         <thead>
                             <tr>
                                 <th>#</th>
-                                <th>رقم الفاتورة</th>
+                                <th>رقم المستند</th>
                                 <th>مرتبطة بـ</th>
                                 <th>اسم العميل</th>
                                 @if($branchesEnabled ?? false)
@@ -148,7 +148,7 @@
                                 <th>الضريبة</th>
                                 <th>الخصم</th>
                                 <th>المطلوب</th>
-                                <th>حالة السداد</th>
+                                <th>حالة السداد / الرصيد</th>
                                 <th>هيئة الزكاة</th>
                                 <th>تاريخ الإنشاء</th>
                                 <th></th>

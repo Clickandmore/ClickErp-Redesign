@@ -39,4 +39,19 @@ class RentalContractRemainingDaysTest extends TestCase
 
         $this->assertSame(0, $contract->calculateRemainingDays());
     }
+
+    public function test_imported_snapshot_does_not_override_live_remaining_days(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-07-21 15:30:00'));
+
+        $contract = new RentalContract([
+            'legacy_source' => 'alrafedin_rental_orders',
+        ]);
+        $contract->setRelation('info', new RentalContractInfo([
+            'ingaz_to' => '2026-07-13',
+            'legacy_remaining_days' => 2,
+        ]));
+
+        $this->assertSame(-8, $contract->calculateRemainingDays());
+    }
 }

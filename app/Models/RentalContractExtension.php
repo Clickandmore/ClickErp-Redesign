@@ -20,6 +20,13 @@ class RentalContractExtension extends Model
         'start_date',
         'end_date',
         'payment_status',
+        'payment_type',
+        'payment_amount',
+        'payment_date',
+        'receipt_account_id',
+        'invoice_constraint_id',
+        'receipt_bond_id',
+        'receipt_constraint_id',
         'payment_receipt_path',
         'notes',
         'created_by',
@@ -31,6 +38,8 @@ class RentalContractExtension extends Model
         'extension_months' => 'integer',
         'extension_days' => 'integer',
         'extension_value' => 'decimal:2',
+        'payment_amount' => 'decimal:2',
+        'payment_date' => 'date',
         'branch_id' => 'integer',
     ];
 
@@ -42,6 +51,26 @@ class RentalContractExtension extends Model
     public function createdBy()
     {
         return $this->belongsTo(\App\Models\auth\Admin::class, 'created_by');
+    }
+
+    public function receiptAccount()
+    {
+        return $this->belongsTo(\Nami\Finance\Models\Account::class, 'receipt_account_id');
+    }
+
+    public function invoiceConstraint()
+    {
+        return $this->belongsTo(\Nami\Finance\Models\Constraint::class, 'invoice_constraint_id');
+    }
+
+    public function receiptBond()
+    {
+        return $this->belongsTo(\Nami\Finance\Models\Bond::class, 'receipt_bond_id');
+    }
+
+    public function receiptConstraint()
+    {
+        return $this->belongsTo(\Nami\Finance\Models\Constraint::class, 'receipt_constraint_id');
     }
 
     public function getPaymentReceiptUrlAttribute(): ?string

@@ -39,34 +39,21 @@ class AccountStatementClientController extends Controller
         ], $request->only($this->getData));
 
         if ($request->ajax()) {
-            $data = collect();
-            $firstBalance = null;
-            $otherAccount = [];
-            $selectedAccount = null;
-
-            if (!empty($dataSearch['account_id'])) {
-                $data = $service->filterAccount($dataSearch);
-                $firstBalance = $service->getFirstBalance($dataSearch);
-                $otherAccount = ($dataSearch["other_account"] == "yes") ? $service->filterConstraints($dataSearch) : [];
-                $selectedAccount = $accountService->find($dataSearch['account_id']);
-            }
-
-            $hasOpeningBalance = abs((float) ($firstBalance->sum_debtor_value ?? 0)) > 0.01
-                || abs((float) ($firstBalance->sum_creditor_value ?? 0)) > 0.01;
+            $result = $this->buildStatementResult($dataSearch, $service, $accountService);
 
             $returnHTML = view("finance::finance.account_statement.result")->with([
-                "data" => $data,
-                "firstBalance" => $firstBalance,
-                "otherAccount" => $otherAccount,
+                "data" => $result['data'],
+                "firstBalance" => $result['firstBalance'],
+                "otherAccount" => $result['otherAccount'],
                 "show_other_account" => $dataSearch["other_account"],
-                "accountName" => $selectedAccount->name ?? null,
+                "accountName" => $result['selectedAccount']->name ?? null,
                 "filters" => $dataSearch,
                 "reportTitle" => __("finance::finance.account-statement-clients"),
             ])->render();
 
             return jsonSuccess([
                 "html" => $returnHTML,
-                "count" => ($data->count() > 0 || $hasOpeningBalance) ? 1 : 0,
+                "count" => $result['hasData'] ? 1 : 0,
             ]);
         }
 
@@ -80,8 +67,63 @@ class AccountStatementClientController extends Controller
         $data["exportExcelRoute"] = route($this->mainRoute . '.export', 'excel');
         $data["exportPdfRoute"] = route($this->mainRoute . '.export', 'pdf');
         $data["exportScopeDescription"] = 'جميع حسابات العملاء عند ترك الحساب فارغًا';
+        $data["initialResultHtml"] = null;
+        $data["initialResultCount"] = 0;
+
+        // Links from the clients page already contain the account ID, so render
+        // that statement during the initial request instead of depending on a
+        // second AJAX request in the browser.
+        if (!empty($dataSearch['account_id'])) {
+            $result = $this->buildStatementResult($dataSearch, $service, $accountService);
+
+            if (!$data["accounts"]->contains('id', $result['selectedAccount']->id)) {
+                $data["accounts"]->push($result['selectedAccount']);
+            }
+
+            $data["initialResultHtml"] = view("finance::finance.account_statement.result")->with([
+                "data" => $result['data'],
+                "firstBalance" => $result['firstBalance'],
+                "otherAccount" => $result['otherAccount'],
+                "show_other_account" => $dataSearch["other_account"],
+                "accountName" => $result['selectedAccount']->name,
+                "filters" => $dataSearch,
+                "reportTitle" => __("finance::finance.account-statement-clients"),
+            ])->render();
+            $data["initialResultCount"] = $result['hasData'] ? 1 : 0;
+        }
 
         return view('finance::finance.account_statement.index', $data);
+    }
+
+    private function buildStatementResult(
+        array $filters,
+        ObjService $service,
+        AccountService $accountService
+    ): array {
+        $statementData = collect();
+        $firstBalance = null;
+        $otherAccount = [];
+        $selectedAccount = null;
+
+        if (!empty($filters['account_id'])) {
+            $statementData = $service->filterAccount($filters);
+            $firstBalance = $service->getFirstBalance($filters);
+            $otherAccount = $filters['other_account'] === 'yes'
+                ? $service->filterConstraints($filters)
+                : [];
+            $selectedAccount = $accountService->find($filters['account_id']);
+        }
+
+        $hasOpeningBalance = abs((float) ($firstBalance->sum_debtor_value ?? 0)) > 0.01
+            || abs((float) ($firstBalance->sum_creditor_value ?? 0)) > 0.01;
+
+        return [
+            'data' => $statementData,
+            'firstBalance' => $firstBalance,
+            'otherAccount' => $otherAccount,
+            'selectedAccount' => $selectedAccount,
+            'hasData' => $statementData->isNotEmpty() || $hasOpeningBalance,
+        ];
     }
 
     public function export(Request $request, AccountStatementExportService $exporter, string $format)

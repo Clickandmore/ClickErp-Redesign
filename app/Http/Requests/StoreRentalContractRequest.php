@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\RentalContract;
+use App\Models\Country;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\Order;
 use App\Models\ingaz\Package;
@@ -56,7 +57,15 @@ class StoreRentalContractRequest extends FormRequest
             'new_client_license_number' => 'nullable|string|max:100',
             'new_client_birthdate' => 'nullable|date',
             'new_client_address' => 'nullable|string|max:500',
-            'new_client_city' => 'required|string|max:100',
+            'new_client_city' => [
+                'required',
+                'string',
+                'max:100',
+                Rule::exists('cities', 'name_ar')->where(function ($query) {
+                    $query->where('is_active', true)
+                        ->whereIn('country_id', Country::query()->select('id')->where('code', 'SA'));
+                }),
+            ],
             'new_client_phone2' => 'nullable|string|max:20',
             'new_client_beds_num' => 'nullable|string|max:10',
             'new_client_family_num' => 'nullable|integer|min:1',
@@ -77,7 +86,7 @@ class StoreRentalContractRequest extends FormRequest
             'contract_date' => 'required|date',
             'working_hours' => 'nullable|integer|min:1|max:24',
             'hourly_rate' => 'nullable|numeric|min:0',
-            'monthly_salary' => 'nullable|numeric|min:0',
+            'monthly_salary' => 'required|numeric|gt:0',
             'sponsorship_transfer' => 'nullable|string|in:yes,no',
             'package_id' => 'required|exists:packages,id',
             'selected_package_id' => 'nullable|exists:packages,id',
@@ -159,6 +168,7 @@ class StoreRentalContractRequest extends FormRequest
             'new_client_email.email' => 'البريد الإلكتروني غير صحيح',
             'new_client_national_num.required' => 'رقم الهوية مطلوب',
             'new_client_city.required' => 'المدينة مطلوبة',
+            'new_client_city.exists' => 'يرجى اختيار مدينة سعودية صحيحة من القائمة',
 
             // رسائل معلومات العميل الخاصة بالتأجير
             'monthly_income.numeric' => 'الدخل الشهري يجب أن يكون رقماً',
@@ -179,6 +189,8 @@ class StoreRentalContractRequest extends FormRequest
             'working_hours.max' => 'عدد ساعات العمل لا يمكن أن يتجاوز 24 ساعة',
             'hourly_rate.numeric' => 'أجرة الساعة يجب أن تكون رقماً',
             'monthly_salary.numeric' => 'الراتب الشهري يجب أن يكون رقماً',
+            'monthly_salary.required' => 'يجب تحديد الراتب الشهري لأنه معفى من الضريبة',
+            'monthly_salary.gt' => 'يجب أن يكون الراتب الشهري أكبر من صفر حتى لا تُحتسب الضريبة على كامل قيمة العقد',
             'package_id.required' => 'يرجى اختيار الباقة',
             'package_id.exists' => 'الباقة المختارة غير صحيحة',
             'payment_type.required' => 'يرجى اختيار طريقة الدفع',

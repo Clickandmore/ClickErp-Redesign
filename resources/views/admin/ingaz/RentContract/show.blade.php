@@ -1391,7 +1391,8 @@
                                             <th>إلى</th>
                                             <th>قيمة التمديد</th>
                                             <th>حالة الدفع</th>
-                                            <th>الإيصال</th>
+                                            <th>سند القبض / البنك</th>
+                                            <th>إثبات الدفع</th>
                                             <th>بواسطة</th>
                                             <th>تاريخ التسجيل</th>
                                             <th>ملاحظات</th>
@@ -1411,6 +1412,36 @@
                                                     {{ $extension->extension_value !== null ? number_format((float) $extension->extension_value, 2) . ' ريال' : 'غير مسجل' }}
                                                 </td>
                                                 <td>{{ $paymentStatuses[$extension->payment_status] ?? ($extension->payment_status ?: 'غير محدد') }}</td>
+                                                <td>
+                                                    @if ($extension->receiptBond)
+                                                        <div class="mb-1">
+                                                            <a href="{{ route('finance.bonds-print.show', ['bonds_print' => $extension->receiptBond->id, 'type' => 'qabd']) }}"
+                                                                target="_blank" rel="noopener">
+                                                                سند #{{ $extension->receiptBond->code ?: $extension->receiptBond->id }}
+                                                            </a>
+                                                        </div>
+                                                        <small class="text-muted">
+                                                            {{ $extension->receiptAccount?->name ?: '-' }}
+                                                            @if ($extension->payment_amount)
+                                                                — {{ number_format((float) $extension->payment_amount, 2) }} ريال
+                                                            @endif
+                                                        </small>
+                                                        @if ($extension->receiptConstraint)
+                                                            <div>
+                                                                <a href="{{ route('finance.add-constraint.show', ['add_constraint' => $extension->receiptConstraint->id, 'autoprint' => 1]) }}"
+                                                                    target="_blank" rel="noopener" class="small">عرض القيد</a>
+                                                            </div>
+                                                        @endif
+                                                        @if ($extension->invoiceConstraint)
+                                                            <div>
+                                                                <a href="{{ route('finance.add-constraint.show', ['add_constraint' => $extension->invoiceConstraint->id, 'autoprint' => 1]) }}"
+                                                                    target="_blank" rel="noopener" class="small">قيد قيمة التمديد</a>
+                                                            </div>
+                                                        @endif
+                                                    @else
+                                                        -
+                                                    @endif
+                                                </td>
                                                 <td>
                                                     @if ($extension->payment_receipt_url)
                                                         <a href="{{ $extension->payment_receipt_url }}" target="_blank" rel="noopener">عرض الإيصال</a>
