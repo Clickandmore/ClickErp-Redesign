@@ -16,6 +16,7 @@ use App\Models\ingaz\ComplaintType;
 use App\Models\ingaz\Nationality;
 use App\Models\ingaz\Order;
 use App\Models\ingaz\User;
+use App\PermKeys;
 use App\Services\AdminNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -31,6 +32,7 @@ class ComplaintController extends Controller
 
     function __construct()
     {
+        $this->middleware('permission:' . PermKeys::COMPLAINT_VIEW . '|' . PermKeys::COMPLAINT_CONTROL . ',admin', ['only' => ['cards']]);
         // $this->middleware('permission:الشكاوى-قراءة,admin', ['only' => ['index']]);
         // $this->middleware('permission:الشكاوى-انشاء,admin', ['only' => ['create', 'store']]);
         // $this->middleware('permission:الشكاوى-تعديل,admin', ['only' => ['edit', 'update']]);
@@ -869,12 +871,19 @@ class ComplaintController extends Controller
         $complaint_comment = ComplaintComment::findOrFail($id);
         $this->assertCanAccessBranchModel($complaint_comment);
 
-        if (!$complaint_comment) {
-            return jsonError(['error' => 'هذا التعليق غير موجود'], 404);
-        }
+        abort_unless($this->canDeleteComment($complaint_comment), 403, __('ingaz.permission_denied'));
 
         $complaint_comment->delete();
 
         return jsonSuccess(['success' => 'تم حذف التعليق بنجاح']);
+    }
+
+    private function canDeleteComment(ComplaintComment $comment): bool
+    {
+        $admin = auth('admin')->user();
+
+        return $admin
+            && ((int) $admin->id === (int) $comment->added_by
+                || AdminGuardHasPerm(PermKeys::COMPLAINT_CONTROL));
     }
 }
