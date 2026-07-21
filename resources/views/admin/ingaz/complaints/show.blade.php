@@ -620,7 +620,7 @@
                                                 <div class="comment-time">{{ $comment->created_at->diffForHumans() }}</div>
                                             </div>
                                         </div>
-                                        @if (auth('admin')->id() == $comment->added_by)
+                                        @if (auth('admin')->id() == $comment->added_by || AdminGuardHasPerm(\App\PermKeys::COMPLAINT_CONTROL))
                                             <div class="">
                                                 <button class="btn btn-danger deleteComment"
                                                     data-comment-id="{{ $comment->id }}">

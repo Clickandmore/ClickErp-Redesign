@@ -310,7 +310,8 @@ Route::group(
             Route::post('complaints/update-status', [ComplaintController::class, 'updateStatus'])->name('complaints.update-status');
             Route::post('complaints/assign', [ComplaintController::class, 'assign'])->name('complaints.assign');
             Route::post('complaints/change-priority', [ComplaintController::class, 'changePriority'])->name('complaints.change-priority');
-            Route::delete('complaints/complaint-comment/{id}', [ComplaintController::class, 'deleteComment']);
+            Route::delete('complaints/complaint-comment/{id}', [ComplaintController::class, 'deleteComment'])
+                ->name('complaints.comments.destroy');
             Route::post('completeOrder/{id}', [OrderController::class, 'completeOrder'])->name('orders.completeOrder');
             Route::post('getOrderById/{id}', [OrderController::class, 'getOrderById'])->name('orders.getOrderById');
             Route::post('orders/quick-recruitment', [OrderController::class, 'quickRecruitment'])->name('orders.quickRecruitment');

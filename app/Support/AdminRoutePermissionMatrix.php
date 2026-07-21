@@ -627,6 +627,7 @@ class AdminRoutePermissionMatrix
                 'destroy' => [PermKeys::COMPLAINT_TYPE_DELETE],
             ]),
             [
+                'complaints.cards' => [PermKeys::COMPLAINT_VIEW, PermKeys::COMPLAINT_CONTROL],
                 'complaints.quick-response' => [PermKeys::COMPLAINT_RESPONSE, PermKeys::COMPLAINT_EDIT],
                 'complaints.add-comment' => [PermKeys::COMPLAINT_RESPONSE, PermKeys::COMPLAINT_EDIT],
                 'complaints.update-status' => [PermKeys::COMPLAINT_EDIT],
