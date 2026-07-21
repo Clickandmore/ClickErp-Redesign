@@ -6,6 +6,7 @@ use App\Enums\ingaz\ModulaNamesEnum;
 use App\Http\Actions\ingaz\SystemSubscriptionAction;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 
 class CheckSystemSubscriptionMiddelware
 {
@@ -16,6 +17,10 @@ class CheckSystemSubscriptionMiddelware
 
     public function handle(Request $request, Closure $next)
     {
+        if (!Schema::hasTable('system_subscriptions') || !Schema::hasTable('system_plans')) {
+            return $next($request);
+        }
+
         $systemSubscription = $this->systemSubscriptionAction->first();
         if (!$systemSubscription) {
             return $next($request);
