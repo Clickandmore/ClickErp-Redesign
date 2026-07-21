@@ -693,6 +693,7 @@ class RentContractController extends Controller
 
         $moyasarSettings = MoyasarSettings::current();
         $moyasarEnabled = MoyasarSettings::isEnabled();
+        $receiptAccounts = $this->receiptAccounts();
 
         return view($this->folderPath . '.create', compact(
             'availableRentalMaids',
@@ -704,7 +705,8 @@ class RentContractController extends Controller
             'selectedClientId',
             'selectedClient',
             'moyasarSettings',
-            'moyasarEnabled'
+            'moyasarEnabled',
+            'receiptAccounts'
         ));
     }
 
@@ -859,7 +861,11 @@ class RentContractController extends Controller
             RentalContractInfo::create($contractInfoPayload);
 
             $rentalContract->loadMissing(['user', 'maid.nationality', 'info']);
-            $financeResult = $rentalContractFinanceService->createForContract($rentalContract, $selectedPackage);
+            $financeResult = $rentalContractFinanceService->createForContract(
+                $rentalContract,
+                $selectedPackage,
+                $request->filled('receipt_account_id') ? (int) $request->receipt_account_id : null
+            );
             $financeInvoice = $financeResult['invoice'] ?? null;
             $receiptBond = $financeResult['receipt_bond'] ?? null;
             $invoiceConstraint = $financeResult['invoice_constraint'] ?? null;
@@ -1019,6 +1025,7 @@ class RentContractController extends Controller
         $closureSummaryDate = $contract->closed_at ? Carbon::parse($contract->closed_at) : Carbon::now();
         $closureSummary = $this->buildRentalClosureSummary($contract, $closureSummaryDate);
         $paymentReceipts = $this->rentalPaymentReceiptItems($contract->info);
+        $receiptAccounts = $this->receiptAccounts();
         $receiptBonds = $contract->financeBonds
             ->where('type', 'qabd')
             ->where('is_confirm', 1)
@@ -1079,7 +1086,8 @@ class RentContractController extends Controller
             'closureRefund',
             'contractLedgerBalance',
             'clientAccountBalance',
-            'clientAccountApprovedBalance'
+            'clientAccountApprovedBalance',
+            'receiptAccounts'
         ));
     }
 
@@ -1203,7 +1211,7 @@ class RentContractController extends Controller
 
     public function edit($id)
     {
-        $contract = RentalContract::with(['user', 'maid', 'info', 'marketer'])->findOrFail($id);
+        $contract = RentalContract::with(['user', 'maid', 'info', 'marketer', 'financeInvoice.receiptAccount'])->findOrFail($id);
         $this->assertCanAccessBranchModel($contract, 'rental_contracts');
 
         // الحصول على العاملات المتاحة من نوع تأجير
@@ -1219,6 +1227,7 @@ class RentContractController extends Controller
         $countries = Country::active()->ordered()->get();
         $paymentReceipts = $this->rentalPaymentReceiptItems($contract->info);
         $moyasarEnabled = MoyasarSettings::isEnabled();
+        $receiptAccounts = $this->receiptAccounts();
 
         return view($this->folderPath . '.edit', compact(
             'contract',
@@ -1228,7 +1237,8 @@ class RentContractController extends Controller
             'nationalities',
             'countries',
             'paymentReceipts',
-            'moyasarEnabled'
+            'moyasarEnabled',
+            'receiptAccounts'
         ));
     }
 
@@ -1346,7 +1356,11 @@ class RentContractController extends Controller
             $contract->info->update($contractInfoUpdates);
 
             $contract->loadMissing(['user', 'maid.nationality', 'info', 'financeInvoice']);
-            $financeResult = $rentalContractFinanceService->syncPaymentForContract($contract, $selectedPackage);
+            $financeResult = $rentalContractFinanceService->syncPaymentForContract(
+                $contract,
+                $selectedPackage,
+                $request->filled('receipt_account_id') ? (int) $request->receipt_account_id : null
+            );
 
             // تحديث حالة العاملات
             if ($oldMaidId && $oldMaidId != $request->maid_id) {
@@ -1442,6 +1456,7 @@ class RentContractController extends Controller
             'paid_amount' => ['nullable', 'required_without:payment_amount', 'numeric', 'gt:0'],
             'payment_date' => ['nullable', 'date'],
             'payment_receipt' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
+            'receipt_account_id' => ['required', 'integer', 'exists:fn_accounts,id'],
         ]);
 
         try {
@@ -1462,7 +1477,8 @@ class RentContractController extends Controller
                 $contract,
                 $paymentAmount,
                 $validated['payment_type'],
-                $validated['payment_date'] ?? now()
+                $validated['payment_date'] ?? now(),
+                (int) $validated['receipt_account_id']
             );
 
             if ($request->hasFile('payment_receipt')) {
@@ -1498,6 +1514,23 @@ class RentContractController extends Controller
     }
 
     // Helper Methods
+    private function receiptAccounts()
+    {
+        if (!Schema::hasTable('fn_accounts')) {
+            return collect();
+        }
+
+        return Account::query()
+            ->where('status', 'debtor')
+            ->whereIn('type', [
+                AccountTypesEnum::Bank->value,
+                AccountTypesEnum::Box->value,
+                AccountTypesEnum::ElectronicWallet->value,
+            ])
+            ->orderBy('code')
+            ->get(['id', 'code', 'name', 'type']);
+    }
+
     private function generateContractNumber()
     {
         $year = date('Y');
@@ -3281,7 +3314,7 @@ class RentContractController extends Controller
     /**
      * Close contract and transfer sponsorship
      */
-    public function transferSponsorship($id, Request $request)
+    public function transferSponsorship($id, Request $request, RentalContractFinanceService $rentalContractFinanceService)
     {
         $request->validate([
             'closure_date' => 'nullable|date',
@@ -3292,6 +3325,7 @@ class RentContractController extends Controller
             'payment_type' => 'required|in:cash,bank_transfer,mada,tabby,tamara,pay_later,other',
             'payment_status' => 'required|in:paid,partial,pending,later,bank_pending',
             'payment_receipt' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+            'receipt_account_id' => 'nullable|required_if:payment_status,paid,partial|integer|exists:fn_accounts,id',
             'attachments' => 'nullable|array',
             'attachments.*' => 'file|mimes:jpg,jpeg,png,pdf,doc,docx|max:4096',
             'notes' => 'nullable|string',
@@ -3310,6 +3344,7 @@ class RentContractController extends Controller
             'payment_receipt.file' => 'صيغة إيصال الدفع غير صحيحة.',
             'payment_receipt.mimes' => 'صيغة إيصال الدفع يجب أن تكون pdf أو jpg أو jpeg أو png.',
             'payment_receipt.max' => 'حجم إيصال الدفع يجب ألا يتجاوز 4 ميجابايت.',
+            'receipt_account_id.required_if' => 'يجب اختيار البنك أو حساب السداد لإصدار سند القبض.',
             'attachments.*.mimes' => 'صيغة المرفقات يجب أن تكون pdf أو jpg أو jpeg أو png أو doc أو docx.',
             'attachments.*.max' => 'حجم كل مرفق يجب ألا يتجاوز 4 ميجابايت.',
         ]);
@@ -3451,6 +3486,19 @@ class RentContractController extends Controller
                     ->delete();
             }
 
+            $transferReceiptBond = null;
+            if ($transferPaidAmount > 0) {
+                $receiptResult = $rentalContractFinanceService->recordAncillaryReceiptForContract(
+                    $oldContract,
+                    $transferPaidAmount,
+                    (string) $request->payment_type,
+                    (int) $request->receipt_account_id,
+                    $closureDate,
+                    'سند قبض نقل كفالة من عقد التأجير رقم ' . ($oldContract->contract_number ?: $oldContract->id)
+                );
+                $transferReceiptBond = $receiptResult['bond'] ?? null;
+            }
+
             // Update maid status
             if ($oldContract->maid) {
                 $oldContract->maid->status = 'contracted';
@@ -3478,6 +3526,9 @@ class RentContractController extends Controller
             $message = $isEarlyClosure
                 ? 'تم إلغاء عقد الإيجار لأنه أُنهي قبل اكتمال مدته، وتم توثيق نقل الكفالة بنجاح.'
                 : 'تم إغلاق عقد الإيجار وتوثيق نقل الكفالة بنجاح.';
+            if ($transferReceiptBond) {
+                $message .= ' تم إنشاء سند قبض رقم ' . ($transferReceiptBond->code ?: $transferReceiptBond->id) . '.';
+            }
 
             return response()->json([
                 'success' => true,

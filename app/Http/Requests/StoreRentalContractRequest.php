@@ -94,6 +94,7 @@ class StoreRentalContractRequest extends FormRequest
             'payment_status' => 'required|string|in:paid,partial,pending,later,bank_pending',
             'payment_receipt' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
             'paid_amount' => 'nullable|numeric|min:0',
+            'receipt_account_id' => 'nullable|required_if:payment_status,paid,partial|integer|exists:fn_accounts,id',
             'remaining_amount' => 'nullable|numeric|min:0',
             'monthly_cost' => 'required|numeric|min:0',
             'contract_duration_months' => 'required|integer|min:1',
@@ -141,6 +142,7 @@ class StoreRentalContractRequest extends FormRequest
             'payment_status' => 'required|string|in:paid,partial,pending,later,bank_pending',
             'payment_receipt' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
             'paid_amount' => 'nullable|numeric|min:0',
+            'receipt_account_id' => 'nullable|integer|exists:fn_accounts,id',
             'remaining_amount' => 'nullable|numeric|min:0',
             'monthly_cost' => 'required|numeric|min:0',
             'contract_duration_months' => 'required|integer|min:1',
@@ -202,6 +204,8 @@ class StoreRentalContractRequest extends FormRequest
             'payment_receipt.max' => 'حجم مرفق الدفع يجب ألا يتجاوز 4 ميجابايت',
             'paid_amount.numeric' => 'المبلغ المدفوع يجب أن يكون رقماً',
             'paid_amount.min' => 'المبلغ المدفوع يجب أن يكون أكبر من أو يساوي صفر',
+            'receipt_account_id.required_if' => 'يرجى اختيار حساب البنك أو الصندوق الذي سيصدر عليه سند القبض',
+            'receipt_account_id.exists' => 'حساب السداد المحدد غير موجود في الدليل المحاسبي',
             'monthly_cost.required' => 'التكلفة الشهرية مطلوبة',
             'monthly_cost.numeric' => 'التكلفة الشهرية يجب أن تكون رقماً',
             'contract_duration_months.required' => 'مدة العقد بالشهور مطلوبة',
@@ -224,6 +228,7 @@ class StoreRentalContractRequest extends FormRequest
         $validator->after(function ($validator) {
             $currentContractId = $this->route('RentContract') ?? $this->route('id');
             $currentContract = $currentContractId ? RentalContract::find($currentContractId) : null;
+            $currentContract?->loadMissing('financeInvoice');
             $maid = $this->maid_id
                 ? Maid::with('nationality.translations')->find($this->maid_id)
                 : null;
@@ -280,6 +285,22 @@ class StoreRentalContractRequest extends FormRequest
             $paymentStatus = (string) $this->payment_status;
             $moyasarAlreadyPaid = ($currentContract?->info?->moyasar_payment_status === 'paid')
                 || ($currentContract?->info?->payment_type === 'moyasar' && $currentContract?->info?->payment_status === 'paid');
+
+            if (
+                $this->isMethod('put') || $this->isMethod('patch')
+            ) {
+                $hasReceiptBond = (bool) $currentContract?->financeInvoice?->receipt_bond_id;
+                if (in_array($paymentStatus, ['paid', 'partial'], true) && !$hasReceiptBond && !$this->filled('receipt_account_id')) {
+                    $validator->errors()->add('receipt_account_id', 'يرجى اختيار حساب البنك أو الصندوق الذي سيصدر عليه سند القبض');
+                }
+
+                if ($hasReceiptBond && (
+                    round($paidAmount, 2) !== round((float) $currentContract?->info?->paid_amount, 2)
+                    || $paymentType !== (string) $currentContract?->info?->payment_type
+                )) {
+                    $validator->errors()->add('paid_amount', 'لا يمكن تعديل المبلغ أو طريقة الدفع بعد إصدار سند القبض. سجل دفعة أو تسوية مالية مستقلة.');
+                }
+            }
 
             if ($paymentType === 'moyasar' && !MoyasarSettings::isEnabled() && !$moyasarAlreadyPaid) {
                 $validator->errors()->add('payment_type', 'بوابة ميسر غير مفعلة حالياً من إعدادات النظام');

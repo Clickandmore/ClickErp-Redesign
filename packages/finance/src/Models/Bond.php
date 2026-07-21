@@ -19,7 +19,7 @@ class Bond extends Finance
         'legacy_source','legacy_source_file','legacy_source_sheet','legacy_source_row','legacy_sequence',
         'legacy_hijri_date','legacy_total','legacy_currency','legacy_financial_movement',
         'legacy_financial_movement_currency','legacy_client_number','legacy_order_number',
-        'recruitment_contract_id','rental_contract_id','legacy_source_payload'
+        'recruitment_contract_id','rental_contract_id','sponsorship_transfer_id','legacy_source_payload'
     ];
 
     protected $casts = [
@@ -69,6 +69,11 @@ class Bond extends Finance
     public function rentalContract()
     {
         return $this->belongsTo(RentalContract::class, 'rental_contract_id');
+    }
+
+    public function sponsorshipTransfer()
+    {
+        return $this->belongsTo(\App\Models\SponsorshipTransfer::class, 'sponsorship_transfer_id');
     }
 
 }

@@ -1094,6 +1094,20 @@
                                             step="0.01" min="0.01" value="{{ old('payment_amount') }}" required>
                                     </div>
                                     <div class="col-md-6">
+                                        <label for="show_receipt_account_id" class="form-label">البنك / حساب السداد</label>
+                                        <select name="receipt_account_id" id="show_receipt_account_id" class="form-select" required>
+                                            <option value="">اختر الحساب الذي سيصدر عليه سند القبض</option>
+                                            @foreach($receiptAccounts as $account)
+                                                <option value="{{ $account->id }}" @selected((string) old('receipt_account_id') === (string) $account->id)>
+                                                    {{ $account->code }} - {{ $account->name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        @if($receiptAccounts->isEmpty())
+                                            <small class="text-danger">لا توجد حسابات بنك أو صندوق أو محفظة صالحة في الدليل المحاسبي.</small>
+                                        @endif
+                                    </div>
+                                    <div class="col-md-6">
                                         <label for="show_payment_date" class="form-label">تاريخ الدفعة</label>
                                         <input type="date" id="show_payment_date" name="payment_date" class="form-control"
                                             value="{{ old('payment_date', now()->format('Y-m-d')) }}" required>

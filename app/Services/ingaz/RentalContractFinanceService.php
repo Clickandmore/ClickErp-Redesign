@@ -41,7 +41,7 @@ class RentalContractFinanceService
     ) {
     }
 
-    public function createForContract(RentalContract $contract, ?Package $package = null): array
+    public function createForContract(RentalContract $contract, ?Package $package = null, ?int $receiptAccountId = null): array
     {
         $contract->loadMissing(['user', 'maid.nationality', 'info', 'financeInvoice']);
 
@@ -67,7 +67,7 @@ class RentalContractFinanceService
 
         $amounts = $this->buildInvoiceAmounts($contract, $package);
         $automaticEntriesEnabled = AutomaticJournalEntries::enabled();
-        $clientAccountId = $automaticEntriesEnabled
+        $clientAccountId = ($automaticEntriesEnabled || $amounts['paid_amount'] > 0)
             ? $this->ensureClientAccountId($contract)
             : null;
 
@@ -98,8 +98,16 @@ class RentalContractFinanceService
 
         $receiptBond = null;
         $receiptConstraint = null;
-        if ($automaticEntriesEnabled && $amounts['paid_amount'] > 0) {
-            $receipt = $this->storeReceiptBond($invoice, $contract, $clientAccountId, $amounts['paid_amount']);
+        if ($amounts['paid_amount'] > 0) {
+            $receipt = $this->storeReceiptBond(
+                $invoice,
+                $contract,
+                $clientAccountId,
+                $amounts['paid_amount'],
+                null,
+                null,
+                $receiptAccountId
+            );
             $receiptBond = $receipt['bond'];
             $receiptConstraint = $receipt['constraint'];
         }
@@ -119,7 +127,7 @@ class RentalContractFinanceService
         ];
     }
 
-    public function syncPaymentForContract(RentalContract $contract, ?Package $package = null): array
+    public function syncPaymentForContract(RentalContract $contract, ?Package $package = null, ?int $receiptAccountId = null): array
     {
         $contract->loadMissing(['user', 'maid.nationality', 'info', 'financeInvoice']);
 
@@ -187,9 +195,17 @@ class RentalContractFinanceService
         $receiptConstraint = $invoice->receiptConstraint;
         $receiptCreated = false;
 
-        if (AutomaticJournalEntries::enabled() && $amounts['paid_amount'] > 0 && !$invoice->receipt_bond_id) {
+        if ($amounts['paid_amount'] > 0 && !$invoice->receipt_bond_id) {
             $clientAccountId = $this->ensureClientAccountId($contract);
-            $receipt = $this->storeReceiptBond($invoice->fresh(), $contract, $clientAccountId, $amounts['paid_amount']);
+            $receipt = $this->storeReceiptBond(
+                $invoice->fresh(),
+                $contract,
+                $clientAccountId,
+                $amounts['paid_amount'],
+                null,
+                null,
+                $receiptAccountId
+            );
             $receiptBond = $receipt['bond'];
             $receiptConstraint = $receipt['constraint'];
             $receiptCreated = true;
@@ -341,6 +357,38 @@ class RentalContractFinanceService
             'receipt_constraint' => $receipt['constraint'],
             'payment_amount' => $paymentAmount,
         ];
+    }
+
+    public function recordAncillaryReceiptForContract(
+        RentalContract $contract,
+        float $paymentAmount,
+        string $paymentType,
+        int $receiptAccountId,
+        Carbon|string|null $paymentDate = null,
+        ?string $statement = null
+    ): array {
+        $contract->loadMissing(['user', 'maid.nationality', 'info.package', 'financeInvoice']);
+        if (!$contract->financeInvoice) {
+            $this->createForContract($contract, $contract->info?->package);
+            $contract->refresh()->loadMissing(['user', 'maid.nationality', 'info.package', 'financeInvoice']);
+        }
+
+        if ($paymentAmount <= 0) {
+            throw new \InvalidArgumentException('قيمة سند القبض يجب أن تكون أكبر من صفر.');
+        }
+
+        $clientAccountId = $this->ensureClientAccountId($contract);
+
+        return $this->storeReceiptBond(
+            $contract->financeInvoice,
+            $contract,
+            $clientAccountId,
+            $this->roundMoney($paymentAmount),
+            $paymentType,
+            $paymentDate,
+            $receiptAccountId,
+            $statement
+        );
     }
 
     private function storeExtensionConstraint(

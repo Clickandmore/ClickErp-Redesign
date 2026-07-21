@@ -195,6 +195,22 @@
                                         <div class="form-text text-success">يوجد إيصال محفوظ حالياً، ورفع ملف جديد سيستبدله.</div>
                                     @endif
                                 </div>
+                                <div class="col-md-6 d-none" id="receipt_account_wrapper">
+                                    <label for="receipt_account_id" class="form-label fw-bold">البنك / حساب السداد <span class="text-danger">*</span></label>
+                                    <select name="receipt_account_id" id="receipt_account_id" class="form-select">
+                                        <option value="">اختر الحساب الذي سيصدر عليه سند القبض</option>
+                                        @foreach($receiptAccounts as $account)
+                                            <option value="{{ $account->id }}" @selected((string) old('receipt_account_id', $transfer->receipt_account_id ?? '') === (string) $account->id)>
+                                                {{ $account->code }} - {{ $account->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @if($receiptAccounts->isEmpty())
+                                        <div class="form-text text-danger">لا توجد حسابات بنك أو صندوق أو محفظة صالحة في الدليل المحاسبي.</div>
+                                    @else
+                                        <div class="form-text">سيُصدر سند القبض على هذا الحساب ويرتبط بطلب نقل الكفالة والعميل.</div>
+                                    @endif
+                                </div>
                                 <div class="col-12">
                                     <label for="attachments" class="form-label fw-bold">مرفقات إضافية</label>
                                     <input type="file" name="attachments[]" id="attachments" class="form-control" accept=".jpg,.jpeg,.png,.pdf,.doc,.docx" multiple>
@@ -302,9 +318,12 @@ $(document).ready(function() {
     function syncPaymentReceiptRequirement() {
         const paymentStatus = $('#payment_status').val();
         const hasSavedReceipt = {{ $isEditMode && !empty($transfer->payment_receipt_path) ? 'true' : 'false' }};
-        const receiptRequired = (paymentStatus === 'paid' || paymentStatus === 'partial') && !hasSavedReceipt;
+        const isPaid = paymentStatus === 'paid' || paymentStatus === 'partial';
+        const receiptRequired = isPaid && !hasSavedReceipt;
         $('#payment_receipt').prop('required', receiptRequired);
         $('#payment_receipt_hint').toggleClass('d-none', !receiptRequired);
+        $('#receipt_account_wrapper').toggleClass('d-none', !isPaid);
+        $('#receipt_account_id').prop('required', isPaid);
     }
 
     $('#payment_status').on('change', syncPaymentReceiptRequirement);

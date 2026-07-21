@@ -573,6 +573,22 @@
                                        value="{{ $contract->info->paid_amount ?? '0.00' }}">
                             </div>
 
+                            <div class="col-md-4" id="receiptAccountWrapper">
+                                <label for="receipt_account_id" class="form-label">البنك / حساب السداد</label>
+                                <select id="receipt_account_id" name="receipt_account_id" class="form-select"
+                                    @disabled((bool) $contract->financeInvoice?->receipt_bond_id)>
+                                    <option value="">اختر الحساب الذي سيصدر عليه سند القبض</option>
+                                    @foreach($receiptAccounts as $account)
+                                        <option value="{{ $account->id }}" @selected((string) old('receipt_account_id', $contract->financeInvoice?->receipt_account_id) === (string) $account->id)>
+                                            {{ $account->code }} - {{ $account->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                                @if($contract->financeInvoice?->receipt_bond_id)
+                                    <div class="form-text text-success">صدر سند القبض بالفعل؛ استخدم شاشة تسجيل دفعة جديدة لأي مبلغ إضافي.</div>
+                                @endif
+                            </div>
+
                             <div class="col-md-4">
                                 <label for="remaining_amount" class="form-label">المبلغ المتبقي</label>
                                 <input type="number" id="remaining_amount" name="remaining_amount" class="form-control" step="0.01" min="0" readonly
@@ -923,6 +939,10 @@ $(document).ready(function() {
         enforcePaymentCompatibility();
 
         const paymentStatus = $('#payment_status').val();
+        const hasReceiptBond = {{ $contract->financeInvoice?->receipt_bond_id ? 'true' : 'false' }};
+        const needsReceiptAccount = !hasReceiptBond && ['paid', 'partial'].includes(paymentStatus);
+        $('#receiptAccountWrapper').toggleClass('d-none', !needsReceiptAccount && !hasReceiptBond);
+        $('#receipt_account_id').prop('required', needsReceiptAccount);
 
         if (paymentStatus === 'paid') {
             $('#paidAmountWrapper').removeClass('d-none');

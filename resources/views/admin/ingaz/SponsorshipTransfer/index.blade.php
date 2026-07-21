@@ -542,6 +542,13 @@
                             <label class="form-label">مبلغ التسوية</label>
                             <input type="number" id="failureSettlementAmount" class="form-control mb-1" min="0" step="0.01" value="${paidAmount.toFixed(2)}">
                             <div class="form-text mb-2">يتم احتساب الاسترجاع تلقائيا من المبلغ المدفوع ويمكن تعديله</div>
+                            <label class="form-label">البنك / حساب الصرف <span class="text-danger">*</span></label>
+                            <select id="failureRefundAccount" class="form-select mb-2">
+                                <option value="">اختر الحساب الذي سيصدر عليه سند الصرف</option>
+                                @foreach($receiptAccounts as $account)
+                                    <option value="{{ $account->id }}">{{ e($account->code . ' - ' . $account->name) }}</option>
+                                @endforeach
+                            </select>
                             <label class="form-label">آيبان العميل <span class="text-danger">*</span></label>
                             <input type="text" id="failureClientIban" class="form-control mb-2" dir="ltr" maxlength="34" placeholder="SA0000000000000000000000">
                             <label class="form-label">مرفق الآيبان <span class="text-danger">*</span></label>
@@ -579,6 +586,7 @@
                         const clearRemainingAmount = Number($('#failureClearRemainingAmount').val()) || 0;
                         const iban = ($('#failureClientIban').val() || '').trim();
                         const attachment = $('#failureClientIbanAttachment')[0]?.files?.[0] || null;
+                        const refundAccountId = $('#failureRefundAccount').val();
 
                         if (settlementAmount > paidAmount) {
                             Swal.showValidationMessage('مبلغ الاسترجاع لا يمكن أن يكون أكبر من المبلغ المدفوع.');
@@ -595,12 +603,18 @@
                             return false;
                         }
 
+                        if (settlementAmount > 0 && !refundAccountId) {
+                            Swal.showValidationMessage('يرجى اختيار البنك أو حساب الصرف لإصدار سند الصرف.');
+                            return false;
+                        }
+
                         return {
                             failure_reason: ($('#failureReason').val() || '').trim(),
                             failure_settlement_type: $('#failureSettlementType').val(),
                             failure_settlement_amount: settlementAmount,
                             failure_clear_remaining_amount: clearRemainingAmount,
                             failure_client_iban: iban,
+                            refund_account_id: refundAccountId,
                             failure_client_iban_attachment: attachment
                         };
                     }
@@ -619,6 +633,7 @@
                 formData.append('failure_settlement_amount', payload.failure_settlement_amount || 0);
                 formData.append('failure_clear_remaining_amount', payload.failure_clear_remaining_amount || 0);
                 formData.append('failure_client_iban', payload.failure_client_iban || '');
+                formData.append('refund_account_id', payload.refund_account_id || '');
 
                 if (payload.failure_client_iban_attachment) {
                     formData.append('failure_client_iban_attachment', payload.failure_client_iban_attachment);

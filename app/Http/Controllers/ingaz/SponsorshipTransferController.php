@@ -14,6 +14,7 @@ use App\PermKeys;
 use App\Services\ingaz\SponsorshipTransferCompletionService;
 use App\Services\ingaz\SponsorshipTransferFailureService;
 use App\Services\ingaz\SponsorshipTransferTrialStartService;
+use App\Services\ingaz\SponsorshipTransferPaymentService;
 use App\Services\AdminNotificationService;
 use App\Support\SystemModuleManager;
 use Illuminate\Http\Request;
@@ -312,6 +313,7 @@ class SponsorshipTransferController extends Controller
         $rejectedCount = (clone $statsQuery)->where('status', 'rejected')->count();
         $approvedCount = (clone $statsQuery)->where('status', 'approved')->count();
         $completedCount = (clone $statsQuery)->where('status', 'completed')->count();
+        $receiptAccounts = SponsorshipTransferPaymentService::receiptAccounts();
 
         return view($this->folderPath . '.index', compact(
             'totalCount',
@@ -321,7 +323,8 @@ class SponsorshipTransferController extends Controller
             'failedCount',
             'rejectedCount',
             'approvedCount',
-            'completedCount'
+            'completedCount',
+            'receiptAccounts'
         ));
     }
 
@@ -518,11 +521,13 @@ class SponsorshipTransferController extends Controller
         $this->applyRequestBranchFilter($contractsQuery, request(), 'contracts');
         $contracts = $contractsQuery->latest()->get();
 
-        return view($this->folderPath . '.create', compact('contracts', 'selectedContractId', 'selectedOrder', 'selectedNewSponsorId', 'selectedNewSponsor'));
+        $receiptAccounts = SponsorshipTransferPaymentService::receiptAccounts();
+
+        return view($this->folderPath . '.create', compact('contracts', 'selectedContractId', 'selectedOrder', 'selectedNewSponsorId', 'selectedNewSponsor', 'receiptAccounts'));
     }
 
 
-    public function store(Request $request)
+    public function store(Request $request, SponsorshipTransferPaymentService $paymentService)
     {
         try {
             $validated = $request->validate([
@@ -539,6 +544,7 @@ class SponsorshipTransferController extends Controller
                 'payment_type' => 'required|in:cash,bank_transfer,mada,tabby,tamara,pay_later,other',
                 'payment_status' => 'required|in:paid,partial,pending,later,bank_pending',
                 'payment_receipt' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+                'receipt_account_id' => 'nullable|required_if:payment_status,paid,partial|integer|exists:fn_accounts,id',
                 'attachments' => 'nullable|array',
                 'attachments.*' => 'file|mimes:jpg,jpeg,png,pdf,doc,docx|max:8192',
                 'notes' => 'nullable|string|max:1000',
@@ -573,6 +579,8 @@ class SponsorshipTransferController extends Controller
                 'payment_receipt.file' => 'صيغة إيصال الدفع غير صحيحة',
                 'payment_receipt.mimes' => 'صيغة إيصال الدفع يجب أن تكون pdf أو jpg أو jpeg أو png',
                 'payment_receipt.max' => 'حجم إيصال الدفع يجب ألا يتجاوز 4 ميجابايت',
+                'receipt_account_id.required_if' => 'يجب اختيار البنك أو حساب السداد لإصدار سند القبض',
+                'receipt_account_id.exists' => 'حساب السداد المحدد غير موجود',
                 'attachments.*.file' => 'صيغة أحد المرفقات غير صحيحة',
                 'attachments.*.mimes' => 'صيغة المرفقات يجب أن تكون pdf أو jpg أو jpeg أو png أو doc أو docx',
                 'attachments.*.max' => 'حجم كل مرفق يجب ألا يتجاوز 8 ميجابايت',
@@ -657,6 +665,7 @@ class SponsorshipTransferController extends Controller
                 'paid_amount' => $validated['paid_amount'],
                 'remaining_amount' => $validated['contract_value'] - $validated['paid_amount'],
                 'payment_type' => $validated['payment_type'],
+                'receipt_account_id' => $validated['receipt_account_id'] ?? null,
                 'payment_status' => $validated['payment_status'],
                 'payment_receipt_path' => $paymentReceiptPath,
                 'attachments' => $attachments ?: null,
@@ -668,6 +677,14 @@ class SponsorshipTransferController extends Controller
 
             // إنشاء طلب نقل خدمات جديد
             $transfer = SponsorshipTransfer::create($transferData);
+            $financeResult = null;
+            if ((float) $transfer->paid_amount > 0) {
+                $financeResult = $paymentService->createReceipt(
+                    $transfer,
+                    (int) $validated['receipt_account_id'],
+                    now()
+                );
+            }
 
             DB::commit();
             $transfer->refresh();
@@ -676,6 +693,7 @@ class SponsorshipTransferController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'تم حفظ طلب نقل الكفالة بنجاح'
+                    . (!empty($financeResult['bond']) ? ' وإنشاء سند قبض رقم ' . ($financeResult['bond']->code ?: $financeResult['bond']->id) : '')
             ]);
 
         } catch (ValidationException $e) {
@@ -717,7 +735,11 @@ class SponsorshipTransferController extends Controller
             'newSponsor',
             'approvedBy',
             'transferredBy',
-            'failedBy'
+            'failedBy',
+            'receiptAccount',
+            'receiptBond.constraint',
+            'refundAccount',
+            'refundBond.constraint'
         ])->findOrFail($id);
         $this->assertCanAccessBranchModel($transfer);
 
@@ -752,6 +774,7 @@ class SponsorshipTransferController extends Controller
         $selectedNewSponsorId = $transfer->new_sponsor_id;
         $selectedNewSponsor = $transfer->newSponsor;
         $selectedOrder = null;
+        $receiptAccounts = SponsorshipTransferPaymentService::receiptAccounts();
 
         return view($this->folderPath . '.create', compact(
             'transfer',
@@ -760,14 +783,15 @@ class SponsorshipTransferController extends Controller
             'selectedContractId',
             'selectedOrder',
             'selectedNewSponsorId',
-            'selectedNewSponsor'
+            'selectedNewSponsor',
+            'receiptAccounts'
         ));
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, SponsorshipTransferPaymentService $paymentService, $id)
     {
         abort_unless(@AdminGuardHasPerm(\App\PermKeys::SPONSOR_TRANSFER_EDIT), 403);
 
@@ -796,6 +820,7 @@ class SponsorshipTransferController extends Controller
                 'payment_type' => 'required|in:cash,bank_transfer,mada,tabby,tamara,pay_later,other',
                 'payment_status' => 'required|in:paid,partial,pending,later,bank_pending',
                 'payment_receipt' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+                'receipt_account_id' => 'nullable|required_if:payment_status,paid,partial|integer|exists:fn_accounts,id',
                 'attachments' => 'nullable|array',
                 'attachments.*' => 'file|mimes:jpg,jpeg,png,pdf,doc,docx|max:8192',
                 'notes' => 'nullable|string|max:1000',
@@ -830,6 +855,16 @@ class SponsorshipTransferController extends Controller
             }
 
             DB::beginTransaction();
+
+            if ($transfer->receipt_bond_id && (
+                round((float) $validated['paid_amount'], 2) !== round((float) $transfer->paid_amount, 2)
+                || (string) $validated['payment_type'] !== (string) $transfer->payment_type
+                || (int) ($validated['receipt_account_id'] ?? 0) !== (int) $transfer->receipt_account_id
+            )) {
+                throw ValidationException::withMessages([
+                    'paid_amount' => 'لا يمكن تعديل المبلغ أو طريقة/حساب الدفع بعد إصدار سند القبض. استخدم سند قبض أو صرف جديد للتسوية.',
+                ]);
+            }
 
             $newSponsor = $validated['new_sponsor_mode'] === 'existing'
                 ? User::find($validated['new_sponsor_id'])
@@ -879,6 +914,7 @@ class SponsorshipTransferController extends Controller
                 'paid_amount' => $validated['paid_amount'],
                 'remaining_amount' => $validated['contract_value'] - $validated['paid_amount'],
                 'payment_type' => $validated['payment_type'],
+                'receipt_account_id' => $validated['receipt_account_id'] ?? null,
                 'payment_status' => $validated['payment_status'],
                 'payment_receipt_path' => $paymentReceiptPath,
                 'attachments' => $attachments ?: null,
@@ -886,6 +922,14 @@ class SponsorshipTransferController extends Controller
                 'payment_confirmed_by' => (float) $validated['paid_amount'] > 0 ? ($transfer->payment_confirmed_by ?? auth('admin')->id()) : null,
                 'notes' => $validated['notes'] ?? null,
             ]);
+
+            if ((float) $transfer->paid_amount > 0 && !$transfer->receipt_bond_id) {
+                $paymentService->createReceipt(
+                    $transfer,
+                    (int) $validated['receipt_account_id'],
+                    now()
+                );
+            }
 
             DB::commit();
 
@@ -1287,7 +1331,7 @@ class SponsorshipTransferController extends Controller
     /**
      * Cancel transfer - move to failed status and return to shelter
      */
-    public function cancelTransfer(Request $request, $id)
+    public function cancelTransfer(Request $request, SponsorshipTransferPaymentService $paymentService, $id)
     {
         $validated = $request->validate([
             'failure_reason' => 'nullable|string|max:1000',
@@ -1296,6 +1340,7 @@ class SponsorshipTransferController extends Controller
             'failure_clear_remaining_amount' => 'nullable|numeric|min:0',
             'failure_client_iban' => 'nullable|string|max:34',
             'failure_client_iban_attachment' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:4096',
+            'refund_account_id' => 'nullable|integer|exists:fn_accounts,id',
         ], [
             'failure_client_iban_attachment.mimes' => 'مرفق الآيبان يجب أن يكون pdf أو jpg أو jpeg أو png',
             'failure_client_iban_attachment.max' => 'حجم مرفق الآيبان يجب ألا يتجاوز 4 ميجابايت',
@@ -1330,6 +1375,12 @@ class SponsorshipTransferController extends Controller
             if ($settlementAmount > $paidAmount) {
                 throw ValidationException::withMessages([
                     'failure_settlement_amount' => 'مبلغ الاسترجاع لا يمكن أن يكون أكبر من المبلغ المدفوع.',
+                ]);
+            }
+
+            if ($settlementAmount > 0 && empty($validated['refund_account_id'])) {
+                throw ValidationException::withMessages([
+                    'refund_account_id' => 'يجب اختيار البنك أو حساب السداد لإصدار سند الصرف.',
                 ]);
             }
 
@@ -1380,6 +1431,17 @@ class SponsorshipTransferController extends Controller
                 'remaining_amount' => max(0, $remainingAmount - $clearRemainingAmount),
             ]);
 
+            $refundBond = null;
+            if ($settlementAmount > 0) {
+                $refundResult = $paymentService->createRefund(
+                    $transfer,
+                    $settlementAmount,
+                    (int) $validated['refund_account_id'],
+                    $failedAt
+                );
+                $refundBond = $refundResult['bond'] ?? null;
+            }
+
             DB::commit();
             $transfer->refresh();
             $this->notifySponsorshipTransferStatusChanged($transfer, $previousStatus);
@@ -1393,6 +1455,7 @@ class SponsorshipTransferController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'تم إلغاء النقل وإعادة العقد إلى الإيواء وتسجيل مبلغ الاسترجاع للعميل'
+                    . ($refundBond ? ' وإنشاء سند صرف رقم ' . ($refundBond->code ?: $refundBond->id) : '')
             ]);
 
         } catch (ValidationException $e) {

@@ -468,6 +468,33 @@
                         <span class="info-label">حالة الدفع:</span>
                         <span class="info-value">{{ $transfer->payment_status_text }}</span>
                     </div>
+                    @if($transfer->receiptAccount)
+                        <div class="info-row">
+                            <span class="info-label">حساب السداد:</span>
+                            <span class="info-value">{{ $transfer->receiptAccount->code }} - {{ $transfer->receiptAccount->name }}</span>
+                        </div>
+                    @endif
+                    @if($transfer->receiptBond)
+                        <div class="info-row">
+                            <span class="info-label">سند القبض:</span>
+                            <span class="info-value">
+                                <a href="{{ route('finance.bonds-print.show', ['bonds_print' => $transfer->receiptBond->id, 'type' => 'qabd']) }}" target="_blank" class="text-primary">
+                                    {{ $transfer->receiptBond->code ?: ('#' . $transfer->receiptBond->id) }}
+                                </a>
+                            </span>
+                        </div>
+                    @endif
+                    @if($transfer->refundBond)
+                        <div class="info-row">
+                            <span class="info-label">سند صرف الاسترجاع:</span>
+                            <span class="info-value">
+                                <a href="{{ route('finance.bonds-print.show', ['bonds_print' => $transfer->refundBond->id, 'type' => 'sarf']) }}" target="_blank" class="text-primary">
+                                    {{ $transfer->refundBond->code ?: ('#' . $transfer->refundBond->id) }}
+                                    @if($transfer->refundAccount) — {{ $transfer->refundAccount->name }} @endif
+                                </a>
+                            </span>
+                        </div>
+                    @endif
                     @if ($transfer->payment_receipt_path)
                         <div class="info-row">
                             <span class="info-label">إيصال الدفع:</span>

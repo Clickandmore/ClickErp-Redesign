@@ -913,6 +913,20 @@
                                                     <label for="paid_amount" class="form-label">المبلغ المدفوع</label>
                                                     <input type="number" id="paid_amount" name="paid_amount" class="form-control" step="0.01" min="0">
                                                 </div>
+                                                <div class="col-md-4 d-none" id="receiptAccountWrapper">
+                                                    <label for="receipt_account_id" class="form-label">البنك / حساب السداد <span class="text-danger">*</span></label>
+                                                    <select id="receipt_account_id" name="receipt_account_id" class="form-select">
+                                                        <option value="">اختر الحساب الذي سيصدر عليه سند القبض</option>
+                                                        @foreach($receiptAccounts as $account)
+                                                            <option value="{{ $account->id }}" @selected((string) old('receipt_account_id') === (string) $account->id)>
+                                                                {{ $account->code }} - {{ $account->name }}
+                                                            </option>
+                                                        @endforeach
+                                                    </select>
+                                                    @if($receiptAccounts->isEmpty())
+                                                        <small class="text-danger">لا توجد حسابات سداد صالحة في الدليل المحاسبي.</small>
+                                                    @endif
+                                                </div>
                                                 <div class="col-md-4">
                                                     <label for="remaining_amount" class="form-label">المبلغ المتبقي</label>
                                                     <input type="number" id="remaining_amount" name="remaining_amount" class="form-control" step="0.01" min="0" readonly>
@@ -1400,12 +1414,17 @@
                     $('#paid_amount').prop('readonly', false).val('0.00');
                     $('#remaining_amount').val('0.00');
                     $('#paymentTotalValue, #paymentRemainingText').text('0.00 ريال');
+                    $('#receiptAccountWrapper').addClass('d-none');
+                    $('#receipt_account_id').prop('required', false);
                     return;
                 }
 
                 enforcePaymentCompatibility();
 
                 const paymentStatus = $('#payment_status').val();
+                const hasRecordedPayment = ['paid', 'partial'].includes(paymentStatus);
+                $('#receiptAccountWrapper').toggleClass('d-none', !hasRecordedPayment);
+                $('#receipt_account_id').prop('required', hasRecordedPayment);
                 if (paymentStatus === 'paid') {
                     $('#paidAmountWrapper').removeClass('d-none');
                     $('#paid_amount').prop('readonly', true);

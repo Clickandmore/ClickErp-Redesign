@@ -1208,6 +1208,15 @@
                                                             الإيصال مطلوب عند اختيار تم الدفع أو مدفوع جزئياً.
                                                         </div>
                                                     </div>
+                                                    <div class="col-md-6 d-none" id="transferReceiptAccountWrapper">
+                                                        <label for="transferReceiptAccount" class="form-label">البنك / حساب السداد <span class="text-danger">*</span></label>
+                                                        <select class="form-select" id="transferReceiptAccount" name="receipt_account_id">
+                                                            <option value="">اختر الحساب الذي سيصدر عليه سند القبض</option>
+                                                            @foreach($extensionReceiptAccounts as $account)
+                                                                <option value="{{ $account->id }}">{{ $account->code }} - {{ $account->name }}</option>
+                                                            @endforeach
+                                                        </select>
+                                                    </div>
                                                     <div class="col-12">
                                                         <label for="transferAttachments" class="form-label">مرفقات
                                                             إضافية</label>
@@ -2413,6 +2422,8 @@
                 const receiptRequired = paymentStatus === 'paid' || paymentStatus === 'partial';
 
                 $('#transferPaymentReceipt').prop('required', receiptRequired);
+                $('#transferReceiptAccountWrapper').toggleClass('d-none', !receiptRequired);
+                $('#transferReceiptAccount').prop('required', receiptRequired);
                 $('#transferReceiptRequiredMark, #transferReceiptRequiredNote').toggleClass('d-none', !
                     receiptRequired);
             }
@@ -2421,6 +2432,7 @@
                 $('#transferPaymentType').val('');
                 $('#transferPaymentStatus').val('');
                 $('#transferPaymentReceipt').val('');
+                $('#transferReceiptAccount').val('');
                 $('#transferAttachments').val('');
                 $('#sendTransferClosureMessageToggle').prop('checked', false);
                 toggleTransferReceiptRequirement();

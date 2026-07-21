@@ -27,6 +27,12 @@ class SponsorshipTransfer extends Model
         'paid_amount',
         'remaining_amount',
         'payment_type',
+        'receipt_account_id',
+        'receipt_bond_id',
+        'receipt_constraint_id',
+        'refund_account_id',
+        'refund_bond_id',
+        'refund_constraint_id',
         'payment_status',
         'payment_receipt_path',
         'attachments',
@@ -126,6 +132,36 @@ class SponsorshipTransfer extends Model
     public function failureConstraint()
     {
         return $this->belongsTo(Constraint::class, 'failure_constraint_id');
+    }
+
+    public function receiptAccount()
+    {
+        return $this->belongsTo(\Nami\Finance\Models\Account::class, 'receipt_account_id');
+    }
+
+    public function receiptBond()
+    {
+        return $this->belongsTo(\Nami\Finance\Models\Bond::class, 'receipt_bond_id');
+    }
+
+    public function receiptConstraint()
+    {
+        return $this->belongsTo(Constraint::class, 'receipt_constraint_id');
+    }
+
+    public function refundAccount()
+    {
+        return $this->belongsTo(\Nami\Finance\Models\Account::class, 'refund_account_id');
+    }
+
+    public function refundBond()
+    {
+        return $this->belongsTo(\Nami\Finance\Models\Bond::class, 'refund_bond_id');
+    }
+
+    public function refundConstraint()
+    {
+        return $this->belongsTo(Constraint::class, 'refund_constraint_id');
     }
 
     public function contractSentBy()
