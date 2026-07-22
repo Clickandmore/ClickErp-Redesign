@@ -34,7 +34,7 @@ class WhatDoRequest extends MainRequest
             'titles' => 'required|array',
             'titles.*' => 'array',
             'titles.*.*.title' => 'required|string|max:255',
-            'image' => [$this->isMethod('post') ? 'nullable' : ''],
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:5120',
         ];
 
 

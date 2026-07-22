@@ -212,14 +212,15 @@ class ShelterContractController extends Controller
 
     public function index(Request $request)
     {
-        $statsContracts = Contract::insideShelter()
+        $statsQuery = Contract::insideShelter()
             ->with([
                 'maid.jobTypes',
                 'maid.job_types.job_type.translations',
                 'info',
                 'latestShelterLog',
-            ])
-            ->get();
+            ]);
+        $this->applyRequestBranchFilter($statsQuery, $request, 'contracts');
+        $statsContracts = $statsQuery->get();
 
         $totalContracts = $statsContracts->count();
         $wantsToWork = 0;
@@ -315,6 +316,7 @@ class ShelterContractController extends Controller
 
         // Get filter options
         $nationalities = Nationality::with('translations')->get();
+        $jobTypes = JobType::with('translations')->get();
         $shelters = ShelterPlaces::with('translations')->get();
         $quickTagSuggestions = $this->getQuickTagSuggestions();
         $livingExpenseAccounts = Account::query()
@@ -350,12 +352,13 @@ class ShelterContractController extends Controller
             })
             ->orderBy('code')
             ->get(['id', 'code', 'name', 'type']);
-        $livingExpenseWorkerOptions = Contract::insideShelter()
+        $livingExpenseWorkerOptionsQuery = Contract::insideShelter()
             ->with(['maid:id,name,passport_num', 'info.shelter.translations'])
             ->whereNotNull('maid_id')
             ->whereHas('maid')
-            ->orderBy('id')
-            ->get()
+            ->orderBy('id');
+        $this->applyRequestBranchFilter($livingExpenseWorkerOptionsQuery, $request, 'contracts');
+        $livingExpenseWorkerOptions = $livingExpenseWorkerOptionsQuery->get()
             ->map(function (Contract $contract) {
                 $shelterTitle = $contract->info?->shelter?->translations?->where('locale', app()->getLocale())->first()?->title
                     ?: $contract->info?->shelter?->translations?->first()?->title
@@ -375,6 +378,7 @@ class ShelterContractController extends Controller
             ->where('title', 'bond_sarf_account')
             ->latest('updated_at')
             ->value('value') ?? 0);
+        $branchSelector = $this->branchSelectorData($request);
 
         return view('admin.ingaz.ShelterContract.index', compact(
             'totalContracts',
@@ -390,13 +394,15 @@ class ShelterContractController extends Controller
             'quickTagStats',
             'quickTagSuggestions',
             'nationalities',
+            'jobTypes',
             'shelters',
             'livingExpenseAccounts',
             'paymentAccounts',
             'custodyAccounts',
             'livingExpenseWorkerOptions',
             'defaultLivingExpenseAccountId',
-            'defaultPaymentAccountId'
+            'defaultPaymentAccountId',
+            'branchSelector'
         ));
     }
 
@@ -413,6 +419,10 @@ class ShelterContractController extends Controller
             'payment_account_id' => ['required', 'integer', 'exists:fn_accounts,id'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
+
+        if (!empty($data['contract_id'])) {
+            $this->assertCanAccessBranchModel(Contract::findOrFail($data['contract_id']), 'contracts');
+        }
 
         try {
             $expense = $service->create($data);
@@ -917,7 +927,7 @@ class ShelterContractController extends Controller
 
     private function shelterSelectableContractsQuery()
     {
-        return Contract::query()
+        $query = Contract::query()
             ->whereIn('status', $this->shelterEligibleContractStatuses())
             ->where($this->shelterArrivedContractConstraint())
             ->with([
@@ -929,8 +939,11 @@ class ShelterContractController extends Controller
                     $query->whereNotIn('status', ['resolved', 'closed', 'rejected'])
                         ->latest();
                 },
-            ])
-            ->latest();
+            ]);
+
+        $this->applyRequestBranchFilter($query, request(), 'contracts');
+
+        return $query->latest();
     }
 
     private function shelterEligibleContractStatuses(): array
@@ -1270,6 +1283,7 @@ class ShelterContractController extends Controller
     {
         $query = Contract::query()
             ->with(['maid.nationality.translations', 'info', 'user', 'travelHistory']);
+        $this->applyRequestBranchFilter($query, request(), 'contracts');
 
         if ($contractNumber !== '') {
             $contract = (clone $query)->whereKey((int) ($contractNumber ?: $searchTerm))->first();
@@ -1328,6 +1342,8 @@ class ShelterContractController extends Controller
         ) {
             return jsonError('لا يمكن إضافة هذا العقد للإيواء. يجب أن يكون العقد في مرحلة وصول/ضمان/مكتمل وأن تكون العاملة وصلت فعليًا.', 422);
         }
+
+        $this->assertCanAccessBranchModel($contract, 'contracts');
 
         $wantsToWork = $request->input('wants_to_work') ?: 'unknown';
         $displayOnSite = $wantsToWork === 'yes' && $request->boolean('is_available_for_instant');
@@ -1450,6 +1466,8 @@ class ShelterContractController extends Controller
             'info.shelter'
         ])->findOrFail($id);
 
+        $this->assertCanAccessBranchModel($contract, 'contracts');
+
         // حساب حالة الضمان
         $warrantyStatus = 'غير محدد';
         $warrantyDays = 0;
@@ -1471,6 +1489,7 @@ class ShelterContractController extends Controller
     public function edit($id)
     {
         $contract = Contract::with(['info', 'maid.nationality', 'user'])->findOrFail($id);
+        $this->assertCanAccessBranchModel($contract, 'contracts');
         $shelters = \App\Models\ShelterPlaces::latest()->get();
         $contracts = collect([$contract]);
         $selectedContractId = $contract->id;
@@ -1524,6 +1543,7 @@ class ShelterContractController extends Controller
         ]);
 
         $contract = Contract::with('maid')->findOrFail($id);
+        $this->assertCanAccessBranchModel($contract, 'contracts');
         $wantsToWork = $request->input('wants_to_work') ?: 'unknown';
         $displayOnSite = $wantsToWork === 'yes' && $request->boolean('is_available_for_instant');
         // $existingAttachments = $contract->info ? ($contract->info->shelter_attachments ?? []) : [];
@@ -1669,6 +1689,8 @@ class ShelterContractController extends Controller
                 return response()->json(['error' => 'العقد غير موجود'], 404);
             }
 
+            $this->assertCanAccessBranchModel($contract, 'contracts');
+
             $data = [
                 'contract_id' => $contract->id,
                 'maid_name' => $contract->maid ? $contract->maid->name : null,
@@ -1683,6 +1705,8 @@ class ShelterContractController extends Controller
             ];
 
             return response()->json($data);
+        } catch (\Symfony\Component\HttpKernel\Exception\HttpExceptionInterface $e) {
+            throw $e;
         } catch (\Exception $e) {
             \Log::error('Error in getContractDetails: ' . $e->getMessage());
             return response()->json(['error' => 'حدث خطأ في جلب بيانات العقد'], 500);
@@ -1774,6 +1798,7 @@ class ShelterContractController extends Controller
             ->whereHas('info', function ($query) {
                 $query->where('wants_to_work', 'no');
             });
+        $this->applyRequestBranchFilter($deportationContracts, $request, 'contracts');
 
         // إجمالي العقود في مرحلة الترحيل
         $totalDeportation = $deportationContracts->count();
@@ -2091,6 +2116,7 @@ class ShelterContractController extends Controller
         }
 
         $outsideContracts = Contract::outsideShelter();
+        $this->applyRequestBranchFilter($outsideContracts, $request, 'contracts');
         $outsideTotal = $outsideContracts->clone()->count();
         $outsideRental = $this->applyOutsideReasonFilter($outsideContracts->clone(), 'rental_delivery')->count();
         $outsideTransfer = $this->applyOutsideReasonFilter($outsideContracts->clone(), 'transfer_delivery')->count();
@@ -2229,6 +2255,8 @@ class ShelterContractController extends Controller
      */
     private function applyFilters($rows, $request)
     {
+        $this->applyRequestBranchFilter($rows, $request, 'contracts');
+
         // Apply filters
         if ($request->filled('contract_number')) {
             $contractNumber = $request->input('contract_number');
@@ -2560,6 +2588,8 @@ class ShelterContractController extends Controller
      */
     public function back($id)
     {
+        $this->assertCanAccessBranchModel(Contract::findOrFail($id), 'contracts');
+
         try {
             $contract = Contract::findOrFail($id);
 
@@ -3154,6 +3184,8 @@ class ShelterContractController extends Controller
      */
     public function startDeportation($id)
     {
+        $this->assertCanAccessBranchModel(Contract::findOrFail($id), 'contracts');
+
         try {
             $contract = Contract::with(['maid', 'info'])->findOrFail($id);
 
@@ -3213,6 +3245,7 @@ class ShelterContractController extends Controller
     public function showDeportationProcedures($id)
     {
         $contract = Contract::with(['maid', 'user', 'info'])->findOrFail($id);
+        $this->assertCanAccessBranchModel($contract, 'contracts');
 
         $procedure = \App\Models\DeportationProcedure::where('contract_id', $contract->id)
             ->with(['createdBy', 'completedBy'])
@@ -3235,6 +3268,11 @@ class ShelterContractController extends Controller
             'id' => $id,
             'request_data' => $request->all()
         ]);
+
+        $procedureContract = Contract::findOrFail(
+            \App\Models\DeportationProcedure::findOrFail($id)->contract_id
+        );
+        $this->assertCanAccessBranchModel($procedureContract, 'contracts');
 
         try {
             $procedure = \App\Models\DeportationProcedure::findOrFail($id);
@@ -3611,6 +3649,9 @@ class ShelterContractController extends Controller
                 'contract.user',
                 'completedBy'
             ])->where('status', 'completed');
+            $query->whereHas('contract', function ($contractQuery) use ($request) {
+                $this->applyRequestBranchFilter($contractQuery, $request, 'contracts');
+            });
 
             // تطبيق الفلاتر
             if ($request->filled('contract_number')) {
@@ -3720,6 +3761,8 @@ class ShelterContractController extends Controller
      */
     public function changeWorkDesire(Request $request, $id)
     {
+        $this->assertCanAccessBranchModel(Contract::findOrFail($id), 'contracts');
+
         try {
             $request->validate([
                 'wants_to_work' => 'required|in:yes,no,unknown',
@@ -3803,6 +3846,8 @@ class ShelterContractController extends Controller
             ], 422);
         }
 
+        $this->assertCanAccessBranchModel(Contract::findOrFail($id), 'contracts');
+
         try {
             $request->validate([
                 'shelter_quick_tags' => 'nullable|string|max:1000',
@@ -3866,6 +3911,11 @@ class ShelterContractController extends Controller
     }
     public function getActivityLog($id)
     {
+        $procedureContract = Contract::findOrFail(
+            \App\Models\DeportationProcedure::findOrFail($id)->contract_id
+        );
+        $this->assertCanAccessBranchModel($procedureContract, 'contracts');
+
         try {
             $procedure = \App\Models\DeportationProcedure::findOrFail($id);
             $logs = $procedure->logs()->with("admin")->orderBy('created_at', 'desc')->get();
@@ -3891,6 +3941,8 @@ class ShelterContractController extends Controller
      */
     public function toggleInstantReceipt(Request $request, $id)
     {
+        $this->assertCanAccessBranchModel(Contract::findOrFail($id), 'contracts');
+
         try {
             $contract = Contract::with(['maid', 'info'])->findOrFail($id);
 
@@ -3954,6 +4006,7 @@ class ShelterContractController extends Controller
     public function deliveryShelterContractDownload($id)
     {
         $contract = Contract::with(['user', 'maid.nationality', 'info'])->findOrFail($id);
+        $this->assertCanAccessBranchModel($contract, 'contracts');
         $documentBranding = documentBranding();
         $clientName = $contract->user->name ?? '';
         $clientNationalNumber = $contract->user?->documentNumber() ?? '';

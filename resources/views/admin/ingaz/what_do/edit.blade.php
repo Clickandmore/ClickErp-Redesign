@@ -1,4 +1,4 @@
-<form class="row g-3 from-submit-global" method="POST" action="{{ route('what-do.update', $obj->id) }}">
+<form class="row g-3 from-submit-global" method="POST" action="{{ route('what-do.update', $obj->id) }}" enctype="multipart/form-data">
     @csrf
     @method('PUT')
 
@@ -22,6 +22,14 @@
             {{ helperTrans('ingaz.icon') }}
         </label>
         @include('admin.ingaz.what_do.icons')
+    </div>
+    <div class="col-12">
+        <label class="form-label">
+            {{ helperTrans('ingaz.image') }} ({{ helperTrans('ingaz.optional') }})
+        </label>
+        <input type="file" name="image" class="dropify"
+               accept="image/jpeg,image/png,image/webp"
+               data-default-file="{{ showFile($obj->image) }}">
     </div>
     @foreach (config('translatable.locales') as $locale)
         <div class="col-md-6">

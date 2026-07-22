@@ -12,7 +12,18 @@ class WhatDo extends Model implements TranslatableContract
     use Translatable;
 
     public $translatedAttributes = ['title', 'description'];
-    protected $fillable = ['icon','type'];
+    protected $fillable = ['icon', 'type', 'image'];
+
+    protected $appends = ['image_url'];
+
+    public function getImageUrlAttribute(): ?string
+    {
+        if (!$this->image) {
+            return null;
+        }
+
+        return showFile($this->image) ?: asset('/storage/' . ltrim($this->image, '/'));
+    }
 
     public function items()
     {

@@ -323,6 +323,7 @@ class HomeController extends Controller
         $steps = $stepAction->get();
         $clients = $clientAction->get();
         $whatDos = $whatDoAction->get()->load('items');
+        $whatDos->each->append('image_url');
         $whatDoSetting = $whatDoSettingAction->first();
         $about = $about->first();
         $features = $feature->get();
