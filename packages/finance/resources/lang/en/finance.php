@@ -1699,4 +1699,6 @@ return array (
   'rental_contract_electronic_account' => 'Rental Payment Gateway Account',
   'rental_contract_electronic_account_hint' => 'The debit account used for Moyasar, Tabby, Tamara, and electronic wallets.',
   'all_accounts' => 'All accounts',
+  'constraint_date_required' => 'The journal entry date is required.',
+  'constraint_date_invalid' => 'The journal entry date is invalid. Enter a real date in year-month-day format.',
 );

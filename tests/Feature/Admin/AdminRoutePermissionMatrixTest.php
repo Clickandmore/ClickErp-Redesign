@@ -58,4 +58,29 @@ class AdminRoutePermissionMatrixTest extends TestCase
 
         $this->assertSame([PermKeys::OFFICE_VIEW, PermKeys::OFFICE_CONTROL], $permissions);
     }
+
+    public function test_sponsorship_transfer_workflow_routes_require_control_permission(): void
+    {
+        $routeNames = [
+            'SponsorshipTransfer.approve',
+            'SponsorshipTransfer.reject',
+            'SponsorshipTransfer.complete',
+            'SponsorshipTransfer.confirmTransfer',
+            'SponsorshipTransfer.cancelTransfer',
+            'SponsorshipTransfer.send-contract',
+            'SponsorshipTransfer.sign-contract',
+            'SponsorshipTransfer.deliver-maid',
+            'SponsorshipTransfer.start-trial',
+            'sponsorship-transfer.save-signature',
+            'sponsorship-transfer.save-company-signature',
+        ];
+
+        foreach ($routeNames as $routeName) {
+            $this->assertSame(
+                [PermKeys::SPONSOR_TRANSFER_CONTROL],
+                AdminRoutePermissionMatrix::resolve($routeName, Request::create('/')),
+                "Route [{$routeName}] must require sponsorship-transfer control permission."
+            );
+        }
+    }
 }
