@@ -97,7 +97,7 @@ class ArabiaRecruitmentOrdersImportService
                     $client = $this->upsertClient($orderNumber, $bundle);
                     $maid = $this->upsertMaid($bundle);
                     $status = $this->resolveStatus($bundle);
-                    $marketerId = $this->resolveAdminId($main['مسوق'] ?? $main['أنشئ بواسطة'] ?? null);
+                    $marketerId = $this->resolveImportedMarketerId($main);
                     $order = $this->upsertOrder($orderNumber, $client, $maid, $status, $marketerId);
                     $contract = $this->upsertContract(null, $orderNumber, $client, $maid, $order, $status, $bundle, $marketerId);
                     $this->upsertTravel($contract, $client, $maid, $bundle);
@@ -169,7 +169,7 @@ class ArabiaRecruitmentOrdersImportService
                     $client = $this->upsertClient($orderNumber, $bundle);
                     $maid = $this->upsertMaid($bundle);
                     $status = $this->resolveStatus($bundle);
-                    $marketerId = $this->resolveAdminId($main['مسوق'] ?? $main['أنشئ بواسطة'] ?? null);
+                    $marketerId = $this->resolveImportedMarketerId($main);
                     $order = $this->upsertOrder($orderNumber, $client, $maid, $status, $marketerId);
                     $contract = $this->upsertContract($contract, $orderNumber, $client, $maid, $order, $status, $bundle, $marketerId);
 
@@ -735,10 +735,39 @@ class ArabiaRecruitmentOrdersImportService
         if ($value === '') {
             return $this->adminId;
         }
-        $name = trim((string) preg_replace('/^admin\s*\/\s*/iu', '', $value));
-        return $this->adminCache[$name] ??= (
-            Admin::query()->where('name', $name)->orWhere('username', $name)->value('id') ?: $this->adminId
-        );
+
+        return $this->matchAdminId($value) ?: $this->adminId;
+    }
+
+    private function resolveImportedMarketerId(array $row): ?int
+    {
+        return $this->matchAdminId($row['أنشئ بواسطة'] ?? null);
+    }
+
+    private function matchAdminId($value): ?int
+    {
+        $name = trim((string) preg_replace('/^admin\s*\/\s*/iu', '', trim((string) $value)));
+        if ($name === '') {
+            return null;
+        }
+
+        $cacheKey = 'match:' . $this->normalize($name);
+        if (array_key_exists($cacheKey, $this->adminCache)) {
+            return $this->adminCache[$cacheKey];
+        }
+
+        $normalizedName = $this->normalize($name);
+        $matches = Admin::withTrashed()
+            ->get(['id', 'name', 'username'])
+            ->filter(function (Admin $admin) use ($normalizedName) {
+                return collect([$admin->name, $admin->username])
+                    ->filter()
+                    ->contains(fn ($candidate) => $this->normalize($candidate) === $normalizedName);
+            });
+
+        return $this->adminCache[$cacheKey] = $matches->count() === 1
+            ? (int) $matches->first()->id
+            : null;
     }
 
     private function archiveRow(string $sheet, int $rowNumber, array $row, ?int $orderNumber = null, ?int $contractId = null): void

@@ -1,10 +1,10 @@
 @extends('admin.layout.indexs.index')
 
-@section('page-title', 'عمولات موظفي خدمة العملاء')
+@section('page-title', 'عمولات المسوقين')
 
 @section('page-links')
     <li class="breadcrumb-item"><a href="{{ route('commissions.marketers.index') }}">نظام العمولات</a></li>
-    <li class="breadcrumb-item active">موظفو خدمة العملاء</li>
+    <li class="breadcrumb-item active">المسوقون</li>
 @endsection
 
 @section('content')
@@ -25,7 +25,7 @@
 <div class="commission-hero p-4 mb-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
     <div>
         <div class="small opacity-75 mb-1">دورة العمولة</div>
-        <h4 class="mb-2 fw-bold">طلبات وعقود خدمة العملاء في مكان واحد</h4>
+        <h4 class="mb-2 fw-bold">عقود وخدمات المسوقين في مكان واحد</h4>
         <div class="opacity-75">راجع العمليات، حدّد النسبة أو المبلغ، اعتمد الرصيد ثم أصدر سند الصرف.</div>
     </div>
     <div class="d-flex flex-wrap gap-2">
@@ -46,7 +46,7 @@
     <div class="col-lg-3 col-sm-6">
         <div class="card metric-card h-100"><div class="card-body d-flex align-items-center gap-3">
             <div class="metric-icon bg-primary bg-opacity-10 text-primary"><i class="fa fa-headset"></i></div>
-            <div><div class="text-muted small">موظفو خدمة العملاء</div><div class="fs-4 fw-bold">{{ number_format($marketers->count()) }}</div></div>
+            <div><div class="text-muted small">المسوقون المرتبطون بعمليات</div><div class="fs-4 fw-bold">{{ number_format($marketers->count()) }}</div></div>
         </div></div>
     </div>
     <div class="col-lg-3 col-sm-6">
@@ -71,8 +71,8 @@
 
 <div class="card border-0 shadow-sm">
     <div class="card-header bg-white py-3">
-        <h5 class="mb-1 fw-bold"><i class="fa fa-users text-primary me-2"></i>ملفات موظفي خدمة العملاء</h5>
-        <div class="text-muted small">تشمل الطلبات غير المتحوّلة، وعقود الاستقدام والتأجير ونقل الخدمة والتفاويض.</div>
+        <h5 class="mb-1 fw-bold"><i class="fa fa-users text-primary me-2"></i>ملفات المسوقين</h5>
+        <div class="text-muted small">تشمل عقود الاستقدام والتأجير ونقل الخدمة والتفاويض فقط.</div>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -80,7 +80,6 @@
                 <thead class="table-light">
                     <tr>
                         <th>الموظف</th>
-                        <th class="text-center">الطلبات</th>
                         <th class="text-center">الاستقدام</th>
                         <th class="text-center">التأجير</th>
                         <th class="text-center">نقل الخدمة</th>
@@ -100,7 +99,6 @@
                                 <div><div class="fw-bold">{{ $employee->name }}</div><div class="text-muted small">#{{ $employee->id }} · {{ optional($employee->role)->name ?? 'خدمة العملاء' }}</div></div>
                             </div>
                         </td>
-                        <td class="text-center"><span class="service-count text-secondary">{{ $s['orders'] }}</span></td>
                         <td class="text-center"><span class="service-count text-primary">{{ $s['recruitment'] }}</span></td>
                         <td class="text-center"><span class="service-count text-info">{{ $s['rental'] }}</span></td>
                         <td class="text-center"><span class="service-count text-warning">{{ $s['transfer'] }}</span></td>
@@ -115,7 +113,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="9" class="text-center text-muted py-5">لا يوجد موظفو خدمة عملاء نشطون.</td></tr>
+                    <tr><td colspan="8" class="text-center text-muted py-5">لا يوجد مسوقون مرتبطون بعمليات.</td></tr>
                 @endforelse
                 </tbody>
             </table>

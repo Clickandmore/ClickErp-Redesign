@@ -4752,7 +4752,7 @@ class RecruitmentContractController extends Controller
         }
 
         // استخدام cache لتسريع التحميل
-        return \Cache::remember('recruitment_contract_filter_options.v2', 300, function () { // 5 دقائق
+        return \Cache::remember('recruitment_contract_filter_options.v3', 300, function () { // 5 دقائق
             // جلب الجنسيات مع الترجمات وتحويلها للشكل المطلوب
             $nationalities = \App\Models\ingaz\Nationality::with('translations')->get()->map(function ($nationality) {
                 $translation = $nationality->translations->where('locale', app()->getLocale())->first();
@@ -4793,7 +4793,14 @@ class RecruitmentContractController extends Controller
                 'nationalities' => $nationalities,
                 'religions' => $religions,
                 'offices' => $offices,
-                'marketers' => \App\Models\auth\Admin::query()->activeForOperations()->select('id', 'name')->orderBy('name')->get(),
+                'marketers' => \App\Models\auth\Admin::query()
+                    ->whereIn('id', Contract::query()
+                        ->whereIn('type', ['recruitment', 'maid'])
+                        ->whereNotNull('marketer_id')
+                        ->select('marketer_id'))
+                    ->select('id', 'name')
+                    ->orderBy('name')
+                    ->get(),
             ];
         });
     }

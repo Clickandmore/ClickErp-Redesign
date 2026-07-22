@@ -27,7 +27,7 @@ class CommissionMarketerController extends Controller
 
     public function show(Request $request, Admin $admin)
     {
-        abort_unless($admin->admin_type === 'customer_service', 404);
+        abort_unless($this->isCommissionMarketer($admin), 404);
 
         $filters = $request->only([
             'date_filter', 'month', 'year', 'from_date', 'to_date',
@@ -79,7 +79,7 @@ class CommissionMarketerController extends Controller
 
     public function preview(Request $request, Admin $admin)
     {
-        abort_unless($admin->admin_type === 'customer_service', 404);
+        abort_unless($this->isCommissionMarketer($admin), 404);
 
         $request->validate([
             'operations'   => ['required', 'array', 'min:1'],
@@ -99,7 +99,7 @@ class CommissionMarketerController extends Controller
 
     public function approve(Request $request, Admin $admin)
     {
-        abort_unless($admin->admin_type === 'customer_service', 404);
+        abort_unless($this->isCommissionMarketer($admin), 404);
 
         $request->validate([
             'operations'       => ['required', 'array', 'min:1'],
@@ -142,6 +142,12 @@ class CommissionMarketerController extends Controller
     private function visaTypeLabel(?string $type): string
     {
         return \App\Models\commissions\CommissionSetting::serviceTypeOptions()[$type] ?? ($type ?? '-');
+    }
+
+    private function isCommissionMarketer(Admin $admin): bool
+    {
+        return $admin->admin_type === 'customer_service'
+            || $this->profileService->hasOperations($admin->id);
     }
 
     private function isPaidLabel(?bool $isPaid): string

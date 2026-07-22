@@ -200,6 +200,9 @@ class OrderController extends Controller
 
                     return $html . '</div>';
                 })
+                // Keep already-open pages from failing after the notes column was
+                // merged into alerts. The current table no longer renders this key.
+                ->addColumn('notes', fn () => '')
                 ->addColumn('recruitment_office', function ($row) {
                     $office = $row->maid?->office ?? $row->maid?->recruitmentOffice;
                     return $office?->title ?? '-';

@@ -2,20 +2,17 @@
 
 namespace App\Services\commissions;
 
-use App\Enums\ingaz\OrderEnum;
 use App\Models\Contract;
 use App\Models\IngazDelegation;
 use App\Models\RentalContract;
 use App\Models\TransferServiceContract;
 use App\Models\commissions\CommissionBatchItem;
-use App\Models\ingaz\Order;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
 class CommissionOperationService
 {
-    public const SOURCE_ORDER = 'order';
     public const SOURCE_RECRUITMENT_CONTRACT = 'recruitment_contract';
     public const SOURCE_RENTAL_CONTRACT = 'rental_contract';
     public const SOURCE_TRANSFER_CONTRACT = 'transfer_service_contract';
@@ -24,7 +21,6 @@ class CommissionOperationService
     public function getOperations(int $adminId, array $filters = []): Collection
     {
         $operations = collect()
-            ->concat($this->orders($adminId))
             ->concat($this->recruitmentContracts($adminId))
             ->concat($this->rentalContracts($adminId))
             ->concat($this->transferContracts($adminId))
@@ -89,7 +85,6 @@ class CommissionOperationService
             'total' => $operations->count(),
             'pending' => $operations->where('commissioned', false)->count(),
             'commissioned' => $operations->where('commissioned', true)->count(),
-            'orders' => $operations->where('source_type', self::SOURCE_ORDER)->count(),
             'recruitment' => $operations->where('service_type', 'recruitment')->count(),
             'rental' => $operations->where('service_type', 'rental')->count(),
             'transfer' => $operations->where('service_type', 'service_transfer')->count(),
@@ -100,39 +95,6 @@ class CommissionOperationService
     public function key(string $sourceType, int $sourceId): string
     {
         return $sourceType . ':' . $sourceId;
-    }
-
-    private function orders(int $adminId): Collection
-    {
-        return Order::query()
-            ->whereResponsibleAdmin($adminId)
-            ->whereDoesntHave('contracts')
-            ->whereDoesntHave('rentalContracts')
-            ->with(['user:id,name', 'jobType', 'details.package'])
-            ->get()
-            ->map(function (Order $order) {
-                $package = $order->details?->package;
-                $base = (float) ($package?->price_with_tax
-                    ?? $package?->price_after_discount
-                    ?? $package?->original_price
-                    ?? 0);
-
-                return $this->operation(
-                    self::SOURCE_ORDER,
-                    $order->id,
-                    'recruitment',
-                    'طلب',
-                    $order->order_code ?: (string) $order->id,
-                    null,
-                    $order->user?->name,
-                    $this->orderStatus($order->status),
-                    $base,
-                    null,
-                    $order->created_at,
-                    $order->id,
-                    null
-                );
-            });
     }
 
     private function recruitmentContracts(int $adminId): Collection
@@ -309,11 +271,6 @@ class CommissionOperationService
         }
 
         return null;
-    }
-
-    private function orderStatus(?string $status): string
-    {
-        return OrderEnum::tryFrom((string) $status)?->lang() ?? ($status ?: '-');
     }
 
     private function contractStatus(?string $status): string
