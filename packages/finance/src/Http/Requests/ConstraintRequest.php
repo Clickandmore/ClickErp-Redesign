@@ -38,7 +38,7 @@ class ConstraintRequest extends MainRequest
         return [
             'type' => 'nullable',
             'value' => 'required|numeric|gt:0',
-            'date' => 'required|date',
+            'date' => 'required|date_format:Y-m-d',
             'statement' => 'nullable|string',
             'account_id' => 'required|array|min:2',
             'account_id.*' => 'required|exists:fn_accounts,id',
@@ -64,7 +64,7 @@ class ConstraintRequest extends MainRequest
         return [
             'type' => 'nullable',
             'value' => 'sometimes|nullable|numeric|gt:0',
-            'date' => 'required|date',
+            'date' => 'required|date_format:Y-m-d',
             'statement' => 'nullable|string',
             'account_id' => 'required|array|min:2',
             'account_id.*' => 'required|exists:fn_accounts,id',
