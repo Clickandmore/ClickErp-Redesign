@@ -37,3 +37,5 @@ migration_system/data
 public/upload/
 error_log
 /certificate
+
+/migration_system/data

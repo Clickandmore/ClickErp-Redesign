@@ -32,6 +32,9 @@ class WhatDoController extends Controller
             return DataTables::of($rows)
                 ->addIndexColumn()
                 ->editColumn('image', function ($row) {
+                    if ($row->image) {
+                        return getImgTag($row->image, '70px', '55px');
+                    }
                     if ($row->icon) {
                         return '<i class="' . $row->icon . '"></i>';
                     }
@@ -73,7 +76,7 @@ class WhatDoController extends Controller
         unset($data['titles']);
         $obj = $action->store($data);
         $whatDoItemAction->storeItems($request->titles, $obj);
-        return jsonSuccess($data);
+        return jsonSuccess($obj);
 
     }
 
@@ -93,11 +96,10 @@ class WhatDoController extends Controller
     {
         $updatedData = $request->validated();
         unset($updatedData['titles']);
-        $obj = $action->find($id);
-        $data = $obj->update($updatedData);
+        $obj = $action->updateWhatDo($id, $updatedData);
         $obj->items()->delete();
         $whatDoItemAction->storeItems($request->titles, $obj);
-        return jsonSuccess($data);
+        return jsonSuccess($obj);
     }
 
     public function destroy($id, objAction $action)

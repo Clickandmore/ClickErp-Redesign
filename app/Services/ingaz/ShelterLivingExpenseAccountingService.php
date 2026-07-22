@@ -5,6 +5,7 @@ namespace App\Services\ingaz;
 use App\Enums\ingaz\ContractStatusEnum;
 use App\Models\Contract;
 use App\Models\ShelterLivingExpense;
+use App\Services\BranchAccessService;
 use App\Support\AutomaticJournalEntries;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -144,7 +145,7 @@ class ShelterLivingExpenseAccountingService
 
     private function eligibleContracts(?int $shelterId, ?int $contractId = null)
     {
-        return Contract::query()
+        $query = Contract::query()
             ->where('status', ContractStatusEnum::Shelter->value)
             ->when($contractId, function ($query) use ($contractId) {
                 $query->whereKey($contractId);
@@ -163,6 +164,12 @@ class ShelterLivingExpenseAccountingService
             ->whereHas('maid')
             ->with(['maid', 'info.shelter.translations'])
             ->orderBy('id');
+
+        return app(BranchAccessService::class)->applyToQuery(
+            $query,
+            request(),
+            'contracts'
+        );
     }
 
     private function splitAmount(float $totalAmount, int $count): array
