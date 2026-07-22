@@ -77,12 +77,15 @@
     ]);
     $financialEditLock = $obj->hasFinancialEditLock();
     $externalOfficeDispatchEditLock = $obj->hasExternalOfficeDispatchEditLock();
+    $identityEditLock = $financialEditLock || $externalOfficeDispatchEditLock;
     $storedRequestType = \App\Models\ingaz\Maid::normalizeRequestType($obj->request_type);
     $typeFieldLocked = $financialEditLock && $storedTypeIds->isNotEmpty();
-    $nationalityFieldLocked = $financialEditLock && filled($obj->nationality_id) && (int) $obj->nationality_id > 0;
-    $officeFieldLocked = $externalOfficeDispatchEditLock && filled($obj->office_id) && (int) $obj->office_id > 0;
+    $nameFieldLocked = $identityEditLock;
+    $passportFieldLocked = $identityEditLock;
+    $nationalityFieldLocked = $identityEditLock && filled($obj->nationality_id) && (int) $obj->nationality_id > 0;
+    $officeFieldLocked = $identityEditLock && filled($obj->office_id) && (int) $obj->office_id > 0;
     $requestTypeFieldLocked = $financialEditLock && $storedRequestType !== null;
-    $hasLockedIdentityFields = $typeFieldLocked || $nationalityFieldLocked || $officeFieldLocked || $requestTypeFieldLocked;
+    $hasLockedIdentityFields = $nameFieldLocked || $passportFieldLocked || $typeFieldLocked || $nationalityFieldLocked || $officeFieldLocked || $requestTypeFieldLocked;
     $cvFieldsFilledTemplate = __('ingaz.cv_fields_filled', [
         'count' => '__count__',
         'extra' => '__extra__',
@@ -313,7 +316,7 @@
                     @if ($hasLockedIdentityFields)
                         <div class="col-12">
                             <div class="alert alert-warning mb-0">
-                                بعض بيانات السيرة مقفلة لوجود فاتورة/قيد محاسبي مرتبط أو إرسالية مكتب خارجي. الحقول غير المرتبطة بهذه المستندات يمكن تعديلها.
+                                الاسم ورقم الجواز والجنسية والوكيل/المكتب والبيانات المالية المرجعية مقفلة لوجود فاتورة/قيد محاسبي مرتبط أو إرسالية مكتب خارجي. يمكن تعديل الديانة والمهارات والحالة الاجتماعية والخبرة وبقية سمات العاملة.
                                 ويمكن استخدام زر «تعديل الصور والفيديو فقط» وحفظها بشكل مستقل.
                             </div>
                         </div>
@@ -471,7 +474,12 @@
                                     <label for="TextInput" class="form-label">
                                         اسم العامل/ة ({{ helperTrans('ingaz.en') }})
                                     </label>
-                                    <input type="text" name="name:en" class="form-control" required value="{{ old('name:en', $obj->name ?? '') }}">
+                                    <input type="text" name="name:en" class="form-control" required
+                                        value="{{ old('name:en', $obj->name ?? '') }}"
+                                        {{ $nameFieldLocked ? 'readonly' : '' }}>
+                                    @if ($nameFieldLocked)
+                                        <small class="text-muted">مقفل لارتباط السيرة بمستند مالي أو إرسالية.</small>
+                                    @endif
                                 </div>
                                 <!-- خيار تسكين للإيواء -->
                                 <div class="col-4" id="shelter_option">
@@ -582,7 +590,12 @@
                         <label for="TextInput" class="form-label">
                             {{ helperTrans('ingaz.salary') }}
                         </label>
-                        <input type="number" name="salary" class="form-control" value="{{ old('salary', $obj->salary ?? 0) }}">
+                        <input type="number" name="salary" class="form-control"
+                            value="{{ old('salary', $obj->salary ?? 0) }}"
+                            {{ $financialEditLock ? 'readonly' : '' }}>
+                        @if ($financialEditLock)
+                            <small class="text-muted">الراتب محفوظ كما هو لارتباط السيرة بمستند مالي.</small>
+                        @endif
                     </div>
 
                     <!-- البيانات الشخصية -->
@@ -688,7 +701,12 @@
                         <label for="passport_num" class="form-label">
                             رقم جواز العاملة <span class="text-danger">*</span>
                         </label>
-                        <input type="text" name="passport_num" id="passport_num" class="form-control" required value="{{ old('passport_num', $obj->passport_num) }}">
+                        <input type="text" name="passport_num" id="passport_num" class="form-control" required
+                            value="{{ old('passport_num', $obj->passport_num) }}"
+                            {{ $passportFieldLocked ? 'readonly' : '' }}>
+                        @if ($passportFieldLocked)
+                            <small class="text-muted">مقفل لارتباط السيرة بمستند مالي أو إرسالية.</small>
+                        @endif
                         <div id="passport_num_feedback" class="invalid-feedback"></div>
                     </div>
 
@@ -979,7 +997,7 @@
                                 </div>
                                 <div class="d-flex flex-wrap gap-2">
                                     <button type="button" class="btn btn-outline-primary"
-                                        id="open_rental_finance_modal">
+                                        id="open_rental_finance_modal" {{ $financialEditLock ? 'disabled' : '' }}>
                                         <i class="fa fa-list me-1"></i>
                                         {{ helperTrans('ingaz.manage_items') }}
                                     </button>
@@ -1445,7 +1463,7 @@
                 }
 
                 const $field = $('[name="' + name + '"]');
-                if (!$field.length) {
+                if (!$field.length || $field.prop('readonly') || $field.prop('disabled')) {
                     return;
                 }
 
@@ -1458,7 +1476,7 @@
                 }
 
                 const $field = $('[name="' + name + '"]');
-                if (!$field.length) {
+                if (!$field.length || $field.prop('disabled')) {
                     return;
                 }
 
@@ -1480,13 +1498,19 @@
             }
 
             function applyExtractedCvFields(fields) {
-                setSelectValue('nationality_id', fields.nationality_id);
+                if (!identityFieldLocks.nationality) {
+                    setSelectValue('nationality_id', fields.nationality_id);
+                }
                 setSelectValue('religion_id', fields.religion_id);
                 setMultiSelectValue('job_id', fields.job_id || []);
                 setMultiSelectValue('skills', fields.skills || []);
 
-                setInputValue('name:en', fields['name:en']);
-                setInputValue('passport_num', fields.passport_num);
+                if (!identityFieldLocks.name) {
+                    setInputValue('name:en', fields['name:en']);
+                }
+                if (!identityFieldLocks.passport) {
+                    setInputValue('passport_num', fields.passport_num);
+                }
                 setInputValue('salary', fields.salary);
                 setInputValue('duration', fields.duration);
                 setInputValue('birth_date', fields.birth_date);
@@ -1676,6 +1700,8 @@
             const defaultShelterContract = @json($defaultShelterContract);
             const isRentalForm = {{ $isRentalForm ? 'true' : 'false' }};
             const identityFieldLocks = {
+                name: {{ $nameFieldLocked ? 'true' : 'false' }},
+                passport: {{ $passportFieldLocked ? 'true' : 'false' }},
                 type: {{ $typeFieldLocked ? 'true' : 'false' }},
                 nationality: {{ $nationalityFieldLocked ? 'true' : 'false' }},
                 office: {{ $officeFieldLocked ? 'true' : 'false' }},
@@ -1696,6 +1722,12 @@
             }
 
             function applyIdentityFieldsLock() {
+                if (identityFieldLocks.name) {
+                    $('input[name="name:en"]').prop('readonly', true);
+                }
+                if (identityFieldLocks.passport) {
+                    $('#passport_num').prop('readonly', true).removeClass('is-valid is-invalid');
+                }
                 if (identityFieldLocks.type) {
                     $('#type_id').prop('disabled', true);
                     $('#maid_type_picker .maid-type-option').prop('disabled', true);
@@ -2171,6 +2203,10 @@
             // التحقق من رقم الجواز - فحص التكرار
             var passportCheckTimeout;
             $('#passport_num').on('input', function() {
+                if ($(this).prop('readonly')) {
+                    return;
+                }
+
                 var passportNum = $(this).val().trim();
                 var feedback = $('#passport_num_feedback');
 

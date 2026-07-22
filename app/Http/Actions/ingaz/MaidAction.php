@@ -1205,8 +1205,20 @@ class MaidAction extends MainAction
         \Log::info('Request data:', $request->all());
 
         $maid = parent::find($id);
-        $jobTypeIds = $this->resolveRequiredJobTypeIds($request, $maid);
+        $hasFinancialEditLock = $maid->hasFinancialEditLock();
+        // A financially linked CV may carry more than one legacy type while the edit UI
+        // submits a single type_id. Preserve all stored types so editing a harmless
+        // attribute never looks like (or causes) a financial classification change.
+        $jobTypeIds = $hasFinancialEditLock
+            ? $maid->jobTypes()->pluck('job_types.id')->map(fn ($typeId) => (int) $typeId)->all()
+            : $this->resolveRequiredJobTypeIds($request, $maid);
         $this->guardFinanciallyLinkedMaidIdentityChanges($maid, $data, $jobTypeIds);
+
+        if ($hasFinancialEditLock) {
+            // These values feed financial/contract flows. Attribute-only edits must not
+            // rewrite them as a side effect of legacy form defaults or hidden fields.
+            unset($data['price'], $data['salary'], $data['arrival_date']);
+        }
 
         $requestTypeColumnExists = Schema::hasColumn('maids', 'request_type');
         $offerPriceColumnExists = Schema::hasColumn('maids', 'offer_price');
@@ -1331,19 +1343,27 @@ class MaidAction extends MainAction
         $data['percentage'] = json_encode($percs, JSON_UNESCAPED_UNICODE);
 
         if ($requestTypeColumnExists) {
-            $data['request_type'] = array_key_exists('request_type', $data)
-                ? Maid::resolveRequestType($data['request_type'])
-                : Maid::resolveRequestType($maid->request_type);
-            if (in_array($this->getRentalJobTypeId(), $jobTypeIds, true)) {
-                $data['request_type'] = Maid::REQUEST_TYPE_CUSTOM;
+            if ($hasFinancialEditLock) {
+                $data['request_type'] = Maid::resolveRequestType($maid->request_type);
+            } else {
+                $data['request_type'] = array_key_exists('request_type', $data)
+                    ? Maid::resolveRequestType($data['request_type'])
+                    : Maid::resolveRequestType($maid->request_type);
+                if (in_array($this->getRentalJobTypeId(), $jobTypeIds, true)) {
+                    $data['request_type'] = Maid::REQUEST_TYPE_CUSTOM;
+                }
             }
         } else {
             unset($data['request_type']);
         }
 
         if ($offerPriceColumnExists) {
-            $offerPrice = $data['offer_price'] ?? null;
-            $data['offer_price'] = ($offerPrice === '' || $offerPrice === null) ? null : round((float)$offerPrice, 2);
+            if (array_key_exists('offer_price', $data)) {
+                $offerPrice = $data['offer_price'];
+                $data['offer_price'] = ($offerPrice === '' || $offerPrice === null) ? null : round((float)$offerPrice, 2);
+            } else {
+                unset($data['offer_price']);
+            }
         } else {
             unset($data['offer_price']);
         }
@@ -1357,33 +1377,39 @@ class MaidAction extends MainAction
         }
 
         if ($offerStartsColumnExists) {
-            $data['offer_starts_at'] = isset($data['offer_starts_at']) && $data['offer_starts_at']
-                ? date('Y-m-d', strtotime($data['offer_starts_at']))
-                : null;
+            if (array_key_exists('offer_starts_at', $data)) {
+                $data['offer_starts_at'] = $data['offer_starts_at']
+                    ? date('Y-m-d', strtotime($data['offer_starts_at']))
+                    : null;
+            } else {
+                unset($data['offer_starts_at']);
+            }
         } else {
             unset($data['offer_starts_at']);
         }
 
         if ($offerExpiresColumnExists) {
-            $data['offer_expires_at'] = isset($data['offer_expires_at']) && $data['offer_expires_at']
-                ? date('Y-m-d', strtotime($data['offer_expires_at']))
-                : null;
+            if (array_key_exists('offer_expires_at', $data)) {
+                $data['offer_expires_at'] = $data['offer_expires_at']
+                    ? date('Y-m-d', strtotime($data['offer_expires_at']))
+                    : null;
+            } else {
+                unset($data['offer_expires_at']);
+            }
         } else {
             unset($data['offer_expires_at']);
         }
 
         if ($offerDurationColumnExists) {
-            $offerStartsAt = isset($data['offer_starts_at']) && $data['offer_starts_at']
-                ? Carbon::parse($data['offer_starts_at'])
-                : null;
-            $offerExpiresAt = isset($data['offer_expires_at']) && $data['offer_expires_at']
-                ? Carbon::parse($data['offer_expires_at'])
-                : null;
+            if (array_key_exists('offer_starts_at', $data) || array_key_exists('offer_expires_at', $data)) {
+                $offerStartsAt = !empty($data['offer_starts_at']) ? Carbon::parse($data['offer_starts_at']) : null;
+                $offerExpiresAt = !empty($data['offer_expires_at']) ? Carbon::parse($data['offer_expires_at']) : null;
 
-            if ($offerStartsAt && $offerExpiresAt && $offerExpiresAt->gte($offerStartsAt)) {
-                $data['offer_duration'] = (string) ($offerStartsAt->diffInDays($offerExpiresAt) + 1);
+                $data['offer_duration'] = $offerStartsAt && $offerExpiresAt && $offerExpiresAt->gte($offerStartsAt)
+                    ? (string) ($offerStartsAt->diffInDays($offerExpiresAt) + 1)
+                    : null;
             } else {
-                $data['offer_duration'] = null;
+                unset($data['offer_duration']);
             }
         } else {
             unset($data['offer_duration']);
@@ -1442,7 +1468,9 @@ class MaidAction extends MainAction
             $maid->jobTitles()->sync($request->job_id);
         }
         $maid->jobTypes()->sync($jobTypeIds);
-        $this->syncRentalMaidFinancialAdjustmentsOnUpdate($maid, $request);
+        if (!$hasFinancialEditLock) {
+            $this->syncRentalMaidFinancialAdjustmentsOnUpdate($maid, $request);
+        }
 
         // Handle shelter contract creation for rental maids
         if ($request->has('create_shelter_contract') && $request->create_shelter_contract == '1') {
@@ -1458,23 +1486,40 @@ class MaidAction extends MainAction
         $lockedFields = [];
         $hasFinancialEditLock = $maid->hasFinancialEditLock();
         $hasExternalOfficeDispatchEditLock = $maid->hasExternalOfficeDispatchEditLock();
+        $hasIdentityEditLock = $hasFinancialEditLock || $hasExternalOfficeDispatchEditLock;
 
         if (
-            $hasFinancialEditLock
+            $hasIdentityEditLock
+            && array_key_exists('name:en', $data)
+            && trim((string) $data['name:en']) !== trim((string) $maid->name)
+        ) {
+            $lockedFields['name:en'] = 'لا يمكن تعديل اسم العاملة بعد ارتباط السيرة بفاتورة أو قيد محاسبي أو إرسالية مكتب خارجي.';
+        }
+
+        if (
+            $hasIdentityEditLock
+            && array_key_exists('passport_num', $data)
+            && trim((string) $data['passport_num']) !== trim((string) $maid->passport_num)
+        ) {
+            $lockedFields['passport_num'] = 'لا يمكن تعديل رقم جواز العاملة بعد ارتباط السيرة بفاتورة أو قيد محاسبي أو إرسالية مكتب خارجي.';
+        }
+
+        if (
+            $hasIdentityEditLock
             && array_key_exists('nationality_id', $data)
             && $this->hasStoredValue($maid->nationality_id)
             && (int) $data['nationality_id'] !== (int) $maid->nationality_id
         ) {
-            $lockedFields['nationality_id'] = 'لا يمكن تعديل جنسية العاملة لوجود فاتورة مالية أو قيد محاسبي مرتبط بالسيرة أو عقدها.';
+            $lockedFields['nationality_id'] = 'لا يمكن تعديل جنسية العاملة بعد ارتباط السيرة بفاتورة أو قيد محاسبي أو إرسالية مكتب خارجي.';
         }
 
         if (
-            $hasExternalOfficeDispatchEditLock
+            $hasIdentityEditLock
             && array_key_exists('office_id', $data)
             && $this->hasStoredValue($maid->office_id)
             && $this->nullableInt($data['office_id']) !== $this->nullableInt($maid->office_id)
         ) {
-            $lockedFields['office_id'] = 'لا يمكن تعديل المكتب الخارجي بعد إنشاء إرسالية المكتب الخارجي.';
+            $lockedFields['office_id'] = 'لا يمكن تعديل الوكيل/المكتب الخارجي بعد ارتباط السيرة بفاتورة أو قيد محاسبي أو إرسالية مكتب خارجي.';
         }
 
         $currentJobTypeIds = $maid->jobTypes()

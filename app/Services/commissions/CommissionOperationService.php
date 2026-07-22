@@ -80,15 +80,37 @@ class CommissionOperationService
     public function summary(int $adminId): array
     {
         $operations = $this->getOperations($adminId);
+        $serviceSummary = function (string $serviceType) use ($operations): array {
+            $items = $operations->where('service_type', $serviceType);
+
+            return [
+                'total' => $items->count(),
+                'pending' => $items->where('commissioned', false)->count(),
+                'commissioned' => $items->where('commissioned', true)->count(),
+            ];
+        };
+
+        $recruitment = $serviceSummary('recruitment');
+        $rental = $serviceSummary('rental');
+        $transfer = $serviceSummary('service_transfer');
+        $delegation = $serviceSummary('electronic_ingaz_delegation');
 
         return [
             'total' => $operations->count(),
             'pending' => $operations->where('commissioned', false)->count(),
             'commissioned' => $operations->where('commissioned', true)->count(),
-            'recruitment' => $operations->where('service_type', 'recruitment')->count(),
-            'rental' => $operations->where('service_type', 'rental')->count(),
-            'transfer' => $operations->where('service_type', 'service_transfer')->count(),
-            'delegation' => $operations->where('service_type', 'electronic_ingaz_delegation')->count(),
+            'recruitment' => $recruitment['total'],
+            'recruitment_pending' => $recruitment['pending'],
+            'recruitment_commissioned' => $recruitment['commissioned'],
+            'rental' => $rental['total'],
+            'rental_pending' => $rental['pending'],
+            'rental_commissioned' => $rental['commissioned'],
+            'transfer' => $transfer['total'],
+            'transfer_pending' => $transfer['pending'],
+            'transfer_commissioned' => $transfer['commissioned'],
+            'delegation' => $delegation['total'],
+            'delegation_pending' => $delegation['pending'],
+            'delegation_commissioned' => $delegation['commissioned'],
         ];
     }
 

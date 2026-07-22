@@ -5,6 +5,7 @@ namespace App\Services\commissions;
 use App\Models\auth\Admin;
 use App\Models\commissions\CommissionBalanceTransaction;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class CommissionProfileService
 {
@@ -15,6 +16,7 @@ class CommissionProfileService
     public function getMarketersWithBalance()
     {
         $marketerIds = $this->operationMarketerIds();
+        $legacyVoucherTotals = $this->legacyVoucherTotals();
 
         return Admin::query()
             ->where(function ($query) use ($marketerIds) {
@@ -24,11 +26,20 @@ class CommissionProfileService
             ->with('role')
             ->orderBy('name')
             ->get()
-            ->map(function (Admin $admin) {
+            ->map(function (Admin $admin) use ($legacyVoucherTotals) {
+                $voucherTotals = $legacyVoucherTotals->get($this->normalizeMarketerName($admin->name));
                 $admin->commission_balance = $this->getMarketerBalance($admin->id);
                 $admin->commission_summary = $this->operationService->summary($admin->id);
+                $admin->legacy_commission_vouchers_count = $voucherTotals
+                    ? (int) $voucherTotals->vouchers_count
+                    : null;
+                $admin->legacy_commission_paid_total = $voucherTotals
+                    ? (float) $voucherTotals->paid_total
+                    : null;
                 return $admin;
-            });
+            })
+            ->sortByDesc(fn (Admin $admin) => $admin->commission_summary['total'])
+            ->values();
     }
 
     public function hasOperations(int $marketerId): bool
@@ -90,5 +101,34 @@ class CommissionProfileService
             ->unique()
             ->values()
             ->all();
+    }
+
+    private function legacyVoucherTotals()
+    {
+        if (! Schema::hasTable('fn_bonds') || ! Schema::hasTable('fn_accounts')) {
+            return collect();
+        }
+
+        return DB::table('fn_bonds as bonds')
+            ->join('fn_accounts as accounts', 'accounts.id', '=', 'bonds.debit_account_id')
+            ->where('bonds.type', 'sarf')
+            ->where('bonds.legacy_source', 'alrafedin_finance_bonds')
+            ->where('bonds.legacy_source_file', 'like', '%سندات الصرف%')
+            ->where('accounts.code', 'like', '144%')
+            ->groupBy('accounts.name')
+            ->selectRaw('accounts.name, COUNT(*) as vouchers_count, COALESCE(SUM(bonds.value), 0) as paid_total')
+            ->get()
+            ->keyBy(fn ($row) => $this->normalizeMarketerName($row->name));
+    }
+
+    private function normalizeMarketerName(string $value): string
+    {
+        $value = mb_strtolower(trim($value));
+        $value = strtr($value, [
+            'أ' => 'ا', 'إ' => 'ا', 'آ' => 'ا', 'ى' => 'ي', 'ة' => 'ه',
+            'ؤ' => 'و', 'ئ' => 'ي', 'ـ' => '',
+        ]);
+
+        return preg_replace('/[\s\p{P}\p{S}_]+/u', '', $value) ?: $value;
     }
 }
