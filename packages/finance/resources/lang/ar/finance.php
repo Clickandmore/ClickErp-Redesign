@@ -1699,4 +1699,6 @@ return array (
   'rental_contract_electronic_account' => 'حساب بوابات ومحافظ دفع التأجير',
   'rental_contract_electronic_account_hint' => 'الحساب المدين لمدفوعات ميسر وتابي وتمارا والمحافظ الإلكترونية.',
   'all_accounts' => 'كل الحسابات',
+  'constraint_date_required' => 'تاريخ القيد مطلوب.',
+  'constraint_date_invalid' => 'تاريخ القيد غير صحيح. يرجى إدخال تاريخ فعلي بصيغة سنة-شهر-يوم.',
 );

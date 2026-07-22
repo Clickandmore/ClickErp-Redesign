@@ -96,6 +96,14 @@ class ConstraintRequest extends MainRequest
         return [];
     }
 
+    public function messages(): array
+    {
+        return [
+            'date.required' => __('finance::finance.constraint_date_required'),
+            'date.date_format' => __('finance::finance.constraint_date_invalid'),
+        ];
+    }
+
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator) {
