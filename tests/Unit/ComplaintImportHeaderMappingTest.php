@@ -11,6 +11,17 @@ use Tests\TestCase;
 
 class ComplaintImportHeaderMappingTest extends TestCase
 {
+    public function test_legacy_party_labels_are_normalized_for_complaint_relations(): void
+    {
+        $service = app(DataImportExecutionService::class);
+        $method = new ReflectionMethod($service, 'normalizeComplaintPartyType');
+        $method->setAccessible(true);
+
+        $this->assertSame('client', $method->invoke($service, 'عميل'));
+        $this->assertSame('worker', $method->invoke($service, 'عاملـ/ـة'));
+        $this->assertSame('external_office', $method->invoke($service, 'مكتب خارجي'));
+    }
+
     public function test_legacy_complaint_headers_keep_every_source_field_separate(): void
     {
         $headers = [
@@ -43,8 +54,10 @@ class ComplaintImportHeaderMappingTest extends TestCase
             $this->assertCount(1, $rows);
             $row = reset($rows);
             $this->assertSame('1', $row['source_sequence']);
+            $this->assertSame('اسم العميل', $row['complainant_name']);
             $this->assertSame('عميل', $row['complainant_type']);
             $this->assertSame('عاملـ/ـة', $row['against_type']);
+            $this->assertSame('اسم العاملة', $row['against_name']);
             $this->assertSame('0511111111', $row['against_phone']);
             $this->assertSame('2026-07-01', $row['complaint_date']);
             $this->assertSame('منشئ الشكوى', $row['source_created_by']);

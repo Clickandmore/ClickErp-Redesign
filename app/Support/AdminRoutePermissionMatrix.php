@@ -371,6 +371,7 @@ class AdminRoutePermissionMatrix
                 'orders.export.excel' => [PermKeys::ORDERS_EXPORT],
                 'orders.completeOrder' => [PermKeys::ORDERS_EDIT],
                 'orders.quickRecruitment' => [PermKeys::ORDERS_CREATE],
+                'orders.notes.store' => [PermKeys::ORDERS_EDIT],
                 'orders.restore' => [PermKeys::ORDERS_DELETE],
                 'orders.changeMaid' => [PermKeys::ORDERS_CHANGE_MAID, PermKeys::ORDERS_EDIT],
                 'orders.changeMaidById' => [PermKeys::ORDERS_CHANGE_MAID, PermKeys::ORDERS_EDIT],
@@ -633,6 +634,8 @@ class AdminRoutePermissionMatrix
                 'complaints.update-status' => [PermKeys::COMPLAINT_EDIT],
                 'complaints.assign' => [PermKeys::COMPLAINT_EDIT],
                 'complaints.change-priority' => [PermKeys::COMPLAINT_EDIT],
+                'complaints.attachments.store' => [PermKeys::COMPLAINT_EDIT],
+                'complaints.attachments.destroy' => [PermKeys::COMPLAINT_EDIT],
                 'complaints.response' => [PermKeys::COMPLAINT_RESPONSE, PermKeys::COMPLAINT_EDIT],
             ]
         );

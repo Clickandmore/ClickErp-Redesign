@@ -6,792 +6,240 @@
 
 @section('style')
     <style>
-        /* تصميم صفحة التفاصيل */
-        .ticket-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            border-radius: 10px;
-            margin-bottom: 30px;
+        /* Organized complaint details */
+        .complaint-detail-page {
+            --ink: #263248;
+            --muted: #718096;
+            --line: #e7ebf1;
+            --surface: #ffffff;
+            --canvas: #f7f8fb;
+            color: var(--ink);
+            padding-bottom: 30px;
         }
 
-        .ticket-number-large {
-            font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-
-        .ticket-meta-header {
-            display: flex;
-            gap: 30px;
-            flex-wrap: wrap;
-        }
-
-        .ticket-meta-header .meta-item {
-            display: flex;
+        .detail-toolbar,
+        .detail-toolbar__actions,
+        .detail-hero,
+        .detail-hero__meta,
+        .detail-hero__badges,
+        .detail-section__header,
+        .party-card__title,
+        .party-card__meta,
+        .relation-body,
+        .organized-upload__head,
+        .organized-attachment,
+        .organized-attachment__main,
+        .organized-comment,
+        .organized-comment__head {
             align-items: center;
-            gap: 10px;
-        }
-
-        .ticket-meta-header .meta-item i {
-            font-size: 18px;
-            opacity: 0.8;
-        }
-
-        /* Timeline */
-        .timeline {
-            position: relative;
-            padding: 20px 0;
-        }
-
-        .timeline::before {
-            content: '';
-            position: absolute;
-            left: 30px;
-            top: 0;
-            bottom: 0;
-            width: 2px;
-            background: #e9ecef;
-        }
-
-        .timeline-item {
-            position: relative;
-            padding-left: 70px;
-            margin-bottom: 30px;
-        }
-
-        .timeline-icon {
-            position: absolute;
-            left: 20px;
-            top: 0;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: white;
-            border: 3px solid #667eea;
-            z-index: 1;
-        }
-
-        .timeline-icon.success {
-            border-color: #28a745;
-        }
-
-        .timeline-icon.warning {
-            border-color: #ffc107;
-        }
-
-        .timeline-icon.danger {
-            border-color: #dc3545;
-        }
-
-        .timeline-icon.info {
-            border-color: #17a2b8;
-        }
-
-        .timeline-content {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .timeline-header {
             display: flex;
+        }
+
+        .detail-toolbar {
             justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #e9ecef;
-        }
-
-        .timeline-title {
-            font-weight: 600;
-            color: #495057;
-        }
-
-        .timeline-time {
-            font-size: 12px;
-            color: #6c757d;
-        }
-
-        /* معلومات الشكوى */
-        .info-card {
-            background: white;
-            border-radius: 10px;
-            padding: 25px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-        }
-
-        .info-card h5 {
-            color: #495057;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #f8f9fa;
-        }
-
-        .info-row {
-            display: flex;
-            padding: 10px 0;
-            border-bottom: 1px solid #f8f9fa;
-        }
-
-        .info-row:last-child {
-            border-bottom: none;
-        }
-
-        .info-label {
-            flex: 0 0 150px;
-            font-weight: 600;
-            color: #6c757d;
-        }
-
-        .info-value {
-            flex: 1;
-            color: #495057;
-        }
-
-        /* نموذج التحديث */
-        .update-form {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 10px;
-            margin-top: 20px;
-        }
-
-        /* المرفقات */
-        .attachment-item {
-            display: inline-block;
-            margin: 5px;
-            padding: 10px;
-            background: #f8f9fa;
-            border-radius: 5px;
-            text-decoration: none;
-            color: #495057;
-            transition: all 0.3s;
-        }
-
-        .attachment-item:hover {
-            background: #e9ecef;
-            transform: translateY(-2px);
-        }
-
-        .attachment-item i {
-            margin-left: 5px;
-        }
-
-        /* الأولوية والحالة */
-        .priority-badge-large {
-            padding: 8px 20px;
-            font-size: 14px;
-            border-radius: 20px;
-            font-weight: 600;
-        }
-
-        .status-badge-large {
-            padding: 8px 20px;
-            font-size: 14px;
-            border-radius: 20px;
-            font-weight: 600;
-        }
-
-        /* أزرار الإجراءات */
-        .action-buttons-top {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        /* التعليقات */
-        .comment-item {
-            background: white;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 15px;
-            border-left: 3px solid #667eea;
-        }
-
-        .comment-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-        }
-
-        .comment-author {
-            font-weight: 600;
-            color: #495057;
-        }
-
-        .comment-time {
-            font-size: 12px;
-            color: #6c757d;
-        }
-
-        .comment-body {
-            color: #495057;
-            line-height: 1.6;
-        }
-
-        /* ==============================================
-                       Comment Section - Arabic RTL - Attractive Design
-                       ============================================== */
-
-        .comment-section {
-            direction: rtl;
-            font-family: 'Tajawal', 'Cairo', system-ui, sans-serif;
-            color: #2d3748;
-        }
-
-        .comment-card {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            margin-bottom: 24px;
-            overflow: hidden;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            transition: all 0.25s ease;
-        }
-
-        .comment-card:hover {
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            transform: translateY(-2px);
-        }
-
-        .comment-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 16px 20px;
-            background: #f8fafc;
-            border-bottom: 1px solid #edf2f7;
-        }
-
-        .comment-author {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .author-avatar {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            background: #e2e8f0;
-            color: #4f46e5;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.25rem;
-            font-weight: bold;
-        }
-
-        .author-name {
-            font-weight: 600;
-            color: #1e293b;
-        }
-
-        .comment-time {
-            font-size: 0.875rem;
-            color: #64748b;
-        }
-
-        .comment-body {
-            padding: 20px;
-            line-height: 1.7;
-            font-size: 1.05rem;
-            color: #334155;
-        }
-
-        .comment-attachments {
-            padding: 0 20px 20px;
-            border-top: 1px solid #edf2f7;
-        }
-
-        /* للـ empty state */
-        .no-comments {
-            text-align: center;
-            padding: 60px 20px;
-            color: #64748b;
-            font-size: 1.1rem;
-        }
-
-        .no-comments i {
-            font-size: 3.5rem;
-            opacity: 0.4;
             margin-bottom: 16px;
+        }
+
+        .detail-toolbar__actions { gap: 8px; }
+        .detail-back-link { color: #5362c8; font-weight: 600; text-decoration: none; }
+
+        .detail-hero {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-inline-start: 5px solid #667eea;
+            border-radius: 14px;
+            box-shadow: 0 7px 22px rgba(36, 48, 75, .06);
+            justify-content: space-between;
+            margin-bottom: 24px;
+            padding: 24px 26px;
+        }
+
+        .detail-hero.status-accent-pending { border-inline-start-color: #e99a25; }
+        .detail-hero.status-accent-in_progress { border-inline-start-color: #268bd2; }
+        .detail-hero.status-accent-resolved { border-inline-start-color: #2e9d68; }
+        .detail-hero.status-accent-closed { border-inline-start-color: #7b8493; }
+        .detail-hero.status-accent-rejected { border-inline-start-color: #d94a5a; }
+        .detail-ticket-number { color: #65718a; font-size: 13px; font-weight: 700; margin-bottom: 7px; }
+        .detail-hero h2 { color: #202b3f; font-size: 24px; font-weight: 700; margin: 0 0 13px; }
+        .detail-hero__meta { color: var(--muted); flex-wrap: wrap; font-size: 13px; gap: 10px 22px; }
+        .detail-hero__meta span { align-items: center; display: inline-flex; gap: 7px; }
+        .detail-hero__badges { flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+
+        .detail-pill {
+            align-items: center;
+            border: 1px solid transparent;
+            border-radius: 999px;
+            display: inline-flex;
+            font-size: 12px;
+            font-weight: 700;
+            gap: 6px;
+            padding: 7px 11px;
+            white-space: nowrap;
+        }
+
+        .detail-pill .fa-circle { font-size: 6px; }
+        .detail-pill.status-pending { background: #fff5df; border-color: #f3dcaa; color: #986416; }
+        .detail-pill.status-in_progress { background: #e8f4fd; border-color: #c7e2f5; color: #176b9f; }
+        .detail-pill.status-resolved { background: #e8f7ef; border-color: #c8ead8; color: #237a51; }
+        .detail-pill.status-closed { background: #eef1f5; border-color: #dce1e8; color: #5f6978; }
+        .detail-pill.status-rejected { background: #fdecef; border-color: #f5ccd3; color: #ad3445; }
+        .detail-pill.priority-low { background: #edf4f8; color: #416f88; }
+        .detail-pill.priority-medium { background: #fff7dc; color: #886810; }
+        .detail-pill.priority-high { background: #fff0e4; color: #a85b20; }
+        .detail-pill.priority-urgent { background: #fdecef; color: #ad3445; }
+
+        .detail-section,
+        .sidebar-card,
+        .party-card {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 13px;
+            box-shadow: 0 5px 17px rgba(36, 48, 75, .045);
+        }
+
+        .detail-section { margin-bottom: 20px; overflow: hidden; }
+        .detail-section__header {
+            background: #fbfcfe;
+            border-bottom: 1px solid var(--line);
+            gap: 11px;
+            padding: 15px 19px;
+        }
+        .detail-section__header h5,
+        .sidebar-card__header h5,
+        .party-card h5 { color: #263248; font-size: 15px; font-weight: 700; margin: 0; }
+        .detail-section__header small { color: var(--muted); display: block; margin-top: 3px; }
+        .section-icon {
+            align-items: center;
+            border-radius: 9px;
+            display: inline-flex;
+            height: 38px;
+            justify-content: center;
+            width: 38px;
+        }
+        .section-icon--primary { background: #eef0ff; color: #5966cd; }
+        .section-icon--info { background: #e8f4fd; color: #277eae; }
+        .section-icon--warning { background: #fff5df; color: #b4771e; }
+        .section-icon--success { background: #e8f7ef; color: #2e8c60; }
+        .detail-section__body { padding: 20px; }
+
+        .complaint-description {
+            background: #f8fafc;
+            border: 1px solid #e8edf3;
+            border-radius: 10px;
+            color: #344057;
+            line-height: 1.95;
+            min-height: 90px;
+            padding: 17px;
+            white-space: pre-line;
+        }
+
+        .detail-data-grid {
+            display: grid;
+            gap: 12px;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            margin-top: 16px;
+        }
+        .detail-data-item { border: 1px solid #edf0f4; border-radius: 9px; padding: 12px 14px; }
+        .detail-data-item span { color: var(--muted); display: block; font-size: 12px; margin-bottom: 4px; }
+        .detail-data-item strong { color: #344057; font-size: 13px; }
+        .last-response-box { background: #eef8f3; border-inline-start: 3px solid #36a26f; border-radius: 8px; margin-top: 16px; padding: 13px 15px; }
+        .last-response-box > span { color: #287b55; font-size: 12px; font-weight: 700; }
+        .last-response-box p { line-height: 1.7; margin: 7px 0 0; }
+
+        .party-cards-grid { display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-bottom: 20px; }
+        .party-card { border-top: 3px solid #667eea; padding: 18px; }
+        .party-card--against { border-top-color: #e99a25; }
+        .party-card__title { gap: 11px; }
+        .party-card__title > span { align-items: center; background: #eef0ff; border-radius: 10px; color: #5966cd; display: flex; height: 42px; justify-content: center; width: 42px; }
+        .party-card--against .party-card__title > span { background: #fff5df; color: #a86e18; }
+        .party-card__title small { color: var(--muted); font-size: 11px; }
+        .party-card__name { color: #263248; font-size: 16px; font-weight: 700; margin: 17px 0 12px; }
+        .party-card__meta { flex-wrap: wrap; gap: 8px 14px; }
+        .party-card__meta a, .party-card__meta span { color: #65718a; font-size: 12px; text-decoration: none; }
+        .party-card__meta i { margin-inline-end: 5px; }
+
+        .relation-body { justify-content: space-between; }
+        .relation-body > div { display: grid; gap: 4px; }
+        .relation-type { color: var(--muted); font-size: 12px; }
+        .relation-notes { background: #f8fafc; border-top: 1px solid var(--line); color: #5a667c; line-height: 1.7; padding: 13px 20px; }
+
+        .organized-attachments { display: grid; gap: 10px; }
+        .organized-attachment { border: 1px solid #e8ecf2; border-radius: 10px; justify-content: space-between; padding: 10px 12px; }
+        .organized-attachment:hover { background: #fafbfe; border-color: #d9def0; }
+        .organized-attachment__main { color: inherit; flex: 1; gap: 11px; min-width: 0; text-decoration: none; }
+        .file-icon { align-items: center; background: #eef0ff; border-radius: 9px; color: #5966cd; display: flex; flex: 0 0 40px; height: 40px; justify-content: center; }
+        .file-info { min-width: 0; }
+        .file-info strong { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .file-info small { color: var(--muted); display: block; margin-top: 4px; }
+        .file-info small span { margin: 0 5px; }
+        .organized-upload { background: #f8fafc; border: 1px dashed #cfd6e2; border-radius: 10px; margin-top: 16px; padding: 15px; }
+        .organized-upload__head { justify-content: space-between; }
+        .organized-upload__head small { color: var(--muted); display: block; font-size: 11px; margin-top: 3px; }
+        .attachment-names-list { display: grid; gap: 8px; }
+        .organized-empty { align-items: center; color: #8a94a5; display: flex; flex-direction: column; gap: 8px; justify-content: center; padding: 28px; }
+        .organized-empty i { font-size: 28px; opacity: .55; }
+
+        .organized-comments { display: grid; gap: 15px; }
+        .organized-comment { align-items: flex-start; gap: 11px; }
+        .comment-avatar { align-items: center; background: #eef0ff; border-radius: 50%; color: #5966cd; display: flex; flex: 0 0 38px; height: 38px; justify-content: center; }
+        .organized-comment__content { background: #f8fafc; border: 1px solid #e8edf3; border-radius: 10px; flex: 1; padding: 13px 15px; }
+        .organized-comment__head { justify-content: space-between; }
+        .organized-comment__head small { color: var(--muted); display: block; font-size: 11px; margin-top: 2px; }
+        .organized-comment__content p { line-height: 1.75; margin: 10px 0 0; }
+        .organized-comment-form { border-top: 1px solid var(--line); margin-top: 20px; padding-top: 18px; }
+
+        .detail-sidebar { display: grid; gap: 18px; position: sticky; top: 82px; }
+        .sidebar-card { overflow: hidden; }
+        .sidebar-card__header { background: #fbfcfe; border-bottom: 1px solid var(--line); padding: 15px 17px; }
+        .sidebar-card__header h5 { align-items: center; display: flex; gap: 8px; }
+        .sidebar-card__header h5 i { color: #667eea; }
+        .sidebar-list { padding: 5px 17px; }
+        .sidebar-list > div { align-items: center; border-bottom: 1px solid #f0f2f5; display: flex; justify-content: space-between; padding: 12px 0; }
+        .sidebar-list > div:last-child { border-bottom: 0; }
+        .sidebar-list > div > span { color: var(--muted); font-size: 12px; }
+        .sidebar-list > div > strong:not(.detail-pill) { color: #354158; font-size: 12px; text-align: end; }
+        .sidebar-actions { display: grid; gap: 8px; padding: 14px; }
+        .sidebar-action { align-items: center; background: #f8fafc; border: 1px solid #e5e9ef; border-radius: 9px; color: #47536a; display: flex; gap: 10px; padding: 10px 12px; text-align: start; width: 100%; }
+        .sidebar-action:hover { background: #eef0ff; border-color: #d9ddff; color: #5360c3; }
+        .sidebar-action--success { background: #edf8f2; border-color: #d5eddf; color: #2a8057; }
+        .sidebar-action--warning { background: #fff8e8; border-color: #f3e5bd; color: #946b18; }
+
+        .compact-timeline { padding: 16px 18px; }
+        .compact-timeline__item { display: flex; gap: 12px; padding-bottom: 18px; position: relative; }
+        .compact-timeline__item:not(:last-child)::before { background: #e1e5ec; content: ''; height: calc(100% - 7px); inset-inline-start: 5px; position: absolute; top: 13px; width: 1px; }
+        .timeline-dot { background: #667eea; border: 3px solid #eef0ff; border-radius: 50%; flex: 0 0 11px; height: 11px; margin-top: 4px; position: relative; z-index: 1; }
+        .timeline-dot--info { background: #268bd2; border-color: #e8f4fd; }
+        .timeline-dot--success { background: #2e9d68; border-color: #e8f7ef; }
+        .timeline-dot--muted { background: #8b95a5; border-color: #eef1f5; }
+        .compact-timeline__item strong { display: block; font-size: 12px; }
+        .compact-timeline__item small { color: var(--muted); display: block; font-size: 11px; margin-top: 4px; }
+
+        @media (max-width: 1199.98px) {
+            .detail-sidebar { position: static; }
+        }
+
+        @media (max-width: 767.98px) {
+            .detail-toolbar, .detail-hero { align-items: flex-start; flex-direction: column; gap: 14px; }
+            .detail-toolbar__actions { flex-wrap: wrap; }
+            .detail-hero__badges { justify-content: flex-start; }
+            .detail-hero { padding: 19px; }
+            .detail-hero h2 { font-size: 20px; }
+            .party-cards-grid, .detail-data-grid { grid-template-columns: 1fr; }
+            .organized-upload__head { align-items: flex-start; flex-direction: column; gap: 12px; }
+            .relation-body { align-items: flex-start; flex-direction: column; gap: 12px; }
+        }
+
+        @media print {
+            .detail-toolbar, .detail-toolbar__actions, .quick-actions-organized, .organized-upload, .organized-comment-form, .delete-attachment-form, .deleteComment { display: none !important; }
+            .detail-sidebar { position: static; }
+            .detail-section, .sidebar-card, .party-card, .detail-hero { break-inside: avoid; box-shadow: none; }
         }
     </style>
 @endsection
 
 @section('content')
-    <div class="container-fluid">
-        <!-- Header -->
-        <div class="ticket-header">
-            <div class="row align-items-center">
-                <div class="col-md-8">
-                    <div class="ticket-number-large">
-                        {{ __('ingaz.ticket_label') }} #{{ str_pad($complaint->id, 6, '0', STR_PAD_LEFT) }}
-                    </div>
-                    <h3 class="mb-3">{{ $complaint->subject ?? __('ingaz.no_subject') }}</h3>
-                    <div class="ticket-meta-header">
-                        <div class="meta-item">
-                            <i class="fas fa-user"></i>
-                            <span>{{ $complaint->complainant_name ?? __('ingaz.not_specified') }}</span>
-                        </div>
-                        <div class="meta-item">
-                            <i class="fas fa-phone"></i>
-                            <span>{{ $complaint->complainant_phone ?? __('ingaz.not_specified') }}</span>
-                        </div>
-                        <div class="meta-item">
-                            <i class="fas fa-calendar"></i>
-                            <span>{{ $complaint->created_at->format('Y-m-d H:i') }}</span>
-                        </div>
-                        @if ($complaint->assignedTo)
-                            <div class="meta-item">
-                                <i class="fas fa-user-tie"></i>
-                                <span>{{ $complaint->assignedTo->name }}</span>
-                            </div>
-                        @endif
-                    </div>
-                </div>
-                <div class="col-md-4 text-end">
-                    <div class="mb-3">
-                        @php
-                            $priorityBadgeHtml = $complaint->priorityBadge ?? '';
-                            $statusBadgeHtml = $complaint->statusBadge ?? '';
+    @include('admin.ingaz.complaints.partials.show-organized')
 
-                            $priorityHasTag =
-                                is_string($priorityBadgeHtml) &&
-                                (strpos($priorityBadgeHtml, '<') !== false ||
-                                    strpos($priorityBadgeHtml, '&lt;') !== false);
-                            $statusHasTag =
-                                is_string($statusBadgeHtml) &&
-                                (strpos($statusBadgeHtml, '<') !== false || strpos($statusBadgeHtml, '&lt;') !== false);
-
-                            if ($priorityHasTag) {
-                                $priorityBadgeHtml = html_entity_decode($priorityBadgeHtml);
-                            }
-                            if ($statusHasTag) {
-                                $statusBadgeHtml = html_entity_decode($statusBadgeHtml);
-                            }
-
-                            if (!$priorityHasTag) {
-                                $priorityBadgeHtml =
-                                    '<span class="' .
-                                    e($complaint->priorityBadge ?? 'badge text-bg-light text-dark') .
-                                    ' priority-badge-large">' .
-                                    e($complaint->priorityText ?? ($complaint->priority ?? __('ingaz.not_specified'))) .
-                                    '</span>';
-                            }
-
-                            if (!$statusHasTag) {
-                                $statusTextMap = [
-                                    'pending' => __('ingaz.complaint_status_pending'),
-                                    'in_progress' => __('ingaz.complaint_status_in_progress'),
-                                    'resolved' => __('ingaz.complaint_status_resolved'),
-                                    'closed' => __('ingaz.complaint_status_closed'),
-                                    'rejected' => __('ingaz.complaint_status_rejected'),
-                                ];
-                                $statusClassMap = [
-                                    'pending' => 'text-bg-warning',
-                                    'in_progress' => 'text-bg-info',
-                                    'resolved' => 'text-bg-success',
-                                    'closed' => 'text-bg-secondary',
-                                    'rejected' => 'text-bg-danger',
-                                ];
-                                $statusKey = $complaint->status ?? '';
-                                $statusText = $statusTextMap[$statusKey] ?? $statusKey;
-                                $statusClass = $statusClassMap[$statusKey] ?? 'text-bg-light text-dark';
-
-                                $statusBadgeHtml =
-                                    '<span class="badge ' .
-                                    e($statusClass) .
-                                    ' status-badge-large">' .
-                                    e($statusText) .
-                                    '</span>';
-                            }
-                        @endphp
-                        {!! $priorityBadgeHtml !!}
-                        {!! $statusBadgeHtml !!}
-                    </div>
-                    <div class="action-buttons-top">
-                        @if (@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_EDIT))
-                            <a class="btn btn-light" href="{{ route('complaints.edit', $complaint->id) }}">
-                                <i class="fas fa-edit me-2"></i>{{ __('buttons.edit') }}
-                            </a>
-                        @endif
-
-                        @if (@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_DELETE))
-                            <button class="btn btn-light text-danger" id="deleteTicket">
-                                <i class="fas fa-trash me-2"></i>{{ __('ingaz.delete') }}
-                            </button>
-                        @endif
-
-                        <button class="btn btn-light" onclick="window.print()">
-                            <i class="fas fa-print me-2"></i>{{ __('ingaz.print') }}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row">
-            <!-- العمود الأيسر - معلومات الشكوى -->
-            <div class="col-md-8">
-                <!-- تفاصيل الشكوى -->
-                <div class="info-card">
-                    <h5><i class="fas fa-info-circle me-2"></i>{{ __('ingaz.complaint_details') }}</h5>
-
-                    <div class="info-row">
-                        <div class="info-label">{{ __('ingaz.complaint_type') }}:</div>
-                        <div class="info-value">
-                            {{ $complaint->complaintType->name ?? __('ingaz.not_specified') }}
-                            @if ($complaint->complaintType?->complainant_type || $complaint->complaintType?->against_type)
-                                <small class="text-muted d-block">{{ $complaint->complaintType->classification_label }}</small>
-                            @endif
-                        </div>
-                    </div>
-
-                    @if ($complaint->relation_type)
-                        <div class="info-row">
-                            <div class="info-label">الربط:</div>
-                            <div class="info-value">
-                                @switch($complaint->relation_type)
-                                    @case('order') طلب #{{ $complaint->order?->order_code ?: $complaint->order_id }} @break
-                                    @case('contract') عقد #{{ $complaint->contract_id }} @break
-                                    @case('office') مكتب خارجي: {{ $complaint->recruitmentOffice?->title ?: $complaint->against_name }} @break
-                                    @case('client') عميل: {{ $complaint->relatedUser?->name ?: $complaint->against_name }} @break
-                                    @case('manual') بيانات يدوية: {{ $complaint->against_name }} @break
-                                    @default بدون ربط
-                                @endswitch
-                                @if($complaint->relation_reference)<small class="text-muted d-block">المرجع: {{ $complaint->relation_reference }}</small>@endif
-                                @if($againstParty['phone'])<small class="text-muted d-block">التواصل: {{ $againstParty['phone'] }}</small>@endif
-                                @if($complaint->relation_notes)<div class="mt-1">{{ $complaint->relation_notes }}</div>@endif
-                            </div>
-                        </div>
-                    @endif
-
-                    @if ($complaint->contract)
-                        <div class="info-row">
-                            <div class="info-label">عقد الإيواء:</div>
-                            <div class="info-value">
-                                <a href="{{ route('ShelterContract.show', $complaint->contract->id) }}">
-                                    #{{ $complaint->contract->id }}
-                                </a>
-                            </div>
-                        </div>
-                    @endif
-
-                    @if ($againstParty['name'])
-                        <div class="info-row">
-                            <div class="info-label">اسم المشتكى عليه:</div>
-                            <div class="info-value">{{ $againstParty['name'] }}</div>
-                        </div>
-                    @endif
-
-                    @if ($complaint->submission_method)
-                        <div class="info-row">
-                            <div class="info-label">طريقة التقديم:</div>
-                            <div class="info-value">{{ $complaint->submission_method }}</div>
-                        </div>
-                    @endif
-
-                    @if ($complaint->related_to)
-                        <div class="info-row">
-                            <div class="info-label">متعلق:</div>
-                            <div class="info-value">{{ $complaint->related_to }}</div>
-                        </div>
-                    @endif
-
-                    @if ($complaint->last_response)
-                        <div class="info-row">
-                            <div class="info-label">آخر رد:</div>
-                            <div class="info-value">{{ $complaint->last_response }}</div>
-                        </div>
-                    @endif
-
-                    <div class="info-row">
-                        <div class="info-label">{{ __('ingaz.description') }}:</div>
-                        <div class="info-value">
-                            {{ $complaint->details ?? __('ingaz.no_description') }}
-                        </div>
-                    </div>
-
-                    @if ($complaint->maid_passport || $complaint->maid_nationality_id)
-                        <div class="info-row">
-                            <div class="info-label">{{ __('ingaz.worker_info') }}:</div>
-                            <div class="info-value">
-                                @if ($complaint->maid_passport)
-                                    {{ __('ingaz.passport') }}: {{ $complaint->maid_passport }}
-                                @endif
-                                @if ($complaint->maidNationality)
-                                    - {{ __('ingaz.nationality') }}: {{ $complaint->maidNationality->title }}
-                                @endif
-                            </div>
-                        </div>
-                    @endif
-
-                    @if ($complaint->attachments && count($complaint->attachments) > 0)
-                        <div class="info-row">
-                            <div class="info-label">{{ __('ingaz.attachments') }}:</div>
-                            <div class="info-value">
-                                @foreach ($complaint->attachments as $attachment)
-                                    <a href="{{ Storage::url($attachment) }}" target="_blank" class="attachment-item">
-                                        <i class="fas fa-paperclip"></i>
-                                        {{ __('ingaz.attachment_number', ['number' => $loop->iteration]) }}
-                                    </a>
-                                @endforeach
-                            </div>
-                        </div>
-                    @endif
-                </div>
-
-                <!-- Timeline التحديثات -->
-                <div class="info-card">
-                    <h5><i class="fas fa-history me-2"></i>{{ __('ingaz.updates_log') }}</h5>
-
-                    <div class="timeline">
-                        <!-- إنشاء التذكرة -->
-                        <div class="timeline-item">
-                            <div class="timeline-icon"></div>
-                            <div class="timeline-content">
-                                <div class="timeline-header">
-                                    <div class="timeline-title">{{ __('ingaz.ticket_created') }}</div>
-                                    <div class="timeline-time">{{ $complaint->created_at->diffForHumans() }}</div>
-                                </div>
-                                <div>
-                                    {{ __('ingaz.ticket_created_by', ['name' => $complaint->user->name ?? __('ingaz.system')]) }}
-                                </div>
-                            </div>
-                        </div>
-
-                        @if (isset($complaint->updates) && count($complaint->updates) > 0)
-                            @foreach ($complaint->updates as $update)
-                                <div class="timeline-item">
-                                    <div class="timeline-icon {{ $update->type_class }}"></div>
-                                    <div class="timeline-content">
-                                        <div class="timeline-header">
-                                            <div class="timeline-title">{{ $update->title }}</div>
-                                            <div class="timeline-time">{{ $update->created_at->diffForHumans() }}</div>
-                                        </div>
-                                        <div>
-                                            {{ $update->description }}
-                                            @if ($update->admin)
-                                                <br><small class="text-muted">{{ __('ingaz.by') }}: {{ $update->admin->name }}</small>
-                                            @endif
-                                        </div>
-                                    </div>
-                                </div>
-                            @endforeach
-                        @endif
-
-                        @if ($complaint->resolved_at)
-                            <div class="timeline-item">
-                                <div class="timeline-icon success"></div>
-                                <div class="timeline-content">
-                                    <div class="timeline-header">
-                                        <div class="timeline-title">{{ __('ingaz.complaint_resolved') }}</div>
-                                        <div class="timeline-time">{{ $complaint->resolved_at->diffForHumans() }}</div>
-                                    </div>
-                                    <div>
-                                        {{ __('ingaz.complaint_resolved_by', ['name' => $complaint->resolvedBy->name ?? __('ingaz.not_specified')]) }}
-                                    </div>
-                                </div>
-                            </div>
-                        @endif
-                    </div>
-                </div>
-
-                <!-- التعليقات والردود -->
-                <div class="info-card">
-                    <h5><i class="fas fa-comments me-2"></i>{{ __('ingaz.comments_and_replies') }}</h5>
-
-                    <div id="commentsSection" class="comment-section">
-                        @if (isset($complaint->comments) && count($complaint->comments) > 0)
-                            @foreach ($complaint->comments as $comment)
-                                <div class="comment-card">
-                                    <div class="comment-header">
-                                        <div class="comment-author">
-                                            <div class="author-avatar">
-                                                <i class="fas fa-user"></i>
-                                            </div>
-                                            <div>
-                                                <div class="author-name">{{ $comment->admin->name ?? __('ingaz.not_specified') }}</div>
-                                                <div class="comment-time">{{ $comment->created_at->diffForHumans() }}</div>
-                                            </div>
-                                        </div>
-                                        @if (auth('admin')->id() == $comment->added_by || AdminGuardHasPerm(\App\PermKeys::COMPLAINT_CONTROL))
-                                            <div class="">
-                                                <button class="btn btn-danger deleteComment"
-                                                    data-comment-id="{{ $comment->id }}">
-                                                    {{ __('ingaz.delete_comment') }}
-                                                </button>
-                                            </div>
-                                        @endif
-                                    </div>
-
-                                    <div class="comment-body">
-                                        {!! nl2br(e($comment->comment)) !!}
-                                    </div>
-                                </div>
-                            @endforeach
-                        @else
-                            <div class="no-comments">
-                                <i class="far fa-comment-dots"></i>
-                                <p>{{ __('ingaz.no_comments_yet') }}</p>
-                            </div>
-                        @endif
-                    </div>
-
-                    <!-- نموذج إضافة تعليق -->
-                    @if (@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_RESPONSE))
-                        <div class="update-form">
-                            <h6 class="mb-3">{{ __('ingaz.add_comment_or_update') }}</h6>
-                            <form id="addCommentForm">
-                                @csrf
-                                <input type="hidden" name="complaint_id" value="{{ $complaint->id }}">
-
-                                <div class="mb-3">
-                                    <textarea name="comment" class="form-control" rows="3" placeholder="{{ __('ingaz.write_comment_here') }}" required></textarea>
-                                </div>
-
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <label class="form-label">{{ __('ingaz.status_change_optional') }}</label>
-                                        <select name="status" class="form-select">
-                                            <option value="">{{ __('ingaz.no_change') }}</option>
-                                            <option value="pending">{{ __('ingaz.complaint_status_in_progress') }}</option>
-                                            <option value="resolved">{{ __('ingaz.complaint_status_resolved') }}</option>
-                                            {{-- <option value="closed">إغلاق التذكرة</option> --}}
-                                            <option value="rejected">{{ __('ingaz.complaint_status_rejected') }}</option>
-                                        </select>
-                                    </div>
-
-                                    <div class="col-md-6">
-                                        <label class="form-label">{{ __('ingaz.assign_to_another_employee') }}</label>
-                                        <select name="assigned_to" class="form-select">
-                                            <option value="">{{ __('ingaz.no_change') }}</option>
-                                            @foreach ($admins as $admin)
-                                                <option value="{{ $admin->id }}"
-                                                    {{ $complaint->assigned_to == $admin->id ? 'selected' : '' }}>
-                                                    {{ $admin->name }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div class="mt-3">
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="fas fa-paper-plane me-2"></i>{{ __('ingaz.send_update') }}
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    @endif
-                </div>
-            </div>
-
-            <!-- العمود الأيمن - معلومات جانبية -->
-            <div class="col-md-4">
-                <!-- معلومات العميل -->
-                <div class="info-card">
-                    <h5><i class="fas fa-user me-2"></i>{{ __('ingaz.complainant_info') }}</h5>
-
-                    <div class="info-row">
-                        <div class="info-label">{{ __('ingaz.name') }}:</div>
-                        <div class="info-value">{{ $complaint->complainant_name ?? __('ingaz.not_specified') }}</div>
-                    </div>
-
-                    <div class="info-row">
-                        <div class="info-label">{{ __('ingaz.phone') }}:</div>
-                        <div class="info-value">
-                            @if ($complaint->complainant_phone)
-                                <a href="tel:{{ $complaint->complainant_phone }}">{{ $complaint->complainant_phone }}</a>
-                            @else
-                                {{ __('ingaz.not_specified') }}
-                            @endif
-                        </div>
-                    </div>
-
-                    @if ($complaint->user)
-                        <div class="info-row">
-                            <div class="info-label">{{ __('ingaz.registered_client') }}:</div>
-                            <div class="info-value">
-                                <a href="{{ route('clients.show', $complaint->user_id) }}">
-                                    {{ $complaint->user->name }}
-                                </a>
-                            </div>
-                        </div>
-                    @endif
-                </div>
-
-                <!-- معلومات التذكرة -->
-                <div class="info-card">
-                    <h5><i class="fas fa-ticket-alt me-2"></i>{{ __('ingaz.ticket_info') }}</h5>
-
-                    <div class="info-row">
-                        <div class="info-label">{{ __('ingaz.ticket_number') }}:</div>
-                        <div class="info-value">#{{ str_pad($complaint->id, 6, '0', STR_PAD_LEFT) }}</div>
-                    </div>
-
-                    <div class="info-row">
-                        <div class="info-label">{{ __('ingaz.created_date') }}:</div>
-                        <div class="info-value">{{ $complaint->created_at->format('Y-m-d H:i') }}</div>
-                    </div>
-
-                    <div class="info-row">
-                        <div class="info-label">{{ __('ingaz.last_updated_at') }}:</div>
-                        <div class="info-value">{{ $complaint->updated_at->format('Y-m-d H:i') }}</div>
-                    </div>
-
-                    <div class="info-row">
-                        <div class="info-label">{{ __('ingaz.status') }}:</div>
-                        <div class="info-value">{!! $statusBadgeHtml ?? '' !!}</div>
-                    </div>
-
-                    <div class="info-row">
-                        <div class="info-label">{{ __('ingaz.priority') }}:</div>
-                        <div class="info-value">{!! $priorityBadgeHtml ?? '' !!}</div>
-                    </div>
-
-                    <div class="info-row">
-                        <div class="info-label">{{ __('ingaz.assigned_employee') }}:</div>
-                        <div class="info-value">
-                            {{ $complaint->assignedTo->name ?? __('ingaz.not_specified') }}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- الإجراءات السريعة -->
-                <div class="info-card">
-                    <h5><i class="fas fa-bolt me-2"></i>{{ __('ingaz.quick_actions') }}</h5>
-
-                    <div class="d-grid gap-2">
-                        @if ($complaint->status != 'resolved')
-                            <button class="btn btn-success" id="markResolved">
-                                <i class="fas fa-check me-2"></i>{{ __('ingaz.mark_resolved') }}
-                            </button>
-                        @endif
-
-                        @if ($complaint->status != 'closed')
-                            <button class="btn btn-secondary" id="closeTicket">
-                                <i class="fas fa-times me-2"></i>{{ __('ingaz.close_ticket') }}
-                            </button>
-                        @endif
-
-                        <button class="btn btn-info" id="assignTicket">
-                            <i class="fas fa-user-tag me-2"></i>{{ __('ingaz.assign_to_another_employee') }}
-                        </button>
-
-                        <button class="btn btn-warning" id="changePriority">
-                            <i class="fas fa-exclamation-triangle me-2"></i>{{ __('ingaz.change_priority') }}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Modal تحويل التذكرة -->
     <div class="modal fade" id="assignModal" tabindex="-1">
@@ -903,6 +351,26 @@
                 ok: @json(__('ingaz.ok')),
                 commentDeletedSuccessfully: @json(__('ingaz.comment_deleted_successfully')),
             };
+
+            $('#complaintAttachmentInput').on('change', function() {
+                const $container = $('#attachmentNamesFields').empty();
+                $('#uploadAttachmentsButton').prop('disabled', !this.files || this.files.length === 0);
+                Array.from(this.files || []).forEach(function(file, index) {
+                    const $field = $('<div>', { class: 'attachment-name-field mb-2' });
+                    $('<label>', {
+                        class: 'form-label small fw-semibold mb-1',
+                        text: file.name
+                    }).appendTo($field);
+                    $('<input>', {
+                        type: 'text',
+                        name: 'attachment_names[' + index + ']',
+                        class: 'form-control form-control-sm',
+                        maxlength: 255,
+                        placeholder: 'اسم المرفق (اختياري)'
+                    }).appendTo($field);
+                    $container.append($field);
+                });
+            });
 
             // إضافة تعليق
             $('#addCommentForm').submit(function(e) {
@@ -1161,6 +629,25 @@
                     }
                 });
             }
+
+            $('.delete-attachment-form').on('submit', function(e) {
+                e.preventDefault();
+                const form = this;
+
+                Swal.fire({
+                    title: complaintShowTranslations.areYouSure,
+                    text: complaintShowTranslations.confirmDeleteComment,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    confirmButtonText: complaintShowTranslations.confirm,
+                    cancelButtonText: complaintShowTranslations.cancel
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        form.submit();
+                    }
+                });
+            });
 
             $(document).on('click', '.deleteComment', function(e) {
                 e.preventDefault();

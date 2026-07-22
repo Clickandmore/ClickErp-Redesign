@@ -280,6 +280,7 @@ Route::group(
             // Limit maid parameter to numeric IDs to avoid catching custom pages like create_rapid_cv
             Route::post('maids/extract-cv-data', [MaidController::class, 'extractCvData'])->name('maids.extract-cv-data');
             Route::post('maids/bulk-visibility', [MaidController::class, 'bulkVisibility'])->name('maids.bulk-visibility');
+            Route::post('maids/{maid}/media', [MaidController::class, 'updateMedia'])->whereNumber('maid')->name('maids.media.update');
             Route::resource('maids', MaidController::class)->whereNumber('maid');
             Route::get('maids/create_rapid_cv', [MaidController::class, 'create_rapid_cv'])->name('maids.create_rapid_cv');
             Route::post('maids/store_rapid_cv', [MaidController::class, 'store_rapid_cv'])->name('maids.store_rapid_cv');
@@ -310,11 +311,19 @@ Route::group(
             Route::post('complaints/update-status', [ComplaintController::class, 'updateStatus'])->name('complaints.update-status');
             Route::post('complaints/assign', [ComplaintController::class, 'assign'])->name('complaints.assign');
             Route::post('complaints/change-priority', [ComplaintController::class, 'changePriority'])->name('complaints.change-priority');
+            Route::post('complaints/{complaint}/attachments', [ComplaintController::class, 'addAttachments'])
+                ->name('complaints.attachments.store');
+            Route::delete('complaints/{complaint}/attachments/{attachment}', [ComplaintController::class, 'deleteAttachment'])
+                ->whereNumber('attachment')
+                ->name('complaints.attachments.destroy');
             Route::delete('complaints/complaint-comment/{id}', [ComplaintController::class, 'deleteComment'])
                 ->name('complaints.comments.destroy');
             Route::post('completeOrder/{id}', [OrderController::class, 'completeOrder'])->name('orders.completeOrder');
             Route::post('getOrderById/{id}', [OrderController::class, 'getOrderById'])->name('orders.getOrderById');
             Route::post('orders/quick-recruitment', [OrderController::class, 'quickRecruitment'])->name('orders.quickRecruitment');
+            Route::post('orders/{orderId}/notes', [OrderController::class, 'storeNote'])
+                ->whereNumber('orderId')
+                ->name('orders.notes.store');
             Route::resource('orders', OrderController::class);
             Route::post('orders/{id}/restore', [OrderController::class, 'restore'])->name('orders.restore');
 

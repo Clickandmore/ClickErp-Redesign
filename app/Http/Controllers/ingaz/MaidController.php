@@ -45,7 +45,7 @@ class MaidController extends Controller
         $this->middleware('permission:maids_backout_view,admin', ['only' => ['noneAvailableMaids']]);
         $this->middleware('permission:maids_deleted_view,admin', ['only' => ['deletedCvs']]);
         $this->middleware('permission:maids_create,admin', ['only' => ['create', 'createRental', 'create_rapid_cv', 'store', 'store_rapid_cv', 'extractCvData']]);
-        $this->middleware('permission:maids_edit,admin', ['only' => ['edit', 'update', 'update_cv', 'updateOffer', 'backout', 'clearBackout', 'suspendCv']]);
+        $this->middleware('permission:maids_edit,admin', ['only' => ['edit', 'update', 'update_cv', 'updateMedia', 'updateOffer', 'backout', 'clearBackout', 'suspendCv']]);
         $this->middleware('permission:maids_delete,admin', ['only' => ['destroy', 'restore']]);
         $this->middleware('permission:maids_toggle_status,admin', ['only' => ['show']]);
         $this->middleware('permission:maids_bulk_visibility,admin', ['only' => ['bulkVisibility']]);
@@ -1353,7 +1353,7 @@ class MaidController extends Controller
 
         $maid = objModel::withTrashed()->findOrFail($id);
 
-        $validated = $request->validate([
+        $validated = $request->validateWithBag('mediaUpdate', [
             'title' => ['nullable', 'string', 'max:255'],
             'attachments' => ['required', 'array', 'min:1'],
             'attachments.*' => ['required', 'file', 'max:20480'],
@@ -1913,11 +1913,90 @@ class MaidController extends Controller
         // return redirect()->route('maids.index')->with('success', 'تم تحديث العاملة بنجاح');
     }
 
+    public function updateMedia(Request $request, Maid $maid)
+    {
+        $request->merge([
+            'video_link' => $this->normalizeMaidVideoLink($request->input('video_link')),
+        ]);
+
+        $validated = $request->validate([
+            'image' => ['nullable', 'image', 'max:10240'],
+            'cv_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png,gif,bmp,webp', 'max:20480'],
+            'cv_preview' => ['nullable', 'image', 'max:10240'],
+            'video' => ['nullable', 'file', 'mimes:mp4,mov,avi,wmv,webm,mkv', 'max:102400'],
+            'video_link' => ['nullable', 'url', 'max:2000'],
+        ], [
+            'image.image' => 'يجب أن تكون الصورة الشخصية ملف صورة صالحًا.',
+            'cv_file.mimes' => 'ملف السيرة يجب أن يكون PDF أو صورة صالحة.',
+            'cv_preview.image' => 'يجب أن تكون صورة معاينة السيرة ملف صورة صالحًا.',
+            'video.mimes' => 'صيغة ملف الفيديو غير مدعومة.',
+            'video_link.url' => 'رابط الفيديو غير صالح.',
+        ]);
+
+        $mediaFields = ['image', 'cv_file', 'cv_preview', 'video'];
+        $updates = [];
+        $oldFiles = [];
+        $uploadedFiles = [];
+
+        try {
+            foreach ($mediaFields as $field) {
+                if (!$request->hasFile($field)) {
+                    continue;
+                }
+
+                $oldFiles[] = $maid->{$field};
+                $updates[$field] = uploadFile($request->file($field), 'images/Maid/');
+                $uploadedFiles[] = $updates[$field];
+            }
+
+            if ($request->boolean('remove_video_link')) {
+                $updates['video_link'] = null;
+            } elseif ($request->exists('video_link')) {
+                $updates['video_link'] = $validated['video_link'] ?? null;
+            }
+
+            if ($updates === [] || collect($updates)->every(fn ($value, $field) => $maid->{$field} == $value)) {
+                return back()->withErrors(
+                    ['media' => 'اختر صورة أو ملف فيديو، أو غيّر رابط الفيديو أولًا.'],
+                    'mediaUpdate'
+                );
+            }
+
+            $maid->update($updates);
+
+            foreach (array_filter($oldFiles) as $oldFile) {
+                deleteFile($oldFile);
+            }
+        } catch (\Throwable $exception) {
+            foreach ($uploadedFiles as $uploadedFile) {
+                deleteFile($uploadedFile);
+            }
+
+            throw $exception;
+        }
+
+        return back()->with('success', 'تم تحديث صور وفيديو العاملة، وتسجيل التعديل في سجل السيرة.');
+    }
+
     public function update_cv(Request $request, objAction $action, $id)
     {
         $data = $request->only($this->postData);
         $data = $action->updateMaid($id, $data, $request);
         return jsonSuccess($data);
+    }
+
+    private function normalizeMaidVideoLink($value): ?string
+    {
+        if (!is_string($value) || trim($value) === '') {
+            return null;
+        }
+
+        $value = trim($value);
+        if (preg_match('/<iframe\b[^>]*\bsrc\s*=\s*(["\']?)([^"\'\s>]+)\1/iu', $value, $matches)) {
+            $value = $matches[2];
+        }
+
+        return html_entity_decode(trim($value), ENT_QUOTES, 'UTF-8') ?: null;
     }
 
     public function updateOffer($id, Request $request)

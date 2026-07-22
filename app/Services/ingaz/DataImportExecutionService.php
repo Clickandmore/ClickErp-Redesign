@@ -1333,7 +1333,7 @@ class DataImportExecutionService
         $marketerId = $this->resolveAdminId($row['created_by'] ?? null) ?: $adminId;
         $branchId = $marketerId ? Admin::query()->whereKey($marketerId)->value('branch_id') : null;
         $order = Order::query()->find($requestId);
-        $jobTypeId = $maid->job_types()->value('job_type_id') ?: JobType::query()->value('id');
+        $jobTypeId = JobType::query()->whereKey(2)->value('id');
         if (!$jobTypeId) {
             throw new \InvalidArgumentException('لا يوجد نوع سيرة إيجار لربط الطلب.');
         }
@@ -2900,6 +2900,8 @@ class DataImportExecutionService
         $externalRef = trim((string) ($row['external_ref'] ?? ''));
         $typeName = trim((string) ($row['complaint_type'] ?? '')) ?: 'شكوى مستوردة';
         $complainantName = trim((string) ($row['complainant_name'] ?? '')) ?: 'غير محدد';
+        $complainantType = $this->normalizeComplaintPartyType($row['complainant_type'] ?? null);
+        $againstType = $this->normalizeComplaintPartyType($row['against_type'] ?? null);
         $complainantPhone = $this->normalizeImportPhone($row['complainant_phone'] ?? '');
         $content = trim((string) ($row['details'] ?? $row['content'] ?? $row['message'] ?? ''));
         $subjectValue = trim((string) ($row['subject'] ?? ''));
@@ -2940,7 +2942,7 @@ class DataImportExecutionService
             'details' => $details,
             'response' => $this->nullableImportString($row['response'] ?? $row['last_response'] ?? null),
             'against_name' => $this->nullableImportString($row['against_name'] ?? null),
-            'against_type' => $this->nullableImportString($row['against_type'] ?? null),
+            'against_type' => $againstType,
             'against_phone' => $this->nullableImportString($row['against_phone'] ?? null),
             'last_response' => $this->nullableImportString($row['last_response'] ?? $row['response'] ?? null),
             'submission_method' => $this->nullableImportString($row['submission_method'] ?? null),
@@ -2951,7 +2953,7 @@ class DataImportExecutionService
             'user_id' => $user?->id,
             'complainant_name' => $complainantName,
             'complainant_phone' => $complainantPhone,
-            'complainant_type' => $this->nullableImportString($row['complainant_type'] ?? null),
+            'complainant_type' => $complainantType,
             'maid_nationality_id' => $this->resolveNationalityId($row['maid_nationality'] ?? null),
             'subject' => $subject,
             'complaint_date' => $this->parseDate($row['complaint_date'] ?? null),
@@ -5933,7 +5935,50 @@ class DataImportExecutionService
             }
         }
 
-        return ComplaintType::query()->firstOrCreate(['name' => $typeName]);
+        $type = ComplaintType::query()->firstOrCreate(['name' => $typeName]);
+        $complainantType = $this->normalizeComplaintPartyType($row['complainant_type'] ?? null);
+        $againstType = $this->normalizeComplaintPartyType($row['against_type'] ?? null);
+
+        if (!$complainantType || !$againstType) {
+            $normalizedName = $this->normalizeArabicText($typeName);
+            if (preg_match('/عميل.*ضد.*عامل/u', $normalizedName)) {
+                $complainantType ??= 'client';
+                $againstType ??= 'worker';
+            } elseif (preg_match('/عامل.*ضد.*عميل/u', $normalizedName)) {
+                $complainantType ??= 'worker';
+                $againstType ??= 'client';
+            }
+        }
+
+        $classification = array_filter([
+            'complainant_type' => blank($type->complainant_type) ? $complainantType : null,
+            'against_type' => blank($type->against_type) ? $againstType : null,
+        ]);
+
+        if ($classification !== []) {
+            $type->update($classification);
+        }
+
+        return $type;
+    }
+
+    private function normalizeComplaintPartyType($value): ?string
+    {
+        $normalized = $this->normalizeArabicText($value);
+
+        if ($normalized === '') {
+            return null;
+        }
+
+        return match (true) {
+            in_array($normalized, ['client', 'customer', 'عميل', 'العميل', 'عميله', 'العميله'], true) => 'client',
+            in_array($normalized, ['worker', 'maid', 'عامله', 'العامل', 'العامله'], true),
+                str_contains($normalized, 'عامل') => 'worker',
+            in_array($normalized, ['internal_office', 'office', 'مكتب', 'المكتب', 'مكتب داخلي'], true) => 'internal_office',
+            in_array($normalized, ['external_office', 'مكتب خارجي', 'المكتب الخارجي'], true) => 'external_office',
+            in_array($normalized, ['employee', 'موظف', 'الموظف'], true) => 'employee',
+            default => 'other',
+        };
     }
 
     private function findExistingImportedComplaint(array $row, string $subject, string $externalRef, ?int $userId): ?Complaint

@@ -97,8 +97,9 @@ class ArabiaRecruitmentOrdersImportService
                     $client = $this->upsertClient($orderNumber, $bundle);
                     $maid = $this->upsertMaid($bundle);
                     $status = $this->resolveStatus($bundle);
-                    $order = $maid ? $this->upsertOrder($orderNumber, $client, $maid, $status) : null;
-                    $contract = $this->upsertContract(null, $orderNumber, $client, $maid, $order, $status, $bundle);
+                    $marketerId = $this->resolveAdminId($main['مسوق'] ?? $main['أنشئ بواسطة'] ?? null);
+                    $order = $this->upsertOrder($orderNumber, $client, $maid, $status, $marketerId);
+                    $contract = $this->upsertContract(null, $orderNumber, $client, $maid, $order, $status, $bundle, $marketerId);
                     $this->upsertTravel($contract, $client, $maid, $bundle);
                     $this->upsertDispatch($contract, $bundle, $dispatches->all());
                     $this->syncFinancialReferences($contract, $bundle);
@@ -168,8 +169,9 @@ class ArabiaRecruitmentOrdersImportService
                     $client = $this->upsertClient($orderNumber, $bundle);
                     $maid = $this->upsertMaid($bundle);
                     $status = $this->resolveStatus($bundle);
-                    $order = $maid ? $this->upsertOrder($orderNumber, $client, $maid, $status) : null;
-                    $contract = $this->upsertContract($contract, $orderNumber, $client, $maid, $order, $status, $bundle);
+                    $marketerId = $this->resolveAdminId($main['مسوق'] ?? $main['أنشئ بواسطة'] ?? null);
+                    $order = $this->upsertOrder($orderNumber, $client, $maid, $status, $marketerId);
+                    $contract = $this->upsertContract($contract, $orderNumber, $client, $maid, $order, $status, $bundle, $marketerId);
 
                     $this->upsertTravel($contract, $client, $maid, $bundle);
                     $this->upsertDispatch($contract, $bundle, $dispatches);
@@ -390,14 +392,15 @@ class ArabiaRecruitmentOrdersImportService
         return $maid;
     }
 
-    private function upsertOrder(int $orderNumber, User $client, Maid $maid, string $status): Order
+    private function upsertOrder(int $orderNumber, User $client, ?Maid $maid, string $status, ?int $marketerId): Order
     {
         $order = Order::withTrashed()->where('order_code', 'ARB-' . $orderNumber)->first();
         $payload = [
             'user_id' => $client->id,
-            'maid_id' => $maid->id,
-            'job_type_id' => $maid->jobTypes()->value('job_types.id') ?: JobType::query()->value('id'),
+            'maid_id' => $maid?->id,
+            'job_type_id' => $maid?->jobTypes()->value('job_types.id') ?: 1,
             'payment_method' => 'cash',
+            'customer_id' => $marketerId,
             'status' => in_array($status, [ContractStatusEnum::Completed->value, ContractStatusEnum::Refunded->value], true)
                 ? OrderEnum::Completed->value
                 : ($status === ContractStatusEnum::Back->value ? OrderEnum::Refused->value : OrderEnum::UnderProcess->value),
@@ -408,13 +411,17 @@ class ArabiaRecruitmentOrdersImportService
                 $order->restore();
             }
             $order->update($payload);
+            $order->syncResponsibleAdmin($marketerId);
             return $order;
         }
 
-        return Order::query()->create(['order_code' => 'ARB-' . $orderNumber] + $payload);
+        $order = Order::query()->create(['order_code' => 'ARB-' . $orderNumber] + $payload);
+        $order->syncResponsibleAdmin($marketerId);
+
+        return $order;
     }
 
-    private function upsertContract(?Contract $contract, int $orderNumber, User $client, ?Maid $maid, ?Order $order, string $status, array $bundle): Contract
+    private function upsertContract(?Contract $contract, int $orderNumber, User $client, ?Maid $maid, Order $order, string $status, array $bundle, ?int $marketerId): Contract
     {
         $main = $bundle['main'];
         $nationality = $this->resolveReference(Nationality::class, $main['الجنسية'] ?? null);
@@ -428,8 +435,8 @@ class ArabiaRecruitmentOrdersImportService
             'arabia_supplier_invoice_number' => $supplierInvoice,
             'user_id' => $client->id,
             'maid_id' => $maid?->id,
-            'order_id' => $order?->id,
-            'marketer_id' => $this->resolveAdminId($main['مسوق'] ?? $main['أنشئ بواسطة'] ?? null),
+            'order_id' => $order->id,
+            'marketer_id' => $marketerId,
             'status' => $status,
             'type' => 'recruitment',
             'msaned_number' => trim((string) ($main['رقم مساند'] ?? '')) ?: null,

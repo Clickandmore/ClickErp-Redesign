@@ -11,6 +11,7 @@ use App\Models\auth\Admin;
 use App\Models\Contract;
 use App\Models\RecruitmentOffices;
 use App\Models\ingaz\Complaint as objModel;
+use App\Models\ingaz\ComplaintAttachment;
 use App\Models\ingaz\ComplaintComment;
 use App\Models\ingaz\ComplaintType;
 use App\Models\ingaz\Nationality;
@@ -41,32 +42,14 @@ class ComplaintController extends Controller
 
     public function index(Request $request)
     {
+        if ($request->input('export') === 'excel') {
+            return $this->exportComplaints($request);
+        }
+
         if ($request->ajax()) {
             $query = objModel::query()->with(['user', 'complaintType', 'assignedTo', 'maidNationality', 'contract']);
             $this->applyRequestBranchFilter($query, $request, 'complaints');
-
-            // تطبيق الفلاتر
-            if ($request->ticket_number) {
-                $ticketNumber = ltrim($request->ticket_number, '#0');
-                $ticketNumber = $ticketNumber === '' ? 0 : $ticketNumber;
-                $query->where('id', 'LIKE', '%' . $ticketNumber . '%');
-            }
-
-            if ($request->status) {
-                $query->where('status', $request->status);
-            }
-
-            if ($request->priority) {
-                $query->where('priority', $request->priority);
-            }
-
-            if ($request->type) {
-                $query->where('complaint_type_id', $request->type);
-            }
-
-            if ($request->assigned_to) {
-                $query->where('assigned_to', $request->assigned_to);
-            }
+            $this->applyComplaintFilters($query, $request);
 
             // حساب الإحصائيات
             $statsQuery = $this->applyRequestBranchFilter(objModel::query(), $request, 'complaints');
@@ -173,6 +156,47 @@ class ComplaintController extends Controller
         return view($this->folderPath . '.index', compact('complaintTypes', 'admins'));
     }
 
+    private function exportComplaints(Request $request)
+    {
+        $query = objModel::query()->with(['complaintType', 'assignedTo']);
+        $this->applyRequestBranchFilter($query, $request, 'complaints');
+        $this->applyComplaintFilters($query, $request);
+        $complaints = $query->latest('id')->get();
+
+        $statuses = [
+            'pending' => 'قيد الانتظار',
+            'in_progress' => 'قيد المعالجة',
+            'resolved' => 'تم الحل',
+            'closed' => 'مغلقة',
+            'rejected' => 'مرفوضة',
+        ];
+        $priorities = ['low' => 'منخفضة', 'medium' => 'متوسطة', 'high' => 'عالية', 'urgent' => 'عاجلة'];
+
+        return response()->streamDownload(function () use ($complaints, $statuses, $priorities) {
+            $output = fopen('php://output', 'w');
+            fwrite($output, "\xEF\xBB\xBF");
+            fputcsv($output, ['رقم الشكوى', 'مقدم الشكوى', 'المشتكى عليه', 'الموضوع', 'النوع', 'الأولوية', 'الحالة', 'الموظف المختص', 'التاريخ']);
+
+            foreach ($complaints as $complaint) {
+                fputcsv($output, [
+                    $complaint->id,
+                    $complaint->complainant_name,
+                    $complaint->against_name,
+                    $complaint->subject,
+                    $complaint->complaintType?->name,
+                    $priorities[$complaint->priority] ?? $complaint->priority,
+                    $statuses[$complaint->status] ?? $complaint->status,
+                    $complaint->assignedTo?->name,
+                    $complaint->created_at?->format('Y-m-d H:i'),
+                ]);
+            }
+
+            fclose($output);
+        }, 'complaints-' . now()->format('Y-m-d') . '.csv', [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
     public function create()
     {
         $users = User::orderBy('name')->get(['id', 'name', 'phone']);
@@ -221,22 +245,12 @@ class ComplaintController extends Controller
                 'against_phone' => 'nullable|string|max:50',
                 'relation_reference' => 'nullable|string|max:255',
                 'relation_notes' => 'nullable|string|max:2000',
-                'attachments.*' => 'nullable|file|max:5120|mimes:jpg,jpeg,png,pdf,doc,docx'
+                'attachments.*' => 'nullable|file|max:5120|mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx'
             ]);
 
-            $data = $request->except('attachments');
+            $data = $request->except('attachments', 'attachment_names');
             $data['status'] = 'pending';
             $data['message'] = $request->details; // للتوافق مع الحقل القديم
-
-            // معالجة المرفقات
-            if ($request->hasFile('attachments')) {
-                $attachmentPaths = [];
-                foreach ($request->file('attachments') as $file) {
-                    $path = $file->store('complaints/attachments', 'public');
-                    $attachmentPaths[] = $path;
-                }
-                $data['attachments'] = $attachmentPaths;
-            }
             $rawPhone = $data['complainant_phone'] ?? '';
             $normalizedPhone = ltrim($rawPhone, '0');
             $data['complainant_phone'] = $normalizedPhone;
@@ -256,6 +270,7 @@ class ComplaintController extends Controller
             $data['against_type'] = $complaintType->against_type ?: ($data['against_type'] ?? null);
             $this->applyComplaintRelation($data);
             $complaint = objModel::create($data);
+            $this->storeComplaintAttachments($complaint, $request->file('attachments', []));
 
             // إرسال إشعار للموظف المختص إذا تم تحديده
             if ($complaint->assigned_to) {
@@ -393,6 +408,7 @@ class ComplaintController extends Controller
         $complaint = objModel::with([
             'user', 'complaintType', 'assignedTo', 'resolvedBy', 'maidNationality', 'contract.maid',
             'order.user', 'order.maid', 'order.contracts.maid', 'relatedUser', 'recruitmentOffice',
+            'comments.admin', 'attachmentFiles.addedBy',
         ])
             ->findOrFail($id);
         $this->assertCanAccessBranchModel($complaint);
@@ -401,7 +417,12 @@ class ComplaintController extends Controller
             'name' => $complaint->against_name,
             'phone' => $complaint->against_phone,
         ];
-        if (($complaint->against_type ?: $complaint->complaintType?->against_type) === 'worker') {
+        $againstType = $complaint->against_type ?: $complaint->complaintType?->against_type;
+        if (!$againstType && preg_match('/عميل.*ضد.*عامل/u', (string) $complaint->complaintType?->name)) {
+            $againstType = 'worker';
+        }
+
+        if ($againstType === 'worker') {
             $resolvedParty = $complaint->relation_type === 'contract' && $complaint->contract
                 ? $this->resolveContractAgainstParty($complaint->contract, 'worker')
                 : ($complaint->relation_type === 'order' && $complaint->order
@@ -451,25 +472,11 @@ class ComplaintController extends Controller
                 'maid_passport' => 'nullable|string|max:50',
                 'maid_nationality_id' => 'nullable|exists:nationalities,id',
                 'assigned_to' => 'nullable|exists:admins,id',
-                'attachments.*' => 'nullable|file|max:5120|mimes:jpg,jpeg,png,pdf,doc,docx'
+                'attachments.*' => 'nullable|file|max:5120|mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx'
             ]);
 
-            $data = $request->except('attachments', '_method');
+            $data = $request->except('attachments', 'attachment_names', '_method');
             $data['message'] = $request->details; // للتوافق مع الحقل القديم
-
-            // معالجة المرفقات الجديدة
-            if ($request->hasFile('attachments')) {
-                $attachmentPaths = $complaint->attachments ?? [];
-                if (!is_array($attachmentPaths)) {
-                    $attachmentPaths = [];
-                }
-
-                foreach ($request->file('attachments') as $file) {
-                    $path = $file->store('complaints/attachments', 'public');
-                    $attachmentPaths[] = $path;
-                }
-                $data['attachments'] = $attachmentPaths;
-            }
 
             // تحديث حالة الحل إذا تم تغيير الحالة
             if ($request->status == 'resolved' && $complaint->status != 'resolved') {
@@ -478,6 +485,7 @@ class ComplaintController extends Controller
             }
 
             $complaint->update($data);
+            $this->storeComplaintAttachments($complaint, $request->file('attachments', []));
 
             // إرجاع استجابة JSON للـ AJAX
             if ($request->ajax()) {
@@ -516,24 +524,58 @@ class ComplaintController extends Controller
     {
         $query = objModel::with(['complaintType', 'assignedTo']);
         $this->applyRequestBranchFilter($query, $request, 'complaints');
-
-        // تطبيق الفلاتر
-        if ($request->status) {
-            $query->where('status', $request->status);
-        }
-        if ($request->priority) {
-            $query->where('priority', $request->priority);
-        }
-        if ($request->type) {
-            $query->where('complaint_type_id', $request->type);
-        }
-        if ($request->assigned_to) {
-            $query->where('assigned_to', $request->assigned_to);
-        }
+        $this->applyComplaintFilters($query, $request);
 
         $complaints = $query->orderBy('created_at', 'desc')->limit(50)->get();
 
         return response()->json(['data' => $complaints]);
+    }
+
+    private function applyComplaintFilters($query, Request $request): void
+    {
+        if ($request->filled('ticket_number')) {
+            $ticketNumber = ltrim((string) $request->ticket_number, '#0');
+            $query->where('id', 'LIKE', '%' . ($ticketNumber === '' ? 0 : $ticketNumber) . '%');
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('priority')) {
+            $query->where('priority', $request->priority);
+        }
+
+        if ($request->filled('type')) {
+            $query->where('complaint_type_id', $request->type);
+        }
+
+        if ($request->filled('assigned_to')) {
+            $query->where('assigned_to', $request->assigned_to);
+        }
+
+        switch ($request->period) {
+            case 'today':
+                $query->whereDate('created_at', today());
+                break;
+            case 'yesterday':
+                $query->whereDate('created_at', today()->subDay());
+                break;
+            case 'week':
+                $query->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]);
+                break;
+            case 'month':
+                $query->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()]);
+                break;
+            case 'custom':
+                if ($request->filled('date_from')) {
+                    $query->whereDate('created_at', '>=', $request->date_from);
+                }
+                if ($request->filled('date_to')) {
+                    $query->whereDate('created_at', '<=', $request->date_to);
+                }
+                break;
+        }
     }
 
     public function quickResponse(Request $request)
@@ -661,15 +703,73 @@ class ComplaintController extends Controller
         return response()->json(['success' => true, 'message' => 'تم تغيير الأولوية بنجاح']);
     }
 
+    public function addAttachments(Request $request, $complaint)
+    {
+        $complaint = objModel::findOrFail($complaint);
+        $this->assertCanAccessBranchModel($complaint);
+
+        $request->validate([
+            'attachments' => ['required', 'array', 'min:1', 'max:10'],
+            'attachments.*' => ['required', 'file', 'max:5120', 'mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx'],
+            'attachment_names' => ['nullable', 'array'],
+            'attachment_names.*' => ['nullable', 'string', 'max:255'],
+        ], [
+            'attachments.required' => 'يرجى اختيار مرفق واحد على الأقل.',
+            'attachments.*.max' => 'يجب ألا يتجاوز حجم المرفق 5 ميجابايت.',
+            'attachments.*.mimes' => 'صيغة أحد المرفقات غير مدعومة.',
+        ]);
+
+        $this->storeComplaintAttachments(
+            $complaint,
+            $request->file('attachments', []),
+            $request->input('attachment_names', [])
+        );
+        $this->notifyComplaintUpdated($complaint, 'تمت إضافة مرفقات إلى الشكوى');
+
+        return back()->with('success', 'تمت إضافة المرفقات بنجاح.');
+    }
+
+    public function deleteAttachment($complaint, int $attachment)
+    {
+        $complaint = objModel::findOrFail($complaint);
+        $this->assertCanAccessBranchModel($complaint);
+        $attachment = $complaint->attachmentFiles()->whereKey($attachment)->firstOrFail();
+
+        Storage::disk('public')->delete($attachment->path);
+        $attachment->delete();
+
+        return back()->with('success', 'تم حذف المرفق بنجاح.');
+    }
+
+    private function storeComplaintAttachments(objModel $complaint, array $files, array $names = []): void
+    {
+        foreach (array_values($files) as $index => $file) {
+            $path = $file->store('complaints/attachments', 'public');
+
+            $complaint->attachmentFiles()->create([
+                'path' => $path,
+                'display_name' => trim((string) ($names[$index] ?? '')) ?: null,
+                'original_name' => $file->getClientOriginalName(),
+                'mime_type' => $file->getMimeType(),
+                'size' => $file->getSize(),
+                'added_by' => auth('admin')->id(),
+            ]);
+        }
+    }
+
     public function destroy($id)
     {
         $complaint = objModel::findOrFail($id);
         $this->assertCanAccessBranchModel($complaint);
 
-        // حذف المرفقات
+        foreach ($complaint->attachmentFiles as $attachment) {
+            Storage::disk('public')->delete($attachment->path);
+        }
+
+        // حذف المرفقات القديمة قبل نقلها إلى الجدول الجديد
         if ($complaint->attachments && is_array($complaint->attachments)) {
             foreach ($complaint->attachments as $attachment) {
-                \Storage::disk('public')->delete($attachment);
+                Storage::disk('public')->delete($attachment);
             }
         }
 

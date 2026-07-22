@@ -51,32 +51,33 @@
         }
 
         .timer-chip {
-            border-radius: 18px;
-            padding: 12px 16px;
+            border-radius: 12px;
+            padding: 8px 10px;
             background: #f4f5fb;
             border: 1px solid #eef0f7;
             display: inline-flex;
             flex-direction: column;
-            gap: 2px;
-            min-width: 120px;
+            gap: 1px;
+            min-width: 0;
+            line-height: 1.35;
         }
 
         .timer-chip__phase {
-            font-size: 0.8rem;
-            text-transform: uppercase;
+            font-size: 0.75rem;
             color: #6f78a2;
-            letter-spacing: 0.04em;
+            white-space: nowrap;
         }
 
         .timer-chip__value {
-            font-size: 1.1rem;
-            font-weight: 600;
+            font-size: 1rem;
+            font-weight: 700;
             color: #1b2240;
         }
 
         .timer-chip__hint {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             color: #8791b4;
+            white-space: nowrap;
         }
 
         .timer-chip--danger {
@@ -121,6 +122,28 @@
 
         .badge {
             border-radius: 999px;
+        }
+
+        .order-notes-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            width: fit-content;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: #fff7ed;
+            color: #9a3412;
+            border: 1px solid #fed7aa;
+            font-size: 0.82rem;
+            font-weight: 700;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .order-notes-indicator:hover {
+            color: #7c2d12;
+            background: #ffedd5;
+            text-decoration: none;
         }
 
         button.edit-status {
@@ -447,7 +470,7 @@
                                         {{-- <th>{{helperTrans("ingaz.deliver_status")}}</th> --}}
                                         <th>{{ helperTrans('ingaz.order_job_type') }}</th>
                                         <th>{{ helperTrans('ingaz.status') }}</th>
-                                        <th>{{ helperTrans('ingaz.timer') }}</th>
+                                        <th>التنبيهات</th>
                                         <th>{{ helperTrans('ingaz.contract_status') }}</th>
                                         <th>{{ helperTrans('ingaz.order_date') }}</th>
                                         <th>{{ helperTrans('ingaz.responsible_employee') }}</th>

@@ -52,8 +52,7 @@ class RentalOrderController extends Controller
             // Order by created_at desc to show newest orders first
             $query->orderBy('created_at', 'desc');
 
-            // Filter for rental orders only (job_type_id = 2)
-            $query->where('job_type_id', 2);
+            $query->rentalRequests();
 
             // Apply status filter
             if ($request->has('status') && $request->status != '') {
@@ -290,22 +289,13 @@ class RentalOrderController extends Controller
             return \App\Models\auth\Admin::query()->activeForOperations()->select('id', 'name')->get();
         });
 
-        // Get statistics with optimized queries (cache for 1 minute) - Rental orders only
-        $data['totalOrders'] = \Cache::remember('rental_orders_count', 60, function() {
-            return objModel::where('job_type_id', 2)->count();
-        });
-
-        $data['newOrders'] = \Cache::remember('rental_new_orders_count', 60, function() {
-            return objModel::where('job_type_id', 2)->where('status', OrderEnum::New->value)->count();
-        });
-
-        $data['underProcessOrders'] = \Cache::remember('rental_under_process_orders_count', 60, function() {
-            return objModel::where('job_type_id', 2)->where('status', OrderEnum::UnderProcess->value)->count();
-        });
-
-        $data['completedOrders'] = \Cache::remember('rental_completed_orders_count', 60, function() {
-            return objModel::where('job_type_id', 2)->whereIn('status', [OrderEnum::Completed->value, OrderEnum::Done->value, OrderEnum::Contracted->value])->count();
-        });
+        $statisticsQuery = objModel::query()->rentalRequests();
+        $data['totalOrders'] = (clone $statisticsQuery)->count();
+        $data['newOrders'] = (clone $statisticsQuery)->where('status', OrderEnum::New->value)->count();
+        $data['underProcessOrders'] = (clone $statisticsQuery)->where('status', OrderEnum::UnderProcess->value)->count();
+        $data['completedOrders'] = (clone $statisticsQuery)
+            ->whereIn('status', [OrderEnum::Completed->value, OrderEnum::Done->value, OrderEnum::Contracted->value])
+            ->count();
 
         return view($this->folderPath . '.index', $data);
     }
@@ -417,7 +407,7 @@ class RentalOrderController extends Controller
     public function approveOrder(Request $request, $id)
     {
         try {
-            $order = objModel::where('job_type_id', 2)->findOrFail($id);
+            $order = objModel::rentalRequests()->findOrFail($id);
 
             if ($order->status !== OrderEnum::New->value) {
                 return response()->json(['success' => false, 'message' => 'لا يمكن قبول هذا الطلب.']);
@@ -437,7 +427,7 @@ class RentalOrderController extends Controller
         try {
             DB::beginTransaction();
 
-            $order = objModel::where('job_type_id', 2)->findOrFail($id);
+            $order = objModel::rentalRequests()->findOrFail($id);
 
             if ($order->status !== OrderEnum::New->value) {
                 return response()->json(['success' => false, 'message' => 'لا يمكن رفض هذا الطلب.']);

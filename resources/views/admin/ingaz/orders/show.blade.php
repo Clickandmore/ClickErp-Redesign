@@ -185,6 +185,28 @@
             font-size: 15px;
         }
 
+        .order-note-item {
+            border: 1px solid #fde68a;
+            background: #fffbeb;
+            border-radius: 8px;
+            padding: 14px;
+        }
+
+        .order-note-item + .order-note-item {
+            margin-top: 10px;
+        }
+
+        .order-note-meta {
+            color: var(--order-muted);
+            font-size: 12px;
+            margin-bottom: 7px;
+        }
+
+        .order-note-text {
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
         @media (max-width: 991.98px) {
             .order-summary-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -485,6 +507,52 @@
                         @else
                             <p class="text-muted">{{ helperTrans('ingaz.no_contract_found') }}</p>
                         @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Order Notes -->
+        <div class="row" id="order-notes">
+            <div class="col-12">
+                <div class="order-info-card">
+                    <div class="order-info-header d-flex justify-content-between align-items-center">
+                        <h5><i class="fas fa-comment-alt"></i> ملاحظات الطلب</h5>
+                        <span class="badge bg-warning text-dark">{{ $data->notes->count() }}</span>
+                    </div>
+                    <div class="order-info-body">
+                        @if (@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT))
+                            <form method="POST" action="{{ route('orders.notes.store', $data->id) }}" class="mb-4">
+                                @csrf
+                                <label for="order_note" class="form-label fw-bold">إضافة ملاحظة جديدة</label>
+                                <textarea id="order_note" name="note" rows="3"
+                                    class="form-control @error('note') is-invalid @enderror"
+                                    maxlength="2000" required placeholder="اكتب الملاحظة المتعلقة بهذا الطلب...">{{ old('note') }}</textarea>
+                                @error('note')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                                <div class="mt-2 text-end">
+                                    <button type="submit" class="btn btn-warning text-dark">
+                                        <i class="fa fa-save"></i> حفظ الملاحظة
+                                    </button>
+                                </div>
+                            </form>
+                        @endif
+
+                        @forelse ($data->notes as $note)
+                            <div class="order-note-item">
+                                <div class="order-note-meta">
+                                    <i class="fa fa-user me-1"></i>{{ $note->admin?->name ?? 'موظف غير محدد' }}
+                                    <span class="mx-2">•</span>
+                                    <i class="fa fa-clock me-1"></i>{{ optional($note->created_at)->format('Y-m-d H:i') }}
+                                </div>
+                                <div class="order-note-text">{{ $note->note }}</div>
+                            </div>
+                        @empty
+                            <div class="text-muted text-center py-3">
+                                <i class="far fa-comment-alt me-1"></i> لا توجد ملاحظات على هذا الطلب.
+                            </div>
+                        @endforelse
                     </div>
                 </div>
             </div>

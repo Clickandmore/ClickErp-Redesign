@@ -118,6 +118,11 @@ class Complaint extends Model
     public function comments(){
         return $this->hasMany(ComplaintComment::class);
     }
+
+    public function attachmentFiles()
+    {
+        return $this->hasMany(ComplaintAttachment::class)->latest('id');
+    }
     
     // Accessor for priority badge
     public function getPriorityBadgeAttribute()

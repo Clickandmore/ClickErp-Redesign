@@ -1247,8 +1247,16 @@ class MaidAction extends MainAction
         }
 
         // Handle birth_date field
-        if (isset($data['birth_date']) && !empty($data['birth_date'])) {
-            $data['birth_date'] = date('Y-m-d', strtotime($data['birth_date']));
+        if (array_key_exists('birth_date', $data)) {
+            $data['birth_date'] = !empty($data['birth_date'])
+                ? date('Y-m-d', strtotime($data['birth_date']))
+                : null;
+        }
+
+        if (array_key_exists('age', $data)) {
+            $data['age'] = $data['age'] === '' || $data['age'] === null
+                ? null
+                : $data['age'];
         }
 
         // Handle id_expiry_date field

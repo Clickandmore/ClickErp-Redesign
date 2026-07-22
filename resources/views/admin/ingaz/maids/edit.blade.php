@@ -282,6 +282,11 @@
                             <i class="fas fa-file-import me-1"></i>
                             {{ helperTrans('ingaz.read_cv_data') }}
                         </button>
+                        <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal"
+                            data-bs-target="#maidMediaModal">
+                            <i class="fas fa-photo-video me-1"></i>
+                            تعديل الصور والفيديو فقط
+                        </button>
                         <a href="{{ route('maids.bulk-import.create') }}" class="btn btn-sm btn-outline-success">
                             <i class="fas fa-file-excel me-1"></i>
                             استيراد
@@ -309,6 +314,7 @@
                         <div class="col-12">
                             <div class="alert alert-warning mb-0">
                                 بعض بيانات السيرة مقفلة لوجود فاتورة/قيد محاسبي مرتبط أو إرسالية مكتب خارجي. الحقول غير المرتبطة بهذه المستندات يمكن تعديلها.
+                                ويمكن استخدام زر «تعديل الصور والفيديو فقط» وحفظها بشكل مستقل.
                             </div>
                         </div>
                     @endif
@@ -584,15 +590,15 @@
                         <label for="TextInput" class="form-label">
                             {{ helperTrans('ingaz.birth_date') }}
                         </label>
-                        <input type="date" name="birth_date" id="birth_date" class="form-control" required value="{{ old('birth_date', $birthDateValue) }}">
+                        <input type="date" name="birth_date" id="birth_date" class="form-control" value="{{ old('birth_date', $birthDateValue) }}">
                     </div>
 
                     <div class="col-4">
                         <label for="TextInput" class="form-label">
                             {{ helperTrans('ingaz.age') }}
                         </label>
-                        <input type="number" min="18" max="90" name="age" id="age"
-                            class="form-control" readonly value="{{ old('age', $obj->age) }}">
+                        <input type="number" min="20" max="50" name="age" id="age"
+                            class="form-control" readonly value="{{ old('age', ($obj->age ?? 0) > 0 ? $obj->age : '') }}">
                     </div>
 
                     <div class="col-4">
@@ -1067,6 +1073,70 @@
                             class="btn btn-outline-secondary">{{ __('buttons.cancel') }}</a>
                     </div>
                 </form>
+
+                <div class="modal fade" id="maidMediaModal" tabindex="-1" aria-labelledby="maidMediaModalLabel"
+                    aria-hidden="true">
+                    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                        <div class="modal-content">
+                            <form method="post" action="{{ route('maids.media.update', $obj) }}"
+                                enctype="multipart/form-data">
+                                @csrf
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="maidMediaModalLabel">تعديل صور وفيديو العاملة</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                        aria-label="{{ helperTrans('ingaz.close') }}"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="alert alert-info">
+                                        يتم حفظ هذه الملفات بشكل مستقل دون تعديل البيانات المرتبطة بالفواتير أو القيود، وسيظهر التعديل في سجل السيرة.
+                                    </div>
+                                    @if ($errors->mediaUpdate->any())
+                                        <div class="alert alert-danger">
+                                            <ul class="mb-0">
+                                                @foreach ($errors->mediaUpdate->all() as $message)
+                                                    <li>{{ $message }}</li>
+                                                @endforeach
+                                            </ul>
+                                        </div>
+                                    @endif
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">{{ helperTrans('ingaz.personal_photo') }}</label>
+                                            <input type="file" name="image" class="form-control" accept="image/*">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">{{ helperTrans('ingaz.full_photo') }} / ملف السيرة</label>
+                                            <input type="file" name="cv_file" class="form-control" accept=".pdf,image/*">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">{{ helperTrans('ingaz.cv_preview') }}</label>
+                                            <input type="file" name="cv_preview" class="form-control" accept="image/*">
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">{{ helperTrans('ingaz.video') }}</label>
+                                            <input type="file" name="video" class="form-control" accept="video/*">
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label">{{ helperTrans('ingaz.video_link') }}</label>
+                                            <input type="text" name="video_link" class="form-control"
+                                                value="{{ old('video_link', $obj->video_link) }}"
+                                                placeholder="{{ __('ingaz.video_link_or_iframe_placeholder') }}">
+                                            <div class="form-check mt-2">
+                                                <input class="form-check-input" type="checkbox" value="1"
+                                                    name="remove_video_link" id="remove_video_link">
+                                                <label class="form-check-label" for="remove_video_link">حذف رابط الفيديو الحالي</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">إلغاء</button>
+                                    <button type="submit" class="btn btn-primary">حفظ الصور والفيديو</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     @else
@@ -1078,6 +1148,16 @@
     <script src="{{ asset('admin') }}/assets/js/bundle/dropify.bundle.js"></script>
     <script src="{{ asset('admin') }}/assets/js/bundle/select2.bundle.js"></script>
     <script src="{{ asset('admin') }}/assets/js/bundle/sweetalert2.bundle.js"></script>
+    @if ($errors->mediaUpdate->any())
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                var modalElement = document.getElementById('maidMediaModal');
+                if (modalElement && window.bootstrap) {
+                    bootstrap.Modal.getOrCreateInstance(modalElement).show();
+                }
+            });
+        </script>
+    @endif
     <script>
         const maidCreateTranslations = {
             cvFileRequiredTitle: @json(helperTrans('ingaz.cv_file_required_title')),
@@ -2139,6 +2219,11 @@
 
             // حساب العمر تلقائياً عند تغيير تاريخ الميلاد
             $('#birth_date').change(function() {
+                if (!$(this).val()) {
+                    $('#age').val('');
+                    return;
+                }
+
                 var birthDate = new Date($(this).val());
                 var today = new Date();
                 var age = today.getFullYear() - birthDate.getFullYear();
@@ -2345,9 +2430,6 @@
                 }
                 if (!formData.get('religion_id')) {
                     formData.append('religion_id', ''); // Default to غير محدد
-                }
-                if (!formData.get('age')) {
-                    formData.append('age', '0');
                 }
                 if (!formData.get('skills[]')) {
                     formData.append('skills[]', '');

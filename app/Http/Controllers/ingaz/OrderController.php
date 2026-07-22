@@ -67,13 +67,15 @@ class OrderController extends Controller
                 'customer',
                 'branch',
                 'contracts'
-            ]);
+            ])->withCount('notes');
 
-            // Order by created_at desc to show newest orders first
-            $query->orderBy('created_at', 'desc');
+            // Keep actionable bookings at the top, then show the newest records first.
+            $query->orderByRaw(
+                'CASE WHEN orders.status = ? THEN 0 WHEN orders.status = ? THEN 1 ELSE 2 END',
+                [OrderEnum::New->value, OrderEnum::UnderProcess->value]
+            )->orderByDesc('orders.created_at');
 
-            // Filter for recruitment orders only (job_type_id = 1)
-            $query->where('job_type_id', 1);
+            $query->recruitmentRequests();
 
             // Apply status filter
             if ($request->has('status') && $request->status != '') {
@@ -183,12 +185,20 @@ class OrderController extends Controller
                     return '<div class="d-flex align-items-center gap-2">' . $statusHtml . '</div>';
                 })
                 ->addColumn('timer', function ($row) {
-                    $office = $row->maid?->office ?? $row->maid?->recruitmentOffice;
-                    $officeTitle = $office?->title ?? '-';
+                    $html = '<div class="order-alerts d-flex flex-column align-items-start gap-2">'
+                        . $this->getTimerHtml($row);
 
-                    return '<div>'. $this->getTimerHtml($row) .' <div class="text-muted text-medium mt-2 d-flex align-items-center gap-2 p-0">'
-                        . '<i class="fas fa-building text-secondary ps-1"></i>' . __('ingaz.recruitment_office') . ": " . $officeTitle
-                        . '</div></div>';
+                    $notesCount = (int) ($row->notes_count ?? 0);
+                    if ($notesCount > 0) {
+                        $url = route('showSingleOrder', ['orderId' => $row->id]) . '#order-notes';
+                        $html .= '<a class="order-notes-indicator" href="' . e($url) . '" title="عرض ملاحظات الطلب">'
+                            . '<i class="fas fa-sticky-note"></i>'
+                            . '<span>عليه ملاحظات</span>'
+                            . '<span class="badge bg-warning text-dark">' . $notesCount . '</span>'
+                            . '</a>';
+                    }
+
+                    return $html . '</div>';
                 })
                 ->addColumn('recruitment_office', function ($row) {
                     $office = $row->maid?->office ?? $row->maid?->recruitmentOffice;
@@ -214,9 +224,16 @@ class OrderController extends Controller
                         return '';
                     }
 
+                    $office = $row->maid->office ?? $row->maid->recruitmentOffice;
+                    $officeTitle = $office?->title ?? '-';
+
                     return '<div class="d-flex flex-column gap-1">'
                         . '<span>' . e($row->maid->passport_num) . '</span>'
                         . '<small class="text-muted">' . helperTrans('ingaz.request_type') . ': ' . e($row->maid->request_type_label) . '</small>'
+                        . '<small class="text-muted d-flex align-items-center gap-1">'
+                        . '<i class="fas fa-building text-secondary"></i>'
+                        . '<span>' . __('ingaz.recruitment_office') . ': ' . e($officeTitle) . '</span>'
+                        . '</small>'
                         . '</div>';
                 })
                 ->editColumn('deliver_status', function ($row) {
@@ -357,7 +374,7 @@ class OrderController extends Controller
 
         // Use the same branch scope as the DataTable so the summary cards always
         // describe the records that the current admin can actually see.
-        $statisticsQuery = objModel::query()->where('job_type_id', 1);
+        $statisticsQuery = objModel::query()->recruitmentRequests();
         $this->applyRequestBranchFilter($statisticsQuery, $request, 'orders');
 
         $data['totalOrders'] = (clone $statisticsQuery)->count();
@@ -753,7 +770,7 @@ class OrderController extends Controller
                 'status_color' => $this->getStatusColor($order->status),
                 'job_type' => $order->jobType->title ?? __('ingaz.not_specified'),
                 'created_at' => optional($order->created_at)->format('Y-m-d H:i'),
-                'deadline_at' => $order->deadline_at ? $order->deadline_at->format('Y-m-d H:i') : null,
+                'deadline_at' => $order->getEffectiveDeadline()?->format('Y-m-d H:i'),
                 'admin' => optional($order->resolveResponsibleAdmin())->name,
                 'timer' => $this->buildTimerMeta($order),
                 'timer_html' => $this->renderTimerChip($order),
@@ -819,7 +836,8 @@ class OrderController extends Controller
             'details.package',
             'details.address',
             'transfers',
-            'contracts'
+            'contracts',
+            'notes.admin'
         ])->find($orderId);
 
         if (!$data) {
@@ -846,7 +864,8 @@ class OrderController extends Controller
             'details.package',
             'details.address',
             'transfers',
-            'contracts'
+            'contracts',
+            'notes.admin'
         ])->find($orderId);
 
         if (!$data) {
@@ -858,6 +877,29 @@ class OrderController extends Controller
         $activities = $this->buildOrderActivitiesTimeline($data);
 
         return view('admin.ingaz.orders.show', compact('data', 'activities'));
+    }
+
+    public function storeNote(Request $request, $orderId)
+    {
+        abort_unless(@AdminGuardHasPerm(\App\PermKeys::ORDERS_EDIT), 403);
+
+        $validated = $request->validate([
+            'note' => ['required', 'string', 'max:2000'],
+        ], [
+            'note.required' => 'نص الملاحظة مطلوب.',
+            'note.max' => 'يجب ألا تتجاوز الملاحظة 2000 حرف.',
+        ]);
+
+        $order = Order::withTrashed()->findOrFail($orderId);
+        $this->assertCanAccessBranchModel($order, 'orders');
+
+        $order->notes()->create([
+            'admin_id' => auth('admin')->id(),
+            'note' => trim($validated['note']),
+        ]);
+
+        return redirect(route('showSingleOrder', ['orderId' => $order->id]) . '#order-notes')
+            ->with('success', 'تمت إضافة الملاحظة على الطلب بنجاح.');
     }
 
     private function buildOrderActivitiesTimeline(Order $order)
@@ -1297,7 +1339,8 @@ class OrderController extends Controller
             'no_deadline' => __('ingaz.no_deadline'),
         ];
 
-        $deadlineFormatted = $order->deadline_at ? $order->deadline_at->format('Y-m-d H:i') : null;
+        $deadline = $order->getEffectiveDeadline();
+        $deadlineFormatted = $deadline?->format('Y-m-d H:i');
         $phaseLabel = $this->getTimerPhaseLabel($order->status);
 
         if (!$remaining) {
@@ -1328,6 +1371,10 @@ class OrderController extends Controller
 
     private function renderTimerChip(Order $order): string
     {
+        if ($this->isCompletedOrder($order)) {
+            return '';
+        }
+
         $meta = $this->buildTimerMeta($order);
 
         if (!$meta['has_deadline']) {
@@ -1395,7 +1442,9 @@ class OrderController extends Controller
 
     public function exportPdf()
     {
-        $orders = objModel::with('user', 'maid', 'jobType', 'details.admin')->get();
+        $orders = objModel::with('user', 'maid', 'jobType', 'details.admin')
+            ->recruitmentRequests()
+            ->get();
 
         // Create HTML content with RTL support and better styling
         $html = '<!DOCTYPE html>
@@ -1538,7 +1587,9 @@ class OrderController extends Controller
 
     public function exportExcel()
     {
-        $orders = objModel::with('user', 'maid', 'jobType', 'details.admin')->get();
+        $orders = objModel::with('user', 'maid', 'jobType', 'details.admin')
+            ->recruitmentRequests()
+            ->get();
 
         // Create new Spreadsheet object
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();

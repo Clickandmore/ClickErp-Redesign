@@ -6,12 +6,47 @@
     <style>
         /* إحصائيات محسنة */
         .stats-card {
+            --accent: var(--cm-teal, #0f6b6e);
+            --soft: rgba(15, 107, 110, .10);
             background: white;
-            border-radius: 10px;
+            border: 1px solid #e8ecf3;
+            border-top: 3px solid var(--accent);
+            border-radius: 12px;
             padding: 20px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            border-left: 4px solid;
+            box-shadow: 0 5px 16px rgba(34, 45, 76, 0.05);
             transition: all 0.3s ease;
+            min-height: 112px;
+            overflow: hidden;
+        }
+
+        .stats-number {
+            color: var(--cm-navy, #0f1b2d);
+            font-size: 28px;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .stats-label {
+            color: var(--cm-muted, #68778a);
+            font-size: 13px;
+            margin-top: 7px;
+        }
+
+        .stats-icon {
+            align-items: center;
+            background: var(--soft);
+            border-radius: 12px;
+            color: var(--accent);
+            display: flex;
+            font-size: 22px;
+            height: 50px;
+            justify-content: center;
+            opacity: 1;
+            position: absolute;
+            inset-inline-end: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 50px;
         }
 
         .stats-card:hover {
@@ -20,48 +55,150 @@
         }
 
         .stats-card.total {
-            border-left-color: #667eea;
+            --accent: var(--cm-navy, #0f1b2d);
+            --soft: rgba(15, 27, 45, .09);
         }
 
         .stats-card.pending {
-            border-left-color: #ffc107;
+            --accent: var(--cm-slate, #4f6f82);
+            --soft: rgba(79, 111, 130, .11);
         }
 
         .stats-card.progress2 {
-            border-left-color: #17a2b8;
+            --accent: var(--cm-teal-soft, #3f8691);
+            --soft: rgba(63, 134, 145, .11);
         }
 
         .stats-card.resolved {
-            border-left-color: #28a745;
+            --accent: var(--cm-teal, #0f6b6e);
+            --soft: rgba(15, 107, 110, .11);
         }
 
 
         /* فلاتر محسنة */
+        .complaints-page .btn-primary,
+        .complaints-page .btn-success,
+        #quickResponseModal .modal-header {
+            background: var(--cm-teal, #0f6b6e) !important;
+            border-color: var(--cm-teal, #0f6b6e) !important;
+            color: #fff !important;
+        }
+
+        .complaints-page .btn-primary:hover,
+        .complaints-page .btn-success:hover {
+            background: #0c5356 !important;
+            border-color: #0c5356 !important;
+        }
+
+        .complaints-page .btn-secondary {
+            background: var(--cm-slate, #4f6f82);
+            border-color: var(--cm-slate, #4f6f82);
+        }
+
+        .complaints-page .btn-outline-primary {
+            border-color: var(--cm-teal, #0f6b6e);
+            color: var(--cm-teal, #0f6b6e);
+        }
+
+        .complaints-page .btn-outline-primary:hover {
+            background: var(--cm-teal, #0f6b6e);
+            color: #fff;
+        }
+
         .filter-section {
             background: white;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e8ecf3;
+            border-radius: 14px;
+            box-shadow: 0 6px 20px rgba(34, 45, 76, 0.06);
             margin-bottom: 25px;
+            overflow: visible;
+        }
+
+        .filter-section__header {
+            align-items: center;
+            display: flex;
+            gap: 12px;
+            justify-content: space-between;
+            padding: 16px 20px;
+        }
+
+        .filter-section__heading {
+            align-items: center;
+            display: flex;
+            gap: 10px;
+            margin: 0;
+        }
+
+        .filter-section__body {
+            border-top: 1px solid #edf0f5;
+            background: #fbfcfe;
+            border-radius: 0 0 14px 14px;
+            padding: 22px;
+        }
+
+        .filter-section__body .form-control,
+        .filter-section__body .form-select,
+        .filter-section__body .select2-selection {
+            border-color: #dfe4ec !important;
+            border-radius: 8px !important;
+            min-height: 40px;
+        }
+
+        .filter-section__body .form-control:focus,
+        .filter-section__body .form-select:focus,
+        .filter-section__body .select2-container--focus .select2-selection,
+        .filter-section__body .select2-container--open .select2-selection {
+            border-color: var(--cm-teal, #0f6b6e) !important;
+            box-shadow: 0 0 0 3px rgba(15, 107, 110, .10) !important;
+        }
+
+        .filter-section__actions {
+            align-items: center;
+            border-top: 1px dashed #dfe4ec;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 20px;
+            padding-top: 18px;
+        }
+
+        .filter-section__actions .btn {
+            min-width: 125px;
+        }
+
+        .filter-toggle-icon {
+            transition: transform .2s ease;
+        }
+
+        .filter-toggle[aria-expanded="true"] .filter-toggle-icon {
+            transform: rotate(180deg);
+        }
+
+        .active-filter-count {
+            background: rgba(15, 107, 110, .10);
+            color: var(--cm-teal, #0f6b6e);
+            font-weight: 600;
         }
 
         .filter-label {
             font-weight: 600;
-            color: #495057;
+            color: var(--cm-ink, #101827);
             margin-bottom: 8px;
             font-size: 13px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0;
         }
 
         /* عرض البطاقات */
         .ticket-card {
+            --accent: var(--cm-teal, #0f6b6e);
             background: white;
-            border-radius: 10px;
+            border: 1px solid #e8ecf3;
+            border-top: 3px solid var(--accent);
+            border-radius: 12px;
             padding: 20px;
             margin-bottom: 20px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            border-left: 4px solid;
             transition: all 0.3s ease;
         }
 
@@ -71,26 +208,26 @@
         }
 
         .ticket-card.priority-urgent {
-            border-left-color: #dc3545;
+            --accent: var(--danger, #b95b5a);
         }
 
         .ticket-card.priority-high {
-            border-left-color: #fd7e14;
+            --accent: var(--cm-navy, #0f1b2d);
         }
 
         .ticket-card.priority-medium {
-            border-left-color: #ffc107;
+            --accent: var(--cm-teal, #0f6b6e);
         }
 
         .ticket-card.priority-low {
-            border-left-color: #17a2b8;
+            --accent: var(--cm-slate, #4f6f82);
         }
 
         .ticket-number {
-            background: #6c757d;
-            color: white;
-            padding: 3px 8px;
-            border-radius: 5px;
+            background: rgba(15, 107, 110, .10);
+            color: var(--cm-teal, #0f6b6e);
+            padding: 5px 9px;
+            border-radius: 7px;
             font-size: 12px;
             font-weight: bold;
             display: inline-block;
@@ -98,7 +235,8 @@
 
         /* شارات الحالة */
         .status-badge {
-            padding: 5px 12px;
+            border: 1px solid transparent;
+            padding: 6px 11px;
             border-radius: 20px;
             font-size: 12px;
             font-weight: 600;
@@ -106,28 +244,78 @@
         }
 
         .status-pending {
-            background: #fff3cd;
-            color: #856404;
+            background: #eef3f5;
+            border-color: #d9e3e8;
+            color: #4f6f82;
         }
 
         .status-in_progress {
-            background: #cce5ff;
-            color: #004085;
+            background: #e7f2f3;
+            border-color: #c9dfe1;
+            color: #0f6b6e;
         }
 
         .status-resolved {
-            background: #d4edda;
-            color: #155724;
+            background: #e6f1ef;
+            border-color: #c5dfda;
+            color: #0c595b;
         }
 
         .status-closed {
-            background: #f8d7da;
-            color: #721c24;
+            background: #edf0f3;
+            border-color: #d6dce2;
+            color: #0f1b2d;
         }
 
         .status-rejected {
-            background: #f8d7da;
-            color: #721c24;
+            background: #f8ecec;
+            border-color: #eccfcf;
+            color: #a64f4e;
+        }
+
+        .priority-badge {
+            border: 1px solid transparent;
+            border-radius: 7px;
+            display: inline-flex;
+            font-size: 12px;
+            font-weight: 600;
+            gap: 5px;
+            padding: 5px 9px;
+        }
+
+        .priority-urgent-badge { background: #f8ecec; border-color: #eccfcf; color: #a64f4e; }
+        .priority-high-badge { background: #edf0f3; border-color: #d6dce2; color: #0f1b2d; }
+        .priority-medium-badge { background: #e7f2f3; border-color: #c9dfe1; color: #0f6b6e; }
+        .priority-low-badge { background: #eef3f5; border-color: #d9e3e8; color: #4f6f82; }
+
+        .click-accent,
+        .complaint-assignee {
+            color: var(--cm-teal, #0f6b6e) !important;
+        }
+
+        .complaint-type-badge {
+            background: rgba(15, 107, 110, .09);
+            border: 1px solid rgba(15, 107, 110, .18);
+            border-radius: 999px;
+            color: var(--cm-teal, #0f6b6e);
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 5px 9px;
+        }
+
+        #complaintsTable thead th {
+            background: var(--cm-ice, #f7f9fb);
+            border-bottom: 1px solid #dde5ea;
+            color: var(--cm-slate, #4f6f82);
+            font-size: 12px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        #complaintsTable tbody td {
+            border-color: #eef1f5;
+            vertical-align: middle;
         }
 
         /* تبديل العرض */
@@ -141,20 +329,20 @@
             padding: 8px 15px;
             background: white;
             border: 1px solid #dee2e6;
-            color: #6c757d;
+            color: var(--cm-muted, #68778a);
         }
 
         .view-toggle .btn.active {
-            background: #667eea;
+            background: var(--cm-teal, #0f6b6e);
             color: white;
-            border-color: #667eea;
+            border-color: var(--cm-teal, #0f6b6e);
         }
 
         /* أزرار الإجراءات */
         .action-buttons {
             display: flex;
-            gap: 5px;
             justify-content: center;
+            white-space: nowrap;
         }
 
         .btn-icon {
@@ -174,18 +362,118 @@
             transform: scale(1.1);
         }
 
+        .complaint-actions .dropdown-menu {
+            border: 1px solid #e5e9f0;
+            border-radius: 10px;
+            box-shadow: 0 12px 28px rgba(34, 45, 76, .15);
+            min-width: 205px;
+            padding: 7px;
+            text-align: start;
+            z-index: 1080;
+        }
+
+        .complaint-actions .dropdown-item {
+            align-items: center;
+            border: 0;
+            border-radius: 6px;
+            display: flex;
+            gap: 9px;
+            padding: 8px 10px;
+            width: 100%;
+        }
+
+        .complaint-actions .dropdown-item i {
+            text-align: center;
+            width: 16px;
+        }
+
+        .complaint-actions .dropdown-item.text-danger:hover {
+            background: #f8ecec;
+            color: var(--danger, #b95b5a) !important;
+        }
+
+        .actions-trigger {
+            align-items: center;
+            background: rgba(15, 107, 110, .09);
+            border: 1px solid rgba(15, 107, 110, .20);
+            border-radius: 8px;
+            color: var(--cm-teal, #0f6b6e);
+            display: inline-flex;
+            font-weight: 600;
+            gap: 7px;
+            justify-content: center;
+            min-width: 105px;
+            padding: 7px 11px;
+        }
+
+        .actions-trigger:hover,
+        .actions-trigger:focus,
+        .actions-trigger[aria-expanded="true"] {
+            background: var(--cm-teal, #0f6b6e);
+            border-color: var(--cm-teal, #0f6b6e);
+            color: #fff;
+            box-shadow: 0 5px 12px rgba(15, 107, 110, .22);
+        }
+
+        .actions-trigger .fa-chevron-down {
+            font-size: 9px;
+            transition: transform .2s ease;
+        }
+
+        .actions-trigger[aria-expanded="true"] .fa-chevron-down {
+            transform: rotate(180deg);
+        }
+
+        #complaintsTable_wrapper .dataTables_filter {
+            margin-bottom: 14px;
+        }
+
+        #complaintsTable_wrapper .page-item.active .page-link {
+            background: var(--cm-teal, #0f6b6e) !important;
+            border-color: var(--cm-teal, #0f6b6e) !important;
+        }
+
+        #complaintsTable_wrapper .dataTables_filter input:focus {
+            border-color: var(--cm-teal, #0f6b6e);
+            box-shadow: 0 0 0 3px rgba(15, 107, 110, .10);
+            outline: 0;
+        }
+
+        @media (max-width: 767.98px) {
+            .filter-section__header {
+                align-items: flex-start;
+            }
+
+            .filter-toggle-text {
+                display: none;
+            }
+
+            .view-toggle {
+                width: 100%;
+            }
+
+            .view-toggle .btn {
+                flex: 1;
+            }
+
+            .filter-section__actions .btn {
+                flex: 1;
+                min-width: 0;
+            }
+        }
+
         /* معلومات التذكرة */
         .ticket-meta {
             display: flex;
             gap: 20px;
             margin-top: 10px;
             font-size: 13px;
-            color: #6c757d;
+            color: var(--cm-muted, #68778a);
         }
 
         .ticket-meta i {
             margin-left: 5px;
-            color: #667eea;
+            color: var(--cm-teal, #0f6b6e);
         }
     </style>
 @endsection
@@ -197,11 +485,11 @@
 @section('content')
     @if (@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_VIEW))
 
-        <div class="container-fluid">
+        <div class="container-fluid complaints-page">
             <!-- Header Section -->
             <div class="d-sm-flex align-items-center justify-content-between mb-4">
                 <h3 class="h3 mb-0 text-gray-800">
-                    <i class="fas fa-exclamation-triangle text-primary me-2"></i>
+                    <i class="fas fa-exclamation-triangle click-accent me-2"></i>
                     {{ __('ingaz.complaints_and_tickets_management') }}
                 </h3>
                 @if (@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_CREATE))
@@ -249,19 +537,35 @@
 
             <!-- Filters Section -->
             <div class="filter-section">
-                <h5 class="mb-4">
-                    <i class="fas fa-filter me-2"></i>
-                    {{ __('ingaz.advanced_search_filters') }}
-                </h5>
+                <div class="filter-section__header">
+                    <div class="filter-section__heading">
+                        <span class="d-inline-flex align-items-center justify-content-center rounded-circle bg-light click-accent"
+                              style="width: 38px; height: 38px;">
+                            <i class="fas fa-filter"></i>
+                        </span>
+                        <div>
+                            <h5 class="mb-1">{{ __('ingaz.advanced_search_filters') }}</h5>
+                            <span id="activeFilterCount" class="badge active-filter-count d-none"></span>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary filter-toggle" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#complaintsFiltersCollapse"
+                            aria-expanded="false" aria-controls="complaintsFiltersCollapse">
+                        <span class="filter-toggle-text">{{ __('ingaz.expand_filters') }}</span>
+                        <i class="fas fa-chevron-down ms-1 filter-toggle-icon"></i>
+                    </button>
+                </div>
 
-                <div class="row">
-                    @include('admin.partials.branch-filter', ['id' => 'branchFilter', 'containerClass' => 'col-md-2 mb-3'])
-                    <div class="col-md-2 mb-3">
+                <div class="collapse" id="complaintsFiltersCollapse">
+                    <div class="filter-section__body">
+                <div class="row g-3">
+                    @include('admin.partials.branch-filter', ['id' => 'branchFilter', 'containerClass' => 'col-xl-3 col-md-6'])
+                    <div class="col-xl-3 col-md-6">
                         <label class="filter-label">{{ __('ingaz.ticket_number') }}</label>
                         <input type="text" id="filterTicketNumber" class="form-control" placeholder="#000000">
                     </div>
 
-                    <div class="col-md-2 mb-3">
+                    <div class="col-xl-3 col-md-6">
                         <label class="filter-label">{{ __('ingaz.status') }}</label>
                         <select id="filterStatus" class="form-select">
                             <option value="">{{ __('ingaz.all_statuses') }}</option>
@@ -273,7 +577,7 @@
                         </select>
                     </div>
 
-                    <div class="col-md-2 mb-3">
+                    <div class="col-xl-3 col-md-6">
                         <label class="filter-label">{{ __('ingaz.priority') }}</label>
                         <select id="filterPriority" class="form-select">
                             <option value="">{{ __('ingaz.all_priorities') }}</option>
@@ -284,7 +588,7 @@
                         </select>
                     </div>
 
-                    <div class="col-md-2 mb-3">
+                    <div class="col-xl-3 col-md-6">
                         <label class="filter-label">{{ __('ingaz.complaint_type') }}</label>
                         <select id="filterType" class="form-select select2">
                             <option value="">{{ __('ingaz.all_types') }}</option>
@@ -296,7 +600,7 @@
                         </select>
                     </div>
 
-                    <div class="col-md-2 mb-3">
+                    <div class="col-xl-3 col-md-6">
                         <label class="filter-label">{{ __('ingaz.assigned_employee') }}</label>
                         <select id="filterAssigned" class="form-select select2">
                             <option value="">{{ __('ingaz.all_employees') }}</option>
@@ -308,7 +612,7 @@
                         </select>
                     </div>
 
-                    <div class="col-md-2 mb-3">
+                    <div class="col-xl-3 col-md-6">
                         <label class="filter-label">{{ __('ingaz.time_period') }}</label>
                         <select id="filterPeriod" class="form-select">
                             <option value="">{{ __('ingaz.all_times') }}</option>
@@ -322,19 +626,18 @@
                 </div>
 
                 <!-- Custom Date Range -->
-                <div class="row mt-3" id="customDateRange" style="display: none;">
-                    <div class="col-md-3">
+                <div class="row g-3 mt-1" id="customDateRange" style="display: none;">
+                    <div class="col-md-6">
                         <label class="filter-label">{{ __('ingaz.from_date') }}</label>
                         <input type="date" id="filterDateFrom" class="form-control">
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-6">
                         <label class="filter-label">{{ __('ingaz.to_date') }}</label>
                         <input type="date" id="filterDateTo" class="form-control">
                     </div>
                 </div>
 
-                <div class="row mt-3">
-                    <div class="col-12">
+                <div class="filter-section__actions">
                         <button id="applyFilters" class="btn btn-primary">
                             <i class="fas fa-search me-2"></i>{{ __('ingaz.apply_filters') }}
                         </button>
@@ -344,6 +647,7 @@
                         <button id="exportData" class="btn btn-success">
                             <i class="fas fa-file-excel me-2"></i>{{ __('ingaz.export_excel') }}
                         </button>
+                </div>
                     </div>
                 </div>
             </div>
@@ -518,7 +822,26 @@
                 noComplaints: @json(__('ingaz.no_complaints')),
                 view: @json(__('ingaz.view')),
                 reply: @json(__('ingaz.reply')),
+                actions: @json(__('ingaz.actions')),
+                expandFilters: @json(__('ingaz.expand_filters')),
+                collapseFilters: @json(__('ingaz.collapse_filters')),
+                activeFilters: @json(__('ingaz.active_filters_count', ['count' => '__COUNT__'])),
             };
+
+            const complaintUrls = {
+                show: @json(route('complaints.show', ['complaint' => '__ID__'])),
+                edit: @json(route('complaints.edit', ['complaint' => '__ID__'])),
+                destroy: @json(route('complaints.destroy', ['complaint' => '__ID__'])),
+            };
+            const complaintPermissions = {
+                respond: @if (@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_RESPONSE)) true @else false @endif,
+                edit: @if (@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_EDIT)) true @else false @endif,
+                delete: @if (@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_DELETE)) true @else false @endif,
+            };
+
+            function complaintUrl(type, id) {
+                return complaintUrls[type].replace('__ID__', id);
+            }
 
             // Initialize Select2
             $('.select2').select2({
@@ -599,7 +922,7 @@
                         data: 'complaint_type',
                         render: function (data, type, row) {
                             if (row.complaintType) {
-                                return '<span class="badge bg-info">' + row.complaintType.name + '</span>';
+                                return '<span class="complaint-type-badge">' + row.complaintType.name + '</span>';
                             }
                             return '<span class="text-muted">' + complaintsTranslations.notSpecified + '</span>';
                         },searchable: true
@@ -608,10 +931,10 @@
                         data: 'priority',
                         render: function (data) {
                             const priorities = {
-                                'urgent': '<span class="badge bg-danger"><i class="fas fa-exclamation-circle me-1"></i>' + complaintsTranslations.priorityUrgent + '</span>',
-                                'high': '<span class="badge bg-warning"><i class="fas fa-arrow-up me-1"></i>' + complaintsTranslations.priorityHigh + '</span>',
-                                'medium': '<span class="badge bg-info"><i class="fas fa-minus me-1"></i>' + complaintsTranslations.priorityMedium + '</span>',
-                                'low': '<span class="badge bg-secondary"><i class="fas fa-arrow-down me-1"></i>' + complaintsTranslations.priorityLow + '</span>'
+                                'urgent': '<span class="priority-badge priority-urgent-badge"><i class="fas fa-exclamation-circle"></i>' + complaintsTranslations.priorityUrgent + '</span>',
+                                'high': '<span class="priority-badge priority-high-badge"><i class="fas fa-arrow-up"></i>' + complaintsTranslations.priorityHigh + '</span>',
+                                'medium': '<span class="priority-badge priority-medium-badge"><i class="fas fa-minus"></i>' + complaintsTranslations.priorityMedium + '</span>',
+                                'low': '<span class="priority-badge priority-low-badge"><i class="fas fa-arrow-down"></i>' + complaintsTranslations.priorityLow + '</span>'
                             };
                             return priorities[data] || '<span class="badge bg-light text-dark">' + complaintsTranslations.notSpecified + '</span>';
                         },searchable: true
@@ -633,7 +956,7 @@
                         data: 'assignedTo',
                         render: function (data, type, row) {
                             if (data && data.name) {
-                                return '<span class="text-primary"><i class="fas fa-user-tie me-1"></i>' + data.name + '</span>';
+                                return '<span class="complaint-assignee"><i class="fas fa-user-tie me-1"></i>' + data.name + '</span>';
                             }
                             return '<span class="text-muted">' + complaintsTranslations.notSpecified + '</span>';
                         },searchable: true
@@ -660,35 +983,33 @@
                             let actions = '<div class="action-buttons">';
                             let isClosed = (row.status === 'closed' || row.status === 'resolved' || row.status === 'rejected');
 
-                            // View button - متاح دائماً
-                            actions += '<a href="/admin/complaints/' + row.id + '" class="btn btn-icon btn-sm btn-info" title="' + complaintsTranslations.viewDetails + '">';
-                            actions += '<i class="fas fa-eye"></i></a>';
+                            actions += '<div class="dropdown complaint-actions">';
+                            actions += '<button class="btn btn-sm actions-trigger" type="button" data-bs-toggle="dropdown" aria-expanded="false">';
+                            actions += '<i class="fas fa-sliders-h"></i><span>' + complaintsTranslations.actions + '</span><i class="fas fa-chevron-down"></i></button>';
+                            actions += '<div class="dropdown-menu dropdown-menu-end">';
+                            actions += '<a href="' + complaintUrl('show', row.id) + '" class="dropdown-item">';
+                            actions += '<i class="fas fa-eye click-accent"></i>' + complaintsTranslations.viewDetails + '</a>';
 
-                            // Quick response button - غير متاح للتذاكر المغلقة
-                            @if(@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_RESPONSE))
                             if (!isClosed) {
-                                actions += '<button class="btn btn-icon btn-sm btn-success quick-response" data-id="' + row.id + '" title="' + complaintsTranslations.quickResponse + '">';
-                                actions += '<i class="fas fa-reply"></i></button>';
-                            }
-                            @endif
 
-                            // Edit button - غير متاح للتذاكر المغلقة
-                            @if(@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_EDIT))
-                            if (!isClosed) {
-                                actions += '<a href="/admin/complaints/' + row.id + '/edit" class="btn btn-icon btn-sm btn-warning" title="' + complaintsTranslations.edit + '">';
-                                actions += '<i class="fas fa-edit"></i></a>';
-                            }
-                            @endif
+                                if (complaintPermissions.respond) {
+                                    actions += '<div class="dropdown-divider"></div>';
+                                    actions += '<button type="button" class="dropdown-item quick-response" data-id="' + row.id + '">';
+                                    actions += '<i class="fas fa-reply text-success"></i>' + complaintsTranslations.quickResponse + '</button>';
+                                }
+                                if (complaintPermissions.edit) {
+                                    actions += '<a href="' + complaintUrl('edit', row.id) + '" class="dropdown-item">';
+                                    actions += '<i class="fas fa-edit text-warning"></i>' + complaintsTranslations.edit + '</a>';
+                                }
+                                if (complaintPermissions.delete) {
+                                    actions += '<div class="dropdown-divider"></div>';
+                                    actions += '<button type="button" class="dropdown-item text-danger delete-complaint" data-id="' + row.id + '">';
+                                    actions += '<i class="fas fa-trash"></i>' + complaintsTranslations.delete + '</button>';
+                                }
 
-                            // Delete button - غير متاح للتذاكر المغلقة
-                            @if(@AdminGuardHasPerm(\App\PermKeys::COMPLAINT_DELETE))
-                            if (!isClosed) {
-                                actions += '<button class="btn btn-icon btn-sm btn-danger delete-complaint" data-id="' + row.id + '" title="' + complaintsTranslations.delete + '">';
-                                actions += '<i class="fas fa-trash"></i></button>';
                             }
-                            @endif
 
-                                actions += '</div>';
+                            actions += '</div></div></div>';
                             return actions;
                         }
                     }
@@ -718,9 +1039,47 @@
                 buttons: []
             });
 
+            const filterControlIds = [
+                '#branchFilter', '#filterTicketNumber', '#filterStatus', '#filterPriority',
+                '#filterType', '#filterAssigned', '#filterPeriod', '#filterDateFrom', '#filterDateTo'
+            ];
+
+            function activeFilterCount() {
+                return filterControlIds.filter(function (selector) {
+                    const value = $(selector).val();
+                    return value !== null && String(value).trim() !== '';
+                }).length;
+            }
+
+            function updateFilterSummary() {
+                const count = activeFilterCount();
+                const $badge = $('#activeFilterCount');
+
+                if (count > 0) {
+                    $badge.text(complaintsTranslations.activeFilters.replace('__COUNT__', count)).removeClass('d-none');
+                } else {
+                    $badge.addClass('d-none').text('');
+                }
+            }
+
+            $('#complaintsFiltersCollapse')
+                .on('show.bs.collapse', function () {
+                    $('.filter-toggle-text').text(complaintsTranslations.collapseFilters);
+                })
+                .on('hide.bs.collapse', function () {
+                    $('.filter-toggle-text').text(complaintsTranslations.expandFilters);
+                });
+
+            $(filterControlIds.join(',')).on('input change', updateFilterSummary);
+            updateFilterSummary();
+
             // Apply filters
             $('#applyFilters').click(function () {
+                updateFilterSummary();
                 table.ajax.reload();
+                if ($('#cardView').hasClass('active')) {
+                    loadCardView();
+                }
             });
 
             // Reset filters
@@ -735,7 +1094,18 @@
                 $('#filterDateFrom').val('');
                 $('#filterDateTo').val('');
                 $('#customDateRange').hide();
+                updateFilterSummary();
                 table.ajax.reload();
+                if ($('#cardView').hasClass('active')) {
+                    loadCardView();
+                }
+            });
+
+            $('#filterTicketNumber').on('keydown', function (event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    $('#applyFilters').trigger('click');
+                }
             });
 
             // Show custom date range
@@ -824,7 +1194,7 @@
                 }).then((result) => {
                     if (result.isConfirmed) {
                         $.ajax({
-                            url: '/admin/complaints/' + complaintId,
+                            url: complaintUrl('destroy', complaintId),
                             type: 'DELETE',
                             data: {
                                 _token: '{{ csrf_token() }}'
@@ -877,7 +1247,11 @@
                         status: $('#filterStatus').val(),
                         priority: $('#filterPriority').val(),
                         type: $('#filterType').val(),
-                        assigned_to: $('#filterAssigned').val()
+                        assigned_to: $('#filterAssigned').val(),
+                        ticket_number: $('#filterTicketNumber').val(),
+                        period: $('#filterPeriod').val(),
+                        date_from: $('#filterDateFrom').val(),
+                        date_to: $('#filterDateTo').val()
                     },
                     success: function (response) {
                         let html = '';
@@ -900,6 +1274,18 @@
                 let priorityClass = 'priority-' + (ticket.priority || 'medium');
                 let statusBadge = getStatusBadge(ticket.status);
                 let priorityBadge = getPriorityBadge(ticket.priority);
+                let isClosed = ['closed', 'resolved', 'rejected'].includes(ticket.status);
+                let cardActions = '<a href="' + complaintUrl('show', ticket.id) + '" class="btn btn-sm btn-primary">' +
+                    '<i class="fas fa-eye me-1"></i>' + complaintsTranslations.view + '</a>';
+
+                if (!isClosed && complaintPermissions.edit) {
+                    cardActions += '<a href="' + complaintUrl('edit', ticket.id) + '" class="btn btn-sm btn-outline-warning">' +
+                        '<i class="fas fa-edit me-1"></i>' + complaintsTranslations.edit + '</a>';
+                }
+                if (!isClosed && complaintPermissions.respond) {
+                    cardActions += '<button class="btn btn-sm btn-outline-success quick-response" data-id="' + ticket.id + '">' +
+                        '<i class="fas fa-reply me-1"></i>' + complaintsTranslations.reply + '</button>';
+                }
 
                 return `
             <div class="col-md-6 col-lg-4 mb-3">
@@ -909,30 +1295,28 @@
                         ${statusBadge}
                     </div>
 
-                    <h5 class="card-title">${ticket.subject || complaintsTranslations.noSubject}</h5>
+                    <h5 class="card-title">${escapeHtml(ticket.subject || complaintsTranslations.noSubject)}</h5>
 
                     <div class="ticket-meta">
-                        <span><i class="fas fa-user"></i>${ticket.complainant_name || complaintsTranslations.notSpecified}</span>
+                        <span><i class="fas fa-user"></i>${escapeHtml(ticket.complainant_name || complaintsTranslations.notSpecified)}</span>
                         <span><i class="fas fa-calendar"></i>${new Date(ticket.created_at).toLocaleDateString('ar-SA')}</span>
                     </div>
 
                     <div class="mt-3">
                         ${priorityBadge}
-                        ${ticket.complaintType ? '<span class="badge bg-info ms-2">' + ticket.complaintType.name + '</span>' : ''}
+                        ${ticket.complaintType ? '<span class="complaint-type-badge ms-2">' + escapeHtml(ticket.complaintType.name) + '</span>' : ''}
                     </div>
 
-                    <div class="mt-3 d-flex gap-2">
-                        <a href="/admin/complaints/${ticket.id}" class="btn btn-sm btn-primary">
-                            <i class="fas fa-eye me-1"></i>${complaintsTranslations.view}
-                        </a>
-                        ${ticket.status === 'pending' || ticket.status === 'in_progress' ?
-                    '<a href="/admin/complaints/' + ticket.id + '/edit" class="btn btn-sm btn-warning"><i class="fas fa-edit me-1"></i>' + complaintsTranslations.edit + '</a>' : ''}
-                        ${ticket.status !== 'closed' && ticket.status !== 'resolved' ?
-                    '<button class="btn btn-sm btn-success quick-response" data-id="' + ticket.id + '"><i class="fas fa-reply me-1"></i>' + complaintsTranslations.reply + '</button>' : ''}
+                    <div class="mt-3 d-flex flex-wrap gap-2">
+                        ${cardActions}
                     </div>
                 </div>
             </div>
         `;
+            }
+
+            function escapeHtml(value) {
+                return $('<div>').text(value == null ? '' : String(value)).html();
             }
 
             // Get status badge
@@ -950,10 +1334,10 @@
             // Get priority badge
             function getPriorityBadge(priority) {
                 const priorities = {
-                    'urgent': '<span class="badge bg-danger">' + complaintsTranslations.priorityUrgent + '</span>',
-                    'high': '<span class="badge bg-warning">' + complaintsTranslations.priorityHigh + '</span>',
-                    'medium': '<span class="badge bg-info">' + complaintsTranslations.priorityMedium + '</span>',
-                    'low': '<span class="badge bg-secondary">' + complaintsTranslations.priorityLow + '</span>'
+                    'urgent': '<span class="priority-badge priority-urgent-badge">' + complaintsTranslations.priorityUrgent + '</span>',
+                    'high': '<span class="priority-badge priority-high-badge">' + complaintsTranslations.priorityHigh + '</span>',
+                    'medium': '<span class="priority-badge priority-medium-badge">' + complaintsTranslations.priorityMedium + '</span>',
+                    'low': '<span class="priority-badge priority-low-badge">' + complaintsTranslations.priorityLow + '</span>'
                 };
                 return priorities[priority] || '';
             }
@@ -962,6 +1346,7 @@
             $('#exportData').click(function () {
                 window.location.href = "{{ route('complaints.index') }}?export=excel&" + $.param({
                     branch_id: $('#branchFilter').val(),
+                    ticket_number: $('#filterTicketNumber').val(),
                     status: $('#filterStatus').val(),
                     priority: $('#filterPriority').val(),
                     type: $('#filterType').val(),

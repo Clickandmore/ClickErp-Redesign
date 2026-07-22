@@ -2642,6 +2642,7 @@ class RecruitmentContractController extends Controller
             ->where('job_type_id', 1)
             ->whereIn('status', $this->contractableRecruitmentOrderStatuses())
             ->whereDoesntHave('contracts')
+            ->whereDoesntHave('rentalContracts')
             ->orderByDesc('created_at');
 
         // Load the selected order with all necessary relationships
@@ -2989,6 +2990,20 @@ class RecruitmentContractController extends Controller
                 'user_phone2' => $user->phone2,
                 'user_city' => $user->city
             ]);
+
+            if (!$request->order_id) {
+                $order = Order::create([
+                    'maid_id' => $contractData['maid_id'],
+                    'user_id' => $contractData['user_id'],
+                    'payment_method' => 'cash',
+                    'order_code' => Order::generateUniqueCode(),
+                    'job_type_id' => 1,
+                    'status' => OrderEnum::Completed->value,
+                    'customer_id' => $marketerId,
+                ]);
+                $order->syncResponsibleAdmin($marketerId);
+                $contractData['order_id'] = $order->id;
+            }
 
             $contractData['contract_date'] = $request->contract_date;
             $contract = Contract::create($contractData);

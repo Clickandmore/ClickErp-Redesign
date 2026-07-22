@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
@@ -55,6 +56,11 @@ class Order extends Model
     public function transfers()
     {
         return $this->hasMany(OrderTransfers::class);
+    }
+
+    public function notes()
+    {
+        return $this->hasMany(OrderNote::class)->latest();
     }
 
     // relations
@@ -177,12 +183,32 @@ class Order extends Model
         });
     }
 
+    public function scopeRecruitmentRequests(Builder $query): Builder
+    {
+        return $query->where('job_type_id', 1)
+            ->whereDoesntHave('rentalContracts')
+            ->where(function (Builder $recruitmentQuery) {
+                $recruitmentQuery->whereDoesntHave('contracts')
+                    ->orWhereHas('contracts', function (Builder $contractQuery) {
+                        $contractQuery->whereIn('type', ['recruitment', 'maid']);
+                    });
+            });
+    }
+
+    public function scopeRentalRequests(Builder $query): Builder
+    {
+        return $query->where(function (Builder $rentalQuery) {
+            $rentalQuery->where('job_type_id', 2)
+                ->orWhereHas('rentalContracts');
+        });
+    }
+
     public function getAdminAttribute(): ?Admin
     {
         return $this->resolveResponsibleAdmin();
     }
 
-    protected static function generateUniqueCode()
+    public static function generateUniqueCode()
     {
         $code = mt_rand(10000, 99999);
 
@@ -247,19 +273,24 @@ class Order extends Model
 
     public function isOverdue()
     {
-        if (!$this->deadline_at) {
+        $deadline = $this->getEffectiveDeadline();
+
+        if (!$deadline) {
             return false;
         }
-        return now()->isAfter($this->deadline_at);
+
+        return now()->isAfter($deadline);
     }
 
     public function getRemainingTime()
     {
-        if (!$this->deadline_at) {
+        $deadline = $this->getEffectiveDeadline();
+
+        if (!$deadline) {
             return null;
         }
 
-        $remaining = now()->diff($this->deadline_at);
+        $remaining = now()->diff($deadline);
 
         if ($remaining->invert) {
             // الوقت انتهى
@@ -277,6 +308,25 @@ class Order extends Model
             'minutes' => $remaining->i,
             'is_overdue' => false
         ];
+    }
+
+    /**
+     * Return the stored deadline, or derive it for legacy active orders whose
+     * timer columns were never populated.
+     */
+    public function getEffectiveDeadline(): ?Carbon
+    {
+        if ($this->deadline_at) {
+            return $this->deadline_at;
+        }
+
+        if (!self::shouldTrackDeadline($this->status)) {
+            return null;
+        }
+
+        $baseTime = $this->status_changed_at ?: $this->created_at;
+
+        return $baseTime?->copy()->addHours($this->getDeadlineHours());
     }
 
     public function getTimerStatus()
