@@ -34,7 +34,7 @@ class LatestWorkerCvController extends Controller
                 $query->where('job_type_id', $jobTypeId);
             })
             ->orderByDesc('id')
-            ->limit(10)
+            ->limit(9)
             ->get();
 
         return apiResponse(true, __('api.All items'), $maids, 200);
