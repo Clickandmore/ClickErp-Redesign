@@ -18,6 +18,7 @@ use App\Models\ingaz\JobType;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\Maid as objModel;
 use App\Models\ingaz\MaidAttachment;
+use App\Models\ingaz\MaidStatusChangeRequest;
 use App\Models\ingaz\Nationality;
 use App\Models\ingaz\Skill;
 use App\Models\MaidUnavailableRecord;
@@ -25,10 +26,13 @@ use App\Models\RecruitmentOffices;
 use App\Services\ingaz\MaidCvExtractionService;
 use App\Services\ingaz\RentalMaidFinanceService;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Yajra\DataTables\Facades\DataTables;
 
 class MaidController extends Controller
@@ -40,12 +44,12 @@ class MaidController extends Controller
 
     public function __construct()
     {
-        $this->middleware('permission:maids_view,admin', ['only' => ['index']]);
+        $this->middleware('permission:maids_view,admin', ['only' => ['index', 'pendingSubmissions']]);
         $this->middleware('permission:maids_rental_view,admin', ['only' => ['rentalIndex']]);
         $this->middleware('permission:maids_backout_view,admin', ['only' => ['noneAvailableMaids']]);
         $this->middleware('permission:maids_deleted_view,admin', ['only' => ['deletedCvs']]);
         $this->middleware('permission:maids_create,admin', ['only' => ['create', 'createRental', 'create_rapid_cv', 'store', 'store_rapid_cv', 'extractCvData']]);
-        $this->middleware('permission:maids_edit,admin', ['only' => ['edit', 'update', 'update_cv', 'updateMedia', 'updateOffer', 'backout', 'clearBackout', 'suspendCv']]);
+        $this->middleware('permission:maids_edit,admin', ['only' => ['edit', 'update', 'update_cv', 'updateMedia', 'updateOffer', 'backout', 'clearBackout', 'suspendCv', 'approveSubmission', 'rejectSubmission', 'bulkApproveSubmissions', 'approveStatusChangeRequest', 'bulkApproveStatusChangeRequests', 'rejectStatusChangeRequest']]);
         $this->middleware('permission:maids_delete,admin', ['only' => ['destroy', 'restore']]);
         $this->middleware('permission:maids_toggle_status,admin', ['only' => ['show']]);
         $this->middleware('permission:maids_bulk_visibility,admin', ['only' => ['bulkVisibility']]);
@@ -2188,11 +2192,43 @@ class MaidController extends Controller
             $query->where('office_id', $request->office_id);
         }
 
-        $maids        = $query->paginate(20)->appends($request->query());
-        $offices      = $officeAct->getAllOffices();
-        $pendingCount = objModel::pendingSubmission()->fromExternalOffice()->count();
+        $maids = $query->paginate(20, ['*'], 'cv_page')->appends($request->query());
 
-        return view('admin.ingaz.maids.pending_submissions', compact('maids', 'offices', 'pendingCount'));
+        $statusRequestsQuery = MaidStatusChangeRequest::query()
+            ->with(['maid.nationality', 'office', 'requestedBy'])
+            ->where('status', MaidStatusChangeRequest::STATUS_PENDING)
+            ->latest();
+
+        if ($request->filled('search')) {
+            $search = trim((string) $request->search);
+            $statusRequestsQuery->whereHas('maid', function ($maidQuery) use ($search) {
+                $maidQuery->where('name', 'like', "%{$search}%")
+                    ->orWhere('passport_num', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('office_id')) {
+            $statusRequestsQuery->where('office_id', $request->office_id);
+        }
+
+        $statusRequests = $statusRequestsQuery
+            ->paginate(20, ['*'], 'status_requests_page')
+            ->appends($request->query());
+        $offices      = $officeAct->getAllOffices();
+        $cvPendingCount = objModel::pendingSubmission()->fromExternalOffice()->count();
+        $statusRequestCount = MaidStatusChangeRequest::query()
+            ->where('status', MaidStatusChangeRequest::STATUS_PENDING)
+            ->count();
+        $pendingCount = $cvPendingCount + $statusRequestCount;
+
+        return view('admin.ingaz.maids.pending_submissions', compact(
+            'maids',
+            'statusRequests',
+            'offices',
+            'pendingCount',
+            'cvPendingCount',
+            'statusRequestCount'
+        ));
     }
 
     public function approveSubmission(Request $request, $id)
@@ -2209,6 +2245,41 @@ class MaidController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'تمت الموافقة على السيرة الذاتية وإضافتها للنظام',
+        ]);
+    }
+
+    public function bulkApproveSubmissions(Request $request)
+    {
+        $validated = $request->validate([
+            'maid_ids' => ['required', 'array', 'min:1', 'max:100'],
+            'maid_ids.*' => ['integer', 'distinct', 'exists:maids,id'],
+        ]);
+
+        $processedCount = 0;
+
+        DB::transaction(function () use ($validated, &$processedCount) {
+            $maids = objModel::query()
+                ->whereIn('id', $validated['maid_ids'])
+                ->where('submission_status', objModel::SUBMISSION_PENDING)
+                ->whereNotNull('office_id')
+                ->lockForUpdate()
+                ->get();
+
+            foreach ($maids as $maid) {
+                $maid->update([
+                    'submission_status' => objModel::SUBMISSION_APPROVED,
+                    'is_show' => 1,
+                    'reviewed_by' => auth('admin')->id(),
+                    'reviewed_at' => now(),
+                ]);
+                $processedCount++;
+            }
+        });
+
+        return response()->json([
+            'success' => true,
+            'processed_count' => $processedCount,
+            'message' => "تم قبول {$processedCount} سيرة ذاتية.",
         ]);
     }
 
@@ -2231,6 +2302,138 @@ class MaidController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'تم رفض السيرة الذاتية',
+        ]);
+    }
+
+    public function approveStatusChangeRequest(MaidStatusChangeRequest $statusChangeRequest)
+    {
+        DB::transaction(function () use ($statusChangeRequest) {
+            $requestRecord = MaidStatusChangeRequest::query()
+                ->whereKey($statusChangeRequest->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            abort_unless($requestRecord->status === MaidStatusChangeRequest::STATUS_PENDING, 422);
+
+            $this->applyApprovedStatusChangeRequest($requestRecord, (int) auth('admin')->id());
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم اعتماد الطلب وتحديث حالة العاملة.',
+        ]);
+    }
+
+    public function bulkApproveStatusChangeRequests(Request $request)
+    {
+        $validated = $request->validate([
+            'request_ids' => ['required', 'array', 'min:1', 'max:100'],
+            'request_ids.*' => ['integer', 'distinct', 'exists:maid_status_change_requests,id'],
+        ]);
+
+        $processedCount = 0;
+        $adminId = (int) auth('admin')->id();
+
+        DB::transaction(function () use ($validated, $adminId, &$processedCount) {
+            $requests = MaidStatusChangeRequest::query()
+                ->whereIn('id', $validated['request_ids'])
+                ->where('status', MaidStatusChangeRequest::STATUS_PENDING)
+                ->lockForUpdate()
+                ->get();
+
+            foreach ($requests as $requestRecord) {
+                $this->applyApprovedStatusChangeRequest($requestRecord, $adminId);
+                $processedCount++;
+            }
+        });
+
+        return response()->json([
+            'success' => true,
+            'processed_count' => $processedCount,
+            'message' => "تم اعتماد وتنفيذ {$processedCount} طلب.",
+        ]);
+    }
+
+    public function rejectStatusChangeRequest(Request $request, MaidStatusChangeRequest $statusChangeRequest)
+    {
+        $validated = $request->validate([
+            'review_note' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $updated = MaidStatusChangeRequest::query()
+            ->whereKey($statusChangeRequest->id)
+            ->where('status', MaidStatusChangeRequest::STATUS_PENDING)
+            ->update([
+                'status' => MaidStatusChangeRequest::STATUS_REJECTED,
+                'reviewed_by_admin_id' => auth('admin')->id(),
+                'review_note' => $validated['review_note'] ?? null,
+                'reviewed_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+        abort_unless($updated === 1, 422);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'تم رفض الطلب دون تغيير حالة العاملة.',
+        ]);
+    }
+
+    private function applyApprovedStatusChangeRequest(
+        MaidStatusChangeRequest $requestRecord,
+        int $adminId
+    ): void {
+        $maid = Maid::query()->lockForUpdate()->findOrFail($requestRecord->maid_id);
+        $hasActiveContract = $maid->contracts()
+            ->where(function (Builder $query) {
+                $query->whereNull('status')
+                    ->orWhereNotIn('status', [
+                        ContractStatusEnum::Completed->value,
+                        ContractStatusEnum::Closed->value,
+                        ContractStatusEnum::Back->value,
+                    ]);
+            })
+            ->exists();
+        $isContracted = $maid->status === 'contracted' || $hasActiveContract;
+        $isAvailable = !$isContracted
+            && ((bool) $maid->available || $maid->status === 'available')
+            && !in_array($maid->status, ['reserved', 'suspended', 'backout'], true);
+
+        if ($requestRecord->type === MaidStatusChangeRequest::TYPE_BACKOUT) {
+            if (!$isContracted) {
+                throw ValidationException::withMessages([
+                    'request' => 'لا يمكن تنفيذ Back Out إلا للعاملة المتعاقد عليها.',
+                ]);
+            }
+
+            $maid->update([
+                'status' => 'backout',
+                'available' => false,
+                'back_out_reason' => $requestRecord->reason,
+            ]);
+
+            MaidUnavailableRecord::create([
+                'maid_id' => $maid->id,
+                'reason' => $requestRecord->reason,
+                'admin_id' => $adminId,
+            ]);
+        } else {
+            if (!$isAvailable) {
+                throw ValidationException::withMessages([
+                    'request' => 'لا يمكن تعليق إلا العاملة المتاحة.',
+                ]);
+            }
+
+            $maid->update([
+                'status' => 'suspended',
+                'available' => false,
+            ]);
+        }
+
+        $requestRecord->update([
+            'status' => MaidStatusChangeRequest::STATUS_APPROVED,
+            'reviewed_by_admin_id' => $adminId,
+            'reviewed_at' => now(),
         ]);
     }
 

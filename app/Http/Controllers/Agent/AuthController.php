@@ -28,7 +28,7 @@ class AuthController extends Controller
             'login' => ['required', 'string'],
             'password' => ['required', 'string'],
         ], [
-            'login.required' => app()->getLocale() === 'ar' ? 'البريد الإلكتروني أو رقم الجوال مطلوب.' : 'Email or phone number is required.',
+            'login.required' => app()->getLocale() === 'ar' ? 'اسم المستخدم أو البريد الإلكتروني مطلوب.' : 'Username or email is required.',
             'password.required' => app()->getLocale() === 'ar' ? 'كلمة المرور مطلوبة.' : 'Password is required.',
         ]);
 
@@ -37,6 +37,7 @@ class AuthController extends Controller
             ->whereHas('agentOfficeLinks')
             ->where(function ($query) use ($login) {
                 $query->where('email', $login)
+                    ->orWhere('username', $login)
                     ->orWhere('phone', $login);
             })
             ->first();

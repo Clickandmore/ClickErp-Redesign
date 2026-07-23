@@ -110,8 +110,9 @@
             position: relative;
             overflow: hidden;
             transition: box-shadow .25s ease, transform .25s ease;
+            text-decoration: none;
         }
-        .ml-stat:hover { box-shadow: 0 12px 28px -18px rgba(15, 23, 42, .18); transform: translateY(-1px); }
+        .ml-stat:hover { box-shadow: 0 12px 28px -18px rgba(15, 23, 42, .18); transform: translateY(-1px); text-decoration: none; }
         .ml-stat__icon { width: 46px; height: 46px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
         .ml-stat__body { display: flex; flex-direction: column; min-width: 0; }
         .ml-stat__label { color: var(--ml-muted); font-size: 12px; font-weight: 600; }
@@ -156,7 +157,7 @@
 
         .ml-toolbar__row + .ml-toolbar__row { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--ml-line); }
         .ml-search {
-            display: flex; gap: 8px; align-items: center;
+            display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap;
         }
         .ml-search input {
             flex: 1; min-width: 0; min-height: 42px;
@@ -167,6 +168,21 @@
             background: var(--ml-bg-soft);
             transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
         }
+        .ml-search__date { max-width: 170px; }
+        .ml-date-field { display: flex; flex-direction: column; gap: 3px; min-width: 155px; }
+        .ml-date-field label { font-size: 11px; font-weight: 700; color: var(--ml-muted); }
+        .ml-search__clear {
+            min-height: 42px;
+            padding: 0 14px;
+            border: 1.5px solid var(--ml-line);
+            border-radius: 10px;
+            color: var(--ml-muted);
+            display: inline-flex;
+            align-items: center;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+        .ml-search__clear:hover { color: var(--ml-ink); background: var(--ml-bg-soft); text-decoration: none; }
         .ml-search input:focus {
             outline: none; background: #fff;
             border-color: var(--ml-primary);
@@ -197,6 +213,29 @@
             box-shadow: 0 4px 14px -10px rgba(15, 23, 42, .08);
             transition: box-shadow .25s ease, transform .25s ease, border-color .2s ease;
             position: relative;
+            overflow: hidden;
+        }
+        .ml-card::before {
+            content: "";
+            position: absolute;
+            inset-inline-start: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: #cbd5e1;
+        }
+        .ml-card--available::before { background: #16a34a; }
+        .ml-card--contracted::before { background: #2563eb; }
+        .ml-card--available { border-color: rgba(22, 163, 74, .2); }
+        .ml-card--contracted { border-color: rgba(37, 99, 235, .2); }
+        .ml-card__select {
+            position: absolute;
+            inset-inline-start: 12px;
+            top: 12px;
+            width: 19px;
+            height: 19px;
+            accent-color: var(--ml-primary);
+            z-index: 2;
         }
         .ml-card:hover {
             box-shadow: 0 18px 32px -18px rgba(15, 23, 42, .25);
@@ -205,7 +244,7 @@
         }
         .ml-card__top { display: flex; gap: 12px; align-items: flex-start; }
         .ml-avatar {
-            width: 64px; height: 64px;
+            width: 72px; height: 72px;
             border-radius: 14px;
             object-fit: cover;
             background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
@@ -233,10 +272,16 @@
         .ml-badge--default { background: rgba(100, 116, 139, .14); color: #475569; }
 
         .ml-sub-badge {
-            position: absolute; inset-inline-end: 12px; top: 12px;
             display: inline-flex; align-items: center; gap: 5px;
             padding: 4px 9px; border-radius: 999px;
             font-size: 10.5px; font-weight: 700;
+        }
+        .ml-card__status-row {
+            min-height: 24px;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding-inline-start: 28px;
         }
         .ml-sub-badge--pending { background: rgba(245, 158, 11, .14); color: #92400e; border: 1px solid rgba(245, 158, 11, .35); }
         .ml-sub-badge--approved { background: rgba(22, 163, 74, .12); color: #166534; border: 1px solid rgba(22, 163, 74, .35); }
@@ -247,7 +292,9 @@
         .ml-meta__label { color: var(--ml-muted); font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .3px; }
         .ml-meta__value { font-size: 13px; color: var(--ml-ink); font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-        .ml-card__actions { display: flex; gap: 6px; padding-top: 10px; border-top: 1px dashed var(--ml-line); }
+        .ml-card__actions { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 10px; border-top: 1px dashed var(--ml-line); }
+        .ml-card__actions > * { min-width: calc(50% - 3px); }
+        .ml-card__actions form { flex: 1; display: flex; margin: 0; }
         .ml-action-btn {
             flex: 1; min-height: 36px;
             border-radius: 10px;
@@ -268,6 +315,51 @@
             border-color: var(--ml-line);
         }
         .ml-action-btn--notes:hover { background: var(--ml-bg-soft); color: var(--ml-ink); }
+        .ml-action-btn--request {
+            background: #fff7ed;
+            color: #c2410c;
+            border-color: #fed7aa;
+        }
+        .ml-action-btn--request:hover { background: #ffedd5; color: #9a3412; }
+        .ml-action-btn--pending {
+            background: #fef3c7;
+            color: #92400e;
+            border-color: #fde68a;
+            cursor: default;
+        }
+        .ml-action-btn--backout {
+            background: #fef2f2;
+            color: #b91c1c;
+            border-color: #fecaca;
+        }
+        .ml-action-btn--backout:hover { background: #fee2e2; color: #991b1b; }
+
+        .ml-bulk-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding: 12px 14px;
+            margin-bottom: 14px;
+            border: 1px solid #fed7aa;
+            border-radius: 12px;
+            background: #fff7ed;
+        }
+
+        .ml-results-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin: 18px 0 12px;
+        }
+        .ml-results-title { margin: 0; color: var(--ml-ink); font-size: 17px; font-weight: 800; }
+        .ml-results-subtitle { margin: 3px 0 0; color: var(--ml-muted); font-size: 12px; }
+        .ml-results-legend { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .ml-legend-item { display: inline-flex; align-items: center; gap: 6px; color: var(--ml-muted); font-size: 12px; font-weight: 700; }
+        .ml-legend-dot { width: 9px; height: 9px; border-radius: 50%; }
 
         /* ---------- Empty state ---------- */
         .ml-empty {
@@ -288,7 +380,20 @@
         .ml-empty__text { color: var(--ml-muted); font-size: 13px; margin: 0 0 14px; }
 
         /* ---------- Pagination ---------- */
-        .ml-pagination { margin-top: 22px; display: flex; justify-content: center; }
+        .ml-pagination-wrap {
+            margin-top: 22px;
+            padding: 14px;
+            border: 1px solid var(--ml-line);
+            border-radius: 14px;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .ml-pagination-summary { color: var(--ml-muted); font-size: 12px; font-weight: 700; }
+        .ml-pagination { display: flex; justify-content: center; }
         .ml-pagination nav { display: block; }
         .ml-pagination .pagination {
             gap: 6px; margin: 0; padding: 0;
@@ -411,8 +516,29 @@
         .ml-btn-light { background: #fff; border-color: var(--ml-line); color: var(--ml-ink); }
         .ml-btn-light:hover { background: var(--ml-bg-soft); }
 
+        .ml-toast {
+            position: fixed;
+            inset-inline-end: 24px;
+            bottom: 24px;
+            z-index: 2000;
+            min-width: 260px;
+            max-width: min(420px, calc(100vw - 32px));
+            padding: 13px 16px;
+            border-radius: 12px;
+            background: #166534;
+            color: #fff;
+            box-shadow: 0 18px 40px -15px rgba(15, 23, 42, .55);
+            font-weight: 700;
+            display: none;
+        }
+        .ml-toast.is-error { background: #b91c1c; }
+        .ml-toast.is-visible { display: block; animation: ml-fade .2s ease; }
+
         @media (max-width: 640px) {
             .ml-meta { grid-template-columns: 1fr; }
+            .ml-pagination-wrap { justify-content: center; }
+            .ml-pagination-summary { width: 100%; text-align: center; }
+            .ml-pagination .page-item .page-link { min-width: 35px; height: 36px; padding: 0 9px; }
         }
     </style>
 @endpush
@@ -447,34 +573,42 @@
 
     {{-- Stat cards --}}
     <div class="ml-stats">
-        <div class="ml-stat" style="--bar:#0f766e;">
+        @php
+            $statsBaseQuery = $baseQuery;
+            unset($statsBaseQuery['worker_filter'], $statsBaseQuery['submission_filter']);
+            $allStatsQuery = $statsBaseQuery;
+            $availableStatsQuery = array_merge($statsBaseQuery, ['worker_filter' => 'available']);
+            $contractedStatsQuery = array_merge($statsBaseQuery, ['worker_filter' => 'contracted']);
+            $pendingStatsQuery = array_merge($statsBaseQuery, ['submission_filter' => 'pending']);
+        @endphp
+        <a href="{{ route('agent.maids.index', $allStatsQuery) }}" class="ml-stat" style="--bar:#0f766e;">
             <div class="ml-stat__icon" style="background: rgba(15, 118, 110, .12); color: #0f766e;"><i class="fa fa-users"></i></div>
             <div class="ml-stat__body">
                 <span class="ml-stat__label">{{ $isAr ? 'إجمالي العمالة' : 'Total Workers' }}</span>
                 <span class="ml-stat__value">{{ $filterCounts['all'] ?? 0 }}</span>
             </div>
-        </div>
-        <div class="ml-stat" style="--bar:#16a34a;">
+        </a>
+        <a href="{{ route('agent.maids.index', $availableStatsQuery) }}" class="ml-stat" style="--bar:#16a34a;">
             <div class="ml-stat__icon" style="background: rgba(22, 163, 74, .12); color: #166534;"><i class="fa fa-circle-check"></i></div>
             <div class="ml-stat__body">
                 <span class="ml-stat__label">{{ $isAr ? 'المتاحة' : 'Available' }}</span>
                 <span class="ml-stat__value">{{ $filterCounts['available'] ?? 0 }}</span>
             </div>
-        </div>
-        <div class="ml-stat" style="--bar:#2563eb;">
+        </a>
+        <a href="{{ route('agent.maids.index', $contractedStatsQuery) }}" class="ml-stat" style="--bar:#2563eb;">
             <div class="ml-stat__icon" style="background: rgba(37, 99, 235, .12); color: #1e40af;"><i class="fa fa-file-signature"></i></div>
             <div class="ml-stat__body">
                 <span class="ml-stat__label">{{ $isAr ? 'متعاقد عليها' : 'Contracted' }}</span>
                 <span class="ml-stat__value">{{ $filterCounts['contracted'] ?? 0 }}</span>
             </div>
-        </div>
-        <div class="ml-stat" style="--bar:#f59e0b;">
+        </a>
+        <a href="{{ route('agent.maids.index', $pendingStatsQuery) }}" class="ml-stat" style="--bar:#f59e0b;">
             <div class="ml-stat__icon" style="background: rgba(245, 158, 11, .14); color: #92400e;"><i class="fa fa-hourglass-half"></i></div>
             <div class="ml-stat__body">
                 <span class="ml-stat__label">{{ $isAr ? 'بانتظار المراجعة' : 'Pending' }}</span>
                 <span class="ml-stat__value">{{ $submissionCounts['pending'] ?? 0 }}</span>
             </div>
-        </div>
+        </a>
     </div>
 
     {{-- Toolbar: filters + search --}}
@@ -533,15 +667,82 @@
                 @endif
                 <input type="search" name="search" value="{{ request('search') }}"
                     placeholder="{{ $isAr ? 'ابحث بالاسم أو رقم الجواز أو رقم الهوية...' : 'Search by name, passport or ID...' }}">
+                <div class="ml-date-field">
+                    <label for="maidDateFrom">{{ $isAr ? 'من تاريخ الإضافة' : 'Created from' }}</label>
+                    <input type="date" id="maidDateFrom" name="date_from" value="{{ request('date_from') }}"
+                        class="ml-search__date">
+                </div>
+                <div class="ml-date-field">
+                    <label for="maidSort">{{ $isAr ? 'الترتيب' : 'Sort' }}</label>
+                    <select name="sort" id="maidSort" class="form-select">
+                        <option value="available_first" @selected($sort === 'available_first')>{{ $isAr ? 'المتاحة أولًا' : 'Available first' }}</option>
+                        <option value="contracted_first" @selected($sort === 'contracted_first')>{{ $isAr ? 'المتعاقد عليها أولًا' : 'Contracted first' }}</option>
+                        <option value="newest" @selected($sort === 'newest')>{{ $isAr ? 'الأحدث' : 'Newest' }}</option>
+                        <option value="oldest" @selected($sort === 'oldest')>{{ $isAr ? 'الأقدم' : 'Oldest' }}</option>
+                        <option value="name" @selected($sort === 'name')>{{ $isAr ? 'الاسم أبجديًا' : 'Name' }}</option>
+                    </select>
+                </div>
+                <div class="ml-date-field">
+                    <label for="maidDateTo">{{ $isAr ? 'إلى تاريخ الإضافة' : 'Created to' }}</label>
+                    <input type="date" id="maidDateTo" name="date_to" value="{{ request('date_to') }}"
+                        class="ml-search__date">
+                </div>
                 <button type="submit">
                     <i class="fa fa-magnifying-glass"></i>
                     <span>{{ $isAr ? 'بحث' : 'Search' }}</span>
                 </button>
+                @if (request()->hasAny(['search', 'date_from', 'date_to', 'worker_filter', 'submission_filter']))
+                    <a href="{{ route('agent.maids.index') }}" class="ml-search__clear">
+                        <i class="fa fa-xmark me-1"></i>
+                        {{ $isAr ? 'مسح' : 'Clear' }}
+                    </a>
+                @endif
             </form>
         </div>
     </div>
 
+    <div class="ml-results-head">
+        <div>
+            <h3 class="ml-results-title">
+                @if ($workerFilter === 'available')
+                    {{ $isAr ? 'العاملات المتاحات' : 'Available Workers' }}
+                @elseif ($workerFilter === 'contracted')
+                    {{ $isAr ? 'العاملات المتعاقد عليهن' : 'Contracted Workers' }}
+                @else
+                    {{ $isAr ? 'قائمة العاملات' : 'Workers List' }}
+                @endif
+            </h3>
+            <p class="ml-results-subtitle">
+                {{ $isAr ? 'النتائج المطابقة للفلاتر الحالية' : 'Results matching the current filters' }}
+                · {{ $maids->total() }}
+            </p>
+        </div>
+        <div class="ml-results-legend">
+            <span class="ml-legend-item"><span class="ml-legend-dot" style="background:#16a34a;"></span>{{ $isAr ? 'متاحة' : 'Available' }}</span>
+            <span class="ml-legend-item"><span class="ml-legend-dot" style="background:#2563eb;"></span>{{ $isAr ? 'متعاقد عليها' : 'Contracted' }}</span>
+            <span class="ml-legend-item"><span class="ml-legend-dot" style="background:#cbd5e1;"></span>{{ $isAr ? 'حالة أخرى' : 'Other' }}</span>
+        </div>
+    </div>
+
     {{-- Workers grid --}}
+    @if (!$maids->isEmpty())
+        <form id="bulkStatusRequestForm" method="POST"
+            action="{{ route('agent.maids.status-change-requests.bulk') }}">
+            @csrf
+            <div class="ml-bulk-bar">
+                <label class="d-inline-flex align-items-center gap-2 mb-0 fw-bold">
+                    <input type="checkbox" id="selectAllEligibleMaids">
+                    {{ $isAr ? 'تحديد كل الظاهر القابل للتعليق' : 'Select all eligible visible workers' }}
+                </label>
+                <button type="submit" class="ml-btn ml-btn-primary" id="bulkSuspendButton" disabled>
+                    <i class="fa fa-pause-circle"></i>
+                    {{ $isAr ? 'طلب تعليق المحدد' : 'Request Selected Suspension' }}
+                    (<span id="selectedMaidsCount">0</span>)
+                </button>
+            </div>
+        </form>
+    @endif
+
     @if ($maids->isEmpty())
         <div class="ml-empty">
             <div class="ml-empty__icon"><i class="fa fa-folder-open"></i></div>
@@ -558,14 +759,21 @@
                 @php
                     $activeContractsCount = (int) ($maid->active_contracts_count ?? 0);
                     $isContracted = $activeContractsCount > 0 || $maid->status === 'contracted';
-                    $statusKey = $isContracted ? 'contracted' : ($maid->status ?: 'default');
+                    $isAvailableState = !$isContracted
+                        && ((bool) $maid->available || $maid->status === 'available')
+                        && !in_array($maid->status, ['reserved', 'suspended', 'backout'], true);
+                    $statusKey = $isContracted ? 'contracted' : ($isAvailableState ? 'available' : ($maid->status ?: 'default'));
                     $statusLabel = $isContracted
                         ? ($isAr ? 'متعاقد عليها' : 'Contracted')
-                        : match ($maid->status) {
+                        : ($isAvailableState
+                            ? ($isAr ? 'متاحة' : 'Available')
+                            : match ($maid->status) {
                             'available' => $isAr ? 'متاحة' : 'Available',
                             'reserved' => $isAr ? 'محجوزة' : 'Reserved',
+                            'suspended' => $isAr ? 'معلقة' : 'Suspended',
+                            'backout' => 'Back Out',
                             default => $maid->status ?: '-',
-                        };
+                        });
 
                     $submissionStatus = $maid->submission_status;
                     $subBadgeKey = $submissionStatus === Maid::SUBMISSION_PENDING
@@ -579,12 +787,29 @@
                     $subBadgeIcon = $subBadgeKey === 'pending' ? 'fa-hourglass-half' : ($subBadgeKey === 'rejected' ? 'fa-circle-xmark' : 'fa-circle-check');
 
                     $hasImage = $maid->image && trim($maid->image) !== '';
+                    $isApprovedSubmission = !in_array(
+                        $submissionStatus,
+                        [Maid::SUBMISSION_PENDING, Maid::SUBMISSION_REJECTED],
+                        true
+                    );
+                    $isAvailable = $isAvailableState;
+                    $hasPendingStatusRequest = (bool) $maid->pendingStatusChangeRequest;
+                    $canRequestSuspension = !$hasPendingStatusRequest && $isApprovedSubmission && $isAvailable;
+                    $canRequestBackout = !$hasPendingStatusRequest && $isApprovedSubmission && $isContracted;
                 @endphp
-                <div class="ml-card">
-                    <span class="ml-sub-badge ml-sub-badge--{{ $subBadgeKey }}">
-                        <i class="fa {{ $subBadgeIcon }}"></i>
-                        <span>{{ $subBadgeLabel }}</span>
-                    </span>
+                <div class="ml-card ml-card--{{ $isContracted ? 'contracted' : ($isAvailable ? 'available' : 'other') }}"
+                    data-maid-id="{{ $maid->id }}">
+                    @if ($canRequestSuspension)
+                        <input type="checkbox" name="maid_ids[]" value="{{ $maid->id }}"
+                            class="ml-card__select bulk-maid-checkbox" form="bulkStatusRequestForm"
+                            aria-label="{{ $isAr ? 'تحديد العاملة' : 'Select worker' }} {{ $maid->name }}">
+                    @endif
+                    <div class="ml-card__status-row">
+                        <span class="ml-sub-badge ml-sub-badge--{{ $subBadgeKey }}">
+                            <i class="fa {{ $subBadgeIcon }}"></i>
+                            <span>{{ $subBadgeLabel }}</span>
+                        </span>
+                    </div>
 
                     <div class="ml-card__top">
                         @if ($hasImage)
@@ -623,7 +848,7 @@
                         </div>
                     </div>
 
-                    <div class="ml-card__actions">
+                    <div class="ml-card__actions js-maid-actions">
                         <a href="{{ route('agent.maids.show', $maid->id) }}" class="ml-action-btn ml-action-btn--view">
                             <i class="fa fa-eye"></i>
                             <span>{{ $isAr ? 'عرض' : 'View' }}</span>
@@ -634,13 +859,48 @@
                             <i class="fa fa-pen"></i>
                             <span>{{ $isAr ? 'ملاحظات' : 'Notes' }}</span>
                         </button>
+                        @if ($hasPendingStatusRequest)
+                            <button type="button" class="ml-action-btn ml-action-btn--pending" disabled
+                                title="{{ $maid->pendingStatusChangeRequest->reason }}">
+                                <i class="fa fa-hourglass-half"></i>
+                                <span>{{ $isAr ? 'الطلب قيد المراجعة' : 'Request Pending' }}</span>
+                            </button>
+                        @else
+                            @if ($canRequestSuspension)
+                                <form method="POST" action="{{ route('agent.maids.status-change-requests.store', $maid->id) }}"
+                                    class="js-status-request-form" data-maid-id="{{ $maid->id }}">
+                                    @csrf
+                                    <input type="hidden" name="type" value="suspend">
+                                    <button type="submit" class="ml-action-btn ml-action-btn--request"
+                                        onclick="return confirm('{{ $isAr ? 'إرسال طلب تعليق هذه العاملة للإدارة؟' : 'Send this suspension request to administration?' }}')">
+                                        <i class="fa fa-pause-circle"></i>
+                                        <span>{{ $isAr ? 'تعليق' : 'Suspend' }}</span>
+                                    </button>
+                                </form>
+                            @endif
+                            @if ($canRequestBackout)
+                                <button type="button" class="ml-action-btn ml-action-btn--backout status-request-btn"
+                                    data-id="{{ $maid->id }}" data-name="{{ $maid->name }}">
+                                    <i class="fa fa-user-slash"></i>
+                                    <span>Back Out</span>
+                                </button>
+                            @endif
+                        @endif
                     </div>
                 </div>
             @endforeach
         </div>
 
-        <div class="ml-pagination">
-            {{ $maids->links() }}
+        <div class="ml-pagination-wrap">
+            <div class="ml-pagination-summary">
+                {{ $isAr ? 'عرض' : 'Showing' }}
+                {{ $maids->firstItem() }}–{{ $maids->lastItem() }}
+                {{ $isAr ? 'من' : 'of' }}
+                {{ $maids->total() }}
+            </div>
+            <div class="ml-pagination">
+                {{ $maids->onEachSide(1)->links('pagination::bootstrap-4') }}
+            </div>
         </div>
     @endif
 
@@ -670,6 +930,43 @@
             </form>
         </div>
     </div>
+
+    {{-- Status change request modal --}}
+    <div id="statusRequestModal" class="ml-modal-backdrop">
+        <div class="ml-modal">
+            <div class="ml-modal__head">
+                <h4><i class="fa fa-paper-plane me-1"></i> {{ $isAr ? 'طلب إجراء على العاملة' : 'Request Worker Action' }}</h4>
+                <button type="button" id="closeStatusRequestModal" class="ml-modal__close"><i class="fa fa-xmark"></i></button>
+            </div>
+            <form id="statusRequestForm" action="" method="POST">
+                @csrf
+                <div class="ml-modal__body">
+                    <div class="alert alert-light border mb-3" id="statusRequestMaidName"></div>
+                    <input type="hidden" name="type" value="backout">
+
+                    <label for="statusRequestReason" class="form-label fw-bold">
+                        {{ $isAr ? 'سبب الطلب' : 'Reason' }}
+                    </label>
+                    <textarea name="reason" id="statusRequestReason" rows="5" maxlength="1000" required
+                        placeholder="{{ $isAr ? 'اكتب السبب والتفاصيل التي تحتاج الإدارة لمراجعتها...' : 'Enter the reason and details for administration...' }}"></textarea>
+                    <div class="form-text mt-2">
+                        {{ $isAr ? 'لن تتغير حالة العاملة إلا بعد اعتماد الإدارة.' : 'The worker status will only change after administration approval.' }}
+                    </div>
+                </div>
+                <div class="ml-modal__actions">
+                    <button type="button" id="closeStatusRequestModalBtn" class="ml-btn ml-btn-light">
+                        <i class="fa fa-xmark"></i>
+                        {{ $isAr ? 'إلغاء' : 'Cancel' }}
+                    </button>
+                    <button type="submit" class="ml-btn ml-btn-primary">
+                        <i class="fa fa-paper-plane"></i>
+                        {{ $isAr ? 'إرسال للإدارة' : 'Send to Administration' }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div id="maidActionToast" class="ml-toast" role="status" aria-live="polite"></div>
 @endsection
 
 @push('scripts')
@@ -680,9 +977,79 @@
         const closeBtnBottom = document.getElementById('closeNotesModalBtn');
         const form = document.getElementById('notesForm');
         const textarea = document.getElementById('maidNotes');
+        const requestModal = document.getElementById('statusRequestModal');
+        const requestForm = document.getElementById('statusRequestForm');
+        const requestReason = document.getElementById('statusRequestReason');
+        const requestMaidName = document.getElementById('statusRequestMaidName');
+        const toast = document.getElementById('maidActionToast');
+        let activeNotesButton = null;
+        let toastTimer = null;
+
+        const showToast = (message, isError = false) => {
+            clearTimeout(toastTimer);
+            toast.textContent = message;
+            toast.classList.toggle('is-error', isError);
+            toast.classList.add('is-visible');
+            toastTimer = setTimeout(() => toast.classList.remove('is-visible'), 3500);
+        };
+
+        const submitAjax = async formElement => {
+            const response = await fetch(formElement.action, {
+                method: 'POST',
+                body: new FormData(formElement),
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                const firstErrors = data.errors ? Object.values(data.errors).flat() : [];
+                throw new Error(firstErrors[0] || data.message || `{{ $isAr ? 'تعذر تنفيذ الإجراء.' : 'The action could not be completed.' }}`);
+            }
+
+            return data;
+        };
+
+        const setFormLoading = (formElement, loading) => {
+            const button = formElement.querySelector('button[type="submit"]');
+            if (!button) return;
+            if (loading) {
+                button.dataset.originalHtml = button.innerHTML;
+                button.disabled = true;
+                button.innerHTML = `<i class="fa fa-spinner fa-spin"></i> {{ $isAr ? 'جارٍ الحفظ' : 'Saving' }}`;
+            } else if (button.isConnected) {
+                button.disabled = false;
+                button.innerHTML = button.dataset.originalHtml || button.innerHTML;
+            }
+        };
+
+        const markRequestPending = (maidId, reason = '') => {
+            const card = document.querySelector(`.ml-card[data-maid-id="${maidId}"]`);
+            if (!card) return;
+
+            const checkbox = card.querySelector('.bulk-maid-checkbox');
+            if (checkbox) checkbox.remove();
+
+            const actions = card.querySelector('.js-maid-actions');
+            if (!actions) return;
+            actions.querySelectorAll('.js-status-request-form, .status-request-btn').forEach(element => element.remove());
+
+            const pendingButton = document.createElement('button');
+            pendingButton.type = 'button';
+            pendingButton.disabled = true;
+            pendingButton.className = 'ml-action-btn ml-action-btn--pending';
+            pendingButton.title = reason;
+            pendingButton.innerHTML = `<i class="fa fa-hourglass-half"></i><span>{{ $isAr ? 'الطلب قيد المراجعة' : 'Request Pending' }}</span>`;
+            actions.appendChild(pendingButton);
+
+            updateBulkSelection();
+        };
 
         document.querySelectorAll('.edit-notes-btn').forEach(btn => {
             btn.addEventListener('click', function() {
+                activeNotesButton = this;
                 form.action = `{{ url('agent/maids') }}/${this.dataset.id}/notes`;
                 textarea.value = this.dataset.notes || '';
                 modal.classList.add('is-open');
@@ -694,7 +1061,123 @@
         closeBtn.addEventListener('click', close);
         closeBtnBottom.addEventListener('click', close);
         modal.addEventListener('click', e => { if (e.target === modal) close(); });
-        document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+
+        document.querySelectorAll('.status-request-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                requestForm.action = `{{ url('agent/maids') }}/${this.dataset.id}/status-change-requests`;
+                requestForm.dataset.maidId = this.dataset.id;
+                requestMaidName.textContent = `{{ $isAr ? 'العاملة:' : 'Worker:' }} ${this.dataset.name || '#' + this.dataset.id}`;
+                requestReason.value = '';
+                requestModal.classList.add('is-open');
+                setTimeout(() => requestReason.focus(), 100);
+            });
+        });
+
+        const closeRequest = () => requestModal.classList.remove('is-open');
+        document.getElementById('closeStatusRequestModal').addEventListener('click', closeRequest);
+        document.getElementById('closeStatusRequestModalBtn').addEventListener('click', closeRequest);
+        requestModal.addEventListener('click', e => { if (e.target === requestModal) closeRequest(); });
+
+        const bulkCheckboxes = Array.from(document.querySelectorAll('.bulk-maid-checkbox'));
+        const selectAll = document.getElementById('selectAllEligibleMaids');
+        const bulkButton = document.getElementById('bulkSuspendButton');
+        const selectedCount = document.getElementById('selectedMaidsCount');
+
+        const updateBulkSelection = () => {
+            const activeCheckboxes = bulkCheckboxes.filter(checkbox => checkbox.isConnected);
+            const count = activeCheckboxes.filter(checkbox => checkbox.checked).length;
+            if (selectedCount) selectedCount.textContent = count;
+            if (bulkButton) bulkButton.disabled = count === 0;
+            if (selectAll) {
+                selectAll.checked = activeCheckboxes.length > 0 && count === activeCheckboxes.length;
+                selectAll.indeterminate = count > 0 && count < activeCheckboxes.length;
+            }
+        };
+
+        if (selectAll) {
+            selectAll.addEventListener('change', function() {
+                bulkCheckboxes.filter(checkbox => checkbox.isConnected)
+                    .forEach(checkbox => checkbox.checked = this.checked);
+                updateBulkSelection();
+            });
+        }
+        bulkCheckboxes.forEach(checkbox => checkbox.addEventListener('change', updateBulkSelection));
+
+        form.addEventListener('submit', async event => {
+            event.preventDefault();
+            setFormLoading(form, true);
+            try {
+                const data = await submitAjax(form);
+                if (activeNotesButton) {
+                    activeNotesButton.dataset.notes = data.notes || '';
+                }
+                close();
+                showToast(data.message);
+            } catch (error) {
+                showToast(error.message, true);
+            } finally {
+                setFormLoading(form, false);
+            }
+        });
+
+        document.querySelectorAll('.js-status-request-form').forEach(statusForm => {
+            statusForm.addEventListener('submit', async event => {
+                event.preventDefault();
+                setFormLoading(statusForm, true);
+                try {
+                    const data = await submitAjax(statusForm);
+                    markRequestPending(statusForm.dataset.maidId, data.reason || '');
+                    showToast(data.message);
+                } catch (error) {
+                    showToast(error.message, true);
+                    setFormLoading(statusForm, false);
+                }
+            });
+        });
+
+        requestForm.addEventListener('submit', async event => {
+            event.preventDefault();
+            setFormLoading(requestForm, true);
+            try {
+                const data = await submitAjax(requestForm);
+                markRequestPending(requestForm.dataset.maidId, data.reason || requestReason.value);
+                closeRequest();
+                showToast(data.message);
+            } catch (error) {
+                showToast(error.message, true);
+            } finally {
+                setFormLoading(requestForm, false);
+            }
+        });
+
+        const bulkForm = document.getElementById('bulkStatusRequestForm');
+        if (bulkForm) {
+            bulkForm.addEventListener('submit', async event => {
+                event.preventDefault();
+                const checkedCount = bulkCheckboxes.filter(checkbox => checkbox.isConnected && checkbox.checked).length;
+                if (!checkedCount) return;
+                if (!confirm(`{{ $isAr ? 'إرسال طلب تعليق للعاملات المحددة؟' : 'Send suspension requests for selected workers?' }}`)) return;
+
+                setFormLoading(bulkForm, true);
+                try {
+                    const data = await submitAjax(bulkForm);
+                    (data.maid_ids || []).forEach(maidId => markRequestPending(maidId));
+                    showToast(data.message);
+                } catch (error) {
+                    showToast(error.message, true);
+                } finally {
+                    setFormLoading(bulkForm, false);
+                    updateBulkSelection();
+                }
+            });
+        }
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') {
+                close();
+                closeRequest();
+            }
+        });
     });
 </script>
 @endpush

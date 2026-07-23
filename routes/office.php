@@ -34,6 +34,12 @@ Route::group(
                 ->name('offices.login-as-agent');
             Route::get('offices/users', [OfficeManagementController::class, 'users'])
                 ->name('offices.users.index');
+            Route::get('offices/users/{user}/edit', [OfficeManagementController::class, 'editUser'])
+                ->name('offices.users.edit');
+            Route::put('offices/users/{user}', [OfficeManagementController::class, 'updateUser'])
+                ->name('offices.users.update');
+            Route::post('offices/users/{user}/activate', [OfficeManagementController::class, 'activateUser'])
+                ->name('offices.users.activate');
             Route::get('offices/files', [OfficeManagementController::class, 'files'])
                 ->name('offices.files.index');
             Route::resource('offices', OfficeController::class);

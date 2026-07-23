@@ -9,6 +9,7 @@ use App\Models\Country;
 use App\Models\ingaz\JobTitle;
 use App\Models\ingaz\JobType;
 use App\Models\ingaz\Maid;
+use App\Models\ingaz\MaidStatusChangeRequest;
 use App\Models\ingaz\Nationality;
 use App\Models\ingaz\Religion;
 use App\Models\ingaz\Skill;
@@ -19,6 +20,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
@@ -66,9 +68,24 @@ class DashboardController extends Controller
 
     public function maids(Request $request)
     {
+        $request->validate([
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
+        ]);
+
         $workerFilter = $request->input('worker_filter', 'all');
         if (!in_array($workerFilter, ['all', 'available', 'contracted'], true)) {
             $workerFilter = 'all';
+        }
+
+        $defaultSort = match ($workerFilter) {
+            'available' => 'name',
+            'contracted' => 'contracted_first',
+            default => 'available_first',
+        };
+        $sort = $request->input('sort', $defaultSort);
+        if (!in_array($sort, ['available_first', 'contracted_first', 'newest', 'oldest', 'name'], true)) {
+            $sort = $defaultSort;
         }
 
         $submissionFilter = $request->input('submission_filter', 'all');
@@ -77,6 +94,23 @@ class DashboardController extends Controller
         }
 
         $baseQuery = $this->maidsQuery();
+
+        if ($request->filled('date_from')) {
+            $baseQuery->whereDate('created_at', '>=', $request->input('date_from'));
+        }
+
+        if ($request->filled('date_to')) {
+            $baseQuery->whereDate('created_at', '<=', $request->input('date_to'));
+        }
+
+        if ($request->filled('search')) {
+            $search = trim((string) $request->input('search'));
+            $baseQuery->where(function (Builder $innerQuery) use ($search) {
+                $innerQuery->where('name', 'like', '%' . $search . '%')
+                    ->orWhere('passport_num', 'like', '%' . $search . '%')
+                    ->orWhere('id_number', 'like', '%' . $search . '%');
+            });
+        }
 
         $filterCounts = [
             'all' => (clone $baseQuery)->count(),
@@ -104,13 +138,12 @@ class DashboardController extends Controller
         ];
 
         $query = (clone $baseQuery)
-            ->with(['nationality', 'jobTypes', 'office'])
+            ->with(['nationality', 'jobTypes', 'office', 'pendingStatusChangeRequest'])
             ->withCount([
                 'contracts as active_contracts_count' => function (Builder $contractQuery) {
                     $this->applyActiveContractConstraint($contractQuery);
                 },
-            ])
-            ->latest('id');
+            ]);
 
         if ($workerFilter === 'available') {
             $query->where(function (Builder $innerQuery) {
@@ -133,22 +166,34 @@ class DashboardController extends Controller
             $query->where('submission_status', Maid::SUBMISSION_REJECTED);
         }
 
-        if ($request->filled('search')) {
-            $search = trim((string) $request->input('search'));
-            $query->where(function (Builder $innerQuery) use ($search) {
-                $innerQuery->where('name', 'like', '%' . $search . '%')
-                    ->orWhere('passport_num', 'like', '%' . $search . '%')
-                    ->orWhere('id_number', 'like', '%' . $search . '%');
-            });
-        }
-
         if ($request->filled('status')) {
             $query->where('status', $request->input('status'));
         }
 
+        match ($sort) {
+            'name' => $query->orderBy('name')->orderByDesc('id'),
+            'oldest' => $query->orderBy('id'),
+            'contracted_first' => $query
+                ->orderByDesc('active_contracts_count')
+                ->orderByRaw("CASE WHEN status = 'contracted' THEN 0 ELSE 1 END")
+                ->orderByDesc('id'),
+            'available_first' => $query
+                ->orderBy('active_contracts_count')
+                ->orderByRaw("CASE WHEN (available = 1 OR status = 'available') AND (status IS NULL OR status NOT IN ('contracted', 'reserved', 'suspended', 'backout')) THEN 0 ELSE 1 END")
+                ->orderByDesc('id'),
+            default => $query->orderByDesc('id'),
+        };
+
         $maids = $query->paginate(15)->appends($request->query());
 
-        return view('agent.maids.index', compact('maids', 'workerFilter', 'filterCounts', 'submissionFilter', 'submissionCounts'));
+        return view('agent.maids.index', compact(
+            'maids',
+            'workerFilter',
+            'filterCounts',
+            'submissionFilter',
+            'submissionCounts',
+            'sort'
+        ));
     }
 
     public function createMaid()
@@ -353,7 +398,192 @@ class DashboardController extends Controller
             'additional_notes' => $request->input('additional_notes'),
         ]);
 
-        return redirect()->back()->with('success', app()->getLocale() === 'ar' ? 'تم تحديث الملاحظات بنجاح' : 'Notes updated successfully');
+        $message = app()->getLocale() === 'ar' ? 'تم تحديث الملاحظات بنجاح' : 'Notes updated successfully';
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'notes' => $maid->additional_notes,
+            ]);
+        }
+
+        return redirect()->back()->with('success', $message);
+    }
+
+    public function requestMaidStatusChange(Request $request, Maid $maid)
+    {
+        $officeIds = $this->agentOfficeIds();
+        if (!$officeIds->contains($maid->office_id)) {
+            abort(403, 'Unauthorized office');
+        }
+
+        $validated = $request->validate([
+            'type' => ['required', 'in:suspend,backout'],
+            'reason' => ['nullable', 'required_if:type,backout', 'string', 'max:1000'],
+        ], [
+            'type.required' => app()->getLocale() === 'ar' ? 'نوع الطلب مطلوب.' : 'Request type is required.',
+            'reason.required' => app()->getLocale() === 'ar' ? 'سبب الطلب مطلوب.' : 'Request reason is required.',
+        ]);
+
+        $statusChangeRequest = null;
+
+        DB::transaction(function () use ($maid, $validated, &$statusChangeRequest) {
+            $lockedMaid = Maid::query()->lockForUpdate()->findOrFail($maid->id);
+
+            $hasPendingRequest = MaidStatusChangeRequest::query()
+                ->where('maid_id', $lockedMaid->id)
+                ->where('status', MaidStatusChangeRequest::STATUS_PENDING)
+                ->exists();
+
+            if ($hasPendingRequest) {
+                throw ValidationException::withMessages([
+                    'type' => app()->getLocale() === 'ar'
+                        ? 'يوجد طلب قيد المراجعة لهذه العاملة بالفعل.'
+                        : 'This worker already has a request pending review.',
+                ]);
+            }
+
+            if (in_array($lockedMaid->status, ['suspended', 'backout'], true)) {
+                throw ValidationException::withMessages([
+                    'type' => app()->getLocale() === 'ar'
+                        ? 'حالة العاملة الحالية لا تسمح بإنشاء هذا الطلب.'
+                        : 'The worker current status does not allow this request.',
+                ]);
+            }
+
+            if (in_array($lockedMaid->submission_status, [Maid::SUBMISSION_PENDING, Maid::SUBMISSION_REJECTED], true)) {
+                throw ValidationException::withMessages([
+                    'type' => app()->getLocale() === 'ar'
+                        ? 'يجب اعتماد السيرة أولًا قبل طلب تغيير حالة العاملة.'
+                        : 'The CV must be approved before requesting a worker status change.',
+                ]);
+            }
+
+            $hasActiveContract = $lockedMaid->contracts()
+                ->where(function (Builder $query) {
+                    $this->applyActiveContractConstraint($query);
+                })
+                ->exists();
+            $isContracted = $lockedMaid->status === 'contracted' || $hasActiveContract;
+            $isAvailable = !$isContracted
+                && ((bool) $lockedMaid->available || $lockedMaid->status === 'available')
+                && !in_array($lockedMaid->status, ['reserved', 'suspended', 'backout'], true);
+
+            if ($validated['type'] === MaidStatusChangeRequest::TYPE_SUSPEND && !$isAvailable) {
+                throw ValidationException::withMessages([
+                    'type' => app()->getLocale() === 'ar'
+                        ? 'يمكن طلب التعليق للعاملة المتاحة فقط.'
+                        : 'Only an available worker can be suspended.',
+                ]);
+            }
+
+            if ($validated['type'] === MaidStatusChangeRequest::TYPE_BACKOUT && !$isContracted) {
+                throw ValidationException::withMessages([
+                    'type' => app()->getLocale() === 'ar'
+                        ? 'يمكن طلب Back Out للعاملة المتعاقد عليها فقط.'
+                        : 'Back Out can only be requested for a contracted worker.',
+                ]);
+            }
+
+            $statusChangeRequest = MaidStatusChangeRequest::create([
+                'maid_id' => $lockedMaid->id,
+                'office_id' => $lockedMaid->office_id,
+                'requested_by_admin_id' => Auth::guard('agent')->id(),
+                'type' => $validated['type'],
+                'reason' => filled($validated['reason'] ?? null)
+                    ? $validated['reason']
+                    : 'طلب تعليق السيرة من الوكيل.',
+                'status' => MaidStatusChangeRequest::STATUS_PENDING,
+            ]);
+        });
+
+        $message = app()->getLocale() === 'ar'
+            ? 'تم إرسال الطلب إلى الإدارة للمراجعة.'
+            : 'The request was sent to administration for review.';
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'maid_id' => $maid->id,
+                'request_type' => $statusChangeRequest?->type,
+                'reason' => $statusChangeRequest?->reason,
+            ]);
+        }
+
+        return redirect()->back()->with('success', $message);
+    }
+
+    public function bulkRequestMaidSuspension(Request $request)
+    {
+        $validated = $request->validate([
+            'maid_ids' => ['required', 'array', 'min:1', 'max:100'],
+            'maid_ids.*' => ['integer', 'distinct', 'exists:maids,id'],
+        ], [
+            'maid_ids.required' => app()->getLocale() === 'ar'
+                ? 'اختر عاملة واحدة على الأقل.'
+                : 'Select at least one worker.',
+        ]);
+
+        $officeIds = $this->agentOfficeIds();
+        $createdCount = 0;
+        $createdMaidIds = [];
+
+        DB::transaction(function () use ($validated, $officeIds, &$createdCount, &$createdMaidIds) {
+            $maids = Maid::query()
+                ->whereIn('id', $validated['maid_ids'])
+                ->whereIn('office_id', $officeIds)
+                ->whereNotIn('status', ['suspended', 'backout'])
+                ->where(function (Builder $query) {
+                    $query->whereNull('submission_status')
+                        ->orWhere('submission_status', Maid::SUBMISSION_APPROVED);
+                })
+                ->where(function (Builder $query) {
+                    $query->where('available', true)
+                        ->orWhere('status', 'available');
+                })
+                ->where(function (Builder $query) {
+                    $query->whereNull('status')
+                        ->orWhereNotIn('status', ['contracted', 'reserved', 'suspended', 'backout']);
+                })
+                ->whereDoesntHave('contracts', function (Builder $query) {
+                    $this->applyActiveContractConstraint($query);
+                })
+                ->whereDoesntHave('statusChangeRequests', function (Builder $query) {
+                    $query->where('status', MaidStatusChangeRequest::STATUS_PENDING);
+                })
+                ->lockForUpdate()
+                ->get();
+
+            foreach ($maids as $maid) {
+                MaidStatusChangeRequest::create([
+                    'maid_id' => $maid->id,
+                    'office_id' => $maid->office_id,
+                    'requested_by_admin_id' => Auth::guard('agent')->id(),
+                    'type' => MaidStatusChangeRequest::TYPE_SUSPEND,
+                    'reason' => 'طلب تعليق جماعي من الوكيل بعد الفلترة.',
+                    'status' => MaidStatusChangeRequest::STATUS_PENDING,
+                ]);
+                $createdCount++;
+                $createdMaidIds[] = $maid->id;
+            }
+        });
+
+        $message = app()->getLocale() === 'ar'
+            ? "تم إرسال {$createdCount} طلب تعليق إلى الإدارة."
+            : "{$createdCount} suspension requests were sent to administration.";
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'created_count' => $createdCount,
+                'maid_ids' => $createdMaidIds,
+            ]);
+        }
+
+        return redirect()->back()->with('success', $message);
     }
 
     public function showMaid(Maid $maid)

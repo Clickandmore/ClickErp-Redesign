@@ -254,6 +254,14 @@ Route::group(
             Route::get('maids/pending-submissions', [\App\Http\Controllers\ingaz\MaidController::class, 'pendingSubmissions'])->name('maids.pending-submissions');
             Route::post('maids/{id}/approve-submission', [\App\Http\Controllers\ingaz\MaidController::class, 'approveSubmission'])->name('maids.approve-submission');
             Route::post('maids/{id}/reject-submission', [\App\Http\Controllers\ingaz\MaidController::class, 'rejectSubmission'])->name('maids.reject-submission');
+            Route::post('maids/submissions/bulk-approve', [\App\Http\Controllers\ingaz\MaidController::class, 'bulkApproveSubmissions'])
+                ->name('maids.submissions.bulk-approve');
+            Route::post('maids/status-change-requests/bulk-approve', [\App\Http\Controllers\ingaz\MaidController::class, 'bulkApproveStatusChangeRequests'])
+                ->name('maids.status-change-requests.bulk-approve');
+            Route::post('maids/status-change-requests/{statusChangeRequest}/approve', [\App\Http\Controllers\ingaz\MaidController::class, 'approveStatusChangeRequest'])
+                ->name('maids.status-change-requests.approve');
+            Route::post('maids/status-change-requests/{statusChangeRequest}/reject', [\App\Http\Controllers\ingaz\MaidController::class, 'rejectStatusChangeRequest'])
+                ->name('maids.status-change-requests.reject');
             Route::get('maids/cvs-deleted', [\App\Http\Controllers\ingaz\MaidController::class, 'deletedCvs'])->name('maids.deleted_cvs');
             Route::get('maids/{id}/details', [\App\Http\Controllers\ingaz\MaidController::class, 'getMaidDetails'])->name('maids.details');
             Route::get('maids/rental', [\App\Http\Controllers\ingaz\MaidController::class, 'rentalIndex'])->name('maids.rental.index');

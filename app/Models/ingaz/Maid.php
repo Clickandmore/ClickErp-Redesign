@@ -405,6 +405,18 @@ class Maid extends Model
         return $this->hasMany(Contract::class, 'maid_id');
     }
 
+    public function statusChangeRequests()
+    {
+        return $this->hasMany(MaidStatusChangeRequest::class);
+    }
+
+    public function pendingStatusChangeRequest()
+    {
+        return $this->hasOne(MaidStatusChangeRequest::class)
+            ->where('status', MaidStatusChangeRequest::STATUS_PENDING)
+            ->latestOfMany();
+    }
+
     public function recruitmentProcedure()
     {
         return $this->hasOne(\App\Models\MaidRecruitmentProcedure::class, 'maid_id');

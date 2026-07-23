@@ -15,13 +15,14 @@
         @csrf
         <div class="form-group">
             <div class="input-field">
-                <label for="login">{{ $authLocale === 'ar' ? 'البريد الإلكتروني أو رقم الجوال' : 'Email or phone number' }}*</label>
+                <label for="login">{{ $authLocale === 'ar' ? 'اسم المستخدم أو البريد الإلكتروني' : 'Username or email' }}*</label>
                 <div class="input-shell">
                     <span class="input-icon">
                         <img src="{{ asset('admin/login') }}/imgs/email.svg" alt="login">
                     </span>
                     <input type="text" id="login" name="login" value="{{ old('login') }}"
-                        placeholder="agent@example.com" autocomplete="username" required>
+                        placeholder="{{ $authLocale === 'ar' ? 'اسم المستخدم أو agent@example.com' : 'Username or agent@example.com' }}"
+                        autocomplete="username" required>
                 </div>
             </div>
 

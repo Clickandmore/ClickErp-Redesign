@@ -334,6 +334,13 @@ class AdminRoutePermissionMatrix
             'maids.index' => [PermKeys::MAIDS_VIEW],
             'maids.create' => [PermKeys::MAIDS_CREATE],
             'maids.rental.index' => [PermKeys::MAIDS_RENTAL_VIEW],
+            'maids.pending-submissions' => [PermKeys::MAIDS_VIEW, PermKeys::MAIDS_EDIT],
+            'maids.approve-submission' => [PermKeys::MAIDS_EDIT],
+            'maids.reject-submission' => [PermKeys::MAIDS_EDIT],
+            'maids.submissions.bulk-approve' => [PermKeys::MAIDS_EDIT],
+            'maids.status-change-requests.bulk-approve' => [PermKeys::MAIDS_EDIT],
+            'maids.status-change-requests.approve' => [PermKeys::MAIDS_EDIT],
+            'maids.status-change-requests.reject' => [PermKeys::MAIDS_EDIT],
             'maids.attachments.store' => [PermKeys::MAIDS_EDIT],
             'maids.attachments.download' => [PermKeys::MAIDS_VIEW, PermKeys::MAIDS_SHOW, PermKeys::MAIDS_RENTAL_VIEW],
             'maids.attachments.view' => [PermKeys::MAIDS_VIEW, PermKeys::MAIDS_SHOW, PermKeys::MAIDS_RENTAL_VIEW],
@@ -840,6 +847,9 @@ class AdminRoutePermissionMatrix
             [
                 'offices.login-as-agent' => [PermKeys::OFFICE_CONTROL],
                 'offices.users.index' => [PermKeys::OFFICE_VIEW, PermKeys::OFFICE_CONTROL],
+                'offices.users.edit' => [PermKeys::USERS_EDIT, PermKeys::OFFICE_CONTROL],
+                'offices.users.update' => [PermKeys::USERS_EDIT, PermKeys::OFFICE_CONTROL],
+                'offices.users.activate' => [PermKeys::USERS_EDIT, PermKeys::OFFICE_CONTROL],
                 'offices.files.index' => [PermKeys::OFFICE_VIEW, PermKeys::OFFICE_CONTROL],
             ],
             [

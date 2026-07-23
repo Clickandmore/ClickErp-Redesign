@@ -138,14 +138,31 @@
                                             <i class="fa fa-eye" aria-hidden="true"></i>
                                             <span>التفاصيل</span>
                                         </button>
-                                        @if (Route::has('admins.edit') && @AdminGuardHasPerm(\App\PermKeys::USERS_EDIT))
+                                        @if (Route::has('offices.users.edit') && @AdminGuardHasPerm(\App\PermKeys::USERS_EDIT))
                                             <button type="button" class="btn btn-sm btn-primary editButton"
                                                 data-bs-toggle="modal" data-bs-target="#createModal"
-                                                model-route="{{ route('admins.edit', $user->id) }}"
-                                                model-title="تعديل {{ $user->name }}" title="تعديل بيانات المستخدم">
+                                                model-route="{{ route('offices.users.edit', $user->id) }}"
+                                                model-title="بيانات دخول {{ $user->name }}" title="تعديل بيانات الدخول">
                                                 <i class="fa fa-edit" aria-hidden="true"></i>
                                                 <span>تعديل</span>
                                             </button>
+                                            @if ($user->status === 'suspended')
+                                                <form method="POST"
+                                                    action="{{ route('offices.users.activate', [
+                                                        'user' => $user->id,
+                                                        'search' => request('search'),
+                                                        'office_id' => request('office_id'),
+                                                        'page' => request('page'),
+                                                    ]) }}"
+                                                    class="d-inline">
+                                                    @csrf
+                                                    <button type="submit" class="btn btn-sm btn-success"
+                                                        title="تفعيل الحساب">
+                                                        <i class="fa fa-check-circle" aria-hidden="true"></i>
+                                                        <span>تفعيل</span>
+                                                    </button>
+                                                </form>
+                                            @endif
                                         @endif
                                     </div>
                                 </td>
@@ -204,11 +221,6 @@
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">إغلاق</button>
-                            @if (Route::has('admins.edit') && @AdminGuardHasPerm(\App\PermKeys::USERS_EDIT))
-                                <a href="{{ route('admins.edit', $user->id) }}" class="btn btn-primary">
-                                    <i class="fa fa-edit"></i> تعديل المستخدم
-                                </a>
-                            @endif
                         </div>
                     </div>
                 </div>

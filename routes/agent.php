@@ -4,13 +4,14 @@ use App\Http\Controllers\Agent\AgentBulkImportController;
 use App\Http\Controllers\Agent\AgentRecruitmentProcedureController;
 use App\Http\Controllers\Agent\AuthController;
 use App\Http\Controllers\Agent\DashboardController;
+use App\Http\Middleware\AgentLocalizationMiddleware;
 use Illuminate\Support\Facades\Route;
 use Mcamara\LaravelLocalization\Facades\LaravelLocalization;
 
 Route::group(
     [
         'prefix' => LaravelLocalization::setLocale(),
-        'middleware' => ['localeSessionRedirect', 'localizationRedirect', 'localeViewPath'],
+        'middleware' => [AgentLocalizationMiddleware::class, 'localeViewPath'],
     ],
     function () {
         Route::prefix('agent')->name('agent.')->group(function () {
@@ -31,6 +32,10 @@ Route::group(
                 Route::get('maids/bulk-import/{agentMaidBulkImport}', [AgentBulkImportController::class, 'show'])->name('maids.bulk-import.show');
                 Route::get('maids/bulk-import/{agentMaidBulkImport}/download', [AgentBulkImportController::class, 'download'])->name('maids.bulk-import.download');
                 Route::post('maids/{maid}/notes', [DashboardController::class, 'updateNotes'])->name('maids.update-notes');
+                Route::post('maids/status-change-requests/bulk', [DashboardController::class, 'bulkRequestMaidSuspension'])
+                    ->name('maids.status-change-requests.bulk');
+                Route::post('maids/{maid}/status-change-requests', [DashboardController::class, 'requestMaidStatusChange'])
+                    ->name('maids.status-change-requests.store');
                 Route::get('maids/{maid}', [DashboardController::class, 'showMaid'])->name('maids.show');
                 Route::get('contracts', [DashboardController::class, 'contracts'])->name('contracts.index');
                 Route::get('contracts/{contract}', [DashboardController::class, 'showContract'])->name('contracts.show');

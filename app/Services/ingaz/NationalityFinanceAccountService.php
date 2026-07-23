@@ -14,23 +14,22 @@ class NationalityFinanceAccountService
     private const DEFINITIONS = [
         'nationality_recruitment_sales_parent_account' => [
             'label' => 'nationality_recruitment_sales_parent_account',
-            'name' => 'مبيعات (%s)',
-            'aliases' => ['مبيعات %s'],
+            'name' => 'مبيعات %s',
+            'aliases' => ['مبيعات (%s)', 'إيرادات %s', 'ايرادات %s', 'ايردات %s'],
             'parent_path' => [
                 ['name' => 'الإيرادات', 'aliases' => ['الايرادات']],
-                ['name' => 'إيراد مبيعات الاستقدام', 'aliases' => ['إيرادات مبيعات الاستقدام']],
+                ['name' => 'اجمالى ايراد المبيعات', 'aliases' => ['إجمالي إيراد المبيعات', 'اجمالي ايراد المبيعات']],
                 ['name' => 'مبيعات الاستقدام', 'aliases' => []],
-                ['name' => 'مبيعات', 'aliases' => []],
             ],
         ],
         'nationality_recruitment_cost_parent_account' => [
             'label' => 'nationality_recruitment_cost_parent_account',
-            'name' => 'تكاليف مبيعات (%s)',
-            'aliases' => ['تكاليف مبيعات %s', 'تكلفة مبيعات %s', 'تكلفة مبيعات (%s)'],
+            'name' => 'تكلفة مبيعات %s',
+            'aliases' => ['تكاليف مبيعات %s', 'تكاليف مبيعات (%s)', 'تكلفة مبيعات (%s)'],
             'parent_path' => [
                 ['name' => 'المصروفات', 'aliases' => []],
-                ['name' => 'تكاليف مبيعات الاستقدام', 'aliases' => []],
-                ['name' => 'تكاليف مبيعات', 'aliases' => ['تكاليف المبيعات']],
+                ['name' => 'اجمالى تكاليف المبيعات', 'aliases' => ['إجمالي تكاليف المبيعات', 'اجمالي تكاليف المبيعات']],
+                ['name' => 'تكاليف المبيعات', 'aliases' => []],
             ],
         ],
         'nationality_contract_liability_parent_account' => [
@@ -49,9 +48,9 @@ class NationalityFinanceAccountService
             'name' => 'خصم مبيعات %s',
             'aliases' => [],
             'parent_path' => [
-                ['name' => 'الإيرادات', 'aliases' => ['الايرادات']],
-                ['name' => 'إيراد مبيعات الاستقدام', 'aliases' => ['إيرادات مبيعات الاستقدام']],
-                ['name' => 'خصم مبيعات', 'aliases' => []],
+                ['name' => 'المصروفات', 'aliases' => []],
+                ['name' => 'اجمالى مصاريف التشغيل', 'aliases' => ['إجمالي مصاريف التشغيل', 'اجمالي مصاريف التشغيل']],
+                ['name' => 'المصروفات العمومية والادارية', 'aliases' => ['المصروفات العمومية والإدارية']],
             ],
         ],
         'nationality_transfer_revenue_parent_account' => [
@@ -280,7 +279,11 @@ class NationalityFinanceAccountService
             return [$parentSettingKey => (int) ($settings->get($assignmentKey)?->value ?? 0)];
         });
 
-        $allAccountIds = $parentIds->merge($assignedIds)->filter()->unique()->values();
+        $allAccountIds = $parentIds->values()
+            ->concat($assignedIds->values())
+            ->filter()
+            ->unique()
+            ->values();
         $accountsById = Account::query()->whereIn('id', $allAccountIds)->get()->keyBy('id');
         $invalidAssignments = $assignedIds
             ->filter(fn (int $id) => $id > 0 && !$accountsById->has($id))
@@ -334,9 +337,7 @@ class NationalityFinanceAccountService
                     continue;
                 }
 
-                $names = collect(array_merge([$definition['name']], $definition['aliases']))
-                    ->map(fn (string $pattern) => sprintf($pattern, $nationalityName))
-                    ->all();
+                $names = $this->formattedAccountNames($definition, $nationalityName);
 
                 $account = $this->findChildByNames($parent, $names);
                 if ($account) {
@@ -497,8 +498,8 @@ class NationalityFinanceAccountService
             return null;
         }
 
-        $normalizedNames = collect(array_merge([$definition['name']], $definition['aliases']))
-            ->map(fn (string $pattern) => $this->normalizeName(sprintf($pattern, $nationalityName)))
+        $normalizedNames = collect($this->formattedAccountNames($definition, $nationalityName))
+            ->map(fn (string $name) => $this->normalizeName($name))
             ->unique();
 
         $matches = $accounts->filter(
@@ -513,6 +514,31 @@ class NationalityFinanceAccountService
         }
 
         return $matches->first();
+    }
+
+    private function formattedAccountNames(array $definition, string $nationalityName): array
+    {
+        $patterns = array_merge([$definition['name']], $definition['aliases']);
+
+        return collect($this->nationalityNameAliases($nationalityName))
+            ->flatMap(fn (string $name) => collect($patterns)->map(
+                fn (string $pattern) => sprintf($pattern, $name)
+            ))
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function nationalityNameAliases(string $nationalityName): array
+    {
+        $normalized = $this->normalizeName($nationalityName);
+        $aliases = [$nationalityName];
+
+        if (in_array($normalized, ['سيريلانكا', 'سريلانكا'], true)) {
+            $aliases = array_merge($aliases, ['سيريلانكا', 'سريلانكا']);
+        }
+
+        return array_values(array_unique($aliases));
     }
 
     private function normalizeName(string $name): string
