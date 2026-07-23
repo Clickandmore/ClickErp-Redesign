@@ -1926,6 +1926,11 @@ class MaidAction extends MainAction
 
     public function paginate($request, $limit = 10)
     {
+        $limit = min(
+            max((int) $request->input('per_page', $limit), 1),
+            100
+        );
+
         $type = match ($request->type) {
             'estqdam' => 1,
             'egar' => 2,
