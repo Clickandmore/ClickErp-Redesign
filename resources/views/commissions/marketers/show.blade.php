@@ -7,6 +7,25 @@
     <style>
         .employee-head { background: linear-gradient(135deg, #075985, #0f766e); color: #fff; border-radius: 16px; }
         .summary-tile { border: 0; border-radius: 13px; box-shadow: 0 3px 14px rgba(15, 23, 42, .07); }
+        .summary-tile-link { display: block; height: 100%; color: inherit; text-decoration: none !important; }
+        .summary-tile-link .summary-tile { transition: transform .15s ease, box-shadow .15s ease; }
+        .summary-tile-link:hover .summary-tile { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(15, 23, 42, .12); }
+        .summary-tile-link.active .summary-tile { outline: 2px solid #0d6efd; outline-offset: -2px; }
+        .active-report-filter { border: 1px solid #bfdbfe; border-radius: 13px; background: #eff6ff; }
+        .quick-filters { border: 0; border-radius: 14px; box-shadow: 0 3px 14px rgba(15, 23, 42, .06); }
+        .quick-filter-group { display: flex; flex-wrap: wrap; gap: 7px; }
+        .quick-filter {
+            padding: 6px 11px;
+            border: 1px solid #dbe3ec;
+            border-radius: 20px;
+            color: #475569;
+            background: #fff;
+            font-size: .78rem;
+            text-decoration: none !important;
+            transition: all .15s ease;
+        }
+        .quick-filter:hover,
+        .quick-filter.active { border-color: #0d6efd; color: #fff; background: #0d6efd; }
         #operationsTable thead th { white-space: nowrap; }
         .sticky-selection { position: sticky; bottom: 0; z-index: 5; background: #fff8db; box-shadow: 0 -5px 18px rgba(15, 23, 42, .09); }
     </style>
@@ -24,6 +43,25 @@
 @if(session('success'))
     <div class="alert alert-success">{{ session('success') }}</div>
 @endif
+@php
+    $activeServiceLabel = !empty($filters['service_type'])
+        ? ($visaTypeOptions[$filters['service_type']] ?? $filters['service_type'])
+        : null;
+    $activeCommissionLabel = match($filters['commission_status'] ?? '') {
+        'pending' => 'غير محتسبة',
+        'commissioned' => 'محتسبة',
+        default => null,
+    };
+    $quickReportUrl = function (array $changes = [], array $remove = []) use ($admin, $filters) {
+        $query = collect($filters)
+            ->reject(fn ($value) => $value === null || $value === '')
+            ->except($remove)
+            ->merge($changes)
+            ->all();
+
+        return route('commissions.marketers.show', array_merge(['admin' => $admin->id], $query));
+    };
+@endphp
 
 <div class="employee-head p-4 mb-3 d-flex flex-wrap justify-content-between align-items-center gap-3">
     <div class="d-flex align-items-center gap-3">
@@ -39,16 +77,82 @@
     </div>
 </div>
 
+@if($activeServiceLabel || $activeCommissionLabel)
+    <div class="active-report-filter p-3 mb-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div>
+            <div class="fw-bold text-primary mb-1"><i class="fa fa-filter me-1"></i> التقرير مفلتر حاليًا</div>
+            <div class="d-flex flex-wrap gap-2">
+                @if($activeServiceLabel)
+                    <span class="badge bg-primary">{{ $activeServiceLabel }}</span>
+                @endif
+                @if($activeCommissionLabel)
+                    <span class="badge {{ ($filters['commission_status'] ?? '') === 'pending' ? 'bg-warning text-dark' : 'bg-success' }}">
+                        {{ $activeCommissionLabel }}
+                    </span>
+                @endif
+            </div>
+        </div>
+        <a href="{{ route('commissions.marketers.show', $admin->id) }}" class="btn btn-sm btn-outline-primary">
+            <i class="fa fa-times me-1"></i> عرض كل العقود
+        </a>
+    </div>
+@endif
+
+<div class="card quick-filters mb-3">
+    <div class="card-body py-3">
+        <div class="row g-3 align-items-center">
+            <div class="col-xl-8">
+                <div class="small fw-bold text-muted mb-2">فلترة سريعة حسب نوع العقد</div>
+                <div class="quick-filter-group">
+                    <a href="{{ $quickReportUrl([], ['service_type']) }}"
+                       class="quick-filter {{ empty($filters['service_type']) ? 'active' : '' }}">الكل</a>
+                    @foreach([
+                        'recruitment' => 'الاستقدام',
+                        'rental' => 'التأجير',
+                        'service_transfer' => 'نقل الخدمات',
+                        'electronic_ingaz_delegation' => 'التفاويض',
+                    ] as $type => $label)
+                        <a href="{{ $quickReportUrl(['service_type' => $type]) }}"
+                           class="quick-filter {{ ($filters['service_type'] ?? '') === $type ? 'active' : '' }}">
+                            {{ $label }}
+                        </a>
+                    @endforeach
+                </div>
+            </div>
+            <div class="col-xl-4">
+                <div class="small fw-bold text-muted mb-2">حالة العمولة</div>
+                <div class="quick-filter-group">
+                    <a href="{{ $quickReportUrl([], ['commission_status']) }}"
+                       class="quick-filter {{ empty($filters['commission_status']) ? 'active' : '' }}">الكل</a>
+                    <a href="{{ $quickReportUrl(['commission_status' => 'pending']) }}"
+                       class="quick-filter {{ ($filters['commission_status'] ?? '') === 'pending' ? 'active' : '' }}">غير محتسبة</a>
+                    <a href="{{ $quickReportUrl(['commission_status' => 'commissioned']) }}"
+                       class="quick-filter {{ ($filters['commission_status'] ?? '') === 'commissioned' ? 'active' : '' }}">محتسبة</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="row g-3 mb-3">
     @foreach([
-        ['إجمالي العمليات', $summary['total'], 'primary'],
-        ['غير محتسبة', $summary['pending'], 'warning'],
-        ['محتسبة', $summary['commissioned'], 'success'],
-        ['عقود الاستقدام', $summary['recruitment'], 'info'],
-    ] as [$label, $value, $color])
-        <div class="col-lg-3 col-6"><div class="card summary-tile h-100"><div class="card-body">
-            <div class="text-muted small">{{ $label }}</div><div class="fs-4 fw-bold text-{{ $color }}">{{ number_format($value) }}</div>
-        </div></div></div>
+        ['إجمالي العمليات', $summary['total'], 'primary', [], empty($filters['service_type']) && empty($filters['commission_status'])],
+        ['غير محتسبة', $summary['pending'], 'warning', ['commission_status' => 'pending'], ($filters['commission_status'] ?? '') === 'pending' && empty($filters['service_type'])],
+        ['محتسبة', $summary['commissioned'], 'success', ['commission_status' => 'commissioned'], ($filters['commission_status'] ?? '') === 'commissioned' && empty($filters['service_type'])],
+        ['عقود الاستقدام', $summary['recruitment'], 'info', ['service_type' => 'recruitment'], ($filters['service_type'] ?? '') === 'recruitment' && empty($filters['commission_status'])],
+    ] as [$label, $value, $color, $query, $active])
+        <div class="col-lg-3 col-6">
+            <a class="summary-tile-link {{ $active ? 'active' : '' }}"
+               href="{{ route('commissions.marketers.show', array_merge(['admin' => $admin->id], $query)) }}">
+                <div class="card summary-tile h-100">
+                    <div class="card-body">
+                        <div class="text-muted small">{{ $label }}</div>
+                        <div class="fs-4 fw-bold text-{{ $color }}">{{ number_format($value) }}</div>
+                        <div class="small text-muted mt-1">اضغط لعرض التقرير</div>
+                    </div>
+                </div>
+            </a>
+        </div>
     @endforeach
 </div>
 
@@ -106,7 +210,13 @@
 
 <div class="card border-0 shadow-sm">
     <div class="card-header bg-white py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
-        <div><h5 class="mb-1 fw-bold">الطلبات والعقود المرتبطة بالموظف</h5><div class="small text-muted">تُعرض قيمة الفاتورة، وإن لم توجد فقيمة العقد أو الباقة.</div></div>
+        <div>
+            <h5 class="mb-1 fw-bold">
+                تقرير الطلبات والعقود
+                @if($activeServiceLabel)<span class="text-primary">— {{ $activeServiceLabel }}</span>@endif
+            </h5>
+            <div class="small text-muted">النتائج أدناه مطابقة للفلاتر المحددة، وتُعرض قيمة الفاتورة أو قيمة العقد/الباقة عند عدم وجودها.</div>
+        </div>
         <div class="d-flex gap-2">
             <button type="button" class="btn btn-sm btn-outline-primary" id="selectAllBtn">تحديد غير المحتسب في الصفحة</button>
             <button type="button" class="btn btn-sm btn-outline-secondary" id="deselectAllBtn">إلغاء التحديد</button>

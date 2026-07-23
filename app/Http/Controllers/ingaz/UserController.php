@@ -189,6 +189,9 @@ class UserController extends Controller
                         ->orWhere('email', 'like', '%' . $keyword . '%')
                         ->orWhere('phone', 'like', '%' . $keyword . '%')
                         ->orWhere('phone2', 'like', '%' . $keyword . '%')
+                        ->orWhere('source_phone', 'like', '%' . $keyword . '%')
+                        ->orWhere('source_phone2', 'like', '%' . $keyword . '%')
+                        ->orWhere('source_created_by', 'like', '%' . $keyword . '%')
                         ->orWhere('national_num', 'like', '%' . $keyword . '%')
                         ->orWhere('tax_number', 'like', '%' . $keyword . '%')
                         ->orWhere('license_number', 'like', '%' . $keyword . '%')
@@ -254,16 +257,17 @@ class UserController extends Controller
                     $documentNumber = $row->documentNumber();
                     $idNumber = $documentNumber ? '<span class="badge bg-light text-dark border me-1"><i class="fas fa-id-card me-1"></i>' . e($row->documentNumberLabel()) . ': ' . e($documentNumber) . '</span>' : '';
 
-                    $hasPrimaryPhone = $row->phone && !str_starts_with($row->phone, 'arabia-client-');
-                    $primary = $hasPrimaryPhone
-                        ? '<a href="tel:' . e($row->phone_code . $row->phone) . '" class="text-decoration-none">
-                                <i class="fas fa-phone-alt me-1 text-success"></i>' . e($row->phone_code . $row->phone) . '
+                    $primaryPhone = $this->clientPrimaryPhoneValue($row);
+                    $primary = $primaryPhone !== ''
+                        ? '<a href="tel:' . e($primaryPhone) . '" class="text-decoration-none" dir="ltr">
+                                <i class="fas fa-phone-alt me-1 text-success"></i>' . e($primaryPhone) . '
                             </a>'
                         : '<span class="text-muted">' . helperTrans('ingaz.not_specified') . '</span>';
 
-                    $secondary = $row->phone2
-                        ? '<a href="tel:' . e($row->phone2) . '" class="text-decoration-none">
-                                <i class="fas fa-phone me-1 text-muted"></i>' . e($row->phone2) . '
+                    $secondaryPhone = $this->clientSecondaryPhoneValue($row);
+                    $secondary = $secondaryPhone !== ''
+                        ? '<a href="tel:' . e($secondaryPhone) . '" class="text-decoration-none" dir="ltr">
+                                <i class="fas fa-phone me-1 text-muted"></i>' . e($secondaryPhone) . '
                             </a>'
                         : '';
 
@@ -344,7 +348,7 @@ class UserController extends Controller
                             </div>';
                 })
                 ->addColumn('created_by', function ($row) {
-                    $creatorName = $row->createdBy?->name;
+                    $creatorName = $this->clientCreatorValue($row);
 
                     if (!$creatorName) {
                         return '<span class="text-muted">' . helperTrans('ingaz.not_specified') . '</span>';
@@ -1270,10 +1274,37 @@ class UserController extends Controller
 
     private function clientsForCurrentAdmin()
     {
-        $query = objModel::query();
+        $query = objModel::query()->with(['nationality', 'createdBy']);
         $this->applyBranchScope($query);
 
         return $query->get();
+    }
+
+    private function clientPrimaryPhoneValue(objModel $client): string
+    {
+        $sourcePhone = trim((string) ($client->source_phone ?? ''));
+        if ($sourcePhone !== '') {
+            return $sourcePhone;
+        }
+
+        $phone = trim((string) $client->phone);
+        if ($phone === ''
+            || str_starts_with($phone, 'arabia-client-')
+            || str_starts_with($phone, 'data-import-')) {
+            return '';
+        }
+
+        return trim((string) $client->phone_code . $phone);
+    }
+
+    private function clientSecondaryPhoneValue(objModel $client): string
+    {
+        return trim((string) (($client->source_phone2 ?? null) ?: $client->phone2));
+    }
+
+    private function clientCreatorValue(objModel $client): string
+    {
+        return trim((string) (($client->source_created_by ?? null) ?: $client->createdBy?->name));
     }
 
     /**
@@ -1405,6 +1436,7 @@ class UserController extends Controller
                         <th>' . __('ingaz.client_number') . '</th>
                         <th>' . __('ingaz.name') . '</th>
                         <th>' . __('ingaz.phone') . '</th>
+                        <th>' . __('ingaz.phone2') . '</th>
                         <th>' . __('ingaz.email') . '</th>
                         <th>' . __('ingaz.nationality') . '</th>
                         <th>' . __('ingaz.client_type') . '</th>
@@ -1412,6 +1444,7 @@ class UserController extends Controller
                         <th>' . __('ingaz.birthdate') . '</th>
                         <th>' . __('ingaz.address') . '</th>
                         <th>' . __('ingaz.city') . '</th>
+                        <th>أضيف بواسطة</th>
                         <th>' . __('ingaz.status') . '</th>
                     </tr>
                 </thead>
@@ -1420,14 +1453,15 @@ class UserController extends Controller
         foreach ($clients as $client) {
             $statusClass = $client->is_blocked ? 'status-blocked' : 'status-active';
             $statusText = $client->is_blocked ? __('ingaz.blocked') : __('ingaz.active');
-            $displayPhone = $client->phone && !str_starts_with($client->phone, 'arabia-client-')
-                ? $client->phone_code . $client->phone
-                : __('ingaz.not_specified');
+            $displayPhone = $this->clientPrimaryPhoneValue($client) ?: __('ingaz.not_specified');
+            $displayPhone2 = $this->clientSecondaryPhoneValue($client) ?: __('ingaz.not_specified');
+            $creator = $this->clientCreatorValue($client) ?: __('ingaz.not_specified');
 
             $html .= '<tr>
                 <td>' . ($client->arabia_client_number ?: $client->id) . '</td>
                 <td>' . $client->name . '</td>
                 <td>' . $displayPhone . '</td>
+                <td>' . $displayPhone2 . '</td>
                 <td>' . $client->email . '</td>
                 <td>' . ($client->nationality->title ?? '') . '</td>
                 <td>' . ($client->isCompanyClient() ? __('ingaz.company') : __('ingaz.person_client')) . '</td>
@@ -1435,6 +1469,7 @@ class UserController extends Controller
                 <td>' . $client->birthdate . '</td>
                 <td>' . $client->address . '</td>
                 <td>' . $client->city . '</td>
+                <td>' . $creator . '</td>
                 <td class="' . $statusClass . '">' . $statusText . '</td>
             </tr>';
         }
@@ -1555,6 +1590,7 @@ class UserController extends Controller
                         <th>' . __('ingaz.client_number') . '</th>
                         <th>' . __('ingaz.name') . '</th>
                         <th>' . __('ingaz.phone') . '</th>
+                        <th>' . __('ingaz.phone2') . '</th>
                         <th>' . __('ingaz.email') . '</th>
                         <th>' . __('ingaz.nationality') . '</th>
                         <th>' . __('ingaz.client_type') . '</th>
@@ -1562,6 +1598,7 @@ class UserController extends Controller
                         <th>' . __('ingaz.birthdate') . '</th>
                         <th>' . __('ingaz.address') . '</th>
                         <th>' . __('ingaz.city') . '</th>
+                        <th>أضيف بواسطة</th>
                         <th>' . __('ingaz.status') . '</th>
                     </tr>
                 </thead>
@@ -1570,14 +1607,15 @@ class UserController extends Controller
         foreach ($clients as $client) {
             $statusClass = $client->is_blocked ? 'status-blocked' : 'status-active';
             $statusText = $client->is_blocked ? __('ingaz.blocked') : __('ingaz.active');
-            $displayPhone = $client->phone && !str_starts_with($client->phone, 'arabia-client-')
-                ? $client->phone_code . $client->phone
-                : __('ingaz.not_specified');
+            $displayPhone = $this->clientPrimaryPhoneValue($client) ?: __('ingaz.not_specified');
+            $displayPhone2 = $this->clientSecondaryPhoneValue($client) ?: __('ingaz.not_specified');
+            $creator = $this->clientCreatorValue($client) ?: __('ingaz.not_specified');
 
             $html .= '<tr>
                 <td>' . ($client->arabia_client_number ?: $client->id) . '</td>
                 <td>' . $client->name . '</td>
                 <td>' . $displayPhone . '</td>
+                <td>' . $displayPhone2 . '</td>
                 <td>' . $client->email . '</td>
                 <td>' . ($client->nationality->title ?? '') . '</td>
                 <td>' . ($client->isCompanyClient() ? __('ingaz.company') : __('ingaz.person_client')) . '</td>
@@ -1585,6 +1623,7 @@ class UserController extends Controller
                 <td>' . $client->birthdate . '</td>
                 <td>' . $client->address . '</td>
                 <td>' . $client->city . '</td>
+                <td>' . $creator . '</td>
                 <td class="' . $statusClass . '">' . $statusText . '</td>
             </tr>';
         }

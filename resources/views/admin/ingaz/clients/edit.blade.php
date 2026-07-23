@@ -174,16 +174,17 @@
 @section('content')
     @if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_EDIT))
         @php
-            $phoneInput = (string) old('phone', $client->phone);
-            $phoneDigits = preg_replace('/\D+/', '', $phoneInput);
+            $hasSourcePhone = filled($client->source_phone);
+            $phoneInput = (string) old('phone', $client->source_phone ?: $client->phone);
+            $phoneDigits = $hasSourcePhone ? $phoneInput : preg_replace('/\D+/', '', $phoneInput);
 
-            if (str_starts_with($phoneDigits, '00966')) {
+            if (!$hasSourcePhone && str_starts_with($phoneDigits, '00966')) {
                 $phoneDigits = substr($phoneDigits, 5);
-            } elseif (str_starts_with($phoneDigits, '966')) {
+            } elseif (!$hasSourcePhone && str_starts_with($phoneDigits, '966')) {
                 $phoneDigits = substr($phoneDigits, 3);
             }
 
-            if (str_starts_with($phoneDigits, '05')) {
+            if (!$hasSourcePhone && str_starts_with($phoneDigits, '05')) {
                 $phoneDigits = substr($phoneDigits, 1);
             }
 
@@ -207,7 +208,7 @@
             <form action="{{ route('clients.update', $client->id) }}" method="POST" class="from-submit-global">
                 @csrf
                 @method('PUT')
-                <input type="hidden" name="phone_code" value="+966">
+                <input type="hidden" name="phone_code" value="{{ $hasSourcePhone ? '' : '+966' }}">
 
                 <div class="client-form-card">
                     <div class="card-body">
@@ -227,7 +228,7 @@
                             <div class="col-lg-6">
                                 <label for="phone" class="form-label">{{ helperTrans('ingaz.phone') }}</label>
                                 <div class="input-group">
-                                    <span class="input-group-text" dir="ltr">+966</span>
+                                    <span class="input-group-text" dir="ltr">{{ $hasSourcePhone ? 'المصدر' : '+966' }}</span>
                                     <input type="text" id="phone" name="phone" class="form-control" dir="ltr"
                                            value="{{ $phoneDigits ?: $phoneInput }}" required>
                                 </div>
@@ -322,7 +323,7 @@
                             <div class="col-lg-6">
                                 <label for="phone2" class="form-label">{{ helperTrans('ingaz.phone2') }}</label>
                                 <input type="text" id="phone2" name="phone2" class="form-control" dir="ltr"
-                                       value="{{ old('phone2', $client->phone2) }}">
+                                       value="{{ old('phone2', $client->source_phone2 ?: $client->phone2) }}">
                             </div>
 
                             <div class="col-lg-6">

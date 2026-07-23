@@ -193,7 +193,7 @@
                             <span><i
                                     class="fas fa-calendar-plus me-1"></i>{{ $client->created_at?->format('Y-m-d') ?? '-' }}</span>
                             <span><i class="fas fa-user-plus me-1"></i>أضيف بواسطة:
-                                {{ $client->createdBy?->name ?? helperTrans('ingaz.not_specified') }}</span>
+                                {{ $client->source_created_by ?: ($client->createdBy?->name ?? helperTrans('ingaz.not_specified')) }}</span>
                             @if ($lastInteractionAt)
                                 <span><i class="fas fa-history me-1"></i>{{ helperTrans('ingaz.last_interaction') }}:
                                     {{ $lastInteractionAt->diffForHumans() }}</span>
@@ -347,11 +347,17 @@
                                 <div class="info-item">
                                     <div class="label">{{ helperTrans('ingaz.client_phone') }}</div>
                                     <div class="value">
-                                        @if ($client->phone && !str_starts_with($client->phone, 'arabia-client-'))
-                                            <a href="tel:{{ $client->phone_code . $client->phone }}"
-                                                class="text-decoration-none">
+                                        @php
+                                            $displayPrimaryPhone = $client->source_phone
+                                                ?: (($client->phone && !str_starts_with($client->phone, 'arabia-client-'))
+                                                    ? $client->phone_code . $client->phone
+                                                    : null);
+                                        @endphp
+                                        @if ($displayPrimaryPhone)
+                                            <a href="tel:{{ $displayPrimaryPhone }}"
+                                                class="text-decoration-none" dir="ltr">
                                                 <i
-                                                    class="fas fa-phone-alt me-1 text-success"></i>{{ $client->phone_code . $client->phone }}
+                                                    class="fas fa-phone-alt me-1 text-success"></i>{{ $displayPrimaryPhone }}
                                             </a>
                                         @else
                                             {{ helperTrans('ingaz.not_specified') }}
@@ -372,7 +378,7 @@
                                 </div>
                                 <div class="info-item">
                                     <div class="label">{{ helperTrans('ingaz.phone') }} 2</div>
-                                    <div class="value">{{ $client->phone2 ?? helperTrans('ingaz.not_specified') }}</div>
+                                    <div class="value" dir="ltr">{{ $client->source_phone2 ?: ($client->phone2 ?? helperTrans('ingaz.not_specified')) }}</div>
                                 </div>
                                 <div class="info-item">
                                     <div class="label">{{ helperTrans('ingaz.nationality_id') }}</div>
@@ -400,7 +406,7 @@
                                 <div class="info-item">
                                     <div class="label">أضيف بواسطة</div>
                                     <div class="value">
-                                        {{ $client->createdBy?->name ?? helperTrans('ingaz.not_specified') }}</div>
+                                        {{ $client->source_created_by ?: ($client->createdBy?->name ?? helperTrans('ingaz.not_specified')) }}</div>
                                 </div>
                                 @unless ($client->isCompanyClient())
                                     <div class="info-item">

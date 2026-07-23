@@ -3,6 +3,7 @@
 namespace App\Services\ingaz;
 
 use App\Models\Country;
+use App\Models\auth\Admin;
 use App\Models\ingaz\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,7 @@ use PhpOffice\PhpSpreadsheet\IOFactory;
 class ArabiaClientsImportService
 {
     private ?array $userColumns = null;
+    private ?array $sourceCreatorAdmins = null;
 
     public function __construct(private DataImportTemplateService $templates)
     {
@@ -86,12 +88,15 @@ class ArabiaClientsImportService
     {
         $arabiaNumber = $this->positiveInteger($raw['رقم تعريف'] ?? null);
         $nationalNumber = $this->digits($raw['رقم الهوية'] ?? null);
-        $phone = $this->normalizePhone($raw['الجوال'] ?? null);
+        $sourcePhone = $this->cellValue($raw['الجوال'] ?? null);
+        $sourcePhone2 = $this->cellValue($raw['رقم هاتف 2'] ?? null);
+        $sourceCreatedBy = $this->cellValue($raw['أنشئ بواسطة'] ?? null);
+        $phone = $this->normalizePhone($sourcePhone);
         $firstName = trim((string) ($raw['الإسم الأول'] ?? ''));
         $lastName = trim((string) ($raw['اسم العائلة'] ?? ''));
         $name = trim($firstName . ' ' . $lastName);
 
-        if (!$arabiaNumber && $nationalNumber === '' && $phone === '') {
+        if (!$arabiaNumber && $nationalNumber === '' && $sourcePhone === '') {
             throw new \InvalidArgumentException('رقم تعريف أربيا أو رقم الهوية أو الجوال مطلوب.');
         }
 
@@ -121,7 +126,7 @@ class ArabiaClientsImportService
         $isNew = !$user;
         $user ??= new User();
         $storedPhone = $this->availablePhone(
-            $phone,
+            $sourcePhone,
             $user->exists ? (int) $user->id : null,
             $arabiaNumber,
             $rowNumber,
@@ -138,9 +143,14 @@ class ArabiaClientsImportService
             'arabia_client_number' => $arabiaNumber,
             'name' => $name,
             'full_name_en' => $raw['Full name english'] ?? null,
-            'phone_code' => '+966',
+            // Arabia phone fields are source data, not login input. Keep them exactly
+            // as exported and do not prepend a country code during display.
+            'phone_code' => '',
             'phone' => $storedPhone,
-            'phone2' => $this->normalizePhone($raw['رقم هاتف 2'] ?? null) ?: ($storedPhone !== $phone ? $phone : null),
+            'phone2' => $sourcePhone2 ?: null,
+            'source_phone' => $sourcePhone ?: null,
+            'source_phone2' => $sourcePhone2 ?: null,
+            'source_created_by' => $sourceCreatedBy ?: null,
             'email' => filter_var($raw['البريد الإلكتروني'] ?? null, FILTER_VALIDATE_EMAIL) ?: null,
             'national_num' => $nationalNumber ?: null,
             'nationality_id' => $this->countryId($raw['الجنسية'] ?? null),
@@ -165,7 +175,9 @@ class ArabiaClientsImportService
                 ? ($this->boolean($raw['محظور']) ? 1 : 0)
                 : ($user->exists ? null : 0),
             'register_from' => 'arabia_import',
-            'created_by' => $user->created_by ?: $adminId,
+            'created_by' => $this->resolveSourceCreatorId($sourceCreatedBy)
+                ?: $user->created_by
+                ?: $adminId,
         ];
 
         if (!$user->exists) {
@@ -173,7 +185,8 @@ class ArabiaClientsImportService
         }
 
         $replaceableArabiaFields = [
-            'full_name_en', 'phone2', 'email', 'national_num', 'nationality_id',
+            'full_name_en', 'phone_code', 'phone2', 'source_phone', 'source_phone2',
+            'source_created_by', 'email', 'national_num', 'nationality_id',
             'marital_status', 'identity_date', 'identity_type', 'job', 'profession',
             'workplace', 'po_box', 'postal_code', 'monthly_income', 'address', 'city',
             'rooms_num', 'family_num', 'children', 'tax_number', 'notes',
@@ -232,7 +245,11 @@ class ArabiaClientsImportService
     ): string
     {
         if ($phone !== '') {
-            $query = User::query()->whereIn('phone', $this->phoneCandidates($phone));
+            // The source value must not be normalized or silently discarded. The
+            // database still requires an exact unique operational phone, so only an
+            // exact duplicate receives an internal placeholder; source_phone always
+            // retains the original value for display, search, and exports.
+            $query = User::query()->where('phone', $phone);
             if ($userId) {
                 $query->where('id', '!=', $userId);
             }
@@ -255,6 +272,43 @@ class ArabiaClientsImportService
         }
 
         return $candidate;
+    }
+
+    private function resolveSourceCreatorId(?string $sourceCreatedBy): ?int
+    {
+        $sourceCreatedBy = trim((string) $sourceCreatedBy);
+        if ($sourceCreatedBy === '') {
+            return null;
+        }
+
+        $source = $this->normalizeCreatorName($sourceCreatedBy);
+        $admins = $this->sourceCreatorAdmins ??= Admin::withTrashed()
+            ->get(['id', 'name'])
+            ->map(fn (Admin $admin) => [
+                'id' => (int) $admin->id,
+                'name' => $this->normalizeCreatorName($admin->name),
+            ])
+            ->filter(fn (array $admin) => $admin['name'] !== '')
+            ->sortByDesc(fn (array $admin) => mb_strlen($admin['name']))
+            ->values()
+            ->all();
+
+        foreach ($admins as $admin) {
+            if ($source === $admin['name']
+                || preg_match('/(?:^|\\s*\\/\\s*)' . preg_quote($admin['name'], '/') . '(?:\\s*\\/\\s*|$)/u', $source)) {
+                return $admin['id'];
+            }
+        }
+
+        return null;
+    }
+
+    private function normalizeCreatorName(?string $value): string
+    {
+        $value = mb_strtolower(trim((string) $value));
+        $value = str_replace(['أ', 'إ', 'آ', 'ى', 'ة'], ['ا', 'ا', 'ا', 'ي', 'ه'], $value);
+
+        return preg_replace('/\\s+/u', ' ', $value);
     }
 
     private function phoneCandidates(string $phone): array

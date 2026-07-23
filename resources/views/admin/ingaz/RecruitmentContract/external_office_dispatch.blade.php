@@ -15,8 +15,11 @@
     $pdfUrl = $dispatch
         ? route('RecruitmentContract.externalOfficeDispatch.print', ['contract' => $contract->id, 'driver' => 'dompdf', 'download' => 1])
         : null;
+    $currentContractIsBulkCompatible = $bulkCompatibleContracts->contains(
+        fn ($bulkContract) => (int) $bulkContract->id === (int) $contract->id
+    );
     $showBulkCreateForm = $isEditable && $bulkCompatibleContracts->isNotEmpty();
-    $useUnifiedCreateForm = !$dispatch && $showBulkCreateForm;
+    $useUnifiedCreateForm = !$dispatch && $showBulkCreateForm && $currentContractIsBulkCompatible;
 @endphp
 
 @section('content')
@@ -109,6 +112,12 @@
                             <div class="small text-muted">
                                 اختيار عقد واحد ينشئ إرسالية فردية، واختيار أكثر من عقد ينشئ إرساليات مجمعة بنفس التاريخ والتكلفة ومحطة الوصول.
                             </div>
+                            @if (!$currentContractIsBulkCompatible)
+                                <div class="small text-danger mt-1">
+                                    العقد الحالي #{{ $contract->id }} غير متاح للاختيار:
+                                    {{ !empty($sourceErrors) ? implode(' ', $sourceErrors) : 'العقد لا يطابق شروط الإرسالية الحالية.' }}
+                                </div>
+                            @endif
                         </div>
                     </div>
 
