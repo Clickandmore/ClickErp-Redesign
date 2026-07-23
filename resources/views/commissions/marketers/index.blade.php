@@ -194,6 +194,14 @@
     </div>
 </div>
 
+<div class="alert alert-info border-0 shadow-sm mb-4">
+    <div class="fw-bold mb-1"><i class="fa fa-info-circle me-1"></i> الفرق بين سداد العقد وسداد العمولة</div>
+    <div class="small">
+        سداد العميل لقيمة العقد لا يجعل العمولة محتسبة تلقائيًا.
+        يظهر العقد «غير محتسب» حتى يُعتمد ضمن دفعة عمولة، بينما العمليات المستوردة من ملف العمولات المسددة تظهر كمحتسبة ومسـددة سابقًا.
+    </div>
+</div>
+
 <div class="row g-3 mb-4">
     @foreach([
         ['المسوقون', $overview['marketers'], 'fa-users', 'primary'],

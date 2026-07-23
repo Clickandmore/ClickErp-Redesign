@@ -16,61 +16,123 @@ class NationalityFinanceAccountService
             'label' => 'nationality_recruitment_sales_parent_account',
             'name' => 'مبيعات (%s)',
             'aliases' => ['مبيعات %s'],
+            'parent_path' => [
+                ['name' => 'الإيرادات', 'aliases' => ['الايرادات']],
+                ['name' => 'إيراد مبيعات الاستقدام', 'aliases' => ['إيرادات مبيعات الاستقدام']],
+                ['name' => 'مبيعات الاستقدام', 'aliases' => []],
+                ['name' => 'مبيعات', 'aliases' => []],
+            ],
         ],
         'nationality_recruitment_cost_parent_account' => [
             'label' => 'nationality_recruitment_cost_parent_account',
             'name' => 'تكاليف مبيعات (%s)',
             'aliases' => ['تكاليف مبيعات %s', 'تكلفة مبيعات %s', 'تكلفة مبيعات (%s)'],
+            'parent_path' => [
+                ['name' => 'المصروفات', 'aliases' => []],
+                ['name' => 'تكاليف مبيعات الاستقدام', 'aliases' => []],
+                ['name' => 'تكاليف مبيعات', 'aliases' => ['تكاليف المبيعات']],
+            ],
         ],
         'nationality_contract_liability_parent_account' => [
             'label' => 'nationality_contract_liability_parent_account',
             'name' => 'التزامات عقود (%s)',
             'aliases' => ['التزامات عقود %s', 'إلتزامات عقود %s'],
+            'parent_path' => [
+                ['name' => 'الخصوم', 'aliases' => []],
+                ['name' => 'الخصوم قصيرة الأجل', 'aliases' => ['الخصوم قصيرة الاجل']],
+                ['name' => 'التزامات عقود الاستقدام', 'aliases' => ['إلتزامات عقود الاستقدام']],
+                ['name' => 'التزامات عقود', 'aliases' => ['إلتزامات عقود']],
+            ],
         ],
         'nationality_sales_discount_parent_account' => [
             'label' => 'nationality_sales_discount_parent_account',
             'name' => 'خصم مبيعات %s',
             'aliases' => [],
+            'parent_path' => [
+                ['name' => 'الإيرادات', 'aliases' => ['الايرادات']],
+                ['name' => 'إيراد مبيعات الاستقدام', 'aliases' => ['إيرادات مبيعات الاستقدام']],
+                ['name' => 'خصم مبيعات', 'aliases' => []],
+            ],
         ],
         'nationality_transfer_revenue_parent_account' => [
             'label' => 'nationality_transfer_revenue_parent_account',
             'name' => 'ايراد نقل خدمات %s',
             'aliases' => ['إيراد نقل خدمات %s'],
+            'parent_path' => [
+                ['name' => 'الإيرادات', 'aliases' => ['الايرادات']],
+                ['name' => 'إيراد نقل الخدمات', 'aliases' => []],
+                ['name' => 'ايرادات نقل خدمات', 'aliases' => ['إيراد نقل خدمات']],
+            ],
         ],
         'nationality_job_order_expense_parent_account' => [
             'label' => 'nationality_job_order_expense_parent_account',
             'name' => 'مصروفات جوب اوردر %s',
             'aliases' => [],
+            'parent_path' => [
+                ['name' => 'المصروفات', 'aliases' => []],
+                ['name' => 'مصروفات تشغيلية اخرى', 'aliases' => []],
+                ['name' => 'مصروفات سفارات اجنبية', 'aliases' => ['مصروفات سفارات أجنبية']],
+            ],
         ],
         'nationality_embassy_expense_parent_account' => [
             'label' => 'nationality_embassy_expense_parent_account',
             'name' => 'مصروفات انهاء اجراءات سفارة %s',
             'aliases' => [],
+            'parent_path' => [
+                ['name' => 'المصروفات', 'aliases' => []],
+                ['name' => 'مصروفات تشغيلية اخرى', 'aliases' => []],
+                ['name' => 'مصروفات سفارات اجنبية', 'aliases' => ['مصروفات سفارات أجنبية']],
+            ],
         ],
         'nationality_recruitment_cost_return_parent_account' => [
             'label' => 'nationality_recruitment_cost_return_parent_account',
             'name' => 'مردودات تكلفة %s',
             'aliases' => [],
+            'parent_path' => [
+                ['name' => 'المصروفات', 'aliases' => []],
+                ['name' => 'تكاليف مبيعات الاستقدام', 'aliases' => []],
+                ['name' => 'مردودات تكلفة الاستقدام', 'aliases' => []],
+            ],
         ],
         'nationality_recruitment_sales_return_parent_account' => [
             'label' => 'nationality_recruitment_sales_return_parent_account',
             'name' => 'مردودات مبيعات استقدام %s',
             'aliases' => [],
+            'parent_path' => [
+                ['name' => 'الإيرادات', 'aliases' => ['الايرادات']],
+                ['name' => 'إيراد مبيعات الاستقدام', 'aliases' => ['إيرادات مبيعات الاستقدام']],
+                ['name' => 'مردودات مبيعات الاستقدام', 'aliases' => ['مرتد مبيعات الاستقدام']],
+            ],
         ],
         'nationality_transfer_sales_return_parent_account' => [
             'label' => 'nationality_transfer_sales_return_parent_account',
             'name' => 'مردودات نقل خدمات %s',
             'aliases' => [],
+            'parent_path' => [
+                ['name' => 'الإيرادات', 'aliases' => ['الايرادات']],
+                ['name' => 'إيراد نقل الخدمات', 'aliases' => []],
+                ['name' => 'مردودات مبيعات نقل الخدمات', 'aliases' => []],
+            ],
         ],
         'nationality_shelter_prepaid_expense_parent_account' => [
             'label' => 'nationality_shelter_prepaid_expense_parent_account',
             'name' => 'مصروفات مدفوعة مقدما ايواء %s',
             'aliases' => [],
+            'parent_path' => [
+                ['name' => 'الأصول', 'aliases' => []],
+                ['name' => 'الأصول المتداولة قصيرة الأجل', 'aliases' => ['الأصول المتداولة قصيرة الاجل']],
+                ['name' => 'مصروفات مدفوعة مقدما - الايواء', 'aliases' => ['مصروفات مدفوعة مقدما الايواء']],
+            ],
         ],
         'nationality_transfer_advance_parent_account' => [
             'label' => 'nationality_transfer_advance_parent_account',
             'name' => 'دفعات مقدمة نقل خدمات %s',
             'aliases' => [],
+            'parent_path' => [
+                ['name' => 'الخصوم', 'aliases' => []],
+                ['name' => 'الخصوم قصيرة الأجل', 'aliases' => ['الخصوم قصيرة الاجل']],
+                ['name' => 'دفعات مقدمة نقل خدمات', 'aliases' => []],
+            ],
         ],
     ];
 
@@ -247,25 +309,24 @@ class NationalityFinanceAccountService
             }
         }
 
-        $definitionsNeedingCreation = $assignedIds->filter(fn (int $id) => $id <= 0)->keys();
-        $missing = $definitionsNeedingCreation
-            ->filter(fn (string $key) => (int) $parentIds->get($key) <= 0 || !$accountsById->has($parentIds->get($key)))
-            ->values();
-
-        if ($missing->isNotEmpty()) {
-            throw new \RuntimeException(
-                'يرجى تحديد جميع حسابات الجنسية من إعدادات النظام المحاسبي قبل إنشاء الحسابات. الإعدادات الناقصة: '
-                . $missing->map(fn (string $key) => __('finance::finance.' . self::DEFINITIONS[$key]['label']))->implode('، ')
-            );
-        }
-
         $created = 0;
+        $createdLeaves = 0;
         $existing = 0;
 
         $resolvedAccountIds = [];
 
-        DB::transaction(function () use ($nationality, $nationalityName, $parentIds, $assignedIds, $accountsById, &$created, &$existing, &$resolvedAccountIds) {
+        DB::transaction(function () use ($nationality, $nationalityName, $parentIds, $assignedIds, $accountsById, &$created, &$createdLeaves, &$existing, &$resolvedAccountIds) {
             foreach (self::DEFINITIONS as $settingKey => $definition) {
+                $parent = $accountsById->get($parentIds->get($settingKey));
+                if (!$parent) {
+                    $pathResult = $this->ensureAccountPath($definition['parent_path']);
+                    $parent = $pathResult['account'];
+                    $created += $pathResult['created_nodes'];
+                    $parentIds->put($settingKey, $parent->id);
+                    $accountsById->put($parent->id, $parent);
+                    $this->persistAssignment($settingKey, $parent->id);
+                }
+
                 $assignedAccountId = (int) $assignedIds->get($settingKey);
                 if ($assignedAccountId > 0) {
                     $resolvedAccountIds[$settingKey] = $assignedAccountId;
@@ -273,7 +334,6 @@ class NationalityFinanceAccountService
                     continue;
                 }
 
-                $parent = $accountsById->get($parentIds->get($settingKey));
                 $names = collect(array_merge([$definition['name']], $definition['aliases']))
                     ->map(fn (string $pattern) => sprintf($pattern, $nationalityName))
                     ->all();
@@ -288,6 +348,7 @@ class NationalityFinanceAccountService
                 $account = $this->createChildAccount($parent, sprintf($definition['name'], $nationalityName));
                 $resolvedAccountIds[$settingKey] = $account->id;
                 $created++;
+                $createdLeaves++;
             }
 
             foreach ($resolvedAccountIds as $parentSettingKey => $accountId) {
@@ -301,7 +362,7 @@ class NationalityFinanceAccountService
         return [
             'nationality' => $nationalityName,
             'created_nodes' => $created,
-            'created_leaves' => $created,
+            'created_leaves' => $createdLeaves,
             'existing_nodes' => $existing,
             'account_ids' => $resolvedAccountIds,
         ];
@@ -377,6 +438,51 @@ class NationalityFinanceAccountService
 
         return Account::query()
             ->where('parent_id', $parent->id)
+            ->get()
+            ->first(fn (Account $account) => $normalizedNames->contains($this->normalizeName($account->name)));
+    }
+
+    private function ensureAccountPath(array $path): array
+    {
+        $parent = null;
+        $createdNodes = 0;
+
+        foreach ($path as $index => $node) {
+            $names = array_merge([$node['name']], $node['aliases'] ?? []);
+            $account = $this->findAccountByNames($names, $parent?->id);
+
+            if (!$account) {
+                if ($index === 0) {
+                    throw new \RuntimeException('الحساب الرئيسي "' . $node['name'] . '" غير موجود في الشجرة المالية.');
+                }
+
+                $account = $this->createChildAccount($parent, $node['name']);
+                $createdNodes++;
+            }
+
+            $parent = $account;
+        }
+
+        return [
+            'account' => $parent,
+            'created_nodes' => $createdNodes,
+        ];
+    }
+
+    private function findAccountByNames(array $names, ?int $parentId): ?Account
+    {
+        $normalizedNames = collect($names)
+            ->filter()
+            ->map(fn (string $name) => $this->normalizeName($name))
+            ->unique();
+
+        return Account::query()
+            ->when(
+                $parentId === null,
+                fn ($query) => $query->whereNull('parent_id'),
+                fn ($query) => $query->where('parent_id', $parentId)
+            )
+            ->orderBy('code')
             ->get()
             ->first(fn (Account $account) => $normalizedNames->contains($this->normalizeName($account->name)));
     }

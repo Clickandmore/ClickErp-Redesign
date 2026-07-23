@@ -49,9 +49,7 @@ class CommissionMarketerController extends Controller
                 ->editColumn('base_amount', fn ($row) => number_format($row['base_amount'], 2))
                 ->addColumn('service_type_label', fn ($row) => $this->visaTypeLabel($row['service_type']))
                 ->addColumn('is_paid_label', fn ($row) => $this->isPaidLabel($row['is_paid']))
-                ->addColumn('commissioned_label', fn ($row) => $row['commissioned']
-                    ? '<span class="badge bg-success">محتسبة — دفعة #' . $row['commission_batch_id'] . '</span>'
-                    : '<span class="badge bg-secondary">غير محتسبة</span>')
+                ->addColumn('commissioned_label', fn ($row) => $this->commissionStatusLabel($row))
                 ->rawColumns(['checkbox', 'commissioned_label', 'is_paid_label'])
                 ->make(true);
         }
@@ -153,10 +151,24 @@ class CommissionMarketerController extends Controller
     private function isPaidLabel(?bool $isPaid): string
     {
         if ($isPaid === null) {
-            return '<span class="badge bg-light text-dark border">غير محدد</span>';
+            return '<span class="badge bg-light text-dark border">سداد العميل غير محدد</span>';
         }
         return $isPaid
-            ? '<span class="badge bg-success">مسدد</span>'
-            : '<span class="badge bg-warning text-dark">غير مسدد</span>';
+            ? '<span class="badge bg-info text-dark">العميل مسدد</span>'
+            : '<span class="badge bg-warning text-dark">العميل غير مسدد</span>';
+    }
+
+    private function commissionStatusLabel(array $operation): string
+    {
+        if ($operation['commission_paid_historically']) {
+            return '<span class="badge bg-success">العمولة محتسبة ومسـددة سابقًا</span>';
+        }
+
+        if ($operation['commissioned']) {
+            return '<span class="badge bg-primary">العمولة محتسبة — دفعة احتساب #'
+                . $operation['commission_batch_id'] . '</span>';
+        }
+
+        return '<span class="badge bg-secondary">العمولة غير محتسبة</span>';
     }
 }

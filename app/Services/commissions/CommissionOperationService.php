@@ -41,6 +41,8 @@ class CommissionOperationService
             $operation['commissioned'] = $item !== null;
             $operation['commission_batch_id'] = $item?->batch_id;
             $operation['commission_amount'] = (float) ($item?->commission_amount ?? 0);
+            $operation['commission_paid_historically'] =
+                $item?->legacy_source === 'alrafedin_paid_commissions';
 
             return $operation;
         });

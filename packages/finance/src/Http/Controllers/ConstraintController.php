@@ -558,7 +558,10 @@ class ConstraintController extends Controller
 
         $query
             ->when($constraintCode, function ($query) use ($constraintCode) {
-                $query->where('fn_constraints.code', $constraintCode);
+                $query->where(function ($query) use ($constraintCode) {
+                    $query->where('fn_constraints.code', $constraintCode)
+                        ->orWhere('fn_constraints.id', $constraintCode);
+                });
             })
             ->when($documentNumber, function ($query) use ($documentNumber) {
                 $query->where(function ($query) use ($documentNumber) {
@@ -588,10 +591,7 @@ class ConstraintController extends Controller
                 $number = (int) $numericKeyword;
 
                 return $query->where('fn_constraints.code', $number)
-                    ->orWhere(function ($query) use ($number) {
-                        $query->whereNull('fn_constraints.code')
-                            ->where('fn_constraints.id', $number);
-                    })
+                    ->orWhere('fn_constraints.id', $number)
                     ->orWhere('fn_constraints.legacy_document_number', $number)
                     ->orWhere('fn_constraints.legacy_invoice_number', $number);
             }

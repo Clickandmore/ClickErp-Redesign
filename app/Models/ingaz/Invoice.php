@@ -9,6 +9,7 @@ use App\Models\MusanedTransferItem;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Nami\Finance\Models\Constraint;
+use Nami\Finance\Models\Purchase;
 use Nami\Finance\Models\Sale;
 
 class Invoice extends Model
@@ -59,6 +60,11 @@ class Invoice extends Model
     public function externalOfficeCostConstraint()
     {
         return $this->belongsTo(Constraint::class, 'external_office_cost_constraint_id');
+    }
+
+    public function externalOfficePurchase()
+    {
+        return $this->belongsTo(Purchase::class, 'external_office_purchase_id');
     }
 
     public function ingazDelegationCostConstraint()

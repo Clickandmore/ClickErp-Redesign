@@ -994,9 +994,13 @@
                             },
                             success: function(response) {
                                 if (response.success) {
+                                    const hasAccountingWarnings = Array.isArray(response.accounting_warnings) &&
+                                        response.accounting_warnings.length > 0;
                                     Swal.fire({
-                                        icon: 'success',
-                                        title: travelTranslations.successTitle,
+                                        icon: hasAccountingWarnings ? 'warning' : 'success',
+                                        title: hasAccountingWarnings
+                                            ? 'تم الإكمال مع تنبيه محاسبي'
+                                            : travelTranslations.successTitle,
                                         text: response.message
                                     }).then(() => {
                                         loadTable(); // إعادة تحميل الجدول

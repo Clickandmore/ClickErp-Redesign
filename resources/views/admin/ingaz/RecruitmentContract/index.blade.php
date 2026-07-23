@@ -2802,9 +2802,11 @@
                                 console.log('Complete trip response:', response);
 
                                 if (response.success) {
+                                    const hasAccountingWarnings = Array.isArray(response.accounting_warnings) &&
+                                        response.accounting_warnings.length > 0;
                                     Swal.fire({
-                                        icon: 'success',
-                                        title: 'تم بنجاح',
+                                        icon: hasAccountingWarnings ? 'warning' : 'success',
+                                        title: hasAccountingWarnings ? 'تم الإكمال مع تنبيه محاسبي' : 'تم بنجاح',
                                         text: response.message ||
                                             'تم إكمال الرحلة بنجاح',
                                         confirmButtonText: 'حسناً'

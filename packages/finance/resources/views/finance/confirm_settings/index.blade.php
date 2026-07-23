@@ -1014,7 +1014,7 @@
                                 <input type="hidden" value="{{ $definition['setting_key'] }}" name="data[{{ $definition['setting_key'] }}][title]">
                                 <select name="data[{{ $definition['setting_key'] }}][value]"
                                         id="{{ $definition['setting_key'] }}" class="form-control nationality-account-select">
-                                    <option value="">{{ __('finance::finance.choose') }}</option>
+                                    <option value="">{{ __('finance::finance.automatic_default_parent') }}</option>
                                     @if (!empty($definition['selected_account_id']) && !empty($definition['selected_account_label']))
                                         <option value="{{ $definition['selected_account_id'] }}" selected>{{ $definition['selected_account_label'] }}</option>
                                     @endif

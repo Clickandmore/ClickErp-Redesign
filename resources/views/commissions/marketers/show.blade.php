@@ -43,6 +43,13 @@
 @if(session('success'))
     <div class="alert alert-success">{{ session('success') }}</div>
 @endif
+<div class="alert alert-info border-0 shadow-sm">
+    <div class="fw-bold mb-1"><i class="fa fa-info-circle me-1"></i> تنبيه مهم عن حالات السداد</div>
+    <div class="small">
+        «سداد العميل» يعني أن العميل سدد قيمة العقد أو الفاتورة، وهو مستقل عن العمولة.
+        أما «العمولة غير محتسبة» فتعني أن هذا العقد لم يدخل في دفعة احتساب عمولة، ولا يوجد تعارض بين الحالتين.
+    </div>
+</div>
 @php
     $activeServiceLabel = !empty($filters['service_type'])
         ? ($visaTypeOptions[$filters['service_type']] ?? $filters['service_type'])
@@ -227,7 +234,7 @@
         <div class="table-responsive">
             <table id="operationsTable" class="table table-hover align-middle mb-0" style="width:100%">
                 <thead class="table-light"><tr>
-                    <th></th><th>#</th><th>المصدر</th><th>رقم العملية</th><th>رقم الطلب</th><th>الخدمة</th><th>العميل</th><th>الحالة</th><th>التاريخ</th><th>قيمة الأساس</th><th>السداد</th><th>العمولة</th>
+                    <th></th><th>#</th><th>المصدر</th><th>رقم العملية</th><th>رقم الطلب</th><th>الخدمة</th><th>العميل</th><th>الحالة</th><th>التاريخ</th><th>قيمة الأساس</th><th>سداد العميل</th><th>حالة العمولة</th>
                 </tr></thead>
             </table>
         </div>

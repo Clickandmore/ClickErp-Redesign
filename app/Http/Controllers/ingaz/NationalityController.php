@@ -256,7 +256,12 @@ class NationalityController extends Controller
         if ($result['created_nodes'] === 0) {
             $message .= 'جميع الحسابات المطلوبة موجودة مسبقًا.';
         } else {
-            $message .= 'تم إنشاء ' . $result['created_nodes'] . ' حساب تحت الحسابات المحددة في الإعدادات.';
+            $intermediateNodes = $result['created_nodes'] - $result['created_leaves'];
+            $message .= 'تم إنشاء ' . $result['created_leaves'] . ' حساب نهائي';
+            if ($intermediateNodes > 0) {
+                $message .= ' و' . $intermediateNodes . ' حساب وسيط';
+            }
+            $message .= '، مع استخدام الحسابات الموجودة دون تكرار.';
         }
 
         return jsonSuccess($result, $message);

@@ -2138,6 +2138,7 @@ class RecruitmentContractController extends Controller
             'musaned_transfer_id' => $transferItem?->musaned_transfer_id,
             'arrival_revenue_constraint_id' => $invoice?->arrival_revenue_constraint_id,
             'external_office_cost_constraint_id' => $invoice?->external_office_cost_constraint_id,
+            'external_office_purchase_id' => $invoice?->external_office_purchase_id,
             'payment_source_label' => $confirmedReceiptBonds->isNotEmpty()
                 ? 'سندات القبض المؤكدة المرتبطة بالعقد'
                 : ($transferItem ? 'تحويل مساند المرتبط بالفاتورة' : 'حالة السداد المسجلة في الفاتورة'),
@@ -4164,7 +4165,13 @@ class RecruitmentContractController extends Controller
                     ? 'تم إكمال الرحلة وتحديث حالة العقد إلى مكتمل بنجاح'
                     : 'تم إكمال الرحلة وتحديث حالة العقد إلى مرحلة الوصول وتفعيل الضمان بنجاح';
 
-                if (($accountingResult['created_revenue_constraint'] ?? false) || ($accountingResult['created_external_office_cost_constraint'] ?? false)) {
+                if ($accountingResult['supplier_purchase_id'] ?? null) {
+                    $message .= ' وتم إنشاء فاتورة المورد #'
+                        . ($accountingResult['supplier_purchase_code'] ?: $accountingResult['supplier_purchase_id'])
+                        . ' وقيد الإغلاق #'
+                        . ($accountingResult['external_office_cost_constraint_code'] ?: $accountingResult['external_office_cost_constraint_id'])
+                        . '.';
+                } elseif (($accountingResult['created_revenue_constraint'] ?? false) || ($accountingResult['created_external_office_cost_constraint'] ?? false)) {
                     $message .= ' وتم إنشاء القيود المحاسبية المرتبطة بالفاتورة.';
                 } elseif (($accountingResult['skipped_reason'] ?? null) === 'missing_invoice') {
                     $message .= ' لم يتم إنشاء القيود المحاسبية لعدم وجود فاتورة على العقد.';
@@ -4172,9 +4179,15 @@ class RecruitmentContractController extends Controller
                     $message .= ' لم يتم إنشاء قيود محاسبية لأن القيود التلقائية غير مفعلة من إعدادات الحسابات.';
                 }
 
+                $accountingWarnings = array_values(array_unique($accountingResult['warnings'] ?? []));
+                if (!empty($accountingWarnings)) {
+                    $message .= ' تنبيه: ' . implode(' ', $accountingWarnings);
+                }
+
                 return response()->json([
                     'success' => true,
-                    'message' => $message
+                    'message' => $message,
+                    'accounting_warnings' => $accountingWarnings,
                 ]);
             } catch (\Exception $e) {
                 DB::rollBack();

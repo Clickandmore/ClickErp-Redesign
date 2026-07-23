@@ -799,6 +799,8 @@ class AdminTravelHistoryController extends Controller
             $updatedContracts = 0;
             $accountingCreatedContracts = 0;
             $accountingSkippedContracts = [];
+            $accountingWarnings = [];
+            $supplierPurchases = [];
 
             $dispatchBlockingContracts = [];
 
@@ -888,6 +890,18 @@ class AdminTravelHistoryController extends Controller
                         if (($accountingResult['skipped_reason'] ?? null) === 'missing_invoice') {
                             $accountingSkippedContracts[] = '#' . $contract->id;
                         }
+
+                        foreach (($accountingResult['warnings'] ?? []) as $warning) {
+                            $accountingWarnings[] = 'العقد #' . $contract->id . ': ' . $warning;
+                        }
+
+                        if ($accountingResult['supplier_purchase_id'] ?? null) {
+                            $supplierPurchases[] = '#'
+                                . ($accountingResult['supplier_purchase_code'] ?: $accountingResult['supplier_purchase_id'])
+                                . ' (قيد #'
+                                . ($accountingResult['external_office_cost_constraint_code'] ?: $accountingResult['external_office_cost_constraint_id'])
+                                . ')';
+                        }
                     }
                     // إذا كان عقد إيجار، تفعيل الضمان بشكل مختلف
                     else if ($contract instanceof \App\Models\RentalContract) {
@@ -927,13 +941,22 @@ class AdminTravelHistoryController extends Controller
                     : ' وتم إنشاء القيود المحاسبية المرتبطة بالفاتورة.';
             }
 
+            if (!empty($supplierPurchases)) {
+                $message .= ' فواتير المورد وقيود الإغلاق: ' . implode('، ', array_unique($supplierPurchases)) . '.';
+            }
+
             if (!empty($accountingSkippedContracts)) {
                 $message .= ' لم تُنشأ القيود المحاسبية للعقود ' . implode('، ', array_unique($accountingSkippedContracts)) . ' لعدم وجود فاتورة.';
             }
 
+            if (!empty($accountingWarnings)) {
+                $message .= ' تنبيه: ' . implode(' ', array_unique($accountingWarnings));
+            }
+
             return response()->json([
                 'success' => true,
-                'message' => $message
+                'message' => $message,
+                'accounting_warnings' => array_values(array_unique($accountingWarnings)),
             ]);
 
         } catch (\Exception $e) {

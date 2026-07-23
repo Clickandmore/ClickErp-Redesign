@@ -11,9 +11,16 @@ use App\Support\AutomaticJournalEntries;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Nami\Finance\Enums\CostCenterTypeEnum;
+use Nami\Finance\Enums\PurchaseItemStatusEnum;
+use Nami\Finance\Enums\PurchaseTypeEnum;
 use Nami\Finance\Models\Account;
 use Nami\Finance\Models\Constraint;
+use Nami\Finance\Models\ConstraintDetails;
 use Nami\Finance\Models\CostCenter;
+use Nami\Finance\Models\Item;
+use Nami\Finance\Models\Purchase;
+use Nami\Finance\Models\PurchaseItem;
+use Nami\Finance\Models\Supplier;
 use Nami\Finance\Services\ConstraintService;
 use Nami\Finance\Services\YearService;
 
@@ -35,8 +42,13 @@ class RecruitmentTripAccountingService
                 'skipped_reason' => 'automatic_entries_disabled',
                 'revenue_constraint_id' => null,
                 'external_office_cost_constraint_id' => null,
+                'external_office_cost_constraint_code' => null,
                 'created_revenue_constraint' => false,
                 'created_external_office_cost_constraint' => false,
+                'supplier_purchase_id' => null,
+                'created_supplier_purchase' => false,
+                'revenue_skipped_reason' => null,
+                'warnings' => [],
             ];
         }
 
@@ -58,8 +70,13 @@ class RecruitmentTripAccountingService
                 'skipped_reason' => 'missing_invoice',
                 'revenue_constraint_id' => null,
                 'external_office_cost_constraint_id' => null,
+                'external_office_cost_constraint_code' => null,
                 'created_revenue_constraint' => false,
                 'created_external_office_cost_constraint' => false,
+                'supplier_purchase_id' => null,
+                'created_supplier_purchase' => false,
+                'revenue_skipped_reason' => null,
+                'warnings' => [],
             ];
         }
 
@@ -79,8 +96,14 @@ class RecruitmentTripAccountingService
             'skipped_reason' => null,
             'revenue_constraint_id' => $invoice->arrival_revenue_constraint_id ? (int) $invoice->arrival_revenue_constraint_id : null,
             'external_office_cost_constraint_id' => $invoice->external_office_cost_constraint_id ? (int) $invoice->external_office_cost_constraint_id : null,
+            'external_office_cost_constraint_code' => null,
             'created_revenue_constraint' => false,
             'created_external_office_cost_constraint' => false,
+            'supplier_purchase_id' => $invoice->external_office_purchase_id ? (int) $invoice->external_office_purchase_id : null,
+            'supplier_purchase_code' => null,
+            'created_supplier_purchase' => false,
+            'revenue_skipped_reason' => null,
+            'warnings' => [],
         ];
 
         if ($invoice->arrival_revenue_constraint_id) {
@@ -103,27 +126,38 @@ class RecruitmentTripAccountingService
         }
 
         if (!$invoice->arrival_revenue_constraint_id) {
-            $revenueConstraint = $this->findExistingConstraint(
-                $this->buildArrivalRevenueStatement($contract, $invoice),
-                $date,
-                $this->roundMoney($this->buildRevenueBreakdown($invoice)['net_revenue_total'])
-            );
+            $liabilityAccountId = $this->resolveLiabilityAccountId($nationalityName);
 
-            if (!$revenueConstraint) {
-                $revenueConstraint = $this->createArrivalRevenueConstraint(
-                    $contract,
-                    $invoice,
-                    $nationalityName,
+            if (!$liabilityAccountId) {
+                $result['revenue_skipped_reason'] = 'missing_liability_account';
+                $result['warnings'][] = 'قيد إيراد الوصول لم يُنشأ: حساب الالتزام غير موجود، ويُرجى مراجعة إثبات الإيراد السابق.';
+            } elseif (!$this->hasInvoiceLiabilityConstraint($contract, $invoice, $liabilityAccountId)) {
+                $result['revenue_skipped_reason'] = 'missing_liability_constraint';
+                $result['warnings'][] = 'قيد إيراد الوصول لم يُنشأ: قيد الالتزام السابق غير موجود، ويُرجى مراجعة إثبات الإيراد السابق.';
+            } else {
+                $revenueConstraint = $this->findExistingConstraint(
+                    $this->buildArrivalRevenueStatement($contract, $invoice),
                     $date,
-                    $activeYear
+                    $this->roundMoney($this->buildRevenueBreakdown($invoice)['net_revenue_total'])
                 );
-                $result['created_revenue_constraint'] = (bool) $revenueConstraint;
-            }
 
-            if ($revenueConstraint) {
-                $this->syncArrivalRevenueConstraintCostCenter($revenueConstraint->id);
-                $invoice->arrival_revenue_constraint_id = $revenueConstraint->id;
-                $result['revenue_constraint_id'] = (int) $revenueConstraint->id;
+                if (!$revenueConstraint) {
+                    $revenueConstraint = $this->createArrivalRevenueConstraint(
+                        $contract,
+                        $invoice,
+                        $nationalityName,
+                        $liabilityAccountId,
+                        $date,
+                        $activeYear
+                    );
+                    $result['created_revenue_constraint'] = (bool) $revenueConstraint;
+                }
+
+                if ($revenueConstraint) {
+                    $this->syncArrivalRevenueConstraintCostCenter($revenueConstraint->id);
+                    $invoice->arrival_revenue_constraint_id = $revenueConstraint->id;
+                    $result['revenue_constraint_id'] = (int) $revenueConstraint->id;
+                }
             }
         }
 
@@ -163,9 +197,28 @@ class RecruitmentTripAccountingService
             }
         }
 
+        if ($result['external_office_cost_constraint_id']) {
+            $result['external_office_cost_constraint_code'] = Constraint::query()
+                ->whereKey($result['external_office_cost_constraint_id'])
+                ->value('code');
+
+            [$supplierPurchase, $createdSupplierPurchase] = $this->ensureExternalOfficePurchase(
+                $contract,
+                $invoice,
+                $nationalityName,
+                (int) $result['external_office_cost_constraint_id'],
+                $date
+            );
+
+            $result['supplier_purchase_id'] = (int) $supplierPurchase->id;
+            $result['supplier_purchase_code'] = $supplierPurchase->code;
+            $result['created_supplier_purchase'] = $createdSupplierPurchase;
+        }
+
         if ($invoice->isDirty([
             'arrival_revenue_constraint_id',
             'external_office_cost_constraint_id',
+            'external_office_purchase_id',
         ])) {
             $invoice->save();
         }
@@ -177,6 +230,7 @@ class RecruitmentTripAccountingService
         Contract $contract,
         Invoice $invoice,
         string $nationalityName,
+        int $liabilityAccountId,
         string $date,
         $activeYear
     ): ?Constraint {
@@ -186,12 +240,7 @@ class RecruitmentTripAccountingService
             return null;
         }
 
-        $liabilityAccountId = $this->resolveLiabilityAccountId($nationalityName);
         $salesAccountId = $this->resolveSalesAccountId($nationalityName);
-
-        if (!$liabilityAccountId) {
-            throw new \RuntimeException('لا يوجد حساب التزامات عقود مرتبط بجنسية العقد: ' . $nationalityName);
-        }
 
         if (!$salesAccountId) {
             throw new \RuntimeException('لا يوجد حساب مبيعات مرتبط بجنسية العقد: ' . $nationalityName);
@@ -269,6 +318,147 @@ class RecruitmentTripAccountingService
         ];
 
         return $this->storeConstraint($lines, $statement, $date, $amount, $activeYear);
+    }
+
+    private function ensureExternalOfficePurchase(
+        Contract $contract,
+        Invoice $invoice,
+        string $nationalityName,
+        int $constraintId,
+        string $date
+    ): array {
+        if ($invoice->external_office_purchase_id) {
+            $existingPurchase = Purchase::query()->find($invoice->external_office_purchase_id);
+            if ($existingPurchase) {
+                return [$existingPurchase, false];
+            }
+        }
+
+        $existingPurchase = Purchase::query()
+            ->where('constraint_id', $constraintId)
+            ->first();
+
+        if ($existingPurchase) {
+            $invoice->external_office_purchase_id = $existingPurchase->id;
+
+            return [$existingPurchase, false];
+        }
+
+        $office = $contract->resolveExternalOfficeDispatchOffice();
+        if (!$office?->id) {
+            throw new \RuntimeException('لا يمكن إنشاء فاتورة المورد لأن المكتب الخارجي غير محدد.');
+        }
+
+        $office = Office::query()
+            ->with(['translations', 'account'])
+            ->findOrFail($office->id);
+        $officeAccount = $this->officeFinanceAccountService->ensureForOffice($office);
+        $officeName = trim((string) ($office->title ?: $officeAccount->name));
+
+        $supplier = Supplier::query()
+            ->lockForUpdate()
+            ->where('account_id', $officeAccount->id)
+            ->first();
+
+        if (!$supplier) {
+            $supplier = Supplier::query()->create([
+                'name' => $officeName !== '' ? $officeName : ('مكتب خارجي #' . $office->id),
+                'code' => (string) $officeAccount->code,
+                'address' => '-',
+                'phone' => '-',
+                'email' => 'no email',
+                'account_id' => $officeAccount->id,
+                'created_by_id' => Auth::guard('admin')->id() ?: Auth::id() ?: 1,
+            ]);
+        }
+
+        $amount = $this->resolveExternalOfficeCostAmount($contract);
+        $statement = $this->buildExternalOfficeCostStatement($contract, $invoice);
+        $purchase = Purchase::query()->create([
+            'created_by_id' => Auth::guard('admin')->id() ?: Auth::id() ?: 1,
+            'code' => ((int) Purchase::query()->lockForUpdate()->max('code')) + 1,
+            'supplier_id' => $supplier->id,
+            'credit_supplier_id' => $officeAccount->id,
+            'supplier_bill_number' => (string) ($contract->externalOfficeDispatch?->contract_number ?: ('CLOSE-' . $contract->id)),
+            'date' => $date,
+            'notes' => $statement,
+            'total_item' => $amount,
+            'tax_per' => 0,
+            'tax_value' => 0,
+            'discount' => 0,
+            'final_total' => $amount,
+            'paid_amount' => 0,
+            'is_confirmed' => true,
+            'constraint_id' => $constraintId,
+            'type' => PurchaseTypeEnum::Purchase->value,
+            'payment_method' => 'deferred',
+            'file' => 'no_file',
+        ]);
+
+        $costAccountId = $this->resolveCostOfSalesAccountId($nationalityName);
+        $item = $this->ensureExternalOfficeCostItem($costAccountId);
+
+        PurchaseItem::query()->create([
+            'purchase_id' => $purchase->id,
+            'item_id' => $item->id,
+            'price' => $amount,
+            'tax_per' => 0,
+            'tax_value' => 0,
+            'amount' => 1,
+            'discount_per' => 0,
+            'discount_value' => 0,
+            'notes' => $statement,
+            'final_total' => $amount,
+            'status' => PurchaseItemStatusEnum::Confirmed->value,
+            'stock_id' => null,
+        ]);
+
+        $invoice->external_office_purchase_id = $purchase->id;
+
+        return [$purchase, true];
+    }
+
+    private function ensureExternalOfficeCostItem(?int $costAccountId): Item
+    {
+        if (!$costAccountId) {
+            throw new \RuntimeException('لا يمكن إنشاء بند فاتورة المورد لأن حساب تكلفة الجنسية غير موجود.');
+        }
+
+        $item = Item::query()
+            ->where('name', 'تكلفة استقدام مكتب خارجي')
+            ->first();
+
+        if ($item) {
+            return $item;
+        }
+
+        $template = Item::query()
+            ->where('type', 'service')
+            ->first();
+
+        if (!$template) {
+            throw new \RuntimeException('لا يوجد بند خدمة يمكن استخدامه لإنشاء فاتورة المورد.');
+        }
+
+        return Item::query()->create([
+            'name' => 'تكلفة استقدام مكتب خارجي',
+            'main_category_id' => $template->main_category_id,
+            'sub_category_id' => $template->sub_category_id,
+            'type' => 'service',
+            'code_string' => 'EXT-OFFICE-COST',
+            'code' => ((int) Item::query()->lockForUpdate()->max('code')) + 1,
+            'min_order' => 0,
+            'sale_unit_id' => $template->sale_unit_id,
+            'sale_price' => 0,
+            'purchase_unit_id' => $template->purchase_unit_id,
+            'purchase_price' => 0,
+            'details' => 'تكلفة استقدام مكتب خارجي حسب جنسية العقد',
+            'sale_account_id' => $costAccountId,
+            'stock_account_id' => $costAccountId,
+            'stock_tracking' => false,
+            'show_pos' => false,
+            'show_website' => false,
+        ]);
     }
 
     private function syncArrivalRevenueConstraintCostCenter(int $constraintId): void
@@ -465,6 +655,34 @@ class RecruitmentTripAccountingService
                 ->where('name', 'like', '%التزامات عقود%')
                 ->where('name', 'like', '%' . $nationalityName . '%')
         );
+    }
+
+    private function hasInvoiceLiabilityConstraint(
+        Contract $contract,
+        Invoice $invoice,
+        int $liabilityAccountId
+    ): bool {
+        $invoiceReference = '%الفاتورة #' . $invoice->id . '%';
+        $contractReference = '%العقد #' . $contract->id . '%';
+
+        return ConstraintDetails::query()
+            ->where('account_id', $liabilityAccountId)
+            ->where('creditor_value', '>', 0)
+            ->where(function ($query) use ($invoiceReference, $contractReference) {
+                $query->where('statement', 'like', $invoiceReference)
+                    ->orWhere(function ($query) use ($contractReference) {
+                        $query->where('statement', 'like', '%فاتورة%')
+                            ->where('statement', 'like', $contractReference);
+                    })
+                    ->orWhereHas('constraint', function ($query) use ($invoiceReference, $contractReference) {
+                        $query->where('statement', 'like', $invoiceReference)
+                            ->orWhere(function ($query) use ($contractReference) {
+                                $query->where('statement', 'like', '%فاتورة%')
+                                    ->where('statement', 'like', $contractReference);
+                            });
+                    });
+            })
+            ->exists();
     }
 
     private function resolveSalesAccountId(string $nationalityName): ?int

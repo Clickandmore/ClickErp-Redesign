@@ -1386,7 +1386,7 @@
                                 <span class="info-value">{{ $financialSummary['paid_at'] ?: 'غير محدد' }}</span>
                             </div>
 
-                            @if ($financialSummary['finance_sale_id'] || $financialSummary['musaned_transfer_id'] || $financialSummary['arrival_revenue_constraint_id'] || $financialSummary['external_office_cost_constraint_id'])
+                            @if ($financialSummary['finance_sale_id'] || $financialSummary['musaned_transfer_id'] || $financialSummary['arrival_revenue_constraint_id'] || $financialSummary['external_office_cost_constraint_id'] || $financialSummary['external_office_purchase_id'])
                                 <div class="d-flex flex-wrap gap-2 mt-3">
                                     @if ($financialSummary['finance_sale_id'])
                                         <a class="btn btn-sm btn-outline-primary" target="_blank"
@@ -1395,6 +1395,10 @@
                                     @if ($financialSummary['musaned_transfer_id'])
                                         <a class="btn btn-sm btn-outline-success" target="_blank"
                                             href="{{ route('musaned-transfers.show', $financialSummary['musaned_transfer_id']) }}">تحويل مساند</a>
+                                    @endif
+                                    @if ($financialSummary['external_office_purchase_id'])
+                                        <a class="btn btn-sm btn-outline-warning" target="_blank"
+                                            href="{{ route('finance.bill-purchases.show', $financialSummary['external_office_purchase_id']) }}">فاتورة المورد</a>
                                     @endif
                                     @foreach (['arrival_revenue_constraint_id' => 'قيد إيراد الوصول', 'external_office_cost_constraint_id' => 'قيد تكلفة المكتب'] as $constraintKey => $constraintLabel)
                                         @if ($financialSummary[$constraintKey])
