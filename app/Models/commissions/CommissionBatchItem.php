@@ -14,6 +14,7 @@ class CommissionBatchItem extends Model
         'order_id', 'contract_id', 'operation_reference',
         'client_name', 'operation_date', 'service_type',
         'base_amount', 'method', 'rate_or_amount', 'commission_amount',
+        'legacy_source', 'legacy_source_file', 'legacy_source_row',
     ];
 
     protected $casts = [

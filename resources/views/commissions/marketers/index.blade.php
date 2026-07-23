@@ -45,8 +45,7 @@
                         <th colspan="3" class="table-warning">نقل الخدمات</th>
                         <th colspan="3" class="table-secondary">التفاويض</th>
                         <th rowspan="2">إجمالي غير محتسبة</th>
-                        <th rowspan="2">سندات صرف سابقة</th>
-                        <th rowspan="2">مصروف سابقًا</th>
+                        <th rowspan="2">قيمة المحتسب المسدد</th>
                         <th rowspan="2" class="text-end">الرصيد</th>
                         <th rowspan="2">الإجراء</th>
                     </tr>
@@ -62,8 +61,8 @@
                     <tr>
                         <td>
                             <div class="d-flex align-items-center gap-2">
-                                <div class="employee-avatar">{{ mb_substr($employee->name, 0, 1) }}</div>
-                                <div><div class="fw-bold">{{ $employee->name }}</div><div class="text-muted small">#{{ $employee->id }} · {{ optional($employee->role)->name ?? 'خدمة العملاء' }}</div></div>
+                                <div class="employee-avatar">{{ mb_substr($employee->commission_display_name, 0, 1) }}</div>
+                                <div><div class="fw-bold">{{ $employee->commission_display_name }}</div><div class="text-muted small">#{{ $employee->id }} · {{ optional($employee->role)->name ?? 'خدمة العملاء' }}</div></div>
                             </div>
                         </td>
                         <td class="text-center fw-bold text-primary">{{ $s['recruitment'] }}</td>
@@ -79,20 +78,7 @@
                         <td class="text-center text-danger">{{ $s['delegation_pending'] }}</td>
                         <td class="text-center text-success">{{ $s['delegation_commissioned'] }}</td>
                         <td class="text-center"><span class="badge {{ $s['pending'] ? 'bg-warning text-dark' : 'bg-light text-muted border' }}">{{ $s['pending'] }}</span></td>
-                        <td class="text-center">
-                            @if($employee->legacy_commission_vouchers_count !== null)
-                                {{ number_format($employee->legacy_commission_vouchers_count) }}
-                            @else
-                                <span class="text-muted small">غير مربوط</span>
-                            @endif
-                        </td>
-                        <td class="text-center fw-bold text-success">
-                            @if($employee->legacy_commission_paid_total !== null)
-                                {{ number_format($employee->legacy_commission_paid_total, 2) }} ر.س
-                            @else
-                                <span class="text-muted small">—</span>
-                            @endif
-                        </td>
+                        <td class="text-center fw-bold text-success">{{ number_format($s['commissioned_amount'], 2) }} ر.س</td>
                         <td class="text-end fw-bold {{ $employee->commission_balance > 0 ? 'text-success' : 'text-muted' }}">{{ number_format($employee->commission_balance, 2) }} ر.س</td>
                         <td class="text-center">
                             <a href="{{ route('commissions.marketers.show', $employee->id) }}" class="btn btn-sm btn-primary"><i class="fa fa-eye me-1"></i> مراجعة</a>
@@ -102,7 +88,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="18" class="text-center text-muted py-5">لا يوجد مسوقون مرتبطون بعمليات.</td></tr>
+                    <tr><td colspan="17" class="text-center text-muted py-5">لا يوجد مسوقون مرتبطون بعمليات.</td></tr>
                 @endforelse
                 </tbody>
             </table>

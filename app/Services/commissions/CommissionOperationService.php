@@ -8,6 +8,7 @@ use App\Models\RentalContract;
 use App\Models\TransferServiceContract;
 use App\Models\commissions\CommissionBatchItem;
 use Carbon\Carbon;
+use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 
@@ -99,6 +100,7 @@ class CommissionOperationService
             'total' => $operations->count(),
             'pending' => $operations->where('commissioned', false)->count(),
             'commissioned' => $operations->where('commissioned', true)->count(),
+            'commissioned_amount' => round((float) $operations->sum('commission_amount'), 2),
             'recruitment' => $recruitment['total'],
             'recruitment_pending' => $recruitment['pending'],
             'recruitment_commissioned' => $recruitment['commissioned'],
@@ -121,14 +123,22 @@ class CommissionOperationService
 
     private function recruitmentContracts(int $adminId): Collection
     {
-        return Contract::query()
-            ->where(function (Builder $query) use ($adminId) {
+        $query = Contract::query();
+        $this->scopeByCommissionMarketer(
+            $query,
+            'contracts',
+            self::SOURCE_RECRUITMENT_CONTRACT,
+            $adminId,
+            function (Builder $query) use ($adminId) {
                 $query->where('marketer_id', $adminId)
                     ->orWhere(function (Builder $fallback) use ($adminId) {
                         $fallback->whereNull('marketer_id')
                             ->whereHas('order', fn (Builder $order) => $order->whereResponsibleAdmin($adminId));
                     });
-            })
+            }
+        );
+
+        return $query
             ->with(['user:id,name', 'order:id,order_code', 'invoice', 'info'])
             ->get()
             ->map(function (Contract $contract) {
@@ -157,14 +167,22 @@ class CommissionOperationService
 
     private function rentalContracts(int $adminId): Collection
     {
-        return RentalContract::query()
-            ->where(function (Builder $query) use ($adminId) {
+        $query = RentalContract::query();
+        $this->scopeByCommissionMarketer(
+            $query,
+            'rental_contracts',
+            self::SOURCE_RENTAL_CONTRACT,
+            $adminId,
+            function (Builder $query) use ($adminId) {
                 $query->where('marketer_id', $adminId)
                     ->orWhere(function (Builder $fallback) use ($adminId) {
                         $fallback->whereNull('marketer_id')
                             ->whereHas('order', fn (Builder $order) => $order->whereResponsibleAdmin($adminId));
                     });
-            })
+            }
+        );
+
+        return $query
             ->with(['user:id,name', 'order:id,order_code', 'financeInvoice', 'info'])
             ->get()
             ->map(function (RentalContract $contract) {
@@ -193,8 +211,16 @@ class CommissionOperationService
 
     private function transferContracts(int $adminId): Collection
     {
-        return TransferServiceContract::query()
-            ->where('created_by', $adminId)
+        $query = TransferServiceContract::query();
+        $this->scopeByCommissionMarketer(
+            $query,
+            'transfer_service_contracts',
+            self::SOURCE_TRANSFER_CONTRACT,
+            $adminId,
+            fn (Builder $query) => $query->where('created_by', $adminId)
+        );
+
+        return $query
             ->with(['newSponsor:id,name'])
             ->get()
             ->map(fn (TransferServiceContract $contract) => $this->operation(
@@ -216,8 +242,16 @@ class CommissionOperationService
 
     private function delegations(int $adminId): Collection
     {
-        return IngazDelegation::query()
-            ->where('marketer_id', $adminId)
+        $query = IngazDelegation::query();
+        $this->scopeByCommissionMarketer(
+            $query,
+            'ingaz_delegations',
+            self::SOURCE_DELEGATION,
+            $adminId,
+            fn (Builder $query) => $query->where('marketer_id', $adminId)
+        );
+
+        return $query
             ->with(['user:id,name', 'invoice'])
             ->get()
             ->map(fn (IngazDelegation $delegation) => $this->operation(
@@ -235,6 +269,46 @@ class CommissionOperationService
                 null,
                 null
             ));
+    }
+
+    private function scopeByCommissionMarketer(
+        Builder $query,
+        string $table,
+        string $sourceType,
+        int $adminId,
+        Closure $operationalMarketerScope
+    ): void {
+        $commissionItemExists = function ($subquery, ?int $marketerId = null) use ($table, $sourceType) {
+            $subquery->selectRaw('1')
+                ->from('commission_batch_items as marketer_commission_items')
+                ->join(
+                    'commission_batches as marketer_commission_batches',
+                    'marketer_commission_batches.id',
+                    '=',
+                    'marketer_commission_items.batch_id'
+                )
+                ->where('marketer_commission_items.source_type', $sourceType)
+                ->whereColumn('marketer_commission_items.source_id', "{$table}.id");
+
+            if ($marketerId !== null) {
+                $subquery->where('marketer_commission_batches.marketer_id', $marketerId);
+            }
+        };
+
+        $query->where(function (Builder $scope) use (
+            $adminId,
+            $commissionItemExists,
+            $operationalMarketerScope
+        ) {
+            $scope->whereExists(fn ($subquery) => $commissionItemExists($subquery, $adminId))
+                ->orWhere(function (Builder $pending) use (
+                    $commissionItemExists,
+                    $operationalMarketerScope
+                ) {
+                    $pending->whereNotExists(fn ($subquery) => $commissionItemExists($subquery))
+                        ->where($operationalMarketerScope);
+                });
+        });
     }
 
     private function operation(
