@@ -70,6 +70,15 @@ class ArabiaRecruitmentOrdersImportService
                 fn ($row) => [$row->arabia_order_number => json_decode($row->payload, true) ?: []]
             );
         }
+        $indexed['visa_notes'] = [];
+        foreach (($sheets->get('الملاحظات') ?? collect()) as $source) {
+            $payload = json_decode($source->payload, true) ?: [];
+            $orderNumber = (int) $source->arabia_order_number;
+            $visaNumber = trim((string) ($payload['رقم التأشيرة'] ?? ''));
+            if ($orderNumber && $visaNumber !== '' && $visaNumber !== '-') {
+                $indexed['visa_notes'][$orderNumber] = ['رقم التأشيرة' => $visaNumber];
+            }
+        }
         $dispatches = ($sheets->get('الإرساليات') ?? collect())->mapWithKeys(function ($row) {
             $payload = json_decode($row->payload, true) ?: [];
             return [$this->integer($payload['رقم الإرسالية'] ?? null) => $payload];
@@ -94,6 +103,7 @@ class ArabiaRecruitmentOrdersImportService
                         'durations' => $indexed['مدة_الوصول']->get($orderNumber),
                         'workers' => $indexed['العاملون']->get($orderNumber),
                         'trips' => $indexed['رحلات_مخصص']->get($orderNumber),
+                        'visa_notes' => $indexed['visa_notes'][$orderNumber] ?? null,
                     ];
                     $client = $this->upsertClient($orderNumber, $bundle);
                     $maid = $this->upsertMaid($bundle);
@@ -145,6 +155,7 @@ class ArabiaRecruitmentOrdersImportService
             'durations' => $this->indexSheet($path, 'مدة_الوصول'),
             'workers' => $this->indexSheet($path, 'العاملون'),
             'trips' => $this->indexSheet($path, 'رحلات_مخصص'),
+            'visa_notes' => $this->indexVisaNumbersFromNotes($path),
         ];
         $dispatches = $this->indexSheet($path, 'الإرساليات', 'رقم الإرسالية');
 
@@ -285,6 +296,29 @@ class ArabiaRecruitmentOrdersImportService
             }
         }
         $this->archiveBatch($archive);
+
+        return $indexed;
+    }
+
+    private function indexVisaNumbersFromNotes(string $path): array
+    {
+        $indexed = [];
+        foreach ($this->readSheet($path, 'الملاحظات') as $row) {
+            $orderNumber = $this->integer($row['رقم الطلب'] ?? null);
+            $visaNumber = trim((string) ($row['رقم التأشيرة'] ?? ''));
+            if (! $orderNumber || $visaNumber === '' || $visaNumber === '-') {
+                continue;
+            }
+
+            $existing = $indexed[$orderNumber]['رقم التأشيرة'] ?? null;
+            if ($existing !== null && $existing !== $visaNumber) {
+                throw new \RuntimeException(
+                    "يوجد أكثر من رقم تأشيرة مختلف للطلب {$orderNumber} في ورقة الملاحظات."
+                );
+            }
+
+            $indexed[$orderNumber] = ['رقم التأشيرة' => $visaNumber];
+        }
 
         return $indexed;
     }
@@ -430,6 +464,9 @@ class ArabiaRecruitmentOrdersImportService
         $religion = $this->resolveReference(Religion::class, $this->first($bundle, 'الديانة'));
         $contractDate = $this->date($main['تاريخ الطلب'] ?? null);
         $supplierInvoice = $this->integer($main['فاتورة مورد'] ?? null);
+        $existingVisaNumber = trim((string) ($contract?->info?->visa_number ?: $contract?->visa_number));
+        $sourceVisaNumber = trim((string) $this->first($bundle, 'رقم التأشيرة'));
+        $visaNumber = $existingVisaNumber ?: ($sourceVisaNumber ?: null);
         $payload = [
             'arabia_order_number' => $orderNumber,
             'arabia_status' => trim((string) ($main['حالة'] ?? '')),
@@ -441,7 +478,7 @@ class ArabiaRecruitmentOrdersImportService
             'status' => $status,
             'type' => 'recruitment',
             'msaned_number' => trim((string) ($main['رقم مساند'] ?? '')) ?: null,
-            'visa_number' => trim((string) $this->first($bundle, 'رقم التأشيرة')) ?: null,
+            'visa_number' => $visaNumber,
             'contract_date' => $contractDate,
             'contract_visa_type' => trim((string) ($main['نوع التأشيرة'] ?? '')) ?: null,
             'required_maid_nationality_id' => $nationality?->id,
@@ -861,7 +898,7 @@ class ArabiaRecruitmentOrdersImportService
 
     private function first(array $bundle, string $header)
     {
-        foreach (['arrivals', 'trips', 'arrival_schedule', 'workers', 'delegations', 'durations', 'main'] as $key) {
+        foreach (['arrivals', 'trips', 'arrival_schedule', 'visa_notes', 'workers', 'delegations', 'durations', 'main'] as $key) {
             $value = $bundle[$key][$header] ?? null;
             if ($value !== null && trim((string) $value) !== '' && trim((string) $value) !== '-') {
                 return $value;
