@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class MaidExpertise extends Model
 {
-    protected $fillable = ['maid_id', 'country_id', 'number_of_years', 'job_title_id'];
+    protected $fillable = ['maid_id', 'country_id', 'work_city', 'number_of_years', 'job_title_id'];
 
     public function country(){
         return $this->belongsTo(Country::class, 'country_id');

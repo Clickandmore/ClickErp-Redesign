@@ -41,6 +41,8 @@ class ApiOfferController extends Controller
                 'maids.nationality',
                 'maids.jobTypes',
                 'maids.jobTitles',
+                'maids.expertises.country',
+                'maids.expertises.jobTitle',
             ])
             ->where('is_active', true)
             ->where(function ($query) use ($today) {

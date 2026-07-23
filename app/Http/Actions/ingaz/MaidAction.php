@@ -92,6 +92,15 @@ class MaidAction extends MainAction
         $data['nationality_id'] = $data['nationality_id'] ?? null;
         $data['religion_id'] = $data['religion_id'] ?? null;
         $data['passport_num'] = $data['passport_num'] ?? '';
+        $data['phone'] = $data['phone'] ?? null;
+        $data['relative_name'] = $data['relative_name'] ?? null;
+        $data['relative_phone'] = $data['relative_phone'] ?? null;
+        $data['residence_city'] = $data['residence_city'] ?? null;
+        $data['passport_issue_place'] = $data['passport_issue_place'] ?? null;
+        $data['education'] = $data['education'] ?? null;
+        $data['has_driving_license'] = array_key_exists('has_driving_license', $data)
+            ? (bool) $data['has_driving_license']
+            : null;
         $data['id_number'] = $data['id_number'] ?? '';
         $data['id_expiry_date'] = $data['id_expiry_date'] ?? null;
         $data['border_number'] = $data['border_number'] ?? null;
@@ -284,6 +293,13 @@ class MaidAction extends MainAction
             'nationality_id' => $data['nationality_id'],
             'religion_id' => $data['religion_id'],
             'passport_num' => $data['passport_num'],
+            'phone' => $data['phone'] ?? null,
+            'relative_name' => $data['relative_name'] ?? null,
+            'relative_phone' => $data['relative_phone'] ?? null,
+            'residence_city' => $data['residence_city'] ?? null,
+            'passport_issue_place' => $data['passport_issue_place'] ?? null,
+            'education' => $data['education'] ?? null,
+            'has_driving_license' => $data['has_driving_license'] ?? null,
             'id_number' => $data['id_number'],
             'id_expiry_date' => $data['id_expiry_date'],
             'price' => $data['price'],
@@ -1931,6 +1947,8 @@ class MaidAction extends MainAction
                 'jobTitles',
                 'nationality',
                 'religion',
+                'expertises.country',
+                'expertises.jobTitle',
                 'contracts.info',
             ])
             ->when(isset($type), function ($query) use ($type, $today) {

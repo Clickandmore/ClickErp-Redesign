@@ -19,6 +19,13 @@ class MaidCardResource extends JsonResource
             'name' => (string) $this->name,
             'age' => (string) $this->age,
             'passport_num' => (string) $this->passport_num,
+            'phone' => $this->phone,
+            'relative_name' => $this->relative_name,
+            'relative_phone' => $this->relative_phone,
+            'residence_city' => $this->residence_city,
+            'passport_issue_place' => $this->passport_issue_place,
+            'education' => $this->education,
+            'has_driving_license' => $this->has_driving_license,
 
             'image' => (string) showFile($this->image),
             'cv_file' => (string) showFile($this->cv_file),
@@ -59,6 +66,8 @@ class MaidCardResource extends JsonResource
                 'id' => (int) $jt->id,
                 'title' => (string) $jt->title,
             ]),
+
+            'expertises' => MaidExpertiseResource::collection($this->whenLoaded('expertises')),
 
             'recruitment_office' => $this->recruitmentOffice
                 ? [
