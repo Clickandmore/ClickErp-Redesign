@@ -3,6 +3,8 @@
 namespace App\Http\Requests\ingaz;
 
 use App\Http\Requests\MainRequest;
+use App\Models\Country;
+use App\Models\ingaz\JobTitle;
 use App\Models\ingaz\JobType;
 use App\Models\ingaz\Maid;
 use Illuminate\Validation\Rule;
@@ -36,6 +38,17 @@ class MaidRequest extends MainRequest
             'passport_num' => [
                 'required',
                 Rule::unique('maids')->ignore($this->route('maid')),
+            ],
+            'phone' => 'nullable|string|max:50',
+            'relative_name' => 'nullable|string|max:255',
+            'relative_phone' => 'nullable|string|max:50',
+            'residence_city' => 'nullable|string|max:255',
+            'passport_issue_place' => 'nullable|string|max:255',
+            'education' => 'nullable|string|max:255',
+            'has_driving_license' => [
+                Rule::requiredIf(fn () => $this->isDriverSelected()),
+                'nullable',
+                'boolean',
             ],
             'price' => 'nullable|numeric',
             'salary' => 'nullable|numeric',
@@ -83,6 +96,10 @@ class MaidRequest extends MainRequest
             'languages' => 'nullable|array',
             'percentage' => 'nullable|array',
             'expertises' => 'nullable|array',
+            'expertises.*.country_id' => 'nullable|exists:countries,id',
+            'expertises.*.number_of_years' => 'nullable|numeric|min:0',
+            'expertises.*.job_title_id' => 'nullable|exists:job_titles,id',
+            'expertises.*.work_city' => 'nullable|string|max:255',
             'rental_finance_items' => 'nullable|array',
             'rental_finance_items.*.account_id' => 'nullable|exists:fn_accounts,id',
             'rental_finance_items.*.type' => 'nullable|in:income,expense',
@@ -113,6 +130,10 @@ class MaidRequest extends MainRequest
         $data = [
             'video_link' => $this->normalizeVideoLink($this->input('video_link')),
         ];
+
+        if (!$this->isDriverSelected()) {
+            $data['has_driving_license'] = null;
+        }
 
         if ($this->isSelectedRentalType()) {
             $data = array_merge($data, [
@@ -200,6 +221,31 @@ class MaidRequest extends MainRequest
     public function withValidator($validator)
     {
         $validator->after(function ($validator) {
+            $expertises = collect((array) $this->input('expertises', []));
+            $countries = Country::query()
+                ->whereIn('id', $expertises->pluck('country_id')->filter()->all())
+                ->get()
+                ->keyBy('id');
+
+            foreach ($expertises as $index => $expertise) {
+                $country = $countries->get($expertise['country_id'] ?? null);
+                $countryText = mb_strtolower(implode(' ', array_filter([
+                    $country?->name_ar,
+                    $country?->name_en,
+                    $country?->code,
+                ])));
+                $isSaudiCountry = str_contains($countryText, 'السعود')
+                    || str_contains($countryText, 'saudi')
+                    || preg_match('/(^|\s)sa($|\s)/i', $countryText);
+
+                if ($isSaudiCountry && blank($expertise['work_city'] ?? null)) {
+                    $validator->errors()->add(
+                        "expertises.{$index}.work_city",
+                        'مدينة العمل السابقة مطلوبة عند اختيار المملكة العربية السعودية.'
+                    );
+                }
+            }
+
             if (
                 !$this->isSelectedRentalType()
                 || !$this->isMethod('post')
@@ -237,5 +283,30 @@ class MaidRequest extends MainRequest
     private function requiresOfficeField(): bool
     {
         return $this->isSelectedRentalType();
+    }
+
+    private function isDriverSelected(): bool
+    {
+        $jobIds = array_filter((array) $this->input('job_id', []));
+
+        if ($jobIds === []) {
+            return false;
+        }
+
+        return JobTitle::query()
+            ->whereIn('id', $jobIds)
+            ->get()
+            ->contains(function (JobTitle $jobTitle) {
+                $titles = $jobTitle->translations
+                    ->pluck('title')
+                    ->push($jobTitle->title)
+                    ->filter();
+
+                return $titles->contains(function ($title) {
+                    $title = mb_strtolower((string) $title);
+
+                    return str_contains($title, 'سائق') || str_contains($title, 'driver');
+                });
+            });
     }
 }

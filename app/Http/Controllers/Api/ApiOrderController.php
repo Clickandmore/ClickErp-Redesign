@@ -184,7 +184,14 @@ class ApiOrderController extends Controller
 
     public function show(OrderAction $orderAction, $id)
     {
-        $data['order'] = Order::with(['jobType', 'maid.nationality', 'maid.religion', 'maid.jobTitles'])->find($id);
+        $data['order'] = Order::with([
+            'jobType',
+            'maid.nationality',
+            'maid.religion',
+            'maid.jobTitles',
+            'maid.expertises.country',
+            'maid.expertises.jobTitle',
+        ])->find($id);
 
         if ($data['order']->user_id != Auth::user()->id) {
             abort(404);
