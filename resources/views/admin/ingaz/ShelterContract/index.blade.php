@@ -566,6 +566,20 @@
                     <div class="collapse" id="filterCollapse">
                         <div class="card-body">
                             <div class="row g-3">
+                                @if (($branchSelector['enabled'] ?? false) && ($branchSelector['can_view_all_branches'] ?? false))
+                                    <div class="col-md-3">
+                                        <label for="filterBranch" class="form-label">الفرع</label>
+                                        <select id="filterBranch" class="form-select">
+                                            <option value="">جميع الفروع</option>
+                                            @foreach ($branchSelector['branches'] as $branch)
+                                                <option value="{{ $branch->id }}"
+                                                    @selected((int) ($branchSelector['selected_branch_id'] ?? 0) === (int) $branch->id)>
+                                                    {{ $branch->name }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                @endif
                                 <div class="col-md-3">
                                     <label for="filterContractNumber" class="form-label">رقم العقد</label>
                                     <input type="text" id="filterContractNumber" class="form-control"
@@ -1119,6 +1133,7 @@
                         d.quick_tag = $('#filterQuickTag').val();
                         d.service_category = $('#filterServiceCategory').val();
                         d.request_type = $('#filterRequestType').val();
+                        d.branch_id = $('#filterBranch').length ? $('#filterBranch').val() : '';
                         d._timestamp = new Date().getTime(); // منع cache
                     },
                     dataSrc: function(json) {
@@ -1341,7 +1356,8 @@
                     instant_receipt: $('#filterInstantReceipt').val(),
                     quick_tag: $('#filterQuickTag').val(),
                     service_category: $('#filterServiceCategory').val(),
-                    request_type: $('#filterRequestType').val()
+                    request_type: $('#filterRequestType').val(),
+                    branch_id: $('#filterBranch').length ? $('#filterBranch').val() : ''
                 };
 
                 return '{{ route('ShelterContract.export', ['format' => '__FORMAT__']) }}'
@@ -1382,6 +1398,16 @@
                 $('#filterWorkWillingness').val($(this).data('work-willingness') || '');
                 $('#filterInstantReceipt').val($(this).data('instant-receipt') || '');
                 dataTable.ajax.reload();
+            });
+
+            $('#filterBranch').on('change', function() {
+                const url = new URL(window.location.href);
+                if (this.value) {
+                    url.searchParams.set('branch_id', this.value);
+                } else {
+                    url.searchParams.delete('branch_id');
+                }
+                window.location.href = url.toString();
             });
 
             // Handle action buttons

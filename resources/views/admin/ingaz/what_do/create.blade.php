@@ -1,4 +1,4 @@
-<form class="row g-3 from-submit-global" method="post" action="{{route("what-do.store")}}">
+<form class="row g-3 from-submit-global" method="post" action="{{route("what-do.store")}}" enctype="multipart/form-data">
     @csrf
     <div class="col-6">
         <label for="TextInput" class="form-label">
@@ -16,6 +16,12 @@
             {{helperTrans("ingaz.icon")}}
         </label>
         @include('admin.ingaz.what_do.icons')
+    </div>
+    <div class="col-12">
+        <label class="form-label">
+            {{ helperTrans('ingaz.image') }} ({{ helperTrans('ingaz.optional') }})
+        </label>
+        <input type="file" name="image" class="dropify" accept="image/jpeg,image/png,image/webp">
     </div>
     @foreach (config('translatable.locales') as $locale)
         <div class="col-6">

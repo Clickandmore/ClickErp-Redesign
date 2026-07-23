@@ -21,7 +21,7 @@ class LatestWorkerCvController extends Controller
             return apiResponse(true, __('api.All items'), [], 200);
         }
 
-        $maids = Maid::query()
+        $maids = Maid::shown()
             ->with([
                 'jobTypes',
                 'jobTitles',
