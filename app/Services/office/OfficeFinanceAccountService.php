@@ -32,7 +32,13 @@ class OfficeFinanceAccountService
             $parent = $this->getOrCreateExternalAgentsParent();
             $desiredName = $this->resolveAccountName($office);
 
-            $account = $office->account;
+            // مكاتب الاستقدام قد تكون معرفة مسبقاً كموردين. في هذه الحالة يجب
+            // استخدام حساب المورد نفسه، وعدم إنشاء حساب موازٍ تحت الوكلاء الخارجيين.
+            $account = $this->findExistingSupplierAccount($office, $desiredName);
+
+            if (!$account) {
+                $account = $office->account;
+            }
 
             if (!$account && filled($office->account_id)) {
                 $account = Account::query()->find($office->account_id);
@@ -124,12 +130,7 @@ class OfficeFinanceAccountService
 
     protected function findExistingAccount(Account $parent, Office $office, string $desiredName): ?Account
     {
-        $candidateNames = array_values(array_unique(array_filter([
-            $desiredName,
-            trim((string) optional($office->translate('ar'))->title),
-            trim((string) optional($office->translate('en'))->title),
-            trim((string) $office->title),
-        ])));
+        $candidateNames = $this->accountCandidateNames($office, $desiredName);
 
         $accounts = Account::query()
             ->where('parent_id', $parent->id)
@@ -158,6 +159,46 @@ class OfficeFinanceAccountService
 
                 return false;
             });
+    }
+
+    protected function findExistingSupplierAccount(Office $office, string $desiredName): ?Account
+    {
+        $candidateNames = $this->accountCandidateNames($office, $desiredName);
+        $accounts = Account::query()
+            ->where('type', AccountTypesEnum::Supplier->value)
+            ->whereIn('name', $candidateNames)
+            ->orderBy('id')
+            ->get();
+
+        foreach ($candidateNames as $candidateName) {
+            $matched = $accounts->firstWhere('name', $candidateName);
+            if ($matched) {
+                return $matched;
+            }
+        }
+
+        return Account::query()
+            ->where('type', AccountTypesEnum::Supplier->value)
+            ->get()
+            ->first(function (Account $account) use ($candidateNames) {
+                foreach ($candidateNames as $candidateName) {
+                    if ($this->normalizeName($account->name) === $this->normalizeName($candidateName)) {
+                        return true;
+                    }
+                }
+
+                return false;
+            });
+    }
+
+    protected function accountCandidateNames(Office $office, string $desiredName): array
+    {
+        return array_values(array_unique(array_filter([
+            $desiredName,
+            trim((string) optional($office->translate('ar'))->title),
+            trim((string) optional($office->translate('en'))->title),
+            trim((string) $office->title),
+        ])));
     }
 
     protected function createChildAccount(Account $parent, string $name): Account

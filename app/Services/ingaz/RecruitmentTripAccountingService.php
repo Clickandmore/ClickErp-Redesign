@@ -327,23 +327,6 @@ class RecruitmentTripAccountingService
         int $constraintId,
         string $date
     ): array {
-        if ($invoice->external_office_purchase_id) {
-            $existingPurchase = Purchase::query()->find($invoice->external_office_purchase_id);
-            if ($existingPurchase) {
-                return [$existingPurchase, false];
-            }
-        }
-
-        $existingPurchase = Purchase::query()
-            ->where('constraint_id', $constraintId)
-            ->first();
-
-        if ($existingPurchase) {
-            $invoice->external_office_purchase_id = $existingPurchase->id;
-
-            return [$existingPurchase, false];
-        }
-
         $office = $contract->resolveExternalOfficeDispatchOffice();
         if (!$office?->id) {
             throw new \RuntimeException('لا يمكن إنشاء فاتورة المورد لأن المكتب الخارجي غير محدد.');
@@ -361,6 +344,19 @@ class RecruitmentTripAccountingService
             ->first();
 
         if (!$supplier) {
+            $supplier = Supplier::query()
+                ->lockForUpdate()
+                ->where('name', $officeName)
+                ->first();
+        }
+
+        if ($supplier) {
+            $supplier->forceFill([
+                'name' => $officeName !== '' ? $officeName : $supplier->name,
+                'code' => (string) $officeAccount->code,
+                'account_id' => $officeAccount->id,
+            ])->save();
+        } else {
             $supplier = Supplier::query()->create([
                 'name' => $officeName !== '' ? $officeName : ('مكتب خارجي #' . $office->id),
                 'code' => (string) $officeAccount->code,
@@ -370,6 +366,30 @@ class RecruitmentTripAccountingService
                 'account_id' => $officeAccount->id,
                 'created_by_id' => Auth::guard('admin')->id() ?: Auth::id() ?: 1,
             ]);
+        }
+
+        ConstraintDetails::query()
+            ->where('constraint_id', $constraintId)
+            ->where('type', 'creditor')
+            ->update(['account_id' => $officeAccount->id]);
+
+        $existingPurchase = null;
+        if ($invoice->external_office_purchase_id) {
+            $existingPurchase = Purchase::query()->find($invoice->external_office_purchase_id);
+        }
+
+        $existingPurchase ??= Purchase::query()
+            ->where('constraint_id', $constraintId)
+            ->first();
+
+        if ($existingPurchase) {
+            $existingPurchase->forceFill([
+                'supplier_id' => $supplier->id,
+                'credit_supplier_id' => $officeAccount->id,
+            ])->save();
+            $invoice->external_office_purchase_id = $existingPurchase->id;
+
+            return [$existingPurchase, false];
         }
 
         $amount = $this->resolveExternalOfficeCostAmount($contract);
