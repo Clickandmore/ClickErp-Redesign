@@ -27,6 +27,8 @@ class LatestWorkerCvController extends Controller
                 'jobTitles',
                 'nationality',
                 'religion',
+                'expertises.country',
+                'expertises.jobTitle',
             ])
             ->whereHas('jobTypes', function ($query) use ($jobTypeId) {
                 $query->where('job_type_id', $jobTypeId);

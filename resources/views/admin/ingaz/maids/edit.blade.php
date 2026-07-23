@@ -27,6 +27,10 @@
         str_contains($normalizedSelectedTypeTitle, 'rent');
     $selectedRentalKingdomStatus = old('rental_kingdom_status', $showArrivalDateField ? ($arrivalDateValue ? 'inside' : 'outside') : '');
     $selectedJobIds = collect(old('job_id', $obj->jobTitles->pluck('id')->all()))->map(fn ($id) => (int) $id)->all();
+    $selectedDrivingLicense = old(
+        'has_driving_license',
+        $obj->has_driving_license === null ? '' : (string) (int) $obj->has_driving_license,
+    );
     $maidSkills = old('skills', is_array($obj->skills) ? $obj->skills : (json_decode($obj->skills, true) ?? []));
     $maidSkills = collect($maidSkills)->map(fn ($id) => (int) $id)->all();
     $langs = old('languages', is_array($obj->languages) ? $obj->languages : (json_decode($obj->languages, true) ?? []));
@@ -671,6 +675,39 @@
                             value="{{ old('childrens_count', $obj->childrens_count ?? 0) }}">
                     </div>
                     <div class="col-4">
+                        <label for="phone" class="form-label">رقم جوال العاملة</label>
+                        <input type="tel" name="phone" id="phone" class="form-control"
+                            maxlength="50" value="{{ old('phone', $obj->phone) }}">
+                    </div>
+                    <div class="col-4">
+                        <label for="relative_name" class="form-label">اسم أحد أقارب العاملة</label>
+                        <input type="text" name="relative_name" id="relative_name" class="form-control"
+                            maxlength="255" value="{{ old('relative_name', $obj->relative_name) }}">
+                    </div>
+                    <div class="col-4">
+                        <label for="relative_phone" class="form-label">رقم جوال قريب العاملة</label>
+                        <input type="tel" name="relative_phone" id="relative_phone" class="form-control"
+                            maxlength="50" value="{{ old('relative_phone', $obj->relative_phone) }}">
+                    </div>
+                    <div class="col-4">
+                        <label for="residence_city" class="form-label">مدينة سكن العاملة</label>
+                        <input type="text" name="residence_city" id="residence_city" class="form-control"
+                            maxlength="255" value="{{ old('residence_city', $obj->residence_city) }}">
+                    </div>
+                    <div class="col-4">
+                        <label for="education" class="form-label">المؤهل التعليمي</label>
+                        <input type="text" name="education" id="education" class="form-control"
+                            maxlength="255" value="{{ old('education', $obj->education) }}">
+                    </div>
+                    <div class="col-4" id="driving_license_field" style="display: none;">
+                        <label for="has_driving_license" class="form-label">هل يحمل رخصة قيادة؟</label>
+                        <select name="has_driving_license" id="has_driving_license" class="form-control">
+                            <option value="">اختر</option>
+                            <option value="1" {{ (string) $selectedDrivingLicense === '1' ? 'selected' : '' }}>نعم</option>
+                            <option value="0" {{ (string) $selectedDrivingLicense === '0' ? 'selected' : '' }}>لا</option>
+                        </select>
+                    </div>
+                    <div class="col-4">
                         <label for="TextInput" class="form-label">
                             {{ helperTrans('ingaz.contract_duration') }}
                         </label>
@@ -726,6 +763,16 @@
                         </label>
                         <input type="date" name="passport_issue_date" id="passport_issue_date" class="form-control"
                             value="{{ old('passport_issue_date', $passportIssueDateValue) }}">
+                    </div>
+
+                    <div class="col-4 passport-extra-field">
+                        <label for="passport_issue_place" class="form-label">
+                            مكان إصدار جواز السفر
+                            <small class="text-muted">({{ helperTrans('ingaz.optional') }})</small>
+                        </label>
+                        <input type="text" name="passport_issue_place" id="passport_issue_place"
+                            class="form-control" maxlength="255"
+                            value="{{ old('passport_issue_place', $obj->passport_issue_place) }}">
                     </div>
 
                     <div class="col-4 passport-extra-field">
@@ -881,6 +928,7 @@
                             <thead>
                                 <tr>
                                     <th>{{ __('ingaz.country') }} </th>
+                                    <th>مدينة العمل السابقة</th>
                                     <th>{{ __('ingaz.number_of_years') }}</th>
                                     <th>{{ __('ingaz.job_title') }}</th>
                                     <th style="width:150px">{{ __('ingaz.actions') }}</th>
@@ -891,13 +939,38 @@
                             <tr class="y-group">
                                 <td>
                                     <select name="expertises[{{$index}}][country_id]" data-placeholder=""
-                                            class="form-control select2" data-exp-required="true">
+                                            class="form-control select2 experience-country" data-exp-required="true">
                                         <option value="">{{helperTrans('ingaz.choose')}}</option>
                                         @foreach($countries as $country)
-
-                                            <option value="{{$country->id}}" {{$expertise->country_id == $country->id ? 'selected' : ''}}>{{$country->name_ar}}</option>
+                                            @php
+                                                $countrySearchText = mb_strtolower(implode(' ', [
+                                                    $country->name_ar,
+                                                    $country->name_en,
+                                                    $country->code,
+                                                ]));
+                                                $isSaudiCountry =
+                                                    str_contains($countrySearchText, 'السعود') ||
+                                                    str_contains($countrySearchText, 'saudi') ||
+                                                    preg_match('/(^|\s)sa($|\s)/i', $countrySearchText);
+                                            @endphp
+                                            <option value="{{$country->id}}"
+                                                data-is-saudi="{{ $isSaudiCountry ? '1' : '0' }}"
+                                                {{$expertise->country_id == $country->id ? 'selected' : ''}}>
+                                                {{$country->name_ar}}
+                                            </option>
                                         @endforeach
                                     </select>
+                                </td>
+                                <td>
+                                    <div class="experience-work-city-wrapper" style="display: none;">
+                                        <input type="text" name="expertises[{{$index}}][work_city]"
+                                            class="form-control experience-work-city" maxlength="255"
+                                            value="{{ old("expertises.$index.work_city", $expertise->work_city) }}"
+                                            placeholder="أدخل مدينة العمل داخل السعودية">
+                                    </div>
+                                    <span class="text-muted small experience-work-city-hint">
+                                        يظهر عند اختيار السعودية
+                                    </span>
                                 </td>
                                 <td>
                                     <div class="experience-duration-wrapper">
@@ -933,12 +1006,37 @@
                             <tr class="y-group">
                                 <td>
                                     <select name="expertises[0][country_id]" data-placeholder=""
-                                            class="form-control select2" data-exp-required="true">
+                                            class="form-control select2 experience-country" data-exp-required="true">
                                         <option value="">{{helperTrans('ingaz.choose')}}</option>
                                         @foreach($countries as $country)
-                                            <option value="{{$country->id}}">{{$country->name_ar}}</option>
+                                            @php
+                                                $countrySearchText = mb_strtolower(implode(' ', [
+                                                    $country->name_ar,
+                                                    $country->name_en,
+                                                    $country->code,
+                                                ]));
+                                                $isSaudiCountry =
+                                                    str_contains($countrySearchText, 'السعود') ||
+                                                    str_contains($countrySearchText, 'saudi') ||
+                                                    preg_match('/(^|\s)sa($|\s)/i', $countrySearchText);
+                                            @endphp
+                                            <option value="{{$country->id}}"
+                                                data-is-saudi="{{ $isSaudiCountry ? '1' : '0' }}">
+                                                {{$country->name_ar}}
+                                            </option>
                                         @endforeach
                                     </select>
+                                </td>
+                                <td>
+                                    <div class="experience-work-city-wrapper" style="display: none;">
+                                        <input type="text" name="expertises[0][work_city]"
+                                            class="form-control experience-work-city" maxlength="255"
+                                            value="{{ old('expertises.0.work_city') }}"
+                                            placeholder="أدخل مدينة العمل داخل السعودية">
+                                    </div>
+                                    <span class="text-muted small experience-work-city-hint">
+                                        يظهر عند اختيار السعودية
+                                    </span>
                                 </td>
                                 <td>
                                     <div class="experience-duration-wrapper">
@@ -1456,6 +1554,61 @@
 
             $('#job_id').on('change', syncGenderFromSelectedJobs);
             syncGenderFromSelectedJobs();
+
+            function selectedJobIsDriver() {
+                let isDriver = false;
+
+                $('#job_id option:selected').each(function() {
+                    const title = ($(this).text() || '').toLowerCase();
+                    if (title.includes('سائق') || title.includes('driver')) {
+                        isDriver = true;
+                    }
+                });
+
+                return isDriver;
+            }
+
+            function toggleDrivingLicenseField() {
+                const $field = $('#driving_license_field');
+                const $select = $('#has_driving_license');
+
+                if (selectedJobIsDriver()) {
+                    $field.slideDown();
+                    $select.prop('disabled', false).prop('required', true);
+                } else {
+                    $select.prop('disabled', true).prop('required', false);
+                    $field.slideUp();
+                }
+            }
+
+            $('#job_id').on('change', toggleDrivingLicenseField);
+            toggleDrivingLicenseField();
+
+            function toggleExperienceWorkCity($countrySelect) {
+                const $row = $countrySelect.closest('tr.y-group');
+                const isSaudi = $countrySelect.find('option:selected').data('is-saudi') == 1;
+                const $wrapper = $row.find('.experience-work-city-wrapper');
+                const $input = $row.find('.experience-work-city');
+                const $hint = $row.find('.experience-work-city-hint');
+
+                if (isSaudi) {
+                    $input.prop('required', true);
+                    $wrapper.show();
+                    $hint.hide();
+                } else {
+                    $input.val('').prop('required', false);
+                    $wrapper.hide();
+                    $hint.show();
+                }
+            }
+
+            $(document).on('change', '.experience-country', function() {
+                toggleExperienceWorkCity($(this));
+            });
+
+            $('.experience-country').each(function() {
+                toggleExperienceWorkCity($(this));
+            });
 
             function setInputValue(name, value) {
                 if (value === null || typeof value === 'undefined' || value === '') {
@@ -2621,6 +2774,9 @@
                 $('#experience_section').find('[data-exp-required]').each(function() {
                     $(this).val('');
                 });
+                $('#experience_section').find('.experience-work-city')
+                    .val('')
+                    .prop('required', false);
                 $('#json_array tr.y-group').slice(1).remove();
                 if (typeof window.reindexRows === 'function') {
                     window.reindexRows();

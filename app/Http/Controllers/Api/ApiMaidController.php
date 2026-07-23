@@ -115,6 +115,7 @@ class ApiMaidController extends Controller
                         'country_id' => $expertise->country_id,
                         'country_name_ar' => $expertise->country?->name_ar,
                         'country_name_en' => $expertise->country?->name_en,
+                        'work_city' => $expertise->work_city,
                         'number_of_years' => $expertise->number_of_years,
                         'job_title_id' => $expertise->job_title_id,
                         'job_title' => $expertise->jobTitle?->title,
