@@ -18,6 +18,7 @@ use App\Models\ingaz\Nationality;
 use App\Models\ingaz\Order;
 use App\Models\ingaz\Religion;
 use App\Models\ingaz\User;
+use App\Services\commissions\LegacyCommissionMarketerResolver;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -741,7 +742,12 @@ class ArabiaRecruitmentOrdersImportService
 
     private function resolveImportedMarketerId(array $row): ?int
     {
-        return $this->matchAdminId($row['أنشئ بواسطة'] ?? null);
+        $marketerName = trim((string) ($row['مسوق'] ?? ''));
+        if ($marketerName === '' || $marketerName === 'غير محدد') {
+            return null;
+        }
+
+        return app(LegacyCommissionMarketerResolver::class)->resolve($marketerName)?->id;
     }
 
     private function matchAdminId($value): ?int

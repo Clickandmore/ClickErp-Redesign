@@ -6,6 +6,18 @@ use App\Models\auth\Admin;
 
 class LegacyCommissionMarketerResolver
 {
+    public const HISTORICAL_PROFILE_NAMES = [
+        'اشراق-الهند',
+        'خالد-بنجلاديش',
+        'السودان - رجالي',
+        'باكستان - رجالي',
+        'حسام-الفلبين',
+        'مكتب BS الفلبين',
+        'وجود',
+        'مصر- رجالي',
+        'الجريد',
+    ];
+
     private const EMAIL_BY_LEGACY_NAME = [
         'علي عبدالواحد الفرج' => 'alfrjly231@gmail.com',
         'ليلى شمروخ' => 'laylashamruk@gmail.com',
