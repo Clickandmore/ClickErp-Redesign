@@ -1057,7 +1057,7 @@ return array (
   ),
   'sidebar' => 
   array (
-    'sms_templates' => 'قوالب الرسائل النصية',
+    'sms_templates' => 'نماذج الرسائل',
     'private_requests' => 'طلبات خاصة',
     'known_service_requests' => 'طلبات الخدمة المعروفة',
     'contact_requests' => 'طلبات التواصل',
@@ -1144,7 +1144,7 @@ return array (
         'saudi_arabia' => 'العربية',
     ],
     'sidebar' => [
-        'sms_templates' => 'قوالب الرسائل النصية',
+        'sms_templates' => 'نماذج الرسائل',
         'private_requests' => 'طلبات خاصة',
         'known_service_requests' => 'طلبات الخدمة المعروفة',
         'contact_requests' => 'طلبات التواصل',

@@ -83,7 +83,7 @@
                 $canViewHrModule = @SystemModuleEnabled('hr') && @AdminGuardCanViewPackageModule('hr');
                 $canViewFinanceModule = @SystemModuleEnabled('finance') && @AdminGuardCanViewPackageModule('finance');
 
-                $canViewCrm = @SystemModuleEnabled('crm') && ($canViewCrmModule || @AdminGuardHasAnyPerm([\App\PermKeys::CLIENTS_VIEW, \App\PermKeys::CLIENTS_CREATE, \App\PermKeys::CLIENTS_EDIT, \App\PermKeys::CLIENTS_DELETE, \App\PermKeys::CLIENTS_EXPORT, \App\PermKeys::CLIENTS_SHOW, \App\PermKeys::CLIENTS_SETTINGS]));
+                $canViewCrm = @SystemModuleEnabled('crm') && ($canViewCrmModule || @AdminGuardHasAnyPerm([\App\PermKeys::CLIENTS_VIEW, \App\PermKeys::CLIENTS_CREATE, \App\PermKeys::CLIENTS_EDIT, \App\PermKeys::CLIENTS_DELETE, \App\PermKeys::CLIENTS_EXPORT, \App\PermKeys::CLIENTS_SHOW, \App\PermKeys::CLIENTS_SETTINGS, \App\PermKeys::NOTIFICATIONS_CONTROL]));
 
                 $canViewCv = @AdminGuardHasAnyPerm([\App\PermKeys::MAIDS_VIEW, \App\PermKeys::MAIDS_CREATE, \App\PermKeys::MAIDS_EDIT, \App\PermKeys::MAIDS_DELETE, \App\PermKeys::MAIDS_EXPORT, \App\PermKeys::MAIDS_CONTROL, \App\PermKeys::MAIDS_TOGGLE_STATUS, \App\PermKeys::MAIDS_TOGGLE_PIN, \App\PermKeys::MAIDS_RENTAL_VIEW, \App\PermKeys::MAIDS_BACKOUT_VIEW, \App\PermKeys::MAIDS_DELETED_VIEW]);
 
@@ -123,8 +123,7 @@
                     $canViewOfficeManagement ||
                     $canViewOperationalCommissions;
 
-                $canViewZohoSalesIq = @AdminGuardHasAnyPerm([\App\PermKeys::CRM_MODULE, \App\PermKeys::NOTIFICATIONS_CONTROL, \App\PermKeys::SETTINGS_VIEW]);
-                $canViewSms = @AdminGuardHasAnyPerm([\App\PermKeys::NOTIFICATIONS_CONTROL, \App\PermKeys::NOTIFICATIONS_VIEW]) || $canViewZohoSalesIq;
+                $canViewSms = @AdminGuardHasAnyPerm([\App\PermKeys::NOTIFICATIONS_CONTROL, \App\PermKeys::NOTIFICATIONS_VIEW]);
 
                 $canViewWebsiteManagement = @SystemModuleEnabled('website') && @AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_VIEW, \App\PermKeys::FAQ_VIEW, \App\PermKeys::STATISTICS_VIEW, \App\PermKeys::OFFERS_VIEW, \App\PermKeys::OFFERS_CONTROL, \App\PermKeys::DEVELOPERS_PERMS]);
 
@@ -188,13 +187,13 @@
 
                 @if ($canViewCrm)
                     <li
-                        class="sidebar-module sidebar-module--crm {{ $isCrm || request()->routeIs('admin.sms-templates.*') ? '' : 'collapsed' }}">
+                        class="sidebar-module sidebar-module--crm {{ $isCrm || request()->routeIs('whatsapp.inbox.*') || request()->routeIs('whatsapp.notifications.*') || request()->routeIs('messages.*') ? '' : 'collapsed' }}">
                         <a class="m-link" data-bs-toggle="collapse" data-bs-target="#crm" href="#">
                             <i class="fa-regular fa-file-lines me-2"></i>
                             <span class="ms-2">{{ __('ingaz.crm') }}</span>
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
-                        <ul class="sub-menu collapse {{ $isCrm || request()->routeIs('clients.*') || request()->routeIs('website-visitors.*') ? 'show' : '' }}"
+                        <ul class="sub-menu collapse {{ $isCrm || request()->routeIs('clients.*') || request()->routeIs('website-visitors.*') || request()->routeIs('whatsapp.inbox.*') || request()->routeIs('whatsapp.notifications.*') || request()->routeIs('messages.*') ? 'show' : '' }}"
                             id="crm">
                             @if (@AdminGuardHasPerm(\App\PermKeys::CLIENTS_VIEW))
                                 <li>
@@ -1093,32 +1092,14 @@
                             <span class="ms-2">{{ __('admin.sidebar.messages_management') }}</span>
                             <span class="arrow fa fa-angle-left ms-auto text-end"></span>
                         </a>
-                        <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['notifications.index', 'whatsapp.notifications.index', 'messages.index', 'notifications.settings']) || request()->routeIs('whatsapp.inbox.*') || request()->routeIs('admin.zoho-salesiq.*') || Request::is('admin/sms-templates*') ? 'show' : '' }}"
+                        <ul class="sub-menu collapse {{ in_array(Route::currentRouteName(), ['notifications.index', 'notifications.settings', 'notifications.settings.alerts']) || Request::is('admin/sms-templates*') ? 'show' : '' }}"
                             id="smsManagement">
-                            @if (@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL))
-                                <li>
-                                    <a class="m-link {{ request()->routeIs('whatsapp.inbox.*') ? 'active' : '' }}"
-                                        href="{{ route('whatsapp.inbox.index') }}">
-                                        <i class="fa fa-comments text-success"></i>
-                                        <span class="ms-2">محادثات واتساب</span>
-                                    </a>
-                                </li>
-                            @endif
                             @if (@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL))
                                 <li>
                                     <a class="m-link {{ Route::currentRouteName() == 'notifications.index' ? 'active' : '' }}"
                                         href="{{ route('notifications.index') }}">
                                         <i class="fa fa-paper-plane"></i>
                                         <span class="ms-2">{{ __('admin.sidebar.send_sms') }}</span>
-                                    </a>
-                                </li>
-                            @endif
-                            @if (@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL))
-                                <li>
-                                    <a class="m-link {{ Route::currentRouteName() == 'whatsapp.notifications.index' ? 'active' : '' }}"
-                                        href="{{ route('whatsapp.notifications.index') }}">
-                                        <i class="fa fa-whatsapp text-success"></i>
-                                        <span class="ms-2">{{ __('admin.sidebar.send_whatsapp') }}</span>
                                     </a>
                                 </li>
                             @endif
@@ -1133,10 +1114,10 @@
                             @endif
                             @if (@AdminGuardHasPerm(\App\PermKeys::NOTIFICATIONS_CONTROL))
                                 <li>
-                                    <a class="m-link {{ Route::currentRouteName() == 'messages.index' ? 'active' : '' }}"
-                                        href="{{ route('messages.index') }}">
-                                        <i class="fa fa-inbox"></i>
-                                        <span class="ms-2">{{ __('admin.sidebar.sent_messages') }}</span>
+                                    <a class="m-link {{ Route::currentRouteName() == 'notifications.settings.alerts' ? 'active' : '' }}"
+                                        href="{{ route('notifications.settings.alerts') }}#alert-rules-settings">
+                                        <i class="fa fa-bell"></i>
+                                        <span class="ms-2">{{ __('admin.sidebar.notification_settings') }}</span>
                                     </a>
                                 </li>
                             @endif
@@ -1147,22 +1128,6 @@
                                     <span class="ms-2">{{ __('admin.sidebar.sms_templates') }}</span>
                                 </a>
                             </li>
-                            @if ($canViewZohoSalesIq)
-                                <li>
-                                    <a class="m-link {{ Route::currentRouteName() == 'admin.zoho-salesiq.visitors' ? 'active' : '' }}"
-                                        href="{{ route('admin.zoho-salesiq.visitors') }}">
-                                        <i class="fa fa-eye"></i>
-                                        <span class="ms-2">{{ __('admin.sidebar.zoho_visitors') }}</span>
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="m-link {{ request()->routeIs('admin.zoho-salesiq.conversations.*') ? 'active' : '' }}"
-                                        href="{{ route('admin.zoho-salesiq.conversations.index') }}">
-                                        <i class="fa fa-comments"></i>
-                                        <span class="ms-2">{{ __('admin.sidebar.zoho_conversations') }}</span>
-                                    </a>
-                                </li>
-                            @endif
                         </ul>
                     </li>
                 @endif

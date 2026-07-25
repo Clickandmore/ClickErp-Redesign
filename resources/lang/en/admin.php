@@ -1030,7 +1030,7 @@ return array (
         'saudi_arabia' => 'Arabic',
     ],
     'sidebar' => [
-        'sms_templates' => 'SMS Templates',
+        'sms_templates' => 'Message Templates',
         'private_requests' => 'Private Requests',
         'known_service_requests' => 'Known Service Requests',
         'contact_requests' => 'Contact Requests',
@@ -1715,7 +1715,7 @@ return array (
   ),
   'sidebar' => 
   array (
-    'sms_templates' => 'SMS Templates',
+    'sms_templates' => 'Message Templates',
     'private_requests' => 'Private Requests',
     'known_service_requests' => 'Known Service Requests',
     'contact_requests' => 'Contact Requests',

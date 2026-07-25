@@ -5,9 +5,30 @@
     <style>
         .order-stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 16px;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 14px;
             margin-bottom: 24px;
+        }
+
+        .orders-overview-panel {
+            border: 1px solid #e8ecf4;
+            border-radius: 20px;
+            padding: 18px 20px;
+            margin-bottom: 14px;
+            background: linear-gradient(135deg, #ffffff 0%, #f7f9ff 100%);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .orders-overview-panel h5 {
+            color: #111c3a;
+        }
+
+        .orders-overview-settings {
+            font-size: 0.82rem;
+            color: #667085;
         }
 
         .order-stat-card {
@@ -15,10 +36,60 @@
             border-radius: 18px;
             padding: 16px 18px;
             background: #fff;
-            text-align: left;
+            text-align: start;
             cursor: pointer;
             transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
             width: 100%;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .order-stat-card::before {
+            content: '';
+            position: absolute;
+            inset-inline-start: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: var(--order-stat-color, #6c757d);
+        }
+
+        .order-stat-card--total {
+            --order-stat-color: #6366f1;
+        }
+
+        .order-stat-card--new {
+            --order-stat-color: #0d6efd;
+        }
+
+        .order-stat-card--process {
+            --order-stat-color: #f59e0b;
+        }
+
+        .order-stat-card--completed {
+            --order-stat-color: #198754;
+        }
+
+        .order-stat-card--incomplete {
+            --order-stat-color: #dc3545;
+        }
+
+        .order-stat-card__header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .order-stat-card__icon {
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: color-mix(in srgb, var(--order-stat-color, #6c757d) 12%, white);
+            color: var(--order-stat-color, #6c757d);
         }
 
         .order-stat-card:hover {
@@ -48,6 +119,32 @@
         .order-stat-card small {
             color: #8892a6;
             font-size: 0.85rem;
+        }
+
+        .order-stat-card__meta {
+            min-height: 24px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .order-stat-card__deadline {
+            border-radius: 999px;
+            padding: 3px 8px;
+            background: #f2f4f7;
+            color: #475467;
+            font-size: 0.74rem;
+            font-weight: 700;
+        }
+
+        .order-stat-card__overdue {
+            border-radius: 999px;
+            padding: 3px 8px;
+            background: #fff1f2;
+            color: #b42318;
+            font-size: 0.74rem;
+            font-weight: 700;
         }
 
         .timer-chip {
@@ -211,6 +308,11 @@
                 gap: 12px;
             }
 
+            .orders-page .orders-overview-panel {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
             .orders-page .order-stat-card {
                 padding: 12px;
             }
@@ -293,31 +395,78 @@
                     </div>
                 </div>
 
+                <div class="orders-overview-panel">
+                    <div>
+                        <h5 class="mb-1">
+                            <i class="fas fa-chart-pie text-primary me-2"></i>
+                            {{ helperTrans('ingaz.orders_overview') }}
+                        </h5>
+                        <div class="text-muted small">ملخص حالات الحجوزات ومهل المتابعة الحالية.</div>
+                    </div>
+                    <a class="orders-overview-settings" href="{{ route('notifications.settings.alerts') }}#alert-rules-settings">
+                        <i class="fas fa-clock me-1"></i>
+                        مهلة الجديد: {{ $orderNewDeadlineHours ?? 24 }} ساعة
+                        ·
+                        مهلة تحت الإجراء: {{ $orderUnderProcessDeadlineHours ?? 48 }} ساعة
+                    </a>
+                </div>
+
                 <div class="order-stats-grid">
-                    <button type="button" class="order-stat-card active" data-status="">
-                        <span>{{ helperTrans('ingaz.orders_overview') }}</span>
+                    <button type="button" class="order-stat-card order-stat-card--total active" data-status="">
+                        <div class="order-stat-card__header">
+                            <span>{{ helperTrans('ingaz.total') }}</span>
+                            <i class="fas fa-layer-group order-stat-card__icon"></i>
+                        </div>
                         <strong>{{ number_format($totalOrders ?? 0) }}</strong>
-                        <small>{{ helperTrans('ingaz.total') }}</small>
+                        <div class="order-stat-card__meta">
+                            <small>{{ helperTrans('ingaz.recruitment_orders') }}</small>
+                        </div>
                     </button>
-                    <button type="button" class="order-stat-card" data-status="new">
-                        <span>{{ helperTrans('ingaz.timer_phase_new') }}</span>
+                    <button type="button" class="order-stat-card order-stat-card--new" data-status="new">
+                        <div class="order-stat-card__header">
+                            <span>{{ __('ingaz.timer_phase_new_base') }}</span>
+                            <i class="fas fa-sparkles order-stat-card__icon"></i>
+                        </div>
                         <strong>{{ number_format($newOrders ?? 0) }}</strong>
-                        <small>{{ getEnumValue('orders_statuses', \App\Enums\ingaz\OrderEnum::New->value) }}</small>
+                        <div class="order-stat-card__meta">
+                            <span class="order-stat-card__deadline">مهلة {{ $orderNewDeadlineHours ?? 24 }} ساعة</span>
+                            @if (($newOverdueOrders ?? 0) > 0)
+                                <span class="order-stat-card__overdue">متأخرة: {{ number_format($newOverdueOrders) }}</span>
+                            @endif
+                        </div>
                     </button>
-                    <button type="button" class="order-stat-card" data-status="under_process">
-                        <span>{{ helperTrans('ingaz.timer_phase_under_process') }}</span>
+                    <button type="button" class="order-stat-card order-stat-card--process" data-status="under_process">
+                        <div class="order-stat-card__header">
+                            <span>{{ __('ingaz.timer_phase_under_process_base') }}</span>
+                            <i class="fas fa-hourglass-half order-stat-card__icon"></i>
+                        </div>
                         <strong>{{ number_format($underProcessOrders ?? 0) }}</strong>
-                        <small>{{ getEnumValue('orders_statuses', \App\Enums\ingaz\OrderEnum::UnderProcess->value) }}</small>
+                        <div class="order-stat-card__meta">
+                            <span class="order-stat-card__deadline">مهلة {{ $orderUnderProcessDeadlineHours ?? 48 }} ساعة</span>
+                            @if (($underProcessOverdueOrders ?? 0) > 0)
+                                <span class="order-stat-card__overdue">متأخرة: {{ number_format($underProcessOverdueOrders) }}</span>
+                            @endif
+                        </div>
                     </button>
-                    <button type="button" class="order-stat-card" data-status="completed">
-                        <span>{{ helperTrans('ingaz.ended orders') }}</span>
+                    <button type="button" class="order-stat-card order-stat-card--completed" data-status="completed">
+                        <div class="order-stat-card__header">
+                            <span>{{ helperTrans('ingaz.ended orders') }}</span>
+                            <i class="fas fa-circle-check order-stat-card__icon"></i>
+                        </div>
                         <strong>{{ number_format($completedOrders ?? 0) }}</strong>
-                        <small>{{ helperTrans('ingaz.completed') }}</small>
+                        <div class="order-stat-card__meta">
+                            <small>{{ helperTrans('ingaz.completed') }}</small>
+                        </div>
                     </button>
-                    <button type="button" class="order-stat-card" data-status="not_completed">
-                        <span>{{ helperTrans('ingaz.cancelled_orders') }}</span>
+                    <button type="button" class="order-stat-card order-stat-card--incomplete" data-status="not_completed">
+                        <div class="order-stat-card__header">
+                            <span>{{ helperTrans('ingaz.cancelled_orders') }}</span>
+                            <i class="fas fa-circle-xmark order-stat-card__icon"></i>
+                        </div>
                         <strong>{{ number_format($notCompletedOrders ?? 0) }}</strong>
-                        <small>{{ helperTrans('ingaz.not completed orders') }}</small>
+                        <div class="order-stat-card__meta">
+                            <small>{{ helperTrans('ingaz.not completed orders') }}</small>
+                        </div>
                     </button>
                 </div>
 

@@ -24,6 +24,41 @@ class NotificationAlertSettings
         return self::normalizeCustom(self::storedCustomPayload());
     }
 
+    public static function rule(string $key): array
+    {
+        return self::all()[$key] ?? [];
+    }
+
+    public static function isEnabled(string $key): bool
+    {
+        return (bool) data_get(self::rule($key), 'enabled', false);
+    }
+
+    public static function template(string $key): ?SmsTemplate
+    {
+        $templateId = (int) data_get(self::rule($key), 'template_id', 0);
+
+        if ($templateId < 1 || !Schema::hasTable('sms_templates')) {
+            return null;
+        }
+
+        return SmsTemplate::query()
+            ->active()
+            ->find($templateId);
+    }
+
+    public static function leadTimeInMinutes(string $key): int
+    {
+        $rule = self::rule($key);
+        $value = max(0, (int) ($rule['lead_time_value'] ?? 0));
+
+        return match ((string) ($rule['lead_time_unit'] ?? 'minutes')) {
+            'days' => $value * 1440,
+            'hours' => $value * 60,
+            default => $value,
+        };
+    }
+
     public static function definitions(): array
     {
         return [
@@ -146,6 +181,7 @@ class NotificationAlertSettings
         }
 
         return SmsTemplate::query()
+            ->active()
             ->ordered()
             ->get(['id', 'title', 'channel'])
             ->mapWithKeys(fn (SmsTemplate $template): array => [

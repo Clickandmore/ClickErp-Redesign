@@ -4,6 +4,8 @@ namespace App\Support;
 
 use App\Models\NewSettings;
 use App\Models\ingaz\Setting;
+use App\Models\ingaz\Order;
+use App\Enums\ingaz\OrderEnum;
 
 class AutomationSettings
 {
@@ -66,6 +68,34 @@ class AutomationSettings
 
             self::set($key, $values[$key]);
         }
+
+        self::synchronizeActiveOrderDeadlines();
+    }
+
+    public static function synchronizeActiveOrderDeadlines(): int
+    {
+        $updated = 0;
+
+        Order::query()
+            ->whereIn('status', [OrderEnum::New->value, OrderEnum::UnderProcess->value])
+            ->chunkById(200, function ($orders) use (&$updated): void {
+                foreach ($orders as $order) {
+                    $baseTime = $order->status_changed_at ?: $order->created_at;
+                    if (!$baseTime) {
+                        continue;
+                    }
+
+                    $deadline = $baseTime->copy()->addHours($order->getDeadlineHours());
+                    if ($order->deadline_at?->equalTo($deadline)) {
+                        continue;
+                    }
+
+                    $order->forceFill(['deadline_at' => $deadline])->saveQuietly();
+                    $updated++;
+                }
+            });
+
+        return $updated;
     }
 
     public static function warrantyPeriodDays(): int

@@ -389,6 +389,18 @@ class OrderController extends Controller
             ->where('status', OrderEnum::UnderProcess->value)
             ->whereDoesntHave('contracts')
             ->count();
+        $data['newOverdueOrders'] = (clone $statisticsQuery)
+            ->where('status', OrderEnum::New->value)
+            ->whereDoesntHave('contracts')
+            ->whereNotNull('deadline_at')
+            ->where('deadline_at', '<', now())
+            ->count();
+        $data['underProcessOverdueOrders'] = (clone $statisticsQuery)
+            ->where('status', OrderEnum::UnderProcess->value)
+            ->whereDoesntHave('contracts')
+            ->whereNotNull('deadline_at')
+            ->where('deadline_at', '<', now())
+            ->count();
         $data['completedOrders'] = (clone $statisticsQuery)
             ->where(function ($query) use ($completedStatuses) {
                 $query->whereIn('status', $completedStatuses)
@@ -399,6 +411,8 @@ class OrderController extends Controller
             ->whereIn('status', $notCompletedStatuses)
             ->whereDoesntHave('contracts')
             ->count();
+        $data['orderNewDeadlineHours'] = AutomationSettings::orderNewDeadlineHours();
+        $data['orderUnderProcessDeadlineHours'] = AutomationSettings::orderUnderProcessDeadlineHours();
 
         return view($this->folderPath . '.index', $data);
     }

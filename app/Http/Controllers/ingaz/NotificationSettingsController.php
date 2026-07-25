@@ -6,9 +6,12 @@ use App\Http\Controllers\admin\Controller;
 use App\Support\CommunicationSettings;
 use App\Support\AutomationSettings;
 use App\Support\NotificationAlertSettings;
+use App\Models\ingaz\Order;
+use App\Enums\ingaz\OrderEnum;
 use App\Services\WhatsApp\MetaWhatsAppService;
 use App\Services\WhatsApp\MetaWhatsAppOnboardingService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
@@ -42,6 +45,7 @@ class NotificationSettingsController extends Controller
             'alertUnitOptions' => NotificationAlertSettings::unitOptions(),
             'alertTemplateOptions' => NotificationAlertSettings::templateOptions(),
             'automationSettings' => AutomationSettings::all(),
+            'alertRuntimeStats' => $this->alertRuntimeStats(),
         ]);
     }
 
@@ -71,8 +75,14 @@ class NotificationSettingsController extends Controller
                 $validatedCustomAlerts = $this->validateCustomAlertsSection($request);
                 $validatedAutomation = $this->validateAutomationSection($request);
 
-                NotificationAlertSettings::persist($validatedSectionPayload, $validatedCustomAlerts);
-                AutomationSettings::persist($validatedAutomation);
+                DB::transaction(function () use (
+                    $validatedSectionPayload,
+                    $validatedCustomAlerts,
+                    $validatedAutomation
+                ): void {
+                    NotificationAlertSettings::persist($validatedSectionPayload, $validatedCustomAlerts);
+                    AutomationSettings::persist($validatedAutomation);
+                });
             } else {
                 CommunicationSettings::persistSection($section, $validatedSectionPayload);
             }
@@ -90,10 +100,16 @@ class NotificationSettingsController extends Controller
                 'section' => $section,
             ]);
 
+            $fallbackRoute = $section === 'alerts'
+                ? 'notifications.settings.alerts'
+                : 'notifications.settings';
+
             return redirect()
-                ->to(route('notifications.settings') . '#' . $this->sectionAnchor($section))
+                ->to(route($fallbackRoute) . '#' . $this->sectionAnchor($section))
                 ->withInput()
-                ->with('error', 'تعذر حفظ إعدادات الربط حالياً.');
+                ->with('error', $section === 'alerts'
+                    ? 'تعذر حفظ إعدادات التنبيهات. لم يتم حفظ أي جزء من التغييرات.'
+                    : 'تعذر حفظ إعدادات الربط حالياً.');
         }
     }
 
@@ -186,6 +202,27 @@ class NotificationSettingsController extends Controller
         return $validated['email'];
     }
 
+    private function alertRuntimeStats(): array
+    {
+        $leadUntil = now()->addMinutes(
+            NotificationAlertSettings::leadTimeInMinutes('recruitment_orders')
+        );
+        $activeOrders = Order::query()
+            ->whereIn('status', [OrderEnum::New->value, OrderEnum::UnderProcess->value])
+            ->whereNotNull('deadline_at');
+
+        return [
+            'recruitment_orders' => [
+                'matched' => (clone $activeOrders)
+                    ->where('deadline_at', '<=', $leadUntil)
+                    ->count(),
+                'overdue' => (clone $activeOrders)
+                    ->where('deadline_at', '<', now())
+                    ->count(),
+            ],
+        ];
+    }
+
     private function validateAlertsSection(Request $request): array
     {
         $definitionKeys = array_keys(NotificationAlertSettings::definitions());
@@ -210,6 +247,20 @@ class NotificationSettingsController extends Controller
         ]);
 
         $alerts = $validated['alerts'];
+        $missingTemplates = collect($alerts)
+            ->filter(fn (array $rule): bool => filter_var($rule['enabled'] ?? false, FILTER_VALIDATE_BOOLEAN))
+            ->filter(fn (array $rule): bool => empty($rule['template_id']))
+            ->keys();
+
+        if ($missingTemplates->isNotEmpty()) {
+            throw ValidationException::withMessages(
+                $missingTemplates
+                    ->mapWithKeys(fn (string $key): array => [
+                        "alerts.{$key}.template_id" => 'يجب اختيار نموذج رسالة لكل تنبيه مفعل.',
+                    ])
+                    ->all()
+            );
+        }
 
         return collect($definitionKeys)
             ->mapWithKeys(fn (string $key): array => [$key => (array) ($alerts[$key] ?? [])])
@@ -242,7 +293,21 @@ class NotificationSettingsController extends Controller
             'custom_alerts.*.template_id.exists' => 'قالب الرسالة المحدد في التنبيهات المخصصة غير موجود.',
         ]);
 
-        return $validated['custom_alerts'] ?? [];
+        $customAlerts = $validated['custom_alerts'] ?? [];
+
+        foreach ($customAlerts as $index => $rule) {
+            if (
+                filter_var($rule['enabled'] ?? false, FILTER_VALIDATE_BOOLEAN)
+                && !empty($rule['label'])
+                && empty($rule['template_id'])
+            ) {
+                throw ValidationException::withMessages([
+                    "custom_alerts.{$index}.template_id" => 'يجب اختيار نموذج رسالة لكل تنبيه مخصص مفعل.',
+                ]);
+            }
+        }
+
+        return $customAlerts;
     }
 
     private function validateAutomationSection(Request $request): array

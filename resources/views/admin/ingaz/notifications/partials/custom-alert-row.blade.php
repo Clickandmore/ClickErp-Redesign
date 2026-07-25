@@ -104,6 +104,9 @@
                     </option>
                 @endforeach
             </select>
+            @error("custom_alerts.{$index}.template_id")
+                <div class="text-danger small mt-1">{{ $message }}</div>
+            @enderror
         </div>
         <div class="col-lg-8 d-flex align-items-end justify-content-end">
             <button type="button" class="btn btn-outline-danger btn-sm js-remove-custom-alert">

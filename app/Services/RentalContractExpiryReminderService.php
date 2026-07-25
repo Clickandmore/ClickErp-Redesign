@@ -17,6 +17,7 @@ use App\Models\RentalContractExpiryReminder;
 use App\Models\Setting;
 use App\Services\WhatsApp\WhatsAppMessagingService;
 use App\Support\CommunicationSettings;
+use App\Support\NotificationAlertSettings;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -32,19 +33,38 @@ class RentalContractExpiryReminderService
 
     public function isEnabled(): bool
     {
-        return (bool) ((int) Setting::getValue('rent_contract_expiry_reminder_enabled', 1));
+        $rule = NotificationAlertSettings::rule('rent_contract_expiry');
+        $channels = (array) ($rule['channels'] ?? []);
+
+        return (bool) ($rule['enabled'] ?? false)
+            && in_array((string) ($rule['recipient'] ?? ''), ['client', 'both'], true)
+            && (in_array('sms', $channels, true) || in_array('whatsapp', $channels, true));
     }
 
     public function reminderDays(): int
     {
-        return max(1, (int) Setting::getValue('rent_contract_expiry_reminder_days', 2));
+        return max(1, (int) ceil(
+            NotificationAlertSettings::leadTimeInMinutes('rent_contract_expiry') / 1440
+        ));
     }
 
     public function channel(): string
     {
-        $channel = (string) Setting::getValue('rent_contract_expiry_reminder_channel', 'sms');
+        $channels = (array) data_get(
+            NotificationAlertSettings::rule('rent_contract_expiry'),
+            'channels',
+            []
+        );
 
-        return in_array($channel, ['sms', 'whatsapp', 'both'], true) ? $channel : 'sms';
+        if (in_array('sms', $channels, true) && in_array('whatsapp', $channels, true)) {
+            return 'both';
+        }
+
+        if (in_array('whatsapp', $channels, true)) {
+            return 'whatsapp';
+        }
+
+        return in_array('sms', $channels, true) ? 'sms' : 'none';
     }
 
     public function createAndSendReminder(RentalContract $contract): ?RentalContractExpiryReminder
@@ -672,6 +692,20 @@ class RentalContractExpiryReminderService
         $contractNumber = $contract->contract_number ?: $contract->id;
         $expiresOn = optional($contract->info?->ingaz_to)->format('Y-m-d');
         $url = route('rental-contract-reminders.show', $reminder->token);
+        $template = NotificationAlertSettings::template('rent_contract_expiry');
+
+        if ($template) {
+            return $template->processMessage([
+                'client_name' => $clientName,
+                'customer_name' => $clientName,
+                'contract_id' => (string) $contract->id,
+                'contract_number' => (string) $contractNumber,
+                'expiry_date' => (string) $expiresOn,
+                'expires_on' => (string) $expiresOn,
+                'action_url' => $url,
+                'url' => $url,
+            ]);
+        }
 
         return implode("\n", [
             "عميلنا {$clientName}،",

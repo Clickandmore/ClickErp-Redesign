@@ -29,6 +29,16 @@
                     <td>
                         <div class="fw-semibold">{{ $definition['label'] }}</div>
                         <div class="text-muted small mb-1">{{ $definition['description'] ?? '' }}</div>
+                        @if ($alertKey === 'recruitment_orders')
+                            <div class="small mt-1">
+                                <span class="badge bg-info text-dark">
+                                    المطابقة الآن: {{ data_get($alertRuntimeStats ?? [], 'recruitment_orders.matched', 0) }}
+                                </span>
+                                <span class="badge bg-danger">
+                                    المتأخرة: {{ data_get($alertRuntimeStats ?? [], 'recruitment_orders.overdue', 0) }}
+                                </span>
+                            </div>
+                        @endif
                         @if (!empty($definition['url']))
                             <a class="small" href="{{ $definition['url'] }}" target="_blank" rel="noopener">
                                 فتح الصفحة المرتبطة
@@ -107,6 +117,9 @@
                                 </option>
                             @endforeach
                         </select>
+                        @error("{$inputPrefix}.{$alertKey}.template_id")
+                            <div class="text-danger small mt-1">{{ $message }}</div>
+                        @enderror
                     </td>
                 </tr>
             @endforeach

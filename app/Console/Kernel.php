@@ -159,6 +159,12 @@ class Kernel extends ConsoleKernel
             ->withoutOverlapping()
             ->runInBackground()
             ->appendOutputTo(storage_path('logs/rental-contract-expiry-reminders.log'));
+
+        $schedule->command('notifications:run-configured-alerts')
+            ->everyFiveMinutes()
+            ->withoutOverlapping()
+            ->runInBackground()
+            ->appendOutputTo(storage_path('logs/configured-notification-alerts.log'));
     }
 
     /**
