@@ -539,8 +539,8 @@
                         searchable: false
                     },
                     {
-                        data: 'id',
-                        name: 'id',
+                        data: 'client_number',
+                        name: 'arabia_client_number',
                         orderable: true,
                         searchable: false
                     },

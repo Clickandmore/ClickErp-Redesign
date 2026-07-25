@@ -216,6 +216,9 @@ class UserController extends Controller
                                     data-status="' . (int) $row->is_blocked . '">
                             </div>';
                 })
+                ->addColumn('client_number', function ($row) {
+                    return $row->clientNumber();
+                })
                 ->editColumn('name', function ($row) {
 
                     $badge = $row->is_blocked == 0
@@ -1282,24 +1285,12 @@ class UserController extends Controller
 
     private function clientPrimaryPhoneValue(objModel $client): string
     {
-        $sourcePhone = trim((string) ($client->source_phone ?? ''));
-        if ($sourcePhone !== '') {
-            return $sourcePhone;
-        }
-
-        $phone = trim((string) $client->phone);
-        if ($phone === ''
-            || str_starts_with($phone, 'arabia-client-')
-            || str_starts_with($phone, 'data-import-')) {
-            return '';
-        }
-
-        return trim((string) $client->phone_code . $phone);
+        return $client->primaryPhoneValue();
     }
 
     private function clientSecondaryPhoneValue(objModel $client): string
     {
-        return trim((string) (($client->source_phone2 ?? null) ?: $client->phone2));
+        return $client->secondaryPhoneValue();
     }
 
     private function clientCreatorValue(objModel $client): string
@@ -1458,7 +1449,7 @@ class UserController extends Controller
             $creator = $this->clientCreatorValue($client) ?: __('ingaz.not_specified');
 
             $html .= '<tr>
-                <td>' . ($client->arabia_client_number ?: $client->id) . '</td>
+                <td>' . $client->clientNumber() . '</td>
                 <td>' . $client->name . '</td>
                 <td>' . $displayPhone . '</td>
                 <td>' . $displayPhone2 . '</td>
@@ -1612,7 +1603,7 @@ class UserController extends Controller
             $creator = $this->clientCreatorValue($client) ?: __('ingaz.not_specified');
 
             $html .= '<tr>
-                <td>' . ($client->arabia_client_number ?: $client->id) . '</td>
+                <td>' . $client->clientNumber() . '</td>
                 <td>' . $client->name . '</td>
                 <td>' . $displayPhone . '</td>
                 <td>' . $displayPhone2 . '</td>
@@ -1693,10 +1684,8 @@ class UserController extends Controller
         // Set data
         $row = 2;
         foreach ($clients as $client) {
-            $displayPhone = $client->phone && !str_starts_with($client->phone, 'arabia-client-')
-                ? $client->phone_code . $client->phone
-                : __('ingaz.not_specified');
-            $sheet->setCellValue('A' . $row, $client->arabia_client_number ?: $client->id);
+            $displayPhone = $client->primaryPhoneValue() ?: __('ingaz.not_specified');
+            $sheet->setCellValue('A' . $row, $client->clientNumber());
             $sheet->setCellValue('B' . $row, $client->name);
             $sheet->setCellValue('C' . $row, $displayPhone);
             $sheet->setCellValue('D' . $row, $client->email);

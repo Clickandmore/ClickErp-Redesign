@@ -185,7 +185,7 @@
                         </div>
                         <div class="d-flex flex-wrap align-items-center gap-3 text-muted small">
                             <span><i class="fas fa-hashtag me-1"></i>رقم العميل:
-                                {{ $client->arabia_client_number ?: $client->id }}</span>
+                                {{ $client->clientNumber() }}</span>
                             <span><i class="fas fa-id-card me-1"></i>{{ $client->documentNumberLabel() }}:
                                 {{ $client->documentNumber() ?? helperTrans('ingaz.not_specified') }}</span>
                             <span><i

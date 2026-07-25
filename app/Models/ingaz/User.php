@@ -35,6 +35,33 @@ class User extends Authenticatable implements JWTSubject
         'branch_id' => 'integer',
     ];
 
+    public function clientNumber()
+    {
+        return $this->arabia_client_number ?: $this->getKey();
+    }
+
+    public function primaryPhoneValue(): string
+    {
+        $sourcePhone = trim((string) ($this->source_phone ?? ''));
+        if ($sourcePhone !== '') {
+            return $sourcePhone;
+        }
+
+        $phone = trim((string) $this->phone);
+        if ($phone === ''
+            || str_starts_with($phone, 'arabia-client-')
+            || str_starts_with($phone, 'data-import-')) {
+            return '';
+        }
+
+        return trim((string) $this->phone_code . $phone);
+    }
+
+    public function secondaryPhoneValue(): string
+    {
+        return trim((string) (($this->source_phone2 ?? null) ?: $this->phone2));
+    }
+
     public function isCompanyClient(): bool
     {
         return (string) $this->client_type === 'company';

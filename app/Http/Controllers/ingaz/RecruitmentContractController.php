@@ -871,9 +871,17 @@ class RecruitmentContractController extends Controller
                             . e($displayClient->name)
                             . '</div>';
 
+                        // Client number (same value used across the clients screens)
+                        $phoneInfo .= '<div class="text-muted small d-flex align-items-center gap-2">'
+                            . '<i class="fas fa-hashtag text-secondary"></i>'
+                            . '<span><span class="text-secondary">رقم العميل: </span>'
+                            . e($displayClient->clientNumber())
+                            . '</span>'
+                            . '</div>';
+
                         // Phone
                         $phoneInfo .= '<div>'
-                            . getPhoneWithTag($displayClient->phone_code . $displayClient->phone)
+                            . getPhoneWithTag($displayClient->primaryPhoneValue())
                             . '</div>';
 
                         // Birthdate
@@ -5325,10 +5333,14 @@ class RecruitmentContractController extends Controller
             $q->orWhere(function ($clientSearchQuery) use ($likeSearch) {
                 $this->applyDisplayedClientFilter($clientSearchQuery, function ($userQuery) use ($likeSearch) {
                     $userQuery->where('name', 'like', $likeSearch)
+                        ->orWhere('id', 'like', $likeSearch)
+                        ->orWhere('arabia_client_number', 'like', $likeSearch)
                         ->orWhere('phone_code', 'like', $likeSearch)
                         ->orWhere('phone', 'like', $likeSearch)
+                        ->orWhere('source_phone', 'like', $likeSearch)
                         ->orWhereRaw("CONCAT(COALESCE(phone_code,''), COALESCE(phone,'')) LIKE ?", [$likeSearch])
                         ->orWhere('phone2', 'like', $likeSearch)
+                        ->orWhere('source_phone2', 'like', $likeSearch)
                         ->orWhere('national_num', 'like', $likeSearch)
                         ->orWhere('email', 'like', $likeSearch)
                         ->orWhere('city', 'like', $likeSearch)
