@@ -9,8 +9,9 @@
     $shelterCompanyHint = __('ingaz.auto_shelter_contract_hint', ['company' => $shelterCompanyName]);
     $storedTypeIds = $obj->jobTypes->pluck('id')->filter()->map(fn ($id) => (int) $id)->values();
     $storedTypeId = (int) $storedTypeIds->first();
-    $selectedTypeId = (int) old('type_id', $storedTypeId);
-    $defaultTypeId = $defaultTypeId ?? $selectedTypeId;
+    $preferredTypeId = (int) ($defaultTypeId ?? $storedTypeId);
+    $selectedTypeId = (int) old('type_id', $preferredTypeId);
+    $defaultTypeId = $selectedTypeId;
     $selectedTypeTitle = collect($types ?? [])->firstWhere('id', $selectedTypeId)->title ?? '';
     $selectedRequestType = old('request_type', \App\Models\ingaz\Maid::resolveRequestType($obj->request_type));
     $birthDateValue = $obj->birth_date ? \Carbon\Carbon::parse($obj->birth_date)->format('Y-m-d') : '';
@@ -84,12 +85,11 @@
     $identityEditLock = $financialEditLock || $externalOfficeDispatchEditLock;
     $storedRequestType = \App\Models\ingaz\Maid::normalizeRequestType($obj->request_type);
     $typeFieldLocked = $financialEditLock && $storedTypeIds->isNotEmpty();
-    $nameFieldLocked = $identityEditLock;
     $passportFieldLocked = $identityEditLock;
     $nationalityFieldLocked = $identityEditLock && filled($obj->nationality_id) && (int) $obj->nationality_id > 0;
     $officeFieldLocked = $identityEditLock && filled($obj->office_id) && (int) $obj->office_id > 0;
     $requestTypeFieldLocked = $financialEditLock && $storedRequestType !== null;
-    $hasLockedIdentityFields = $nameFieldLocked || $passportFieldLocked || $typeFieldLocked || $nationalityFieldLocked || $officeFieldLocked || $requestTypeFieldLocked;
+    $hasLockedIdentityFields = $passportFieldLocked || $typeFieldLocked || $nationalityFieldLocked || $officeFieldLocked || $requestTypeFieldLocked;
     $cvFieldsFilledTemplate = __('ingaz.cv_fields_filled', [
         'count' => '__count__',
         'extra' => '__extra__',
@@ -306,7 +306,7 @@
                     @csrf
                     @method('PUT')
                     @if ($typeFieldLocked)
-                        <input type="hidden" name="type_id" value="{{ $storedTypeId }}">
+                        <input type="hidden" name="type_id" value="{{ $selectedTypeId }}">
                     @endif
                     @if ($nationalityFieldLocked)
                         <input type="hidden" name="nationality_id" value="{{ $obj->nationality_id }}">
@@ -320,7 +320,7 @@
                     @if ($hasLockedIdentityFields)
                         <div class="col-12">
                             <div class="alert alert-warning mb-0">
-                                الاسم ورقم الجواز والجنسية والوكيل/المكتب والبيانات المالية المرجعية مقفلة لوجود فاتورة/قيد محاسبي مرتبط أو إرسالية مكتب خارجي. يمكن تعديل الديانة والمهارات والحالة الاجتماعية والخبرة وبقية سمات العاملة.
+                                رقم الجواز والجنسية والوكيل/المكتب والبيانات المالية المرجعية مقفلة لوجود فاتورة/قيد محاسبي مرتبط أو إرسالية مكتب خارجي. يمكن تعديل الاسم والديانة والمهارات والحالة الاجتماعية والخبرة وبقية سمات العاملة.
                                 ويمكن استخدام زر «تعديل الصور والفيديو فقط» وحفظها بشكل مستقل.
                             </div>
                         </div>
@@ -479,11 +479,7 @@
                                         اسم العامل/ة ({{ helperTrans('ingaz.en') }})
                                     </label>
                                     <input type="text" name="name:en" class="form-control" required
-                                        value="{{ old('name:en', $obj->name ?? '') }}"
-                                        {{ $nameFieldLocked ? 'readonly' : '' }}>
-                                    @if ($nameFieldLocked)
-                                        <small class="text-muted">مقفل لارتباط السيرة بمستند مالي أو إرسالية.</small>
-                                    @endif
+                                        value="{{ old('name:en', $obj->name ?? '') }}">
                                 </div>
                                 <!-- خيار تسكين للإيواء -->
                                 <div class="col-4" id="shelter_option">
@@ -1658,9 +1654,7 @@
                 setMultiSelectValue('job_id', fields.job_id || []);
                 setMultiSelectValue('skills', fields.skills || []);
 
-                if (!identityFieldLocks.name) {
-                    setInputValue('name:en', fields['name:en']);
-                }
+                setInputValue('name:en', fields['name:en']);
                 if (!identityFieldLocks.passport) {
                     setInputValue('passport_num', fields.passport_num);
                 }
@@ -1853,7 +1847,6 @@
             const defaultShelterContract = @json($defaultShelterContract);
             const isRentalForm = {{ $isRentalForm ? 'true' : 'false' }};
             const identityFieldLocks = {
-                name: {{ $nameFieldLocked ? 'true' : 'false' }},
                 passport: {{ $passportFieldLocked ? 'true' : 'false' }},
                 type: {{ $typeFieldLocked ? 'true' : 'false' }},
                 nationality: {{ $nationalityFieldLocked ? 'true' : 'false' }},
@@ -1875,9 +1868,6 @@
             }
 
             function applyIdentityFieldsLock() {
-                if (identityFieldLocks.name) {
-                    $('input[name="name:en"]').prop('readonly', true);
-                }
                 if (identityFieldLocks.passport) {
                     $('#passport_num').prop('readonly', true).removeClass('is-valid is-invalid');
                 }
@@ -2184,7 +2174,9 @@
                     rentalKingdomStatusField.show();
                     rentalKingdomStatusSelect.prop('disabled', false);
                     priceLabel.text(@json(helperTrans('ingaz.monthly_rental_cost')));
-                    requestTypeSelect.val(requestTypeCustom);
+                    if (!identityFieldLocks.requestType) {
+                        requestTypeSelect.val(requestTypeCustom);
+                    }
                     maritalStatusEnField.val('');
                     shouldUpdateMaritalTranslation = false;
 

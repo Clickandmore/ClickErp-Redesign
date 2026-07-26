@@ -1228,13 +1228,14 @@ class MaidAction extends MainAction
         $jobTypeIds = $hasFinancialEditLock
             ? $maid->jobTypes()->pluck('job_types.id')->map(fn ($typeId) => (int) $typeId)->all()
             : $this->resolveRequiredJobTypeIds($request, $maid);
-        $this->guardFinanciallyLinkedMaidIdentityChanges($maid, $data, $jobTypeIds);
 
         if ($hasFinancialEditLock) {
             // These values feed financial/contract flows. Attribute-only edits must not
             // rewrite them as a side effect of legacy form defaults or hidden fields.
-            unset($data['price'], $data['salary'], $data['arrival_date']);
+            unset($data['price'], $data['salary'], $data['arrival_date'], $data['request_type']);
         }
+
+        $this->guardFinanciallyLinkedMaidIdentityChanges($maid, $data, $jobTypeIds);
 
         $requestTypeColumnExists = Schema::hasColumn('maids', 'request_type');
         $offerPriceColumnExists = Schema::hasColumn('maids', 'offer_price');
@@ -1503,14 +1504,6 @@ class MaidAction extends MainAction
         $hasFinancialEditLock = $maid->hasFinancialEditLock();
         $hasExternalOfficeDispatchEditLock = $maid->hasExternalOfficeDispatchEditLock();
         $hasIdentityEditLock = $hasFinancialEditLock || $hasExternalOfficeDispatchEditLock;
-
-        if (
-            $hasIdentityEditLock
-            && array_key_exists('name:en', $data)
-            && trim((string) $data['name:en']) !== trim((string) $maid->name)
-        ) {
-            $lockedFields['name:en'] = 'لا يمكن تعديل اسم العاملة بعد ارتباط السيرة بفاتورة أو قيد محاسبي أو إرسالية مكتب خارجي.';
-        }
 
         if (
             $hasIdentityEditLock

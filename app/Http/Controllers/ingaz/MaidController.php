@@ -1868,6 +1868,12 @@ class MaidController extends Controller
         $obj = objModel::with('jobTypes')->findOrFail($id);
         $rentalTypeId = $this->getRentalJobTypeId();
         $isRentalMaid = $rentalTypeId ? $obj->jobTypes->contains('id', $rentalTypeId) : false;
+        // Some legacy maids are linked to both recruitment and rental job types.
+        // Prefer the rental type on edit when that relation exists instead of
+        // blindly displaying the first pivot row (usually recruitment).
+        $defaultTypeId = $isRentalMaid
+            ? $rentalTypeId
+            : $obj->jobTypes->pluck('id')->map(fn ($typeId) => (int) $typeId)->first();
         $defaultShelterContract = $obj->maid_accommodation_type == 2 ? '1' : '0';
         $isRentalForm = false;
         $formRedirectRoute = $isRentalMaid ? route('maids.rental.index') : route('maids.index');
@@ -1878,6 +1884,7 @@ class MaidController extends Controller
                 'defaultShelterContract' => $defaultShelterContract,
                 'isRentalForm' => $isRentalForm,
                 'formRedirectRoute' => $formRedirectRoute,
+                'defaultTypeId' => $defaultTypeId,
             ]);
         }
 
@@ -1899,7 +1906,8 @@ class MaidController extends Controller
             'skills',
             'defaultShelterContract',
             'isRentalForm',
-            'formRedirectRoute'
+            'formRedirectRoute',
+            'defaultTypeId'
         ));
     }
 
