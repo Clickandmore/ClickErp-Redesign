@@ -1927,7 +1927,7 @@ class MaidAction extends MainAction
     public function paginate($request, $limit = 10)
     {
         $limit = min(
-            max((int) $request->input('per_page', $limit), 1),
+            max((int) $request->input('per_page', $limit), 10),
             100
         );
 
