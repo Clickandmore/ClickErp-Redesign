@@ -13,6 +13,7 @@ use App\Models\ingaz\Order;
 use App\Models\TravelHistory;
 use App\Models\TravelHistoryFiles;
 use App\Services\ingaz\RecruitmentTripAccountingService;
+use App\Services\ingaz\RentalMaidArrivalService;
 use App\Support\AutomationSettings;
 use App\Support\CommunicationSettings;
 use App\Support\TravelAirports;
@@ -791,7 +792,12 @@ class AdminTravelHistoryController extends Controller
             /**
      * إكتمال الرحلة
      */
-    public function completeTrip(Request $request, RecruitmentTripAccountingService $tripAccountingService, $id)
+    public function completeTrip(
+        Request $request,
+        RecruitmentTripAccountingService $tripAccountingService,
+        RentalMaidArrivalService $rentalMaidArrivalService,
+        $id
+    )
     {
         try {
             $travel = TravelHistory::findOrFail($id);
@@ -801,6 +807,7 @@ class AdminTravelHistoryController extends Controller
             $accountingSkippedContracts = [];
             $accountingWarnings = [];
             $supplierPurchases = [];
+            $rentalMaidsMovedToShelter = 0;
 
             $dispatchBlockingContracts = [];
 
@@ -883,6 +890,10 @@ class AdminTravelHistoryController extends Controller
 
                         $accountingResult = $tripAccountingService->recordCompletionEntries($contract, $tripRecord);
 
+                        if ($rentalMaidArrivalService->moveToShelter($contract, $tripRecord)) {
+                            $rentalMaidsMovedToShelter++;
+                        }
+
                         if (($accountingResult['created_revenue_constraint'] ?? false) || ($accountingResult['created_external_office_cost_constraint'] ?? false)) {
                             $accountingCreatedContracts++;
                         }
@@ -951,6 +962,10 @@ class AdminTravelHistoryController extends Controller
 
             if (!empty($accountingWarnings)) {
                 $message .= ' تنبيه: ' . implode(' ', array_unique($accountingWarnings));
+            }
+
+            if ($rentalMaidsMovedToShelter > 0) {
+                $message .= ' وتمت إضافة عاملات الإيجار إلى الإيواء وإتاحتهن للتأجير: ' . $rentalMaidsMovedToShelter . '.';
             }
 
             return response()->json([
