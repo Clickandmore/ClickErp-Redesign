@@ -140,6 +140,7 @@ class AdminContractController extends Controller
                 'maid.nationality.translations',
                 'maid.religion.translations',
                 'info.package',
+                'extensions',
                 'marketer'
             ])->findOrFail($contractId);
 

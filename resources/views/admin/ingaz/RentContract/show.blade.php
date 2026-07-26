@@ -1424,6 +1424,20 @@
                                                 <td>{{ optional($extension->end_date)->format('Y-m-d') ?? 'غير محدد' }}</td>
                                                 <td>
                                                     {{ $extension->extension_value !== null ? number_format((float) $extension->extension_value, 2) . ' ريال' : 'غير مسجل' }}
+                                                    <div class="mt-1">
+                                                        <a href="{{ route('rental.extension-invoice.download', ['id' => $extension->id, 'autoprint' => 1]) }}"
+                                                            target="_blank" rel="noopener" class="small">
+                                                            فاتورة التمديد
+                                                        </a>
+                                                    </div>
+                                                    @if ($extension->invoiceConstraint)
+                                                        <div>
+                                                            <a href="{{ route('finance.add-constraint.show', ['add_constraint' => $extension->invoiceConstraint->id, 'autoprint' => 1]) }}"
+                                                                target="_blank" rel="noopener" class="small">
+                                                                قيد قيمة التمديد
+                                                            </a>
+                                                        </div>
+                                                    @endif
                                                 </td>
                                                 <td>{{ $paymentStatuses[$extension->payment_status] ?? ($extension->payment_status ?: 'غير محدد') }}</td>
                                                 <td>
@@ -1444,12 +1458,6 @@
                                                             <div>
                                                                 <a href="{{ route('finance.add-constraint.show', ['add_constraint' => $extension->receiptConstraint->id, 'autoprint' => 1]) }}"
                                                                     target="_blank" rel="noopener" class="small">عرض القيد</a>
-                                                            </div>
-                                                        @endif
-                                                        @if ($extension->invoiceConstraint)
-                                                            <div>
-                                                                <a href="{{ route('finance.add-constraint.show', ['add_constraint' => $extension->invoiceConstraint->id, 'autoprint' => 1]) }}"
-                                                                    target="_blank" rel="noopener" class="small">قيد قيمة التمديد</a>
                                                             </div>
                                                         @endif
                                                     @else

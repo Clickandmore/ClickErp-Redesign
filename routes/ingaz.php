@@ -408,6 +408,7 @@ Route::group(
             Route::get('RentContract/existing-clients', [RentContractController::class, 'getExistingClients'])->name('RentContract.existing.clients');
             Route::resource('RentContract', RentContractController::class);
             Route::get('rental-invoices/download/{id}', [RentalContractInvoiceController::class, 'download'])->name('rental.invoice.download');
+            Route::get('rental-extension-invoices/download/{id}', [RentalContractInvoiceController::class, 'extension'])->name('rental.extension-invoice.download');
             Route::get('rental-credit-notes/download/{id}', [RentalContractInvoiceController::class, 'creditNote'])->name('rental.credit-note.download');
             Route::post('RentContract/{id}/complete', [RentContractController::class, 'completeContract'])->name('RentContract.complete');
             Route::get('RentContract/statistics/data', [RentContractController::class, 'statistics'])->name('RentContract.statistics');

@@ -9,6 +9,7 @@ use App\Models\RentalFinancialAdjustment;
 use App\Models\ingaz\Package;
 use App\Models\ingaz\User as ClientUser;
 use App\Support\AutomaticJournalEntries;
+use App\Support\RentalContractPricing;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Nami\Finance\Enums\AccountTypesEnum;
@@ -158,22 +159,38 @@ class RentalContractFinanceService
             ]);
         }
 
-        $invoice->update([
+        $postedInvoice = (bool) $invoice->invoice_constraint_id;
+        $invoiceTotal = $postedInvoice
+            ? $this->roundMoney((float) $invoice->total_due)
+            : $this->roundMoney((float) $amounts['total_due']);
+        $invoicePaidSource = $postedInvoice
+            ? (float) ($info->paid_amount ?? 0)
+            : (float) $amounts['paid_amount'];
+        $invoicePaid = $this->roundMoney(min($invoiceTotal, $invoicePaidSource));
+        $invoiceRemaining = $this->roundMoney(max(0, $invoiceTotal - $invoicePaid));
+        $invoiceUpdates = [
             'package_id' => $info->package_id,
-            'subtotal' => $amounts['subtotal'],
-            'discount' => $amounts['discount'],
-            'vat_amount' => $amounts['vat_amount'],
-            'total_due' => $amounts['total_due'],
-            'paid_amount' => $amounts['paid_amount'],
-            'remaining_amount' => $amounts['remaining_amount'],
+            'paid_amount' => $invoicePaid,
+            'remaining_amount' => $invoiceRemaining,
             'payment_type' => $info->payment_type,
             'payment_status' => $info->payment_status,
-            'is_paid' => $amounts['remaining_amount'] <= 0,
-            'paid_at' => $amounts['paid_amount'] > 0
+            'is_paid' => $invoiceRemaining <= 0,
+            'paid_at' => $invoicePaid > 0
                 ? ($info->payment_confirmed_at ?: now())
                 : null,
             'service_description' => $this->buildServiceDescription($contract, $package),
-        ]);
+        ];
+
+        if (!$postedInvoice) {
+            $invoiceUpdates = array_merge($invoiceUpdates, [
+                'subtotal' => $amounts['subtotal'],
+                'discount' => $amounts['discount'],
+                'vat_amount' => $amounts['vat_amount'],
+                'total_due' => $amounts['total_due'],
+            ]);
+        }
+
+        $invoice->update($invoiceUpdates);
 
         $invoiceConstraint = $invoice->invoiceConstraint;
         if (
@@ -326,11 +343,9 @@ class RentalContractFinanceService
 
         $clientAccountId = $this->ensureClientAccountId($contract);
         $invoice = $this->linkExistingInvoiceConstraint($contract->financeInvoice);
-        $extensionConstraint = $this->storeExtensionConstraint(
-            $invoice,
+        $extensionConstraint = $this->recordExtensionForContract(
             $contract,
             $extension,
-            $clientAccountId,
             $paymentDate
         );
         $statement = 'سند قبض تمديد عقد تأجير رقم '
@@ -391,8 +406,33 @@ class RentalContractFinanceService
         );
     }
 
+    public function recordExtensionForContract(
+        RentalContract $contract,
+        RentalContractExtension $extension,
+        Carbon|string|null $date = null
+    ): ?Constraint {
+        if (
+            !AutomaticJournalEntries::enabled()
+            || (float) $extension->extension_value <= 0
+            || $extension->invoice_constraint_id
+        ) {
+            return $extension->invoiceConstraint;
+        }
+
+        $contract->loadMissing(['user', 'maid.nationality', 'info.package', 'financeInvoice']);
+        $clientAccountId = $this->ensureClientAccountId($contract);
+        $constraint = $this->storeExtensionConstraint(
+            $contract,
+            $extension,
+            $clientAccountId,
+            $date
+        );
+        $extension->update(['invoice_constraint_id' => $constraint->id]);
+
+        return $constraint;
+    }
+
     private function storeExtensionConstraint(
-        RentalContractInvoice $invoice,
         RentalContract $contract,
         RentalContractExtension $extension,
         int $clientAccountId,
@@ -407,13 +447,11 @@ class RentalContractFinanceService
             throw new \RuntimeException('لا توجد سنة مالية نشطة لتاريخ تمديد عقد الإيجار المحدد.');
         }
 
-        $extensionValue = $this->roundMoney((float) $extension->extension_value);
-        $invoiceTotal = $this->roundMoney((float) $invoice->total_due);
-        $vatRatio = $invoiceTotal > 0
-            ? min(1, max(0, (float) $invoice->vat_amount / $invoiceTotal))
-            : (InvoiceCalculationService::VAT_RATE / (1 + InvoiceCalculationService::VAT_RATE));
-        $vatAmount = $this->roundMoney($extensionValue * $vatRatio);
-        $revenueAmount = $this->roundMoney($extensionValue - $vatAmount);
+        $amounts = $this->extensionAmounts($contract, (int) $extension->extension_days);
+        $extensionValue = $this->roundMoney((float) $amounts['total_due']);
+        $vatAmount = $this->roundMoney((float) $amounts['vat_amount']);
+        $taxableSubtotal = $this->roundMoney((float) $amounts['taxable_subtotal']);
+        $salaryExemptAmount = $this->roundMoney((float) $amounts['salary_exempt_amount']);
         $statement = 'قيد تمديد عقد تأجير رقم '
             . ($contract->contract_number ?: $contract->id)
             . ' / التمديد #'
@@ -423,13 +461,24 @@ class RentalContractFinanceService
         $lines = [];
         $costCenterId = $this->ensureRentalContractCostCenter($contract)->id;
 
-        if ($revenueAmount > 0) {
+        if ($taxableSubtotal > 0) {
             $this->appendConstraintPair(
                 $lines,
                 $this->resolveDeferredRevenueAccountId(),
                 $clientAccountId,
-                $revenueAmount,
-                $statement,
+                $taxableSubtotal,
+                $statement . ' / خدمات التأجير الخاضعة للضريبة',
+                $costCenterId
+            );
+        }
+
+        if ($salaryExemptAmount > 0) {
+            $this->appendConstraintPair(
+                $lines,
+                $this->resolveDeferredRevenueAccountId(),
+                $clientAccountId,
+                $salaryExemptAmount,
+                $this->buildWorkerSalaryStatement($statement, $contract, $salaryExemptAmount),
                 $costCenterId
             );
         }
@@ -615,93 +664,44 @@ class RentalContractFinanceService
 
     private function buildInvoiceAmounts(RentalContract $contract, ?Package $package): array
     {
-        $grossTotal = $this->roundMoney((float) ($contract->info?->contract_value ?? 0));
+        $storedGrossTotal = $this->roundMoney((float) ($contract->info?->contract_value ?? 0));
         $storedPaidAmount = $this->roundMoney((float) ($contract->info?->paid_amount ?? 0));
         $storedRemainingAmount = $this->roundMoney((float) ($contract->info?->remaining_amount ?? 0));
 
-        if ($grossTotal <= 0 && ($storedPaidAmount > 0 || $storedRemainingAmount > 0)) {
-            $grossTotal = $this->roundMoney($storedPaidAmount + $storedRemainingAmount);
+        if ($storedGrossTotal <= 0 && ($storedPaidAmount > 0 || $storedRemainingAmount > 0)) {
+            $storedGrossTotal = $this->roundMoney($storedPaidAmount + $storedRemainingAmount);
         }
 
+        $monthlySalary = $this->resolveMonthlySalary($contract);
+        $durationDays = RentalContractPricing::durationDays(
+            (int) ($contract->info?->contract_duration_days ?? 0),
+            (int) ($contract->info?->contract_duration_months ?? 0)
+        );
+        $amounts = $this->resolveContractPricing(
+            $contract,
+            $package,
+            $storedGrossTotal,
+            $monthlySalary,
+            $durationDays,
+            (int) ($contract->info?->contract_duration_months ?? 0)
+        );
+        $grossTotal = (float) $amounts['total_due'];
         $paidAmount = min(
             $grossTotal,
             $storedPaidAmount
         );
         $remainingAmount = $this->roundMoney(max(0, $grossTotal - $paidAmount));
-        $salaryExemptAmount = $this->resolveSalaryExemptAmount($contract, $grossTotal);
-
-        if ($salaryExemptAmount > 0) {
-            $taxableGross = $this->roundMoney(max(0, $grossTotal - $salaryExemptAmount));
-            $taxableSubtotal = $taxableGross > 0
-                ? $this->roundMoney($taxableGross / (1 + InvoiceCalculationService::VAT_RATE))
-                : 0.0;
-            $vatAmount = $this->roundMoney(max(0, $taxableGross - $taxableSubtotal));
-            $netSubtotal = $this->roundMoney($salaryExemptAmount + $taxableSubtotal);
-
-            return [
-                'subtotal' => $netSubtotal,
-                'discount' => 0.0,
-                'net_subtotal' => $netSubtotal,
-                'taxable_subtotal' => $taxableSubtotal,
-                'salary_exempt_amount' => $salaryExemptAmount,
-                'vat_amount' => $vatAmount,
-                'total_due' => $grossTotal,
-                'paid_amount' => $paidAmount,
-                'remaining_amount' => $remainingAmount,
-            ];
-        }
-
-        if (
-            (float) ($contract->info?->package_price_after_discount ?? 0) > 0
-            && (float) ($contract->info?->package_total_with_tax ?? 0) > 0
-        ) {
-            $subtotal = $this->roundMoney((float) ($contract->info->package_original_price ?? $contract->info->package_price_after_discount));
-            $netSubtotal = $this->roundMoney((float) $contract->info->package_price_after_discount);
-            $discount = $this->roundMoney((float) ($contract->info->package_discount_amount ?? max(0, $subtotal - $netSubtotal)));
-            $vatAmount = $this->roundMoney((float) ($contract->info->package_vat_amount ?? max(0, $grossTotal - $netSubtotal)));
-
-            return [
-                'subtotal' => $subtotal,
-                'discount' => $discount,
-                'net_subtotal' => $netSubtotal,
-                'taxable_subtotal' => $netSubtotal,
-                'salary_exempt_amount' => 0.0,
-                'vat_amount' => $vatAmount,
-                'total_due' => $grossTotal,
-                'paid_amount' => $paidAmount,
-                'remaining_amount' => $remainingAmount,
-            ];
-        }
-
-        $canUsePackagePricing = $package
-            && (int) ($contract->info?->package_id ?? 0) === (int) $package->id
-            && abs($grossTotal - $this->roundMoney((float) $package->price_with_tax)) < 0.05;
-
-        if ($canUsePackagePricing) {
-            $subtotal = $this->roundMoney((float) $package->original_price);
-            $netSubtotal = $this->roundMoney((float) $package->price_after_discount);
-            $discount = $this->roundMoney(max(0, $subtotal - $netSubtotal));
-            $vatAmount = $this->roundMoney(max(0, $grossTotal - $netSubtotal));
-        } else {
-            $netSubtotal = $grossTotal > 0
-                ? $this->roundMoney($grossTotal / (1 + InvoiceCalculationService::VAT_RATE))
-                : 0.0;
-            $subtotal = $netSubtotal;
-            $discount = 0.0;
-            $vatAmount = $this->roundMoney(max(0, $grossTotal - $netSubtotal));
-        }
-
-        return [
-            'subtotal' => $subtotal,
-            'discount' => $discount,
-            'net_subtotal' => $netSubtotal,
-            'taxable_subtotal' => $netSubtotal,
-            'salary_exempt_amount' => 0.0,
-            'vat_amount' => $vatAmount,
-            'total_due' => $grossTotal,
+        return array_merge($amounts, [
             'paid_amount' => $paidAmount,
             'remaining_amount' => $remainingAmount,
-        ];
+        ]);
+    }
+
+    public function expectedInvoiceAmounts(RentalContract $contract, ?Package $package = null): array
+    {
+        $contract->loadMissing(['info.package', 'maid']);
+
+        return $this->buildInvoiceAmounts($contract, $package ?: $contract->info?->package);
     }
 
     private function storeInvoiceConstraint(
@@ -1008,19 +1008,100 @@ class RentalContractFinanceService
             . ' / المبلغ: ' . number_format($salaryAmount, 2, '.', '') . ' ريال';
     }
 
-    private function resolveSalaryExemptAmount(RentalContract $contract, float $grossTotal): float
+    public function extensionAmounts(RentalContract $contract, int $extensionDays): array
+    {
+        $contract->loadMissing(['info.package', 'maid']);
+        $baseDays = RentalContractPricing::durationDays(
+            (int) ($contract->info?->contract_duration_days ?? 0),
+            (int) ($contract->info?->contract_duration_months ?? 0)
+        );
+        $baseAmounts = $this->resolveContractPricing(
+            $contract,
+            $contract->info?->package,
+            (float) ($contract->info?->contract_value ?? 0),
+            $this->resolveMonthlySalary($contract),
+            $baseDays,
+            (int) ($contract->info?->contract_duration_months ?? 0)
+        );
+        $baseNetPrice = (float) $baseAmounts['net_subtotal'];
+        $extensionNetPrice = $baseDays > 0
+            ? $this->roundMoney(($baseNetPrice / $baseDays) * max(0, $extensionDays))
+            : 0.0;
+
+        return RentalContractPricing::fromNetPrice(
+            $extensionNetPrice,
+            $this->resolveMonthlySalary($contract),
+            max(0, $extensionDays)
+        );
+    }
+
+    private function resolveMonthlySalary(RentalContract $contract): float
     {
         $monthlySalary = (float) ($contract->info?->monthly_salary ?? 0);
 
-        if ($monthlySalary <= 0) {
-            $monthlySalary = (float) ($contract->maid?->resolved_salary ?? $contract->maid?->salary ?? 0);
+        return $monthlySalary > 0
+            ? $monthlySalary
+            : (float) ($contract->maid?->resolved_salary ?? $contract->maid?->salary ?? 0);
+    }
+
+    private function resolveContractPricing(
+        RentalContract $contract,
+        ?Package $package,
+        float $storedGrossTotal,
+        float $monthlySalary,
+        int $durationDays,
+        int $durationMonths
+    ): array {
+        $snapshotNet = (float) ($contract->info?->package_price_after_discount ?? 0);
+        $snapshotGross = (float) ($contract->info?->package_total_with_tax ?? 0);
+        $basis = (string) ($contract->info?->package_price_basis ?? '');
+
+        if ($basis === '') {
+            $basis = $this->inferPackagePriceBasis($package, $snapshotNet, $snapshotGross);
         }
 
-        if ($monthlySalary <= 0 || $grossTotal <= 0) {
-            return 0.0;
+        if ($basis === 'net') {
+            $netPrice = $snapshotNet > 0
+                ? $snapshotNet
+                : (float) ($package?->price_after_discount ?? 0);
+
+            return RentalContractPricing::fromNetPrice(
+                $netPrice,
+                $monthlySalary,
+                $durationDays,
+                $durationMonths,
+                (float) ($contract->info?->package_original_price ?? $package?->original_price ?? $netPrice)
+            );
         }
 
-        return $this->roundMoney(min($grossTotal, $monthlySalary));
+        $grossPrice = $storedGrossTotal > 0
+            ? $storedGrossTotal
+            : ($snapshotGross > 0 ? $snapshotGross : (float) ($package?->price_with_tax ?? 0));
+
+        return RentalContractPricing::fromGrossPrice(
+            $grossPrice,
+            $monthlySalary,
+            $durationDays,
+            $durationMonths
+        );
+    }
+
+    private function inferPackagePriceBasis(
+        ?Package $package,
+        float $snapshotNet,
+        float $snapshotGross
+    ): string {
+        if (!$package) {
+            return 'gross';
+        }
+
+        $net = $snapshotNet > 0 ? $snapshotNet : (float) $package->price_after_discount;
+        $gross = $snapshotGross > 0 ? $snapshotGross : (float) $package->price_with_tax;
+        $fullVatGross = $this->roundMoney($net * (1 + RentalContractPricing::VAT_RATE));
+
+        return $net > 0 && abs($gross - $fullVatGross) < 0.05
+            ? 'net'
+            : 'gross';
     }
 
     private function buildReceiptStatement(

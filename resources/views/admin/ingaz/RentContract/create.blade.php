@@ -1539,9 +1539,20 @@
                 const durationUnit = selectedOption.data('duration-unit') || '';
                 const durationLabel = selectedOption.data('duration-label') || '';
                 const workingHours = parseInt(selectedOption.data('working-hours'), 10) || 0;
-                const totalPrice = parseFloat(selectedOption.data('total')) || 0;
                 const beforeTax = parseFloat(selectedOption.data('price')) || 0;
+                const catalogTotal = parseFloat(selectedOption.data('total')) || beforeTax;
                 const months = Math.max(1, Math.ceil(days / 30));
+                const monthlySalary = parseFloat($('#monthly_salary').val()) || 0;
+                const salaryForPeriod = monthlySalary * ((days || (months * 30)) / 30);
+                const salaryExempt = Math.min(beforeTax, Math.max(0, salaryForPeriod));
+                const taxableService = Math.max(0, beforeTax - salaryExempt);
+                const vatAmount = taxableService * 0.15;
+                const isNetPriceBasis = Math.abs(catalogTotal - (beforeTax * 1.15)) < 0.05;
+                const totalPrice = isNetPriceBasis ? (beforeTax + vatAmount) : catalogTotal;
+                const displayedNetPrice = isNetPriceBasis
+                    ? beforeTax
+                    : (Math.min(catalogTotal, salaryForPeriod)
+                        + (Math.max(0, catalogTotal - Math.min(catalogTotal, salaryForPeriod)) / 1.15));
                 const monthlyCost = (rentalType === 'monthly' || durationUnit === 'month') && months
                     ? (totalPrice / months)
                     : totalPrice;
@@ -1549,7 +1560,7 @@
                 $('#packageSummaryTitle').text(selectedOption.data('title') || 'الباقة المختارة');
                 $('#packageSummaryHint').text('تم اعتماد بيانات الباقة تلقائياً ويمكن تعديل تفاصيل العقد عند الحاجة.');
                 $('#packageSummaryDays').text(durationLabel || (days ? `${days} يوم` : '-'));
-                $('#packageSummaryBeforeTax').text(formatCurrency(beforeTax));
+                $('#packageSummaryBeforeTax').text(formatCurrency(displayedNetPrice));
                 $('#packageSummaryAfterTax').text(formatCurrency(totalPrice));
 
                 $('#contract_duration_months').val(months);
@@ -1565,6 +1576,12 @@
                 calculateIngazTo();
                 updatePaymentState();
             }
+
+            $('#monthly_salary').on('input change', function () {
+                if ($('#package_id').val()) {
+                    applyPackageData();
+                }
+            });
 
             $('#new_existing_client_id').on('change', function () {
                 const selectedOption = $(this).find('option:selected');

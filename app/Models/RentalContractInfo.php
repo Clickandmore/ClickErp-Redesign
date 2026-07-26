@@ -18,6 +18,7 @@ class RentalContractInfo extends Model
         'package_price_after_discount',
         'package_vat_amount',
         'package_total_with_tax',
+        'package_price_basis',
         'payment_type',
         'payment_status',
         'payment_receipt_path',

@@ -58,6 +58,21 @@
             ?? data_get($contractInfo, 'contract_date')
             ?? data_get($contract, 'contract_date');
         $contractEndDate = data_get($contractInfo, 'ingaz_to');
+        $contractExtensions = collect(data_get($contract, 'extensions', []))
+            ->sortBy(fn ($extension) => data_get($extension, 'start_date'))
+            ->values();
+        $contractOriginalEndDate = $contractEndDate;
+        if (filled($contractStartDate) && is_numeric($contractDurationDays) && (int) $contractDurationDays > 0) {
+            try {
+                $contractOriginalEndDate = \Carbon\Carbon::parse($contractStartDate)
+                    ->addDays((int) $contractDurationDays);
+            } catch (\Throwable $e) {
+                $contractOriginalEndDate = $contractEndDate;
+            }
+        }
+        $effectiveContractEndDate = data_get($contractExtensions->last(), 'end_date')
+            ?? $contractEndDate
+            ?? $contractOriginalEndDate;
         $monthlyCost = data_get($contractInfo, 'monthly_cost');
         $contractValue = data_get($contractInfo, 'contract_value')
             ?? data_get($contractInfo, 'total_cost');
@@ -67,6 +82,7 @@
         $packageNetValue = data_get($contractInfo, 'package_price_after_discount');
         $packageVatValue = data_get($contractInfo, 'package_vat_amount');
         $packageGrossValue = data_get($contractInfo, 'package_total_with_tax');
+        $packagePriceBasis = data_get($contractInfo, 'package_price_basis');
         $contractGrossValue = is_numeric($contractValue) ? (float) $contractValue : null;
         $serviceNetValue = null;
         $serviceTaxValue = null;
@@ -78,16 +94,45 @@
                 ?? data_get($contract, 'maid.salary');
         }
 
+        $salaryDurationDays = is_numeric($contractDurationDays)
+            ? max(0, (int) $contractDurationDays)
+            : 0;
+        $salaryDurationMonths = (int) data_get($contractInfo, 'contract_duration_months', 0);
+        $salaryDurationFactor = $salaryDurationDays > 0
+            ? ($salaryDurationDays / 30)
+            : max(1, $salaryDurationMonths);
         $salaryExemptValue = is_numeric($salaryExemptValue) && $contractGrossValue !== null
-            ? min($contractGrossValue, (float) $salaryExemptValue)
+            ? min($contractGrossValue, (float) $salaryExemptValue * $salaryDurationFactor)
             : 0.0;
 
         if ($salaryExemptValue > 0 && $contractGrossValue !== null) {
-            $taxableGrossValue = max(0, $contractGrossValue - $salaryExemptValue);
-            $taxableNetValue = $taxableGrossValue > 0 ? round($taxableGrossValue / 1.15, 2) : 0.0;
-            $serviceTaxValue = round(max(0, $taxableGrossValue - $taxableNetValue), 2);
-            $serviceNetValue = round(max(0, $contractGrossValue - $serviceTaxValue), 2);
-            $serviceGrossValue = $contractGrossValue;
+            if (!$packagePriceBasis) {
+                $catalogNet = is_numeric($packageNetValue) ? (float) $packageNetValue : 0.0;
+                $catalogGross = is_numeric($packageGrossValue) ? (float) $packageGrossValue : 0.0;
+                $packagePriceBasis = $package && $catalogNet > 0
+                    && abs($catalogGross - round($catalogNet * 1.15, 2)) < 0.05
+                    ? 'net'
+                    : 'gross';
+            }
+
+            if ($packagePriceBasis === 'net') {
+                $serviceNetValue = is_numeric($packageNetValue) && (float) $packageNetValue > 0
+                    ? (float) $packageNetValue
+                    : round($contractGrossValue / 1.15, 2);
+                $salaryExemptValue = min($serviceNetValue, $salaryExemptValue);
+                $taxableNetValue = max(0, $serviceNetValue - $salaryExemptValue);
+                $serviceTaxValue = round($taxableNetValue * 0.15, 2);
+                $serviceGrossValue = round($serviceNetValue + $serviceTaxValue, 2);
+            } else {
+                $salaryExemptValue = min($contractGrossValue, $salaryExemptValue);
+                $taxableGrossValue = max(0, $contractGrossValue - $salaryExemptValue);
+                $taxableNetValue = $taxableGrossValue > 0
+                    ? round($taxableGrossValue / 1.15, 2)
+                    : 0.0;
+                $serviceTaxValue = round(max(0, $taxableGrossValue - $taxableNetValue), 2);
+                $serviceNetValue = round($salaryExemptValue + $taxableNetValue, 2);
+                $serviceGrossValue = $contractGrossValue;
+            }
             $packageOriginalValue = $serviceNetValue;
             $packageDiscountValue = 0;
         } elseif (is_numeric($packageNetValue) && is_numeric($packageGrossValue) && is_numeric($packageVatValue)) {
@@ -206,7 +251,8 @@
             'تاريخ_العقد' => $formatRentalDate(data_get($contract, 'contract_date')),
             'مدة_العقد' => $contractDurationLabel ?: '______',
             'تاريخ_البداية' => $formatRentalDate($contractStartDate),
-            'تاريخ_النهاية' => $formatRentalDate($contractEndDate),
+            'تاريخ_النهاية' => $formatRentalDate($effectiveContractEndDate),
+            'تاريخ_النهاية_الأصلية' => $formatRentalDate($contractOriginalEndDate),
             'التكلفة_الشهرية' => $formatRentalMoney($monthlyCost),
             'إجمالي_التكلفة' => $formatRentalMoney($contractValue),
             'ساعات_العمل' => $workingHours ?: '______',
@@ -1049,7 +1095,42 @@
                     <td>{{ $workingHours }} ساعات</td>
                     <td>{{ $contractDurationLabel }}</td>
                 </tr>
+                <tr>
+                    <th>تاريخ بداية العقد</th>
+                    <th>تاريخ نهاية المدة الأصلية</th>
+                    <th>تاريخ النهاية الحالي</th>
+                    <th>حالة المدة</th>
+                </tr>
+                <tr>
+                    <td dir="ltr">{{ $formatRentalDate($contractStartDate) }}</td>
+                    <td dir="ltr">{{ $formatRentalDate($contractOriginalEndDate) }}</td>
+                    <td dir="ltr">{{ $formatRentalDate($effectiveContractEndDate) }}</td>
+                    <td>
+                        {{ $contractExtensions->isNotEmpty()
+                            ? 'ممدد (' . $contractExtensions->count() . ')'
+                            : 'المدة الأصلية' }}
+                    </td>
+                </tr>
             </table>
+
+            @if($contractExtensions->isNotEmpty())
+                <table class="data-table service-table" style="margin-top: 8px;">
+                    <tr>
+                        <th>التمديد</th>
+                        <th>بداية التمديد</th>
+                        <th>نهاية التمديد</th>
+                        <th>مدة التمديد</th>
+                    </tr>
+                    @foreach($contractExtensions as $extensionIndex => $extension)
+                        <tr>
+                            <td>تمديد #{{ $extensionIndex + 1 }}</td>
+                            <td dir="ltr">{{ $formatRentalDate(data_get($extension, 'start_date')) }}</td>
+                            <td dir="ltr">{{ $formatRentalDate(data_get($extension, 'end_date')) }}</td>
+                            <td>{{ (int) data_get($extension, 'extension_days', 0) }} يوم</td>
+                        </tr>
+                    @endforeach
+                </table>
+            @endif
 
             <div class="contract-body">
                 <p><strong>تمهيد:</strong></p>

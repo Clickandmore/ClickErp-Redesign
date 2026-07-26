@@ -4,11 +4,13 @@ namespace App\Http\Controllers\ingaz;
 
 use App\Http\Controllers\admin\Controller;
 use App\Models\ingaz\Setting;
+use App\Models\RentalContractExtension;
 use App\Models\RentalContractInvoice;
 use App\Models\RentalFinancialAdjustment;
 use App\Services\ingaz\InvoiceCalculationService;
 use App\Services\ingaz\RentalContractFinanceService;
 use App\Support\InvoiceQrCode;
+use App\Support\RentalContractPricing;
 use Illuminate\Support\Facades\Auth;
 use PDF;
 
@@ -147,6 +149,111 @@ class RentalContractInvoiceController extends Controller
         return request()->boolean('download')
             ? $pdf->download('rental-credit-note-' . $id . '.pdf')
             : $pdf->stream('rental-credit-note-' . $id . '.pdf');
+    }
+
+    public function extension(int $id, RentalContractFinanceService $financeService)
+    {
+        $extension = RentalContractExtension::query()
+            ->with(['contract.info.package', 'contract.financeInvoice', 'contract.user', 'contract.maid'])
+            ->findOrFail($id);
+        $contract = $extension->contract;
+        $invoice = $contract?->financeInvoice;
+
+        abort_unless($contract && $invoice, 404);
+
+        $viewData = $this->prepareInvoiceViewData($invoice->id);
+        $amounts = $financeService->extensionAmounts($contract, (int) $extension->extension_days);
+        $items = [];
+
+        if ((float) $amounts['taxable_subtotal'] > 0 || (float) $amounts['vat_amount'] > 0) {
+            $items[] = [
+                'key' => 'rental_extension_service',
+                'label' => 'خدمة تمديد عقد التأجير - ' . (int) $extension->extension_days . ' يوم',
+                'qty' => (int) $extension->extension_days,
+                'unit' => (int) $extension->extension_days > 0
+                    ? round((float) $amounts['taxable_subtotal'] / (int) $extension->extension_days, 2)
+                    : 0,
+                'line_subtotal' => (float) $amounts['taxable_subtotal'],
+                'line_discount' => 0.0,
+                'line_total' => (float) $amounts['taxable_subtotal'],
+                'vat_rate' => (float) $amounts['vat_amount'] > 0 ? InvoiceCalculationService::VAT_RATE : 0.0,
+                'vat_amount' => (float) $amounts['vat_amount'],
+                'line_grand_total' => round(
+                    (float) $amounts['taxable_subtotal'] + (float) $amounts['vat_amount'],
+                    2
+                ),
+            ];
+        }
+
+        if ((float) $amounts['salary_exempt_amount'] > 0) {
+            $items[] = [
+                'key' => 'rental_extension_salary',
+                'label' => 'راتب العاملة المعفى من الضريبة لفترة التمديد',
+                'qty' => (int) $extension->extension_days,
+                'unit' => (int) $extension->extension_days > 0
+                    ? round((float) $amounts['salary_exempt_amount'] / (int) $extension->extension_days, 2)
+                    : 0,
+                'line_subtotal' => (float) $amounts['salary_exempt_amount'],
+                'line_discount' => 0.0,
+                'line_total' => (float) $amounts['salary_exempt_amount'],
+                'vat_rate' => 0.0,
+                'vat_amount' => 0.0,
+                'line_grand_total' => (float) $amounts['salary_exempt_amount'],
+            ];
+        }
+
+        $documentDateTime = optional($extension->created_at)->format('Y-m-d H:i:s')
+            ?: now()->format('Y-m-d H:i:s');
+        $documentUrl = route('rental.extension-invoice.download', ['id' => $extension->id, 'autoprint' => 1]);
+        $barcodeValue = $this->buildInvoiceQrSerial(
+            $viewData['supplierName'],
+            $viewData['supplierTaxNumber'],
+            $documentDateTime,
+            (float) $amounts['total_due'],
+            (float) $amounts['vat_amount']
+        );
+        $viewData = array_merge($viewData, [
+            'documentNumberLabel' => 'رقم فاتورة التمديد',
+            'documentNumber' => 'EXT-' . $extension->id,
+            'invoiceStatus' => match ($extension->payment_status) {
+                'paid' => 'مدفوعة',
+                'partial' => 'مدفوعة جزئياً',
+                default => 'غير مدفوعة',
+            },
+            'serviceDesc' => 'تمديد عقد تأجير',
+            'serviceLongDescription' => 'تمديد عقد التأجير رقم '
+                . ($contract->contract_number ?: $contract->id)
+                . ' من ' . optional($extension->start_date)->format('Y-m-d')
+                . ' إلى ' . optional($extension->end_date)->format('Y-m-d'),
+            'items' => $items,
+            'invoiceDate' => substr($documentDateTime, 0, 10),
+            'invoiceDateTime' => $documentDateTime,
+            'invoiceUrl' => $documentUrl,
+            'invoiceBarcodeValue' => $barcodeValue,
+            'qrImage' => InvoiceQrCode::render($barcodeValue, $viewData['qrImage']),
+            'subtotalBeforeDiscount' => (float) $amounts['net_subtotal'],
+            'discountTotal' => 0.0,
+            'netSubtotal' => (float) $amounts['net_subtotal'],
+            'vatAmount' => (float) $amounts['vat_amount'],
+            'grandTotal' => (float) $amounts['total_due'],
+            'backUrl' => route('RentContract.show', $contract->id),
+        ]);
+
+        if (request()->query('driver') !== 'dompdf') {
+            return response()->view('admin.ingaz.invoices.print', $viewData, 200, [
+                'Content-Type' => 'text/html; charset=UTF-8',
+            ]);
+        }
+
+        $pdf = PDF::loadView('admin.ingaz.invoices.print', $viewData)->setPaper('a4', 'portrait');
+        $pdf->setOptions([
+            'defaultFont' => 'dejavu sans',
+            'isHtml5ParserEnabled' => true,
+        ]);
+
+        return request()->boolean('download')
+            ? $pdf->download('rental-extension-invoice-' . $id . '.pdf')
+            : $pdf->stream('rental-extension-invoice-' . $id . '.pdf');
     }
 
     private function prepareInvoiceViewData(int $id): array
@@ -350,16 +457,8 @@ class RentalContractInvoiceController extends Controller
         $netSubtotal = round(max(0, $subtotalBeforeDiscount - $discount), 2);
         $vatAmount = (float) $invoice->vat_amount;
         $grandTotal = (float) $invoice->total_due;
-        $salaryExemptAmount = $this->resolveSalaryExemptAmount($invoice, $grandTotal);
-        $taxableSubtotal = $netSubtotal;
-
-        if ($salaryExemptAmount > 0) {
-            $taxableSubtotal = round(max(0, $netSubtotal - $salaryExemptAmount), 2);
-
-            if ($taxableSubtotal <= 0 && $grandTotal > $salaryExemptAmount) {
-                $taxableSubtotal = round(max(0, $grandTotal - $salaryExemptAmount - $vatAmount), 2);
-            }
-        }
+        $salaryExemptAmount = $this->resolveSalaryExemptAmount($invoice, $netSubtotal);
+        $taxableSubtotal = round(max(0, $netSubtotal - $salaryExemptAmount), 2);
 
         return [
             'subtotal_before_discount' => $subtotalBeforeDiscount,
@@ -385,7 +484,7 @@ class RentalContractInvoiceController extends Controller
         return $label . ' - العاملة: ' . $maidName;
     }
 
-    private function resolveSalaryExemptAmount(RentalContractInvoice $invoice, float $grandTotal): float
+    private function resolveSalaryExemptAmount(RentalContractInvoice $invoice, float $netSubtotal): float
     {
         $contract = $invoice->rentalContract;
         $monthlySalary = (float) ($contract?->info?->monthly_salary ?? 0);
@@ -394,11 +493,21 @@ class RentalContractInvoiceController extends Controller
             $monthlySalary = (float) ($contract?->maid?->resolved_salary ?? $contract?->maid?->salary ?? 0);
         }
 
-        if ($monthlySalary <= 0 || $grandTotal <= 0) {
+        if ($monthlySalary <= 0 || $netSubtotal <= 0) {
             return 0.0;
         }
 
-        return round(min($grandTotal, $monthlySalary), 2);
+        $durationDays = RentalContractPricing::durationDays(
+            (int) ($contract?->info?->contract_duration_days ?? 0),
+            (int) ($contract?->info?->contract_duration_months ?? 0)
+        );
+
+        return RentalContractPricing::fromNetPrice(
+            $netSubtotal,
+            $monthlySalary,
+            $durationDays,
+            (int) ($contract?->info?->contract_duration_months ?? 0)
+        )['salary_exempt_amount'];
     }
 
     private function formatPhone(string $code, string $phone): string

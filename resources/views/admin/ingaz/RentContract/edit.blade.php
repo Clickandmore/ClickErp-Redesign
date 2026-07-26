@@ -1004,10 +1004,17 @@ $(document).ready(function() {
         const durationUnit = selectedOption.data('duration-unit') || '';
         const durationCount = parseInt(selectedOption.data('duration-count'), 10) || 0;
         const workingHours = parseInt(selectedOption.data('working-hours'), 10) || 0;
-        const totalPrice = parseFloat(selectedOption.data('total')) || 0;
+        const netPrice = parseFloat(selectedOption.data('price')) || 0;
+        const catalogTotal = parseFloat(selectedOption.data('total')) || netPrice;
         const months = durationUnit === 'month' && durationCount
             ? durationCount
             : Math.max(1, Math.ceil((days || 30) / 30));
+        const monthlySalary = parseFloat($('#monthly_salary').val()) || 0;
+        const salaryForPeriod = monthlySalary * ((days || (months * 30)) / 30);
+        const salaryExempt = Math.min(netPrice, Math.max(0, salaryForPeriod));
+        const taxableService = Math.max(0, netPrice - salaryExempt);
+        const isNetPriceBasis = Math.abs(catalogTotal - (netPrice * 1.15)) < 0.05;
+        const totalPrice = isNetPriceBasis ? (netPrice + (taxableService * 0.15)) : catalogTotal;
         const monthlyCost = (rentalType === 'monthly' || durationUnit === 'month') && months
             ? (totalPrice / months)
             : totalPrice;
@@ -1023,7 +1030,10 @@ $(document).ready(function() {
         }
 
         calculateIngazTo();
-        updateContractSummary(monthlyCost, months, totalPrice);
+        $('#summary-monthly-cost').text(formatCurrency(monthlyCost));
+        $('#summary-duration').text(months + ' شهر');
+        $('#summary-total-value').text(formatCurrency(totalPrice));
+        $('#summary-daily-rate').text(formatCurrency(days > 0 ? totalPrice / days : 0));
         updatePaymentState();
     }
 

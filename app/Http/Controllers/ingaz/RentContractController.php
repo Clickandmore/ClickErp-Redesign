@@ -27,6 +27,7 @@ use App\Services\ingaz\RentalContractFinanceService;
 use App\Services\MoyasarService;
 use App\Services\RentalContractExpiryReminderService;
 use App\Support\MoyasarSettings;
+use App\Support\RentalContractPricing;
 use App\Support\SystemModuleManager;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -806,8 +807,18 @@ class RentContractController extends Controller
             $monthlyCost = (float) ($request->monthly_cost ?: $this->resolvePackagePeriodCost($selectedPackage, $contractDurationMonths));
             $ingazTo = $request->ingaz_to ?: \Carbon\Carbon::parse($request->ingaz_from)->addDays($contractDurationDays);
 
-            $contractValue = (float) ($request->total_contract_value ?: ($selectedPackage?->price_with_tax ?: ($monthlyCost * $contractDurationMonths)));
-            $packagePriceSnapshot = $this->buildPackagePriceSnapshot($selectedPackage, $contractValue);
+            $requestedContractValue = (float) ($request->total_contract_value ?: ($selectedPackage?->price_with_tax ?: ($monthlyCost * $contractDurationMonths)));
+            $packagePriceSnapshot = $this->buildPackagePriceSnapshot(
+                $selectedPackage,
+                $requestedContractValue,
+                $monthlySalary,
+                $contractDurationDays,
+                $contractDurationMonths
+            );
+            $contractValue = $packagePriceSnapshot['contract_total_due'];
+            $monthlyCost = $contractDurationMonths > 0
+                ? round($contractValue / $contractDurationMonths, 2)
+                : $monthlyCost;
             $paidAmount = 0.0;
 
             if ($request->payment_status === 'paid') {
@@ -830,6 +841,7 @@ class RentContractController extends Controller
                 'package_price_after_discount' => $packagePriceSnapshot['package_price_after_discount'],
                 'package_vat_amount' => $packagePriceSnapshot['package_vat_amount'],
                 'package_total_with_tax' => $packagePriceSnapshot['package_total_with_tax'],
+                'package_price_basis' => $packagePriceSnapshot['package_price_basis'],
                 'payment_type' => $request->payment_type,
                 'payment_status' => $request->payment_status,
                 'payment_receipt_path' => $paymentReceiptPath,
@@ -1280,8 +1292,19 @@ class RentContractController extends Controller
             $monthlyCost = (float) ($request->monthly_cost ?: $this->resolvePackagePeriodCost($selectedPackage, $contractDurationMonths));
 
             // حساب قيمة العقد
-            $contractValue = (float) ($request->total_contract_value ?: ($selectedPackage?->price_with_tax ?: ($monthlyCost * $contractDurationMonths)));
-            $packagePriceSnapshot = $this->buildPackagePriceSnapshot($selectedPackage, $contractValue);
+            $monthlySalary = (float) $request->monthly_salary;
+            $requestedContractValue = (float) ($request->total_contract_value ?: ($selectedPackage?->price_with_tax ?: ($monthlyCost * $contractDurationMonths)));
+            $packagePriceSnapshot = $this->buildPackagePriceSnapshot(
+                $selectedPackage,
+                $requestedContractValue,
+                $monthlySalary,
+                $contractDurationDays,
+                $contractDurationMonths
+            );
+            $contractValue = $packagePriceSnapshot['contract_total_due'];
+            $monthlyCost = $contractDurationMonths > 0
+                ? round($contractValue / $contractDurationMonths, 2)
+                : $monthlyCost;
             $paidAmount = 0.0;
 
             if ($request->payment_status === 'paid') {
@@ -1297,8 +1320,18 @@ class RentContractController extends Controller
                 $contractDurationDays = $packageDurationDays ?: (int) ($request->contract_duration_days ?: ($packageDurationMonths * 30));
                 $contractDurationMonths = $packageDurationMonths;
                 $monthlyCost = $this->resolvePackagePeriodCost($selectedPackage, $contractDurationMonths);
-                $contractValue = (float) ($selectedPackage->price_with_tax ?: ($monthlyCost * $contractDurationMonths));
-                $packagePriceSnapshot = $this->buildPackagePriceSnapshot($selectedPackage, $contractValue);
+                $requestedContractValue = (float) ($selectedPackage->price_with_tax ?: ($monthlyCost * $contractDurationMonths));
+                $packagePriceSnapshot = $this->buildPackagePriceSnapshot(
+                    $selectedPackage,
+                    $requestedContractValue,
+                    $monthlySalary,
+                    $contractDurationDays,
+                    $contractDurationMonths
+                );
+                $contractValue = $packagePriceSnapshot['contract_total_due'];
+                $monthlyCost = $contractDurationMonths > 0
+                    ? round($contractValue / $contractDurationMonths, 2)
+                    : $monthlyCost;
 
                 if ($request->payment_status === 'paid') {
                     $paidAmount = $contractValue;
@@ -1318,6 +1351,7 @@ class RentContractController extends Controller
                 'package_price_after_discount' => $packagePriceSnapshot['package_price_after_discount'],
                 'package_vat_amount' => $packagePriceSnapshot['package_vat_amount'],
                 'package_total_with_tax' => $packagePriceSnapshot['package_total_with_tax'],
+                'package_price_basis' => $packagePriceSnapshot['package_price_basis'],
                 'payment_type' => $request->payment_type,
                 'payment_status' => $request->payment_status,
                 'payment_confirmed_at' => $paidAmount > 0
@@ -4007,16 +4041,11 @@ class RentContractController extends Controller
                     ->store('rental-contracts/extensions/receipts', 'public');
             }
 
-            $monthlyCost = (float) ($contract->info->monthly_cost ?? 0);
-            $currentContractValue = (float) ($contract->info->contract_value ?? 0);
-            $currentDurationDays = (int) ($contract->info->contract_duration_days ?? 0);
-            if ($currentDurationDays <= 0) {
-                $currentDurationDays = max(1, (int) ($contract->info->contract_duration_months ?? 0) * 30);
-            }
-            $dailyRate = $currentDurationDays > 0 && $currentContractValue > 0
-                ? $currentContractValue / $currentDurationDays
-                : $monthlyCost / 30;
-            $extensionValue = round($dailyRate * $extensionDays, 2);
+            $extensionAmounts = $rentalContractFinanceService->extensionAmounts(
+                $contract,
+                $extensionDays
+            );
+            $extensionValue = round((float) $extensionAmounts['total_due'], 2);
 
             $paymentAmount = in_array($validated['extension_payment_status'], ['paid', 'partial'], true)
                 ? round((float) ($validated['extension_payment_amount'] ?? 0), 2)
@@ -4047,6 +4076,11 @@ class RentContractController extends Controller
                 'created_by' => auth('admin')->id(),
             ]);
 
+            $extensionConstraint = $rentalContractFinanceService->recordExtensionForContract(
+                $contract,
+                $extension,
+                now()
+            );
             $receiptBond = null;
             $receiptConstraint = null;
             if ($paymentAmount > 0) {
@@ -4060,7 +4094,7 @@ class RentContractController extends Controller
                 );
                 $receiptBond = $financeResult['receipt_bond'] ?? null;
                 $receiptConstraint = $financeResult['receipt_constraint'] ?? null;
-                $extensionConstraint = $financeResult['extension_constraint'] ?? null;
+                $extensionConstraint = $financeResult['extension_constraint'] ?? $extensionConstraint;
 
                 $extension->update([
                     'invoice_constraint_id' => $extensionConstraint?->id,
@@ -4068,6 +4102,10 @@ class RentContractController extends Controller
                     'receipt_constraint_id' => $receiptConstraint?->id,
                     'receipt_account_id' => $receiptBond?->debit_account_id
                         ?: $validated['extension_receipt_account_id'],
+                ]);
+            } elseif ($extensionConstraint) {
+                $extension->update([
+                    'invoice_constraint_id' => $extensionConstraint->id,
                 ]);
             }
 
@@ -4108,6 +4146,7 @@ class RentContractController extends Controller
                 'maid.nationality.translations',
                 'maid.religion.translations',
                 'info.package',
+                'extensions',
                 'marketer'
             ])->findOrFail($id);
 
@@ -4314,31 +4353,53 @@ class RentContractController extends Controller
         return $total;
     }
 
-    private function buildPackagePriceSnapshot(?Package $package, float $totalWithTax): array
+    private function buildPackagePriceSnapshot(
+        ?Package $package,
+        float $legacyTotalWithTax,
+        float $monthlySalary = 0,
+        int $durationDays = 0,
+        int $durationMonths = 0
+    ): array
     {
-        $totalWithTax = round(max(0, $totalWithTax), 2);
-        $netPrice = $totalWithTax > 0 ? round($totalWithTax / 1.15, 2) : 0.0;
+        $legacyTotalWithTax = round(max(0, $legacyTotalWithTax), 2);
+        $netPrice = $legacyTotalWithTax > 0
+            ? round($legacyTotalWithTax / (1 + RentalContractPricing::VAT_RATE), 2)
+            : 0.0;
         $originalPrice = $netPrice;
 
         if ($package) {
-            $packageTotal = round((float) $package->price_with_tax, 2);
             $originalPrice = round((float) $package->original_price, 2);
-
-            if (abs($packageTotal - $totalWithTax) < 0.05) {
-                $netPrice = round((float) $package->price_after_discount, 2);
-                $totalWithTax = $packageTotal;
-            }
+            $netPrice = round((float) $package->price_after_discount, 2);
         }
 
-        $discountAmount = round(max(0, $originalPrice - $netPrice), 2);
-        $vatAmount = round(max(0, $totalWithTax - $netPrice), 2);
+        $catalogGross = $package ? round((float) $package->price_with_tax, 2) : $legacyTotalWithTax;
+        $fullVatGross = round($netPrice * (1 + RentalContractPricing::VAT_RATE), 2);
+        $priceBasis = $package && $netPrice > 0 && abs($catalogGross - $fullVatGross) < 0.05
+            ? 'net'
+            : 'gross';
+        $pricing = $priceBasis === 'net'
+            ? RentalContractPricing::fromNetPrice(
+                $netPrice,
+                $monthlySalary,
+                $durationDays,
+                $durationMonths,
+                $originalPrice
+            )
+            : RentalContractPricing::fromGrossPrice(
+                $catalogGross,
+                $monthlySalary,
+                $durationDays,
+                $durationMonths
+            );
 
         return [
             'package_original_price' => $originalPrice,
-            'package_discount_amount' => $discountAmount,
+            'package_discount_amount' => round(max(0, $originalPrice - $netPrice), 2),
             'package_price_after_discount' => $netPrice,
-            'package_vat_amount' => $vatAmount,
-            'package_total_with_tax' => $totalWithTax,
+            'package_vat_amount' => $pricing['vat_amount'],
+            'package_total_with_tax' => $pricing['total_due'],
+            'package_price_basis' => $priceBasis,
+            'contract_total_due' => $pricing['total_due'],
         ];
     }
 

@@ -18,23 +18,25 @@ class RentalContractFinanceServiceTest extends TestCase
             'monthly_salary' => 1000,
             'contract_duration_months' => 1,
             'contract_duration_days' => 30,
+            'package_price_basis' => 'net',
+            'package_price_after_discount' => 1320,
             'contract_value' => 1990,
         ]);
 
         $this->assertSame(1000.0, $amounts['salary_exempt_amount']);
-        $this->assertSame(860.87, $amounts['taxable_subtotal']);
-        $this->assertSame(1860.87, $amounts['net_subtotal']);
-        $this->assertSame(129.13, $amounts['vat_amount']);
-        $this->assertSame(1990.0, $amounts['total_due']);
+        $this->assertSame(320.0, $amounts['taxable_subtotal']);
+        $this->assertSame(1320.0, $amounts['net_subtotal']);
+        $this->assertSame(48.0, $amounts['vat_amount']);
+        $this->assertSame(1368.0, $amounts['total_due']);
     }
 
-    public function test_it_preserves_package_pricing_when_no_salary_is_available(): void
+    public function test_it_applies_full_vat_to_net_package_price_when_no_salary_is_available(): void
     {
         $package = $this->package([
             'id' => 3,
             'original_price' => 1400,
             'price_after_discount' => 1320,
-            'price_with_tax' => 1466,
+            'price_with_tax' => 1518,
         ]);
 
         $amounts = $this->buildInvoiceAmounts([
@@ -42,29 +44,57 @@ class RentalContractFinanceServiceTest extends TestCase
             'monthly_salary' => 0,
             'contract_duration_months' => 3,
             'contract_duration_days' => 90,
-            'contract_value' => 1466,
+            'contract_value' => 1518,
         ], $package);
 
         $this->assertSame(0.0, $amounts['salary_exempt_amount']);
         $this->assertSame(1400.0, $amounts['subtotal']);
         $this->assertSame(80.0, $amounts['discount']);
         $this->assertSame(1320.0, $amounts['net_subtotal']);
-        $this->assertSame(146.0, $amounts['vat_amount']);
+        $this->assertSame(198.0, $amounts['vat_amount']);
+        $this->assertSame(1518.0, $amounts['total_due']);
     }
 
-    public function test_it_uses_entered_salary_amount_without_multiplying_by_duration(): void
+    public function test_it_multiplies_monthly_salary_exemption_by_contract_duration(): void
     {
         $amounts = $this->buildInvoiceAmounts([
-            'monthly_salary' => 1000,
+            'monthly_salary' => 346.67,
             'contract_duration_months' => 3,
             'contract_duration_days' => 90,
+            'package_price_basis' => 'net',
+            'package_price_after_discount' => 1320,
             'contract_value' => 1466,
         ]);
 
-        $this->assertSame(1000.0, $amounts['salary_exempt_amount']);
-        $this->assertSame(405.22, $amounts['taxable_subtotal']);
-        $this->assertSame(60.78, $amounts['vat_amount']);
-        $this->assertSame(1466.0, $amounts['total_due']);
+        $this->assertSame(1040.01, $amounts['salary_exempt_amount']);
+        $this->assertSame(279.99, $amounts['taxable_subtotal']);
+        $this->assertSame(42.0, $amounts['vat_amount']);
+        $this->assertSame(1362.0, $amounts['total_due']);
+    }
+
+    public function test_it_prorates_salary_and_service_for_an_extension(): void
+    {
+        $contract = new RentalContract();
+        $info = new RentalContractInfo([
+            'monthly_salary' => 346.67,
+            'contract_duration_months' => 3,
+            'contract_duration_days' => 90,
+            'package_price_basis' => 'net',
+            'package_price_after_discount' => 1320,
+            'contract_value' => 1362,
+        ]);
+        $info->setRelation('package', null);
+        $contract->setRelation('info', $info);
+        $contract->setRelation('maid', null);
+
+        $reflection = new ReflectionClass(RentalContractFinanceService::class);
+        $service = $reflection->newInstanceWithoutConstructor();
+        $amounts = $service->extensionAmounts($contract, 30);
+
+        $this->assertSame(346.67, $amounts['salary_exempt_amount']);
+        $this->assertSame(93.33, $amounts['taxable_subtotal']);
+        $this->assertSame(14.0, $amounts['vat_amount']);
+        $this->assertSame(454.0, $amounts['total_due']);
     }
 
     public function test_it_recovers_imported_invoice_total_from_paid_and_remaining_balance(): void
