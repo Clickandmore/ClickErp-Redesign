@@ -34,6 +34,7 @@ use App\Models\TravelHistory;
 use App\NewPermKeys;
 use App\Services\ingaz\RecruitmentTripAccountingService;
 use App\Services\ingaz\RecruitmentContractRefundService;
+use App\Services\ingaz\RentalMaidArrivalService;
 use App\Support\SystemModuleManager;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -4079,7 +4080,12 @@ class RecruitmentContractController extends Controller
         return response()->download($tempFile, 'contracts.xlsx', $headers)->deleteFileAfterSend(true);
     }
 
-    public function completeTrip(Request $request, RecruitmentTripAccountingService $tripAccountingService, $tripId = null)
+    public function completeTrip(
+        Request $request,
+        RecruitmentTripAccountingService $tripAccountingService,
+        RentalMaidArrivalService $rentalMaidArrivalService,
+        $tripId = null
+    )
     {
         try {
             // التحقق من صلاحية إكمال الرحلة
@@ -4160,13 +4166,15 @@ class RecruitmentContractController extends Controller
                 ]);
 
                 $accountingResult = $tripAccountingService->recordCompletionEntries($contract, $travelHistory);
+                $movedRentalMaidToShelter = $rentalMaidArrivalService->moveToShelter($contract, $travelHistory);
 
                 DB::commit();
 
                 logger()->info('Trip completed and contract status updated', [
                     'trip_id' => $tripId,
                     'contract_id' => $contract->id,
-                    'warranty_status' => $contract->warranty_status
+                    'warranty_status' => $contract->warranty_status,
+                    'rental_maid_moved_to_shelter' => $movedRentalMaidToShelter,
                 ]);
 
                 $message = $contract->status === ContractStatusEnum::Completed->value
@@ -4185,6 +4193,10 @@ class RecruitmentContractController extends Controller
                     $message .= ' لم يتم إنشاء القيود المحاسبية لعدم وجود فاتورة على العقد.';
                 } elseif (($accountingResult['skipped_reason'] ?? null) === 'automatic_entries_disabled') {
                     $message .= ' لم يتم إنشاء قيود محاسبية لأن القيود التلقائية غير مفعلة من إعدادات الحسابات.';
+                }
+
+                if ($movedRentalMaidToShelter) {
+                    $message .= ' وتمت إضافة العاملة إلى الإيواء وإتاحتها للتأجير.';
                 }
 
                 $accountingWarnings = array_values(array_unique($accountingResult['warnings'] ?? []));
