@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Enums\ingaz\ContractStatusEnum;
 use App\Http\Controllers\ingaz\InvoiceController;
 use App\Models\Contract;
 use App\Services\ingaz\InvoiceCalculationService;
@@ -46,6 +47,7 @@ class CreateRecruitmentContractInvoices extends Command
             return self::INVALID;
         }
 
+        $excludedShelterCount = $this->excludedShelterCount($from, $to, $contractIds);
         $contracts = $this->contracts($from, $to, $contractIds);
         $preflight = $this->preflight(
             $contracts,
@@ -54,7 +56,14 @@ class CreateRecruitmentContractInvoices extends Command
             $calculator,
             $yearService
         );
-        $this->displayPreflight($from, $to, $invoiceDate, $contracts, $preflight);
+        $this->displayPreflight(
+            $from,
+            $to,
+            $invoiceDate,
+            $contracts,
+            $preflight,
+            $excludedShelterCount
+        );
 
         if (!$this->option('apply')) {
             $this->newLine();
@@ -215,6 +224,10 @@ class CreateRecruitmentContractInvoices extends Command
         return Contract::query()
             ->whereIn('type', ['recruitment', 'maid'])
             ->whereBetween('created_at', [$from, $to])
+            ->where(function ($query) {
+                $query->whereNull('status')
+                    ->orWhere('status', '!=', ContractStatusEnum::Shelter->value);
+            })
             ->when($contractIds->isNotEmpty(), fn ($query) => $query->whereIn('id', $contractIds))
             ->with([
                 'invoice',
@@ -225,6 +238,16 @@ class CreateRecruitmentContractInvoices extends Command
             ])
             ->orderBy('id')
             ->get();
+    }
+
+    private function excludedShelterCount(Carbon $from, Carbon $to, Collection $contractIds): int
+    {
+        return Contract::query()
+            ->whereIn('type', ['recruitment', 'maid'])
+            ->whereBetween('created_at', [$from, $to])
+            ->where('status', ContractStatusEnum::Shelter->value)
+            ->when($contractIds->isNotEmpty(), fn ($query) => $query->whereIn('id', $contractIds))
+            ->count();
     }
 
     private function preflight(
@@ -317,7 +340,8 @@ class CreateRecruitmentContractInvoices extends Command
         Carbon $to,
         Carbon $invoiceDate,
         Collection $contracts,
-        array $preflight
+        array $preflight,
+        int $excludedShelterCount
     ): void {
         $this->table(
             ['البيان', 'القيمة'],
@@ -325,6 +349,7 @@ class CreateRecruitmentContractInvoices extends Command
                 ['بداية إضافة العقود', $from->toDateString()],
                 ['نهاية إضافة العقود', $to->toDateString()],
                 ['تاريخ الفواتير والقيود', $invoiceDate->toDateString()],
+                ['عقود الإيواء المستثناة', $excludedShelterCount],
                 ['العقود المطابقة', $contracts->count()],
                 ['لديها فاتورة مسبقاً', $preflight['existing']->count()],
                 ['جاهزة للإنشاء', $preflight['ready']->count()],
