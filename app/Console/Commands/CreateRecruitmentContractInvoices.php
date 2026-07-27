@@ -23,11 +23,12 @@ class CreateRecruitmentContractInvoices extends Command
     protected $signature = 'recruitment-contracts:create-missing-invoices
         {--from= : بداية نطاق تاريخ إضافة العقد بصيغة Y-m-d؛ الافتراضي 1 مارس من السنة الحالية}
         {--to= : نهاية نطاق تاريخ إضافة العقد بصيغة Y-m-d؛ الافتراضي اليوم}
-        {--invoice-date= : تاريخ الفواتير والقيود بصيغة Y-m-d؛ الافتراضي اليوم}
         {--contract=* : أرقام عقود محددة داخل النطاق للاختبار أو التنفيذ المحدود}
         {--send-to-zatca : إنشاء فواتير المبيعات المعلقة لهيئة الزكاة أيضاً}
         {--apply : تنفيذ الإنشاء؛ بدونه يعمل الأمر في وضع المعاينة فقط}
-        {--confirm= : عبارة التأكيد المطلوبة مع --apply}';
+        {--confirm= : عبارة التأكيد المطلوبة مع --apply}
+        {--expected-database= : اسم قاعدة البيانات المسموح بالتنفيذ عليها، ويجب أن يطابق الاتصال الحالي تماماً}
+        {--expected-database-fingerprint= : بصمة اتصال قاعدة البيانات كما تظهر في المعاينة}';
 
     protected $description = 'إنشاء الفواتير الناقصة وقيودها وسندات قبضها لعقود الاستقدام ضمن نطاق زمني، بصورة ذرية وآمنة';
 
@@ -39,7 +40,7 @@ class CreateRecruitmentContractInvoices extends Command
         BondService $bondService
     ): int {
         try {
-            [$from, $to, $invoiceDate] = $this->resolveDates();
+            [$from, $to] = $this->resolveDates();
             $contractIds = $this->resolveContractIds();
         } catch (RuntimeException $exception) {
             $this->error($exception->getMessage());
@@ -47,11 +48,41 @@ class CreateRecruitmentContractInvoices extends Command
             return self::INVALID;
         }
 
+        $currentDatabase = (string) DB::connection()->getDatabaseName();
+        $currentDatabaseFingerprint = $this->databaseFingerprint();
+        if ($this->option('apply')) {
+            $expectedDatabase = trim((string) $this->option('expected-database'));
+            $expectedFingerprint = trim((string) $this->option('expected-database-fingerprint'));
+            if ($expectedDatabase === '') {
+                $this->error('رفض التنفيذ: يجب تحديد اسم قاعدة البيانات المسموح بها عبر --expected-database.');
+
+                return self::INVALID;
+            }
+            if ($expectedFingerprint === '') {
+                $this->error('رفض التنفيذ: يجب تمرير بصمة اتصال قاعدة البيانات من المعاينة.');
+
+                return self::INVALID;
+            }
+            if (!hash_equals($expectedDatabase, $currentDatabase)) {
+                $this->error('رفض التنفيذ: قاعدة البيانات الحالية لا تطابق القاعدة المتوقعة.');
+                $this->line('الحالية: ' . $currentDatabase);
+                $this->line('المتوقعة: ' . $expectedDatabase);
+
+                return self::FAILURE;
+            }
+            if (!hash_equals($expectedFingerprint, $currentDatabaseFingerprint)) {
+                $this->error('رفض التنفيذ: بصمة اتصال قاعدة البيانات لا تطابق الاتصال الحالي.');
+                $this->line('الحالية: ' . $currentDatabaseFingerprint);
+                $this->line('المتوقعة: ' . $expectedFingerprint);
+
+                return self::FAILURE;
+            }
+        }
+
         $excludedShelterCount = $this->excludedShelterCount($from, $to, $contractIds);
         $contracts = $this->contracts($from, $to, $contractIds);
         $preflight = $this->preflight(
             $contracts,
-            $invoiceDate,
             $invoiceController,
             $calculator,
             $yearService
@@ -59,10 +90,11 @@ class CreateRecruitmentContractInvoices extends Command
         $this->displayPreflight(
             $from,
             $to,
-            $invoiceDate,
             $contracts,
             $preflight,
-            $excludedShelterCount
+            $excludedShelterCount,
+            $currentDatabase,
+            $currentDatabaseFingerprint
         );
 
         if (!$this->option('apply')) {
@@ -72,7 +104,13 @@ class CreateRecruitmentContractInvoices extends Command
                 $this->error('المعاينة تحتوي موانع. أصلحها ثم أعد تشغيل المعاينة قبل التنفيذ.');
             } elseif ($preflight['ready']->isNotEmpty()) {
                 $this->line('للتنفيذ بعد أخذ نسخة احتياطية:');
-                $this->line($this->applyCommand($from, $to, $invoiceDate, $contractIds));
+                $this->line($this->applyCommand(
+                    $from,
+                    $to,
+                    $contractIds,
+                    $currentDatabase,
+                    $currentDatabaseFingerprint
+                ));
             }
 
             return self::SUCCESS;
@@ -119,7 +157,6 @@ class CreateRecruitmentContractInvoices extends Command
         try {
             DB::transaction(function () use (
                 $preflight,
-                $invoiceDate,
                 $invoiceController,
                 $constraintService,
                 $yearService,
@@ -130,7 +167,7 @@ class CreateRecruitmentContractInvoices extends Command
                     $result = $invoiceController->createRecruitmentContractInvoice(
                         $row['contract_id'],
                         $row['payload'],
-                        $invoiceDate->copy(),
+                        Carbon::parse($row['invoice_date'], config('app.timezone')),
                         (bool) $this->option('send-to-zatca'),
                         $constraintService,
                         $yearService,
@@ -145,6 +182,7 @@ class CreateRecruitmentContractInvoices extends Command
                     $created[] = [
                         'contract_id' => $row['contract_id'],
                         'invoice_id' => (int) $invoice->id,
+                        'invoice_date' => $invoice->created_at?->format('Y-m-d H:i:s'),
                         'invoice_total' => (float) $invoice->total_due,
                         'invoice_constraint_id' => (int) $constraint->id,
                         'receipt_bond_id' => (int) $receiptBond->id,
@@ -166,7 +204,7 @@ class CreateRecruitmentContractInvoices extends Command
             fclose($lockHandle);
         }
 
-        $reportPath = $this->writeAuditReport($from, $to, $invoiceDate, $created);
+        $reportPath = $this->writeAuditReport($from, $to, $currentDatabase, $created);
 
         $this->newLine();
         $this->info('تم إنشاء الدفعة كاملة بنجاح.');
@@ -184,13 +222,10 @@ class CreateRecruitmentContractInvoices extends Command
     {
         $fromValue = trim((string) ($this->option('from') ?: now()->startOfYear()->addMonths(2)->toDateString()));
         $toValue = trim((string) ($this->option('to') ?: now()->toDateString()));
-        $invoiceDateValue = trim((string) ($this->option('invoice-date') ?: now()->toDateString()));
 
         try {
             $from = Carbon::createFromFormat('!Y-m-d', $fromValue, config('app.timezone'))->startOfDay();
             $to = Carbon::createFromFormat('!Y-m-d', $toValue, config('app.timezone'))->endOfDay();
-            $invoiceDate = Carbon::createFromFormat('!Y-m-d', $invoiceDateValue, config('app.timezone'))
-                ->setTimeFrom(now());
         } catch (Throwable $exception) {
             throw new RuntimeException('صيغة التاريخ غير صحيحة. استخدم Y-m-d.');
         }
@@ -201,11 +236,7 @@ class CreateRecruitmentContractInvoices extends Command
         if ($to->copy()->startOfDay()->gt(now()->startOfDay())) {
             throw new RuntimeException('تاريخ نهاية نطاق العقود لا يمكن أن يكون في المستقبل.');
         }
-        if ($invoiceDate->copy()->startOfDay()->gt(now()->startOfDay())) {
-            throw new RuntimeException('تاريخ الفاتورة لا يمكن أن يكون في المستقبل.');
-        }
-
-        return [$from, $to, $invoiceDate];
+        return [$from, $to];
     }
 
     private function resolveContractIds(): Collection
@@ -252,17 +283,29 @@ class CreateRecruitmentContractInvoices extends Command
 
     private function preflight(
         Collection $contracts,
-        Carbon $invoiceDate,
         InvoiceController $invoiceController,
         InvoiceCalculationService $calculator,
         YearService $yearService
     ): array {
         $globalErrors = [];
-        try {
-            $invoiceController->assertRecruitmentInvoiceAccountingConfiguration($invoiceDate, $yearService);
-        } catch (Throwable $exception) {
-            $globalErrors[] = $exception->getMessage();
+        $invoiceDates = $contracts
+            ->reject(fn (Contract $contract) => (bool) $contract->invoice)
+            ->pluck('created_at')
+            ->filter()
+            ->map(fn ($date) => $date->toDateString())
+            ->unique()
+            ->values();
+        foreach ($invoiceDates as $invoiceDate) {
+            try {
+                $invoiceController->assertRecruitmentInvoiceAccountingConfiguration(
+                    Carbon::parse($invoiceDate, config('app.timezone')),
+                    $yearService
+                );
+            } catch (Throwable $exception) {
+                $globalErrors[] = $invoiceDate . ': ' . $exception->getMessage();
+            }
         }
+        $globalErrors = array_values(array_unique($globalErrors));
 
         $existing = $contracts->filter(fn (Contract $contract) => (bool) $contract->invoice)->values();
         $ready = collect();
@@ -299,6 +342,7 @@ class CreateRecruitmentContractInvoices extends Command
                 'nationality' => (string) ($nationality?->sub_title ?: ($nationality?->title ?: '-')),
                 'contract_value' => $contractValue,
                 'invoice_total' => (float) $payload['total_due'],
+                'invoice_date' => $contract->created_at?->format('Y-m-d H:i:s'),
                 'payload' => $payload,
                 'errors' => $errors,
             ];
@@ -338,17 +382,20 @@ class CreateRecruitmentContractInvoices extends Command
     private function displayPreflight(
         Carbon $from,
         Carbon $to,
-        Carbon $invoiceDate,
         Collection $contracts,
         array $preflight,
-        int $excludedShelterCount
+        int $excludedShelterCount,
+        string $currentDatabase,
+        string $currentDatabaseFingerprint
     ): void {
         $this->table(
             ['البيان', 'القيمة'],
             [
                 ['بداية إضافة العقود', $from->toDateString()],
                 ['نهاية إضافة العقود', $to->toDateString()],
-                ['تاريخ الفواتير والقيود', $invoiceDate->toDateString()],
+                ['تاريخ الفواتير والقيود', 'تاريخ إنشاء كل عقد'],
+                ['قاعدة البيانات الحالية', $currentDatabase],
+                ['بصمة اتصال قاعدة البيانات', $currentDatabaseFingerprint],
                 ['عقود الإيواء المستثناة', $excludedShelterCount],
                 ['العقود المطابقة', $contracts->count()],
                 ['لديها فاتورة مسبقاً', $preflight['existing']->count()],
@@ -411,16 +458,18 @@ class CreateRecruitmentContractInvoices extends Command
     private function applyCommand(
         Carbon $from,
         Carbon $to,
-        Carbon $invoiceDate,
-        Collection $contractIds
+        Collection $contractIds,
+        string $currentDatabase,
+        string $currentDatabaseFingerprint
     ): string {
         $parts = [
             'php artisan recruitment-contracts:create-missing-invoices',
             '--from=' . $from->toDateString(),
             '--to=' . $to->toDateString(),
-            '--invoice-date=' . $invoiceDate->toDateString(),
             '--apply',
             '--confirm=' . self::CONFIRMATION,
+            '--expected-database=' . $currentDatabase,
+            '--expected-database-fingerprint=' . $currentDatabaseFingerprint,
             '--no-interaction',
         ];
 
@@ -434,7 +483,25 @@ class CreateRecruitmentContractInvoices extends Command
         return implode(' ', $parts);
     }
 
-    private function writeAuditReport(Carbon $from, Carbon $to, Carbon $invoiceDate, array $created): string
+    private function databaseFingerprint(): string
+    {
+        $connection = DB::connection();
+        $config = $connection->getConfig();
+
+        return hash('sha256', implode('|', [
+            (string) ($config['driver'] ?? ''),
+            (string) ($config['host'] ?? ''),
+            (string) ($config['port'] ?? ''),
+            (string) $connection->getDatabaseName(),
+        ]));
+    }
+
+    private function writeAuditReport(
+        Carbon $from,
+        Carbon $to,
+        string $database,
+        array $created
+    ): string
     {
         $directory = storage_path('app/exports');
         if (!is_dir($directory) && !mkdir($directory, 0775, true) && !is_dir($directory)) {
@@ -444,9 +511,10 @@ class CreateRecruitmentContractInvoices extends Command
         $path = $directory . '/recruitment-invoices-created-' . now()->format('Y-m-d_His') . '.json';
         $written = file_put_contents($path, json_encode([
             'executed_at' => now()->toIso8601String(),
+            'database' => $database,
             'contracts_created_from' => $from->toDateString(),
             'contracts_created_to' => $to->toDateString(),
-            'invoice_date' => $invoiceDate->toDateString(),
+            'invoice_date_source' => 'contract.created_at',
             'send_to_zatca' => (bool) $this->option('send-to-zatca'),
             'count' => count($created),
             'total' => round((float) collect($created)->sum('invoice_total'), 2),
