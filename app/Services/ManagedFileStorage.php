@@ -30,6 +30,25 @@ class ManagedFileStorage
         return self::R2_PREFIX . $path;
     }
 
+    public function storeMaidFileContents(string $contents, string $directory, string $extension = ''): string
+    {
+        $directory = trim($directory, '/');
+        $extension = strtolower(trim($extension, " \t\n\r\0\x0B."));
+        $filename = Str::random(10) . time() . ($extension !== '' ? '.' . $extension : '');
+
+        if (!R2StorageSettings::isReady()) {
+            Storage::disk('public')->put($directory . '/' . $filename, $contents);
+
+            return $directory . '/' . $filename;
+        }
+
+        $settings = R2StorageSettings::all();
+        $path = trim($settings['root_prefix'] . '/' . $directory . '/' . $filename, '/');
+        $this->r2Disk($settings)->put($path, $contents);
+
+        return self::R2_PREFIX . $path;
+    }
+
     public function exists(?string $storedPath): bool
     {
         if (!$this->isR2Path($storedPath)) {

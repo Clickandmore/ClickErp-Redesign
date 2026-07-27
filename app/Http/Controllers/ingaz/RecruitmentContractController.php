@@ -2872,7 +2872,7 @@ class RecruitmentContractController extends Controller
         ];
 
         if ($request->hasFile('manual_maid_attachment')) {
-            $uploadedPath = uploadFile($request->file('manual_maid_attachment'), 'maids/');
+            $uploadedPath = uploadMaidFile($request->file('manual_maid_attachment'), 'maids/');
             $maidData['cv_file'] = $uploadedPath;
 
             $extension = strtolower((string) $request->file('manual_maid_attachment')->getClientOriginalExtension());
