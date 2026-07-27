@@ -16,8 +16,10 @@
         <thead>
         <tr>
             <th>#</th>
+            <th>{{ __('steps.sort_order') }}</th>
             <th>{{helperTrans("ingaz.icon")}}</th>
             <th>{{helperTrans("ingaz.title")}}</th>
+            <th>{{helperTrans("ingaz.description")}}</th>
             <th>{{helperTrans("ingaz.actions")}}</th>
         </tr>
         </thead>
@@ -36,8 +38,10 @@
         $(document).ready(function () {
             let columns = [
                 {"data": 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
+                {"data": "sort_order", orderable: true, searchable: false},
                 {"data": "icon", orderable: false, searchable: false},
                 {"data": "title",orderable: true,searchable: true},
+                {"data": "description",orderable: false,searchable: true, defaultContent: ""},
                 {"data": "actions", orderable: false, searchable: false}
             ];
             showDataTable("{{route("steps.index")}}", columns);

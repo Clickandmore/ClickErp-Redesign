@@ -28,6 +28,9 @@ class StepRequest extends MainRequest
             'icon' => [$this->isMethod('post') ? 'required' : ''],
             'title:en' => 'required',
             'title:ar' => 'required',
+            'description:en' => 'nullable|string|max:2000',
+            'description:ar' => 'nullable|string|max:2000',
+            'sort_order' => 'required|integer|min:1|max:9999',
         ];
     }
 }

@@ -20,6 +20,14 @@ class StepAction extends MainAction
         return parent::store($data);
     }
 
+    public function get()
+    {
+        return $this->model
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get();
+    }
+
     public function updateStep($id, $data)
     {
         $row = $this->find($id);

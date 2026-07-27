@@ -13,7 +13,14 @@ class StepController extends Controller
 {
 
        public $folderPath = "admin.ingaz.steps";
-        public $postData = ["title:ar","title:en","icon"];
+        public $postData = [
+            "title:ar",
+            "title:en",
+            "description:ar",
+            "description:en",
+            "icon",
+            "sort_order",
+        ];
         public $mainRoute = "steps";
 
     function __construct()
@@ -31,7 +38,10 @@ class StepController extends Controller
         public function index(Request $request, objAction $Action)
         {
             if ($request->ajax()) {
-                $units = objModel::all();
+                $units = objModel::query()
+                    ->orderBy('sort_order')
+                    ->orderBy('id')
+                    ->get();
                 return DataTables::of($units)
                     ->addIndexColumn()
                     ->editColumn('icon', function ($row) {
@@ -67,7 +77,8 @@ class StepController extends Controller
         public function create(Request $request)
         {
             if ($request->ajax()) {
-                $returnHTML = view($this->folderPath . ".create")->render();
+                $nextSortOrder = max(1, ((int) objModel::max('sort_order')) + 1);
+                $returnHTML = view($this->folderPath . ".create", compact('nextSortOrder'))->render();
                 return jsonSuccess(["html" => $returnHTML]);
             }
         }

@@ -7,6 +7,11 @@
             {{helperTrans("ingaz.icon")}}
         </label>
         @include('admin.ingaz.steps.icons')
+        <div class="col-12">
+            <label class="form-label">{{ __('steps.sort_order') }}</label>
+            <input type="number" name="sort_order" class="form-control" min="1" max="9999"
+                value="{{ old('sort_order', $obj->sort_order) }}" data-validation="required">
+        </div>
         @foreach (config('translatable.locales') as $locale)
             <div class="col-12">
                 <label for="TextInput" class="form-label">
@@ -15,6 +20,16 @@
                 </label>
                 <input type="text" name="title:{{ $locale }}" class="form-control" data-validation="required"
                     value="{{$obj->translate($locale)->title}}">
+            </div>
+        @endforeach
+        @foreach (config('translatable.locales') as $locale)
+            <div class="col-12">
+                <label class="form-label">
+                    {{ helperTrans('ingaz.description') }}
+                    ({{ helperTrans('ingaz.' . $locale) }})
+                </label>
+                <textarea name="description:{{ $locale }}" class="form-control" rows="3"
+                    maxlength="2000">{{ old('description:' . $locale, optional($obj->translate($locale))->description) }}</textarea>
             </div>
         @endforeach
         <div class="col-12 modal-footer">
