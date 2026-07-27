@@ -1023,13 +1023,17 @@ class RentalContractFinanceService
             $baseDays,
             (int) ($contract->info?->contract_duration_months ?? 0)
         );
-        $baseNetPrice = (float) $baseAmounts['net_subtotal'];
-        $extensionNetPrice = $baseDays > 0
-            ? $this->roundMoney(($baseNetPrice / $baseDays) * max(0, $extensionDays))
+        $baseGrossTotal = (float) ($contract->info?->contract_value ?? 0);
+        if ($baseGrossTotal <= 0) {
+            $baseGrossTotal = (float) $baseAmounts['total_due'];
+        }
+
+        $extensionGrossTotal = $baseDays > 0
+            ? $this->roundMoney(($baseGrossTotal / $baseDays) * max(0, $extensionDays))
             : 0.0;
 
-        return RentalContractPricing::fromNetPrice(
-            $extensionNetPrice,
+        return RentalContractPricing::fromGrossPrice(
+            $extensionGrossTotal,
             $this->resolveMonthlySalary($contract),
             max(0, $extensionDays)
         );

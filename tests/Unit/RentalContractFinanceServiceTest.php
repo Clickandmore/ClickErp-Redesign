@@ -97,6 +97,34 @@ class RentalContractFinanceServiceTest extends TestCase
         $this->assertSame(454.0, $amounts['total_due']);
     }
 
+    public function test_extension_uses_the_agreed_gross_contract_daily_rate(): void
+    {
+        $contract = new RentalContract();
+        $info = new RentalContractInfo([
+            'monthly_salary' => 900,
+            'contract_duration_months' => 1,
+            'contract_duration_days' => 30,
+            'package_price_basis' => 'net',
+            'package_price_after_discount' => 1478.26,
+            'package_total_with_tax' => 1700,
+            'contract_value' => 1700,
+        ]);
+        $info->setRelation('package', null);
+        $contract->setRelation('info', $info);
+        $contract->setRelation('maid', null);
+
+        $reflection = new ReflectionClass(RentalContractFinanceService::class);
+        $service = $reflection->newInstanceWithoutConstructor();
+        $amounts = $service->extensionAmounts($contract, 32);
+
+        $this->assertSame(1813.33, $amounts['total_due']);
+        $this->assertSame(960.0, $amounts['salary_exempt_amount']);
+        $this->assertSame(
+            $amounts['total_due'],
+            round($amounts['taxable_subtotal'] + $amounts['salary_exempt_amount'] + $amounts['vat_amount'], 2)
+        );
+    }
+
     public function test_it_recovers_imported_invoice_total_from_paid_and_remaining_balance(): void
     {
         $amounts = $this->buildInvoiceAmounts([

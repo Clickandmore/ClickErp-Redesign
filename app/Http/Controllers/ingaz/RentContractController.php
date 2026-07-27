@@ -4087,12 +4087,14 @@ class RentContractController extends Controller
             $paymentAmount = in_array($validated['extension_payment_status'], ['paid', 'partial'], true)
                 ? round((float) ($validated['extension_payment_amount'] ?? 0), 2)
                 : 0.0;
+            $extensionValueInCents = (int) round($extensionValue * 100);
+            $paymentAmountInCents = (int) round($paymentAmount * 100);
 
-            if ($paymentAmount > $extensionValue + 0.01) {
+            if ($paymentAmountInCents > $extensionValueInCents) {
                 throw new \RuntimeException('مبلغ سند القبض لا يمكن أن يتجاوز قيمة التمديد.');
             }
 
-            if ($validated['extension_payment_status'] === 'paid' && abs($paymentAmount - $extensionValue) > 0.01) {
+            if ($validated['extension_payment_status'] === 'paid' && $paymentAmountInCents !== $extensionValueInCents) {
                 throw new \RuntimeException('عند اختيار "تم الدفع" يجب أن يساوي مبلغ السند قيمة التمديد. استخدم "مدفوع جزئياً" للمبالغ الأقل.');
             }
 
