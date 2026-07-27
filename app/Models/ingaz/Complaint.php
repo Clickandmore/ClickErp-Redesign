@@ -32,10 +32,7 @@ class Complaint extends Model
 
     public function getFileUrlAttribute()
     {
-        if (!$this->file) return null;
-
-        // هذا سيقوم بإنشاء رابط كامل مثل: https://api.yourdomain.com/storage/complaints/name.jpg
-        return asset('storage/' . $this->file);
+        return $this->file ? showFile($this->file) : null;
     }
 
     // تأكد من إضافة الحقل لخاصية الـ appends ليظهر في الـ JSON

@@ -310,7 +310,7 @@
                             @foreach($complaint->attachments as $attachment)
                                 <div class="current-attachment">
                                     <i class="fas fa-paperclip me-2"></i>
-                                    <a href="{{ Storage::url($attachment) }}" target="_blank">
+                                    <a href="{{ showFile($attachment) }}" target="_blank">
                                         {{ basename($attachment) }}
                                     </a>
                                 </div>

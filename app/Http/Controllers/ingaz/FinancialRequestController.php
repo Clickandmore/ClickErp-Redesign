@@ -11,6 +11,7 @@ use App\Models\ingaz\User;
 use App\Models\RentalContract;
 use App\Services\AdminNotificationService;
 use App\Services\BranchAccessService;
+use App\Services\ManagedFileStorage;
 use App\Support\SystemModuleManager;
 use App\Support\AutomaticJournalEntries;
 use Illuminate\Http\Request;
@@ -549,16 +550,25 @@ class FinancialRequestController extends Controller
                     continue;
                 }
 
-                $path = $file->store("financial-requests/{$financialRequest->id}", 'public');
-                $financialRequest->attachments()->create([
-                    'field_key' => $fieldKey,
-                    'label' => $request->input("attachment_labels.{$fieldKey}"),
-                    'description' => $request->input("attachment_descriptions.{$fieldKey}"),
-                    'file_name' => $file->getClientOriginalName(),
-                    'file_path' => $path,
-                    'mime_type' => $file->getMimeType(),
-                    'size' => $file->getSize(),
-                ]);
+                $path = app(ManagedFileStorage::class)->uploadFile(
+                    $file,
+                    "financial-requests/{$financialRequest->id}"
+                );
+
+                try {
+                    $financialRequest->attachments()->create([
+                        'field_key' => $fieldKey,
+                        'label' => $request->input("attachment_labels.{$fieldKey}"),
+                        'description' => $request->input("attachment_descriptions.{$fieldKey}"),
+                        'file_name' => $file->getClientOriginalName(),
+                        'file_path' => $path,
+                        'mime_type' => $file->getMimeType(),
+                        'size' => $file->getSize(),
+                    ]);
+                } catch (\Throwable $exception) {
+                    deleteFile($path);
+                    throw $exception;
+                }
             }
         }
     }

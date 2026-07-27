@@ -57,8 +57,8 @@
                     <div class="row g-3">
                         @foreach ($imageAttachments as $attachment)
                             <div class="col-md-6">
-                                <a href="{{ Storage::url($attachment->file_path) }}" target="_blank" class="d-block">
-                                    <img src="{{ Storage::url($attachment->file_path) }}" alt="{{ $attachment->file_name }}" class="img-fluid rounded border">
+                                <a href="{{ showFile($attachment->file_path) }}" target="_blank" class="d-block">
+                                    <img src="{{ showFile($attachment->file_path) }}" alt="{{ $attachment->file_name }}" class="img-fluid rounded border">
                                 </a>
                                 <div class="small text-muted mt-1">{{ $attachment->file_name }}</div>
                             </div>
@@ -78,7 +78,7 @@
                         @foreach ($videoAttachments as $attachment)
                             <div class="col-md-6">
                                 <video class="w-100 rounded border" controls>
-                                    <source src="{{ Storage::url($attachment->file_path) }}" type="{{ $attachment->mime_type }}">
+                                    <source src="{{ showFile($attachment->file_path) }}" type="{{ $attachment->mime_type }}">
                                 </video>
                                 <div class="small text-muted mt-1">{{ $attachment->file_name }}</div>
                             </div>
@@ -97,7 +97,7 @@
                     <div class="row g-3">
                         @foreach ($fileAttachments as $attachment)
                             <div class="col-md-6 col-lg-4">
-                                <a class="d-block border rounded p-3 text-decoration-none" href="{{ Storage::url($attachment->file_path) }}" target="_blank">
+                                <a class="d-block border rounded p-3 text-decoration-none" href="{{ showFile($attachment->file_path) }}" target="_blank">
                                     <i class="fas fa-file me-2"></i>{{ $attachment->file_name }}
                                 </a>
                             </div>

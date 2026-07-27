@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\SupportArticleAttachment;
 use App\Models\SupportKnowledgeArticle;
 use App\Models\SupportTicket;
+use App\Services\ManagedFileStorage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -109,7 +110,7 @@ class SupportCenterController extends Controller
     public function destroy(SupportKnowledgeArticle $article)
     {
         foreach ($article->attachments as $attachment) {
-            Storage::disk('public')->delete($attachment->file_path);
+            deleteFile($attachment->file_path);
         }
 
         $article->delete();
@@ -120,7 +121,7 @@ class SupportCenterController extends Controller
     public function destroyAttachment(SupportArticleAttachment $attachment)
     {
         $article = $attachment->article;
-        Storage::disk('public')->delete($attachment->file_path);
+        deleteFile($attachment->file_path);
         $attachment->delete();
 
         return redirect()->route('support.edit', $article)->with('success', 'تم حذف المرفق');
@@ -203,14 +204,19 @@ class SupportCenterController extends Controller
                 continue;
             }
 
-            $path = $file->store('support-center', 'public');
+            $path = app(ManagedFileStorage::class)->uploadFile($file, 'support-center');
 
-            $article->attachments()->create([
-                'file_path' => $path,
-                'file_name' => $file->getClientOriginalName(),
-                'mime_type' => $file->getClientMimeType(),
-                'file_size' => $file->getSize(),
-            ]);
+            try {
+                $article->attachments()->create([
+                    'file_path' => $path,
+                    'file_name' => $file->getClientOriginalName(),
+                    'mime_type' => $file->getClientMimeType(),
+                    'file_size' => $file->getSize(),
+                ]);
+            } catch (\Throwable $exception) {
+                deleteFile($path);
+                throw $exception;
+            }
         }
     }
 }

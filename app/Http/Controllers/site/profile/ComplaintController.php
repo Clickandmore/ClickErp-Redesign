@@ -6,6 +6,7 @@ use App\Http\Actions\ingaz\ComplaintAction as objAction;
 use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\ComplaintRequest;
 use App\Models\ingaz\Complaint as objModel;
+use App\Services\ManagedFileStorage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -49,14 +50,20 @@ class ComplaintController extends Controller
 
         // Handle file upload
         if ($request->hasFile('file')) {
-            $file = $request->file('file');
-            $extension = $file->getClientOriginalExtension();
-            $fileName = Str::random(40) . '.' . $extension;
-            $file->storeAs('public/complaints', $fileName);
-            $dataInsert['file'] = 'complaints/' . $fileName;
+            $dataInsert['file'] = app(ManagedFileStorage::class)->uploadFile(
+                $request->file('file'),
+                'complaints'
+            );
         }
 
-        $data = $action->store($dataInsert);
+        try {
+            $data = $action->store($dataInsert);
+        } catch (\Throwable $exception) {
+            if (!empty($dataInsert['file'])) {
+                deleteFile($dataInsert['file']);
+            }
+            throw $exception;
+        }
         return jsonSuccess(null, 'تم ارسال الشكوي بنجاح');
     }
 

@@ -192,7 +192,7 @@
                                     $attachmentIcon = in_array($extension, ['jpg', 'jpeg', 'png']) ? 'fa-file-image' : ($extension === 'pdf' ? 'fa-file-pdf' : 'fa-file');
                                 @endphp
                                 <article class="organized-attachment">
-                                    <a href="{{ Storage::url($attachment->path) }}" target="_blank" class="organized-attachment__main">
+                                    <a href="{{ showFile($attachment->path) }}" target="_blank" class="organized-attachment__main">
                                         <span class="file-icon"><i class="fas {{ $attachmentIcon }}"></i></span>
                                         <span class="file-info">
                                             <strong>{{ $attachment->display_name ?: $attachment->original_name ?: 'مرفق ' . $loop->iteration }}</strong>

@@ -162,7 +162,7 @@
                     <div class="card-header"><h5 class="section-title"><i class="fa fa-paperclip ms-2 text-muted"></i> المرفقات</h5></div>
                     <div class="card-body">
                         @forelse($requestItem->attachments as $attachment)
-                            <a class="attachment-link mb-2" href="{{ asset('storage/' . $attachment->file_path) }}" target="_blank">
+                            <a class="attachment-link mb-2" href="{{ showFile($attachment->file_path) }}" target="_blank">
                                 <i class="fa fa-file mt-1"></i>
                                 <span><strong>{{ $attachment->label ?: $attachment->file_name }}</strong><small class="text-muted d-block">{{ $attachment->file_name }}</small></span>
                             </a>
