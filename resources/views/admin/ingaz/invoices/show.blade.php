@@ -84,7 +84,7 @@
                         <div class="text-end">
                             <div class="invoice-title">فاتورة إلكترونية</div>
                             <div class="invoice-meta">
-                                {{ $invoice->contract_id ? 'رقم العقد: ' . $invoice->contract_id : ($invoice->ingaz_delegation_id ? 'رقم التفويض: ' . $invoice->ingaz_delegation_id : 'فاتورة عامة') }}
+                                {{ $invoice->sponsorship_transfer_id ? 'طلب نقل كفالة رقم: ' . $invoice->sponsorship_transfer_id : ($invoice->contract_id ? 'رقم العقد: ' . $invoice->contract_id : ($invoice->ingaz_delegation_id ? 'رقم التفويض: ' . $invoice->ingaz_delegation_id : 'فاتورة عامة')) }}
                             </div>
                         </div>
                     </div>
@@ -92,8 +92,8 @@
                     <div class="row g-3 mb-4">
                         <div class="col-lg-6 gap-4">
                             <div class="d-flex justify-content-between mb-2">
-                                <strong>{{ $invoice->contract_id ? 'رقم العقد' : ($invoice->ingaz_delegation_id ? 'رقم التفويض' : 'نوع الفاتورة') }}</strong>
-                                <span>{{ $invoice->contract_id ?: ($invoice->ingaz_delegation_id ?: 'فاتورة عامة') }}</span>
+                                <strong>{{ $invoice->sponsorship_transfer_id ? 'رقم طلب نقل الكفالة' : ($invoice->contract_id ? 'رقم العقد' : ($invoice->ingaz_delegation_id ? 'رقم التفويض' : 'نوع الفاتورة')) }}</strong>
+                                <span>{{ $invoice->sponsorship_transfer_id ?: ($invoice->contract_id ?: ($invoice->ingaz_delegation_id ?: 'فاتورة عامة')) }}</span>
                             </div>
                             <div class="d-flex justify-content-between mb-2">
                                 <strong>حالة السداد</strong>
@@ -223,7 +223,7 @@
                     </div>
 
                     <div class="d-flex gap-2 mt-4 no-print">
-                        <a href="{{ $invoice->ingaz_delegation_id ? route('ingaz-delegations.index') : ($invoice->contract_id ? route('RecruitmentContract.index') : route('invoices.index')) }}" class="btn btn-outline-secondary">إغلاق</a>
+                        <a href="{{ $invoice->sponsorship_transfer_id ? route('SponsorshipTransfer.show', $invoice->sponsorship_transfer_id) : ($invoice->ingaz_delegation_id ? route('ingaz-delegations.index') : ($invoice->contract_id ? route('RecruitmentContract.index') : route('invoices.index'))) }}" class="btn btn-outline-secondary">إغلاق</a>
                     </div>
                 </div>
             </div>

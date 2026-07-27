@@ -197,11 +197,12 @@
                                 </div>
                                 <div class="col-md-6 d-none" id="receipt_account_wrapper">
                                     <label for="receipt_account_id" class="form-label fw-bold">البنك / حساب السداد <span class="text-danger">*</span></label>
+                                    @php($selectedReceiptAccountId = old('receipt_account_id', $transfer->receipt_account_id ?? ''))
                                     <select name="receipt_account_id" id="receipt_account_id" class="form-select">
                                         <option value="">اختر الحساب الذي سيصدر عليه سند القبض</option>
                                         @foreach($receiptAccounts as $account)
-                                            <option value="{{ $account->id }}" @selected((string) old('receipt_account_id', $transfer->receipt_account_id ?? '') === (string) $account->id)>
-                                                {{ $account->code }} - {{ $account->name }}
+                                            <option value="{{ $account->id }}" {{ (string) $selectedReceiptAccountId === (string) $account->id ? 'selected' : '' }}>
+                                                {{ $account->name }}
                                             </option>
                                         @endforeach
                                     </select>
@@ -226,13 +227,33 @@
                         <label class="form-label fw-bold">ملاحظات إضافية</label>
                         <textarea name="notes" class="form-control" rows="2" maxlength="1000" placeholder="اكتب أي ملاحظات إضافية هنا...">{{ old('notes', $transfer->notes ?? '') }}</textarea>
                     </div>
+                    @unless($isEditMode)
+                        <div class="col-12">
+                            <div class="alert alert-info d-flex align-items-start gap-2 mb-0">
+                                <i class="fas fa-file-invoice-dollar mt-1"></i>
+                                <div>
+                                    <strong class="d-block">اختر طريقة الحفظ</strong>
+                                    يمكنك حفظ طلب نقل الكفالة فقط، أو حفظه والانتقال مباشرة لإعداد وإصدار الفاتورة.
+                                </div>
+                            </div>
+                        </div>
+                    @endunless
                     <div class="col-12 d-flex justify-content-end mt-3">
                         <button type="button" class="btn btn-secondary me-2" onclick="window.history.back()">
                             <i class="fas fa-arrow-left me-2"></i>رجوع
                         </button>
-                        <button type="submit" class="btn btn-primary px-4">
-                            <i class="fas fa-save me-2"></i>{{ $isEditMode ? 'حفظ التعديلات' : 'حفظ الطلب' }}
-                        </button>
+                        @if($isEditMode)
+                            <button type="submit" class="btn btn-primary px-4" value="save">
+                                <i class="fas fa-save me-2"></i>حفظ التعديلات
+                            </button>
+                        @else
+                            <button type="submit" class="btn btn-primary px-4" value="save">
+                                <i class="fas fa-plus-circle me-2"></i>إضافة طلب النقل
+                            </button>
+                            <button type="submit" class="btn btn-success px-4 ms-2" value="save_and_invoice">
+                                <i class="fas fa-file-invoice-dollar me-2"></i>حفظ وإصدار فاتورة
+                            </button>
+                        @endif
                     </div>
                 </form>
             </div>
@@ -395,17 +416,41 @@ $(document).ready(function() {
     // إرسال الطلب
     $('#sponsorshipTransferForm').on('submit', function(e) {
         e.preventDefault();
-        let form = $(this);
-        let btn = form.find('button[type=submit]');
-        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...');
+        const form = $(this);
+        const submitter = e.originalEvent && e.originalEvent.submitter
+            ? e.originalEvent.submitter
+            : form.find('button[type=submit]').first().get(0);
+        const submitAction = submitter && submitter.value ? submitter.value : 'save';
+        const buttons = form.find('button[type=submit]');
+        const formData = new FormData(this);
+
+        formData.set('submit_action', submitAction);
+        buttons.each(function() {
+            $(this).data('original-html', $(this).html());
+        }).prop('disabled', true);
+        $(submitter).html('<i class="fas fa-spinner fa-spin"></i> جاري الحفظ...');
+
         $.ajax({
             url: '{{ $formAction }}',
             type: 'POST',
-            data: new FormData(this),
+            data: formData,
             processData: false,
             contentType: false,
             success: function(response) {
                 if (response.success) {
+                    if (submitAction === 'save_and_invoice' && response.invoice_create_url) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'تم حفظ الطلب',
+                            text: response.message + '، سيتم فتح شاشة إصدار الفاتورة.',
+                            timer: 1200,
+                            showConfirmButton: false
+                        }).then(() => {
+                            window.location.href = response.invoice_create_url;
+                        });
+                        return;
+                    }
+
                     Swal.fire({
                         icon: 'success',
                         title: 'تم الحفظ',
@@ -413,7 +458,7 @@ $(document).ready(function() {
                         timer: 1800,
                         showConfirmButton: false
                     }).then(() => {
-                        window.location.href = '{{ route("SponsorshipTransfer.index") }}';
+                        window.location.href = response.show_url || '{{ route("SponsorshipTransfer.index") }}';
                     });
                 } else {
                     showErrorResponse(response, 'حدث خطأ في حفظ طلب نقل الكفالة');
@@ -423,7 +468,9 @@ $(document).ready(function() {
                 showErrorResponse(xhr.responseJSON, 'حدث خطأ غير متوقع');
             },
             complete: function() {
-                btn.prop('disabled', false).html('<i class="fas fa-save me-2"></i>{{ $isEditMode ? 'حفظ التعديلات' : 'حفظ الطلب' }}');
+                buttons.each(function() {
+                    $(this).prop('disabled', false).html($(this).data('original-html'));
+                });
             }
         });
     });

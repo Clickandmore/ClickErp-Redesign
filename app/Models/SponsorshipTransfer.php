@@ -149,6 +149,11 @@ class SponsorshipTransfer extends Model
         return $this->belongsTo(Constraint::class, 'receipt_constraint_id');
     }
 
+    public function invoice()
+    {
+        return $this->hasOne(\App\Models\ingaz\Invoice::class);
+    }
+
     public function refundAccount()
     {
         return $this->belongsTo(\Nami\Finance\Models\Account::class, 'refund_account_id');

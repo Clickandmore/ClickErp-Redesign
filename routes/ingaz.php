@@ -417,6 +417,7 @@ Route::group(
 
             // Ø§Ù„ÙÙˆØ§ØªÙŠØ±
             Route::post('invoices/{id}/queue-zatca-sale', [InvoiceController::class, 'queueZatcaSale'])->name('invoices.queue-zatca-sale');
+            Route::get('SponsorshipTransfer/{id}/invoice/create', [InvoiceController::class, 'createSponsorshipTransfer'])->name('SponsorshipTransfer.invoice.create');
             Route::get('invoices/search-clients', [InvoiceController::class, 'searchClients'])->name('invoices.searchClients');
             Route::get('invoices/export/excel', [InvoiceController::class, 'exportExcel'])->name('invoices.export.excel');
             Route::get('invoices/export/pdf', [InvoiceController::class, 'exportPdf'])->name('invoices.export.pdf');
@@ -475,6 +476,12 @@ Route::group(
             Route::get('SponsorshipTransfer/status/transferred', [SponsorshipTransferController::class, 'transferred'])->name('SponsorshipTransfer.transferred');
             Route::get('SponsorshipTransfer/status/failed', [SponsorshipTransferController::class, 'failed'])->name('SponsorshipTransfer.failed');
             Route::get('SponsorshipTransfer/{id}/trial-details', [SponsorshipTransferController::class, 'trialDetails'])->name('SponsorshipTransfer.trial-details');
+            Route::get('SponsorshipTransfer/{id}/download/{type}/{index?}', [SponsorshipTransferController::class, 'downloadAttachment'])
+                ->where([
+                    'type' => 'payment-receipt|attachment|iban',
+                    'index' => '[0-9]+',
+                ])
+                ->name('SponsorshipTransfer.attachment.download');
 
             Route::resource('SponsorshipTransfer', SponsorshipTransferController::class);
             Route::get('Contract/searchClients', [SponsorshipTransferController::class, 'searchClients'])->name('Contract.searchClients');

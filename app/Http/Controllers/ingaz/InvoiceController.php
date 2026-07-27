@@ -8,6 +8,7 @@ use App\Models\Branch;
 use App\Models\Contract;
 use App\Models\IngazDelegation;
 use App\Models\RentalContractInvoice;
+use App\Models\SponsorshipTransfer;
 use App\Models\ingaz\Invoice;
 use App\Models\ingaz\Nationality;
 use App\Models\ingaz\Setting;
@@ -162,6 +163,7 @@ class InvoiceController extends Controller
             'invoice.legacy_order_number',
             'invoice.contract_id',
             'invoice.ingaz_delegation_id',
+            'invoice.sponsorship_transfer_id',
             DB::raw('NULL as rental_contract_id'),
             DB::raw('NULL as rental_contract_number'),
             DB::raw('NULL as adjustment_type'),
@@ -201,6 +203,7 @@ class InvoiceController extends Controller
             DB::raw('NULL as legacy_order_number'),
             DB::raw('NULL as contract_id'),
             DB::raw('NULL as ingaz_delegation_id'),
+            DB::raw('NULL as sponsorship_transfer_id'),
             'rental_invoice.rental_contract_id',
             'rental_contract.contract_number as rental_contract_number',
             DB::raw('NULL as adjustment_type'),
@@ -249,6 +252,7 @@ class InvoiceController extends Controller
             DB::raw('NULL as legacy_order_number'),
             DB::raw('NULL as contract_id'),
             DB::raw('NULL as ingaz_delegation_id'),
+            DB::raw('NULL as sponsorship_transfer_id'),
             'closure_adjustment.rental_contract_id',
             'adjustment_contract.contract_number as rental_contract_number',
             'closure_adjustment.type as adjustment_type',
@@ -311,6 +315,7 @@ class InvoiceController extends Controller
                 'legacy_order_number',
                 'contract_id',
                 'ingaz_delegation_id',
+                'sponsorship_transfer_id',
                 'rental_contract_id',
                 'rental_contract_number',
                 'adjustment_type',
@@ -366,6 +371,10 @@ class InvoiceController extends Controller
 
         if ($row->contract_id) {
             return '<span class="badge bg-info-subtle text-info border">عقد استقدام #' . e((string) $row->contract_id) . '</span>';
+        }
+
+        if ($row->sponsorship_transfer_id) {
+            return '<span class="badge bg-success-subtle text-success border">نقل كفالة #' . e((string) $row->sponsorship_transfer_id) . '</span>';
         }
 
         if ($row->ingaz_delegation_id) {
@@ -659,6 +668,10 @@ class InvoiceController extends Controller
             return '<span class="badge bg-info-subtle text-info border">عقد استقدام #' . $invoice->contract_id . '</span>';
         }
 
+        if ($invoice->sponsorship_transfer_id) {
+            return '<span class="badge bg-success-subtle text-success border">نقل كفالة #' . $invoice->sponsorship_transfer_id . '</span>';
+        }
+
         if ($invoice->ingaz_delegation_id) {
             return '<span class="badge bg-primary-subtle text-primary border">تفويض إنجاز #' . $invoice->ingaz_delegation_id . '</span>';
         }
@@ -794,6 +807,38 @@ class InvoiceController extends Controller
         ));
     }
 
+    public function createSponsorshipTransfer(int $id)
+    {
+        $transfer = SponsorshipTransfer::query()
+            ->with([
+                'invoice',
+                'newSponsor',
+                'contract.maid.nationality',
+                'receiptBond.constraint',
+            ])
+            ->findOrFail($id);
+        $this->assertCanAccessBranchModel($transfer, 'sponsorship_transfers');
+
+        if ($transfer->invoice) {
+            return redirect()
+                ->route('invoices.show', $transfer->invoice->id)
+                ->with('success', 'تم إصدار فاتورة لطلب نقل الكفالة مسبقاً.');
+        }
+
+        $grossContractValue = round((float) $transfer->contract_value, 2);
+        $defaultLicenseeCost = round($grossContractValue / (1 + InvoiceCalculationService::VAT_RATE), 2);
+        $invoiceIssuedAt = now();
+        $nextInvoiceNumber = ((int) Invoice::query()->max('id')) + 1;
+
+        return view('admin.ingaz.SponsorshipTransfer.invoice-create', compact(
+            'transfer',
+            'grossContractValue',
+            'defaultLicenseeCost',
+            'invoiceIssuedAt',
+            'nextInvoiceNumber'
+        ));
+    }
+
     private function currentRecruitmentContractStatuses(): array
     {
         return [
@@ -816,9 +861,16 @@ class InvoiceController extends Controller
     {
         $request->validate([
             'invoice_date' => ['required', 'date_format:Y-m-d'],
-            'contract_id' => 'nullable|required_without_all:ingaz_delegation_id,client_id|exists:contracts,id',
-            'ingaz_delegation_id' => 'nullable|required_without_all:contract_id,client_id|exists:ingaz_delegations,id',
-            'client_id' => 'nullable|required_without_all:contract_id,ingaz_delegation_id|exists:users,id',
+            'contract_id' => 'nullable|required_without_all:ingaz_delegation_id,client_id,sponsorship_transfer_id|exists:contracts,id',
+            'ingaz_delegation_id' => 'nullable|required_without_all:contract_id,client_id,sponsorship_transfer_id|exists:ingaz_delegations,id',
+            'client_id' => 'nullable|required_without_all:contract_id,ingaz_delegation_id,sponsorship_transfer_id|exists:users,id',
+            'sponsorship_transfer_id' => 'nullable|exists:sponsorship_transfers,id',
+            'line_items' => 'nullable|required_with:sponsorship_transfer_id|array|min:1|max:50',
+            'line_items.*.key' => 'nullable|string|max:50',
+            'line_items.*.label' => 'required_with:sponsorship_transfer_id|string|max:255',
+            'line_items.*.quantity' => 'required_with:sponsorship_transfer_id|numeric|min:0.01|max:999999',
+            'line_items.*.unit_price' => 'required_with:sponsorship_transfer_id|numeric|min:0|max:999999999.99',
+            'line_items.*.taxable' => 'nullable|boolean',
             'general_description' => 'nullable|string|max:2000',
             'general_direct_label' => 'nullable|string|max:255',
             'general_external_label' => 'nullable|string|max:255',
@@ -846,12 +898,13 @@ class InvoiceController extends Controller
             $request->filled('contract_id'),
             $request->filled('ingaz_delegation_id'),
             $request->filled('client_id'),
+            $request->filled('sponsorship_transfer_id'),
         ])->filter()->count();
 
         if ($referenceCount !== 1) {
             return response()->json([
                 'success' => false,
-                'message' => 'يجب ربط الفاتورة بعقد أو تفويض إنجاز أو عميل فقط.'
+                'message' => 'يجب ربط الفاتورة بعقد أو تفويض إنجاز أو عميل أو طلب نقل كفالة واحد فقط.'
             ], 422);
         }
 
@@ -860,12 +913,18 @@ class InvoiceController extends Controller
             $invoiceExists = Invoice::where('contract_id', $request->contract_id)->exists();
         } elseif ($request->filled('ingaz_delegation_id')) {
             $invoiceExists = Invoice::where('ingaz_delegation_id', $request->ingaz_delegation_id)->exists();
+        } elseif ($request->filled('sponsorship_transfer_id')) {
+            $invoiceExists = Invoice::where('sponsorship_transfer_id', $request->sponsorship_transfer_id)->exists();
         }
 
         if ($invoiceExists) {
             return response()->json([
                 'success' => false,
-                'message' => $request->filled('contract_id') ? 'هذا العقد لديه فاتورة سابقة' : 'هذا التفويض لديه فاتورة سابقة'
+                'message' => $request->filled('contract_id')
+                    ? 'هذا العقد لديه فاتورة سابقة'
+                    : ($request->filled('sponsorship_transfer_id')
+                        ? 'طلب نقل الكفالة لديه فاتورة سابقة'
+                        : 'هذا التفويض لديه فاتورة سابقة')
             ], 422);
         }
 
@@ -907,6 +966,15 @@ class InvoiceController extends Controller
                         $service,
                         $yearService,
                         $bondService
+                    );
+                }
+
+                if ($request->filled('sponsorship_transfer_id')) {
+                    return $this->storeSponsorshipTransferInvoice(
+                        $request,
+                        $sendToZatca,
+                        $service,
+                        $yearService
                     );
                 }
 
@@ -1141,8 +1209,9 @@ class InvoiceController extends Controller
             $invoice->update(['finance_sale_id' => null]);
         }
 
-        $invoice->loadMissing(['contract.user', 'ingazDelegation.user', 'client']);
-        $clientUser = $invoice->contract?->user ?: ($invoice->ingazDelegation?->user ?: $invoice->client);
+        $invoice->loadMissing(['contract.user', 'ingazDelegation.user', 'client', 'sponsorshipTransfer.newSponsor']);
+        $clientUser = $invoice->sponsorshipTransfer?->newSponsor
+            ?: ($invoice->contract?->user ?: ($invoice->ingazDelegation?->user ?: $invoice->client));
 
         if (!$clientUser) {
             throw new \RuntimeException('الفاتورة غير مرتبطة بعميل، لا يمكن إدراجها في فواتير الزكاة.');
@@ -1172,21 +1241,59 @@ class InvoiceController extends Controller
             'created_by_id' => Auth::guard('admin')->id() ?: Auth::id() ?: 1,
         ]);
 
-        SaleItem::query()->create([
-            'sale_id' => $sale->id,
-            'item_id' => $financeItem->id,
-            'price' => $netTotal,
-            'discount_per' => 0,
-            'discount_value' => 0,
-            'tax_per' => $netTotal > 0 && $vatAmount > 0 ? InvoiceCalculationService::VAT_RATE * 100 : 0,
-            'tax_value' => $vatAmount,
-            'total_price_before' => $netTotal,
-            'final_total' => $finalTotal,
-            'purchase_price' => 0,
-            'amount' => 1,
-            'stock_id' => null,
-            'status' => 'new',
-        ]);
+        if ($invoice->sponsorship_transfer_id && is_array($invoice->line_items)) {
+            $remainingDiscount = $this->roundMoney((float) $invoice->discount);
+            $saleLineItems = array_filter(
+                $invoice->line_items,
+                fn (array $item) => (float) ($item['line_subtotal'] ?? 0) > 0
+            );
+            $lastIndex = array_key_last($saleLineItems);
+
+            foreach ($saleLineItems as $index => $lineItem) {
+                $quantity = max(0.001, (float) ($lineItem['quantity'] ?? 1));
+                $lineSubtotal = $this->roundMoney((float) ($lineItem['line_subtotal'] ?? 0));
+                $lineVat = $this->roundMoney((float) ($lineItem['vat_amount'] ?? 0));
+                $allocatedDiscount = $index === $lastIndex
+                    ? $remainingDiscount
+                    : $this->roundMoney(
+                        (float) $invoice->discount * ($invoice->subtotal > 0 ? $lineSubtotal / (float) $invoice->subtotal : 0)
+                    );
+                $allocatedDiscount = min($allocatedDiscount, $lineSubtotal + $lineVat);
+                $remainingDiscount = $this->roundMoney($remainingDiscount - $allocatedDiscount);
+
+                SaleItem::query()->create([
+                    'sale_id' => $sale->id,
+                    'item_id' => $financeItem->id,
+                    'price' => $this->roundMoney((float) ($lineItem['unit_price'] ?? 0)),
+                    'discount_per' => 0,
+                    'discount_value' => $allocatedDiscount,
+                    'tax_per' => (bool) ($lineItem['taxable'] ?? false) ? InvoiceCalculationService::VAT_RATE * 100 : 0,
+                    'tax_value' => $lineVat,
+                    'total_price_before' => $lineSubtotal,
+                    'final_total' => $this->roundMoney($lineSubtotal + $lineVat - $allocatedDiscount),
+                    'purchase_price' => 0,
+                    'amount' => $quantity,
+                    'stock_id' => null,
+                    'status' => 'new',
+                ]);
+            }
+        } else {
+            SaleItem::query()->create([
+                'sale_id' => $sale->id,
+                'item_id' => $financeItem->id,
+                'price' => $netTotal,
+                'discount_per' => 0,
+                'discount_value' => 0,
+                'tax_per' => $netTotal > 0 && $vatAmount > 0 ? InvoiceCalculationService::VAT_RATE * 100 : 0,
+                'tax_value' => $vatAmount,
+                'total_price_before' => $netTotal,
+                'final_total' => $finalTotal,
+                'purchase_price' => 0,
+                'amount' => 1,
+                'stock_id' => null,
+                'status' => 'new',
+            ]);
+        }
 
         $invoice->update([
             'send_to_zatca' => true,
@@ -1798,6 +1905,223 @@ class InvoiceController extends Controller
         ];
     }
 
+    private function storeSponsorshipTransferInvoice(
+        Request $request,
+        bool $sendToZatca,
+        ObjService $service,
+        YearService $yearService
+    ): array {
+        $transfer = SponsorshipTransfer::query()
+            ->with(['newSponsor', 'contract.maid'])
+            ->lockForUpdate()
+            ->findOrFail($request->sponsorship_transfer_id);
+        $this->assertCanAccessBranchModel($transfer, 'sponsorship_transfers');
+
+        if ($transfer->invoice()->exists()) {
+            throw new \RuntimeException('طلب نقل الكفالة لديه فاتورة سابقة');
+        }
+
+        if (!$transfer->newSponsor) {
+            throw new \RuntimeException('طلب نقل الكفالة غير مرتبط بالعميل الجديد، لا يمكن إصدار الفاتورة.');
+        }
+
+        $items = $this->normalizeSponsorshipTransferItems((array) $request->input('line_items', []));
+        $subtotal = $this->roundMoney(array_sum(array_column($items, 'line_subtotal')));
+        $vatAmount = $this->roundMoney(array_sum(array_column($items, 'vat_amount')));
+        $discount = min($this->roundMoney((float) $request->input('discount', 0)), $subtotal);
+        $totalDue = $this->roundMoney(max(0, $subtotal + $vatAmount - $discount));
+        $isPaid = (float) $transfer->paid_amount + 0.009 >= $totalDue;
+
+        $invoice = Invoice::query()->create([
+            'contract_id' => null,
+            'ingaz_delegation_id' => null,
+            'client_id' => $transfer->new_sponsor_id,
+            'sponsorship_transfer_id' => $transfer->id,
+            'general_description' => trim((string) $request->input('general_description'))
+                ?: 'فاتورة عملية نقل خدمة رقم ' . $transfer->id,
+            'line_items' => $items,
+            // تُحفظ القيمة الصافية أيضاً في الحقول القديمة حتى تظل التقارير والقيود
+            // الموحدة متوافقة مع الفواتير السابقة.
+            'direct_recruitment_cost' => $subtotal,
+            'direct_recruitment_count' => $subtotal > 0 ? 1 : 0,
+            'external_recruitment_cost' => 0,
+            'external_recruitment_count' => 0,
+            'government_cost' => 0,
+            'government_cost_count' => 0,
+            'internal_ticket_cost' => 0,
+            'internal_ticket_count' => 0,
+            'visa_recruited_count' => 0,
+            'insured_count' => 0,
+            'subtotal' => $subtotal,
+            'discount' => $discount,
+            'vat_amount' => $vatAmount,
+            'total_due' => $totalDue,
+            'is_paid' => $isPaid,
+            'paid_at' => $isPaid ? ($transfer->payment_confirmed_at ?? now()) : null,
+            'send_to_zatca' => $sendToZatca,
+            'created_at' => $this->resolveInvoiceDateTime($request),
+        ]);
+        $invoice->setRelation('sponsorshipTransfer', $transfer);
+        $invoice->setRelation('client', $transfer->newSponsor);
+
+        $invoiceConstraint = null;
+        if (AutomaticJournalEntries::enabled() && $totalDue > 0) {
+            $clientAccountId = $this->ensureClientUserAccountId($transfer->newSponsor);
+            $invoiceConstraint = $this->storeInvoiceConstraintForSponsorshipTransfer(
+                $invoice,
+                $service,
+                $yearService,
+                $clientAccountId
+            );
+            $invoice->update(['invoice_constraint_id' => $invoiceConstraint?->id]);
+        }
+
+        if ($invoice->send_to_zatca) {
+            $this->queueInvoiceForZatcaSale($invoice);
+        }
+
+        return [
+            'invoice' => $invoice,
+            'invoice_constraint' => $invoiceConstraint,
+            // التحصيل تم على طلب النقل نفسه؛ لا ننشئ سند قبض ثانياً.
+            'receipt_bond' => null,
+        ];
+    }
+
+    private function storeInvoiceConstraintForSponsorshipTransfer(
+        Invoice $invoice,
+        ObjService $service,
+        YearService $yearService,
+        int $clientAccountId
+    ): ?Constraint {
+        if ((float) $invoice->total_due <= 0) {
+            return null;
+        }
+
+        $revenueAccountId = $this->resolveSettingAccountId(
+            self::SETTING_DELEGATION_REVENUE_ACCOUNT,
+            'حساب إيراد فواتير نقل الكفالة غير محدد. الرجاء تحديد حساب إيراد تفاويض إنجاز من صفحة إعدادات الحسابات أولاً.',
+            'creditor'
+        );
+        $statement = $this->buildInvoiceStatement($invoice);
+        $lines = [];
+        $remainingDiscount = $this->roundMoney((float) $invoice->discount);
+        $items = array_filter(
+            (array) $invoice->line_items,
+            fn (array $item) => (float) ($item['line_subtotal'] ?? 0) > 0
+        );
+        $lastIndex = array_key_last($items);
+
+        foreach ($items as $index => $item) {
+            $lineSubtotal = $this->roundMoney((float) ($item['line_subtotal'] ?? 0));
+            $allocatedDiscount = $index === $lastIndex
+                ? $remainingDiscount
+                : $this->roundMoney(
+                    (float) $invoice->discount * ($invoice->subtotal > 0 ? $lineSubtotal / (float) $invoice->subtotal : 0)
+                );
+            $allocatedDiscount = min($allocatedDiscount, $lineSubtotal);
+            $remainingDiscount = $this->roundMoney($remainingDiscount - $allocatedDiscount);
+            $netAmount = $this->roundMoney($lineSubtotal - $allocatedDiscount);
+
+            if ($netAmount > 0) {
+                $this->appendConstraintPair(
+                    $lines,
+                    $revenueAccountId,
+                    $clientAccountId,
+                    $netAmount,
+                    $statement . ' / ' . ($item['label'] ?? 'بند فاتورة')
+                );
+            }
+        }
+
+        if ((float) $invoice->vat_amount > 0) {
+            $taxAccountId = $this->resolveRevenueTaxAccountId();
+            if (!$taxAccountId) {
+                throw new \RuntimeException(
+                    'لا توجد ضريبة إيرادات معرفة في إعدادات الحسابات. الرجاء تحديدها من صفحة إعدادات الحسابات أولاً.'
+                );
+            }
+
+            $this->appendConstraintPair(
+                $lines,
+                $taxAccountId,
+                $clientAccountId,
+                (float) $invoice->vat_amount,
+                $statement . ' / ضريبة القيمة المضافة'
+            );
+        }
+
+        return $this->storeConstraintFromLines(
+            $service,
+            $yearService,
+            $invoice,
+            $statement,
+            $lines,
+            (float) $invoice->total_due
+        );
+    }
+
+    private function normalizeSponsorshipTransferItems(array $submittedItems): array
+    {
+        $coreTaxRules = [
+            'licensee_cost' => true,
+            'external_recruitment' => false,
+            'government_cost' => false,
+            'worker_salary' => false,
+        ];
+        $seenCoreKeys = [];
+        $items = [];
+
+        foreach ($submittedItems as $index => $submittedItem) {
+            $key = trim((string) ($submittedItem['key'] ?? ''));
+            $label = trim((string) ($submittedItem['label'] ?? ''));
+            $quantity = round((float) ($submittedItem['quantity'] ?? 0), 3);
+            $unitPrice = $this->roundMoney((float) ($submittedItem['unit_price'] ?? 0));
+
+            if ($label === '' || $quantity <= 0 || $unitPrice < 0) {
+                continue;
+            }
+
+            if (array_key_exists($key, $coreTaxRules)) {
+                if (isset($seenCoreKeys[$key])) {
+                    throw new \RuntimeException('لا يمكن تكرار أحد البنود الأساسية في فاتورة نقل الكفالة.');
+                }
+                $seenCoreKeys[$key] = true;
+                $taxable = $coreTaxRules[$key];
+            } else {
+                $key = 'additional_' . ($index + 1);
+                $taxable = filter_var($submittedItem['taxable'] ?? false, FILTER_VALIDATE_BOOLEAN);
+            }
+
+            $lineSubtotal = $this->roundMoney($quantity * $unitPrice);
+            $lineVat = $taxable
+                ? $this->roundMoney($lineSubtotal * InvoiceCalculationService::VAT_RATE)
+                : 0.0;
+
+            $items[] = [
+                'key' => $key,
+                'label' => $label,
+                'quantity' => $quantity,
+                'unit_price' => $unitPrice,
+                'taxable' => $taxable,
+                'tax_rate' => $taxable ? InvoiceCalculationService::VAT_RATE : 0.0,
+                'line_subtotal' => $lineSubtotal,
+                'vat_amount' => $lineVat,
+                'line_total' => $this->roundMoney($lineSubtotal + $lineVat),
+            ];
+        }
+
+        if (!isset($seenCoreKeys['licensee_cost'])) {
+            throw new \RuntimeException('بند تكاليف المرخص له مطلوب في فاتورة نقل الكفالة.');
+        }
+
+        if ($items === [] || array_sum(array_column($items, 'line_total')) <= 0) {
+            throw new \RuntimeException('يجب أن تحتوي الفاتورة على بند واحد بقيمة أكبر من صفر.');
+        }
+
+        return $items;
+    }
+
     private function storeInvoiceConstraintForIngazDelegation(
         Invoice $invoice,
         ObjService $service,
@@ -2067,6 +2391,10 @@ class InvoiceController extends Controller
             'ingazDelegation.nationality',
             'ingazDelegation.profession',
             'client',
+            'sponsorshipTransfer.newSponsor',
+            'sponsorshipTransfer.contract.maid',
+            'sponsorshipTransfer.receiptBond.constraint',
+            'invoiceConstraint',
             'musanedTransferItem.transfer',
             'financeSale.zatca',
         ])->findOrFail($id);
@@ -2089,7 +2417,9 @@ class InvoiceController extends Controller
         $invoiceSubtitle = (string) documentSetting('invoice_subtitle', 'Simplified Tax Invoice');
         $invoiceFooterText = (string) replaceDocumentPlaceholders(documentSetting('invoice_footer_text', ''));
 
-        $serviceDesc = $invoice->ingaz_delegation_id ? 'تفويض إنجاز' : ($invoice->client_id ? 'فاتورة عامة' : 'طلب تعاقد');
+        $serviceDesc = $invoice->sponsorship_transfer_id
+            ? 'نقل كفالة'
+            : ($invoice->ingaz_delegation_id ? 'تفويض إنجاز' : ($invoice->client_id ? 'فاتورة عامة' : 'طلب تعاقد'));
         $serviceLongDescription = $this->buildServiceDescription($invoice);
         $items = $this->buildInvoiceItems($invoice);
         $invoiceStatus = $this->invoicePaymentStatusLabel($invoice);
@@ -2098,13 +2428,15 @@ class InvoiceController extends Controller
             ?? 'النظام';
         $printedAt = now();
 
-        $client = $invoice->contract?->user ?: ($invoice->ingazDelegation?->user ?: $invoice->client);
+        $client = $invoice->sponsorshipTransfer?->newSponsor
+            ?: ($invoice->contract?->user ?: ($invoice->ingazDelegation?->user ?: $invoice->client));
         $customerName = $client?->name ?: '---';
         $customerDocumentLabel = $client?->documentNumberLabel() ?: __('ingaz.national_num');
         $customerNationalId = $client?->documentNumber() ?: '---';
         $customerPhone = $this->formatPhone((string) ($client?->phone_code ?? ''), (string) ($client?->phone ?? ''));
         $customerAddress = $client?->address ?: '---';
-        $accountNumber = $client?->account_id ?: ($client?->id ?: ($invoice->contract_id ?: $invoice->ingaz_delegation_id));
+        $accountNumber = $client?->account_id
+            ?: ($client?->id ?: ($invoice->sponsorship_transfer_id ?: ($invoice->contract_id ?: $invoice->ingaz_delegation_id)));
 
         $contractInfo = $invoice->contract?->info;
         $matchedHijriDate = $contractInfo?->visa_hijry_date
@@ -2195,6 +2527,32 @@ class InvoiceController extends Controller
 
     private function buildInvoiceItems(Invoice $invoice): array
     {
+        if ($invoice->sponsorship_transfer_id && is_array($invoice->line_items)) {
+            return collect($invoice->line_items)
+                ->map(function (array $item) {
+                    $quantity = (float) ($item['quantity'] ?? 0);
+                    $unitPrice = (float) ($item['unit_price'] ?? 0);
+                    $lineSubtotal = (float) ($item['line_subtotal'] ?? ($quantity * $unitPrice));
+                    $vatAmount = (float) ($item['vat_amount'] ?? 0);
+
+                    return [
+                        'key' => (string) ($item['key'] ?? ''),
+                        'label' => (string) ($item['label'] ?? 'بند'),
+                        'qty' => $quantity,
+                        'unit' => $unitPrice,
+                        'line_subtotal' => $lineSubtotal,
+                        'line_discount' => 0.0,
+                        'line_total' => $lineSubtotal,
+                        'vat_rate' => (float) ($item['tax_rate'] ?? ((bool) ($item['taxable'] ?? false) ? InvoiceCalculationService::VAT_RATE : 0)),
+                        'vat_amount' => $vatAmount,
+                        'line_grand_total' => (float) ($item['line_total'] ?? ($lineSubtotal + $vatAmount)),
+                    ];
+                })
+                ->filter(fn (array $item) => $item['line_grand_total'] > 0)
+                ->values()
+                ->all();
+        }
+
         $isGeneralInvoice = $invoice->client_id && !$invoice->contract_id && !$invoice->ingaz_delegation_id;
         $generalLabels = $this->generalInvoiceItemLabels($invoice);
         $items = [
@@ -2339,6 +2697,18 @@ class InvoiceController extends Controller
 
     private function buildServiceDescription(Invoice $invoice): string
     {
+        if ($invoice->sponsorship_transfer_id) {
+            $transfer = $invoice->sponsorshipTransfer;
+            $clientName = $transfer?->newSponsor?->name ?: $invoice->client?->name ?: 'غير محدد';
+            $maidName = $transfer?->contract?->maid?->name ?: 'غير محدد';
+            $description = trim((string) ($invoice->general_description ?? ''));
+
+            return 'عملية نقل كفالة - رقم الطلب: ' . $invoice->sponsorship_transfer_id
+                . ' - العميل: ' . $clientName
+                . ' - العاملة: ' . $maidName
+                . ($description !== '' ? ' - التفاصيل: ' . $description : '');
+        }
+
         $contract = $invoice->contract;
         if (!$contract) {
             $delegation = $invoice->ingazDelegation;
@@ -2504,6 +2874,16 @@ class InvoiceController extends Controller
 
     private function buildInvoiceStatement(Invoice $invoice): string
     {
+        if ($invoice->sponsorship_transfer_id) {
+            $clientName = $invoice->sponsorshipTransfer?->newSponsor?->name
+                ?: $invoice->client?->name
+                ?: 'غير محدد';
+            $itemsSummary = $this->buildInvoiceItemsSummary($invoice);
+
+            return "قيد فاتورة نقل كفالة #{$invoice->sponsorship_transfer_id} / الفاتورة #{$invoice->id} / العميل: {$clientName}"
+                . ($itemsSummary !== '' ? " / البنود: {$itemsSummary}" : '');
+        }
+
         if ($invoice->ingaz_delegation_id) {
             $delegation = $invoice->ingazDelegation;
             $ingazNumber = $delegation?->ingaz_number ?: '-';

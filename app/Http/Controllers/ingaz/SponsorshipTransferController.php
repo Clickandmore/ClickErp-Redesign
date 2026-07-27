@@ -20,6 +20,7 @@ use App\Support\SystemModuleManager;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Yajra\DataTables\Facades\DataTables;
@@ -34,7 +35,15 @@ class SponsorshipTransferController extends Controller
     {
         // إذا كان الطلب من DataTables
         if ($request->ajax()) {
-            $query = SponsorshipTransfer::with(['contract.maid.nationality', 'oldSponsor', 'newSponsor', 'approvedBy']);
+            $query = SponsorshipTransfer::with([
+                'contract.maid.nationality',
+                'oldSponsor',
+                'newSponsor',
+                'approvedBy',
+                'invoice',
+                'receiptBond',
+                'refundBond',
+            ]);
             $this->applyRequestBranchFilter($query, $request, 'sponsorship_transfers');
 
             // تطبيق الفلاتر
@@ -222,8 +231,74 @@ class SponsorshipTransferController extends Controller
                                     <i class="fas fa-eye"></i> عرض التفاصيل
                                 </a></li>';
 
+                    $actions .= '<li><hr class="dropdown-divider"></li>';
+                    if ($transfer->invoice) {
+                        $actions .= '<li><a class="dropdown-item" href="' . route('invoices.show', $transfer->invoice->id) . '">
+                                        <i class="fas fa-file-invoice text-success"></i> عرض الفاتورة
+                                    </a></li>';
+                        $actions .= '<li><a class="dropdown-item" href="' . route('invoice.download', ['id' => $transfer->invoice->id, 'autoprint' => 1]) . '" target="_blank">
+                                        <i class="fas fa-print text-success"></i> تحميل / طباعة الفاتورة
+                                    </a></li>';
+                    } else {
+                        $actions .= '<li><a class="dropdown-item fw-bold text-success" href="' . route('SponsorshipTransfer.invoice.create', $transfer->id) . '">
+                                        <i class="fas fa-file-invoice-dollar"></i> إصدار الفاتورة
+                                    </a></li>';
+                    }
+
+                    if ($transfer->payment_receipt_path) {
+                        $actions .= '<li><a class="dropdown-item" href="' . route('SponsorshipTransfer.attachment.download', [
+                            'id' => $transfer->id,
+                            'type' => 'payment-receipt',
+                        ]) . '">
+                                        <i class="fas fa-paperclip text-primary"></i> تحميل إيصال الدفع
+                                    </a></li>';
+                    }
+
+                    if ($transfer->receiptBond) {
+                        $actions .= '<li><a class="dropdown-item" href="' . route('finance.bonds-print.show', [
+                            'bonds_print' => $transfer->receiptBond->id,
+                            'type' => 'qabd',
+                        ]) . '" target="_blank">
+                                        <i class="fas fa-file-arrow-down text-primary"></i> تحميل / طباعة سند القبض
+                                    </a></li>';
+                    }
+
+                    if ($transfer->refundBond) {
+                        $actions .= '<li><a class="dropdown-item" href="' . route('finance.bonds-print.show', [
+                            'bonds_print' => $transfer->refundBond->id,
+                            'type' => 'sarf',
+                        ]) . '" target="_blank">
+                                        <i class="fas fa-file-arrow-up text-danger"></i> تحميل / طباعة سند الصرف
+                                    </a></li>';
+                    }
+
+                    foreach (array_values((array) $transfer->attachments) as $attachmentIndex => $attachment) {
+                        if (empty($attachment['path'])) {
+                            continue;
+                        }
+
+                        $attachmentName = Str::limit((string) ($attachment['name'] ?? ('مرفق ' . ($attachmentIndex + 1))), 35);
+                        $actions .= '<li><a class="dropdown-item" href="' . route('SponsorshipTransfer.attachment.download', [
+                            'id' => $transfer->id,
+                            'type' => 'attachment',
+                            'index' => $attachmentIndex,
+                        ]) . '">
+                                        <i class="fas fa-download text-secondary"></i> تحميل: ' . e($attachmentName) . '
+                                    </a></li>';
+                    }
+
+                    if ($transfer->failure_client_iban_attachment_path) {
+                        $actions .= '<li><a class="dropdown-item" href="' . route('SponsorshipTransfer.attachment.download', [
+                            'id' => $transfer->id,
+                            'type' => 'iban',
+                        ]) . '">
+                                        <i class="fas fa-download text-secondary"></i> تحميل مرفق الآيبان
+                                    </a></li>';
+                    }
+
                     // طباعة العقد (انتظار إرسال العقد)
                     if ($transfer->status == 'waiting_contract_send') {
+                        $actions .= '<li><hr class="dropdown-divider"></li>';
                         $actions .= '<li><a class="dropdown-item" href="' . route('print.sponsorship-transfer-contract', $transfer->id) . '" target="_blank">
                                         <i class="fas fa-print"></i> طباعة العقد
                                     </a></li>';
@@ -693,7 +768,10 @@ class SponsorshipTransferController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'تم حفظ طلب نقل الكفالة بنجاح'
-                    . (!empty($financeResult['bond']) ? ' وإنشاء سند قبض رقم ' . ($financeResult['bond']->code ?: $financeResult['bond']->id) : '')
+                    . (!empty($financeResult['bond']) ? ' وإنشاء سند قبض رقم ' . ($financeResult['bond']->code ?: $financeResult['bond']->id) : ''),
+                'transfer_id' => $transfer->id,
+                'show_url' => route('SponsorshipTransfer.show', $transfer->id),
+                'invoice_create_url' => route('SponsorshipTransfer.invoice.create', $transfer->id),
             ]);
 
         } catch (ValidationException $e) {
@@ -738,12 +816,55 @@ class SponsorshipTransferController extends Controller
             'failedBy',
             'receiptAccount',
             'receiptBond.constraint',
+            'invoice.invoiceConstraint',
             'refundAccount',
             'refundBond.constraint'
         ])->findOrFail($id);
         $this->assertCanAccessBranchModel($transfer);
 
         return view($this->folderPath . '.show', compact('transfer'));
+    }
+
+    public function downloadAttachment(int $id, string $type, ?int $index = null)
+    {
+        $transfer = SponsorshipTransfer::query()->findOrFail($id);
+        $this->assertCanAccessBranchModel($transfer);
+
+        [$path, $downloadName] = match ($type) {
+            'payment-receipt' => [
+                $transfer->payment_receipt_path,
+                'payment-receipt-transfer-' . $transfer->id,
+            ],
+            'iban' => [
+                $transfer->failure_client_iban_attachment_path,
+                'iban-transfer-' . $transfer->id,
+            ],
+            'attachment' => $this->resolveTransferAttachmentDownload($transfer, $index),
+            default => abort(404),
+        };
+
+        abort_if(!$path || !Storage::disk('public')->exists($path), 404);
+
+        $extension = pathinfo($path, PATHINFO_EXTENSION);
+        $downloadName = basename((string) $downloadName);
+        if ($extension && !str_ends_with(strtolower($downloadName), '.' . strtolower($extension))) {
+            $downloadName .= '.' . $extension;
+        }
+
+        return Storage::disk('public')->download($path, $downloadName);
+    }
+
+    private function resolveTransferAttachmentDownload(SponsorshipTransfer $transfer, ?int $index): array
+    {
+        $attachments = array_values((array) $transfer->attachments);
+        abort_if($index === null || !isset($attachments[$index]) || empty($attachments[$index]['path']), 404);
+
+        $attachment = $attachments[$index];
+
+        return [
+            $attachment['path'],
+            $attachment['name'] ?? ('transfer-' . $transfer->id . '-attachment-' . ($index + 1)),
+        ];
     }
 
     /**

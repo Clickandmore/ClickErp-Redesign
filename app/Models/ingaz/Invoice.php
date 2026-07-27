@@ -6,6 +6,7 @@ use App\Models\Concerns\AssignsBranch;
 use App\Models\Contract;
 use App\Models\IngazDelegation;
 use App\Models\MusanedTransferItem;
+use App\Models\SponsorshipTransfer;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Nami\Finance\Models\Constraint;
@@ -23,14 +24,25 @@ class Invoice extends Model
         'send_to_zatca' => 'boolean',
         'legacy_zatca_shared' => 'boolean',
         'legacy_source_payload' => 'array',
+        'line_items' => 'array',
         'paid_at' => 'datetime',
         'branch_id' => 'integer',
     ];
 
     protected function resolveBranchIdForCreate(): ?int
     {
-        return $this->resolveBranchIdFromContract($this->contract_id ?? null)
+        return $this->resolveBranchIdFromSponsorshipTransfer($this->sponsorship_transfer_id ?? null)
+            ?: $this->resolveBranchIdFromContract($this->contract_id ?? null)
             ?: $this->resolveBranchIdFromCurrentAdmin();
+    }
+
+    private function resolveBranchIdFromSponsorshipTransfer($transferId): ?int
+    {
+        if (!$transferId) {
+            return null;
+        }
+
+        return SponsorshipTransfer::query()->whereKey($transferId)->value('branch_id');
     }
 
     public function contract(){
@@ -45,6 +57,16 @@ class Invoice extends Model
     public function client()
     {
         return $this->belongsTo(User::class, 'client_id');
+    }
+
+    public function sponsorshipTransfer()
+    {
+        return $this->belongsTo(\App\Models\SponsorshipTransfer::class);
+    }
+
+    public function invoiceConstraint()
+    {
+        return $this->belongsTo(Constraint::class, 'invoice_constraint_id');
     }
 
     public function musanedTransferItem()

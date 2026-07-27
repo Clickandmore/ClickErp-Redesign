@@ -364,6 +364,15 @@
                     <i class="fas fa-edit"></i>
                 </a>
             @endif
+            @if($transfer->invoice)
+                <a href="{{ route('invoices.show', $transfer->invoice->id) }}" class="btn-icon btn-print" title="عرض الفاتورة">
+                    <i class="fas fa-file-invoice"></i>
+                </a>
+            @else
+                <a href="{{ route('SponsorshipTransfer.invoice.create', $transfer->id) }}" class="btn-icon btn-print" title="إصدار فاتورة">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                </a>
+            @endif
             {{-- <button onclick="window.print()" class="btn-icon btn-print" title="طباعة">
                 <i class="fas fa-print"></i>
             </button> --}}
@@ -481,6 +490,22 @@
                                 <a href="{{ route('finance.bonds-print.show', ['bonds_print' => $transfer->receiptBond->id, 'type' => 'qabd']) }}" target="_blank" class="text-primary">
                                     {{ $transfer->receiptBond->code ?: ('#' . $transfer->receiptBond->id) }}
                                 </a>
+                            </span>
+                        </div>
+                    @endif
+                    @if($transfer->invoice)
+                        <div class="info-row">
+                            <span class="info-label">فاتورة نقل الكفالة:</span>
+                            <span class="info-value">
+                                <a href="{{ route('invoices.show', $transfer->invoice->id) }}" target="_blank" class="text-primary">
+                                    #{{ $transfer->invoice->id }}
+                                </a>
+                                @if($transfer->invoice->invoiceConstraint)
+                                    —
+                                    <a href="{{ route('finance.constraints.show', $transfer->invoice->invoiceConstraint->id) }}" target="_blank" class="text-primary">
+                                        قيد الفاتورة
+                                    </a>
+                                @endif
                             </span>
                         </div>
                     @endif
