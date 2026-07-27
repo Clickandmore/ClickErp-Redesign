@@ -17,6 +17,7 @@ use App\Models\ContractExternalOfficeDispatch;
 use App\Models\ContractInfo;
 use App\Models\office\Office as objModel;
 use App\Models\ingaz\Maid;
+use App\Services\ManagedFileStorage;
 use App\Services\office\OfficeFinanceAccountService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -274,44 +275,55 @@ class OfficeController extends Controller
         $managerPassword = $data['password'] ?? null;
         $attachmentFile = $request->file('file');
         $attachmentName = $data['file_name'] ?? null;
+        $attachmentPath = $attachmentFile && filled($attachmentName)
+            ? app(ManagedFileStorage::class)->uploadFile($attachmentFile, 'office_attachments')
+            : null;
 
         unset($data['job_title_id'], $data['file'], $data['file_name'], $data['password']);
 
-        DB::transaction(function () use (
-            &$office,
-            $action,
-            $data,
-            $jobTitleIds,
-            $jopTypeOfficeAction,
-            $adminAction,
-            $adminOfficeAction,
-            $officeAttachmentAction,
-            $attachmentFile,
-            $attachmentName,
-            $managerPassword,
-            $officeFinanceAccountService
-        ) {
-            $office = $action->store($data);
+        try {
+            DB::transaction(function () use (
+                &$office,
+                $action,
+                $data,
+                $jobTitleIds,
+                $jopTypeOfficeAction,
+                $adminAction,
+                $adminOfficeAction,
+                $officeAttachmentAction,
+                $attachmentPath,
+                $attachmentName,
+                $managerPassword,
+                $officeFinanceAccountService
+            ) {
+                $office = $action->store($data);
 
-            $officeFinanceAccountService->ensureForOffice($office);
+                $officeFinanceAccountService->ensureForOffice($office);
 
-            foreach ($jobTitleIds as $jobTitleId) {
-                $jopTypeOfficeAction->store([
-                    'office_id' => $office->id,
-                    'jop_type_id' => $jobTitleId,
-                ]);
+                foreach ($jobTitleIds as $jobTitleId) {
+                    $jopTypeOfficeAction->store([
+                        'office_id' => $office->id,
+                        'jop_type_id' => $jobTitleId,
+                    ]);
+                }
+
+                $this->syncOfficeAgentAccount($office, $data, $managerPassword, $adminAction, $adminOfficeAction);
+
+                if ($attachmentPath) {
+                    $officeAttachmentAction->store([
+                        'office_id' => $office->id,
+                        'file' => $attachmentPath,
+                        'file_name' => $attachmentName,
+                    ]);
+                }
+            });
+        } catch (\Throwable $exception) {
+            if ($attachmentPath) {
+                deleteFile($attachmentPath);
             }
 
-            $this->syncOfficeAgentAccount($office, $data, $managerPassword, $adminAction, $adminOfficeAction);
-
-            if ($attachmentFile && filled($attachmentName)) {
-                $officeAttachmentAction->store([
-                    'office_id' => $office->id,
-                    'file' => uploadFile($attachmentFile, 'office_attachments'),
-                    'file_name' => $attachmentName,
-                ]);
-            }
-        });
+            throw $exception;
+        }
 
         return jsonSuccess(['url' => route('offices.index')], null, 201);
     }
@@ -419,50 +431,67 @@ class OfficeController extends Controller
         $obj = $action->find($id);
         $attachmentFile = $request->file('file');
         $attachmentName = $data['file_name'] ?? null;
+        $currentAttachment = $obj->attachment;
+        $oldAttachmentPath = $currentAttachment?->file;
+        $newAttachmentPath = $attachmentFile && filled($attachmentName)
+            ? app(ManagedFileStorage::class)->uploadFile($attachmentFile, 'office_attachments')
+            : null;
         $managerPassword = $data['password'] ?? null;
         $jobTitleIds = $data['job_title_id'] ?? [];
         unset($data['job_title_id'], $data['file'], $data['file_name'], $data['password']);
 
-        DB::transaction(function () use (
-            $obj,
-            $data,
-            $attachmentFile,
-            $attachmentName,
-            $officeAttachmentAction,
-            $adminAction,
-            $adminOfficeAction,
-            $id,
-            $managerPassword,
-            $jobTitleIds,
-            $request,
-            $officeFinanceAccountService
-        ) {
-            if ($attachmentFile && filled($attachmentName)) {
-                $attachment = $obj->attachment;
+        try {
+            DB::transaction(function () use (
+                $obj,
+                $data,
+                $newAttachmentPath,
+                $attachmentName,
+                $officeAttachmentAction,
+                $adminAction,
+                $adminOfficeAction,
+                $id,
+                $managerPassword,
+                $jobTitleIds,
+                $request,
+                $officeFinanceAccountService
+            ) {
+                if ($newAttachmentPath) {
+                    $attachment = $obj->attachment;
 
-                if (isset($attachment)) {
-                    $attachment->update([
-                        'file' => uploadFile($attachmentFile, 'office_attachments'),
-                        'file_name' => $attachmentName,
-                    ]);
-                } else {
-                    $officeAttachmentAction->store([
-                        'office_id' => $id,
-                        'file' => uploadFile($attachmentFile, 'office_attachments'),
-                        'file_name' => $attachmentName,
-                    ]);
+                    if (isset($attachment)) {
+                        $attachment->update([
+                            'file' => $newAttachmentPath,
+                            'file_name' => $attachmentName,
+                        ]);
+                    } else {
+                        $officeAttachmentAction->store([
+                            'office_id' => $id,
+                            'file' => $newAttachmentPath,
+                            'file_name' => $attachmentName,
+                        ]);
+                    }
                 }
+
+                $obj->update($data);
+                $this->syncOfficeAgentAccount($obj->fresh(['officeManager.admin']), $data, $managerPassword, $adminAction, $adminOfficeAction);
+
+                $officeFinanceAccountService->ensureForOffice($obj->fresh(['translations', 'account']));
+
+                if ($request->has('job_title_id')) {
+                    $obj->jobTypes()->sync($jobTitleIds);
+                }
+            });
+        } catch (\Throwable $exception) {
+            if ($newAttachmentPath) {
+                deleteFile($newAttachmentPath);
             }
 
-            $obj->update($data);
-            $this->syncOfficeAgentAccount($obj->fresh(['officeManager.admin']), $data, $managerPassword, $adminAction, $adminOfficeAction);
+            throw $exception;
+        }
 
-            $officeFinanceAccountService->ensureForOffice($obj->fresh(['translations', 'account']));
-
-            if ($request->has('job_title_id')) {
-                $obj->jobTypes()->sync($jobTitleIds);
-            }
-        });
+        if ($newAttachmentPath && $oldAttachmentPath) {
+            deleteFile($oldAttachmentPath);
+        }
 
         return jsonSuccess(['url' => route('offices.index')], null, 201);
 

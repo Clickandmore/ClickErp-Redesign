@@ -231,7 +231,7 @@
                                     @if($attachment)
                                         <li>
                                             <i class="fa fa-file"></i>
-                                            <a href="{{ asset('storage/' . $attachment->file) }}" target="_blank">{{ $attachment->file_name }}</a>
+                                            <a href="{{ showFile($attachment->file) }}" target="_blank">{{ $attachment->file_name }}</a>
                                             @if($attachmentDate)
                                                 <span class="text-muted">({{ $attachmentDate }})</span>
                                             @endif

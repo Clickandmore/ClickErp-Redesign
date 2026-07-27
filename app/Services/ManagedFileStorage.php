@@ -13,7 +13,7 @@ class ManagedFileStorage
     public const R2_PREFIX = 'r2://';
     private static ?string $configuredDiskHash = null;
 
-    public function uploadMaidFile(UploadedFile $file, string $directory): string
+    public function uploadFile(UploadedFile $file, string $directory): string
     {
         $directory = trim($directory, '/');
         $extension = strtolower((string) $file->getClientOriginalExtension());
@@ -28,6 +28,11 @@ class ManagedFileStorage
         $this->r2Disk($settings)->putFileAs(dirname($path), $file, basename($path));
 
         return self::R2_PREFIX . $path;
+    }
+
+    public function uploadMaidFile(UploadedFile $file, string $directory): string
+    {
+        return $this->uploadFile($file, $directory);
     }
 
     public function storeMaidFileContents(string $contents, string $directory, string $extension = ''): string

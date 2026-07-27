@@ -4,9 +4,9 @@ namespace App\Models\ingaz;
 
 use App\Models\auth\Admin;
 use App\Models\Concerns\AssignsBranch;
+use App\Services\ManagedFileStorage;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
 
 class ClientAttachment extends Model
 {
@@ -54,7 +54,7 @@ class ClientAttachment extends Model
 
     public function existsOnDisk(): bool
     {
-        return $this->path && Storage::disk('public')->exists($this->path);
+        return app(ManagedFileStorage::class)->exists($this->path);
     }
 
     protected function resolveBranchIdForCreate(): ?int
