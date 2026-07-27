@@ -5,11 +5,13 @@ namespace App\Console\Commands;
 use App\Enums\ingaz\ContractStatusEnum;
 use App\Http\Controllers\ingaz\InvoiceController;
 use App\Models\Contract;
+use App\Models\auth\Admin;
 use App\Models\ingaz\Nationality;
 use App\Services\ingaz\InvoiceCalculationService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Nami\Finance\Services\BondService;
 use Nami\Finance\Services\ConstraintService as ObjService;
@@ -26,6 +28,7 @@ class CreateRecruitmentContractInvoices extends Command
         {--to= : نهاية نطاق تاريخ إضافة العقد بصيغة Y-m-d؛ الافتراضي اليوم}
         {--contract=* : أرقام عقود محددة داخل النطاق للاختبار أو التنفيذ المحدود}
         {--exclude-nationality=* : معرفات الجنسيات المستثناة صراحةً من إنشاء الفواتير}
+        {--admin-id= : معرف مدير داخلي نشط تُسجّل باسمه الفواتير والقيود والسندات}
         {--send-to-zatca : إنشاء فواتير المبيعات المعلقة لهيئة الزكاة أيضاً}
         {--apply : تنفيذ الإنشاء؛ بدونه يعمل الأمر في وضع المعاينة فقط}
         {--confirm= : عبارة التأكيد المطلوبة مع --apply}
@@ -82,6 +85,14 @@ class CreateRecruitmentContractInvoices extends Command
             }
         }
 
+        try {
+            $executionAdmin = $this->resolveExecutionAdmin();
+        } catch (RuntimeException $exception) {
+            $this->error($exception->getMessage());
+
+            return self::INVALID;
+        }
+
         $excludedNationalities = Nationality::query()
             ->whereIn('id', $excludedNationalityIds)
             ->get()
@@ -123,7 +134,8 @@ class CreateRecruitmentContractInvoices extends Command
             $excludedNationalityContracts,
             $excludedNationalities,
             $currentDatabase,
-            $currentDatabaseFingerprint
+            $currentDatabaseFingerprint,
+            $executionAdmin
         );
 
         if (!$this->option('apply')) {
@@ -139,7 +151,8 @@ class CreateRecruitmentContractInvoices extends Command
                     $contractIds,
                     $excludedNationalityIds,
                     $currentDatabase,
-                    $currentDatabaseFingerprint
+                    $currentDatabaseFingerprint,
+                    $executionAdmin
                 ));
             }
 
@@ -183,6 +196,7 @@ class CreateRecruitmentContractInvoices extends Command
         }
 
         $created = [];
+        Auth::guard('admin')->setUser($executionAdmin);
 
         try {
             DB::transaction(function () use (
@@ -194,16 +208,24 @@ class CreateRecruitmentContractInvoices extends Command
                 &$created
             ): void {
                 foreach ($preflight['ready'] as $row) {
-                    $result = $invoiceController->createRecruitmentContractInvoice(
-                        $row['contract_id'],
-                        $row['payload'],
-                        Carbon::parse($row['invoice_date'], config('app.timezone')),
-                        (bool) $this->option('send-to-zatca'),
-                        $constraintService,
-                        $yearService,
-                        $bondService,
-                        true
-                    );
+                    try {
+                        $result = $invoiceController->createRecruitmentContractInvoice(
+                            $row['contract_id'],
+                            $row['payload'],
+                            Carbon::parse($row['invoice_date'], config('app.timezone')),
+                            (bool) $this->option('send-to-zatca'),
+                            $constraintService,
+                            $yearService,
+                            $bondService,
+                            true
+                        );
+                    } catch (Throwable $exception) {
+                        throw new RuntimeException(
+                            'العقد #' . $row['contract_id'] . ': ' . $exception->getMessage(),
+                            (int) $exception->getCode(),
+                            $exception
+                        );
+                    }
 
                     $invoice = $result['invoice'];
                     $constraint = $result['invoice_constraint'];
@@ -234,7 +256,13 @@ class CreateRecruitmentContractInvoices extends Command
             fclose($lockHandle);
         }
 
-        $reportPath = $this->writeAuditReport($from, $to, $currentDatabase, $created);
+        $reportPath = $this->writeAuditReport(
+            $from,
+            $to,
+            $currentDatabase,
+            $executionAdmin,
+            $created
+        );
 
         $this->newLine();
         $this->info('تم إنشاء الدفعة كاملة بنجاح.');
@@ -291,6 +319,37 @@ class CreateRecruitmentContractInvoices extends Command
         }
 
         return $rawIds->map(fn ($id) => (int) $id)->unique()->values();
+    }
+
+    private function resolveExecutionAdmin(): ?Admin
+    {
+        $adminId = trim((string) $this->option('admin-id'));
+        if ($adminId === '') {
+            if ($this->option('apply')) {
+                throw new RuntimeException(
+                    'رفض التنفيذ: يجب تحديد مدير داخلي نشط عبر --admin-id لتسجيل الأثر المحاسبي باسمه.'
+                );
+            }
+
+            return null;
+        }
+
+        if (!ctype_digit($adminId) || (int) $adminId <= 0) {
+            throw new RuntimeException('--admin-id يجب أن يكون رقماً صحيحاً موجباً.');
+        }
+
+        $admin = Admin::query()
+            ->activeForOperations()
+            ->notExternalOfficeAgents()
+            ->find((int) $adminId);
+
+        if (!$admin) {
+            throw new RuntimeException(
+                'رفض التنفيذ: المدير المحدد غير موجود، أو موقوف، أو حساب مكتب خارجي.'
+            );
+        }
+
+        return $admin;
     }
 
     private function contracts(Carbon $from, Carbon $to, Collection $contractIds): Collection
@@ -438,7 +497,8 @@ class CreateRecruitmentContractInvoices extends Command
         Collection $excludedNationalityContracts,
         Collection $excludedNationalities,
         string $currentDatabase,
-        string $currentDatabaseFingerprint
+        string $currentDatabaseFingerprint,
+        ?Admin $executionAdmin
     ): void {
         $this->table(
             ['البيان', 'القيمة'],
@@ -448,6 +508,12 @@ class CreateRecruitmentContractInvoices extends Command
                 ['تاريخ الفواتير والقيود', 'تاريخ إنشاء كل عقد'],
                 ['قاعدة البيانات الحالية', $currentDatabase],
                 ['بصمة اتصال قاعدة البيانات', $currentDatabaseFingerprint],
+                [
+                    'منفذ العملية المحاسبية',
+                    $executionAdmin
+                        ? '#' . $executionAdmin->id . ' - ' . ($executionAdmin->name ?: $executionAdmin->email)
+                        : 'غير محدد (مطلوب عند التنفيذ)',
+                ],
                 ['عقود الإيواء المستثناة', $excludedShelterCount],
                 ['عقود الجنسيات المستثناة', $excludedNationalityContracts->count()],
                 ['العقود المطابقة', $contracts->count()],
@@ -529,7 +595,8 @@ class CreateRecruitmentContractInvoices extends Command
         Collection $contractIds,
         Collection $excludedNationalityIds,
         string $currentDatabase,
-        string $currentDatabaseFingerprint
+        string $currentDatabaseFingerprint,
+        ?Admin $executionAdmin
     ): string {
         $parts = [
             'php artisan recruitment-contracts:create-missing-invoices',
@@ -542,6 +609,9 @@ class CreateRecruitmentContractInvoices extends Command
             '--no-interaction',
         ];
 
+        if ($executionAdmin) {
+            $parts[] = '--admin-id=' . $executionAdmin->id;
+        }
         foreach ($contractIds as $contractId) {
             $parts[] = '--contract=' . $contractId;
         }
@@ -572,6 +642,7 @@ class CreateRecruitmentContractInvoices extends Command
         Carbon $from,
         Carbon $to,
         string $database,
+        Admin $executionAdmin,
         array $created
     ): string
     {
@@ -584,6 +655,8 @@ class CreateRecruitmentContractInvoices extends Command
         $written = file_put_contents($path, json_encode([
             'executed_at' => now()->toIso8601String(),
             'database' => $database,
+            'executed_by_admin_id' => (int) $executionAdmin->id,
+            'executed_by_admin_name' => (string) ($executionAdmin->name ?: $executionAdmin->email),
             'contracts_created_from' => $from->toDateString(),
             'contracts_created_to' => $to->toDateString(),
             'invoice_date_source' => 'contract.created_at',
