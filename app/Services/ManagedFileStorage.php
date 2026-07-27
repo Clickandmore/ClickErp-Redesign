@@ -106,6 +106,29 @@ class ManagedFileStorage
 
     public function inlineResponse(string $storedPath, string $filename, string $contentType): StreamedResponse
     {
+        return $this->streamedResponse($storedPath, $filename, $contentType, 'inline');
+    }
+
+    public function downloadResponse(string $storedPath, string $filename, string $contentType): StreamedResponse
+    {
+        return $this->streamedResponse($storedPath, $filename, $contentType, 'attachment');
+    }
+
+    /**
+     * @return resource|false
+     */
+    public function readStream(string $storedPath)
+    {
+        return $this->disk($storedPath)->readStream($this->path($storedPath));
+    }
+
+    private function streamedResponse(
+        string $storedPath,
+        string $filename,
+        string $contentType,
+        string $disposition
+    ): StreamedResponse
+    {
         abort_unless($this->exists($storedPath), 404);
         $disk = $this->disk($storedPath);
         $path = $this->path($storedPath);
@@ -119,7 +142,7 @@ class ManagedFileStorage
             fclose($stream);
         }, 200, [
             'Content-Type' => $contentType,
-            'Content-Disposition' => 'inline; filename="' . str_replace(['"', "\r", "\n"], '', $filename) . '"',
+            'Content-Disposition' => $disposition . '; filename="' . str_replace(['"', "\r", "\n"], '', $filename) . '"',
             'X-Content-Type-Options' => 'nosniff',
             'Cache-Control' => 'private, max-age=3600',
         ]);
