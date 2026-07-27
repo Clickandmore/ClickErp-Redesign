@@ -978,109 +978,18 @@ class InvoiceController extends Controller
                     );
                 }
 
-                $contract = Contract::with(['user', 'maid.nationality', 'requiredMaidNationality'])
-                    ->findOrFail($request->contract_id);
+                $invoicePayload['insurance_company'] = $request->insurance_company ?? null;
+                $invoicePayload['general_description'] = $request->general_description ?? null;
 
-                if ($contract->invoice()->exists()) {
-                    throw new \RuntimeException('هذا العقد لديه فاتورة سابقة');
-                }
-
-                $automaticEntriesEnabled = AutomaticJournalEntries::enabled();
-                $clientAccountId = null;
-                $nationality = $contract->maid?->nationality ?? $contract->requiredMaidNationality;
-                $nationalityName = $nationality?->sub_title ?? $nationality?->title ?? null;
-                $this->persistMissingNationalityInvoiceCosts($nationality, $invoicePayload);
-                $nationalityAccountId = null;
-
-                if ($automaticEntriesEnabled) {
-                    // الحسابات التالية مطلوبة فقط لإنشاء القيد وسند القبض التلقائيين.
-                    $clientAccountId = $this->ensureClientAccountId($contract);
-                    $nationalityAccountId = $nationality?->account_id;
-
-                    if ($nationalityAccountId && !$this->isRecruitmentLiabilityAccount((int) $nationalityAccountId)) {
-                        $nationalityAccountId = null;
-                    }
-
-                    if (!$nationalityAccountId && $nationalityName) {
-                        $nationalityAccountId = $this->resolveNationalityAccountId($nationalityName);
-                    }
-
-                    if (!$nationalityAccountId) {
-                        throw new \RuntimeException(
-                            'لا يوجد حساب لهذه الجنسية'
-                            . ($nationalityName ? " : {$nationalityName}" : '')
-                            . '، الرجاء إضافة حساب أولاً.'
-                        );
-                    }
-                }
-
-                //1- انشاء الفاتورة وربطها بالعقد
-                $invoice = Invoice::create([
-                    'contract_id' => $request->contract_id,
-                    'client_id' => null,
-                    'insurance_company' => $request->insurance_company ?? null,
-                    'general_description' => $request->general_description ?? null,
-                    'direct_recruitment_cost' => $invoicePayload['direct_recruitment_cost'],
-                    'external_recruitment_cost' => $invoicePayload['external_recruitment_cost'],
-                    'government_cost' => $invoicePayload['government_cost'],
-                    'internal_ticket_cost' => $invoicePayload['internal_ticket_cost'],
-                    'visa_recruited_count' => $invoicePayload['visa_recruited_count'],
-                    'direct_recruitment_count' => $invoicePayload['direct_recruitment_count'],
-                    'external_recruitment_count' => $invoicePayload['external_recruitment_count'],
-                    'insured_count' => $invoicePayload['insured_count'],
-                    'government_cost_count' => $invoicePayload['government_cost_count'],
-                    'internal_ticket_count' => $invoicePayload['internal_ticket_count'],
-                    'subtotal' => $invoicePayload['subtotal'],
-                    'discount' => $invoicePayload['discount'],
-                    'vat_amount' => $invoicePayload['vat_amount'],
-                    'total_due' => $invoicePayload['total_due'],
-                    'is_paid' => true,
-                    'paid_at' => now(),
-                    'send_to_zatca' => $sendToZatca,
-                    'created_at' => $this->resolveInvoiceDateTime($request),
-                ]);
-
-                $invoice->setRelation('contract', $contract);
-
-                $invoiceConstraint = null;
-                $receiptBond = null;
-
-                if ($automaticEntriesEnabled && (float) $invoice->total_due > 0) {
-                    //2- انشاء قيد الفاتورة التفصيلي وربطه بمركز تكلفة العقد
-                    $contractCostCenter = $this->ensureRecruitmentContractCostCenter($contract, $nationalityName);
-
-                    $invoiceConstraint = $this->storeInvoiceConstraintForInvoice(
-                        $invoice,
-                        $service,
-                        $yearService,
-                        $nationalityAccountId,
-                        $clientAccountId,
-                        $contractCostCenter->id
-                    );
-
-                    //3- انشاء سند قبض فعلي من حساب العميل إلى حساب مساند.
-                    // إذا كان هناك حساب مساند مخصص لإجمالي التحصيلات يُستخدم أولاً، وإلا يتم
-                    // الرجوع للحساب الوسيط الحالي حفاظاً على التوافق مع القيود السابقة.
-                    $musandAccount = $this->resolveMusanedReceiptAccount();
-
-                    $receiptBond = $this->storeReceiptBondForInvoice(
-                        $invoice,
-                        $bondService,
-                        $yearService,
-                        $clientAccountId,
-                        (int) $musandAccount->id
-                    );
-                }
-
-                if ($invoice->send_to_zatca) {
-                    $this->queueInvoiceForZatcaSale($invoice);
-                }
-
-                return [
-                    'invoice' => $invoice,
-                    'invoice_constraint' => $invoiceConstraint,
-                    'receipt_bond' => $receiptBond,
-                ];
+                return $this->createRecruitmentContractInvoice(
+                    (int) $request->contract_id,
+                    $invoicePayload,
+                    $this->resolveInvoiceDateTime($request),
+                    $sendToZatca,
+                    $service,
+                    $yearService,
+                    $bondService
+                );
             });
         } catch (\Throwable $e) {
             return response()->json([
@@ -1114,6 +1023,138 @@ class InvoiceController extends Controller
             'index_url' => route('invoices.index'),
             'create_url' => route('invoices.create'),
         ]);
+    }
+
+    public function createRecruitmentContractInvoice(
+        int $contractId,
+        array $invoicePayload,
+        \Carbon\Carbon $invoiceDate,
+        bool $sendToZatca,
+        ObjService $service,
+        YearService $yearService,
+        BondService $bondService,
+        bool $requireAccountingEntries = false
+    ): array {
+        return DB::transaction(function () use (
+            $contractId,
+            $invoicePayload,
+            $invoiceDate,
+            $sendToZatca,
+            $service,
+            $yearService,
+            $bondService,
+            $requireAccountingEntries
+        ) {
+            $contract = Contract::query()
+                ->with(['user', 'maid.nationality', 'requiredMaidNationality'])
+                ->lockForUpdate()
+                ->findOrFail($contractId);
+
+            if ($contract->invoice()->exists()) {
+                throw new \RuntimeException('هذا العقد لديه فاتورة سابقة');
+            }
+
+            $automaticEntriesEnabled = AutomaticJournalEntries::enabled();
+            if ($requireAccountingEntries && !$automaticEntriesEnabled) {
+                throw new \RuntimeException('إنشاء القيود المحاسبية التلقائية غير مفعل.');
+            }
+
+            $nationality = $contract->maid?->nationality ?? $contract->requiredMaidNationality;
+            $nationalityName = $nationality?->sub_title ?? $nationality?->title ?? null;
+            $this->persistMissingNationalityInvoiceCosts($nationality, $invoicePayload);
+
+            $clientAccountId = null;
+            $nationalityAccountId = null;
+
+            if ($automaticEntriesEnabled) {
+                $clientAccountId = $this->ensureClientAccountId($contract);
+                $nationalityAccountId = $this->resolveContractNationalityLiabilityAccountId($nationality);
+
+                if (!$nationalityAccountId) {
+                    throw new \RuntimeException(
+                        'لا يوجد حساب التزامات عقود صالح لهذه الجنسية'
+                        . ($nationalityName ? " : {$nationalityName}" : '')
+                        . '، الرجاء ربط حساب الالتزام من إعدادات حسابات الجنسيات أولاً.'
+                    );
+                }
+            }
+
+            $invoice = Invoice::query()->create([
+                'contract_id' => $contract->id,
+                'client_id' => null,
+                'insurance_company' => $invoicePayload['insurance_company'] ?? null,
+                'general_description' => $invoicePayload['general_description'] ?? null,
+                'direct_recruitment_cost' => $invoicePayload['direct_recruitment_cost'],
+                'external_recruitment_cost' => $invoicePayload['external_recruitment_cost'],
+                'government_cost' => $invoicePayload['government_cost'],
+                'internal_ticket_cost' => $invoicePayload['internal_ticket_cost'],
+                'visa_recruited_count' => $invoicePayload['visa_recruited_count'],
+                'direct_recruitment_count' => $invoicePayload['direct_recruitment_count'],
+                'external_recruitment_count' => $invoicePayload['external_recruitment_count'],
+                'insured_count' => $invoicePayload['insured_count'],
+                'government_cost_count' => $invoicePayload['government_cost_count'],
+                'internal_ticket_count' => $invoicePayload['internal_ticket_count'],
+                'subtotal' => $invoicePayload['subtotal'],
+                'discount' => $invoicePayload['discount'],
+                'vat_amount' => $invoicePayload['vat_amount'],
+                'total_due' => $invoicePayload['total_due'],
+                'is_paid' => true,
+                'paid_at' => now(),
+                'send_to_zatca' => $sendToZatca,
+                'created_at' => $invoiceDate,
+            ]);
+            $invoice->setRelation('contract', $contract);
+
+            $invoiceConstraint = null;
+            $receiptBond = null;
+
+            if ($automaticEntriesEnabled && (float) $invoice->total_due > 0) {
+                $contractCostCenter = $this->ensureRecruitmentContractCostCenter($contract, $nationalityName);
+                $invoiceConstraint = $this->storeInvoiceConstraintForInvoice(
+                    $invoice,
+                    $service,
+                    $yearService,
+                    $nationalityAccountId,
+                    $clientAccountId,
+                    $contractCostCenter->id
+                );
+                $invoice->update(['invoice_constraint_id' => $invoiceConstraint?->id]);
+
+                $musandAccount = $this->resolveMusanedReceiptAccount();
+                $receiptBond = $this->storeReceiptBondForInvoice(
+                    $invoice,
+                    $bondService,
+                    $yearService,
+                    $clientAccountId,
+                    (int) $musandAccount->id
+                );
+                if (Schema::hasColumn('fn_bonds', 'recruitment_contract_id')) {
+                    $receiptBond->update(['recruitment_contract_id' => $contract->id]);
+                }
+            }
+
+            if ($requireAccountingEntries) {
+                if ((float) $invoice->total_due <= 0) {
+                    throw new \RuntimeException('قيمة الفاتورة صفر؛ لن يتم إنشاء فاتورة بلا قيد محاسبي.');
+                }
+                if (!$invoiceConstraint) {
+                    throw new \RuntimeException('لم يتم إنشاء قيد الفاتورة.');
+                }
+                if (!$receiptBond || !$receiptBond->constraint_id) {
+                    throw new \RuntimeException('لم يتم إنشاء سند القبض وقيده المحاسبي.');
+                }
+            }
+
+            if ($invoice->send_to_zatca) {
+                $this->queueInvoiceForZatcaSale($invoice);
+            }
+
+            return [
+                'invoice' => $invoice->fresh(),
+                'invoice_constraint' => $invoiceConstraint,
+                'receipt_bond' => $receiptBond,
+            ];
+        });
     }
 
     public function queueZatcaSale(int $id)
@@ -2376,7 +2417,7 @@ class InvoiceController extends Controller
         return $pdf->stream('invoice-' . $invoice->id . '.pdf');
     }
 
-    private function prepareInvoiceViewData(int $id): array
+    public function prepareInvoiceViewData(int $id): array
     {
         $invoice = Invoice::with([
             'contract.user',
@@ -3271,6 +3312,62 @@ class InvoiceController extends Controller
         }
 
         return false;
+    }
+
+    public function resolveContractNationalityLiabilityAccountId(?Nationality $nationality): ?int
+    {
+        if (!$nationality) {
+            return null;
+        }
+
+        $configuredAccountId = ConfirmSetting::query()
+            ->where('title', 'nationality_account_' . $nationality->id . '_contract_liability')
+            ->latest('updated_at')
+            ->value('value');
+
+        $candidates = array_filter([
+            $configuredAccountId ? (int) $configuredAccountId : null,
+            $nationality->account_id ? (int) $nationality->account_id : null,
+        ]);
+
+        $nationalityName = trim((string) ($nationality->sub_title ?: $nationality->title));
+        if ($nationalityName !== '') {
+            $resolvedAccountId = $this->resolveNationalityAccountId($nationalityName);
+            if ($resolvedAccountId) {
+                $candidates[] = $resolvedAccountId;
+            }
+        }
+
+        foreach (array_unique($candidates) as $accountId) {
+            if ($this->isRecruitmentLiabilityAccount((int) $accountId)) {
+                return (int) $accountId;
+            }
+        }
+
+        return null;
+    }
+
+    public function assertRecruitmentInvoiceAccountingConfiguration(
+        \Carbon\Carbon $invoiceDate,
+        YearService $yearService
+    ): void {
+        if (!AutomaticJournalEntries::enabled()) {
+            throw new \RuntimeException('إنشاء القيود المحاسبية التلقائية غير مفعل.');
+        }
+
+        if (!$yearService->checkDateRange($invoiceDate->toDateString())) {
+            throw new \RuntimeException('لا توجد سنة مالية نشطة لتاريخ الفاتورة المحدد.');
+        }
+
+        $this->resolveMusanedReceiptAccount();
+
+        if (!$this->resolveRevenueTaxAccountId()) {
+            throw new \RuntimeException('لا يوجد حساب ضريبة إيرادات صالح.');
+        }
+
+        if (!Account::query()->where('type', AccountTypesEnum::Clients->value)->exists()) {
+            throw new \RuntimeException('لا يوجد حساب رئيسي للعملاء من نوع Clients.');
+        }
     }
 
     private function resolveNationalityAccountId(string $nationalityName): ?int
