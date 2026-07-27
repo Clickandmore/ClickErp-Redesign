@@ -393,6 +393,8 @@
         $dailyConstraintsApproval = $settingValue('daily_constraints', 'off');
         $automaticJournalEntries = $settingValue('automatic_journal_entries', 'on');
         $accountTreeLabel = __('finance::finance.account_tree_position');
+        $accountOption = fn ($id) => $selected_accounts->get((int) $id);
+        $settingAccountOption = fn (string $key) => $accountOption($settingValue($key));
     @endphp
 
     <div class="finance-settings-page">
@@ -611,13 +613,12 @@
                                 </span>
                             </div>
                             <input type="hidden" value="revenue_tax_account" name="data[revenue_tax_account][title]">
-                            <select name="data[revenue_tax_account][value]" id="revenue_tax_account" class="form-control select2">
+                            <select name="data[revenue_tax_account][value]" id="revenue_tax_account"
+                                    class="form-control account-ajax-select" data-account-scope="creditor_leaf">
                                 <option value="">{{ __('finance::finance.choose') }}</option>
-                                @foreach ($revenue_tax_accounts as $item)
-                                    <option value="{{ $item->id }}" {{ $selected('revenue_tax_account', $item->id) }}>
-                                        {{ $item->code }} / {{ $item->name }}
-                                    </option>
-                                @endforeach
+                                @if ($item = $settingAccountOption('revenue_tax_account'))
+                                    <option value="{{ $item->id }}" selected>{{ $item->code }} / {{ $item->name }}</option>
+                                @endif
                             </select>
                             <small>{{ __('finance::finance.revenue_tax_account_hint') }}</small>
                             <div class="setting-field__tree">
@@ -634,13 +635,12 @@
                                 </span>
                             </div>
                             <input type="hidden" value="expense_tax_account" name="data[expense_tax_account][title]">
-                            <select name="data[expense_tax_account][value]" id="expense_tax_account" class="form-control select2">
+                            <select name="data[expense_tax_account][value]" id="expense_tax_account"
+                                    class="form-control account-ajax-select" data-account-scope="debtor_leaf">
                                 <option value="">{{ __('finance::finance.choose') }}</option>
-                                @foreach ($debtor_accounts as $item)
-                                    <option value="{{ $item->id }}" {{ $selected('expense_tax_account', $item->id) }}>
-                                        {{ $item->code }} / {{ $item->name }}
-                                    </option>
-                                @endforeach
+                                @if ($item = $settingAccountOption('expense_tax_account'))
+                                    <option value="{{ $item->id }}" selected>{{ $item->code }} / {{ $item->name }}</option>
+                                @endif
                             </select>
                             <small>{{ __('finance::finance.expense_tax_account_hint') }}</small>
                             <div class="setting-field__tree">
@@ -670,13 +670,12 @@
                                 </span>
                             </div>
                             <input type="hidden" value="bond_sarf_account" name="data[bond_sarf_account][title]">
-                            <select name="data[bond_sarf_account][value]" id="bond_sarf_account" class="form-control select2">
+                            <select name="data[bond_sarf_account][value]" id="bond_sarf_account"
+                                    class="form-control account-ajax-select" data-account-scope="leaf">
                                 <option value="">{{ __('finance::finance.choose') }}</option>
-                                @foreach ($accounts as $item)
-                                    <option value="{{ $item->id }}" {{ $selected('bond_sarf_account', $item->id) }}>
-                                        {{ $item->code ?? '' }} / {{ $item->name }}
-                                    </option>
-                                @endforeach
+                                @if ($item = $settingAccountOption('bond_sarf_account'))
+                                    <option value="{{ $item->id }}" selected>{{ $item->code }} / {{ $item->name }}</option>
+                                @endif
                             </select>
                             <div class="setting-field__tree">
                                 <strong>{{ $accountTreeLabel }}:</strong> {{ __('finance::finance.bond_sarf_account_tree_hint') }}
@@ -692,13 +691,12 @@
                                 </span>
                             </div>
                             <input type="hidden" value="bond_qabd_account" name="data[bond_qabd_account][title]">
-                            <select name="data[bond_qabd_account][value]" id="bond_qabd_account" class="form-control select2">
+                            <select name="data[bond_qabd_account][value]" id="bond_qabd_account"
+                                    class="form-control account-ajax-select" data-account-scope="leaf">
                                 <option value="">{{ __('finance::finance.choose') }}</option>
-                                @foreach ($accounts as $item)
-                                    <option value="{{ $item->id }}" {{ $selected('bond_qabd_account', $item->id) }}>
-                                        {{ $item->code ?? '' }} / {{ $item->name }}
-                                    </option>
-                                @endforeach
+                                @if ($item = $settingAccountOption('bond_qabd_account'))
+                                    <option value="{{ $item->id }}" selected>{{ $item->code }} / {{ $item->name }}</option>
+                                @endif
                             </select>
                             <div class="setting-field__tree">
                                 <strong>{{ $accountTreeLabel }}:</strong> {{ __('finance::finance.bond_qabd_account_tree_hint') }}
@@ -726,13 +724,12 @@
                                 </span>
                             </div>
                             <input type="hidden" value="rental_contract_revenue_account" name="data[rental_contract_revenue_account][title]">
-                            <select name="data[rental_contract_revenue_account][value]" id="rental_contract_revenue_account" class="form-control select2">
+                            <select name="data[rental_contract_revenue_account][value]" id="rental_contract_revenue_account"
+                                    class="form-control account-ajax-select" data-account-scope="creditor_leaf">
                                 <option value="">{{ __('finance::finance.choose') }}</option>
-                                @foreach ($revenue_tax_accounts as $item)
-                                    <option value="{{ $item->id }}" {{ $selected('rental_contract_revenue_account', $item->id) }}>
-                                        {{ $item->code }} / {{ $item->name }}
-                                    </option>
-                                @endforeach
+                                @if ($item = $settingAccountOption('rental_contract_revenue_account'))
+                                    <option value="{{ $item->id }}" selected>{{ $item->code }} / {{ $item->name }}</option>
+                                @endif
                             </select>
                             <small>{{ __('finance::finance.rental_contract_revenue_account_hint') }}</small>
                         </div>
@@ -745,13 +742,12 @@
                                 </span>
                             </div>
                             <input type="hidden" value="rental_contract_clients_parent_account" name="data[rental_contract_clients_parent_account][title]">
-                            <select name="data[rental_contract_clients_parent_account][value]" id="rental_contract_clients_parent_account" class="form-control select2">
+                            <select name="data[rental_contract_clients_parent_account][value]" id="rental_contract_clients_parent_account"
+                                    class="form-control account-ajax-select" data-account-scope="rental_client_parent">
                                 <option value="">{{ __('finance::finance.choose') }}</option>
-                                @foreach ($rental_client_parent_accounts as $item)
-                                    <option value="{{ $item->id }}" {{ $selected('rental_contract_clients_parent_account', $item->id) }}>
-                                        {{ $item->code }} / {{ $item->name }}
-                                    </option>
-                                @endforeach
+                                @if ($item = $settingAccountOption('rental_contract_clients_parent_account'))
+                                    <option value="{{ $item->id }}" selected>{{ $item->code }} / {{ $item->name }}</option>
+                                @endif
                             </select>
                             <small>{{ __('finance::finance.rental_contract_clients_parent_account_hint') }}</small>
                         </div>
@@ -769,13 +765,12 @@
                                     </span>
                                 </div>
                                 <input type="hidden" value="{{ $settingKey }}" name="data[{{ $settingKey }}][title]">
-                                <select name="data[{{ $settingKey }}][value]" id="{{ $settingKey }}" class="form-control select2">
+                                <select name="data[{{ $settingKey }}][value]" id="{{ $settingKey }}"
+                                        class="form-control account-ajax-select" data-account-scope="rental_receipt">
                                     <option value="">{{ __('finance::finance.choose') }}</option>
-                                    @foreach ($rental_receipt_accounts as $item)
-                                        <option value="{{ $item->id }}" {{ $selected($settingKey, $item->id) }}>
-                                            {{ $item->code }} / {{ $item->name }}
-                                        </option>
-                                    @endforeach
+                                    @if ($item = $settingAccountOption($settingKey))
+                                        <option value="{{ $item->id }}" selected>{{ $item->code }} / {{ $item->name }}</option>
+                                    @endif
                                 </select>
                                 <small>{{ __('finance::finance.' . $translationKey . '_hint') }}</small>
                             </div>
@@ -803,13 +798,12 @@
                                 </span>
                             </div>
                             <input type="hidden" value="musaned_account" name="data[musaned_account][title]">
-                            <select name="data[musaned_account][value]" id="musaned_account" class="form-control select2">
+                            <select name="data[musaned_account][value]" id="musaned_account"
+                                    class="form-control account-ajax-select" data-account-scope="musaned_source">
                                 <option value="">{{ __('finance::finance.choose') }}</option>
-                                @foreach ($musaned_source_accounts as $item)
-                                    <option value="{{ $item->id }}" {{ $selected('musaned_account', $item->id) }}>
-                                        {{ $item->code }} / {{ $item->name }}
-                                    </option>
-                                @endforeach
+                                @if ($item = $settingAccountOption('musaned_account'))
+                                    <option value="{{ $item->id }}" selected>{{ $item->code }} / {{ $item->name }}</option>
+                                @endif
                             </select>
                             <small>{{ __('finance::finance.musaned_account_hint') }}</small>
                             <div class="setting-field__tree">
@@ -826,13 +820,12 @@
                                 </span>
                             </div>
                             <input type="hidden" value="musaned_intermediate_account" name="data[musaned_intermediate_account][title]">
-                            <select name="data[musaned_intermediate_account][value]" id="musaned_intermediate_account" class="form-control select2">
+                            <select name="data[musaned_intermediate_account][value]" id="musaned_intermediate_account"
+                                    class="form-control account-ajax-select" data-account-scope="musaned_intermediate">
                                 <option value="">{{ __('finance::finance.choose') }}</option>
-                                @foreach ($musaned_accounts as $item)
-                                    <option value="{{ $item->id }}" {{ $selected('musaned_intermediate_account', $item->id) }}>
-                                        {{ $item->code }} / {{ $item->name }}
-                                    </option>
-                                @endforeach
+                                @if ($item = $settingAccountOption('musaned_intermediate_account'))
+                                    <option value="{{ $item->id }}" selected>{{ $item->code }} / {{ $item->name }}</option>
+                                @endif
                             </select>
                             <small>{{ __('finance::finance.musaned_intermediate_account_hint') }}</small>
                             <div class="setting-field__tree">
@@ -849,13 +842,12 @@
                                 </span>
                             </div>
                             <input type="hidden" value="musaned_commission_account" name="data[musaned_commission_account][title]">
-                            <select name="data[musaned_commission_account][value]" id="musaned_commission_account" class="form-control select2">
+                            <select name="data[musaned_commission_account][value]" id="musaned_commission_account"
+                                    class="form-control account-ajax-select" data-account-scope="debtor_leaf">
                                 <option value="">{{ __('finance::finance.choose') }}</option>
-                                @foreach ($debtor_accounts as $item)
-                                    <option value="{{ $item->id }}" {{ $selected('musaned_commission_account', $item->id) }}>
-                                        {{ $item->code }} / {{ $item->name }}
-                                    </option>
-                                @endforeach
+                                @if ($item = $settingAccountOption('musaned_commission_account'))
+                                    <option value="{{ $item->id }}" selected>{{ $item->code }} / {{ $item->name }}</option>
+                                @endif
                             </select>
                             <small>{{ __('finance::finance.musaned_commission_account_hint') }}</small>
                             <div class="setting-field__tree">
@@ -884,13 +876,12 @@
                                 </span>
                             </div>
                             <input type="hidden" value="ingaz_delegation_revenue_account" name="data[ingaz_delegation_revenue_account][title]">
-                            <select name="data[ingaz_delegation_revenue_account][value]" id="ingaz_delegation_revenue_account" class="form-control select2">
+                            <select name="data[ingaz_delegation_revenue_account][value]" id="ingaz_delegation_revenue_account"
+                                    class="form-control account-ajax-select" data-account-scope="creditor_leaf">
                                 <option value="">{{ __('finance::finance.choose') }}</option>
-                                @foreach ($revenue_tax_accounts as $item)
-                                    <option value="{{ $item->id }}" {{ $selected('ingaz_delegation_revenue_account', $item->id) }}>
-                                        {{ $item->code }} / {{ $item->name }}
-                                    </option>
-                                @endforeach
+                                @if ($item = $settingAccountOption('ingaz_delegation_revenue_account'))
+                                    <option value="{{ $item->id }}" selected>{{ $item->code }} / {{ $item->name }}</option>
+                                @endif
                             </select>
                             <small>{{ __('finance::finance.ingaz_delegation_revenue_account_hint') }}</small>
                         </div>
@@ -903,13 +894,12 @@
                                 </span>
                             </div>
                             <input type="hidden" value="ingaz_delegation_ingaz_account" name="data[ingaz_delegation_ingaz_account][title]">
-                            <select name="data[ingaz_delegation_ingaz_account][value]" id="ingaz_delegation_ingaz_account" class="form-control select2">
+                            <select name="data[ingaz_delegation_ingaz_account][value]" id="ingaz_delegation_ingaz_account"
+                                    class="form-control account-ajax-select" data-account-scope="creditor_leaf">
                                 <option value="">{{ __('finance::finance.choose') }}</option>
-                                @foreach ($revenue_tax_accounts as $item)
-                                    <option value="{{ $item->id }}" {{ $selected('ingaz_delegation_ingaz_account', $item->id) }}>
-                                        {{ $item->code }} / {{ $item->name }}
-                                    </option>
-                                @endforeach
+                                @if ($item = $settingAccountOption('ingaz_delegation_ingaz_account'))
+                                    <option value="{{ $item->id }}" selected>{{ $item->code }} / {{ $item->name }}</option>
+                                @endif
                             </select>
                             <small>{{ __('finance::finance.ingaz_delegation_ingaz_account_hint') }}</small>
                         </div>
@@ -922,13 +912,12 @@
                                 </span>
                             </div>
                             <input type="hidden" value="ingaz_delegation_cost_account" name="data[ingaz_delegation_cost_account][title]">
-                            <select name="data[ingaz_delegation_cost_account][value]" id="ingaz_delegation_cost_account" class="form-control select2">
+                            <select name="data[ingaz_delegation_cost_account][value]" id="ingaz_delegation_cost_account"
+                                    class="form-control account-ajax-select" data-account-scope="debtor_leaf">
                                 <option value="">{{ __('finance::finance.choose') }}</option>
-                                @foreach ($debtor_accounts as $item)
-                                    <option value="{{ $item->id }}" {{ $selected('ingaz_delegation_cost_account', $item->id) }}>
-                                        {{ $item->code }} / {{ $item->name }}
-                                    </option>
-                                @endforeach
+                                @if ($item = $settingAccountOption('ingaz_delegation_cost_account'))
+                                    <option value="{{ $item->id }}" selected>{{ $item->code }} / {{ $item->name }}</option>
+                                @endif
                             </select>
                             <small>{{ __('finance::finance.ingaz_delegation_cost_account_hint') }}</small>
                         </div>
@@ -1046,13 +1035,12 @@
                                     </span>
                                 </div>
                                 <input type="hidden" value="{{ $definition['setting_key'] }}" name="data[{{ $definition['setting_key'] }}][title]">
-                                <select name="data[{{ $definition['setting_key'] }}][value]" id="{{ $definition['setting_key'] }}" class="form-control select2">
+                                <select name="data[{{ $definition['setting_key'] }}][value]" id="{{ $definition['setting_key'] }}"
+                                        class="form-control account-ajax-select" data-account-scope="debtor_leaf">
                                     <option value="">{{ __('finance::finance.choose') }}</option>
-                                    @foreach ($debtor_accounts as $item)
-                                        <option value="{{ $item->id }}" {{ (string) ($definition['selected_account_id'] ?? '') === (string) $item->id ? 'selected' : '' }}>
-                                            {{ $item->code }} / {{ $item->name }}
-                                        </option>
-                                    @endforeach
+                                    @if ($item = $accountOption($definition['selected_account_id'] ?? null))
+                                        <option value="{{ $item->id }}" selected>{{ $item->code }} / {{ $item->name }}</option>
+                                    @endif
                                 </select>
                                 <div class="setting-field__tree">
                                     <strong>{{ $accountTreeLabel }}:</strong>
@@ -1068,13 +1056,12 @@
                                     </span>
                                 </div>
                                 <input type="hidden" value="{{ $definition['prepaid_setting_key'] }}" name="data[{{ $definition['prepaid_setting_key'] }}][title]">
-                                <select name="data[{{ $definition['prepaid_setting_key'] }}][value]" id="{{ $definition['prepaid_setting_key'] }}" class="form-control select2">
+                                <select name="data[{{ $definition['prepaid_setting_key'] }}][value]" id="{{ $definition['prepaid_setting_key'] }}"
+                                        class="form-control account-ajax-select" data-account-scope="debtor_leaf">
                                     <option value="">{{ __('finance::finance.choose') }}</option>
-                                    @foreach ($debtor_accounts as $item)
-                                        <option value="{{ $item->id }}" {{ (string) ($definition['selected_prepaid_account_id'] ?? '') === (string) $item->id ? 'selected' : '' }}>
-                                            {{ $item->code }} / {{ $item->name }}
-                                        </option>
-                                    @endforeach
+                                    @if ($item = $accountOption($definition['selected_prepaid_account_id'] ?? null))
+                                        <option value="{{ $item->id }}" selected>{{ $item->code }} / {{ $item->name }}</option>
+                                    @endif
                                 </select>
                                 <div class="setting-field__tree">
                                     <strong>{{ $accountTreeLabel }}:</strong>
@@ -1119,13 +1106,12 @@
                                 </span>
                             </div>
                             <input type="hidden" value="shelter_living_expense_account" name="data[shelter_living_expense_account][title]">
-                            <select name="data[shelter_living_expense_account][value]" id="shelter_living_expense_account" class="form-control select2">
+                            <select name="data[shelter_living_expense_account][value]" id="shelter_living_expense_account"
+                                    class="form-control account-ajax-select" data-account-scope="debtor_leaf">
                                 <option value="">{{ __('finance::finance.choose') }}</option>
-                                @foreach ($debtor_accounts as $item)
-                                    <option value="{{ $item->id }}" {{ (string) ($shelter_living_expense_account_id ?? '') === (string) $item->id ? 'selected' : '' }}>
-                                        {{ $item->code }} / {{ $item->name }}
-                                    </option>
-                                @endforeach
+                                @if ($item = $accountOption($shelter_living_expense_account_id ?? null))
+                                    <option value="{{ $item->id }}" selected>{{ $item->code }} / {{ $item->name }}</option>
+                                @endif
                             </select>
                             <div class="setting-field__tree">
                                 <strong>{{ $accountTreeLabel }}:</strong> {{ __('finance::finance.shelter_living_expense_account_tree_hint') }}
@@ -1201,23 +1187,30 @@
             width: '100%'
         });
 
-        $('.nationality-account-select').select2({
-            width: '100%',
-            allowClear: true,
-            placeholder: '{{ __('finance::finance.search_chart_accounts') }}',
-            ajax: {
-                url: @json($nationality_account_options_route),
-                dataType: 'json',
-                delay: 250,
-                data: function (params) {
-                    return {q: params.term || ''};
+        $('.account-ajax-select, .nationality-account-select').each(function () {
+            const select = $(this);
+
+            select.select2({
+                width: '100%',
+                allowClear: true,
+                placeholder: '{{ __('finance::finance.search_chart_accounts') }}',
+                ajax: {
+                    url: @json($nationality_account_options_route),
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (params) {
+                        return {
+                            q: params.term || '',
+                            scope: select.data('account-scope') || ''
+                        };
+                    },
+                    processResults: function (data) {
+                        return {results: data.results || []};
+                    },
+                    cache: true
                 },
-                processResults: function (data) {
-                    return {results: data.results || []};
-                },
-                cache: true
-            },
-            minimumInputLength: 0
+                minimumInputLength: 0
+            });
         });
     </script>
 @endsection

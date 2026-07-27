@@ -527,19 +527,7 @@ class AdminTravelHistoryController extends Controller
 
     private function resolveArrivalDateTime(TravelHistory $trip): ?Carbon
     {
-        if (empty($trip->arrival_date)) {
-            return null;
-        }
-
-        try {
-            if (!empty($trip->arrival_time)) {
-                return Carbon::parse($trip->arrival_date . ' ' . $trip->arrival_time);
-            }
-
-            return Carbon::parse($trip->arrival_date);
-        } catch (\Throwable $e) {
-            return null;
-        }
+        return $trip->resolveArrivalDateTime();
     }
 
     private function calendarEventColor(TravelHistory $trip): string
@@ -839,12 +827,7 @@ class AdminTravelHistoryController extends Controller
             foreach ($tripRecords as $tripRecord) {
                 // تحديث حالة الرحلة إلى مكتملة
                 $tripRecord->status = 'completed';
-                if (!$tripRecord->arrival_date) {
-                    $tripRecord->arrival_date = now()->toDateString();
-                }
-                if (!$tripRecord->arrival_time) {
-                    $tripRecord->arrival_time = now()->format('H:i:s');
-                }
+                $tripRecord->normalizeArrivalDateAndTime();
                 $tripRecord->arrived_at = now();
                 $tripRecord->arrival_confirmed_by = auth('admin')->id();
 

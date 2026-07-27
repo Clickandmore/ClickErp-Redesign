@@ -537,11 +537,11 @@ class Contract extends Model
 
         $arrivalDateTime = null;
 
-        if ($travelHistory && $travelHistory->arrival_date && $travelHistory->arrival_time) {
-            $arrivalDateTime = \Carbon\Carbon::parse($travelHistory->arrival_date . ' ' . $travelHistory->arrival_time);
-        } elseif ($travelHistory && $travelHistory->arrival_date) {
-            $arrivalDateTime = \Carbon\Carbon::parse($travelHistory->arrival_date);
-        } elseif ($travelHistory && !empty($travelHistory->arrived_at)) {
+        if ($travelHistory?->arrival_date) {
+            $arrivalDateTime = $travelHistory->resolveArrivalDateTime();
+        }
+
+        if (!$arrivalDateTime && $travelHistory && !empty($travelHistory->arrived_at)) {
             $arrivalDateTime = \Carbon\Carbon::parse($travelHistory->arrived_at);
         }
 
