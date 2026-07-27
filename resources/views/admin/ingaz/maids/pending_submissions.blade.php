@@ -15,7 +15,7 @@
                 طلبات المكاتب الخارجية — بانتظار المراجعة
             </h4>
             <p class="text-muted mb-0 small">
-                تشمل السير الذاتية الجديدة وطلبات تعليق أو Back Out للعاملات.
+                تشمل السير الجديدة والتعديلات وطلبات التعليق وBack Out والسير المحذوفة.
             </p>
         </div>
         <span class="badge bg-warning text-dark fs-6 px-3 py-2">
@@ -37,7 +37,7 @@
                     <select name="office_id" class="form-select form-select-sm" style="min-width:160px;">
                         <option value="">جميع المكاتب</option>
                         @foreach($offices as $office)
-                            <option value="{{ $office->id }}" @selected(request('office_id') == $office->id)>
+                            <option value="{{ $office->id }}" {{ request('office_id') == $office->id ? 'selected' : '' }}>
                                 {{ $office->title }}
                             </option>
                         @endforeach
@@ -59,7 +59,7 @@
     <div class="d-flex align-items-center justify-content-between mb-2">
         <h5 class="mb-0 fw-bold">
             <i class="fas fa-arrows-rotate text-primary me-2"></i>
-            طلبات تغيير حالة العاملات
+            طلبات الإجراءات على السير
         </h5>
         <span class="badge bg-primary"><span id="statusRequestPendingCount">{{ $statusRequestCount }}</span> طلب</span>
     </div>
@@ -117,7 +117,7 @@
                                     </span>
                                 </td>
                                 <td>
-                                    <span class="badge {{ $statusRequest->type === 'backout' ? 'bg-danger' : 'bg-warning text-dark' }}">
+                                    <span class="badge {{ in_array($statusRequest->type, ['backout', 'delete'], true) ? 'bg-danger' : 'bg-warning text-dark' }}">
                                         {{ $statusRequest->type_label }}
                                     </span>
                                 </td>
@@ -147,7 +147,7 @@
                         @empty
                             <tr>
                                 <td colspan="10" class="text-center text-muted py-4">
-                                    لا توجد طلبات تعليق أو Back Out قيد المراجعة
+                                    لا توجد طلبات تعليق أو Back Out أو حذف قيد المراجعة
                                 </td>
                             </tr>
                         @endforelse
@@ -165,7 +165,7 @@
     <div class="d-flex align-items-center justify-content-between mb-2">
         <h5 class="mb-0 fw-bold">
             <i class="fas fa-file-circle-check text-warning me-2"></i>
-            السير الذاتية الجديدة
+            السير الذاتية الجديدة والمعدلة
         </h5>
         <span class="badge bg-warning text-dark"><span id="cvPendingCount">{{ $cvPendingCount }}</span> سيرة</span>
     </div>
@@ -219,6 +219,11 @@
                                     <a href="{{ route('maids.show', $maid->id) }}" class="fw-semibold text-decoration-none">
                                         {{ $maid->name }}
                                     </a>
+                                    @if($maid->submission_type === \App\Models\ingaz\Maid::SUBMISSION_TYPE_UPDATE)
+                                        <span class="badge bg-info text-dark ms-1">تعديل سيرة</span>
+                                    @else
+                                        <span class="badge bg-success ms-1">سيرة جديدة</span>
+                                    @endif
                                 </td>
                                 <td>{{ $maid->passport_num ?? '—' }}</td>
                                 <td>{{ $maid->nationality?->sub_title ?? '—' }}</td>

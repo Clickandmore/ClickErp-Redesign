@@ -104,6 +104,7 @@ class Maid extends Model
         'arrival_date',
         'created_at',
         'submission_status',
+        'submission_type',
         'rejection_reason',
         'reviewed_by',
         'reviewed_at',
@@ -142,6 +143,8 @@ class Maid extends Model
     const SUBMISSION_PENDING  = 'pending_review';
     const SUBMISSION_APPROVED = 'approved';
     const SUBMISSION_REJECTED = 'rejected';
+    const SUBMISSION_TYPE_CREATE = 'create';
+    const SUBMISSION_TYPE_UPDATE = 'update';
 
     public $translatedAttributes = ['marital_status'];
     protected $translationForeignKey = 'maid_id';

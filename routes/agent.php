@@ -36,6 +36,8 @@ Route::group(
                     ->name('maids.status-change-requests.bulk');
                 Route::post('maids/{maid}/status-change-requests', [DashboardController::class, 'requestMaidStatusChange'])
                     ->name('maids.status-change-requests.store');
+                Route::get('maids/{maid}/edit', [DashboardController::class, 'editMaid'])->name('maids.edit');
+                Route::put('maids/{maid}', [DashboardController::class, 'updateMaid'])->name('maids.update');
                 Route::get('maids/{maid}', [DashboardController::class, 'showMaid'])->name('maids.show');
                 Route::get('contracts', [DashboardController::class, 'contracts'])->name('contracts.index');
                 Route::get('contracts/{contract}', [DashboardController::class, 'showContract'])->name('contracts.show');

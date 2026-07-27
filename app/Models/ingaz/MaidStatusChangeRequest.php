@@ -10,6 +10,7 @@ class MaidStatusChangeRequest extends Model
 {
     public const TYPE_SUSPEND = 'suspend';
     public const TYPE_BACKOUT = 'backout';
+    public const TYPE_DELETE = 'delete';
 
     public const STATUS_PENDING = 'pending';
     public const STATUS_APPROVED = 'approved';
@@ -53,6 +54,10 @@ class MaidStatusChangeRequest extends Model
 
     public function getTypeLabelAttribute(): string
     {
-        return $this->type === self::TYPE_BACKOUT ? 'Back Out' : 'تعليق السيرة';
+        return match ($this->type) {
+            self::TYPE_BACKOUT => 'Back Out',
+            self::TYPE_DELETE => 'سيرة محذوفة',
+            default => 'تعليق السيرة',
+        };
     }
 }

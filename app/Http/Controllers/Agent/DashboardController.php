@@ -313,6 +313,7 @@ class DashboardController extends Controller
         $data['available'] = 1;
         $data['is_show'] = 0;
         $data['submission_status'] = Maid::SUBMISSION_PENDING;
+        $data['submission_type'] = Maid::SUBMISSION_TYPE_CREATE;
         // Force experience_status fallback to avoid unexpected null
         $data['experience_status'] = $data['experience_status'] ?? 'no_experience';
 
@@ -364,6 +365,7 @@ class DashboardController extends Controller
         $data['available'] = 1;
         $data['is_show'] = 0;
         $data['submission_status'] = Maid::SUBMISSION_PENDING;
+        $data['submission_type'] = Maid::SUBMISSION_TYPE_CREATE;
         $data['experience_status'] = $data['experience_status'] ?? 'no_experience';
         $data['experience_years'] = $data['experience_years'] ?? '0';
 
@@ -411,6 +413,87 @@ class DashboardController extends Controller
         return redirect()->back()->with('success', $message);
     }
 
+    public function editMaid(Maid $maid)
+    {
+        $this->authorizeAgentMaid($maid);
+
+        if ($maid->pendingStatusChangeRequest()->exists()) {
+            return redirect()->route('agent.maids.index')->with('error', app()->getLocale() === 'ar'
+                ? 'لا يمكن تعديل السيرة أثناء وجود طلب إجراء قيد المراجعة.'
+                : 'The CV cannot be edited while an action request is pending.');
+        }
+
+        $maid->load(['jobTypes', 'jobTitles', 'expertises', 'translations']);
+
+        return view('agent.maids.edit', [
+            'maid' => $maid,
+            'nationalities' => Nationality::all(),
+            'religions' => Religion::all(),
+            'offices' => $this->agentOffices(),
+            'types' => JobType::all(),
+            'jobs' => JobTitle::all(),
+            'skills' => Skill::all(),
+            'countries' => Country::query()->orderBy('name_ar')->get(),
+        ]);
+    }
+
+    public function updateMaid(Request $request, Maid $maid, MaidAction $maidAction)
+    {
+        $this->authorizeAgentMaid($maid);
+
+        if ($maid->pendingStatusChangeRequest()->exists()) {
+            throw ValidationException::withMessages([
+                'maid' => app()->getLocale() === 'ar'
+                    ? 'لا يمكن تعديل السيرة أثناء وجود طلب إجراء قيد المراجعة.'
+                    : 'The CV cannot be edited while an action request is pending.',
+            ]);
+        }
+
+        $request->validate([
+            'name:en' => ['required', 'string', 'max:255'],
+            'passport_num' => ['required', 'string', 'max:255', 'unique:maids,passport_num,' . $maid->id],
+            'nationality_id' => ['required', 'exists:nationalities,id'],
+            'office_id' => ['required', 'exists:recruitment_offices,id'],
+            'type_id' => ['required', 'exists:job_types,id'],
+            'job_id' => ['required', 'array', 'min:1'],
+            'job_id.*' => ['exists:job_titles,id'],
+            'religion_id' => ['nullable', 'exists:religions,id'],
+            'image' => ['nullable', 'file', 'image', 'max:5120'],
+            'cv_file' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'gender' => ['nullable', 'in:male,female'],
+            'salary' => ['nullable', 'numeric'],
+            'birth_date' => ['required', 'date'],
+            'age' => ['nullable', 'numeric', 'min:18', 'max:90'],
+            'experience_status' => ['required', 'in:has_experience,no_experience'],
+            'video_link' => ['nullable', 'string', 'max:2000'],
+            'additional_notes' => ['nullable', 'string', 'max:1000'],
+            'languages' => ['nullable', 'array'],
+            'percentage' => ['nullable', 'array'],
+            'skills' => ['nullable', 'array'],
+            'marital_status:ar' => ['nullable', 'string'],
+            'marital_status:en' => ['nullable', 'string'],
+        ]);
+
+        if (!$this->agentOfficeIds()->contains((int) $request->office_id)
+            || (int) $request->office_id !== (int) $maid->office_id) {
+            abort(403, 'Unauthorized office');
+        }
+
+        $data = $request->all();
+        $data['submission_status'] = Maid::SUBMISSION_PENDING;
+        $data['submission_type'] = Maid::SUBMISSION_TYPE_UPDATE;
+        $data['is_show'] = 0;
+        $data['rejection_reason'] = null;
+        $data['reviewed_by'] = null;
+        $data['reviewed_at'] = null;
+
+        $maidAction->updateMaid($maid->id, $data, $request);
+
+        return redirect()->route('agent.maids.index')->with('success', app()->getLocale() === 'ar'
+            ? 'تم حفظ التعديلات وإرسال السيرة إلى الإدارة للمراجعة.'
+            : 'Changes were saved and sent to administration for review.');
+    }
+
     public function requestMaidStatusChange(Request $request, Maid $maid)
     {
         $officeIds = $this->agentOfficeIds();
@@ -419,8 +502,8 @@ class DashboardController extends Controller
         }
 
         $validated = $request->validate([
-            'type' => ['required', 'in:suspend,backout'],
-            'reason' => ['nullable', 'required_if:type,backout', 'string', 'max:1000'],
+            'type' => ['required', 'in:suspend,backout,delete'],
+            'reason' => ['nullable', 'required_if:type,backout,delete', 'string', 'max:1000'],
         ], [
             'type.required' => app()->getLocale() === 'ar' ? 'نوع الطلب مطلوب.' : 'Request type is required.',
             'reason.required' => app()->getLocale() === 'ar' ? 'سبب الطلب مطلوب.' : 'Request reason is required.',
@@ -452,7 +535,8 @@ class DashboardController extends Controller
                 ]);
             }
 
-            if (in_array($lockedMaid->submission_status, [Maid::SUBMISSION_PENDING, Maid::SUBMISSION_REJECTED], true)) {
+            if ($validated['type'] !== MaidStatusChangeRequest::TYPE_DELETE
+                && in_array($lockedMaid->submission_status, [Maid::SUBMISSION_PENDING, Maid::SUBMISSION_REJECTED], true)) {
                 throw ValidationException::withMessages([
                     'type' => app()->getLocale() === 'ar'
                         ? 'يجب اعتماد السيرة أولًا قبل طلب تغيير حالة العاملة.'
@@ -469,6 +553,15 @@ class DashboardController extends Controller
             $isAvailable = !$isContracted
                 && ((bool) $lockedMaid->available || $lockedMaid->status === 'available')
                 && !in_array($lockedMaid->status, ['reserved', 'suspended', 'backout'], true);
+
+            if ($validated['type'] === MaidStatusChangeRequest::TYPE_DELETE
+                && ($hasActiveContract || in_array($lockedMaid->status, ['reserved', 'contracted'], true))) {
+                throw ValidationException::withMessages([
+                    'type' => app()->getLocale() === 'ar'
+                        ? 'لا يمكن طلب حذف سيرة محجوزة أو مرتبطة بعقد نشط.'
+                        : 'A reserved CV or one linked to an active contract cannot be deleted.',
+                ]);
+            }
 
             if ($validated['type'] === MaidStatusChangeRequest::TYPE_SUSPEND && !$isAvailable) {
                 throw ValidationException::withMessages([
@@ -493,7 +586,7 @@ class DashboardController extends Controller
                 'type' => $validated['type'],
                 'reason' => filled($validated['reason'] ?? null)
                     ? $validated['reason']
-                    : 'طلب تعليق السيرة من الوكيل.',
+                    : 'طلب تعليق السيرة من المورد.',
                 'status' => MaidStatusChangeRequest::STATUS_PENDING,
             ]);
         });
@@ -596,6 +689,13 @@ class DashboardController extends Controller
         $maid->load(['nationality', 'religion', 'jobTypes', 'contracts.user', 'attachments', 'expertises']);
 
         return view('agent.maids.show', compact('maid'));
+    }
+
+    private function authorizeAgentMaid(Maid $maid): void
+    {
+        if (!$this->agentOfficeIds()->contains((int) $maid->office_id)) {
+            abort(403, 'Unauthorized office');
+        }
     }
 
     public function contracts(Request $request)

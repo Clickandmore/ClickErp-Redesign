@@ -2184,6 +2184,11 @@ class MaidController extends Controller
         $query = objModel::with(['nationality', 'office', 'jobTypes'])
             ->pendingSubmission()
             ->fromExternalOffice()
+            ->whereDoesntHave('statusChangeRequests', function (Builder $statusQuery) {
+                $statusQuery
+                    ->where('status', MaidStatusChangeRequest::STATUS_PENDING)
+                    ->where('type', MaidStatusChangeRequest::TYPE_DELETE);
+            })
             ->latest();
 
         if ($request->filled('search')) {
@@ -2221,7 +2226,14 @@ class MaidController extends Controller
             ->paginate(20, ['*'], 'status_requests_page')
             ->appends($request->query());
         $offices      = $officeAct->getAllOffices();
-        $cvPendingCount = objModel::pendingSubmission()->fromExternalOffice()->count();
+        $cvPendingCount = objModel::pendingSubmission()
+            ->fromExternalOffice()
+            ->whereDoesntHave('statusChangeRequests', function (Builder $statusQuery) {
+                $statusQuery
+                    ->where('status', MaidStatusChangeRequest::STATUS_PENDING)
+                    ->where('type', MaidStatusChangeRequest::TYPE_DELETE);
+            })
+            ->count();
         $statusRequestCount = MaidStatusChangeRequest::query()
             ->where('status', MaidStatusChangeRequest::STATUS_PENDING)
             ->count();
@@ -2239,7 +2251,13 @@ class MaidController extends Controller
 
     public function approveSubmission(Request $request, $id)
     {
-        $maid = objModel::where('submission_status', objModel::SUBMISSION_PENDING)->findOrFail($id);
+        $maid = objModel::where('submission_status', objModel::SUBMISSION_PENDING)
+            ->whereDoesntHave('statusChangeRequests', function (Builder $statusQuery) {
+                $statusQuery
+                    ->where('status', MaidStatusChangeRequest::STATUS_PENDING)
+                    ->where('type', MaidStatusChangeRequest::TYPE_DELETE);
+            })
+            ->findOrFail($id);
 
         $maid->update([
             'submission_status' => objModel::SUBMISSION_APPROVED,
@@ -2268,6 +2286,11 @@ class MaidController extends Controller
                 ->whereIn('id', $validated['maid_ids'])
                 ->where('submission_status', objModel::SUBMISSION_PENDING)
                 ->whereNotNull('office_id')
+                ->whereDoesntHave('statusChangeRequests', function (Builder $statusQuery) {
+                    $statusQuery
+                        ->where('status', MaidStatusChangeRequest::STATUS_PENDING)
+                        ->where('type', MaidStatusChangeRequest::TYPE_DELETE);
+                })
                 ->lockForUpdate()
                 ->get();
 
@@ -2405,7 +2428,20 @@ class MaidController extends Controller
             && ((bool) $maid->available || $maid->status === 'available')
             && !in_array($maid->status, ['reserved', 'suspended', 'backout'], true);
 
-        if ($requestRecord->type === MaidStatusChangeRequest::TYPE_BACKOUT) {
+        if ($requestRecord->type === MaidStatusChangeRequest::TYPE_DELETE) {
+            if (!$this->canDeleteMaidCv($maid)) {
+                throw ValidationException::withMessages([
+                    'request' => 'لا يمكن حذف سيرة محجوزة أو مرتبطة بعقد أو طلب نشط.',
+                ]);
+            }
+
+            $maid->update([
+                'deleted_by' => $adminId,
+                'is_show' => false,
+                'available' => false,
+            ]);
+            $maid->delete();
+        } elseif ($requestRecord->type === MaidStatusChangeRequest::TYPE_BACKOUT) {
             if (!$isContracted) {
                 throw ValidationException::withMessages([
                     'request' => 'لا يمكن تنفيذ Back Out إلا للعاملة المتعاقد عليها.',

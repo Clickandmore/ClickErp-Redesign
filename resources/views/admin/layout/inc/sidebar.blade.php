@@ -301,7 +301,18 @@
                                                 <i class="fas fa-user-clock text-warning"></i>
                                                 <span class="ms-2">سير ذاتية بانتظار المراجعة</span>
                                                 @php
-                                                    $pendingMaidsCount = \App\Models\ingaz\Maid::pendingSubmission()->fromExternalOffice()->count();
+                                                    $pendingCvCount = \App\Models\ingaz\Maid::pendingSubmission()
+                                                        ->fromExternalOffice()
+                                                        ->whereDoesntHave('statusChangeRequests', function ($query) {
+                                                            $query
+                                                                ->where('status', \App\Models\ingaz\MaidStatusChangeRequest::STATUS_PENDING)
+                                                                ->where('type', \App\Models\ingaz\MaidStatusChangeRequest::TYPE_DELETE);
+                                                        })
+                                                        ->count();
+                                                    $pendingActionCount = \App\Models\ingaz\MaidStatusChangeRequest::query()
+                                                        ->where('status', \App\Models\ingaz\MaidStatusChangeRequest::STATUS_PENDING)
+                                                        ->count();
+                                                    $pendingMaidsCount = $pendingCvCount + $pendingActionCount;
                                                 @endphp
                                                 @if($pendingMaidsCount > 0)
                                                     <span class="badge bg-warning text-dark ms-2">{{ $pendingMaidsCount }}</span>

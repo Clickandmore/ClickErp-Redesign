@@ -7,6 +7,12 @@
 @section('page-title', $isAr ? 'تفاصيل السيرة الذاتية' : 'CV Details')
 
 @section('page-action')
+    @if (!$maid->pendingStatusChangeRequest()->exists())
+    <a href="{{ route('agent.maids.edit', $maid) }}" class="agent-button">
+        <i class="fa fa-pen-to-square"></i>
+        <span>{{ $isAr ? 'تعديل' : 'Edit' }}</span>
+    </a>
+    @endif
     <a href="{{ route('agent.maids.index') }}" class="agent-button" style="background: var(--agent-muted);">
         <i class="fa fa-arrow-{{ $isAr ? 'right' : 'left' }}"></i>
         <span>{{ $isAr ? 'عودة' : 'Back' }}</span>

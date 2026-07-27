@@ -853,6 +853,12 @@
                             <i class="fa fa-eye"></i>
                             <span>{{ $isAr ? 'عرض' : 'View' }}</span>
                         </a>
+                        @if (!$hasPendingStatusRequest)
+                            <a href="{{ route('agent.maids.edit', $maid->id) }}" class="ml-action-btn ml-action-btn--notes">
+                                <i class="fa fa-pen-to-square"></i>
+                                <span>{{ $isAr ? 'تعديل' : 'Edit' }}</span>
+                            </a>
+                        @endif
                         <button type="button" class="ml-action-btn ml-action-btn--notes edit-notes-btn"
                             data-id="{{ $maid->id }}"
                             data-notes="{{ $maid->additional_notes ?? '' }}">
@@ -884,6 +890,19 @@
                                     <i class="fa fa-user-slash"></i>
                                     <span>Back Out</span>
                                 </button>
+                            @endif
+                            @if (!$isContracted && $maid->status !== 'reserved')
+                                <form method="POST" action="{{ route('agent.maids.status-change-requests.store', $maid->id) }}"
+                                    class="js-status-request-form" data-maid-id="{{ $maid->id }}">
+                                    @csrf
+                                    <input type="hidden" name="type" value="delete">
+                                    <input type="hidden" name="reason" value="{{ $isAr ? 'طلب حذف السيرة من المورد.' : 'CV deletion requested by supplier.' }}">
+                                    <button type="submit" class="ml-action-btn ml-action-btn--backout"
+                                        onclick="return confirm('{{ $isAr ? 'سيتم إرسال طلب حذف السيرة للإدارة. هل تريد المتابعة؟' : 'A CV deletion request will be sent to administration. Continue?' }}')">
+                                        <i class="fa fa-trash"></i>
+                                        <span>{{ $isAr ? 'حذف' : 'Delete' }}</span>
+                                    </button>
+                                </form>
                             @endif
                         @endif
                     </div>
