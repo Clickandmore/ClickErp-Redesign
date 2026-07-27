@@ -42,21 +42,26 @@ class ConfirmSettingController extends Controller
             $settings,
             $nationalityAccountAssignments
         );
+        $rentalMaidExpenseDefinitions = $rentalMaidFinanceService->getSettingDefinitions($settings);
+        $shelterLivingExpenseAccountId = $shelterLivingExpenseAccountingService->defaultExpenseAccountId();
+        $additionalSelectedAccountIds = collect($rentalMaidExpenseDefinitions)
+            ->flatMap(fn (array $definition) => [
+                $definition['selected_account_id'] ?? null,
+                $definition['selected_prepaid_account_id'] ?? null,
+            ])
+            ->push($shelterLivingExpenseAccountId)
+            ->filter()
+            ->all();
+
         $data = [
             "bladeTitle" => __("finance::finance.Account settings"),
             "addButtonText" => __("finance::finance.Account settings"),
             "storeRoute" => route($this->mainRoute . ".store"),
             "obj" => $settings,
-            "accounts" => $service->getAccounts(),
-            "debtor_accounts" => $service->getDebtorAccounts(),
-            "revenue_tax_accounts" => $service->getRevenueTaxAccounts(),
-            "rental_client_parent_accounts" => $service->getRentalClientParentAccounts(),
-            "rental_receipt_accounts" => $service->getRentalReceiptAccounts(),
-            "musaned_source_accounts" => $service->getMusanedSourceAccounts(),
-            "musaned_accounts" => $service->getMusanedIntermediateAccounts(),
+            "selected_accounts" => $service->getSelectedAccounts($settings, $additionalSelectedAccountIds),
             "tax_settings" => $service->getTaxSetting(),
-            "rental_maid_expense_definitions" => $rentalMaidFinanceService->getSettingDefinitions($settings),
-            "shelter_living_expense_account_id" => $shelterLivingExpenseAccountingService->defaultExpenseAccountId(),
+            "rental_maid_expense_definitions" => $rentalMaidExpenseDefinitions,
+            "shelter_living_expense_account_id" => $shelterLivingExpenseAccountId,
             "nationality_account_definitions" => $nationalityFinanceAccountService->getSettingDefinitions($settings),
             "nationality_account_assignments" => $nationalityAccountAssignments,
             "nationality_account_options_route" => route($this->mainRoute . '.account-options'),
@@ -75,10 +80,13 @@ class ConfirmSettingController extends Controller
         //
     }
 
-    public function accountOptions(Request $request, NationalityFinanceAccountService $service): JsonResponse
+    public function accountOptions(Request $request, ObjService $service): JsonResponse
     {
         return response()->json([
-            'results' => $service->searchAccounts((string) $request->input('q', '')),
+            'results' => $service->searchAccounts(
+                (string) $request->input('q', ''),
+                (string) $request->input('scope', '')
+            ),
         ]);
     }
 
