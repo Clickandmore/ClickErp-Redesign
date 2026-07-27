@@ -4,7 +4,6 @@ namespace App\Http\Actions\ingaz;
 
 use App\Http\Actions\MainAction;
 use App\Models\ingaz\Slider;
-use Illuminate\Support\Facades\Storage;
 
 class SliderAction extends MainAction
 {
@@ -28,7 +27,7 @@ class SliderAction extends MainAction
         $row = $this->find($id);
 
         if (request()->hasFile('image')) {
-            Storage::delete($row->image);
+            deleteFile($row->image);
             $data['image'] = uploadFile($data['image'], $this->fileFolder, 1);
         }
 

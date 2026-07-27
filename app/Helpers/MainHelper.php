@@ -9,8 +9,6 @@ use App\Models\ingaz\Setting;
 use App\Models\ShelterWorkers;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Intervention\Image\ImageManagerStatic as Image;
 
@@ -305,44 +303,21 @@ if (!function_exists('uploadFile')) {
 
     function uploadFile($image, $path, $compress = null, $quality_ratio = 90)
     {
-        // Generate a random file name
-        $fileName = getRandomStringRandomInt(10) . time();
-
-        // Create the destination path if it doesn't exist
-        $destinationPath = storage_path('app/public/' . $path);
-        if (!file_exists($destinationPath)) {
-            mkdir($destinationPath, 0777, true);
-        }
-
-        logger()->info('uploadFile called with path: ' . $path);
-        logger()->info('Destination path: ' . $destinationPath);
-        logger()->info('File name: ' . $fileName);
-        logger()->info('Original file extension: ' . $image->getClientOriginalExtension());
+        $storage = app(\App\Services\ManagedFileStorage::class);
+        $directory = trim((string) $path, '/');
 
         try {
-            // Compress the image if needed
             if ($compress != null) {
-                $fileName .= '.webp';
                 $img = Image::make($image);
-                $img->encode('webp', $quality_ratio)->save($destinationPath . '/' . $fileName);
-                logger()->info('Image compressed and saved as webp: ' . $destinationPath . '/' . $fileName);
-            } else {
-                $fileName .= '.' . $image->getClientOriginalExtension();
-                $image->move($destinationPath, $fileName);
-                logger()->info('Image moved to: ' . $destinationPath . '/' . $fileName);
+                $contents = (string) $img->encode('webp', $quality_ratio);
+
+                return $storage->storeFileContents($contents, $directory, 'webp');
             }
 
-            $finalPath = $path . $fileName;
-            logger()->info('Returning path: ' . $finalPath);
-            return $finalPath;
+            return $storage->uploadFile($image, $directory);
         } catch (\Exception $e) {
             logger()->error('Error in uploadFile: ' . $e->getMessage());
-            // For now, continue with the original image without compression
-            $fileName .= '.' . $image->getClientOriginalExtension();
-            $image->move($destinationPath, $fileName);
-            logger()->info('Image moved after error: ' . $destinationPath . '/' . $fileName);
-
-            return $path . $fileName;
+            return $storage->uploadFile($image, $directory);
         }
     }
 }
@@ -350,14 +325,7 @@ if (!function_exists('uploadFile')) {
 if (!function_exists('deleteFile')) {
     function deleteFile($fileFullPath)
     {
-        if (is_string($fileFullPath) && str_starts_with($fileFullPath, \App\Services\ManagedFileStorage::R2_PREFIX)) {
-            return app(\App\Services\ManagedFileStorage::class)->delete($fileFullPath);
-        }
-
-        $deletePath = storage_path('');
-        $deletePath .= Constant::filesPath;
-        $deletePath .= $fileFullPath;
-        return File::delete($deletePath);
+        return app(\App\Services\ManagedFileStorage::class)->delete($fileFullPath);
     }
 }
 
@@ -379,18 +347,7 @@ if (!function_exists('showFile')) {
             return null;
         }
 
-        if (str_starts_with($fileFullPath, \App\Services\ManagedFileStorage::R2_PREFIX)) {
-            return app(\App\Services\ManagedFileStorage::class)->url($fileFullPath);
-        }
-
-        // التحقق من وجود الملف
-        $fullPath = public_path('storage/' . $fileFullPath);
-        if (file_exists($fullPath)) {
-            return asset('/storage/' . $fileFullPath);
-        }
-
-        // إذا لم يكن الملف موجود، ارجع null
-        return null;
+        return app(\App\Services\ManagedFileStorage::class)->url($fileFullPath);
     }
 }
 

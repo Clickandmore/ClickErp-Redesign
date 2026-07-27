@@ -1542,7 +1542,7 @@
                                                 <td>{{ $complaint->response ?? '-' }}</td>
                                                 <td>
                                                     @if ($complaint->file)
-                                                        <a href="{{ Storage::url($complaint->file) }}" target="_blank"
+                                                        <a href="{{ showFile($complaint->file) }}" target="_blank"
                                                             class="btn btn-sm btn-primary">
                                                             <i class="fa-regular fa-file"></i>
                                                             {{ helperTrans('web.view_attachment') }}
