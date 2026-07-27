@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Enums\ingaz\ContractStatusEnum;
 use App\Http\Controllers\ingaz\InvoiceController;
 use App\Models\Contract;
+use App\Models\ingaz\Nationality;
 use App\Services\ingaz\InvoiceCalculationService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
@@ -24,6 +25,7 @@ class CreateRecruitmentContractInvoices extends Command
         {--from= : بداية نطاق تاريخ إضافة العقد بصيغة Y-m-d؛ الافتراضي 1 مارس من السنة الحالية}
         {--to= : نهاية نطاق تاريخ إضافة العقد بصيغة Y-m-d؛ الافتراضي اليوم}
         {--contract=* : أرقام عقود محددة داخل النطاق للاختبار أو التنفيذ المحدود}
+        {--exclude-nationality=* : معرفات الجنسيات المستثناة صراحةً من إنشاء الفواتير}
         {--send-to-zatca : إنشاء فواتير المبيعات المعلقة لهيئة الزكاة أيضاً}
         {--apply : تنفيذ الإنشاء؛ بدونه يعمل الأمر في وضع المعاينة فقط}
         {--confirm= : عبارة التأكيد المطلوبة مع --apply}
@@ -42,6 +44,7 @@ class CreateRecruitmentContractInvoices extends Command
         try {
             [$from, $to] = $this->resolveDates();
             $contractIds = $this->resolveContractIds();
+            $excludedNationalityIds = $this->resolveExcludedNationalityIds();
         } catch (RuntimeException $exception) {
             $this->error($exception->getMessage());
 
@@ -79,8 +82,32 @@ class CreateRecruitmentContractInvoices extends Command
             }
         }
 
+        $excludedNationalities = Nationality::query()
+            ->whereIn('id', $excludedNationalityIds)
+            ->get()
+            ->keyBy('id');
+        $missingNationalityIds = $excludedNationalityIds->diff($excludedNationalities->keys());
+        if ($missingNationalityIds->isNotEmpty()) {
+            $this->error(
+                'رفض التنفيذ: معرفات الجنسيات المستثناة غير موجودة: '
+                . $missingNationalityIds->implode(', ')
+            );
+
+            return self::INVALID;
+        }
+
         $excludedShelterCount = $this->excludedShelterCount($from, $to, $contractIds);
         $contracts = $this->contracts($from, $to, $contractIds);
+        $excludedNationalityContracts = $contracts
+            ->filter(fn (Contract $contract) => $excludedNationalityIds->contains(
+                $this->contractNationalityId($contract)
+            ))
+            ->values();
+        $contracts = $contracts
+            ->reject(fn (Contract $contract) => $excludedNationalityIds->contains(
+                $this->contractNationalityId($contract)
+            ))
+            ->values();
         $preflight = $this->preflight(
             $contracts,
             $invoiceController,
@@ -93,6 +120,8 @@ class CreateRecruitmentContractInvoices extends Command
             $contracts,
             $preflight,
             $excludedShelterCount,
+            $excludedNationalityContracts,
+            $excludedNationalities,
             $currentDatabase,
             $currentDatabaseFingerprint
         );
@@ -108,6 +137,7 @@ class CreateRecruitmentContractInvoices extends Command
                     $from,
                     $to,
                     $contractIds,
+                    $excludedNationalityIds,
                     $currentDatabase,
                     $currentDatabaseFingerprint
                 ));
@@ -250,6 +280,19 @@ class CreateRecruitmentContractInvoices extends Command
         return $rawIds->map(fn ($id) => (int) $id)->unique()->values();
     }
 
+    private function resolveExcludedNationalityIds(): Collection
+    {
+        $rawIds = collect($this->option('exclude-nationality'));
+        $invalid = $rawIds->reject(fn ($id) => ctype_digit((string) $id) && (int) $id > 0);
+        if ($invalid->isNotEmpty()) {
+            throw new RuntimeException(
+                'معرفات الجنسيات في --exclude-nationality يجب أن تكون أرقاماً صحيحة موجبة.'
+            );
+        }
+
+        return $rawIds->map(fn ($id) => (int) $id)->unique()->values();
+    }
+
     private function contracts(Carbon $from, Carbon $to, Collection $contractIds): Collection
     {
         return Contract::query()
@@ -269,6 +312,13 @@ class CreateRecruitmentContractInvoices extends Command
             ])
             ->orderBy('id')
             ->get();
+    }
+
+    private function contractNationalityId(Contract $contract): ?int
+    {
+        $nationality = $contract->maid?->nationality ?? $contract->requiredMaidNationality;
+
+        return $nationality ? (int) $nationality->id : null;
     }
 
     private function excludedShelterCount(Carbon $from, Carbon $to, Collection $contractIds): int
@@ -385,6 +435,8 @@ class CreateRecruitmentContractInvoices extends Command
         Collection $contracts,
         array $preflight,
         int $excludedShelterCount,
+        Collection $excludedNationalityContracts,
+        Collection $excludedNationalities,
         string $currentDatabase,
         string $currentDatabaseFingerprint
     ): void {
@@ -397,6 +449,7 @@ class CreateRecruitmentContractInvoices extends Command
                 ['قاعدة البيانات الحالية', $currentDatabase],
                 ['بصمة اتصال قاعدة البيانات', $currentDatabaseFingerprint],
                 ['عقود الإيواء المستثناة', $excludedShelterCount],
+                ['عقود الجنسيات المستثناة', $excludedNationalityContracts->count()],
                 ['العقود المطابقة', $contracts->count()],
                 ['لديها فاتورة مسبقاً', $preflight['existing']->count()],
                 ['جاهزة للإنشاء', $preflight['ready']->count()],
@@ -405,6 +458,21 @@ class CreateRecruitmentContractInvoices extends Command
                 ['إرسال إلى الزكاة', $this->option('send-to-zatca') ? 'نعم' : 'لا'],
             ]
         );
+
+        if ($excludedNationalities->isNotEmpty()) {
+            $this->table(
+                ['معرف الجنسية', 'الجنسية', 'العقود المستثناة'],
+                $excludedNationalities->map(function (Nationality $nationality) use ($excludedNationalityContracts) {
+                    return [
+                        $nationality->id,
+                        $nationality->sub_title ?: ($nationality->title ?: '-'),
+                        $excludedNationalityContracts
+                            ->filter(fn (Contract $contract) => $this->contractNationalityId($contract) === (int) $nationality->id)
+                            ->count(),
+                    ];
+                })->values()->all()
+            );
+        }
 
         foreach ($preflight['global_errors'] as $error) {
             $this->error('إعداد محاسبي: ' . $error);
@@ -459,6 +527,7 @@ class CreateRecruitmentContractInvoices extends Command
         Carbon $from,
         Carbon $to,
         Collection $contractIds,
+        Collection $excludedNationalityIds,
         string $currentDatabase,
         string $currentDatabaseFingerprint
     ): string {
@@ -475,6 +544,9 @@ class CreateRecruitmentContractInvoices extends Command
 
         foreach ($contractIds as $contractId) {
             $parts[] = '--contract=' . $contractId;
+        }
+        foreach ($excludedNationalityIds as $nationalityId) {
+            $parts[] = '--exclude-nationality=' . $nationalityId;
         }
         if ($this->option('send-to-zatca')) {
             $parts[] = '--send-to-zatca';
@@ -515,6 +587,10 @@ class CreateRecruitmentContractInvoices extends Command
             'contracts_created_from' => $from->toDateString(),
             'contracts_created_to' => $to->toDateString(),
             'invoice_date_source' => 'contract.created_at',
+            'excluded_nationality_ids' => collect($this->option('exclude-nationality'))
+                ->map(fn ($id) => (int) $id)
+                ->values()
+                ->all(),
             'send_to_zatca' => (bool) $this->option('send-to-zatca'),
             'count' => count($created),
             'total' => round((float) collect($created)->sum('invoice_total'), 2),
