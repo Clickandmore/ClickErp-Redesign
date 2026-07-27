@@ -2,12 +2,19 @@
 
 use App\Services\ingaz\NationalityFinanceAccountReconciliationService;
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Support\Facades\Log;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        app(NationalityFinanceAccountReconciliationService::class)->reconcile();
+        $result = app(NationalityFinanceAccountReconciliationService::class)->reconcile(false);
+
+        if ($result['skipped'] ?? false) {
+            Log::warning('Skipped nationality finance account reconciliation migration because required parent accounts were not found.', [
+                'missing_parents' => $result['missing_parents'] ?? [],
+            ]);
+        }
     }
 
     public function down(): void
