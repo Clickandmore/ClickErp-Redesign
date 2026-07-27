@@ -1,7 +1,7 @@
 @extends('admin.layout.indexs.index')
 
 @section('page-title')
-إعدادات تخزين R2
+إعدادات التخزين والمساحة
 @endsection
 
 @section('content')
@@ -14,7 +14,7 @@
 <div class="container-fluid">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <div>
-            <h4 class="mb-1"><i class="fa fa-cloud me-2"></i>إعدادات تخزين Cloudflare R2</h4>
+            <h4 class="mb-1"><i class="fa fa-cloud me-2"></i>إعدادات التخزين والمساحة</h4>
             <div class="text-muted small">رفع ملفات السير الذاتية والصور والفيديو إلى مساحة خارجية متوافقة مع S3.</div>
         </div>
         <span class="badge {{ $isReady ? 'bg-success' : ($isVerified ? 'bg-warning text-dark' : 'bg-secondary') }} p-2">

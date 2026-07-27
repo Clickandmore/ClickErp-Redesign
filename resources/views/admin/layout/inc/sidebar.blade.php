@@ -1238,16 +1238,6 @@
                                 </li>
                             @endif
 
-                            @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW) || @AdminGuardHasPerm(\App\PermKeys::SETTINGS_CONTROL))
-                                <li>
-                                    <a class="m-link {{ request()->routeIs('storage.settings*') ? 'active' : '' }}"
-                                        href="{{ route('storage.settings') }}">
-                                        <i class="fa fa-cloud"></i>
-                                        <span class="ms-2">إعدادات تخزين R2</span>
-                                    </a>
-                                </li>
-                            @endif
-
                             @if (@AdminGuardHasPerm(\App\PermKeys::MOYASAR_SETTINGS))
                                 <li>
                                     <a class="m-link {{ request()->routeIs('moyasar-settings.*') ? 'active' : '' }}"
@@ -1674,7 +1664,7 @@
                                 </ul>
                             </li>
 
-                            @if (@AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_VIEW, \App\PermKeys::DEVELOPERS_PERMS]))
+                            @if (@AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_VIEW, \App\PermKeys::SETTINGS_CONTROL, \App\PermKeys::DEVELOPERS_PERMS]))
                                 <li class="{{ $isInternalSystemSettingsRoute ? '' : 'collapsed' }}">
                                     <a class="m-link" data-bs-toggle="collapse"
                                         data-bs-target="#internalSystemSettings" href="#">
@@ -1686,6 +1676,16 @@
 
                                     <ul class="sub-menu collapse {{ $isInternalSystemSettingsRoute ? 'show' : '' }}"
                                         id="internalSystemSettings">
+                                        @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW) || @AdminGuardHasPerm(\App\PermKeys::SETTINGS_CONTROL))
+                                            <li>
+                                                <a class="m-link {{ request()->routeIs('storage.settings*') ? 'active' : '' }}"
+                                                    href="{{ route('storage.settings') }}">
+                                                    <i class="fa fa-cloud"></i>
+                                                    <span class="ms-2">إعدادات التخزين والمساحة</span>
+                                                </a>
+                                            </li>
+                                        @endif
+
                                         @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
                                             <li>
                                                 <a class="m-link {{ $isTranslationSettingsRoute ? 'active' : '' }}"
