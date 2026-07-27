@@ -15,31 +15,48 @@ class NationalityFinanceAccountReconciliationService
     private int $renamedAccounts = 0;
     private int $removedEmptyAccounts = 0;
 
-    public function reconcile(): array
+    public function reconcile(bool $failWhenRequiredParentsMissing = true): array
     {
         $this->mergedAccounts = 0;
         $this->movedAccounts = 0;
         $this->renamedAccounts = 0;
         $this->removedEmptyAccounts = 0;
 
-        return DB::transaction(function () {
+        return DB::transaction(function () use ($failWhenRequiredParentsMissing) {
             $salesParent = $this->findPath([
                 ['الايرادات', 'الإيرادات'],
                 ['اجمالى ايراد المبيعات', 'إجمالي إيراد المبيعات', 'اجمالي ايراد المبيعات'],
                 ['مبيعات الاستقدام'],
-            ]);
+            ]) ?? $this->accountFromSetting('nationality_recruitment_sales_parent_account');
             $costParent = $this->findPath([
                 ['المصروفات'],
                 ['اجمالى تكاليف المبيعات', 'إجمالي تكاليف المبيعات', 'اجمالي تكاليف المبيعات'],
                 ['تكاليف المبيعات'],
-            ]);
+            ]) ?? $this->accountFromSetting('nationality_recruitment_cost_parent_account');
             $discountParent = $this->findPath([
                 ['المصروفات'],
                 ['اجمالى مصاريف التشغيل', 'إجمالي مصاريف التشغيل', 'اجمالي مصاريف التشغيل'],
                 ['المصروفات العمومية والادارية', 'المصروفات العمومية والإدارية'],
-            ]);
+            ]) ?? $this->accountFromSetting('nationality_sales_discount_parent_account');
 
             if (!$salesParent || !$costParent || !$discountParent) {
+                $missingParents = collect([
+                    'sales' => $salesParent,
+                    'cost' => $costParent,
+                    'discount' => $discountParent,
+                ])->filter(fn (?Account $account) => !$account)->keys()->all();
+
+                if (!$failWhenRequiredParentsMissing) {
+                    return [
+                        'merged_accounts' => 0,
+                        'moved_accounts' => 0,
+                        'renamed_accounts' => 0,
+                        'removed_empty_accounts' => 0,
+                        'skipped' => true,
+                        'missing_parents' => $missingParents,
+                    ];
+                }
+
                 throw new \RuntimeException('تعذر العثور على الفروع المحاسبية الأصلية للمبيعات أو التكاليف أو الخصومات.');
             }
 
@@ -154,6 +171,8 @@ class NationalityFinanceAccountReconciliationService
                 'moved_accounts' => $this->movedAccounts,
                 'renamed_accounts' => $this->renamedAccounts,
                 'removed_empty_accounts' => $this->removedEmptyAccounts,
+                'skipped' => false,
+                'missing_parents' => [],
             ];
         });
     }
@@ -431,6 +450,15 @@ class NationalityFinanceAccountReconciliationService
     {
         return $parent->children()->orderBy('code')->get()
             ->first(fn (Account $account) => $this->namesMatch($account->name, $names));
+    }
+
+    private function accountFromSetting(string $title): ?Account
+    {
+        $accountId = (int) ConfirmSetting::query()
+            ->where('title', $title)
+            ->value('value');
+
+        return $accountId > 0 ? Account::query()->find($accountId) : null;
     }
 
     private function namesMatch(string $actual, array $names): bool
