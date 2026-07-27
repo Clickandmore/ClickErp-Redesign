@@ -141,6 +141,7 @@
                     $canViewWebsiteManagement ||
                     $canViewHomeSettings ||
                     $canViewMaidsData ||
+                    @AdminGuardHasPerm(\App\PermKeys::SETTINGS_CONTROL) ||
                     @AdminGuardHasPerm(\App\PermKeys::PACKAGES_VIEW) ||
                     $canViewFinanceModule ||
                     $canViewAccessControl ||
@@ -1182,6 +1183,7 @@
                             request()->routeIs('moyasar-settings.*');
                         $isInternalSystemSettingsRoute =
                             $isTranslationSettingsRoute ||
+                            request()->routeIs('storage.settings*') ||
                             request()->routeIs('form-settings.*') ||
                             request()->routeIs('dash.settings*') ||
                             request()->routeIs('istiqdam.*') ||
@@ -1232,6 +1234,16 @@
                                         href="{{ route('settings.section', 'dashboard') }}">
                                         <i class="fa fa-gauge"></i>
                                         <span class="ms-2">{{ __('admin.sidebar.dashboard_settings') }}</span>
+                                    </a>
+                                </li>
+                            @endif
+
+                            @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW) || @AdminGuardHasPerm(\App\PermKeys::SETTINGS_CONTROL))
+                                <li>
+                                    <a class="m-link {{ request()->routeIs('storage.settings*') ? 'active' : '' }}"
+                                        href="{{ route('storage.settings') }}">
+                                        <i class="fa fa-cloud"></i>
+                                        <span class="ms-2">إعدادات تخزين R2</span>
                                     </a>
                                 </li>
                             @endif

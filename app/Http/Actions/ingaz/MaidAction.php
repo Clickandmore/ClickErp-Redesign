@@ -45,19 +45,19 @@ class MaidAction extends MainAction
 
         if (isset($data['cv_file']) && $data['cv_file'] instanceof \Illuminate\Http\UploadedFile) {
             $image = $data['cv_file'];
-            $data['cv_file'] = uploadFile($image, $this->fileFolder);
+            $data['cv_file'] = uploadMaidFile($image, $this->fileFolder);
         }
         if (isset($data['image']) && $data['image'] instanceof \Illuminate\Http\UploadedFile) {
             $image = $data['image'];
-            $data['image'] = uploadFile($image, $this->fileFolder);
+            $data['image'] = uploadMaidFile($image, $this->fileFolder);
         }
         if (isset($data['cv_preview']) && $data['cv_preview'] instanceof \Illuminate\Http\UploadedFile) {
             $image = $data['cv_preview'];
-            $data['cv_preview'] = uploadFile($image, $this->fileFolder);
+            $data['cv_preview'] = uploadMaidFile($image, $this->fileFolder);
         }
         if (isset($data['video']) && $data['video'] instanceof \Illuminate\Http\UploadedFile) {
             $video = $data['video'];
-            $data['video'] = uploadFile($video, $this->fileFolder);
+            $data['video'] = uploadMaidFile($video, $this->fileFolder);
         }
 
         // Normalize experience values before defaults so they survive cleanup
@@ -537,7 +537,7 @@ class MaidAction extends MainAction
     {
         if (isset($createData['cv_file']) && $createData['cv_file'] instanceof \Illuminate\Http\UploadedFile) {
             $file = $createData['cv_file'];
-            $createData['cv_file'] = uploadFile($file, $this->fileFolder);
+            $createData['cv_file'] = uploadMaidFile($file, $this->fileFolder);
 
             $clientMimeType = strtolower((string) $file->getClientMimeType());
             $clientExtension = strtolower((string) $file->getClientOriginalExtension());
@@ -1319,22 +1319,22 @@ class MaidAction extends MainAction
         if (isset($data['cv_file'])) {
             deleteFile($maid->cv_file);
             $image = $data['cv_file'];
-            $data['cv_file'] = uploadFile($image, $this->fileFolder);
+            $data['cv_file'] = uploadMaidFile($image, $this->fileFolder);
         }
         if (isset($data['cv_preview'])) {
             deleteFile($maid->cv_preview);
             $image = $data['cv_preview'];
-            $data['cv_preview'] = uploadFile($image, $this->fileFolder);
+            $data['cv_preview'] = uploadMaidFile($image, $this->fileFolder);
         }
         if (isset($data['image'])) {
             deleteFile($maid->image);
             $image = $data['image'];
-            $data['image'] = uploadFile($image, $this->fileFolder);
+            $data['image'] = uploadMaidFile($image, $this->fileFolder);
         }
         if (isset($data['video'])) {
             deleteFile($maid->video);
             $video = $data['video'];
-            $data['video'] = uploadFile($video, $this->fileFolder);
+            $data['video'] = uploadMaidFile($video, $this->fileFolder);
         }
 
         // Convert skills array to JSON if it exists

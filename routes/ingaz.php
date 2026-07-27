@@ -38,6 +38,7 @@ use App\Http\Controllers\ingaz\MusanedTransferController;
 use App\Http\Controllers\ingaz\NationalityController;
 use App\Http\Controllers\ingaz\NotificationController;
 use App\Http\Controllers\ingaz\NotificationSettingsController;
+use App\Http\Controllers\ingaz\StorageSettingsController;
 use App\Http\Controllers\ingaz\WhatsAppInboxController;
 use App\Http\Controllers\ingaz\OfferController;
 use App\Http\Controllers\ingaz\OrderController;
@@ -497,6 +498,9 @@ Route::group(
             Route::post('notifications-settings', [NotificationSettingsController::class, 'update'])->name('notifications.settings.update');
             Route::post('notifications-settings/whatsapp/test', [NotificationSettingsController::class, 'testWhatsApp'])->name('notifications.settings.whatsapp.test');
             Route::post('notifications-settings/whatsapp/embedded-signup', [NotificationSettingsController::class, 'completeWhatsAppEmbeddedSignup'])->name('notifications.settings.whatsapp.embedded-signup');
+            Route::get('storage-settings', [StorageSettingsController::class, 'edit'])->name('storage.settings');
+            Route::post('storage-settings', [StorageSettingsController::class, 'update'])->name('storage.settings.update');
+            Route::post('storage-settings/r2/test', [StorageSettingsController::class, 'test'])->name('storage.settings.test');
             Route::resource('statistics', StatisticController::class);
 
             Route::resource('steps', StepController::class);

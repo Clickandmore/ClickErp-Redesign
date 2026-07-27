@@ -343,6 +343,10 @@ if (!function_exists('uploadFile')) {
 if (!function_exists('deleteFile')) {
     function deleteFile($fileFullPath)
     {
+        if (is_string($fileFullPath) && str_starts_with($fileFullPath, \App\Services\ManagedFileStorage::R2_PREFIX)) {
+            return app(\App\Services\ManagedFileStorage::class)->delete($fileFullPath);
+        }
+
         $deletePath = storage_path('');
         $deletePath .= Constant::filesPath;
         $deletePath .= $fileFullPath;
@@ -368,6 +372,10 @@ if (!function_exists('showFile')) {
             return null;
         }
 
+        if (str_starts_with($fileFullPath, \App\Services\ManagedFileStorage::R2_PREFIX)) {
+            return app(\App\Services\ManagedFileStorage::class)->url($fileFullPath);
+        }
+
         // التحقق من وجود الملف
         $fullPath = public_path('storage/' . $fileFullPath);
         if (file_exists($fullPath)) {
@@ -376,6 +384,13 @@ if (!function_exists('showFile')) {
 
         // إذا لم يكن الملف موجود، ارجع null
         return null;
+    }
+}
+
+if (!function_exists('uploadMaidFile')) {
+    function uploadMaidFile(\Illuminate\Http\UploadedFile $file, string $path)
+    {
+        return app(\App\Services\ManagedFileStorage::class)->uploadMaidFile($file, $path);
     }
 }
 

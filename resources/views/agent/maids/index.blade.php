@@ -813,7 +813,7 @@
 
                     <div class="ml-card__top">
                         @if ($hasImage)
-                            <img src="{{ asset('storage/' . $maid->image) }}" alt="" class="ml-avatar"
+                            <img src="{{ showFile($maid->image) }}" alt="" class="ml-avatar"
                                 onerror="this.outerHTML='<span class=\'ml-avatar\'><i class=\'fa fa-user\'></i></span>'">
                         @else
                             <span class="ml-avatar"><i class="fa fa-user"></i></span>

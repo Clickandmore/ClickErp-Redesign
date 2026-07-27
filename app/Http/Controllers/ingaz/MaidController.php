@@ -25,6 +25,7 @@ use App\Models\MaidUnavailableRecord;
 use App\Models\RecruitmentOffices;
 use App\Services\ingaz\MaidCvExtractionService;
 use App\Services\ingaz\RentalMaidFinanceService;
+use App\Services\ManagedFileStorage;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -1327,26 +1328,23 @@ class MaidController extends Controller
         ]);
     }
 
-    public function previewCvData($id)
+    public function previewCvData($id, ManagedFileStorage $storage)
     {
         $maid = objModel::withTrashed()->findOrFail($id);
         abort_unless($this->maidHasPreviewablePdf($maid), 404, 'ملف السيرة غير موجود.');
 
-        $absolutePath = Storage::disk('public')->path($maid->cv_file);
-
-        return response()->file($absolutePath, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="maid-cv-' . $maid->id . '.pdf"',
-            'X-Content-Type-Options' => 'nosniff',
-            'Cache-Control' => 'private, max-age=3600',
-        ]);
+        return $storage->inlineResponse(
+            $maid->cv_file,
+            'maid-cv-' . $maid->id . '.pdf',
+            'application/pdf'
+        );
     }
 
     private function maidHasPreviewablePdf(Maid $maid): bool
     {
         return filled($maid->cv_file)
             && strtolower(pathinfo((string) $maid->cv_file, PATHINFO_EXTENSION)) === 'pdf'
-            && Storage::disk('public')->exists($maid->cv_file);
+            && app(ManagedFileStorage::class)->exists($maid->cv_file);
     }
 
     public function storeAttachments(Request $request, $id)
@@ -1957,7 +1955,7 @@ class MaidController extends Controller
                 }
 
                 $oldFiles[] = $maid->{$field};
-                $updates[$field] = uploadFile($request->file($field), 'images/Maid/');
+                $updates[$field] = uploadMaidFile($request->file($field), 'images/Maid/');
                 $uploadedFiles[] = $updates[$field];
             }
 

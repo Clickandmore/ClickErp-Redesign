@@ -48,7 +48,7 @@
                         <div class="col-12">
                             <p class="mb-2"><strong class="text-primary">العمر:</strong> {{ $maid->age ? $maid->age . ' سنة' : 'غير محدد' }}</p>
                             @if($maid->cv_file)
-                                <a href="{{ asset('storage/' . $maid->cv_file) }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                <a href="{{ showFile($maid->cv_file) }}" target="_blank" class="btn btn-sm btn-outline-primary">
                                     <i class="fas fa-file-pdf me-1"></i>
                                     عرض السيرة الذاتية
                                 </a>

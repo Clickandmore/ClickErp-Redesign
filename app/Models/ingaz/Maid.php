@@ -160,17 +160,17 @@ class Maid extends Model
 
     public function getImageURLAttribute()
     {
-        return asset('storage/' . $this->image) ?? null;
+        return showFile($this->image);
     }
 
     public function getCvPreviewURLAttribute()
     {
-        return asset('storage/' . $this->cv_preview);
+        return showFile($this->cv_preview);
     }
 
     public function getCvFileURLAttribute()
     {
-        return asset('storage/' . $this->cv_file);
+        return showFile($this->cv_file);
     }
 
     public function getLanguagesAttribute($value): array
