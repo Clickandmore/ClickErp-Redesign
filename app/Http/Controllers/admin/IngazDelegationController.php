@@ -16,13 +16,13 @@ use App\Models\ingaz\User;
 use App\Models\IngazDelegation;
 use App\Models\office\Office as RecruitmentOffice;
 use App\PermKeys;
+use App\Services\ManagedFileStorage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -726,7 +726,7 @@ class IngazDelegationController extends Controller
 
         foreach ($this->flattenUploadedFiles($request->file('attachments', [])) as $file) {
             $attachments[] = [
-                'path' => $file->store('ingaz-delegations', 'public'),
+                'path' => app(ManagedFileStorage::class)->uploadFile($file, 'ingaz-delegations'),
                 'name' => $file->getClientOriginalName(),
                 'size' => $file->getSize(),
             ];
@@ -759,7 +759,7 @@ class IngazDelegationController extends Controller
             $path = is_array($attachment) ? ($attachment['path'] ?? null) : $attachment;
 
             if ($path) {
-                Storage::disk('public')->delete($path);
+                deleteFile($path);
             }
         }
     }

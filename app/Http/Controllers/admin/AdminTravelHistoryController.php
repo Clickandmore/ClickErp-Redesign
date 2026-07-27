@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\admin;
 
-use App\Constants;
 use App\Enums\ingaz\ContractStatusEnum;
 use App\Http\Controllers\ingaz\RecruitmentContractExternalOfficeDispatchController;
 use App\Http\Traits\SendSMSTrait;
@@ -14,6 +13,7 @@ use App\Models\TravelHistory;
 use App\Models\TravelHistoryFiles;
 use App\Services\ingaz\RecruitmentTripAccountingService;
 use App\Services\ingaz\RentalMaidArrivalService;
+use App\Services\ManagedFileStorage;
 use App\Support\AutomationSettings;
 use App\Support\CommunicationSettings;
 use App\Support\TravelAirports;
@@ -1250,10 +1250,7 @@ class AdminTravelHistoryController extends Controller
 
             if (!empty($request->file('files')) && $savedTrips->isNotEmpty()) {
                 foreach ($request->file('files') as $k => $file) {
-                    $originalFileName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-                    $fileExtension = strtolower((string) $file->getClientOriginalExtension());
-                    $fileName = $originalFileName . '-' . time() . $k . ($fileExtension !== '' ? '.' . $fileExtension : '');
-                    $file->move(Constants::PUBLIC_TRAVEL_DIR, $fileName);
+                    $fileName = app(ManagedFileStorage::class)->uploadFile($file, 'travel');
 
                     foreach ($savedTrips as $savedTrip) {
                         TravelHistoryFiles::create([
@@ -1720,10 +1717,7 @@ class AdminTravelHistoryController extends Controller
         // Handle file uploads
         if (!empty($request->file('files'))) {
             foreach ($request->file('files') as $k => $file) {
-                $originalFileName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME); // Get the original filename without extension
-                $fileExtension = strtolower((string) $file->getClientOriginalExtension());
-                $fileName = $originalFileName . '-' . time() . $k . ($fileExtension !== '' ? '.' . $fileExtension : '');
-                $file->move(Constants::PUBLIC_TRAVEL_DIR, $fileName);
+                $fileName = app(ManagedFileStorage::class)->uploadFile($file, 'travel');
                 TravelHistoryFiles::create([
                     'travel_id' => $data->id,
                     'file' => $fileName,
@@ -1742,10 +1736,21 @@ class AdminTravelHistoryController extends Controller
             return redirect()->back()->with('error', __('admin.file_not_found'));
         }
 
-        $filePath = Constants::PUBLIC_TRAVEL_DIR . '/' . $file->file;
+        $storage = app(ManagedFileStorage::class);
 
-        if (File::exists($filePath)) {
-            return Response::download($filePath, $file->file);
+        if ($storage->isR2Path($file->file) || str_contains($file->file, '/')) {
+            if ($storage->exists($file->file)) {
+                return $storage->downloadResponse(
+                    $file->file,
+                    basename($file->file),
+                    $storage->mimeType($file->file)
+                );
+            }
+        } else {
+            $legacyPath = public_path('upload/upload/travel/' . $file->file);
+            if (File::exists($legacyPath)) {
+                return Response::download($legacyPath, $file->file);
+            }
         }
 
         return redirect()->back()->with('error', __('admin.file_not_found'));
@@ -1755,6 +1760,20 @@ class AdminTravelHistoryController extends Controller
     {
         try {
             $file = TravelHistoryFiles::findOrFail($id);
+            $storage = app(ManagedFileStorage::class);
+            $isShared = TravelHistoryFiles::query()
+                ->where('file', $file->file)
+                ->where('id', '!=', $file->id)
+                ->exists();
+
+            if (!$isShared) {
+                if ($storage->isR2Path($file->file) || str_contains($file->file, '/')) {
+                    $storage->delete($file->file);
+                } else {
+                    File::delete(public_path('upload/upload/travel/' . $file->file));
+                }
+            }
+
             $file->delete();
 
             return response()->json([

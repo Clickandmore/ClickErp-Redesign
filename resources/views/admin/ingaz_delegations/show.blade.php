@@ -126,7 +126,7 @@
                                             $attachmentPath = is_array($attachment) ? ($attachment['path'] ?? '') : $attachment;
                                             $attachmentName = is_array($attachment) ? ($attachment['name'] ?? basename($attachmentPath)) : basename($attachment);
                                         @endphp
-                                        <a href="{{ Storage::url($attachmentPath) }}" target="_blank"
+                                        <a href="{{ showFile($attachmentPath) }}" target="_blank"
                                            class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
                                             <span>{{ $attachmentName }}</span>
                                             <span class="btn btn-sm btn-outline-primary">فتح</span>

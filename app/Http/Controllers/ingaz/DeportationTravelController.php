@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\ingaz;
 
-use App\Constants;
 use App\Http\Controllers\admin\Controller;
 use App\Models\AdminNotification;
 use App\Models\auth\Admin;
@@ -10,11 +9,11 @@ use App\Models\Contract;
 use App\Models\DeportationProcedure;
 use App\Models\TravelHistory;
 use App\Models\TravelHistoryFiles;
+use App\Services\ManagedFileStorage;
 use App\Support\TravelAirports;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Response;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Yajra\DataTables\Facades\DataTables;
@@ -515,13 +514,7 @@ class DeportationTravelController extends Controller
     private function storeTravelFiles(Request $request, TravelHistory $travel): void
     {
         foreach ($request->file('files', []) as $file) {
-            $extension = strtolower((string) $file->getClientOriginalExtension());
-            $baseName = trim((string) pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME));
-            $baseName = trim((string) preg_replace('/[^\pL\pN_-]+/u', '-', $baseName), '-_');
-            $baseName = $baseName !== '' ? Str::limit($baseName, 80, '') : 'travel-file';
-            $fileName = $baseName . '-' . now()->format('YmdHis') . '-' . Str::random(8) . '.' . $extension;
-
-            $file->move(Constants::PUBLIC_TRAVEL_DIR, $fileName);
+            $fileName = app(ManagedFileStorage::class)->uploadFile($file, 'travel');
 
             TravelHistoryFiles::create([
                 'travel_id' => $travel->id,
