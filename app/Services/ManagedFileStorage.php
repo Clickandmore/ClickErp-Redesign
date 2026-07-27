@@ -35,7 +35,7 @@ class ManagedFileStorage
         return $this->uploadFile($file, $directory);
     }
 
-    public function storeMaidFileContents(string $contents, string $directory, string $extension = ''): string
+    public function storeFileContents(string $contents, string $directory, string $extension = ''): string
     {
         $directory = trim($directory, '/');
         $extension = strtolower(trim($extension, " \t\n\r\0\x0B."));
@@ -52,6 +52,11 @@ class ManagedFileStorage
         $this->r2Disk($settings)->put($path, $contents);
 
         return self::R2_PREFIX . $path;
+    }
+
+    public function storeMaidFileContents(string $contents, string $directory, string $extension = ''): string
+    {
+        return $this->storeFileContents($contents, $directory, $extension);
     }
 
     public function exists(?string $storedPath): bool
@@ -125,6 +130,11 @@ class ManagedFileStorage
     public function readStream(string $storedPath)
     {
         return $this->disk($storedPath)->readStream($this->path($storedPath));
+    }
+
+    public function mimeType(string $storedPath): string
+    {
+        return $this->disk($storedPath)->mimeType($this->path($storedPath)) ?: 'application/octet-stream';
     }
 
     private function streamedResponse(

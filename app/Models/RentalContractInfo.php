@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Support\Facades\Storage;
 
 class RentalContractInfo extends Model
 {
@@ -128,7 +127,7 @@ class RentalContractInfo extends Model
             return null;
         }
 
-        return Storage::disk('public')->url($this->payment_receipt_path);
+        return showFile($this->payment_receipt_path);
     }
 
     public function getSponsorshipTransferPaymentReceiptUrlAttribute(): ?string
@@ -137,7 +136,7 @@ class RentalContractInfo extends Model
             return null;
         }
 
-        return Storage::disk('public')->url($this->sponsorship_transfer_payment_receipt_path);
+        return showFile($this->sponsorship_transfer_payment_receipt_path);
     }
 
     public function getClosureClientIbanAttachmentUrlAttribute(): ?string
@@ -146,7 +145,7 @@ class RentalContractInfo extends Model
             return null;
         }
 
-        return Storage::disk('public')->url($this->closure_client_iban_attachment_path);
+        return showFile($this->closure_client_iban_attachment_path);
     }
 
     // Helper Methods

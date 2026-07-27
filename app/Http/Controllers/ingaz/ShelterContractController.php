@@ -18,6 +18,7 @@ use App\Models\ShelterPlaces;
 use App\Models\SponsorshipTransfer;
 use App\PermKeys;
 use App\Services\ingaz\ShelterLivingExpenseAccountingService;
+use App\Services\ManagedFileStorage;
 use App\Support\AutomationSettings;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -1597,7 +1598,10 @@ class ShelterContractController extends Controller
         if ($request->hasFile('attachments')) {
             foreach ($request->file('attachments') as $file) {
                 $attachments[] = [
-                    'path' => $file->store('shelter-contracts/attachments', 'public'),
+                    'path' => app(ManagedFileStorage::class)->uploadFile(
+                        $file,
+                        'shelter-contracts/attachments'
+                    ),
                     'name' => $file->getClientOriginalName(),
                     'size' => $file->getSize(),
                     'uploaded_at' => now()->toDateTimeString(),
@@ -3483,7 +3487,7 @@ class ShelterContractController extends Controller
             // مرفقات استلام الراتب
             if ($request->hasFile('salary_attachments')) {
                 foreach ($request->file('salary_attachments') as $file) {
-                    $path = $file->store('deportation-attachments/salary', 'public');
+                    $path = app(ManagedFileStorage::class)->uploadFile($file, 'deportation-attachments/salary');
                     $allAttachments[] = [
                         'name' => $file->getClientOriginalName(),
                         'path' => $path,
@@ -3510,7 +3514,7 @@ class ShelterContractController extends Controller
                 ]);
 
                 foreach ($request->file('passport_attachments') as $file) {
-                    $path = $file->store('deportation-attachments/passport', 'public');
+                    $path = app(ManagedFileStorage::class)->uploadFile($file, 'deportation-attachments/passport');
                     $allAttachments[] = [
                         'name' => $file->getClientOriginalName(),
                         'path' => $path,
@@ -3532,7 +3536,7 @@ class ShelterContractController extends Controller
             // مرفقات خطاب الترحيل
             if ($request->hasFile('letter_attachments')) {
                 foreach ($request->file('letter_attachments') as $file) {
-                    $path = $file->store('deportation-attachments/letter', 'public');
+                    $path = app(ManagedFileStorage::class)->uploadFile($file, 'deportation-attachments/letter');
                     $allAttachments[] = [
                         'name' => $file->getClientOriginalName(),
                         'path' => $path,
@@ -3552,7 +3556,7 @@ class ShelterContractController extends Controller
             // مرفقات جلسة التسوية
             if ($request->hasFile('settlement_attachments')) {
                 foreach ($request->file('settlement_attachments') as $file) {
-                    $path = $file->store('deportation-attachments/settlement', 'public');
+                    $path = app(ManagedFileStorage::class)->uploadFile($file, 'deportation-attachments/settlement');
                     $allAttachments[] = [
                         'name' => $file->getClientOriginalName(),
                         'path' => $path,
@@ -3572,7 +3576,7 @@ class ShelterContractController extends Controller
             // مرفقات الخروج النهائي
             if ($request->hasFile('exit_attachments')) {
                 foreach ($request->file('exit_attachments') as $file) {
-                    $path = $file->store('deportation-attachments/exit', 'public');
+                    $path = app(ManagedFileStorage::class)->uploadFile($file, 'deportation-attachments/exit');
                     $allAttachments[] = [
                         'name' => $file->getClientOriginalName(),
                         'path' => $path,

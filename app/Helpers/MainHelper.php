@@ -401,6 +401,21 @@ if (!function_exists('uploadMaidFile')) {
     }
 }
 
+if (!function_exists('showSignatureFile')) {
+    function showSignatureFile($storedPath)
+    {
+        if (!is_string($storedPath) || $storedPath === '') {
+            return null;
+        }
+
+        if (str_starts_with($storedPath, \App\Services\ManagedFileStorage::R2_PREFIX) || str_contains($storedPath, '/')) {
+            return showFile($storedPath);
+        }
+
+        return showFile('signatures/' . $storedPath);
+    }
+}
+
 if (!function_exists('documentSettingsRecord')) {
     function documentSettingsRecord()
     {

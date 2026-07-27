@@ -15,6 +15,7 @@ use App\Services\ingaz\SponsorshipTransferCompletionService;
 use App\Services\ingaz\SponsorshipTransferFailureService;
 use App\Services\ingaz\SponsorshipTransferTrialStartService;
 use App\Services\ingaz\SponsorshipTransferPaymentService;
+use App\Services\ManagedFileStorage;
 use App\Services\AdminNotificationService;
 use App\Support\SystemModuleManager;
 use Illuminate\Http\Request;
@@ -716,13 +717,19 @@ class SponsorshipTransferController extends Controller
             }
 
             $paymentReceiptPath = $request->hasFile('payment_receipt')
-                ? $request->file('payment_receipt')->store('sponsorship-transfers/receipts', 'public')
+                ? app(ManagedFileStorage::class)->uploadFile(
+                    $request->file('payment_receipt'),
+                    'sponsorship-transfers/receipts'
+                )
                 : null;
 
             $attachments = [];
             foreach ($request->file('attachments', []) as $file) {
                 $attachments[] = [
-                    'path' => $file->store('sponsorship-transfers/attachments', 'public'),
+                    'path' => app(ManagedFileStorage::class)->uploadFile(
+                        $file,
+                        'sponsorship-transfers/attachments'
+                    ),
                     'name' => $file->getClientOriginalName(),
                     'mime_type' => $file->getClientMimeType(),
                     'size' => $file->getSize(),
@@ -843,7 +850,8 @@ class SponsorshipTransferController extends Controller
             default => abort(404),
         };
 
-        abort_if(!$path || !Storage::disk('public')->exists($path), 404);
+        $storage = app(ManagedFileStorage::class);
+        abort_if(!$path || !$storage->exists($path), 404);
 
         $extension = pathinfo($path, PATHINFO_EXTENSION);
         $downloadName = basename((string) $downloadName);
@@ -851,7 +859,7 @@ class SponsorshipTransferController extends Controller
             $downloadName .= '.' . $extension;
         }
 
-        return Storage::disk('public')->download($path, $downloadName);
+        return $storage->downloadResponse($path, $downloadName, $storage->mimeType($path));
     }
 
     private function resolveTransferAttachmentDownload(SponsorshipTransfer $transfer, ?int $index): array
@@ -1008,13 +1016,19 @@ class SponsorshipTransferController extends Controller
 
             $paymentReceiptPath = $transfer->payment_receipt_path;
             if ($request->hasFile('payment_receipt')) {
-                $paymentReceiptPath = $request->file('payment_receipt')->store('sponsorship-transfers/receipts', 'public');
+                $paymentReceiptPath = app(ManagedFileStorage::class)->uploadFile(
+                    $request->file('payment_receipt'),
+                    'sponsorship-transfers/receipts'
+                );
             }
 
             $attachments = $transfer->attachments ?: [];
             foreach ($request->file('attachments', []) as $file) {
                 $attachments[] = [
-                    'path' => $file->store('sponsorship-transfers/attachments', 'public'),
+                    'path' => app(ManagedFileStorage::class)->uploadFile(
+                        $file,
+                        'sponsorship-transfers/attachments'
+                    ),
                     'name' => $file->getClientOriginalName(),
                     'mime_type' => $file->getClientMimeType(),
                     'size' => $file->getSize(),
@@ -1518,7 +1532,10 @@ class SponsorshipTransferController extends Controller
             }
 
             $ibanAttachmentPath = $request->hasFile('failure_client_iban_attachment')
-                ? $request->file('failure_client_iban_attachment')->store('sponsorship-transfers/failure-settlements/iban', 'public')
+                ? app(ManagedFileStorage::class)->uploadFile(
+                    $request->file('failure_client_iban_attachment'),
+                    'sponsorship-transfers/failure-settlements/iban'
+                )
                 : null;
 
             $contract = $transfer->contract;
@@ -2526,16 +2543,15 @@ class SponsorshipTransferController extends Controller
 
             $previousStatus = $transfer->status;
 
-            // إنشاء اسم فريد للملف
-            $fileName = 'transfer_signature_' . $id . '_' . time() . '.png';
-
-            // حفظ الملف في storage
-            $filePath = 'signatures/' . $fileName;
-            \Storage::disk('public')->put($filePath, $signatureImage);
+            $filePath = app(ManagedFileStorage::class)->storeFileContents(
+                $signatureImage,
+                'signatures',
+                'png'
+            );
 
             // تحديث طلب النقل بالتوقيع والحالة الجديدة
             $transfer->update([
-                'signature' => $fileName,
+                'signature' => $filePath,
                 'status' => 'contract_signed',
                 'contract_signed_at' => now(),
                 'contract_signed_by' => auth('admin')->id()
@@ -2551,7 +2567,7 @@ class SponsorshipTransferController extends Controller
                 'success' => true,
                 'message' => 'تم حفظ التوقيع بنجاح وتحديث حالة العقد',
                 'signature_path' => $filePath,
-                'signature_file' => $fileName,
+                'signature_file' => basename($filePath),
                 'new_status' => $transfer->status
             ]);
 
@@ -2598,16 +2614,15 @@ class SponsorshipTransferController extends Controller
                 ], 400);
             }
 
-            // إنشاء اسم فريد للملف
-            $fileName = 'company_signature_transfer_' . $id . '_' . time() . '.png';
-
-            // حفظ الملف في storage
-            $filePath = 'signatures/' . $fileName;
-            \Storage::disk('public')->put($filePath, $signatureImage);
+            $filePath = app(ManagedFileStorage::class)->storeFileContents(
+                $signatureImage,
+                'signatures',
+                'png'
+            );
 
             // تحديث طلب النقل بتوقيع الشركة
             $transfer->update([
-                'company_signature' => $fileName
+                'company_signature' => $filePath
             ]);
 
             // إعادة تحميل النقل للتأكد من التحديث
@@ -2617,7 +2632,7 @@ class SponsorshipTransferController extends Controller
                 'success' => true,
                 'message' => 'تم حفظ توقيع الشركة بنجاح',
                 'signature_path' => $filePath,
-                'signature_file' => $fileName
+                'signature_file' => basename($filePath)
             ]);
 
         } catch (\Exception $e) {

@@ -388,7 +388,7 @@
                     {{ $transfer->newSponsor->name ?? '[اسم_العميل]' }}<br>
                     @if ($transfer->signature)
                         <div class="saved-signature">
-                            <img src="{{ asset('storage/signatures/' . $transfer->signature) }}" alt="توقيع العميل"
+                            <img src="{{ showSignatureFile($transfer->signature) }}" alt="توقيع العميل"
                                 style="max-width: 200px; max-height: 80px; border: 1px solid #ccc;">
                             <br><small>تم التوقيع في:
                                 {{ $transfer->contract_signed_at ? $transfer->contract_signed_at->format('Y-m-d H:i') : 'غير محدد' }}</small>
