@@ -1551,7 +1551,10 @@
                             <i class="fa-thin fa-{{ $step->icon }}"></i>
                         </div>
                         <p>
-                            {{ $step->title }}
+                            <strong class="d-block">{{ $step->title }}</strong>
+                            @if (filled($step->description))
+                                <span>{{ $step->description }}</span>
+                            @endif
                         </p>
                         {{--                        @if ($key == 0) --}}
                         {{--                           --}}

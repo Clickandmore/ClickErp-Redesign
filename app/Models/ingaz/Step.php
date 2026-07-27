@@ -12,8 +12,12 @@ class Step extends Model
 
     protected $guarded = [];
 
-    public $translatedAttributes = ['title'];
+    public $translatedAttributes = ['title', 'description'];
     protected $translationForeignKey = 'step_id';
     public $translationModel = StepsTranslation::class;
     protected $with = ['translations'];
+
+    protected $casts = [
+        'sort_order' => 'integer',
+    ];
 }
