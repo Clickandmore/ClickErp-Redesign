@@ -1047,10 +1047,19 @@ $(document).ready(function() {
     function calculateIngazTo() {
         const ingazFrom = $('#ingaz_from').val();
         const durationDays = parseInt($('#contract_duration_days').val()) || 0;
+        const latestExtensionEnd = @json($latestExtensionEndDate);
 
         if (ingazFrom && durationDays) {
             const fromDate = new Date(ingazFrom);
-            const toDate = new Date(fromDate.getTime() + (durationDays * 24 * 60 * 60 * 1000));
+            let toDate = new Date(fromDate.getTime() + (durationDays * 24 * 60 * 60 * 1000));
+
+            if (latestExtensionEnd) {
+                const recordedExtensionEnd = new Date(latestExtensionEnd + 'T00:00:00');
+                if (recordedExtensionEnd > toDate) {
+                    toDate = recordedExtensionEnd;
+                }
+            }
+
             $('#ingaz_to_display').val(toDate.toLocaleDateString('ar-SA'));
         }
     }

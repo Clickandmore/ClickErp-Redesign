@@ -690,12 +690,11 @@ class ContractController extends Controller
     private function resolveArrivalDateTime(Contract $contract, $travelHistory): ?Carbon
     {
         if ($travelHistory) {
-            if (filled($travelHistory->arrival_date) && filled($travelHistory->arrival_time)) {
-                return $this->parseNullableDate($travelHistory->arrival_date . ' ' . $travelHistory->arrival_time);
-            }
-
             if (filled($travelHistory->arrival_date)) {
-                return $this->parseNullableDate($travelHistory->arrival_date);
+                $arrivalDateTime = $travelHistory->resolveArrivalDateTime();
+                if ($arrivalDateTime) {
+                    return $arrivalDateTime;
+                }
             }
 
             if (filled($travelHistory->arrived_at ?? null)) {

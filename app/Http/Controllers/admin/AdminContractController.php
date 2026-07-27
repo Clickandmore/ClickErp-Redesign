@@ -209,10 +209,10 @@ class AdminContractController extends Controller
                 $travelHistory = TravelHistory::where('order_id', $contract->id)->first();
 
                 if ($travelHistory) {
-                    $arrivalDateTime = Carbon::parse($travelHistory->arrival_date . ' ' . $travelHistory->arrival_time);
+                    $arrivalDateTime = $travelHistory->resolveArrivalDateTime();
 
                     // Check if arrival date/time has passed
-                    if ($arrivalDateTime->isPast()) {
+                    if ($arrivalDateTime?->isPast()) {
                         // Update contract status to under warranty
                         $contract->update([
                             'status' => ContractStatusEnum::UnderWarranty
@@ -250,7 +250,10 @@ class AdminContractController extends Controller
 
                 if ($travelHistory) {
                     // Combine arrival date and time
-                    $arrivalDateTime = Carbon::parse($travelHistory->arrival_date . ' ' . $travelHistory->arrival_time);
+                    $arrivalDateTime = $travelHistory->resolveArrivalDateTime();
+                    if (!$arrivalDateTime) {
+                        continue;
+                    }
 
                     // Add warranty period to arrival datetime
                     $warrantyEndDate = $arrivalDateTime->addDays($warrantyPeriod);

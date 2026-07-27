@@ -6,6 +6,7 @@ use App\Services\ingaz\RentalMaidFinanceService;
 use App\Services\ingaz\RentalContractFinanceService;
 use App\Services\ingaz\ShelterLivingExpenseAccountingService;
 use App\Services\ingaz\NationalityFinanceAccountService;
+use Illuminate\Support\Collection;
 use Nami\Finance\MainService;
 use Nami\Finance\Enums\AccountTypesEnum;
 use Nami\Finance\Enums\AccountStatusEnum;
@@ -22,6 +23,75 @@ class ConfirmSettingService extends MainService
 
     public function getTaxSetting() {
         return $this->taxSettingService->get()->load('account');
+    }
+
+    public function getSelectedAccounts(Collection $settings, array $additionalAccountIds = []): Collection
+    {
+        $accountIds = $settings
+            ->pluck('value')
+            ->filter(fn ($value) => is_numeric($value) && (int) $value > 0)
+            ->map(fn ($value) => (int) $value)
+            ->concat($additionalAccountIds)
+            ->filter(fn ($value) => is_numeric($value) && (int) $value > 0)
+            ->map(fn ($value) => (int) $value)
+            ->unique()
+            ->values();
+
+        return Account::query()
+            ->select(['id', 'code', 'name'])
+            ->whereIn('id', $accountIds)
+            ->get()
+            ->keyBy('id');
+    }
+
+    public function searchAccounts(?string $search, ?string $scope = null): Collection
+    {
+        $search = trim((string) $search);
+        $query = Account::query()->select(['id', 'parent_id', 'code', 'name', 'status', 'type']);
+
+        match ($scope) {
+            'leaf' => $query->whereDoesntHave('children'),
+            'debtor_leaf' => $query
+                ->whereDoesntHave('children')
+                ->where('status', AccountStatusEnum::Debtor->value),
+            'creditor_leaf' => $query
+                ->whereDoesntHave('children')
+                ->where('status', AccountStatusEnum::Creditor->value),
+            'rental_client_parent' => $query
+                ->where('status', AccountStatusEnum::Debtor->value)
+                ->where(function ($query) {
+                    $query->where('type', AccountTypesEnum::Clients->value)
+                        ->orWhereHas('children');
+                }),
+            'rental_receipt' => $query
+                ->whereDoesntHave('children')
+                ->where('status', AccountStatusEnum::Debtor->value)
+                ->whereIn('type', [
+                    AccountTypesEnum::Bank->value,
+                    AccountTypesEnum::Box->value,
+                    AccountTypesEnum::ElectronicWallet->value,
+                ]),
+            'musaned_source' => $query->musanedAccountCandidate(),
+            'musaned_intermediate' => $query
+                ->whereDoesntHave('children')
+                ->musanedAccountCandidate(),
+            default => null,
+        };
+
+        return $query
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($query) use ($search) {
+                    $query->where('name', 'like', '%' . $search . '%')
+                        ->orWhere('code', 'like', '%' . $search . '%');
+                });
+            })
+            ->orderBy('code')
+            ->limit(50)
+            ->get()
+            ->map(fn (Account $account) => [
+                'id' => $account->id,
+                'text' => trim((string) $account->code) . ' / ' . $account->name,
+            ]);
     }
 
     public function getAccounts() {

@@ -173,9 +173,10 @@ class ConfiguredNotificationAlertService
             ->whereBetween('arrival_date', [now()->subDay()->toDateString(), $until->toDateString()])
             ->limit(500)->get()
             ->map(function (TravelHistory $travel): array {
-                $eventAt = Carbon::parse(
-                    $travel->arrival_date . ' ' . ($travel->arrival_time ?: '00:00')
-                );
+                $eventAt = $travel->resolveArrivalDateTime();
+                if (!$eventAt) {
+                    return null;
+                }
 
                 return $this->candidate(
                     $travel,
@@ -193,7 +194,9 @@ class ConfiguredNotificationAlertService
                         'flight_number' => (string) $travel->flight_number,
                     ]
                 );
-            });
+            })
+            ->filter()
+            ->values();
     }
 
     private function candidate(

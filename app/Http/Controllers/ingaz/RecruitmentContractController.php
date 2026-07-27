@@ -4134,12 +4134,7 @@ class RecruitmentContractController extends Controller
             DB::beginTransaction();
 
             try {
-                if (!$travelHistory->arrival_date) {
-                    $travelHistory->arrival_date = now()->toDateString();
-                }
-                if (!$travelHistory->arrival_time) {
-                    $travelHistory->arrival_time = now()->format('H:i:s');
-                }
+                $travelHistory->normalizeArrivalDateAndTime();
 
                 RecruitmentContractExternalOfficeDispatchController::syncArrivalStationFromDispatch($contract, $travelHistory);
 

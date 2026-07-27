@@ -1225,6 +1225,9 @@ class RentContractController extends Controller
     {
         $contract = RentalContract::with(['user', 'maid', 'info', 'marketer', 'financeInvoice.receiptAccount'])->findOrFail($id);
         $this->assertCanAccessBranchModel($contract, 'rental_contracts');
+        $latestExtensionEndDate = $contract->extensions()
+            ->whereNotNull('end_date')
+            ->max('end_date');
 
         // الحصول على العاملات المتاحة من نوع تأجير
         $availableRentalMaids = $this->getAvailableRentalMaidsQuery($contract->maid_id)->get();
@@ -1250,7 +1253,8 @@ class RentContractController extends Controller
             'countries',
             'paymentReceipts',
             'moyasarEnabled',
-            'receiptAccounts'
+            'receiptAccounts',
+            'latestExtensionEndDate'
         ));
     }
 
@@ -1343,6 +1347,15 @@ class RentContractController extends Controller
             }
 
             $remainingAmount = max(0, $contractValue - $paidAmount);
+            $latestExtensionEndDate = $contract->extensions()
+                ->whereNotNull('end_date')
+                ->max('end_date');
+            $updatedEndDate = $this->resolveUpdatedContractEndDate(
+                $request->ingaz_from,
+                $contractDurationDays,
+                $request->ingaz_to,
+                $latestExtensionEndDate
+            );
             // تحديث معلومات العقد
             $contractInfoUpdates = [
                 'package_id' => $packageId,
@@ -1373,7 +1386,7 @@ class RentContractController extends Controller
                 'paid_amount' => $paidAmount,
                 'remaining_amount' => $remainingAmount,
                 'ingaz_from' => $request->ingaz_from,
-                'ingaz_to' => $request->ingaz_to ?: \Carbon\Carbon::parse($request->ingaz_from)->addDays($contractDurationDays),
+                'ingaz_to' => $updatedEndDate,
                 'notes' => $request->notes,
                 'additional_terms' => $request->additional_terms,
             ];
@@ -2776,6 +2789,30 @@ class RentContractController extends Controller
         }
 
         return $days . ' يوم';
+    }
+
+    /**
+     * Editing the base contract must not discard a recorded extension.
+     */
+    protected function resolveUpdatedContractEndDate(
+        string $startDate,
+        int $contractDurationDays,
+        ?string $requestedEndDate = null,
+        ?string $latestExtensionEndDate = null
+    ): Carbon {
+        $calculatedEndDate = $requestedEndDate
+            ? Carbon::parse($requestedEndDate)
+            : Carbon::parse($startDate)->addDays($contractDurationDays);
+
+        if (!$latestExtensionEndDate) {
+            return $calculatedEndDate;
+        }
+
+        $extensionEndDate = Carbon::parse($latestExtensionEndDate);
+
+        return $extensionEndDate->greaterThan($calculatedEndDate)
+            ? $extensionEndDate
+            : $calculatedEndDate;
     }
 
     private function closureDateFromRequest(Request $request): Carbon

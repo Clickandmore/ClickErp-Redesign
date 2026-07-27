@@ -6,6 +6,7 @@ use App\Models\auth\Admin;
 use App\Models\ingaz\Maid;
 use App\Models\ingaz\User;
 use App\Models\ingaz\Order;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -64,6 +65,64 @@ class TravelHistory extends Model
     public function assignedBy()
     {
         return $this->belongsTo(Admin::class, 'assigned_by');
+    }
+
+    /**
+     * Resolve legacy arrival values where arrival_date may already contain a time.
+     */
+    public function resolveArrivalDateTime(): ?Carbon
+    {
+        $rawDate = trim((string) $this->arrival_date);
+        if ($rawDate === '') {
+            return null;
+        }
+
+        try {
+            $arrivalDateTime = Carbon::parse($rawDate);
+        } catch (\Throwable $e) {
+            return null;
+        }
+
+        $rawTime = trim((string) $this->arrival_time);
+        if ($rawTime !== '') {
+            try {
+                $arrivalTime = Carbon::parse($rawTime);
+                $arrivalDateTime->setTime(
+                    $arrivalTime->hour,
+                    $arrivalTime->minute,
+                    $arrivalTime->second
+                );
+            } catch (\Throwable $e) {
+                // Preserve the valid date (and any embedded time) when the
+                // separate legacy time value is malformed.
+            }
+        }
+
+        return $arrivalDateTime;
+    }
+
+    /**
+     * Store the date and time in their dedicated fields before completing a trip.
+     */
+    public function normalizeArrivalDateAndTime(?Carbon $fallback = null): Carbon
+    {
+        $fallback = ($fallback ?: now())->copy();
+        $rawDate = trim((string) $this->arrival_date);
+        $rawTime = trim((string) $this->arrival_time);
+        $arrivalDateTime = $this->resolveArrivalDateTime() ?: $fallback->copy();
+
+        if ($rawDate === '') {
+            $arrivalDateTime->setDate($fallback->year, $fallback->month, $fallback->day);
+        }
+
+        if ($rawTime === '' && !preg_match('/\d{1,2}:\d{2}/', $rawDate)) {
+            $arrivalDateTime->setTime($fallback->hour, $fallback->minute, $fallback->second);
+        }
+
+        $this->arrival_date = $arrivalDateTime->toDateString();
+        $this->arrival_time = $arrivalDateTime->format('H:i:s');
+
+        return $arrivalDateTime;
     }
 
     public function getActivitylogOptions(): LogOptions

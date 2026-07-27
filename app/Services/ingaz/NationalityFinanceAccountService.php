@@ -157,15 +157,48 @@ class NationalityFinanceAccountService
 
     public function getNationalityAssignments(Collection $settings): array
     {
+        $nationalities = Nationality::query()
+            ->with('translations')
+            ->orderByTranslation('sub_title', 'asc')
+            ->get();
+        $nationalityTerms = $nationalities
+            ->map(fn (Nationality $nationality) => $this->resolveNationalityName($nationality))
+            ->filter()
+            ->flatMap(fn (string $name) => $this->nationalityNameAliases($name))
+            ->unique()
+            ->values();
+        $selectedAccountIds = $settings
+            ->filter(fn ($setting, string $title) => str_starts_with($title, 'nationality_account_'))
+            ->pluck('value')
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
         $accounts = Account::query()
+            ->select(['id', 'parent_id', 'code', 'name'])
             ->with('parent:id,name')
+            ->where(function ($query) use ($nationalityTerms, $selectedAccountIds) {
+                $hasCondition = false;
+
+                if ($selectedAccountIds->isNotEmpty()) {
+                    $query->whereIn('id', $selectedAccountIds);
+                    $hasCondition = true;
+                }
+
+                foreach ($nationalityTerms as $term) {
+                    $method = $hasCondition ? 'orWhere' : 'where';
+                    $query->{$method}('name', 'like', '%' . $term . '%');
+                    $hasCondition = true;
+                }
+
+                if (!$hasCondition) {
+                    $query->whereRaw('1 = 0');
+                }
+            })
             ->orderBy('code')
             ->get();
 
-        $assignments = Nationality::query()
-            ->with('translations')
-            ->orderByTranslation('sub_title', 'asc')
-            ->get()
+        $assignments = $nationalities
             ->map(function (Nationality $nationality) use ($settings, $accounts) {
                 $nationalityName = $this->resolveNationalityName($nationality);
 
