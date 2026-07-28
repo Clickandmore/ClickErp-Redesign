@@ -125,9 +125,9 @@
 
                 $canViewSms = @AdminGuardHasAnyPerm([\App\PermKeys::NOTIFICATIONS_CONTROL, \App\PermKeys::NOTIFICATIONS_VIEW]);
 
-                $canViewWebsiteManagement = @SystemModuleEnabled('website') && @AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_VIEW, \App\PermKeys::FAQ_VIEW, \App\PermKeys::STATISTICS_VIEW, \App\PermKeys::OFFERS_VIEW, \App\PermKeys::OFFERS_CONTROL, \App\PermKeys::DEVELOPERS_PERMS]);
+                $canViewWebsiteManagement = @SystemModuleEnabled('website') && @AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_VIEW, \App\PermKeys::FAQ_VIEW, \App\PermKeys::STATISTICS_VIEW, \App\PermKeys::OFFERS_VIEW, \App\PermKeys::OFFERS_CONTROL, \App\PermKeys::WHY_CHOOSE_US_VIEW, \App\PermKeys::WHY_CHOOSE_US_CONTROL, \App\PermKeys::FIND_US_VIEW, \App\PermKeys::FIND_US_CONTROL, \App\PermKeys::RECRUITMENT_REQUIREMENTS_VIEW, \App\PermKeys::RECRUITMENT_REQUIREMENTS_CONTROL, \App\PermKeys::DEVELOPERS_PERMS]);
 
-                $canViewHomeSettings = @AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_VIEW, \App\PermKeys::SLIDERS_VIEW, \App\PermKeys::OFFERS_VIEW, \App\PermKeys::OFFERS_CONTROL, \App\PermKeys::ABOUT_US_VIEW, \App\PermKeys::FAQ_VIEW, \App\PermKeys::STATISTICS_VIEW, \App\PermKeys::STEPS_VIEW, \App\PermKeys::SERVICES_VIEW, \App\PermKeys::PARTENR_VIEW]);
+                $canViewHomeSettings = @AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_VIEW, \App\PermKeys::SLIDERS_VIEW, \App\PermKeys::OFFERS_VIEW, \App\PermKeys::OFFERS_CONTROL, \App\PermKeys::ABOUT_US_VIEW, \App\PermKeys::FAQ_VIEW, \App\PermKeys::STATISTICS_VIEW, \App\PermKeys::STEPS_VIEW, \App\PermKeys::SERVICES_VIEW, \App\PermKeys::PARTENR_VIEW, \App\PermKeys::WHY_CHOOSE_US_VIEW, \App\PermKeys::WHY_CHOOSE_US_CONTROL, \App\PermKeys::FIND_US_VIEW, \App\PermKeys::FIND_US_CONTROL, \App\PermKeys::RECRUITMENT_REQUIREMENTS_VIEW, \App\PermKeys::RECRUITMENT_REQUIREMENTS_CONTROL]);
 
                 $canViewBranches = @SystemModuleEnabled('branches') && @AdminGuardHasAnyPerm([\App\PermKeys::BRANCHES_VIEW, \App\PermKeys::BRANCHES_CREATE, \App\PermKeys::BRANCHES_EDIT, \App\PermKeys::BRANCHES_DELETE, \App\PermKeys::BRANCHES_CONTROL]);
                 $canViewMaidsData = @AdminGuardHasAnyPerm([\App\PermKeys::NATIONALITIES_VIEW, \App\PermKeys::REC_OFFICES_VIEW, \App\PermKeys::JOB_TITLES_VIEW, \App\PermKeys::RELIGIONS_VIEW, \App\PermKeys::SKILLS_VIEW, \App\PermKeys::COUNTRIES_VIEW, \App\PermKeys::SOCIAL_STATUS_VIEW, \App\PermKeys::USERS_VIEW, \App\PermKeys::MAIDS_VIEW]);
@@ -1167,11 +1167,14 @@
                             request()->routeIs('sliders.*') ||
                             request()->routeIs('what-do.*') ||
                             request()->routeIs('what-do-setting.*') ||
+                            request()->routeIs('why-choose-us.*') ||
+                            request()->routeIs('find-us.*') ||
                             request()->routeIs('about-us.*') ||
                             request()->routeIs('features.*') ||
                             request()->routeIs('services.*') ||
                             request()->routeIs('statistics.*') ||
                             request()->routeIs('steps.*') ||
+                            request()->routeIs('requiremens.*') ||
                             request()->routeIs('partenrs.*');
                         $isRecruitmentSettingsRoute = in_array(Route::currentRouteName(), [
                             'job-titles.index',
@@ -1333,6 +1336,28 @@
                                                         </li>
                                                     @endif
 
+                                                    @if (@AdminGuardHasAnyPerm([\App\PermKeys::WHY_CHOOSE_US_VIEW, \App\PermKeys::WHY_CHOOSE_US_CONTROL]))
+                                                        <li>
+                                                            <a class="m-link {{ request()->routeIs('why-choose-us.*') ? 'active' : '' }}"
+                                                                href="{{ route('why-choose-us.edit') }}">
+                                                                <i class="fa fa-circle-check"></i>
+                                                                <span class="ms-2">
+                                                                    {{ __('why_choose_us.sidebar_title') }}
+                                                                </span>
+                                                            </a>
+                                                        </li>
+                                                    @endif
+
+                                                    @if (@AdminGuardHasAnyPerm([\App\PermKeys::FIND_US_VIEW, \App\PermKeys::FIND_US_CONTROL]))
+                                                        <li>
+                                                            <a class="m-link {{ request()->routeIs('find-us.*') ? 'active' : '' }}"
+                                                                href="{{ route('find-us.index') }}">
+                                                                <i class="fa fa-map-location-dot"></i>
+                                                                <span class="ms-2">{{ __('find_us.title') }}</span>
+                                                            </a>
+                                                        </li>
+                                                    @endif
+
                                                     @if (@AdminGuardHasPerm(\App\PermKeys::ABOUT_US_VIEW))
                                                         <li>
                                                             <a class="m-link {{ request()->routeIs('about-us.*') ? 'active' : '' }}"
@@ -1383,6 +1408,18 @@
                                                                 <i class="fa fa-list-ol"></i>
                                                                 <span
                                                                     class="ms-2">{{ helperTrans('ingaz.steps') }}</span>
+                                                            </a>
+                                                        </li>
+                                                    @endif
+
+                                                    @if (@AdminGuardHasAnyPerm([\App\PermKeys::RECRUITMENT_REQUIREMENTS_VIEW, \App\PermKeys::RECRUITMENT_REQUIREMENTS_CONTROL]))
+                                                        <li>
+                                                            <a class="m-link {{ request()->routeIs('requiremens.*') ? 'active' : '' }}"
+                                                                href="{{ route('requiremens.index') }}">
+                                                                <i class="fa fa-list-check"></i>
+                                                                <span class="ms-2">
+                                                                    {{ helperTrans('api.Recruitment requirements') }}
+                                                                </span>
                                                             </a>
                                                         </li>
                                                     @endif
@@ -1448,16 +1485,6 @@
                                                     href="{{ route('questions.index') }}">
                                                     <i class="fa fa-question"></i>
                                                     <span class="ms-2">{{ helperTrans('ingaz.faq') }}</span>
-                                                </a>
-                                            </li>
-                                        @endif
-                                        @if (@AdminGuardHasPerm(\App\PermKeys::STATISTICS_VIEW))
-                                            <li>
-                                                <a class="m-link {{ Route::currentRouteName() == 'requiremens.index' ? 'active' : '' }}"
-                                                    href="{{ route('requiremens.index') }}">
-                                                    <i class="fa fa-list"></i>
-                                                    <span class="ms-2">
-                                                        {{ helperTrans('ingaz.requiremens') }}</span>
                                                 </a>
                                             </li>
                                         @endif

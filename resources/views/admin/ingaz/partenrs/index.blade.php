@@ -13,6 +13,7 @@
         <thead>
         <tr>
             <th>#</th>
+            <th>{{ helperTrans("ingaz.title") }}</th>
             <th>{{helperTrans("ingaz.image")}}</th>
             <th>{{helperTrans("ingaz.actions")}}</th>
  
@@ -33,6 +34,7 @@
         $(document).ready(function () {
             let columns = [
                 {"data": 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
+                {"data": "title", name: "title", orderable: true, searchable: true},
                 {"data": "image", orderable: true, searchable: true},
                  {"data": "actions", orderable: false, searchable: false}
             ];

@@ -149,7 +149,8 @@
                     @forelse($clients as $client)
                         <div class="swiper-slide">
                             <div class="referenceLogo ">
-                                <img src="{{showFile($client->image)}}" alt="">
+                                <img src="{{ showFile($client->image) }}" alt="{{ $client->title ?? '' }}"
+                                     title="{{ $client->title ?? '' }}">
                             </div>
                         </div>
                     @empty

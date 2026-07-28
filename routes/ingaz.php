@@ -26,6 +26,7 @@ use App\Http\Controllers\ingaz\DeportationTravelController;
 use App\Http\Controllers\ingaz\DevelopSettingController;
 use App\Http\Controllers\ingaz\FastNewController;
 use App\Http\Controllers\ingaz\FeatureController;
+use App\Http\Controllers\ingaz\FindUsLocationController;
 use App\Http\Controllers\ingaz\FinancialRequestController;
 use App\Http\Controllers\ingaz\InvoiceController;
 use App\Http\Controllers\ingaz\JobTitleController;
@@ -121,6 +122,13 @@ Route::group(
 
             Route::resource('partenrs', ClientController::class);
             Route::resource('why-us', WhyUsController::class);
+            Route::get('why-choose-us', [\App\Http\Controllers\ingaz\WhyChooseUsController::class, 'edit'])
+                ->name('why-choose-us.edit');
+            Route::put('why-choose-us', [\App\Http\Controllers\ingaz\WhyChooseUsController::class, 'update'])
+                ->name('why-choose-us.update');
+            Route::resource('find-us', FindUsLocationController::class)
+                ->except('show')
+                ->parameters(['find-us' => 'location']);
             Route::resource('arrival-workers', ArrivalWorkerController::class);
             Route::resource('testimonials', TestimonialController::class);
             Route::resource('select-workers', SelectWorkerController::class);
@@ -129,7 +137,6 @@ Route::group(
             Route::resource('cv-convert', CvConvertController::class);
 
             Route::resource('partenrs', ClientController::class);
-            Route::resource('requiremens', RequirementsController::class);
             Route::resource('fast-news', FastNewController::class);
             Route::resource('features', FeatureController::class);
             Route::resource('what-do', WhatDoController::class);

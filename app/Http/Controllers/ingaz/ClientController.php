@@ -13,7 +13,7 @@ class ClientController extends Controller
 {
 
     public $folderPath = "admin.ingaz.partenrs";
-    public $postData = ["image"];
+    public $postData = ["title", "image"];
     public $mainRoute = "partenrs";
 
     function __construct()
@@ -30,6 +30,9 @@ class ClientController extends Controller
             $rows = objModel::query()->latest();
             return DataTables::of($rows)
                 ->addIndexColumn()
+                ->editColumn('title', function ($row) {
+                    return e($row->title ?: '—');
+                })
                 ->editColumn('image', function ($row) {
                     if ($row->image) {
                         return '<img src="' . asset('storage/' . $row->image) . '" width="80" height="80" style="object-fit:cover;border-radius:8px;">';
@@ -88,7 +91,7 @@ class ClientController extends Controller
 
     public function update(objRequest $request, objAction $action, $id)
     {
-        $updatedData = $request->only($this->postData);
+        $updatedData = $request->validated();
         $data = $action->update($id, $updatedData);
         return jsonSuccess($data);
     }

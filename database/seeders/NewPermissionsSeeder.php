@@ -537,6 +537,28 @@ class NewPermissionsSeeder extends Seeder
                 'section_name' => 'content_management',
                 'guard_name' => 'admin',
             ],
+            ...collect([
+                NewPermKeys::WHY_CHOOSE_US_VIEW,
+                NewPermKeys::WHY_CHOOSE_US_CREATE,
+                NewPermKeys::WHY_CHOOSE_US_EDIT,
+                NewPermKeys::WHY_CHOOSE_US_DELETE,
+                NewPermKeys::WHY_CHOOSE_US_MANAGE,
+                NewPermKeys::FIND_US_VIEW,
+                NewPermKeys::FIND_US_CREATE,
+                NewPermKeys::FIND_US_EDIT,
+                NewPermKeys::FIND_US_DELETE,
+                NewPermKeys::FIND_US_MANAGE,
+                NewPermKeys::RECRUITMENT_REQUIREMENTS_VIEW,
+                NewPermKeys::RECRUITMENT_REQUIREMENTS_CREATE,
+                NewPermKeys::RECRUITMENT_REQUIREMENTS_EDIT,
+                NewPermKeys::RECRUITMENT_REQUIREMENTS_DELETE,
+                NewPermKeys::RECRUITMENT_REQUIREMENTS_MANAGE,
+            ])->map(fn (string $name) => [
+                'name' => $name,
+                'group_name' => 'content',
+                'section_name' => 'content_management',
+                'guard_name' => 'admin',
+            ])->all(),
         ];
 
         foreach ($permissions as $permission) {

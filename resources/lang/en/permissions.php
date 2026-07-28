@@ -489,6 +489,21 @@ return [
     'rec_contracts_reports' => 'Recruitment Contracts Reports',
     'rec_contracts_analytics' => 'Recruitment Contracts Analytics',
     'finance.constraints-approve' => 'Approve accounting constraints',
+    'why_choose_us_view' => 'View Why Choose Us section',
+    'why_choose_us_create' => 'Add Why Choose Us content',
+    'why_choose_us_edit' => 'Edit Why Choose Us section',
+    'why_choose_us_delete' => 'Delete Why Choose Us content',
+    'why_choose_us_control' => 'Fully manage Why Choose Us section',
+    'find_us_view' => 'View Where to Find Us branches',
+    'find_us_create' => 'Add Where to Find Us branch',
+    'find_us_edit' => 'Edit Where to Find Us branch',
+    'find_us_delete' => 'Delete Where to Find Us branch',
+    'find_us_control' => 'Fully manage Where to Find Us',
+    'recruitment_requirements_view' => 'View recruitment requirements',
+    'recruitment_requirements_create' => 'Add recruitment requirements',
+    'recruitment_requirements_edit' => 'Edit recruitment requirements',
+    'recruitment_requirements_delete' => 'Delete recruitment requirements',
+    'recruitment_requirements_control' => 'Fully manage recruitment requirements',
 
     // ========================================
     // Legacy Recruitment Contracts (for compatibility)

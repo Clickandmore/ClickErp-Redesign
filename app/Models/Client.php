@@ -8,8 +8,9 @@ class Client extends Model
 {
  
     protected $fillable = [
+        'title',
         'image',
-     ];
+    ];
 
      
 }
