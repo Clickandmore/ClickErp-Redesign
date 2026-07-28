@@ -27,6 +27,12 @@ class Maid extends Model
     public const REQUEST_TYPE_KNOWN = 'known';
     public const REQUEST_TYPE_SPECIFIC = 'specific';
     public const REQUEST_TYPE_CUSTOM = 'custom_spec';
+    public const LANGUAGE_LEVEL_PERCENTAGES = [
+        'acceptable' => 50,
+        'average' => 65,
+        'good' => 80,
+        'excellent' => 95,
+    ];
 
     // Status constants with translations
     const STATUS_AVAILABLE = [
@@ -89,6 +95,7 @@ class Maid extends Model
         'is_show',
         'is_pinned',
         'percentage',
+        'language_levels',
         'childrens_count',
         'education',
         'has_driving_license',
@@ -114,6 +121,7 @@ class Maid extends Model
         'skills' => 'array',
         'languages' => 'array',
         'percentage' => 'array',
+        'language_levels' => 'array',
         'price' => 'decimal:2',
         'salary' => 'decimal:2',
         'age' => 'float',
@@ -218,6 +226,24 @@ class Maid extends Model
         );
     }
 
+    public function getLanguageLevelsAttribute($value): array
+    {
+        return $this->normalizeLanguageLevels($value);
+    }
+
+    public function setLanguageLevelsAttribute($value): void
+    {
+        $this->attributes['language_levels'] = json_encode(
+            $this->normalizeLanguageLevels($value),
+            JSON_UNESCAPED_UNICODE
+        );
+    }
+
+    public static function percentageForLanguageLevel(string $level): ?int
+    {
+        return self::LANGUAGE_LEVEL_PERCENTAGES[$level] ?? null;
+    }
+
     protected function languageFallbackLocales(): array
     {
         return collect([
@@ -293,6 +319,27 @@ class Maid extends Model
         }
 
         return $percentages;
+    }
+
+    protected function normalizeLanguageLevels($value): array
+    {
+        $value = $this->decodeJsonLikeValue($value);
+
+        if (!is_array($value)) {
+            return [];
+        }
+
+        $levels = [];
+        foreach ($value as $language => $level) {
+            $language = $this->normalizeLanguageKey((string) $language);
+            $level = strtolower(trim((string) $level));
+
+            if ($language !== '' && array_key_exists($level, self::LANGUAGE_LEVEL_PERCENTAGES)) {
+                $levels[$language] = $level;
+            }
+        }
+
+        return $levels;
     }
 
     protected function decodeJsonLikeValue($value)

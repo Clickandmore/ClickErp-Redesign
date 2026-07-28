@@ -37,6 +37,8 @@
     $langs = old('languages', is_array($obj->languages) ? $obj->languages : (json_decode($obj->languages, true) ?? []));
     $langs = collect($langs)->values()->all();
     $percentages = old('percentage', is_array($obj->percentage) ? $obj->percentage : (json_decode($obj->percentage, true) ?? []));
+    $languageLevels = old('language_levels', is_array($obj->language_levels) ? $obj->language_levels : (json_decode($obj->language_levels, true) ?? []));
+    $languageRatingMode = old('language_rating_mode', $languageLevels !== [] ? 'level' : 'percentage');
     $defaultRentalFinanceItems = app(\App\Services\ingaz\RentalMaidFinanceService::class)->getFormItems();
     $storedRentalFinanceItems = $obj->rentalFinancialAdjustments()
         ->where('context', 'maid')
@@ -264,6 +266,84 @@
 
         .maid-route-header .maid-form-section__title {
             margin-bottom: 0;
+        }
+
+        /* أكورديون البيانات الإضافية */
+        .maid-additional-accordion {
+            border: 1px solid #dbe3ef;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(16, 24, 40, 0.06);
+        }
+
+        .maid-additional-accordion .accordion-item {
+            border: 0;
+            background: #fff;
+        }
+
+        .maid-additional-accordion .accordion-button {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 16px;
+            background: #f3f8ff;
+            color: #0b3a75;
+            font-size: 18px;
+            font-weight: 700;
+            box-shadow: none;
+        }
+
+        .maid-additional-accordion .accordion-button:not(.collapsed) {
+            background: #e6f0ff;
+            color: #0b5ed7;
+            border-bottom: 1px solid #dbe3ef;
+        }
+
+        .maid-additional-accordion .accordion-button:focus {
+            box-shadow: none;
+            outline: 0;
+        }
+
+        .maid-additional-accordion .accordion-button::after {
+            margin-inline-start: auto;
+            margin-inline-end: 0;
+        }
+
+        .maid-additional-accordion__icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #0d6efd;
+            color: #fff;
+            font-size: 15px;
+        }
+
+        .maid-additional-accordion__title {
+            font-size: 18px;
+            font-weight: 800;
+        }
+
+        .maid-additional-accordion__hint {
+            font-size: 12px;
+            font-weight: 500;
+            color: #6b7280;
+        }
+
+        .maid-additional-accordion .accordion-body {
+            padding: 16px;
+            background: #fff;
+        }
+
+        @media (max-width: 575.98px) {
+
+            .maid-additional-accordion .accordion-button,
+            .maid-additional-accordion__title {
+                font-size: 16px;
+            }
         }
     </style>
 @endsection
@@ -615,22 +695,6 @@
                     </div>
 
                     <div class="col-4">
-                        <label for="TextInput" class="form-label">
-                            {{ helperTrans('ingaz.height') }}
-                        </label>
-                        <input type="text" name="height" class="form-control" value="{{ old('height', $obj->height ?? '160') }}"
-                            placeholder="{{ helperTrans('ingaz.height_placeholder') }}">
-                    </div>
-
-                    <div class="col-4">
-                        <label for="TextInput" class="form-label">
-                            {{ helperTrans('ingaz.weight') }}
-                        </label>
-                        <input type="text" name="weight" class="form-control" value="{{ old('weight', $obj->weight ?? '60') }}"
-                            placeholder="{{ helperTrans('ingaz.weight_placeholder') }}">
-                    </div>
-
-                    <div class="col-4">
                         <label for="TextInput" class="form-label">{{ helperTrans('ingaz.religion') }}</label>
                         <select name="religion_id" class="form-control">
                             @foreach ($religions as $religion)
@@ -663,46 +727,6 @@
                         </select>
                     </div>
 
-                    <div class="col-4">
-                        <label for="TextInput" class="form-label">
-                            {{ helperTrans('ingaz.childrens_count') }}
-                        </label>
-                        <input type="number" name="childrens_count" class="form-control" min="0" step="1"
-                            value="{{ old('childrens_count', $obj->childrens_count ?? 0) }}">
-                    </div>
-                    <div class="col-4">
-                        <label for="phone" class="form-label">رقم جوال العاملة</label>
-                        <input type="tel" name="phone" id="phone" class="form-control"
-                            maxlength="50" value="{{ old('phone', $obj->phone) }}">
-                    </div>
-                    <div class="col-4">
-                        <label for="relative_name" class="form-label">اسم أحد أقارب العاملة</label>
-                        <input type="text" name="relative_name" id="relative_name" class="form-control"
-                            maxlength="255" value="{{ old('relative_name', $obj->relative_name) }}">
-                    </div>
-                    <div class="col-4">
-                        <label for="relative_phone" class="form-label">رقم جوال قريب العاملة</label>
-                        <input type="tel" name="relative_phone" id="relative_phone" class="form-control"
-                            maxlength="50" value="{{ old('relative_phone', $obj->relative_phone) }}">
-                    </div>
-                    <div class="col-4">
-                        <label for="residence_city" class="form-label">مدينة سكن العاملة</label>
-                        <input type="text" name="residence_city" id="residence_city" class="form-control"
-                            maxlength="255" value="{{ old('residence_city', $obj->residence_city) }}">
-                    </div>
-                    <div class="col-4">
-                        <label for="education" class="form-label">المؤهل التعليمي</label>
-                        <input type="text" name="education" id="education" class="form-control"
-                            maxlength="255" value="{{ old('education', $obj->education) }}">
-                    </div>
-                    <div class="col-4" id="driving_license_field" style="display: none;">
-                        <label for="has_driving_license" class="form-label">هل يحمل رخصة قيادة؟</label>
-                        <select name="has_driving_license" id="has_driving_license" class="form-control">
-                            <option value="">اختر</option>
-                            <option value="1" {{ (string) $selectedDrivingLicense === '1' ? 'selected' : '' }}>نعم</option>
-                            <option value="0" {{ (string) $selectedDrivingLicense === '0' ? 'selected' : '' }}>لا</option>
-                        </select>
-                    </div>
                     <div class="col-4">
                         <label for="TextInput" class="form-label">
                             {{ helperTrans('ingaz.contract_duration') }}
@@ -856,66 +880,38 @@
                             {{ helperTrans('ingaz.languages') }}
                             <small class="text-muted">({{ helperTrans('ingaz.optional') }})</small>
                         </label>
-                        <div class="row">
-                            <div class="col-md-3">
-                                <div class="form-check">
-                                    <input class="form-check-input lang-check" type="checkbox" name="languages[arabic]"
-                                        id="arabic" value="arabic" {{ in_array('arabic', $langs, true) ? 'checked' : '' }}>
-                                    <label class="form-check-label"
-                                        for="arabic">{{ helperTrans('ingaz.arabic_language') }}</label>
-                                </div>
-                                <div class="lang-extra mt-2 {{ in_array('arabic', $langs, true) ? '' : 'd-none' }}">
-                                    @if (in_array('arabic', $langs, true))
-                                        <input type="number" min="0" max="100" class="form-control" placeholder="{{ helperTrans('ingaz.Percentage') }}"
-                                            name="percentage[arabic]" value="{{ $percentages['arabic'] ?? '' }}">
-                                    @endif
-                                </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="language_rating_mode" class="form-label">
+                                    {{ helperTrans('ingaz.language_rating_method') }}
+                                </label>
+                                <select class="form-control" name="language_rating_mode"
+                                    id="language_rating_mode">
+                                    <option value="percentage" {{ $languageRatingMode === 'percentage' ? 'selected' : '' }}>
+                                        {{ helperTrans('ingaz.language_rating_percentage') }}
+                                    </option>
+                                    <option value="level" {{ $languageRatingMode === 'level' ? 'selected' : '' }}>
+                                        {{ helperTrans('ingaz.language_rating_level') }}
+                                    </option>
+                                </select>
                             </div>
-
-                            <div class="col-md-3">
-                                <div class="form-check">
-                                    <input class="form-check-input lang-check" type="checkbox" name="languages[english]"
-                                        id="english" value="english" {{ in_array('english', $langs, true) ? 'checked' : '' }}>
-                                    <label class="form-check-label"
-                                        for="english">{{ helperTrans('ingaz.english_language') }}</label>
-                                </div>
-                                <div class="lang-extra mt-2 {{ in_array('english', $langs, true) ? '' : 'd-none' }}">
-                                    @if (in_array('english', $langs, true))
-                                        <input type="number" min="0" max="100" class="form-control" placeholder="{{ helperTrans('ingaz.Percentage') }}"
-                                            name="percentage[english]" value="{{ $percentages['english'] ?? '' }}">
-                                    @endif
-                                </div>
-                            </div>
-
-                            <div class="col-md-3">
-                                <div class="form-check">
-                                    <input class="form-check-input lang-check" type="checkbox" name="languages[amharic]"
-                                        id="amharic" value="amharic" {{ in_array('amharic', $langs, true) ? 'checked' : '' }}>
-                                    <label class="form-check-label"
-                                        for="amharic">{{ helperTrans('ingaz.amharic_language') }}</label>
-                                </div>
-                                <div class="lang-extra mt-2 {{ in_array('amharic', $langs, true) ? '' : 'd-none' }}">
-                                    @if (in_array('amharic', $langs, true))
-                                        <input type="number" min="0" max="100" class="form-control" placeholder="{{ helperTrans('ingaz.Percentage') }}"
-                                            name="percentage[amharic]" value="{{ $percentages['amharic'] ?? '' }}">
-                                    @endif
-                                </div>
-                            </div>
-
-                            <div class="col-md-3">
-                                <div class="form-check">
-                                    <input class="form-check-input lang-check" type="checkbox" name="languages[mother]"
-                                        id="mother" value="mother" {{ in_array('mother', $langs, true) ? 'checked' : '' }}>
-                                    <label class="form-check-label"
-                                        for="mother">{{ helperTrans('ingaz.mother_language') }}</label>
-                                </div>
-                                <div class="lang-extra mt-2 {{ in_array('mother', $langs, true) ? '' : 'd-none' }}">
-                                    @if (in_array('mother', $langs, true))
-                                        <input type="number" min="0" max="100" class="form-control" placeholder="{{ helperTrans('ingaz.Percentage') }}"
-                                            name="percentage[mother]" value="{{ $percentages['mother'] ?? '' }}">
-                                    @endif
-                                </div>
-                            </div>
+                        </div>
+                        <div class="row g-3">
+                            @foreach ([
+                                'arabic' => helperTrans('ingaz.arabic_language'),
+                                'english' => helperTrans('ingaz.english_language'),
+                                'amharic' => helperTrans('ingaz.amharic_language'),
+                                'mother' => helperTrans('ingaz.mother_language'),
+                            ] as $language => $label)
+                                @include('admin.ingaz.maids._language_rating', [
+                                    'language' => $language,
+                                    'label' => $label,
+                                    'checked' => in_array($language, $langs, true),
+                                    'percentage' => $percentages[$language] ?? '',
+                                    'level' => $languageLevels[$language] ?? '',
+                                    'mode' => $languageRatingMode,
+                                ])
+                            @endforeach
                         </div>
                     </div>
                     <div class="col-12" id="experience_section" style="{{ old('experience_status', $obj->experience_status) == 'has_experience' ? 'display: block;' : 'display: none;' }}">
@@ -1179,6 +1175,94 @@
                             </div>
                         </div>
                     </div>
+                    <!-- بيانات إضافية -->
+                    <div class="col-12">
+                        <div class="accordion maid-additional-accordion" id="additionalInformationAccordion">
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="additionalInformationHeading">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                        data-bs-target="#additionalInformationCollapse" aria-expanded="false"
+                                        aria-controls="additionalInformationCollapse">
+                                        <span class="maid-additional-accordion__icon">
+                                            <i class="fas fa-circle-info"></i>
+                                        </span>
+                                        <span class="maid-additional-accordion__title">
+                                            {{ helperTrans('ingaz.additional_information') }}
+                                        </span>
+                                        <span class="maid-additional-accordion__hint d-none d-md-inline">
+                                            الطول والوزن وبيانات التواصل والمؤهل التعليمي
+                                        </span>
+                                    </button>
+                                </h2>
+                                <div id="additionalInformationCollapse" class="accordion-collapse collapse"
+                                    aria-labelledby="additionalInformationHeading"
+                                    data-bs-parent="#additionalInformationAccordion">
+                                    <div class="accordion-body">
+                                        <div class="row g-3">
+                                            <div class="col-md-4">
+                                                <label class="form-label">{{ helperTrans('ingaz.height') }}</label>
+                                                <input type="text" name="height" class="form-control"
+                                                    value="{{ old('height', $obj->height ?? '160') }}"
+                                                    placeholder="{{ helperTrans('ingaz.height_placeholder') }}">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">{{ helperTrans('ingaz.weight') }}</label>
+                                                <input type="text" name="weight" class="form-control"
+                                                    value="{{ old('weight', $obj->weight ?? '60') }}"
+                                                    placeholder="{{ helperTrans('ingaz.weight_placeholder') }}">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label class="form-label">{{ helperTrans('ingaz.childrens_count') }}</label>
+                                                <input type="number" name="childrens_count" class="form-control"
+                                                    min="0" step="1"
+                                                    value="{{ old('childrens_count', $obj->childrens_count ?? 0) }}">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label for="phone" class="form-label">رقم جوال العاملة</label>
+                                                <input type="tel" name="phone" id="phone" class="form-control"
+                                                    maxlength="50" value="{{ old('phone', $obj->phone) }}">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label for="relative_name" class="form-label">اسم أحد أقارب العاملة</label>
+                                                <input type="text" name="relative_name" id="relative_name"
+                                                    class="form-control" maxlength="255"
+                                                    value="{{ old('relative_name', $obj->relative_name) }}">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label for="relative_phone" class="form-label">رقم جوال قريب العاملة</label>
+                                                <input type="tel" name="relative_phone" id="relative_phone"
+                                                    class="form-control" maxlength="50"
+                                                    value="{{ old('relative_phone', $obj->relative_phone) }}">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label for="residence_city" class="form-label">مدينة سكن العاملة</label>
+                                                <input type="text" name="residence_city" id="residence_city"
+                                                    class="form-control" maxlength="255"
+                                                    value="{{ old('residence_city', $obj->residence_city) }}">
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label for="education" class="form-label">المؤهل التعليمي</label>
+                                                <input type="text" name="education" id="education"
+                                                    class="form-control" maxlength="255"
+                                                    value="{{ old('education', $obj->education) }}">
+                                            </div>
+                                            <div class="col-md-4" id="driving_license_field">
+                                                <label for="has_driving_license" class="form-label">
+                                                    هل يحمل رخصة قيادة؟
+                                                </label>
+                                                <select name="has_driving_license" id="has_driving_license"
+                                                    class="form-control">
+                                                    <option value="">اختر</option>
+                                                    <option value="1" {{ (string) $selectedDrivingLicense === '1' ? 'selected' : '' }}>نعم</option>
+                                                    <option value="0" {{ (string) $selectedDrivingLicense === '0' ? 'selected' : '' }}>لا</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="col-12">
                         <button class="btn btn-primary" type="submit">{{ __('buttons.save') }}</button>
                         <a href="{{ $formRedirectRoute }}"
@@ -1260,6 +1344,30 @@
     <script src="{{ asset('admin') }}/assets/js/bundle/dropify.bundle.js"></script>
     <script src="{{ asset('admin') }}/assets/js/bundle/select2.bundle.js"></script>
     <script src="{{ asset('admin') }}/assets/js/bundle/sweetalert2.bundle.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('maidForm');
+            const collapseElement = document.getElementById('additionalInformationCollapse');
+
+            if (!form || !collapseElement) {
+                return;
+            }
+
+            form.addEventListener('invalid', function(event) {
+                if (!event.target.closest('#additionalInformationCollapse')) {
+                    return;
+                }
+
+                if (window.bootstrap && window.bootstrap.Collapse) {
+                    window.bootstrap.Collapse.getOrCreateInstance(collapseElement, {
+                        toggle: false
+                    }).show();
+                } else if (window.jQuery) {
+                    window.jQuery(collapseElement).collapse('show');
+                }
+            }, true);
+        });
+    </script>
     @if ($errors->mediaUpdate->any())
         <script>
             document.addEventListener('DOMContentLoaded', function() {
@@ -1318,21 +1426,32 @@
         };
 
         $(function() {
+            function syncLanguageRating($wrapper) {
+                const enabled = !$wrapper.hasClass('d-none');
+                const mode = $('#language_rating_mode').val() || 'percentage';
+
+                $wrapper.find('.language-percentage')
+                    .toggleClass('d-none', mode !== 'percentage')
+                    .prop('disabled', !enabled || mode !== 'percentage');
+                $wrapper.find('.language-level')
+                    .toggleClass('d-none', mode !== 'level')
+                    .prop('disabled', !enabled || mode !== 'level');
+            }
+
             $('.lang-check').on('change', function() {
                 const $wrapper = $(this).closest('.form-check').siblings('.lang-extra');
-                const val = $(this).val();
-                if ($(this).is(':checked')) {
-                    $wrapper
-                        .removeClass('d-none')
-                        .html(
-                            `<input type="number" class="form-control mt-2"
-                name="percentage[${val}]"
-                placeholder="{{ __('ingaz.Percentage') }}"
-                min="0" max="100" />`
-                        );
-                } else {
-                    $wrapper.addClass('d-none').empty();
-                }
+                $wrapper.toggleClass('d-none', !$(this).is(':checked'));
+                syncLanguageRating($wrapper);
+            });
+
+            $('#language_rating_mode').on('change', function() {
+                $('.lang-extra').each(function() {
+                    syncLanguageRating($(this));
+                });
+            });
+
+            $('.lang-extra').each(function() {
+                syncLanguageRating($(this));
             });
         });
     </script>
@@ -1550,35 +1669,6 @@
 
             $('#job_id').on('change', syncGenderFromSelectedJobs);
             syncGenderFromSelectedJobs();
-
-            function selectedJobIsDriver() {
-                let isDriver = false;
-
-                $('#job_id option:selected').each(function() {
-                    const title = ($(this).text() || '').toLowerCase();
-                    if (title.includes('سائق') || title.includes('driver')) {
-                        isDriver = true;
-                    }
-                });
-
-                return isDriver;
-            }
-
-            function toggleDrivingLicenseField() {
-                const $field = $('#driving_license_field');
-                const $select = $('#has_driving_license');
-
-                if (selectedJobIsDriver()) {
-                    $field.slideDown();
-                    $select.prop('disabled', false).prop('required', true);
-                } else {
-                    $select.prop('disabled', true).prop('required', false);
-                    $field.slideUp();
-                }
-            }
-
-            $('#job_id').on('change', toggleDrivingLicenseField);
-            toggleDrivingLicenseField();
 
             function toggleExperienceWorkCity($countrySelect) {
                 const $row = $countrySelect.closest('tr.y-group');

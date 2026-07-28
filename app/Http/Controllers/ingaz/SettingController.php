@@ -164,7 +164,7 @@ class SettingController extends Controller
 
     private function renderSection(string $section)
     {
-        $allowedSections = ['dashboard', 'general', 'social', 'branding', 'content', 'policies', 'seo', 'translations'];
+        $allowedSections = ['dashboard', 'general', 'authentication', 'social', 'branding', 'content', 'policies', 'seo', 'translations'];
         if (!in_array($section, $allowedSections, true)) {
             $section = 'general';
         }

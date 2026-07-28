@@ -4022,4 +4022,11 @@ return array (
   'client_tax_number_required' => 'Tax number is required for company clients.',
   'client_tax_number_already_exists' => 'Tax number is already used for another client.',
   'client_license_number_required' => 'License number is required for company clients.',
+  'language_rating_method' => 'Language Rating Method',
+  'language_rating_percentage' => 'Percentage',
+  'language_rating_level' => 'Descriptive Level',
+  'language_level_acceptable' => 'Acceptable',
+  'language_level_average' => 'Average',
+  'language_level_good' => 'Good',
+  'language_level_excellent' => 'Excellent',
 );

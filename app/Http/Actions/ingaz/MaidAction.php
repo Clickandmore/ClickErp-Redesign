@@ -98,9 +98,9 @@ class MaidAction extends MainAction
         $data['residence_city'] = $data['residence_city'] ?? null;
         $data['passport_issue_place'] = $data['passport_issue_place'] ?? null;
         $data['education'] = $data['education'] ?? null;
-        $data['has_driving_license'] = array_key_exists('has_driving_license', $data)
-            ? (bool) $data['has_driving_license']
-            : null;
+        $data['has_driving_license'] = $this->normalizeNullableBoolean(
+            $data['has_driving_license'] ?? null
+        );
         $data['id_number'] = $data['id_number'] ?? '';
         $data['id_expiry_date'] = $data['id_expiry_date'] ?? null;
         $data['border_number'] = $data['border_number'] ?? null;
@@ -157,26 +157,27 @@ class MaidAction extends MainAction
         if (isset($data['languages']) && is_array($data['languages'])) {
 
             // أولاً فلتر النِّسب بحيث تبقى فقط اللغات اللي متعلم عليها وفيها رقم
-            if (isset($data['percentage']) && is_array($data['percentage'])) {
-                $data['percentage'] = array_filter(
-                    array_intersect_key($data['percentage'], $data['languages']),
-                    fn($v) => $v !== null && $v !== ''
-                );
-            } else {
-                $data['percentage'] = [];
-            }
+            [$percentages, $languageLevels] = $this->normalizeLanguageRatings(
+                array_values($data['languages']),
+                $data['percentage'] ?? [],
+                $data['language_levels'] ?? [],
+                $data['language_rating_mode'] ?? []
+            );
 
             // خزّن اللغات كـ JSON array (القيم فقط: ["arabic","amharic"])
             $data['languages'] = json_encode(array_values($data['languages']), JSON_UNESCAPED_UNICODE);
 
             // خزّن النِّسب كـ JSON object (مثل {"arabic":"98","amharic":"90"})
-            $data['percentage'] = json_encode($data['percentage'], JSON_UNESCAPED_UNICODE);
+            $data['percentage'] = json_encode($percentages, JSON_UNESCAPED_UNICODE);
+            $data['language_levels'] = json_encode($languageLevels, JSON_UNESCAPED_UNICODE);
 
         } else {
             // لو مفيش لغات أصلاً
             $data['languages'] = json_encode([], JSON_UNESCAPED_UNICODE);
             $data['percentage'] = json_encode([], JSON_UNESCAPED_UNICODE);
+            $data['language_levels'] = json_encode([], JSON_UNESCAPED_UNICODE);
         }
+        unset($data['language_rating_mode']);
 
         // Rental CVs are contractable stock, so they always fall under custom specs.
         $data['request_type'] = Maid::resolveRequestType($data['request_type'] ?? null);
@@ -316,6 +317,7 @@ class MaidAction extends MainAction
             'skills' => $data['skills'] ?? null,
             'languages' => $data['languages'] ?? null,
             'percentage' => $data['percentage'] ?? null,
+            'language_levels' => $data['language_levels'] ?? null,
             'cv_file' => $data['cv_file'] ?? '',
             'image' => $data['image'] ?? '',
             'video_link' => $data['video_link'] ?? null,
@@ -1347,17 +1349,16 @@ class MaidAction extends MainAction
 
         // Normalize and persist languages + percentages
         $langs = is_array($data['languages']) ? array_values(array_filter($data['languages'], fn($v) => $v !== null && $v !== '')) : [];
-        $percentageInput = $request->input('percentage', []);
-        $percs = [];
-        if (is_array($percentageInput)) {
-            $percs = array_filter(
-                array_intersect_key($percentageInput, array_flip($langs)),
-                fn($v) => $v !== null && $v !== ''
-            );
-        }
+        [$percs, $languageLevels] = $this->normalizeLanguageRatings(
+            $langs,
+            $request->input('percentage', []),
+            $request->input('language_levels', []),
+            $request->input('language_rating_mode', [])
+        );
 
         $data['languages'] = json_encode($langs, JSON_UNESCAPED_UNICODE);
         $data['percentage'] = json_encode($percs, JSON_UNESCAPED_UNICODE);
+        $data['language_levels'] = json_encode($languageLevels, JSON_UNESCAPED_UNICODE);
 
         if ($requestTypeColumnExists) {
             if ($hasFinancialEditLock) {
@@ -1447,6 +1448,9 @@ class MaidAction extends MainAction
             unset($data['gender']);
         }
 
+        if (array_key_exists('has_driving_license', $data)) {
+            $data['has_driving_license'] = $this->normalizeNullableBoolean($data['has_driving_license']);
+        }
 
         $row = parent::find($id);
 
@@ -1589,6 +1593,50 @@ class MaidAction extends MainAction
     protected function nullableInt($value): ?int
     {
         return $value === null || $value === '' ? null : (int) $value;
+    }
+
+    protected function normalizeNullableBoolean($value): ?bool
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+    }
+
+    protected function normalizeLanguageRatings(
+        array $selectedLanguages,
+        $percentageInput,
+        $levelInput,
+        $modeInput
+    ): array {
+        $selectedLanguages = array_values(array_unique(array_filter($selectedLanguages)));
+        $selectedKeys = array_flip($selectedLanguages);
+        $percentageInput = is_array($percentageInput) ? $percentageInput : [];
+        $levelInput = is_array($levelInput) ? $levelInput : [];
+        $mode = is_array($modeInput)
+            ? (in_array('level', $modeInput, true) ? 'level' : 'percentage')
+            : ($modeInput === 'level' ? 'level' : 'percentage');
+
+        $percentages = $mode === 'percentage'
+            ? array_filter(
+                array_intersect_key($percentageInput, $selectedKeys),
+                fn ($value) => $value !== null && $value !== ''
+            )
+            : [];
+        $levels = [];
+
+        foreach ($selectedLanguages as $language) {
+            $level = strtolower(trim((string) ($levelInput[$language] ?? '')));
+            $mappedPercentage = Maid::percentageForLanguageLevel($level);
+
+            if ($mode === 'level' && $mappedPercentage !== null) {
+                $levels[$language] = $level;
+                $percentages[$language] = $mappedPercentage;
+            }
+        }
+
+        return [$percentages, $levels];
     }
 
     protected function hasStoredValue($value): bool

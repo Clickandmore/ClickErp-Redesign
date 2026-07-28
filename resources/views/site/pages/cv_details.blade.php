@@ -380,13 +380,24 @@
                             $percentages = is_string($maid->percentage)
                                 ? json_decode($maid->percentage, true)
                                 : $maid->percentage;
+                            $languageLevels = is_string($maid->language_levels)
+                                ? json_decode($maid->language_levels, true)
+                                : $maid->language_levels;
+                            $languageLevels = is_array($languageLevels) ? $languageLevels : [];
                         @endphp
                         @if (isset($percentages))
                             @forelse ($percentages as $key => $percentage)
                                 @if ($percentage)
+                                    @php $languageLevel = $languageLevels[$key] ?? null; @endphp
                                     <div class="percentDiv">
                                         <div class="percent p{{ $percentage }}">
-                                            <p class="percentNum">{{ $percentage }} <span> % </span></p>
+                                            <p class="percentNum">
+                                                @if ($languageLevel)
+                                                    {{ helperTrans('ingaz.language_level_' . $languageLevel) }}
+                                                @else
+                                                    {{ $percentage }} <span> % </span>
+                                                @endif
+                                            </p>
                                             <div class="slice">
                                                 <div class="bar"></div>
                                                 <div class="fill"></div>
