@@ -16,7 +16,7 @@ class ClientAction extends MainAction
 
     public function store($data)
     {
-        if ($data['image']) {
+        if (!empty($data['image'])) {
             $image = $data['image'];
             $data['image'] = uploadFile($image, $this->fileFolder);
         }
@@ -25,11 +25,16 @@ class ClientAction extends MainAction
 
     public function update($id, $data)
     {
-        if ($data['image']) {
+        if (!empty($data['image'])) {
             $image = $data['image'];
             $data['image'] = uploadFile($image, $this->fileFolder);
         }
-        return parent::update($id, $data);
+
+        if (array_key_exists('title', $data)) {
+            $data['title'] = filled($data['title']) ? trim($data['title']) : null;
+        }
+
+        return $this->model->where('id', $id)->update($data);
     }
 
 }

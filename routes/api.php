@@ -142,6 +142,7 @@ Route::controller(Api\HomeController::class)->group(function ($router) {
 // Public API routes (3mer)
 Route::group(['middleware' => 'lang', 'prefix' => 'client'], function () {
     Route::get('home', [HomeController::class, 'homeSections']);
+    Route::get('recruitment-requirements', [HomeController::class, 'recruitmentRequirements']);
     Route::get('about', [HomeController::class, 'about']);
     Route::get('renew-contracts', [App\Http\Controllers\Api\ApiRenewContractsController::class, 'page']);
     Route::post('renew-contracts', [App\Http\Controllers\Api\ApiRenewContractsController::class, 'store']);

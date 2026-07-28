@@ -9,6 +9,7 @@ use App\Http\Actions\Api\DailyLabotDemandAction;
 use App\Http\Actions\ingaz\AboutUsAction;
 use App\Http\Actions\ingaz\ClientAction;
 use App\Http\Actions\ingaz\FeatureAction;
+use App\Http\Actions\ingaz\FindUsLocationAction;
 use App\Http\Actions\ingaz\NationalityAction;
 use App\Http\Actions\ingaz\PackageAction;
 use App\Http\Actions\ingaz\QuestionAction;
@@ -21,9 +22,13 @@ use App\Http\Actions\ingaz\TestimonialsAction;
 use App\Http\Actions\ingaz\WhatDoAction;
 use App\Http\Actions\ingaz\WhatDoSettingAction;
 use App\Http\Actions\ingaz\WhyUsAction;
+use App\Http\Actions\ingaz\WhyChooseUsAction;
 use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\API\DailyLabotDemandRequest;
 use App\Http\Resources\Api\PackageResource;
+use App\Http\Resources\Api\FindUsLocationResource;
+use App\Http\Resources\Api\RecruitmentRequirementResource;
+use App\Http\Resources\Api\WhyChooseUsResource;
 use App\Http\Traits\API\ApiResponse;
 use App\Http\Traits\SendSMSTrait;
 use App\Http\Traits\StoreMessageTrait;
@@ -315,6 +320,9 @@ class HomeController extends Controller
         FeatureAction $feature,
         PackageAction $packageAction,
         QuestionAction $questionAction,
+        WhyUsAction $whyUsAction,
+        WhyChooseUsAction $whyChooseUsAction,
+        FindUsLocationAction $findUsLocationAction,
     ) {
 
         $sliders = $sliderAction->get();
@@ -335,9 +343,12 @@ class HomeController extends Controller
         $nationalities = method_exists($nationalityAction, 'getVisible')
             ? $nationalityAction->getVisible()
             : $nationalityAction->get();
-        $requirments = $requirement_action->get();
+        $requirments = $requirement_action->getVisible();
         $Visa = $requirments->where('type', RequirementEnum::VisaIssuance->value);
         $Domestic = $requirments->where('type', RequirementEnum::RecruitDomestic->value);
+        $whyUs = $whyUsAction->get();
+        $whyChooseUs = $whyChooseUsAction->visibleSection();
+        $findUsLocations = $findUsLocationAction->ordered();
 
         $counts['number_recruitment_requests'] = DB::table('orders')->get()->count();
         $counts['number_contracts_requests'] = DB::table('contracts')->get()->count();
@@ -364,14 +375,37 @@ class HomeController extends Controller
             'questions' => $questions,
             'nationalities' => $nationalities,
             'customerService' => $customerService,
+            'recruitment_requirements' => RecruitmentRequirementResource::collection(
+                $requirments->values()
+            ),
+            'why_us' => $whyUs,
+            'why_choose_us' => $whyChooseUs
+                ? new WhyChooseUsResource($whyChooseUs)
+                : null,
+            'find_us' => FindUsLocationResource::collection($findUsLocations),
             'requirements' => [
-                'visa' => $Visa,
-                'domestic' => $Domestic,
+                'visa' => RecruitmentRequirementResource::collection($Visa->values()),
+                'domestic' => RecruitmentRequirementResource::collection($Domestic->values()),
             ],
             'counts' => $counts,
         ];
 
         return $this->successResponse($data, $this->localizedText('تم جلب بيانات الصفحة الرئيسية بنجاح', 'Home data retrieved successfully'), 200);
+    }
+
+    public function recruitmentRequirements(
+        Request $request,
+        RequirementAction $requirementAction
+    ) {
+        return $this->successResponse(
+            RecruitmentRequirementResource::collection(
+                $requirementAction->getVisible()
+            ),
+            $this->localizedText(
+                'تم جلب متطلبات الاستقدام بنجاح',
+                'Recruitment requirements retrieved successfully'
+            )
+        );
     }
 
     public function about(Request $request, AboutUsAction $about)

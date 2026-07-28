@@ -107,6 +107,9 @@ class AdminRoutePermissionMatrix
             'moyasar-settings.edit',
             'recruitment-contract-stages.edit',
             'sliders.index',
+            'why-choose-us.edit',
+            'find-us.index',
+            'requiremens.index',
             'about-us.index',
             'questions.index',
             'services.index',
@@ -749,6 +752,52 @@ class AdminRoutePermissionMatrix
                 'create' => [PermKeys::ABOUT_US_CREATE, PermKeys::ABOUT_US_CONTROL],
                 'edit' => [PermKeys::ABOUT_US_EDIT, PermKeys::ABOUT_US_CONTROL],
                 'destroy' => [PermKeys::ABOUT_US_DELETE, PermKeys::ABOUT_US_CONTROL],
+            ]),
+            [
+                'why-choose-us.edit' => [
+                    PermKeys::WHY_CHOOSE_US_VIEW,
+                    PermKeys::WHY_CHOOSE_US_CONTROL,
+                ],
+                'why-choose-us.update' => [
+                    PermKeys::WHY_CHOOSE_US_CREATE,
+                    PermKeys::WHY_CHOOSE_US_EDIT,
+                    PermKeys::WHY_CHOOSE_US_DELETE,
+                    PermKeys::WHY_CHOOSE_US_CONTROL,
+                ],
+            ],
+            self::resource('find-us', [
+                'index' => [PermKeys::FIND_US_VIEW, PermKeys::FIND_US_CONTROL],
+                'create' => [PermKeys::FIND_US_CREATE, PermKeys::FIND_US_CONTROL],
+                'store' => [PermKeys::FIND_US_CREATE, PermKeys::FIND_US_CONTROL],
+                'edit' => [PermKeys::FIND_US_EDIT, PermKeys::FIND_US_CONTROL],
+                'update' => [PermKeys::FIND_US_EDIT, PermKeys::FIND_US_CONTROL],
+                'destroy' => [PermKeys::FIND_US_DELETE, PermKeys::FIND_US_CONTROL],
+            ]),
+            self::resource('requiremens', [
+                'index' => [
+                    PermKeys::RECRUITMENT_REQUIREMENTS_VIEW,
+                    PermKeys::RECRUITMENT_REQUIREMENTS_CONTROL,
+                ],
+                'create' => [
+                    PermKeys::RECRUITMENT_REQUIREMENTS_CREATE,
+                    PermKeys::RECRUITMENT_REQUIREMENTS_CONTROL,
+                ],
+                'store' => [
+                    PermKeys::RECRUITMENT_REQUIREMENTS_CREATE,
+                    PermKeys::RECRUITMENT_REQUIREMENTS_CONTROL,
+                ],
+                'edit' => [
+                    PermKeys::RECRUITMENT_REQUIREMENTS_EDIT,
+                    PermKeys::RECRUITMENT_REQUIREMENTS_CONTROL,
+                ],
+                'update' => [
+                    PermKeys::RECRUITMENT_REQUIREMENTS_EDIT,
+                    PermKeys::RECRUITMENT_REQUIREMENTS_CONTROL,
+                ],
+                'destroy' => [
+                    PermKeys::RECRUITMENT_REQUIREMENTS_DELETE,
+                    PermKeys::RECRUITMENT_REQUIREMENTS_CONTROL,
+                ],
             ]),
             self::resource('questions', [
                 'index' => [PermKeys::FAQ_VIEW],
