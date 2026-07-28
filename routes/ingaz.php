@@ -278,6 +278,7 @@ Route::group(
             Route::get('show-maid-details/{id}', [\App\Http\Controllers\ingaz\MaidController::class, 'showMaidDetails'])->name('showMaidDetails');
             Route::get('maids/{id}/cv-preview', [\App\Http\Controllers\ingaz\MaidController::class, 'previewCv'])->name('maids.cv.preview');
             Route::get('maids/{id}/cv-preview-data', [\App\Http\Controllers\ingaz\MaidController::class, 'previewCvData'])->name('maids.cv.preview.data');
+            Route::get('maids/{id}/cv-download', [\App\Http\Controllers\ingaz\MaidController::class, 'downloadCv'])->name('maids.cv.download');
             Route::get('maids-not-available', [\App\Http\Controllers\ingaz\MaidController::class, 'noneAvailableMaids'])->name('noneAvailableMaids');
             Route::get('maids/pending-submissions', [\App\Http\Controllers\ingaz\MaidController::class, 'pendingSubmissions'])->name('maids.pending-submissions');
             Route::post('maids/{id}/approve-submission', [\App\Http\Controllers\ingaz\MaidController::class, 'approveSubmission'])->name('maids.approve-submission');

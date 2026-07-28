@@ -32,7 +32,7 @@ class LegacyUploadHelperStorageTest extends TestCase
 
         $this->assertStringStartsWith('images/settings/', $path);
         Storage::disk('public')->assertExists($path);
-        $this->assertSame(Storage::disk('public')->url($path), showFile($path));
+        $this->assertSame(asset('storage/' . $path), showFile($path));
     }
 
     public function test_shared_upload_helper_uses_r2_when_settings_are_ready(): void

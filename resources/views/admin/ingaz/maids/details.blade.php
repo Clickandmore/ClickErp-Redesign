@@ -659,7 +659,7 @@
                                             class="btn btn-outline-primary btn-sm">
                                             <i class="fas fa-eye me-1"></i>عرض داخل الموقع
                                         </button>
-                                        <a href="{{ $cvFileUrl }}" download class="btn btn-light btn-sm border">
+                                        <a href="{{ route('maids.cv.download', $maid->id) }}" class="btn btn-light btn-sm border">
                                             <i class="fas fa-download me-1"></i>تنزيل
                                         </a>
                                     </div>

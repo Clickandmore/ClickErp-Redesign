@@ -1348,10 +1348,18 @@ class MaidController extends Controller
         ));
     }
 
-    public function previewCv($id)
+    public function previewCv($id, ManagedFileStorage $storage)
     {
         $maid = objModel::withTrashed()->findOrFail($id);
-        abort_unless($this->maidHasPreviewablePdf($maid), 404, 'ملف السيرة غير موجود.');
+        abort_unless($this->maidHasPreviewableCv($maid), 404, 'ملف السيرة غير موجود.');
+
+        if (strtolower(pathinfo((string) $maid->cv_file, PATHINFO_EXTENSION)) !== 'pdf') {
+            return $storage->inlineResponse(
+                $maid->cv_file,
+                'maid-cv-' . $maid->id . '.' . pathinfo((string) $maid->cv_file, PATHINFO_EXTENSION),
+                $storage->mimeType($maid->cv_file)
+            );
+        }
 
         return view($this->folderPath . '.cv_preview', [
             'maid' => $maid,
@@ -1369,6 +1377,20 @@ class MaidController extends Controller
             $pdfPath,
             'maid-cv-' . $maid->id . '.pdf',
             'application/pdf'
+        );
+    }
+
+    public function downloadCv($id, ManagedFileStorage $storage)
+    {
+        $maid = objModel::withTrashed()->findOrFail($id);
+        abort_unless($this->maidHasPreviewableCv($maid), 404, 'ملف السيرة غير موجود.');
+
+        $extension = pathinfo((string) $maid->cv_file, PATHINFO_EXTENSION);
+
+        return $storage->downloadResponse(
+            $maid->cv_file,
+            'maid-cv-' . $maid->id . ($extension ? '.' . $extension : ''),
+            $storage->mimeType($maid->cv_file)
         );
     }
 
@@ -1425,6 +1447,12 @@ class MaidController extends Controller
         }
 
         return null;
+    }
+
+    private function maidHasPreviewableCv(Maid $maid): bool
+    {
+        return filled($maid->cv_file)
+            && app(ManagedFileStorage::class)->exists($maid->cv_file);
     }
 
     public function storeAttachments(Request $request, $id)
