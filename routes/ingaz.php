@@ -27,6 +27,7 @@ use App\Http\Controllers\ingaz\DevelopSettingController;
 use App\Http\Controllers\ingaz\FastNewController;
 use App\Http\Controllers\ingaz\FeatureController;
 use App\Http\Controllers\ingaz\FindUsLocationController;
+use App\Http\Controllers\ingaz\HomeHeroSectionController;
 use App\Http\Controllers\ingaz\FinancialRequestController;
 use App\Http\Controllers\ingaz\InvoiceController;
 use App\Http\Controllers\ingaz\JobTitleController;
@@ -36,6 +37,7 @@ use App\Http\Controllers\ingaz\MaidController;
 use App\Http\Controllers\ingaz\MaidTestController;
 use App\Http\Controllers\ingaz\MakeAccountsForClientsController;
 use App\Http\Controllers\ingaz\MusanedTransferController;
+use App\Http\Controllers\ingaz\MusanedSectionController;
 use App\Http\Controllers\ingaz\NationalityController;
 use App\Http\Controllers\ingaz\NotificationController;
 use App\Http\Controllers\ingaz\NotificationSettingsController;
@@ -126,6 +128,14 @@ Route::group(
                 ->name('why-choose-us.edit');
             Route::put('why-choose-us', [\App\Http\Controllers\ingaz\WhyChooseUsController::class, 'update'])
                 ->name('why-choose-us.update');
+            Route::get('musaned-section', [MusanedSectionController::class, 'edit'])
+                ->name('musaned-section.edit');
+            Route::put('musaned-section', [MusanedSectionController::class, 'update'])
+                ->name('musaned-section.update');
+            Route::get('home-hero', [HomeHeroSectionController::class, 'edit'])
+                ->name('home-hero.edit');
+            Route::put('home-hero', [HomeHeroSectionController::class, 'update'])
+                ->name('home-hero.update');
             Route::resource('find-us', FindUsLocationController::class)
                 ->except('show')
                 ->parameters(['find-us' => 'location']);

@@ -108,6 +108,8 @@ class AdminRoutePermissionMatrix
             'recruitment-contract-stages.edit',
             'sliders.index',
             'why-choose-us.edit',
+            'musaned-section.edit',
+            'home-hero.edit',
             'find-us.index',
             'requiremens.index',
             'about-us.index',
@@ -763,6 +765,24 @@ class AdminRoutePermissionMatrix
                     PermKeys::WHY_CHOOSE_US_EDIT,
                     PermKeys::WHY_CHOOSE_US_DELETE,
                     PermKeys::WHY_CHOOSE_US_CONTROL,
+                ],
+                'musaned-section.edit' => [
+                    PermKeys::MUSANED_SECTION_VIEW,
+                    PermKeys::MUSANED_SECTION_CONTROL,
+                ],
+                'musaned-section.update' => [
+                    PermKeys::MUSANED_SECTION_EDIT,
+                    PermKeys::MUSANED_SECTION_CONTROL,
+                ],
+                'home-hero.edit' => [
+                    PermKeys::HOME_HERO_VIEW,
+                    PermKeys::HOME_HERO_CONTROL,
+                ],
+                'home-hero.update' => [
+                    PermKeys::HOME_HERO_CREATE,
+                    PermKeys::HOME_HERO_EDIT,
+                    PermKeys::HOME_HERO_DELETE,
+                    PermKeys::HOME_HERO_CONTROL,
                 ],
             ],
             self::resource('find-us', [

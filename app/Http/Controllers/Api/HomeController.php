@@ -23,12 +23,16 @@ use App\Http\Actions\ingaz\WhatDoAction;
 use App\Http\Actions\ingaz\WhatDoSettingAction;
 use App\Http\Actions\ingaz\WhyUsAction;
 use App\Http\Actions\ingaz\WhyChooseUsAction;
+use App\Http\Actions\ingaz\MusanedSectionAction;
+use App\Http\Actions\ingaz\HomeHeroSectionAction;
 use App\Http\Controllers\admin\Controller;
 use App\Http\Requests\ingaz\API\DailyLabotDemandRequest;
 use App\Http\Resources\Api\PackageResource;
 use App\Http\Resources\Api\FindUsLocationResource;
 use App\Http\Resources\Api\RecruitmentRequirementResource;
 use App\Http\Resources\Api\WhyChooseUsResource;
+use App\Http\Resources\Api\MusanedSectionResource;
+use App\Http\Resources\Api\HomeHeroSectionResource;
 use App\Http\Traits\API\ApiResponse;
 use App\Http\Traits\SendSMSTrait;
 use App\Http\Traits\StoreMessageTrait;
@@ -322,6 +326,8 @@ class HomeController extends Controller
         QuestionAction $questionAction,
         WhyUsAction $whyUsAction,
         WhyChooseUsAction $whyChooseUsAction,
+        MusanedSectionAction $musanedSectionAction,
+        HomeHeroSectionAction $homeHeroSectionAction,
         FindUsLocationAction $findUsLocationAction,
     ) {
 
@@ -348,6 +354,8 @@ class HomeController extends Controller
         $Domestic = $requirments->where('type', RequirementEnum::RecruitDomestic->value);
         $whyUs = $whyUsAction->get();
         $whyChooseUs = $whyChooseUsAction->visibleSection();
+        $musanedSection = $musanedSectionAction->visibleSection();
+        $homeHeroSection = $homeHeroSectionAction->visibleSection();
         $findUsLocations = $findUsLocationAction->ordered();
 
         $counts['number_recruitment_requests'] = DB::table('orders')->get()->count();
@@ -381,6 +389,12 @@ class HomeController extends Controller
             'why_us' => $whyUs,
             'why_choose_us' => $whyChooseUs
                 ? new WhyChooseUsResource($whyChooseUs)
+                : null,
+            'musaned' => $musanedSection
+                ? new MusanedSectionResource($musanedSection)
+                : null,
+            'hero' => $homeHeroSection
+                ? new HomeHeroSectionResource($homeHeroSection)
                 : null,
             'find_us' => FindUsLocationResource::collection($findUsLocations),
             'requirements' => [

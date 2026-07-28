@@ -371,6 +371,16 @@ const PARTENR_CONTROL = 'partenr_control';
     const WHY_CHOOSE_US_DELETE = 'why_choose_us_delete';
     const WHY_CHOOSE_US_CONTROL = 'why_choose_us_control';
 
+    const MUSANED_SECTION_VIEW = 'musaned_section_view';
+    const MUSANED_SECTION_EDIT = 'musaned_section_edit';
+    const MUSANED_SECTION_CONTROL = 'musaned_section_control';
+
+    const HOME_HERO_VIEW = 'home_hero_view';
+    const HOME_HERO_CREATE = 'home_hero_create';
+    const HOME_HERO_EDIT = 'home_hero_edit';
+    const HOME_HERO_DELETE = 'home_hero_delete';
+    const HOME_HERO_CONTROL = 'home_hero_control';
+
     const FIND_US_VIEW = 'find_us_view';
     const FIND_US_CREATE = 'find_us_create';
     const FIND_US_EDIT = 'find_us_edit';

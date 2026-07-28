@@ -1168,6 +1168,8 @@
                             request()->routeIs('what-do.*') ||
                             request()->routeIs('what-do-setting.*') ||
                             request()->routeIs('why-choose-us.*') ||
+                            request()->routeIs('musaned-section.*') ||
+                            request()->routeIs('home-hero.*') ||
                             request()->routeIs('find-us.*') ||
                             request()->routeIs('about-us.*') ||
                             request()->routeIs('features.*') ||
@@ -1326,6 +1328,16 @@
                                                         </li>
                                                     @endif
 
+                                                    @if (@AdminGuardHasAnyPerm([\App\PermKeys::HOME_HERO_VIEW, \App\PermKeys::HOME_HERO_CONTROL]))
+                                                        <li>
+                                                            <a class="m-link {{ request()->routeIs('home-hero.*') ? 'active' : '' }}"
+                                                                href="{{ route('home-hero.edit') }}">
+                                                                <i class="fa fa-panorama"></i>
+                                                                <span class="ms-2">{{ __('home_hero.sidebar_title') }}</span>
+                                                            </a>
+                                                        </li>
+                                                    @endif
+
                                                     @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
                                                         <li>
                                                             <a class="m-link {{ request()->routeIs('what-do.*') || request()->routeIs('what-do-setting.*') ? 'active' : '' }}"
@@ -1344,6 +1356,16 @@
                                                                 <span class="ms-2">
                                                                     {{ __('why_choose_us.sidebar_title') }}
                                                                 </span>
+                                                            </a>
+                                                        </li>
+                                                    @endif
+
+                                                    @if (@AdminGuardHasAnyPerm([\App\PermKeys::MUSANED_SECTION_VIEW, \App\PermKeys::MUSANED_SECTION_CONTROL]))
+                                                        <li>
+                                                            <a class="m-link {{ request()->routeIs('musaned-section.*') ? 'active' : '' }}"
+                                                                href="{{ route('musaned-section.edit') }}">
+                                                                <i class="fa fa-medal"></i>
+                                                                <span class="ms-2">{{ __('musaned_section.sidebar_title') }}</span>
                                                             </a>
                                                         </li>
                                                     @endif
