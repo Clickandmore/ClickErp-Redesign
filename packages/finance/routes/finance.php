@@ -365,6 +365,9 @@ Route::group(
         Route::resource('sales-analysis', SalesAnalysisController::class);
         Route::resource('purchases-analysis', PurchasesAnalysisController::class);
         Route::resource('tax-declaration', TaxDeclarationController::class);
+        Route::get('tax-invoice-statement/export/{format}', [TaxInvoiceStatementController::class, 'export'])
+            ->where('format', 'pdf|excel|xlsx')
+            ->name('tax-invoice-statement.export');
         Route::resource('tax-invoice-statement', TaxInvoiceStatementController::class);
 
 

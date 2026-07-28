@@ -1065,12 +1065,12 @@ class UserController extends Controller
             'email' => 'nullable|email|max:255|unique:users,email,' . $client->id,
             'nationality_id' => 'nullable|exists:countries,id',
             'client_category_id' => 'nullable|exists:fn_client_categories,id',
-            'client_type' => 'required|string|in:person,company',
-            'national_num' => 'nullable|required_if:client_type,person|string|max:50|unique:users,national_num,' . $client->id,
-            'tax_number' => 'nullable|required_if:client_type,company|string|max:50|unique:users,tax_number,' . $client->id,
-            'license_number' => 'nullable|required_if:client_type,company|string|max:100',
+            'client_type' => 'nullable|string|in:person,company',
+            'national_num' => 'nullable|string|max:50|unique:users,national_num,' . $client->id,
+            'tax_number' => 'nullable|string|max:50|unique:users,tax_number,' . $client->id,
+            'license_number' => 'nullable|string|max:100',
             'birthdate' => 'nullable|date',
-            'marital_status' => 'nullable|required_if:client_type,person|string|in:single,married,divorced,widowed',
+            'marital_status' => 'nullable|string|in:single,married,divorced,widowed',
             'phone2' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:255',
             'city' => 'nullable|string|max:100',
@@ -1085,13 +1085,11 @@ class UserController extends Controller
             'po_box' => 'nullable|string|max:50',
             'postal_code' => 'nullable|string|max:50',
             'notes' => 'nullable|string|max:5000',
-            'is_blocked' => 'required|boolean'
+            'is_blocked' => 'nullable|boolean'
         ];
 
         if ($this->branchesEnabled()) {
-            $rules['branch_id'] = $this->canViewAllClientBranches()
-                ? 'required|exists:branches,id'
-                : 'nullable|exists:branches,id';
+            $rules['branch_id'] = 'nullable|exists:branches,id';
         }
 
         $data = $request->validate($rules, [

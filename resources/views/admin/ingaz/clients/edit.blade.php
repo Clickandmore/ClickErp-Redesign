@@ -239,12 +239,14 @@
                                 <div class="d-flex flex-wrap gap-3">
                                     <div class="form-check">
                                         <input class="form-check-input client-type-radio" type="radio" name="client_type"
-                                               id="client_type_person" value="person" @checked(old('client_type', $client->client_type ?? 'person') === 'person')>
+                                               id="client_type_person" value="person"
+                                               {{ old('client_type', $client->client_type ?? 'person') === 'person' ? 'checked' : '' }}>
                                         <label class="form-check-label" for="client_type_person">{{ helperTrans('ingaz.person_client') }}</label>
                                     </div>
                                     <div class="form-check">
                                         <input class="form-check-input client-type-radio" type="radio" name="client_type"
-                                               id="client_type_company" value="company" @checked(old('client_type', $client->client_type ?? 'person') === 'company')>
+                                               id="client_type_company" value="company"
+                                               {{ old('client_type', $client->client_type ?? 'person') === 'company' ? 'checked' : '' }}>
                                         <label class="form-check-label" for="client_type_company">{{ helperTrans('ingaz.company') }}</label>
                                     </div>
                                 </div>
@@ -275,7 +277,8 @@
                                 <select name="nationality_id" id="nationalitySelect" class="form-control select2">
                                     <option value="">{{ helperTrans('ingaz.choose') }}</option>
                                     @foreach($countries as $country)
-                                        <option value="{{ $country->id }}" @selected((string) $selectedNationalityId === (string) $country->id)>
+                                        <option value="{{ $country->id }}"
+                                                {{ (string) $selectedNationalityId === (string) $country->id ? 'selected' : '' }}>
                                             {{ $country->title }}
                                         </option>
                                     @endforeach
@@ -285,7 +288,7 @@
                             <div class="col-lg-6 person-client-field">
                                 <label for="national_num" class="form-label">{{ helperTrans('ingaz.national_num') }}</label>
                                 <input type="text" id="national_num" name="national_num" class="form-control"
-                                       value="{{ old('national_num', $client->national_num) }}" required>
+                                       value="{{ old('national_num', $client->national_num) }}">
                             </div>
 
                             <div class="col-lg-6 company-client-field d-none">
@@ -313,7 +316,7 @@
                                         <div class="form-check">
                                             <input class="form-check-input" type="radio" name="marital_status"
                                                    id="marital_status_{{ $value }}" value="{{ $value }}"
-                                                   @checked(old('marital_status', $client->marital_status) === $value) required>
+                                                   {{ old('marital_status', $client->marital_status) === $value ? 'checked' : '' }}>
                                             <label class="form-check-label" for="marital_status_{{ $value }}">{{ $label }}</label>
                                         </div>
                                     @endforeach
@@ -336,10 +339,11 @@
                             @if(($branchesEnabled ?? false) && ($canViewAllBranches ?? false))
                                 <div class="col-lg-6">
                                     <label for="branch_id" class="form-label">{{ __('admin.branches') }}</label>
-                                    <select name="branch_id" id="branch_id" class="form-select" required>
+                                    <select name="branch_id" id="branch_id" class="form-select">
                                         <option value="">{{ helperTrans('ingaz.choose') }}</option>
                                         @foreach(($branches ?? collect()) as $branch)
-                                            <option value="{{ $branch->id }}" @selected((string) old('branch_id', $client->branch_id) === (string) $branch->id)>
+                                            <option value="{{ $branch->id }}"
+                                                    {{ (string) old('branch_id', $client->branch_id) === (string) $branch->id ? 'selected' : '' }}>
                                                 {{ $branch->name }}
                                             </option>
                                         @endforeach
@@ -361,7 +365,7 @@
                                     <option value="">{{ helperTrans('ingaz.choose') }}</option>
                                     @foreach($cities as $city)
                                         <option value="{{ $city->name }}" data-country-id="{{ $city->country_id }}"
-                                                @selected((string) $selectedCity === (string) $city->name)>
+                                                {{ (string) $selectedCity === (string) $city->name ? 'selected' : '' }}>
                                             {{ $city->name }}
                                         </option>
                                     @endforeach
@@ -423,10 +427,10 @@
                             <div class="col-lg-6">
                                 <label for="is_blocked" class="form-label">{{ helperTrans('ingaz.is_blocked') }}</label>
                                 <select id="is_blocked" name="is_blocked" class="form-select form-control">
-                                    <option value="0" @selected((string) old('is_blocked', $client->is_blocked) === '0')>
+                                    <option value="0" {{ (string) old('is_blocked', $client->is_blocked) === '0' ? 'selected' : '' }}>
                                         {{ helperTrans('ingaz.active') }}
                                     </option>
-                                    <option value="1" @selected((string) old('is_blocked', $client->is_blocked) === '1')>
+                                    <option value="1" {{ (string) old('is_blocked', $client->is_blocked) === '1' ? 'selected' : '' }}>
                                         {{ helperTrans('ingaz.blocked') }}
                                     </option>
                                 </select>
@@ -493,9 +497,6 @@
                 $('.company-client-field').toggleClass('d-none', !isCompany)
                     .find('input, select, textarea').prop('disabled', !isCompany);
 
-                $('#national_num').prop('required', !isCompany);
-                $('input[name="marital_status"]').prop('required', !isCompany);
-                $('#tax_number, #license_number').prop('required', isCompany);
             }
 
             $('.client-type-radio').on('change', toggleClientTypeFields);

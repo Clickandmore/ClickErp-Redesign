@@ -51,6 +51,9 @@ use Yajra\DataTables\Facades\DataTables;
 class RecruitmentContractController extends Controller
 {
     use ContractSMSTrait;
+
+    private const DELAYED_ARRIVAL_DAYS = 45;
+
     public $folderPath = "admin.ingaz.RecruitmentContract";
     public $mainRoute = "RecruitmentContract";
     public $contractInfoData = [
@@ -566,7 +569,7 @@ class RecruitmentContractController extends Controller
         if ($statusFilter === 'delayed_arrival') {
             $query->whereIn('status', $this->getDelayedArrivalStatuses())
                 ->whereRaw($this->getEffectiveContractDateSql() . ' < ?', [
-                    Carbon::today()->subDays(60)->toDateString(),
+                    Carbon::today()->subDays(self::DELAYED_ARRIVAL_DAYS)->toDateString(),
                 ]);
             return;
         }
@@ -612,6 +615,7 @@ class RecruitmentContractController extends Controller
                 'info.manualMaidNationality.translations',
                 'info.manualMaidOffice.translations',
                 'info.shelter.translations', // بيانات الإيواء
+                'contract_status_logs',
                 'latestContractStatusLog', // آخر تحديث للحالة بدون تحميل كامل السجل
                 'invoice.musanedTransferItem.transfer',
                 'recruitmentRefund',
@@ -1148,12 +1152,16 @@ class RecruitmentContractController extends Controller
                     // }
 
                     if ($row->isCurrentRecruitmentContract() || $row->externalOfficeDispatch) {
-                        $dispatchBadge = $this->getExternalOfficeDispatchBadgeConfig($row);
-                        $contractInfo .= '<div class="mt-2">'
-                            . '<span class="badge bg-' . e($dispatchBadge['class']) . '" title="' . e($dispatchBadge['message']) . '">'
-                            . e($dispatchBadge['label'])
-                            . '</span>'
-                            . '</div>';
+                        $dispatchState = $row->getExternalOfficeDispatchState();
+
+                        if ($dispatchState['is_completed'] ?? false) {
+                            $dispatchBadge = $this->getExternalOfficeDispatchBadgeConfig($row);
+                            $contractInfo .= '<div class="mt-2">'
+                                . '<span class="badge bg-' . e($dispatchBadge['class']) . '" title="' . e($dispatchBadge['message']) . '">'
+                                . e($dispatchBadge['label'])
+                                . '</span>'
+                                . '</div>';
+                        }
                     }
 
                     if ((int) ($row->notes_count ?? 0) > 0) {
@@ -1169,31 +1177,97 @@ class RecruitmentContractController extends Controller
 
                     return $contractInfo ?: '<span class="text-muted"><i class="fas fa-minus-circle me-1"></i>غير محدد</span>';
                 })
-                ->addColumn('duration', function ($row) {
-                    $duration = $this->buildContractDurationSummary($row);
+                ->addColumn('arrival_info', function ($row) {
+                    $arrival = $this->resolveWorkerArrivalDetails($row);
 
-                    $html = '<div class="d-flex flex-column gap-2 text-nowrap">';
-                    $html .= '<div class="small text-muted d-flex align-items-center gap-2">'
-                        . '<i class="fas fa-hourglass-half text-secondary"></i>'
-                        . '<span><span class="text-secondary">إجمالي المدة: </span>' . e($duration['total_label']) . '</span>'
+                    if (!$arrival['has_arrived']) {
+                        return '<span class="text-muted">—</span>';
+                    }
+
+                    $html = '<div class="arrival-info-cell">';
+                    $html .= '<div class="arrival-info-status">'
+                        . '<i class="fas fa-circle-check"></i>'
+                        . '<span>وصلت العاملة</span>'
                         . '</div>';
 
-                    if (!empty($duration['ended_at_label'])) {
-                        $html .= '<div class="small text-muted d-flex align-items-center gap-2">'
-                            . '<i class="fas fa-calendar-check text-secondary"></i>'
-                            . '<span><span class="text-secondary">حتى: </span>' . e($duration['ended_at_label']) . '</span>'
+                    if ($arrival['date_label']) {
+                        $html .= '<div class="arrival-info-date">'
+                            . '<span>تاريخ الوصول للمملكة</span>'
+                            . '<strong dir="ltr">' . e($arrival['date_label']) . '</strong>'
+                            . '</div>';
+                    } else {
+                        $html .= '<div class="arrival-date-missing">'
+                            . '<i class="fas fa-triangle-exclamation"></i>'
+                            . '<span>تاريخ الوصول غير مسجل</span>'
                             . '</div>';
                     }
 
-                    if ($duration['msaned_started']) {
+                    if ($arrival['time_label']) {
+                        $html .= '<div class="arrival-info-row">'
+                            . '<i class="fas fa-clock text-secondary"></i>'
+                            . '<span>وقت الوصول: <strong dir="ltr">' . e($arrival['time_label']) . '</strong></span>'
+                            . '</div>';
+                    }
+
+                    if ($arrival['station']) {
+                        $html .= '<div class="arrival-info-row">'
+                            . '<i class="fas fa-location-dot text-secondary"></i>'
+                            . '<span>محطة الوصول: <strong>' . e($arrival['station']) . '</strong></span>'
+                            . '</div>';
+                    }
+
+                    if ($arrival['flight_company']) {
+                        $html .= '<div class="arrival-info-row">'
+                            . '<i class="fas fa-building text-secondary"></i>'
+                            . '<span>شركة الطيران: <strong>' . e($arrival['flight_company']) . '</strong></span>'
+                            . '</div>';
+                    }
+
+                    if ($arrival['flight_number']) {
+                        $html .= '<div class="arrival-info-row">'
+                            . '<i class="fas fa-hashtag text-secondary"></i>'
+                            . '<span>رقم الرحلة: <strong dir="ltr">' . e($arrival['flight_number']) . '</strong></span>'
+                            . '</div>';
+                    }
+
+                    return $html . '</div>';
+                })
+                ->addColumn('duration', function ($row) {
+                    $duration = $this->buildContractDurationSummary($row);
+                    $durationState = $duration['worker_arrived']
+                        ? 'duration-completed'
+                        : ($duration['total_days'] > 90
+                            ? 'duration-critical'
+                            : ($duration['total_days'] > self::DELAYED_ARRIVAL_DAYS
+                                ? 'duration-warning'
+                                : 'duration-active'));
+
+                    $html = '<div class="application-duration-cell ' . $durationState . '">';
+                    $html .= '<div class="application-duration-main">'
+                        . '<i class="fas fa-hourglass-half"></i>'
+                        . '<span class="application-duration-value">' . e($duration['total_label']) . '</span>'
+                        . '</div>';
+
+                    $html .= '<div class="application-duration-range">'
+                        . '<span><i class="fas fa-calendar-plus"></i> من <strong dir="auto">' . e($duration['started_at_label']) . '</strong></span>'
+                        . '<span><i class="fas fa-calendar-check"></i> حتى <strong dir="auto">' . e($duration['ended_at_label']) . '</strong></span>'
+                        . '</div>';
+
+                    if ($duration['worker_arrived']) {
+                        $html .= '<div class="application-duration-note">'
+                            . '<i class="fas fa-circle-check"></i> توقفت المدة عند وصول العاملة'
+                            . '</div>';
+                    }
+
+                    if (!$duration['worker_arrived'] && $duration['msaned_started']) {
                         $badgeClass = $duration['msaned_badge_class'] ?? 'bg-success-subtle text-success';
-                        $html .= '<div class="small text-muted d-flex align-items-center gap-2">'
+                        $html .= '<div class="application-duration-msaned">'
                             . '<i class="fas fa-stopwatch text-secondary"></i>'
-                            . '<span><span class="text-secondary">من مساند: </span>' . e($duration['msaned_days_label']) . '</span>'
+                            . '<span>من مساند: <strong>' . e($duration['msaned_days_label']) . '</strong></span>'
                             . '</div>';
                         $html .= '<div><span class="badge ' . $badgeClass . '">' . e($duration['msaned_progress_label']) . '</span></div>';
-                    } else {
-                        $html .= '<div class="small text-muted d-flex align-items-center gap-2">'
+                    } elseif (!$duration['worker_arrived']) {
+                        $html .= '<div class="application-duration-msaned">'
                             . '<i class="fas fa-clock text-secondary"></i>'
                             . '<span>لم يبدأ عداد مساند بعد</span>'
                             . '</div>';
@@ -2462,13 +2536,16 @@ class RecruitmentContractController extends Controller
             ->values();
 
         $contractStartedAt = $this->resolveEffectiveContractStartDate($contract);
+        $arrival = $this->resolveWorkerArrivalDetails($contract);
         $isFinalStatus = in_array($contract->status, [
             ContractStatusEnum::Completed->value,
             ContractStatusEnum::Refunded->value,
             ContractStatusEnum::Back->value,
             ContractStatusEnum::Closed->value,
         ], true);
-        $endedAt = $this->resolveContractDurationEndDate($contract, $logs);
+        $endedAt = $arrival['has_arrived'] && $arrival['date_time']
+            ? $arrival['date_time']->copy()
+            : $this->resolveContractDurationEndDate($contract, $logs);
 
         $totalDays = max($contractStartedAt->copy()->startOfDay()->diffInDays($endedAt->copy()->startOfDay(), false), 0);
         $msanedLog = $logs->firstWhere('status', ContractStatusEnum::Msaned->value);
@@ -2497,7 +2574,11 @@ class RecruitmentContractController extends Controller
         return [
             'total_days' => $totalDays,
             'total_label' => $this->formatArabicDaysCount($totalDays),
-            'ended_at_label' => $isFinalStatus ? $endedAt->format('Y-m-d') : 'حتى الآن',
+            'started_at_label' => $contractStartedAt->format('Y-m-d'),
+            'ended_at_label' => ($arrival['has_arrived'] || $isFinalStatus)
+                ? $endedAt->format('Y-m-d')
+                : 'حتى الآن',
+            'worker_arrived' => $arrival['has_arrived'],
             'msaned_started' => (bool) $msanedStartedAt,
             'msaned_days' => $msanedDays,
             'msaned_days_label' => $msanedDays !== null ? $this->formatArabicDaysCount($msanedDays) : null,
@@ -2508,15 +2589,56 @@ class RecruitmentContractController extends Controller
 
     private function resolveEffectiveContractStartDate(Contract $contract): Carbon
     {
-        foreach ([$contract->info?->contract_date, $contract->contract_date] as $date) {
-            $contractDate = $this->normalizeContractStageDate($date);
+        return ($this->normalizeContractStageDate($contract->created_at) ?: now())->startOfDay();
+    }
 
-            if ($contractDate) {
-                return $contractDate->startOfDay();
-            }
+    private function resolveWorkerArrivalDetails(Contract $contract): array
+    {
+        $travelHistory = $contract->relationLoaded('travelHistory')
+            ? $contract->travelHistory
+            : $contract->travelHistory()->latest('id')->first();
+
+        $arrivalDateTime = $travelHistory?->resolveArrivalDateTime();
+
+        if (!$arrivalDateTime && $contract->info?->arrival_date) {
+            $arrivalDateTime = $this->normalizeContractStageDate($contract->info->arrival_date);
         }
 
-        return $this->normalizeContractStageDate($contract->created_at) ?: now();
+        if (!$arrivalDateTime && $contract->maid?->arrival_date) {
+            $arrivalDateTime = $this->normalizeContractStageDate($contract->maid->arrival_date);
+        }
+
+        $hasArrived = $travelHistory?->status === 'completed'
+            || in_array($contract->status, [
+                ContractStatusEnum::Arrival->value,
+                ContractStatusEnum::Completed->value,
+                ContractStatusEnum::UnderWarranty->value,
+                ContractStatusEnum::Closed->value,
+            ], true);
+
+        $hasExplicitArrivalTime = filled($travelHistory?->arrival_time)
+            || (filled($travelHistory?->arrival_date)
+                && preg_match('/\d{1,2}:\d{2}/', (string) $travelHistory->arrival_date));
+
+        return [
+            'has_arrived' => $hasArrived,
+            'date_time' => $arrivalDateTime,
+            'date_label' => $arrivalDateTime?->format('Y-m-d'),
+            'time_label' => $arrivalDateTime && $hasExplicitArrivalTime
+                ? $arrivalDateTime->format('H:i')
+                : null,
+            'station' => filled($travelHistory?->arrival_airport)
+                ? trim((string) $travelHistory->arrival_airport)
+                : (filled($contract->externalOfficeDispatch?->arrival_station)
+                    ? trim((string) $contract->externalOfficeDispatch->arrival_station)
+                    : null),
+            'flight_company' => filled($travelHistory?->flight_company)
+                ? trim((string) $travelHistory->flight_company)
+                : null,
+            'flight_number' => filled($travelHistory?->flight_number)
+                ? trim((string) $travelHistory->flight_number)
+                : null,
+        ];
     }
 
     private function resolveContractDurationEndDate(Contract $contract, $logs): Carbon
@@ -5144,6 +5266,14 @@ class RecruitmentContractController extends Controller
                 'warranty_expired' => (int) ($aggregate->warranty_expired ?? 0),
                 'warranty_not_applicable' => (int) ($aggregate->warranty_not_applicable ?? 0),
             ];
+
+            $arrivalTodayQuery = clone $baseQuery;
+            $this->applyStatusFilter($arrivalTodayQuery, 'arrival_today');
+            $counts['arrival_today'] = $arrivalTodayQuery->count();
+
+            $delayedArrivalQuery = clone $baseQuery;
+            $this->applyStatusFilter($delayedArrivalQuery, 'delayed_arrival');
+            $counts['delayed_arrival'] = $delayedArrivalQuery->count();
 
             return response()->json([
                 'success' => true,

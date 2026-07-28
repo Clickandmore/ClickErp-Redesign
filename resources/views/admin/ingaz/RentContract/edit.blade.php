@@ -485,10 +485,10 @@
                                         data-duration-unit="{{ $package->duration_unit ?? 'month' }}"
                                         data-duration-label="{{ $package->duration_label }}"
                                         data-working-hours="{{ $package->working_hours_per_day }}"
-                                        data-price="{{ $package->price_after_discount }}"
+                                        data-price="{{ $package->original_price }}"
                                         data-total="{{ $package->price_with_tax }}"
                                         {{ (int) ($contract->info->package_id ?? 0) === (int) $package->id ? 'selected' : '' }}>
-                                    {{ $package->title }} - {{ $package->rental_type_label }} - {{ $package->duration_count ?: max(1, (int) ceil(($package->days_count ?: 30) / 30)) }} {{ $package->duration_unit_label }} - {{ number_format((float) $package->price_after_discount, 2) }} ريال بدون الضريبة
+                                    {{ $package->title }} - {{ $package->rental_type_label }} - {{ $package->duration_count ?: max(1, (int) ceil(($package->days_count ?: 30) / 30)) }} {{ $package->duration_unit_label }} - {{ number_format((float) $package->price_with_tax, 2) }} ريال شامل الضريبة
                                 </option>
                             @endforeach
                         </select>
@@ -1009,12 +1009,7 @@ $(document).ready(function() {
         const months = durationUnit === 'month' && durationCount
             ? durationCount
             : Math.max(1, Math.ceil((days || 30) / 30));
-        const monthlySalary = parseFloat($('#monthly_salary').val()) || 0;
-        const salaryForPeriod = monthlySalary * ((days || (months * 30)) / 30);
-        const salaryExempt = Math.min(netPrice, Math.max(0, salaryForPeriod));
-        const taxableService = Math.max(0, netPrice - salaryExempt);
-        const isNetPriceBasis = Math.abs(catalogTotal - (netPrice * 1.15)) < 0.05;
-        const totalPrice = isNetPriceBasis ? (netPrice + (taxableService * 0.15)) : catalogTotal;
+        const totalPrice = catalogTotal;
         const monthlyCost = (rentalType === 'monthly' || durationUnit === 'month') && months
             ? (totalPrice / months)
             : totalPrice;

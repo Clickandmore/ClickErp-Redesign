@@ -284,6 +284,183 @@
             transform: rotate(180deg);
         }
 
+        .quick-followup-dropdown .dropdown-menu {
+            width: min(330px, calc(100vw - 32px));
+            padding: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .quick-followup-item {
+            display: grid;
+            grid-template-columns: 30px minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 9px;
+            padding: 9px 10px;
+            border-radius: 9px;
+            text-align: start;
+        }
+
+        .quick-followup-item i {
+            color: #64748b;
+            text-align: center;
+        }
+
+        .quick-followup-item .quick-followup-label {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            min-width: 0;
+        }
+
+        .quick-followup-item small {
+            color: #64748b;
+            font-size: 0.72rem;
+        }
+
+        .quick-followup-item .quick-filter-count {
+            min-width: 29px;
+            padding: 3px 7px;
+            border-radius: 999px;
+            color: #1d4ed8;
+            background: #dbeafe;
+            font-size: 0.78rem;
+            font-weight: 800;
+            text-align: center;
+        }
+
+        .quick-followup-item.active,
+        .quick-followup-item:active {
+            color: #1e3a8a;
+            background: #eff6ff;
+        }
+
+        .quick-followup-item.active small {
+            color: #475569;
+        }
+
+        .application-duration-cell {
+            min-width: 185px;
+            color: #475569;
+        }
+
+        .application-duration-main {
+            display: flex;
+            align-items: baseline;
+            gap: 7px;
+            margin-bottom: 6px;
+        }
+
+        .application-duration-main i {
+            color: #64748b;
+        }
+
+        .application-duration-value {
+            color: #1e293b;
+            font-size: 1.08rem;
+            font-weight: 800;
+        }
+
+        .duration-warning .application-duration-value {
+            color: #b45309;
+        }
+
+        .duration-critical .application-duration-value {
+            color: #b91c1c;
+        }
+
+        .duration-completed .application-duration-value {
+            color: #047857;
+        }
+
+        .application-duration-range {
+            display: grid;
+            gap: 3px;
+            color: #64748b;
+            font-size: 0.74rem;
+        }
+
+        .application-duration-range span,
+        .application-duration-msaned,
+        .arrival-info-row {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .application-duration-note {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 6px;
+            color: #047857;
+            font-size: 0.72rem;
+            font-weight: 700;
+        }
+
+        .application-duration-msaned {
+            margin-top: 5px;
+            color: #64748b;
+            font-size: 0.72rem;
+        }
+
+        .arrival-info-cell {
+            min-width: 185px;
+            color: #475569;
+        }
+
+        .arrival-info-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            margin-bottom: 6px;
+            color: #047857;
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+
+        .arrival-info-date {
+            margin-bottom: 6px;
+            color: #334155;
+            font-size: 0.75rem;
+        }
+
+        .arrival-info-date strong {
+            display: block;
+            margin-top: 2px;
+            color: #065f46;
+            font-size: 0.98rem;
+        }
+
+        .arrival-info-row {
+            margin-top: 4px;
+            color: #64748b;
+            font-size: 0.72rem;
+        }
+
+        .arrival-info-row strong {
+            color: #334155;
+        }
+
+        .arrival-date-missing {
+            color: #b45309;
+            font-size: 0.72rem;
+            font-weight: 700;
+        }
+
+        .operations-column-heading {
+            min-width: 185px;
+            color: #1e293b !important;
+        }
+
+        .operations-column-heading i {
+            margin-inline-end: 6px;
+            color: #2563eb;
+        }
+
+        .operations-column-heading-arrival i {
+            color: #059669;
+        }
+
         @media (max-width: 767.98px) {
             .stats-group {
                 padding: 14px;
@@ -683,13 +860,48 @@
 
         <!-- Filters Section -->
         <div class="card filter-card mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <div class="d-flex justify-content-between align-items-center">
+            <div class="card-header d-flex justify-content-between align-items-center gap-2">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
                     <h6 class="mb-0">
                         <i class="fas fa-filter me-2"></i>
                         فلاتر البحث
                     </h6>
-
+                    <div class="dropdown quick-followup-dropdown">
+                        <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-route me-1"></i>
+                            متابعة التقديم والوصول
+                        </button>
+                        <div class="dropdown-menu shadow-sm">
+                            <button type="button" class="dropdown-item quick-followup-item stat-filter"
+                                data-status="delayed_arrival">
+                                <i class="fas fa-hourglass-end"></i>
+                                <span class="quick-followup-label">
+                                    <strong>تجاوزت 45 يومًا</strong>
+                                    <small>بدون الوصول إلى مرحلة التذاكر</small>
+                                </span>
+                                <span class="quick-filter-count" data-stat-key="delayed_arrival">0</span>
+                            </button>
+                            <button type="button" class="dropdown-item quick-followup-item stat-filter"
+                                data-status="arrival_today">
+                                <i class="fas fa-plane-arrival"></i>
+                                <span class="quick-followup-label">
+                                    <strong>وصول اليوم</strong>
+                                    <small>الوصول المجدول بتاريخ اليوم</small>
+                                </span>
+                                <span class="quick-filter-count" data-stat-key="arrival_today">0</span>
+                            </button>
+                            <button type="button" class="dropdown-item quick-followup-item stat-filter"
+                                data-status="arrival">
+                                <i class="fas fa-flag-checkered"></i>
+                                <span class="quick-followup-label">
+                                    <strong>مرحلة الوصول</strong>
+                                    <small>العقود الموجودة في مرحلة الوصول</small>
+                                </span>
+                                <span class="quick-filter-count" data-stat-key="stage_arrival">0</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse"
                     data-bs-target="#filtersCollapse" aria-expanded="false" aria-controls="filtersCollapse">
@@ -711,8 +923,8 @@
                             <select id="statusFilter" class="form-select">
                                 <option value="">جميع الحالات</option>
                                 <option value="current">{{ helperTrans('ingaz.contracts_are_valid') }}</option>
-                                <option value="arrival_today">وصول اليوم</option>
-                                <option value="delayed_arrival">تجاوزت 60 يوماً بدون تذاكر</option>
+                                <option value="arrival_today" hidden>وصول اليوم</option>
+                                <option value="delayed_arrival" hidden>مدة التقديم تجاوزت 45 يومًا بدون تذاكر</option>
                                 <option value="expired_over_2y">أقدم من عامين</option>
 
                                 <option value="new">{{ $contractStageLabel('new') }}</option>
@@ -1002,7 +1214,12 @@
                                 <th>معلومات العميل</th>
                                 <th>العاملة</th>
                                 <th>معلومات العقد</th>
-                                <th>المدة</th>
+                                <th class="operations-column-heading">
+                                    <i class="fas fa-hourglass-half"></i>مدة التقديم
+                                </th>
+                                <th class="operations-column-heading operations-column-heading-arrival">
+                                    <i class="fas fa-plane-arrival"></i>الوصول للمملكة
+                                </th>
                                 <th>{{ helperTrans('ingaz.recruitment_office') }}</th>
                                 <th>المسوق</th>
                                 @if($branchesEnabled ?? false)
@@ -1524,7 +1741,7 @@
                 }
 
                 if (statusValue) {
-                    const statusCard = $(`.stat-card.stat-filter[data-status="${statusValue}"]:not([data-warranty])`)
+                    const statusCard = $(`.stat-filter[data-status="${statusValue}"]:not([data-warranty])`)
                         .first();
                     if (statusCard.length) {
                         statusCard.addClass('active');
@@ -1771,6 +1988,11 @@
                 },
                 {
                     "data": "duration",
+                    orderable: false,
+                    searchable: false
+                },
+                {
+                    "data": "arrival_info",
                     orderable: false,
                     searchable: false
                 },

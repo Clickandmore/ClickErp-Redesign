@@ -181,6 +181,10 @@
                     <i class="fa fa-print"></i>
                     طباعة
                 </button>
+                <button type="button" id="toPdf" class="btn btn-danger">
+                    <i class="fa fa-file-pdf-o"></i>
+                    PDF
+                </button>
                 <button type="button" id="toExcel" class="btn btn-info">
                     <i class="fa fa-file-excel-o"></i>
                     Excel
@@ -193,12 +197,12 @@
 @endsection
 
 @section('js')
-    <script src="{{ asset('plugins') }}/exelJs/dist/tableToExcel.517b1af9.js"></script>
     <script>
         const filtersContainer = $('#taxInvoiceFilters');
         const resultsContainer = $('#account_list');
         const actionsBar = $('#taxReportActions');
         const reportUrl = @json($dataTableRoute);
+        const exportRouteTemplate = @json($exportRouteTemplate);
 
         function renderLoadingState() {
             resultsContainer.html(`
@@ -232,12 +236,19 @@
             loadReport();
         });
 
-        $('#toExcel').on('click', function() {
-            const table = document.querySelector('#taxInvoiceTable');
+        function downloadReport(format) {
+            const query = filtersContainer.find('.search_keys').serialize();
+            const url = exportRouteTemplate.replace('__FORMAT__', format);
 
-            if (table) {
-                TableToExcel.convert(table);
-            }
+            window.location.href = url + (query ? '?' + query : '');
+        }
+
+        $('#toExcel').on('click', function() {
+            downloadReport('xlsx');
+        });
+
+        $('#toPdf').on('click', function() {
+            downloadReport('pdf');
         });
 
         $('#printReport').on('click', function() {

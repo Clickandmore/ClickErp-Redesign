@@ -4411,25 +4411,15 @@ class RentContractController extends Controller
             $netPrice = round((float) $package->price_after_discount, 2);
         }
 
-        $catalogGross = $package ? round((float) $package->price_with_tax, 2) : $legacyTotalWithTax;
-        $fullVatGross = round($netPrice * (1 + RentalContractPricing::VAT_RATE), 2);
-        $priceBasis = $package && $netPrice > 0 && abs($catalogGross - $fullVatGross) < 0.05
-            ? 'net'
-            : 'gross';
-        $pricing = $priceBasis === 'net'
-            ? RentalContractPricing::fromNetPrice(
-                $netPrice,
-                $monthlySalary,
-                $durationDays,
-                $durationMonths,
-                $originalPrice
-            )
-            : RentalContractPricing::fromGrossPrice(
-                $catalogGross,
-                $monthlySalary,
-                $durationDays,
-                $durationMonths
-            );
+        $catalogGross = $package
+            ? round((float) $package->price_with_tax, 2)
+            : $legacyTotalWithTax;
+        $pricing = RentalContractPricing::fromGrossPrice(
+            $catalogGross,
+            $monthlySalary,
+            $durationDays,
+            $durationMonths
+        );
 
         return [
             'package_original_price' => $originalPrice,
@@ -4437,7 +4427,7 @@ class RentContractController extends Controller
             'package_price_after_discount' => $netPrice,
             'package_vat_amount' => $pricing['vat_amount'],
             'package_total_with_tax' => $pricing['total_due'],
-            'package_price_basis' => $priceBasis,
+            'package_price_basis' => 'gross',
             'contract_total_due' => $pricing['total_due'],
         ];
     }

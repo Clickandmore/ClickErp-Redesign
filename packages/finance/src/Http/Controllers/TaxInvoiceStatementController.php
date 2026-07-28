@@ -9,6 +9,7 @@ use App\Http\Controllers\admin\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Nami\Finance\Services\TaxInvoiceStatementExportService;
 
 class TaxInvoiceStatementController extends Controller
 {
@@ -17,11 +18,7 @@ class TaxInvoiceStatementController extends Controller
 
     public function index(Request $request): JsonResponse|\Illuminate\View\View
     {
-        $dataSearch = array_merge([
-            'from_date' => '',
-            'to_date' => now()->format('Y-m-d'),
-            'source' => 'all',
-        ], array_filter($request->only($this->getData), fn ($value) => $value !== null && $value !== ''));
+        $dataSearch = $this->filters($request);
 
         if ($request->ajax()) {
             $rows = $this->invoiceRows($dataSearch);
@@ -42,7 +39,36 @@ class TaxInvoiceStatementController extends Controller
             'bladeTitle' => __('finance::finance.tax-invoice-statement'),
             'filters' => $dataSearch,
             'dataTableRoute' => route($this->mainRoute . '.index'),
+            'exportRouteTemplate' => route($this->mainRoute . '.export', ['format' => '__FORMAT__']),
         ]);
+    }
+
+    public function export(Request $request, TaxInvoiceStatementExportService $exporter, string $format)
+    {
+        $filters = $this->filters($request);
+
+        return $exporter->download(
+            $format,
+            $this->invoiceRows($filters),
+            $filters,
+            $this->supplierName(),
+            $this->supplierTaxNumber()
+        );
+    }
+
+    private function filters(Request $request): array
+    {
+        $filters = array_merge([
+            'from_date' => '',
+            'to_date' => now()->format('Y-m-d'),
+            'source' => 'all',
+        ], array_filter($request->only($this->getData), fn ($value) => $value !== null && $value !== ''));
+
+        if (! in_array($filters['source'], ['all', 'recruitment', 'rental'], true)) {
+            $filters['source'] = 'all';
+        }
+
+        return $filters;
     }
 
     private function invoiceRows(array $filters): Collection

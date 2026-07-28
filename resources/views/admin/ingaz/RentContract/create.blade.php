@@ -803,9 +803,9 @@
                                                         data-duration-label="{{ $package->duration_label }}"
                                                         data-working-hours="{{ $package->working_hours_per_day }}"
                                                         data-original-price="{{ $package->original_price }}"
-                                                        data-price="{{ $package->price_after_discount }}"
+                                                        data-price="{{ $package->original_price }}"
                                                         data-total="{{ $package->price_with_tax }}">
-                                                    {{ $package->title }} - {{ $package->rental_type_label }} - {{ $package->duration_count ?: max(1, (int) ceil(($package->days_count ?: 30) / 30)) }} {{ $package->duration_unit_label }} - {{ number_format((float) $package->price_after_discount, 2) }} ريال بدون الضريبة
+                                                    {{ $package->title }} - {{ $package->rental_type_label }} - {{ $package->duration_count ?: max(1, (int) ceil(($package->days_count ?: 30) / 30)) }} {{ $package->duration_unit_label }} - {{ number_format((float) $package->price_with_tax, 2) }} ريال شامل الضريبة
                                                 </option>
                                             @endforeach
                                         </select>
@@ -1542,17 +1542,7 @@
                 const beforeTax = parseFloat(selectedOption.data('price')) || 0;
                 const catalogTotal = parseFloat(selectedOption.data('total')) || beforeTax;
                 const months = Math.max(1, Math.ceil(days / 30));
-                const monthlySalary = parseFloat($('#monthly_salary').val()) || 0;
-                const salaryForPeriod = monthlySalary * ((days || (months * 30)) / 30);
-                const salaryExempt = Math.min(beforeTax, Math.max(0, salaryForPeriod));
-                const taxableService = Math.max(0, beforeTax - salaryExempt);
-                const vatAmount = taxableService * 0.15;
-                const isNetPriceBasis = Math.abs(catalogTotal - (beforeTax * 1.15)) < 0.05;
-                const totalPrice = isNetPriceBasis ? (beforeTax + vatAmount) : catalogTotal;
-                const displayedNetPrice = isNetPriceBasis
-                    ? beforeTax
-                    : (Math.min(catalogTotal, salaryForPeriod)
-                        + (Math.max(0, catalogTotal - Math.min(catalogTotal, salaryForPeriod)) / 1.15));
+                const totalPrice = catalogTotal;
                 const monthlyCost = (rentalType === 'monthly' || durationUnit === 'month') && months
                     ? (totalPrice / months)
                     : totalPrice;
@@ -1560,7 +1550,7 @@
                 $('#packageSummaryTitle').text(selectedOption.data('title') || 'الباقة المختارة');
                 $('#packageSummaryHint').text('تم اعتماد بيانات الباقة تلقائياً ويمكن تعديل تفاصيل العقد عند الحاجة.');
                 $('#packageSummaryDays').text(durationLabel || (days ? `${days} يوم` : '-'));
-                $('#packageSummaryBeforeTax').text(formatCurrency(displayedNetPrice));
+                $('#packageSummaryBeforeTax').text(formatCurrency(beforeTax));
                 $('#packageSummaryAfterTax').text(formatCurrency(totalPrice));
 
                 $('#contract_duration_months').val(months);
