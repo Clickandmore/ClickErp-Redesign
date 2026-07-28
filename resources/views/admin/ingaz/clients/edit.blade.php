@@ -239,14 +239,12 @@
                                 <div class="d-flex flex-wrap gap-3">
                                     <div class="form-check">
                                         <input class="form-check-input client-type-radio" type="radio" name="client_type"
-                                               id="client_type_person" value="person"
-                                               {{ old('client_type', $client->client_type ?? 'person') === 'person' ? 'checked' : '' }}>
+                                               id="client_type_person" value="person" {{ old('client_type', $client->client_type ?? 'person') === 'person' ? 'checked' : '' }}>
                                         <label class="form-check-label" for="client_type_person">{{ helperTrans('ingaz.person_client') }}</label>
                                     </div>
                                     <div class="form-check">
                                         <input class="form-check-input client-type-radio" type="radio" name="client_type"
-                                               id="client_type_company" value="company"
-                                               {{ old('client_type', $client->client_type ?? 'person') === 'company' ? 'checked' : '' }}>
+                                               id="client_type_company" value="company" {{ old('client_type', $client->client_type ?? 'person') === 'company' ? 'checked' : '' }}>
                                         <label class="form-check-label" for="client_type_company">{{ helperTrans('ingaz.company') }}</label>
                                     </div>
                                 </div>
@@ -277,8 +275,7 @@
                                 <select name="nationality_id" id="nationalitySelect" class="form-control select2">
                                     <option value="">{{ helperTrans('ingaz.choose') }}</option>
                                     @foreach($countries as $country)
-                                        <option value="{{ $country->id }}"
-                                                {{ (string) $selectedNationalityId === (string) $country->id ? 'selected' : '' }}>
+                                        <option value="{{ $country->id }}" {{ (string) $selectedNationalityId === (string) $country->id ? 'selected' : '' }}>
                                             {{ $country->title }}
                                         </option>
                                     @endforeach
@@ -316,7 +313,7 @@
                                         <div class="form-check">
                                             <input class="form-check-input" type="radio" name="marital_status"
                                                    id="marital_status_{{ $value }}" value="{{ $value }}"
-                                                   {{ old('marital_status', $client->marital_status) === $value ? 'checked' : '' }}>
+                                                   {{ old('marital_status', $client->marital_status) === $value ? 'checked' : '' }} required>
                                             <label class="form-check-label" for="marital_status_{{ $value }}">{{ $label }}</label>
                                         </div>
                                     @endforeach
@@ -342,8 +339,7 @@
                                     <select name="branch_id" id="branch_id" class="form-select">
                                         <option value="">{{ helperTrans('ingaz.choose') }}</option>
                                         @foreach(($branches ?? collect()) as $branch)
-                                            <option value="{{ $branch->id }}"
-                                                    {{ (string) old('branch_id', $client->branch_id) === (string) $branch->id ? 'selected' : '' }}>
+                                            <option value="{{ $branch->id }}" {{ (string) old('branch_id', $client->branch_id) === (string) $branch->id ? 'selected' : '' }}>
                                                 {{ $branch->name }}
                                             </option>
                                         @endforeach
