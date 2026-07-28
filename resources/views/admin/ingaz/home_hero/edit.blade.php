@@ -34,7 +34,17 @@
         $canEdit = @AdminGuardHasAnyPerm([\App\PermKeys::HOME_HERO_EDIT, \App\PermKeys::HOME_HERO_CONTROL]);
         $canCreate = @AdminGuardHasAnyPerm([\App\PermKeys::HOME_HERO_CREATE, \App\PermKeys::HOME_HERO_CONTROL]);
         $canDelete = @AdminGuardHasAnyPerm([\App\PermKeys::HOME_HERO_DELETE, \App\PermKeys::HOME_HERO_CONTROL]);
-        $videoType = old('video_type', $section->video_type ?? '');
+        $videoType = strtolower(trim((string) ($section->video_type ?? '')));
+
+        if (!in_array($videoType, ['upload', 'youtube'], true)) {
+            if ($section && !empty($section->video_path)) {
+                $videoType = 'upload';
+            } elseif ($section && !empty($section->video_url)) {
+                $videoType = 'youtube';
+            } else {
+                $videoType = '';
+            }
+        }
     @endphp
 
     <form method="post" action="{{ route('home-hero.update') }}"
@@ -109,9 +119,9 @@
                             <label class="form-label">{{ __('home_hero.video_type') }}</label>
                             <select class="form-select" name="video_type" id="hero-video-type"
                                 @disabled(!$canCreate && !$canEdit && !$canDelete)>
-                                <option value="">{{ __('home_hero.no_video') }}</option>
-                                <option value="upload" @selected($videoType === 'upload')>{{ __('home_hero.uploaded_video') }}</option>
-                                <option value="youtube" @selected($videoType === 'youtube')>{{ __('home_hero.youtube_video') }}</option>
+                                <option value="" {{ $videoType === '' ? 'selected' : '' }}>{{ __('home_hero.no_video') }}</option>
+                                <option value="upload" {{ $videoType === 'upload' ? 'selected' : '' }}>{{ __('home_hero.uploaded_video') }}</option>
+                                <option value="youtube" {{ $videoType === 'youtube' ? 'selected' : '' }}>{{ __('home_hero.youtube_video') }}</option>
                             </select>
                         </div>
 
@@ -130,7 +140,7 @@
                             <label class="form-label">{{ __('home_hero.video_file') }}</label>
                             <input type="file" class="form-control" name="video_file"
                                 accept=".mp4,.webm,.mov" @disabled(!$canCreate)>
-                            @if ($section && $section->video_type === 'upload' && $section->video_path)
+                            @if ($section && $videoType === 'upload' && $section->video_path)
                                 <a href="{{ showFile($section->video_path) }}" target="_blank"
                                     rel="noopener noreferrer" class="d-inline-block mt-2">
                                     {{ __('home_hero.current_video') }}
@@ -163,6 +173,9 @@
         (function () {
             const typeInput = document.getElementById('hero-video-type');
             const fields = document.querySelectorAll('.hero-video-field');
+            const storedVideoType = @json($videoType);
+
+            typeInput.value = storedVideoType;
 
             function toggleVideoFields() {
                 fields.forEach(function (field) {
