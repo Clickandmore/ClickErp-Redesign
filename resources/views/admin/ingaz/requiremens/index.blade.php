@@ -1,58 +1,45 @@
 @extends('admin.layout.indexs.index')
-@section("style")
-@endsection
+
 @section('page-title')
-    {{helperTrans("ingaz.requiremens")}}
+    {{ helperTrans('ingaz.requiremens') }}
 @endsection
+
 @section('content')
- 
-    
-        {!! addButton(route("requiremens.create") ,helperTrans("ingaz.requiremens")) !!}
+    @if (@AdminGuardHasAnyPerm([\App\PermKeys::RECRUITMENT_REQUIREMENTS_CREATE, \App\PermKeys::RECRUITMENT_REQUIREMENTS_CONTROL]))
+        {!! addButton(route('requiremens.create'), helperTrans('ingaz.requiremens')) !!}
+    @endif
 
     <p></p>
     <table id="dataTableObject" class="table display dataTable table-hover" style="width:100%">
         <thead>
-        <tr>
-            <th>#</th>
-            <th>{{helperTrans("ingaz.image")}}</th>
-             <th>{{helperTrans("ingaz.title")}}</th>
-            <th>{{helperTrans("ingaz.actions")}}</th>
- 
-        </tr>
+            <tr>
+                <th>#</th>
+                <th>{{ __('recruitment_requirements.sort_order') }}</th>
+                <th>{{ helperTrans('ingaz.title') }}</th>
+                <th>{{ helperTrans('ingaz.requirement_type') }}</th>
+                <th>{{ __('recruitment_requirements.points_count') }}</th>
+                <th>{{ __('recruitment_requirements.status') }}</th>
+                <th>{{ helperTrans('ingaz.actions') }}</th>
+            </tr>
         </thead>
-        <tbody>
-
-        </tbody>
+        <tbody></tbody>
     </table>
-
- 
 @endsection
+
 @section('js')
-
-    <script src="{{asset('admin')}}/assets/js/tinymce.min.js"></script>
-
     <script>
         $(document).ready(function () {
-            let columns = [
-                {"data": 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false},
-                {"data": "image", orderable: true, searchable: true},
-                 {"data": "title", orderable: true, searchable: true},
-
-                 {"data": "actions", orderable: false, searchable: false}
+            const columns = [
+                {"data": "DT_RowIndex", name: "DT_RowIndex", orderable: false, searchable: false},
+                {"data": "sort_order", orderable: true, searchable: false},
+                {"data": "title", orderable: true, searchable: true},
+                {"data": "type", orderable: true, searchable: true},
+                {"data": "items_count", orderable: true, searchable: false},
+                {"data": "is_active", orderable: true, searchable: false},
+                {"data": "actions", orderable: false, searchable: false}
             ];
-            showDataTable("{{route("requiremens.index")}}", columns);
+
+            showDataTable("{{ route('requiremens.index') }}", columns);
         });
     </script>
-
-
-    <script>
-        $(document).ready(function () {
-            tinymce.init({
-                selector: '.mytextarea',
-                plugins: 'ai tinycomments mentions anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount checklist mediaembed casechange export formatpainter pageembed permanentpen footnotes advtemplate advtable advcode editimage tableofcontents mergetags powerpaste tinymcespellchecker autocorrect a11ychecker typography inlinecss textcolor colorpicker',
-                toolbar: 'undo redo | formatselect | fontselect fontsizeselect | forecolor backcolor | bold italic underline strikethrough | align lineheight | tinycomments | checklist numlist bullist indent outdent | emoticons charmap | removeformat',
-            });
-        });
-    </script>
-
 @endsection

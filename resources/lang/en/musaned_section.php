@@ -1,0 +1,27 @@
+<?php
+
+return [
+    'page_title' => 'Musaned Section',
+    'sidebar_title' => 'Musaned',
+    'content' => 'Section Content',
+    'title' => 'Title',
+    'subtitle' => 'Subtitle',
+    'active' => 'Show this section on the website',
+    'ratios' => 'Performance Ratios',
+    'star_ratings' => 'Star Ratings',
+    'metric_title' => 'Metric title',
+    'percentage_value' => 'Percentage value',
+    'rating_value' => 'Rating value',
+    'allowed_period_commitment_rate' => 'Commitment rate within allowed period',
+    'workforce_arrival_rate' => 'Workforce arrival rate',
+    'complaint_handling_rate' => 'Complaint handling rate',
+    'arrival_duration_commitment_rate' => 'Commitment rate to arrival duration',
+    'customer_recommendation_rating' => 'Customer recommendation of the office',
+    'inquiry_response_rating' => 'Office response to inquiries',
+    'recruitment_duration_rating' => 'Recruitment duration',
+    'complaint_response_rating' => 'Office complaint response rate',
+    'overall_performance' => 'Overall office performance',
+    'performance_example' => 'For example: Gold',
+    'profile_url' => 'Musaned profile link',
+    'saved' => 'Musaned section saved successfully.',
+];

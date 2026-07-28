@@ -19,6 +19,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
+use App\Models\ingaz\User;
+use App\Support\ExternalAuthSettings;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
 class ApiAuthController extends Controller
@@ -51,7 +54,9 @@ class ApiAuthController extends Controller
         RateLimiter::hit('register:' . $data['phone'], 60);
 
         // Hash password
-        $data['password'] = Hash::make($data['password']);
+        $data['password'] = Hash::make(
+            ExternalAuthSettings::usesOtpOnly() ? Str::random(40) : $data['password']
+        );
 
         // Remove recaptcha if exists
         unset($data['g-recaptcha-response']);
@@ -72,6 +77,7 @@ class ApiAuthController extends Controller
 
         $data = [
             'phone'           => $data['phone'],
+            'phone_code'      => $data['phone_code'],
             'encrypted_phone' => $encryptedPhone,
             'next_step'       => 'verify_otp',
             'sms_gateway_status' => CommunicationSettings::smsGatewayStatus(),
@@ -127,7 +133,7 @@ class ApiAuthController extends Controller
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function login(LoginRequest $request)
+    public function login(LoginRequest $request, PhoneVerificationAction $phoneVerificationAction)
     {
         $key = 'login:' . $request->phone;
 
@@ -142,6 +148,26 @@ class ApiAuthController extends Controller
 
         $data = $request->validated();
         unset($data['g-recaptcha-response']);
+
+        if (ExternalAuthSettings::usesOtpOnly()) {
+            $user = User::query()->where('phone', $data['phone'])->first();
+            if (!$user) {
+                return apiResponse(false, __('api.not found'), null, 404);
+            }
+
+            $request->merge(['phone_code' => $user->phone_code ?: '+966']);
+            $phoneVerificationAction->storeSendCode([
+                'phone' => $user->phone,
+                'phone_code' => $request->phone_code,
+            ], $request);
+
+            return apiResponse(true, __('ingaz.code_send_successfully'), [
+                'phone' => $user->phone,
+                'phone_code' => $request->phone_code,
+                'next_step' => 'verify_otp',
+                'sms_gateway_status' => CommunicationSettings::smsGatewayStatus(),
+            ], 200);
+        }
 
         if (Auth::guard('web')->attempt($data)) {
             $result =  [

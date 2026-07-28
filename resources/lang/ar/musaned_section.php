@@ -1,0 +1,27 @@
+<?php
+
+return [
+    'page_title' => 'قسم مساند',
+    'sidebar_title' => 'مساند',
+    'content' => 'محتوى القسم',
+    'title' => 'العنوان',
+    'subtitle' => 'العنوان الفرعي',
+    'active' => 'إظهار القسم في الموقع',
+    'ratios' => 'نسب الأداء',
+    'star_ratings' => 'التقييمات بالنجوم',
+    'metric_title' => 'عنوان المعيار',
+    'percentage_value' => 'قيمة النسبة',
+    'rating_value' => 'قيمة التقييم',
+    'allowed_period_commitment_rate' => 'نسبة الالتزام ضمن المدة المسموحة',
+    'workforce_arrival_rate' => 'نسبة وصول العمالة',
+    'complaint_handling_rate' => 'نسبة معالجة الشكاوى',
+    'arrival_duration_commitment_rate' => 'نسبة الالتزام بمدة الوصول',
+    'customer_recommendation_rating' => 'توصية العملاء بالمكتب',
+    'inquiry_response_rating' => 'استجابة المكتب للاستفسارات',
+    'recruitment_duration_rating' => 'مدة الاستقدام',
+    'complaint_response_rating' => 'نسبة استجابة المكتب للشكاوى',
+    'overall_performance' => 'الأداء العام للمكتب',
+    'performance_example' => 'مثال: ذهبي',
+    'profile_url' => 'رابط ملف مساند',
+    'saved' => 'تم حفظ قسم مساند بنجاح.',
+];

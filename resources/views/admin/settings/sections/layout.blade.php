@@ -90,6 +90,9 @@
                     <a class="nav-link {{ $activeSection === 'policies' ? 'active' : '' }}" href="{{ route('settings.section', 'policies') }}">
                         <span class="fw-semibold">{{ __('admin.settings_section_policies') }}</span>
                     </a>
+                    <a class="nav-link {{ $activeSection === 'authentication' ? 'active' : '' }}" href="{{ route('settings.section', 'authentication') }}">
+                        <span class="fw-semibold">{{ __('admin.settings_section_external_auth') }}</span>
+                    </a>
                     <a class="nav-link {{ $activeSection === 'seo' ? 'active' : '' }}" href="{{ route('settings.section', 'seo') }}">
                         <span class="fw-semibold">{{ __('admin.settings_section_seo') }}</span>
                     </a>

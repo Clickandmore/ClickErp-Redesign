@@ -4,7 +4,6 @@ namespace App\Http\Requests\ingaz;
 
 use App\Http\Requests\MainRequest;
 use App\Models\Country;
-use App\Models\ingaz\JobTitle;
 use App\Models\ingaz\JobType;
 use App\Models\ingaz\Maid;
 use Illuminate\Validation\Rule;
@@ -45,11 +44,7 @@ class MaidRequest extends MainRequest
             'residence_city' => 'nullable|string|max:255',
             'passport_issue_place' => 'nullable|string|max:255',
             'education' => 'nullable|string|max:255',
-            'has_driving_license' => [
-                Rule::requiredIf(fn () => $this->isDriverSelected()),
-                'nullable',
-                'boolean',
-            ],
+            'has_driving_license' => 'nullable|boolean',
             'price' => 'nullable|numeric',
             'salary' => 'nullable|numeric',
             'experience_years' => 'nullable',
@@ -95,6 +90,10 @@ class MaidRequest extends MainRequest
             ],
             'languages' => 'nullable|array',
             'percentage' => 'nullable|array',
+            'percentage.*' => 'nullable|numeric|min:0|max:100',
+            'language_rating_mode' => 'nullable|in:percentage,level',
+            'language_levels' => 'nullable|array',
+            'language_levels.*' => 'nullable|in:acceptable,average,good,excellent',
             'expertises' => 'nullable|array',
             'expertises.*.country_id' => 'nullable|exists:countries,id',
             'expertises.*.number_of_years' => 'nullable|numeric|min:0',
@@ -130,10 +129,6 @@ class MaidRequest extends MainRequest
         $data = [
             'video_link' => $this->normalizeVideoLink($this->input('video_link')),
         ];
-
-        if (!$this->isDriverSelected()) {
-            $data['has_driving_license'] = null;
-        }
 
         if ($this->isSelectedRentalType()) {
             $data = array_merge($data, [
@@ -285,28 +280,4 @@ class MaidRequest extends MainRequest
         return $this->isSelectedRentalType();
     }
 
-    private function isDriverSelected(): bool
-    {
-        $jobIds = array_filter((array) $this->input('job_id', []));
-
-        if ($jobIds === []) {
-            return false;
-        }
-
-        return JobTitle::query()
-            ->whereIn('id', $jobIds)
-            ->get()
-            ->contains(function (JobTitle $jobTitle) {
-                $titles = $jobTitle->translations
-                    ->pluck('title')
-                    ->push($jobTitle->title)
-                    ->filter();
-
-                return $titles->contains(function ($title) {
-                    $title = mb_strtolower((string) $title);
-
-                    return str_contains($title, 'سائق') || str_contains($title, 'driver');
-                });
-            });
-    }
 }

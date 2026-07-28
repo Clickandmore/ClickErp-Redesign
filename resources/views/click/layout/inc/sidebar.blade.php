@@ -911,6 +911,26 @@
                                             </a>
                                         </li>
 
+                                        @if (@AdminGuardHasAnyPerm([\App\PermKeys::WHY_CHOOSE_US_VIEW, \App\PermKeys::WHY_CHOOSE_US_CONTROL]))
+                                            <li>
+                                                <a class="m-link {{ request()->routeIs('why-choose-us.*') ? 'active' : '' }}"
+                                                    href="{{ route('why-choose-us.edit') }}">
+                                                    <i class="fa fa-circle-check"></i>
+                                                    <span class="ms-2">{{ __('why_choose_us.sidebar_title') }}</span>
+                                                </a>
+                                            </li>
+                                        @endif
+
+                                        @if (@AdminGuardHasAnyPerm([\App\PermKeys::FIND_US_VIEW, \App\PermKeys::FIND_US_CONTROL]))
+                                            <li>
+                                                <a class="m-link {{ request()->routeIs('find-us.*') ? 'active' : '' }}"
+                                                    href="{{ route('find-us.index') }}">
+                                                    <i class="fa fa-map-location-dot"></i>
+                                                    <span class="ms-2">{{ __('find_us.title') }}</span>
+                                                </a>
+                                            </li>
+                                        @endif
+
                                         @if (@AdminGuardHasPerm(\App\PermKeys::ABOUT_US_VIEW))
                                             <li>
                                                 <a class="m-link {{ Route::currentRouteName() == 'about-us.index' ? 'active' : '' }}"
@@ -967,6 +987,18 @@
                                                 <span class="ms-2">{{ helperTrans('ingaz.steps') }}</span>
                                             </a>
                                         </li>
+
+                                        @if (@AdminGuardHasAnyPerm([\App\PermKeys::RECRUITMENT_REQUIREMENTS_VIEW, \App\PermKeys::RECRUITMENT_REQUIREMENTS_CONTROL]))
+                                            <li>
+                                                <a class="m-link {{ request()->routeIs('requiremens.*') ? 'active' : '' }}"
+                                                    href="{{ route('requiremens.index') }}">
+                                                    <i class="fa fa-list-check"></i>
+                                                    <span class="ms-2">
+                                                        {{ helperTrans('api.Recruitment requirements') }}
+                                                    </span>
+                                                </a>
+                                            </li>
+                                        @endif
 
                                         <li>
                                             <a class="m-link {{ Route::currentRouteName() == 'partenrs.index' ? 'active' : '' }}"
@@ -1032,13 +1064,6 @@
                                         </a>
                                     </li>
                                 @endif
-                                <li>
-                                    <a class="m-link {{ Route::currentRouteName() == 'requiremens.index' ? 'active' : '' }}"
-                                        href="{{ route('requiremens.index') }}">
-                                        <i class="fa fa-user"></i>
-                                        <span class="ms-2"> {{ helperTrans('ingaz.requiremens') }}</span>
-                                    </a>
-                                </li>
                             </ul>
                         </li>
                         <li class="{{ in_array(Route::currentRouteName(), ['job-titles.index', 'packages.index', 'nationalities.index', 'religions.index', 'skills.index', 'countries.index', 'cities.index', 'airports.index', 'airports.create', 'airports.edit', 'social-statuses.index']) ? '' : 'collapsed' }}">

@@ -442,6 +442,24 @@ class NewPermKeys
     const SERVICES_UNPUBLISH = 'services_unpublish';
     const SERVICES_MANAGE = 'services_manage';
 
+    const WHY_CHOOSE_US_VIEW = 'why_choose_us_view';
+    const WHY_CHOOSE_US_CREATE = 'why_choose_us_create';
+    const WHY_CHOOSE_US_EDIT = 'why_choose_us_edit';
+    const WHY_CHOOSE_US_DELETE = 'why_choose_us_delete';
+    const WHY_CHOOSE_US_MANAGE = 'why_choose_us_control';
+
+    const FIND_US_VIEW = 'find_us_view';
+    const FIND_US_CREATE = 'find_us_create';
+    const FIND_US_EDIT = 'find_us_edit';
+    const FIND_US_DELETE = 'find_us_delete';
+    const FIND_US_MANAGE = 'find_us_control';
+
+    const RECRUITMENT_REQUIREMENTS_VIEW = 'recruitment_requirements_view';
+    const RECRUITMENT_REQUIREMENTS_CREATE = 'recruitment_requirements_create';
+    const RECRUITMENT_REQUIREMENTS_EDIT = 'recruitment_requirements_edit';
+    const RECRUITMENT_REQUIREMENTS_DELETE = 'recruitment_requirements_delete';
+    const RECRUITMENT_REQUIREMENTS_MANAGE = 'recruitment_requirements_control';
+
     // ========================================
     // الاتصالات (Communications)
     // ========================================
@@ -540,6 +558,9 @@ class NewPermKeys
             self::PROCESS_VIEW,
             self::STEPS_VIEW,
             self::SERVICES_VIEW,
+            self::WHY_CHOOSE_US_VIEW,
+            self::FIND_US_VIEW,
+            self::RECRUITMENT_REQUIREMENTS_VIEW,
             self::COMMUNICATIONS_VIEW,
             self::NOTIFICATIONS_VIEW,
             self::SYSTEM_VIEW,
@@ -587,6 +608,9 @@ class NewPermKeys
             self::PROCESS_MANAGE,
             self::STEPS_MANAGE,
             self::SERVICES_MANAGE,
+            self::WHY_CHOOSE_US_MANAGE,
+            self::FIND_US_MANAGE,
+            self::RECRUITMENT_REQUIREMENTS_MANAGE,
             self::COMMUNICATIONS_MANAGE,
             self::NOTIFICATIONS_MANAGE,
             self::SYSTEM_MANAGE,

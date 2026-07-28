@@ -1642,6 +1642,151 @@
         </div>
     </section>
 
+    @if($whyChooseUs)
+        <section class="why-choose-home-section" data-aos="fade-up" data-aos-duration="900">
+            <style>
+                .why-choose-home-section {
+                    padding: 90px 0;
+                    background: #fff;
+                }
+                .why-choose-home-section .why-images {
+                    position: relative;
+                    min-height: 560px;
+                    padding: 0 40px 55px 0;
+                }
+                .why-choose-home-section .why-images img {
+                    width: 82%;
+                    height: 520px;
+                    object-fit: cover;
+                    border-radius: 24px;
+                }
+                .why-choose-home-section .why-images img:nth-child(2) {
+                    position: absolute;
+                    width: 48%;
+                    height: 365px;
+                    right: 0;
+                    bottom: 0;
+                    border: 10px solid #fff;
+                    border-radius: 24px;
+                }
+                .why-choose-home-section .why-label {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 8px;
+                    border: 1px solid var(--mainColor);
+                    border-radius: 30px;
+                    color: var(--mainColor);
+                    padding: 9px 20px;
+                    margin-bottom: 25px;
+                }
+                .why-choose-home-section .why-title {
+                    font-size: 38px;
+                    line-height: 1.35;
+                    color: #06101f;
+                    margin-bottom: 18px;
+                }
+                .why-choose-home-section .why-description {
+                    color: #777;
+                    line-height: 2;
+                    margin-bottom: 35px;
+                }
+                .why-choose-home-section .why-features {
+                    display: grid;
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                    gap: 30px 45px;
+                }
+                .why-choose-home-section .why-feature {
+                    display: flex;
+                    gap: 16px;
+                    align-items: flex-start;
+                }
+                .why-choose-home-section .why-feature-icon {
+                    flex: 0 0 68px;
+                    width: 68px;
+                    height: 68px;
+                    display: grid;
+                    place-items: center;
+                    border-radius: 50%;
+                    color: #fff;
+                    background: var(--mainColor);
+                    font-size: 25px;
+                }
+                .why-choose-home-section .why-feature h4 {
+                    color: #06101f;
+                    margin-bottom: 8px;
+                }
+                .why-choose-home-section .why-feature p {
+                    color: #777;
+                    line-height: 1.8;
+                    margin: 0;
+                }
+                @media (max-width: 991px) {
+                    .why-choose-home-section .why-images {
+                        min-height: 470px;
+                    }
+                    .why-choose-home-section .why-images img {
+                        height: 430px;
+                    }
+                    .why-choose-home-section .why-title {
+                        font-size: 30px;
+                    }
+                }
+                @media (max-width: 767px) {
+                    .why-choose-home-section {
+                        padding: 55px 0;
+                    }
+                    .why-choose-home-section .why-images {
+                        min-height: 410px;
+                        margin-bottom: 35px;
+                    }
+                    .why-choose-home-section .why-images img {
+                        height: 370px;
+                    }
+                    .why-choose-home-section .why-images img:nth-child(2) {
+                        height: 250px;
+                    }
+                    .why-choose-home-section .why-features {
+                        grid-template-columns: 1fr;
+                    }
+                }
+            </style>
+
+            <div class="container">
+                <div class="row align-items-center g-5">
+                    <div class="col-lg-5">
+                        <div class="why-images">
+                            @foreach($whyChooseUs->images as $image)
+                                <img src="{{ $image->url }}" alt="{{ $whyChooseUs->title }}">
+                            @endforeach
+                        </div>
+                    </div>
+                    <div class="col-lg-7">
+                        <span class="why-label">
+                            <i class="fa fa-check-circle"></i>
+                            {{ __('why_choose_us.sidebar_title') }}
+                        </span>
+                        <h2 class="why-title">{{ $whyChooseUs->title }}</h2>
+                        <p class="why-description">{{ $whyChooseUs->description }}</p>
+
+                        <div class="why-features">
+                            @foreach($whyChooseUs->features as $feature)
+                                <div class="why-feature">
+                                    <div class="why-feature-icon">
+                                        <i class="{{ $feature->icon }}"></i>
+                                    </div>
+                                    <div>
+                                        <h4>{{ $feature->title }}</h4>
+                                        <p>{{ $feature->description }}</p>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    @endif
+
     <!-- ================ requirements ================= -->
     <section class="requirements" data-aos="fade-up" data-aos-duration="900">
         <div class="container">
@@ -1660,19 +1805,24 @@
             <div class="row">
                 <div class="col-md-6 p-2">
                     <div class="requirement">
-                        <div class="head" data-aos="fade-up">
-                            <h4>{{ __('ingaz.Documents_domestic') }}</h4>
-                        </div>
-                        @forelse($Domestic as $domestic)
+                        @forelse($Domestic as $requirement)
+                            <div class="head" data-aos="fade-up">
+                                <h4>{{ $requirement->title }}</h4>
+                            </div>
                             <ul>
-                                <li data-aos="fade-up">
-                                    <div class="icon">
-                                        <i class="{{ $domestic->image }}"></i>
-                                    </div>
-                                    <p> {{ $domestic->title }}</p>
-                                </li>
+                                @foreach($requirement->items as $point)
+                                    <li data-aos="fade-up">
+                                        <div class="icon">
+                                            <i class="fa-regular fa-circle-check"></i>
+                                        </div>
+                                        <p>{{ $point->text }}</p>
+                                    </li>
+                                @endforeach
                             </ul>
                         @empty
+                            <div class="head" data-aos="fade-up">
+                                <h4>{{ __('ingaz.Documents_domestic') }}</h4>
+                            </div>
                             <ul>
                                 <li data-aos="fade-up">
                                     <div class="icon">
@@ -1711,23 +1861,28 @@
 
                 <div class="col-md-6 p-2">
                     <div class="requirement">
-                        <div class="head" data-aos="fade-up">
-                            <h4>{{ __('ingaz.Documents_visa') }} </h4>
-                            <p>
-                                {{ __('ingaz.Please_visit_the_Domestic_Workers_Program_Support_website') }}
-                                <a href="{{ route('site.musaned.index') }}"> من هنا </a>
-                            </p>
-                        </div>
-                        @forelse($Visa as $visa)
+                        @forelse($Visa as $requirement)
+                            <div class="head" data-aos="fade-up">
+                                <h4>{{ $requirement->title }}</h4>
+                            </div>
                             <ul>
-                                <li data-aos="fade-up">
-                                    <div class="icon">
-                                        <i class="{{ $visa->image }}"></i>
-                                    </div>
-                                    <p> {{ $visa->title }} </p>
-                                </li>
+                                @foreach($requirement->items as $point)
+                                    <li data-aos="fade-up">
+                                        <div class="icon">
+                                            <i class="fa-regular fa-circle-check"></i>
+                                        </div>
+                                        <p>{{ $point->text }}</p>
+                                    </li>
+                                @endforeach
                             </ul>
                         @empty
+                            <div class="head" data-aos="fade-up">
+                                <h4>{{ __('ingaz.Documents_visa') }} </h4>
+                                <p>
+                                    {{ __('ingaz.Please_visit_the_Domestic_Workers_Program_Support_website') }}
+                                    <a href="{{ route('site.musaned.index') }}"> من هنا </a>
+                                </p>
+                            </div>
                             <ul>
                                 <li data-aos="fade-up">
                                     <div class="icon">
@@ -1785,6 +1940,72 @@
 
 
 
+
+    @if($findUsLocations->isNotEmpty())
+        <section class="find-us-home" data-aos="fade-up" data-aos-duration="900">
+            <style>
+                .find-us-home { padding: 70px 0; background: #f6f9fc; }
+                .find-us-home-shell { overflow: hidden; border-radius: 28px; background: #dceaf7; box-shadow: 0 16px 45px rgba(19, 59, 94, .1); }
+                .find-us-home-map { min-height: 620px; background: #e7edf3; }
+                .find-us-home-map iframe { display: block; width: 100%; height: 620px; border: 0; }
+                .find-us-home-list { padding: 34px 26px; height: 620px; overflow-y: auto; }
+                .find-us-home-label { display: flex; align-items: center; gap: 9px; width: fit-content; margin: 0 auto 20px; padding: 9px 18px; border-radius: 30px; background: #0869b5; color: #fff; font-weight: 700; }
+                .find-us-home-branch { width: 100%; padding: 24px 20px; margin-bottom: 14px; border: 1px solid transparent; border-radius: 20px; background: #fff; text-align: start; transition: .22s ease; }
+                .find-us-home-branch small { display: block; margin-bottom: 9px; color: #7b8490; }
+                .find-us-home-branch strong { display: block; color: #101828; font-size: 18px; line-height: 1.7; }
+                .find-us-home-branch.active { background: #0869b5; box-shadow: 0 10px 25px rgba(8, 105, 181, .2); }
+                .find-us-home-branch.active small, .find-us-home-branch.active strong { color: #fff; }
+                .find-us-home-branch:hover { transform: translateY(-2px); border-color: #78b7e7; }
+                @media (max-width: 991.98px) {
+                    .find-us-home-map, .find-us-home-map iframe { min-height: 430px; height: 430px; }
+                    .find-us-home-list { height: auto; max-height: 560px; }
+                }
+            </style>
+
+            <div class="container-fluid px-lg-4">
+                <div class="find-us-home-shell">
+                    <div class="row g-0">
+                        <div class="col-lg-8 find-us-home-map">
+                            <iframe id="findUsHomeMap" src="{{ $findUsLocations->first()->map_embed_url }}"
+                                    title="{{ $findUsLocations->first()->branch_name }}" loading="lazy"
+                                    referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="find-us-home-list">
+                                <div class="find-us-home-label">
+                                    <i class="fa fa-location-dot"></i>
+                                    {{ __('find_us.title') }}
+                                </div>
+                                @foreach($findUsLocations as $location)
+                                    <button type="button"
+                                            class="find-us-home-branch {{ $loop->first ? 'active' : '' }}"
+                                            data-map-url="{{ $location->map_embed_url }}"
+                                            data-map-title="{{ $location->branch_name }}">
+                                        <small>{{ $location->branch_name }}</small>
+                                        <strong>{{ $location->branch_address }}</strong>
+                                    </button>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <script>
+                document.querySelectorAll('.find-us-home-branch').forEach(function (branch) {
+                    branch.addEventListener('click', function () {
+                        document.querySelectorAll('.find-us-home-branch').forEach(function (item) {
+                            item.classList.remove('active');
+                        });
+                        branch.classList.add('active');
+                        const map = document.getElementById('findUsHomeMap');
+                        map.src = branch.dataset.mapUrl;
+                        map.title = branch.dataset.mapTitle;
+                    });
+                });
+            </script>
+        </section>
+    @endif
 
     <!-- ================ contact Form ================= -->
     <section class="contactForm" data-aos="fade-up" data-aos-duration="900">
@@ -1873,7 +2094,8 @@
                         <div class="swiper-slide" data-aos="zoom-in">
                             <div class="referenceLogo">
                                 <img src="{{ showFile($client->image) ?? asset('site/assets/images/musand.svg') }}"
-                                    alt=""
+                                    alt="{{ $client->title ?? '' }}"
+                                    title="{{ $client->title ?? '' }}"
                                     onerror="this.onerror=null;this.src='{{ asset('site/assets/images/musand.svg') }}';">
                             </div>
                         </div>

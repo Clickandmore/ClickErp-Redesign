@@ -22,15 +22,12 @@ class ClientRequest extends MainRequest
      *
      * @return array
      */
-   public function rules()
-{
-    $rules = [
-         'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-    ];
-
- 
-
-    return $rules;
-}
+    public function rules()
+    {
+        return [
+            'title' => 'nullable|string|max:255',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+        ];
+    }
 
 }

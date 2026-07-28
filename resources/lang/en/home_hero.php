@@ -1,0 +1,25 @@
+<?php
+
+return [
+    'page_title' => 'Home Hero',
+    'sidebar_title' => 'Home Hero',
+    'content' => 'Hero Content',
+    'title' => 'Title',
+    'subtitle' => 'Subtitle',
+    'active' => 'Show this section on the website',
+    'images' => 'Hero Images',
+    'images_hint' => 'Upload between one and twelve JPG, PNG, or WebP images. Maximum 10 MB each.',
+    'delete_image' => 'Delete image',
+    'video' => 'Optional Video',
+    'video_type' => 'Video source',
+    'no_video' => 'No video',
+    'uploaded_video' => 'Uploaded video',
+    'youtube_video' => 'YouTube link',
+    'video_title' => 'Video title (optional)',
+    'video_file' => 'Video file',
+    'youtube_url' => 'YouTube URL',
+    'current_video' => 'View current video',
+    'at_least_one_image' => 'The hero section must contain at least one image.',
+    'video_file_required' => 'Upload a video file when the uploaded-video source is selected.',
+    'saved' => 'Home hero saved successfully.',
+];
