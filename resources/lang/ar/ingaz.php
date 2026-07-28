@@ -2469,4 +2469,11 @@ return array (
   'client_tax_number_required' => 'الرقم الضريبي مطلوب لعميل الشركة.',
   'client_tax_number_already_exists' => 'الرقم الضريبي مستخدم مسبقاً لعميل آخر.',
   'client_license_number_required' => 'رقم الترخيص مطلوب لعميل الشركة.',
+  'language_rating_method' => 'طريقة تقييم اللغة',
+  'language_rating_percentage' => 'نسبة مئوية',
+  'language_rating_level' => 'مستوى وصفي',
+  'language_level_acceptable' => 'مقبول',
+  'language_level_average' => 'متوسط',
+  'language_level_good' => 'جيد',
+  'language_level_excellent' => 'ممتاز',
 );

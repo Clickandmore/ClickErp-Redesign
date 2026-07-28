@@ -80,7 +80,9 @@ class SettingResource extends JsonResource
             'show_public_site' => (bool)$this->show_public_site,
             'customer_services' => (string)$this->customer_services,
             'has_offers' => (bool)$this->has_offers,
-            'show_customer_service_during_booking' => (bool)$this->show_customer_service_during_booking
+            'show_customer_service_during_booking' => (bool)$this->show_customer_service_during_booking,
+            'external_auth_mode' => \App\Support\ExternalAuthSettings::mode(),
+            'uses_otp_authentication' => \App\Support\ExternalAuthSettings::usesOtpOnly(),
 		];
     }
 
