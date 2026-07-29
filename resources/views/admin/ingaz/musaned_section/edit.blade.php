@@ -33,6 +33,15 @@
             'recruitment_duration_rating' => 'recruitment_duration_title',
             'complaint_response_rating' => 'complaint_response_title',
         ];
+        $safeTextValue = static function (string $key, $storedValue = '', string $fallback = '') {
+            $oldValue = old($key);
+
+            if ($oldValue !== null && trim((string) $oldValue) !== '1') {
+                return $oldValue;
+            }
+
+            return $storedValue ?: $fallback;
+        };
     @endphp
 
     <form method="post" action="{{ route('musaned-section.update') }}" class="row g-4">
@@ -48,20 +57,20 @@
                             <div class="col-md-6">
                                 <label class="form-label">{{ __('musaned_section.title') }} ({{ strtoupper($locale) }})</label>
                                 <input type="text" class="form-control" name="title:{{ $locale }}"
-                                    value="{{ old('title:' . $locale, $section ? optional($section->translate($locale))->title : '') }}"
+                                    value="{{ $safeTextValue('title:' . $locale, $section ? optional($section->translate($locale))->title : '') }}"
                                     maxlength="255" required @readonly(!$canEdit)>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label">{{ __('musaned_section.overall_performance') }} ({{ strtoupper($locale) }})</label>
                                 <input type="text" class="form-control" name="overall_performance:{{ $locale }}"
-                                    value="{{ old('overall_performance:' . $locale, $section ? optional($section->translate($locale))->overall_performance : '') }}"
+                                    value="{{ $safeTextValue('overall_performance:' . $locale, $section ? optional($section->translate($locale))->overall_performance : '') }}"
                                     maxlength="255" placeholder="{{ __('musaned_section.performance_example') }}"
                                     required @readonly(!$canEdit)>
                             </div>
                             <div class="col-12">
                                 <label class="form-label">{{ __('musaned_section.subtitle') }} ({{ strtoupper($locale) }})</label>
                                 <textarea class="form-control" name="subtitle:{{ $locale }}" rows="3"
-                                    maxlength="2000" required @readonly(!$canEdit)>{{ old('subtitle:' . $locale, $section ? optional($section->translate($locale))->subtitle : '') }}</textarea>
+                                    maxlength="2000" required @readonly(!$canEdit)>{{ $safeTextValue('subtitle:' . $locale, $section ? optional($section->translate($locale))->subtitle : '') }}</textarea>
                             </div>
                         @endforeach
 
@@ -100,9 +109,9 @@
                                             <label class="form-label">
                                                 {{ __('musaned_section.metric_title') }} ({{ strtoupper($locale) }})
                                             </label>
-                                            <input type="text" class="form-control"
-                                                name="{{ $titleField }}:{{ $locale }}"
-                                                value="{{ old($titleField . ':' . $locale, ($section && optional($section->translate($locale))->{$titleField}) ?: trans('musaned_section.' . $valueField, [], $locale)) }}"
+                                                <input type="text" class="form-control"
+                                                    name="{{ $titleField }}:{{ $locale }}"
+                                                value="{{ $safeTextValue($titleField . ':' . $locale, $section ? optional($section->translate($locale))->{$titleField} : '', trans('musaned_section.' . $valueField, [], $locale)) }}"
                                                 maxlength="255" required @readonly(!$canEdit)>
                                         </div>
                                     @endforeach
@@ -133,9 +142,9 @@
                                             <label class="form-label">
                                                 {{ __('musaned_section.metric_title') }} ({{ strtoupper($locale) }})
                                             </label>
-                                            <input type="text" class="form-control"
-                                                name="{{ $titleField }}:{{ $locale }}"
-                                                value="{{ old($titleField . ':' . $locale, ($section && optional($section->translate($locale))->{$titleField}) ?: trans('musaned_section.' . $valueField, [], $locale)) }}"
+                                                <input type="text" class="form-control"
+                                                    name="{{ $titleField }}:{{ $locale }}"
+                                                value="{{ $safeTextValue($titleField . ':' . $locale, $section ? optional($section->translate($locale))->{$titleField} : '', trans('musaned_section.' . $valueField, [], $locale)) }}"
                                                 maxlength="255" required @readonly(!$canEdit)>
                                         </div>
                                     @endforeach
