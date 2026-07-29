@@ -381,6 +381,12 @@ const PARTENR_CONTROL = 'partenr_control';
     const HOME_HERO_DELETE = 'home_hero_delete';
     const HOME_HERO_CONTROL = 'home_hero_control';
 
+    const GUIDELINES_VIEW = 'guidelines_view';
+    const GUIDELINES_CREATE = 'guidelines_create';
+    const GUIDELINES_EDIT = 'guidelines_edit';
+    const GUIDELINES_DELETE = 'guidelines_delete';
+    const GUIDELINES_CONTROL = 'guidelines_control';
+
     const FIND_US_VIEW = 'find_us_view';
     const FIND_US_CREATE = 'find_us_create';
     const FIND_US_EDIT = 'find_us_edit';

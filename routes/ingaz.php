@@ -28,6 +28,7 @@ use App\Http\Controllers\ingaz\FastNewController;
 use App\Http\Controllers\ingaz\FeatureController;
 use App\Http\Controllers\ingaz\FindUsLocationController;
 use App\Http\Controllers\ingaz\HomeHeroSectionController;
+use App\Http\Controllers\ingaz\GuidelineSectionController;
 use App\Http\Controllers\ingaz\FinancialRequestController;
 use App\Http\Controllers\ingaz\InvoiceController;
 use App\Http\Controllers\ingaz\JobTitleController;
@@ -136,6 +137,10 @@ Route::group(
                 ->name('home-hero.edit');
             Route::put('home-hero', [HomeHeroSectionController::class, 'update'])
                 ->name('home-hero.update');
+            Route::get('guidelines', [GuidelineSectionController::class, 'edit'])
+                ->name('guidelines.edit');
+            Route::put('guidelines', [GuidelineSectionController::class, 'update'])
+                ->name('guidelines.update');
             Route::resource('find-us', FindUsLocationController::class)
                 ->except('show')
                 ->parameters(['find-us' => 'location']);

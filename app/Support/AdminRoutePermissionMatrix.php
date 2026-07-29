@@ -110,6 +110,7 @@ class AdminRoutePermissionMatrix
             'why-choose-us.edit',
             'musaned-section.edit',
             'home-hero.edit',
+            'guidelines.edit',
             'find-us.index',
             'requiremens.index',
             'about-us.index',
@@ -783,6 +784,16 @@ class AdminRoutePermissionMatrix
                     PermKeys::HOME_HERO_EDIT,
                     PermKeys::HOME_HERO_DELETE,
                     PermKeys::HOME_HERO_CONTROL,
+                ],
+                'guidelines.edit' => [
+                    PermKeys::GUIDELINES_VIEW,
+                    PermKeys::GUIDELINES_CONTROL,
+                ],
+                'guidelines.update' => [
+                    PermKeys::GUIDELINES_CREATE,
+                    PermKeys::GUIDELINES_EDIT,
+                    PermKeys::GUIDELINES_DELETE,
+                    PermKeys::GUIDELINES_CONTROL,
                 ],
             ],
             self::resource('find-us', [

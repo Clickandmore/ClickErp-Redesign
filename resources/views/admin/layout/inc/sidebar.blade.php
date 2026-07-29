@@ -125,7 +125,7 @@
 
                 $canViewSms = @AdminGuardHasAnyPerm([\App\PermKeys::NOTIFICATIONS_CONTROL, \App\PermKeys::NOTIFICATIONS_VIEW]);
 
-                $canViewWebsiteManagement = @SystemModuleEnabled('website') && @AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_VIEW, \App\PermKeys::FAQ_VIEW, \App\PermKeys::STATISTICS_VIEW, \App\PermKeys::OFFERS_VIEW, \App\PermKeys::OFFERS_CONTROL, \App\PermKeys::WHY_CHOOSE_US_VIEW, \App\PermKeys::WHY_CHOOSE_US_CONTROL, \App\PermKeys::FIND_US_VIEW, \App\PermKeys::FIND_US_CONTROL, \App\PermKeys::RECRUITMENT_REQUIREMENTS_VIEW, \App\PermKeys::RECRUITMENT_REQUIREMENTS_CONTROL, \App\PermKeys::DEVELOPERS_PERMS]);
+                $canViewWebsiteManagement = @SystemModuleEnabled('website') && @AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_VIEW, \App\PermKeys::FAQ_VIEW, \App\PermKeys::STATISTICS_VIEW, \App\PermKeys::OFFERS_VIEW, \App\PermKeys::OFFERS_CONTROL, \App\PermKeys::WHY_CHOOSE_US_VIEW, \App\PermKeys::WHY_CHOOSE_US_CONTROL, \App\PermKeys::FIND_US_VIEW, \App\PermKeys::FIND_US_CONTROL, \App\PermKeys::RECRUITMENT_REQUIREMENTS_VIEW, \App\PermKeys::RECRUITMENT_REQUIREMENTS_CONTROL, \App\PermKeys::GUIDELINES_VIEW, \App\PermKeys::GUIDELINES_CONTROL, \App\PermKeys::DEVELOPERS_PERMS]);
 
                 $canViewHomeSettings = @AdminGuardHasAnyPerm([\App\PermKeys::SETTINGS_VIEW, \App\PermKeys::SLIDERS_VIEW, \App\PermKeys::OFFERS_VIEW, \App\PermKeys::OFFERS_CONTROL, \App\PermKeys::ABOUT_US_VIEW, \App\PermKeys::FAQ_VIEW, \App\PermKeys::STATISTICS_VIEW, \App\PermKeys::STEPS_VIEW, \App\PermKeys::SERVICES_VIEW, \App\PermKeys::PARTENR_VIEW, \App\PermKeys::WHY_CHOOSE_US_VIEW, \App\PermKeys::WHY_CHOOSE_US_CONTROL, \App\PermKeys::FIND_US_VIEW, \App\PermKeys::FIND_US_CONTROL, \App\PermKeys::RECRUITMENT_REQUIREMENTS_VIEW, \App\PermKeys::RECRUITMENT_REQUIREMENTS_CONTROL]);
 
@@ -1161,6 +1161,7 @@
                             (request()->routeIs('settings.*') && !request()->routeIs('settings.section'));
                         $isSelectWorkersSettingsRoute =
                             request()->routeIs('select-workers.*') || request()->routeIs('select-workers-settings.*');
+                        $isGuidelinesRoute = request()->routeIs('guidelines.*');
                         $isHomeSettingsRoute =
                             request()->routeIs('fast-news.*') ||
                             request()->routeIs('offers.*') ||
@@ -1219,6 +1220,7 @@
                         $isSupportOpen = request()->routeIs('support.*');
                         $websiteManagementOpen =
                             $isWebsiteSettingsRoute ||
+                            $isGuidelinesRoute ||
                             request()->routeIs('questions.*') ||
                             request()->routeIs('requiremens.*') ||
                             $isSelectWorkersSettingsRoute ||
@@ -1282,6 +1284,16 @@
                                                     <i class="fa fa-cogs"></i>
                                                     <span
                                                         class="ms-2">{{ __('admin.sidebar.external_website_data') }}</span>
+                                                </a>
+                                            </li>
+                                        @endif
+
+                                        @if (@AdminGuardHasAnyPerm([\App\PermKeys::GUIDELINES_VIEW, \App\PermKeys::GUIDELINES_CONTROL]))
+                                            <li>
+                                                <a class="m-link {{ $isGuidelinesRoute ? 'active' : '' }}"
+                                                    href="{{ route('guidelines.edit') }}">
+                                                    <i class="fa fa-book-open"></i>
+                                                    <span class="ms-2">{{ __('guidelines.sidebar_title') }}</span>
                                                 </a>
                                             </li>
                                         @endif

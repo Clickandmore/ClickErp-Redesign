@@ -1,0 +1,25 @@
+<?php
+
+return [
+    'page_title' => 'Guidelines',
+    'sidebar_title' => 'Guidelines',
+    'global_files' => 'General Rights and Obligations',
+    'client_file' => 'Client rights and obligations file',
+    'worker_file' => 'Worker rights and obligations file',
+    'current_file' => 'View current file',
+    'youtube_links' => 'YouTube Links',
+    'youtube_url' => 'YouTube URL',
+    'add_video' => 'Add video',
+    'no_videos' => 'No YouTube links have been added.',
+    'nationality_versions' => 'Nationality Guidelines',
+    'nationality_versions_hint' => 'Add one row for every language version available for a nationality.',
+    'add_language_version' => 'Add language version',
+    'nationality' => 'Nationality',
+    'choose_nationality' => 'Choose a nationality',
+    'language' => 'Language',
+    'remove' => 'Remove',
+    'global_file_required' => 'Both general guideline files are required.',
+    'version_files_required' => 'Both files are required for every new language version.',
+    'duplicate_language' => 'The same language cannot be added twice for one nationality.',
+    'saved' => 'Guidelines saved successfully.',
+];
