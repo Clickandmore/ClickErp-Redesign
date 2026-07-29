@@ -524,6 +524,55 @@ class Contract extends Model
     /**
      * حساب حالة الضمان تلقائياً
      */
+    public function resolveRecruitmentArrivalDateTime(): ?\Carbon\Carbon
+    {
+        if ($this->warranty_start_date) {
+            return \Carbon\Carbon::parse($this->warranty_start_date);
+        }
+
+        $travelHistory = $this->exists
+            ? \App\Models\TravelHistory::where('order_id', $this->id)->latest('id')->first()
+            : ($this->relationLoaded('travelHistory') ? $this->travelHistory : null);
+
+        $arrivalDateTime = null;
+
+        if ($travelHistory?->status === 'completed') {
+            $arrivalDateTime = $travelHistory->resolveArrivalDateTime();
+
+            if (!$arrivalDateTime && !empty($travelHistory->arrived_at)) {
+                $arrivalDateTime = \Carbon\Carbon::parse($travelHistory->arrived_at);
+            }
+        }
+
+        $hasReachedArrivalStage = in_array($this->status, [
+            ContractStatusEnum::Arrival->value,
+            ContractStatusEnum::Completed->value,
+        ], true);
+
+        if (!$arrivalDateTime && $hasReachedArrivalStage && $this->info?->arrival_date) {
+            $arrivalDateTime = \Carbon\Carbon::parse($this->info->arrival_date);
+        }
+
+        if (!$arrivalDateTime && $hasReachedArrivalStage && $this->maid?->arrival_date) {
+            $arrivalDateTime = \Carbon\Carbon::parse($this->maid->arrival_date);
+        }
+
+        return $arrivalDateTime;
+    }
+
+    public function recruitmentContractExpiryDate(?\Carbon\Carbon $arrivalDateTime = null): ?\Carbon\Carbon
+    {
+        $arrivalDateTime ??= $this->resolveRecruitmentArrivalDateTime();
+
+        if (!$arrivalDateTime) {
+            return null;
+        }
+
+        $durationInYears = (int) ($this->info?->contract_duration ?: 2);
+
+        return $arrivalDateTime->copy()->addYears($durationInYears);
+    }
+
     public function calculateWarrantyStatus()
     {
         if (!in_array($this->status, [ContractStatusEnum::Arrival->value, ContractStatusEnum::Completed->value], true)) {
@@ -531,29 +580,7 @@ class Contract extends Model
         }
 
         // يبدأ ضمان الاستقدام من تاريخ الوصول الفعلي فقط.
-        $travelHistory = \App\Models\TravelHistory::where('order_id', $this->id)
-            ->latest('id')
-            ->first();
-
-        $arrivalDateTime = null;
-
-        if ($travelHistory?->arrival_date) {
-            $arrivalDateTime = $travelHistory->resolveArrivalDateTime();
-        }
-
-        if (!$arrivalDateTime && $travelHistory && !empty($travelHistory->arrived_at)) {
-            $arrivalDateTime = \Carbon\Carbon::parse($travelHistory->arrived_at);
-        }
-
-        $infoArrivalDate = $this->info?->arrival_date;
-        if (!$arrivalDateTime && $infoArrivalDate) {
-            $arrivalDateTime = \Carbon\Carbon::parse($infoArrivalDate);
-        }
-
-        $maidArrivalDate = $this->maid?->arrival_date;
-        if (!$arrivalDateTime && $maidArrivalDate) {
-            $arrivalDateTime = \Carbon\Carbon::parse($maidArrivalDate);
-        }
+        $arrivalDateTime = $this->resolveRecruitmentArrivalDateTime();
 
         if (!$arrivalDateTime) {
             $updates = [

@@ -485,6 +485,7 @@ class NewPermKeys
     const SETTINGS_VIEW = 'settings_view';
     const SETTINGS_EDIT = 'settings_edit';
     const SETTINGS_MANAGE = 'settings_manage';
+    const SETTINGS_CV_TEMPLATE = 'settings_cv_template';
 
     // إعدادات العقود (Contract Settings)
     const CONTRACT_SETTINGS_VIEW = 'contract_settings_view';

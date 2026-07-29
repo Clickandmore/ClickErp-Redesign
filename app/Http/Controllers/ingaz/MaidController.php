@@ -24,23 +24,27 @@ use App\Models\ingaz\Skill;
 use App\Models\MaidUnavailableRecord;
 use App\Models\RecruitmentOffices;
 use App\Services\ingaz\MaidCvExtractionService;
+use App\Services\ingaz\MaidCvPdfGenerator;
 use App\Services\ingaz\RentalMaidFinanceService;
 use App\Services\ManagedFileStorage;
+use App\Support\MaidCvTemplateSettings;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Yajra\DataTables\Facades\DataTables;
+use ZipArchive;
 
 class MaidController extends Controller
 {
 
     public $folderPath = "admin.ingaz.maids";
-    public $postData = ["nationality_id", "expertises", 'experience_status', 'image', 'video', 'childrens_count', 'duration', 'additional_notes', 'video_link', 'cv_file', 'marital_status:ar', 'marital_status:en', 'languages', 'percentage', 'language_levels', 'experience_years', 'cv_preview', 'religion_id', 'passport_num', 'phone', 'relative_name', 'relative_phone', 'residence_city', 'passport_issue_place', 'education', 'has_driving_license', 'price', 'salary', 'age', 'office_id', 'name:en', 'gender', 'type_id', 'job_id', 'skills', 'birth_date', 'height', 'weight', 'id_number', 'id_expiry_date', 'border_number', 'passport_issue_date', 'passport_expiry_date', 'arrival_date', 'create_shelter_contract', 'request_type'];
+    public $postData = ["nationality_id", "expertises", 'experience_status', 'cooking_experience', 'image', 'video', 'childrens_count', 'duration', 'additional_notes', 'video_link', 'cv_file', 'marital_status:ar', 'marital_status:en', 'languages', 'percentage', 'language_levels', 'experience_years', 'cv_preview', 'maid_cv_file', 'religion_id', 'passport_num', 'phone', 'relative_name', 'relative_phone', 'residence_city', 'passport_issue_place', 'education', 'has_driving_license', 'price', 'salary', 'age', 'office_id', 'name:en', 'gender', 'type_id', 'job_id', 'skills', 'birth_date', 'height', 'weight', 'id_number', 'id_expiry_date', 'border_number', 'passport_issue_date', 'passport_expiry_date', 'arrival_date', 'create_shelter_contract', 'request_type'];
     public $mainRoute = "maids";
 
     public function __construct()
@@ -50,12 +54,12 @@ class MaidController extends Controller
         $this->middleware('permission:maids_backout_view,admin', ['only' => ['noneAvailableMaids']]);
         $this->middleware('permission:maids_deleted_view,admin', ['only' => ['deletedCvs']]);
         $this->middleware('permission:maids_create,admin', ['only' => ['create', 'createRental', 'create_rapid_cv', 'store', 'store_rapid_cv', 'extractCvData']]);
-        $this->middleware('permission:maids_edit,admin', ['only' => ['edit', 'update', 'update_cv', 'updateMedia', 'updateOffer', 'backout', 'clearBackout', 'suspendCv', 'approveSubmission', 'rejectSubmission', 'bulkApproveSubmissions', 'approveStatusChangeRequest', 'bulkApproveStatusChangeRequests', 'rejectStatusChangeRequest']]);
+        $this->middleware('permission:maids_edit,admin', ['only' => ['edit', 'update', 'update_cv', 'updateMedia', 'updateOffer', 'backout', 'clearBackout', 'suspendCv', 'generateCv', 'generateCvBulk', 'approveSubmission', 'rejectSubmission', 'bulkApproveSubmissions', 'approveStatusChangeRequest', 'bulkApproveStatusChangeRequests', 'rejectStatusChangeRequest']]);
         $this->middleware('permission:maids_delete,admin', ['only' => ['destroy', 'restore']]);
         $this->middleware('permission:maids_toggle_status,admin', ['only' => ['show']]);
         $this->middleware('permission:maids_bulk_visibility,admin', ['only' => ['bulkVisibility']]);
         $this->middleware('permission:maids_toggle_pin,admin', ['only' => ['togglePin']]);
-        $this->middleware('permission:maids_export|maids_export_pdf,admin', ['only' => ['exportPdf']]);
+        $this->middleware('permission:maids_export|maids_export_pdf,admin', ['only' => ['exportPdf', 'downloadGeneratedCv', 'exportGeneratedCvs']]);
         $this->middleware('permission:maids_export|maids_export_excel,admin', ['only' => ['exportExcel']]);
     }
 
@@ -101,6 +105,9 @@ class MaidController extends Controller
 
         $this->applyRecruitmentMaidsScope($query);
         $this->applyUniquePassportDisplayScope($query);
+        $cvGenerationAvailable = MaidCvTemplateSettings::enabled();
+        $canSelectForCvActions = @AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT)
+            || @AdminGuardHasPerm(\App\PermKeys::MAIDS_EXPORT_PDF);
 
         if ($request->ajax()) {
             $this->applyMaidFilter($request, $query);
@@ -113,7 +120,18 @@ class MaidController extends Controller
 
             return DataTables::of($query)
                 ->addIndexColumn()
-                ->addColumn('worker_display_id', fn ($row) => $row->arabia_worker_number ?: $row->id)
+                ->addColumn('worker_display_id', function ($row) use ($canSelectForCvActions) {
+                    $displayId = e($row->arabia_worker_number ?: $row->id);
+                    if (!$canSelectForCvActions) {
+                        return $displayId;
+                    }
+
+                    return '<div class="d-flex align-items-center gap-2">'
+                        . '<input type="checkbox" class="form-check-input maid-cv-select m-0" '
+                        . 'value="' . e($row->id) . '" aria-label="تحديد السيرة رقم ' . $displayId . '">'
+                        . '<span>' . $displayId . '</span>'
+                        . '</div>';
+                })
                 ->addColumn('photo', function ($row) {
                     foreach ([$row->image, $row->cv_preview] as $imagePath) {
                         $extension = strtolower(pathinfo((string) $imagePath, PATHINFO_EXTENSION));
@@ -126,8 +144,13 @@ class MaidController extends Controller
                         }
                     }
 
-                    $cvUrl = $row->cv_file ? showFile($row->cv_file) : null;
-                    if ($cvUrl) {
+                    $previewablePdf = collect([$row->cv_preview, $row->cv_file])
+                        ->first(function ($path) {
+                            return filled($path)
+                                && strtolower(pathinfo((string) $path, PATHINFO_EXTENSION)) === 'pdf'
+                                && showFile($path);
+                        });
+                    if ($previewablePdf) {
                         $previewUrl = route('maids.cv.preview', $row->id);
                         return '<button type="button" data-cv-preview-url="' . e($previewUrl) . '" '
                             . 'class="btn p-0 d-inline-flex flex-column align-items-center justify-content-center border rounded text-decoration-none bg-light" '
@@ -457,7 +480,7 @@ class MaidController extends Controller
                         . '</div>'
                         . '</div>';
                 })
-                ->addColumn('actions', function (Maid $row) {
+                ->addColumn('actions', function (Maid $row) use ($cvGenerationAvailable) {
                     $menuItems = '';
                     $today = Carbon::today();
                     $offerActive = $row->offer_price !== null
@@ -469,8 +492,16 @@ class MaidController extends Controller
                         $menuItems .= '<li><a class="dropdown-item" href="' . route('showMaidDetails', $row->id) . '#maid-attachments"><i class="fas fa-paperclip text-info me-2"></i>' . helperTrans('ingaz.attachments') . '</a></li>';
                     }
 
+                    if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EXPORT_PDF) && $this->maidGeneratedPdfPath($row)) {
+                        $menuItems .= '<li><a class="dropdown-item" href="' . route('maids.generated-cv.download', $row->id) . '">'
+                            . '<i class="fas fa-download text-danger me-2"></i>تصدير ملف السيرة PDF</a></li>';
+                    }
+
                     if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EDIT)) {
                         $menuItems .= '<li><a class="dropdown-item" href="' . route($this->mainRoute . '.edit', $row->id) . '"><i class="fas fa-edit text-secondary me-2"></i>' . helperTrans('ingaz.edit_maid') . '</a></li>';
+                        if ($cvGenerationAvailable && empty($row->cv_preview)) {
+                            $menuItems .= '<li><button type="button" class="dropdown-item generate-maid-cv" data-url="' . route('maids.generate-cv', $row->id) . '"><i class="fas fa-file-pdf text-danger me-2"></i>توليد السيرة الذاتية</button></li>';
+                        }
                         if ($row->available && $row->status === 'available') {
                             $menuItems .= '<li><button type="button" class="dropdown-item manage-offer" data-id="' . $row->id . '" data-name="' . e($row->name ?? '') . '" data-offer-price="' . e($row->offer_price ?? '') . '" data-offer-duration="' . e($row->offer_duration ?? '') . '" data-offer-description="' . e($row->offer_description ?? '') . '" data-offer-start="' . ($row->offer_starts_at ? $row->offer_starts_at->format('Y-m-d') : '') . '" data-offer-expire="' . ($row->offer_expires_at ? $row->offer_expires_at->format('Y-m-d') : '') . '" data-offer-active="' . ($offerActive ? 'true' : 'false') . '"><i class="fas fa-tags text-warning me-2"></i>' . helperTrans('ingaz.manage_offer') . '</button></li>';
                         }
@@ -515,7 +546,7 @@ class MaidController extends Controller
                                 </ul>
                             </div>';
                 })
-                ->rawColumns(['photo', 'profile', 'added_info', 'status_badge', 'job_info', 'metrics', 'actions'])
+                ->rawColumns(['worker_display_id', 'photo', 'profile', 'added_info', 'status_badge', 'job_info', 'metrics', 'actions'])
                 ->with('stats', $stats)
                 ->make(true);
         }
@@ -612,7 +643,7 @@ class MaidController extends Controller
             return DataTables::of($rows)
                 ->addIndexColumn()
                 ->editColumn('cv_file', function (Maid $row) {
-                    $rawPath = $row->image ?: ($row->cv_preview ?: $row->cv_file);
+                    $rawPath = $this->maidImagePath($row);
                     $imageUrl = $rawPath ? showFile($rawPath) : asset('admin/assets/img/avatar.png');
 
                     return '<a href="' . route('showMaidDetails', $row->id) . '" title="' . helperTrans('ingaz.view_details') . '">'
@@ -877,7 +908,7 @@ class MaidController extends Controller
                         $row->available_at;
                 })
                 ->editColumn('cv_file', function ($row) {
-                    $rawPath = $row->image ?: ($row->cv_preview ?: $row->cv_file);
+                    $rawPath = $this->maidImagePath($row);
                     $imageUrl = $rawPath ? showFile($rawPath) : asset('admin/assets/img/avatar.png');
 
                     $imgTag = '<img src="' . $imageUrl . '" alt="maid-file" class="maid-cv-thumb">';
@@ -1000,7 +1031,7 @@ class MaidController extends Controller
             return DataTables::of($rows)
                 ->addIndexColumn()
                 ->editColumn('cv_file', function ($row) {
-                    $rawPath = $row->image ?: ($row->cv_preview ?: $row->cv_file);
+                    $rawPath = $this->maidImagePath($row);
                     $imageUrl = $rawPath ? showFile($rawPath) : asset('admin/assets/img/avatar.png');
 
                     $imgTag = '<img src="' . $imageUrl . '" alt="maid-file" class="border" style="width:90px;height:120px;object-fit:cover;">';
@@ -1331,10 +1362,11 @@ class MaidController extends Controller
     public function previewCvData($id, ManagedFileStorage $storage)
     {
         $maid = objModel::withTrashed()->findOrFail($id);
-        abort_unless($this->maidHasPreviewablePdf($maid), 404, 'ملف السيرة غير موجود.');
+        $pdfPath = $this->maidPreviewablePdfPath($maid);
+        abort_unless($pdfPath, 404, 'ملف السيرة غير موجود.');
 
         return $storage->inlineResponse(
-            $maid->cv_file,
+            $pdfPath,
             'maid-cv-' . $maid->id . '.pdf',
             'application/pdf'
         );
@@ -1342,9 +1374,57 @@ class MaidController extends Controller
 
     private function maidHasPreviewablePdf(Maid $maid): bool
     {
-        return filled($maid->cv_file)
-            && strtolower(pathinfo((string) $maid->cv_file, PATHINFO_EXTENSION)) === 'pdf'
-            && app(ManagedFileStorage::class)->exists($maid->cv_file);
+        return $this->maidPreviewablePdfPath($maid) !== null;
+    }
+
+    private function maidPreviewablePdfPath(Maid $maid): ?string
+    {
+        $storage = app(ManagedFileStorage::class);
+
+        foreach ([$maid->cv_preview, $maid->cv_file] as $path) {
+            if (filled($path)
+                && strtolower(pathinfo((string) $path, PATHINFO_EXTENSION)) === 'pdf'
+                && $storage->exists($path)) {
+                return $path;
+            }
+        }
+
+        return null;
+    }
+
+    private function maidGeneratedPdfPath(Maid $maid): ?string
+    {
+        $path = $maid->cv_preview;
+
+        return filled($path)
+            && strtolower(pathinfo((string) $path, PATHINFO_EXTENSION)) === 'pdf'
+            && app(ManagedFileStorage::class)->exists($path)
+                ? $path
+                : null;
+    }
+
+    private function generatedCvFilename(Maid $maid): string
+    {
+        $identifier = $maid->cv_code ?: $maid->passport_num ?: $maid->id;
+        $identifier = trim((string) preg_replace('/[^A-Za-z0-9_-]+/', '-', (string) $identifier), '-');
+        $identifier = $identifier !== '' ? $identifier : (string) $maid->id;
+
+        return 'maid-cv-' . $maid->id . '-' . $identifier . '.pdf';
+    }
+
+    private function maidImagePath(Maid $maid): ?string
+    {
+        $imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'];
+
+        foreach ([$maid->image, $maid->cv_preview, $maid->cv_file] as $path) {
+            if (filled($path)
+                && in_array(strtolower(pathinfo((string) $path, PATHINFO_EXTENSION)), $imageExtensions, true)
+                && showFile($path)) {
+                return $path;
+            }
+        }
+
+        return null;
     }
 
     public function storeAttachments(Request $request, $id)
@@ -1638,7 +1718,7 @@ class MaidController extends Controller
         );
     }
 
-    public function store(MaidRequest $request, objAction $action)
+    public function store(MaidRequest $request, objAction $action, MaidCvPdfGenerator $cvGenerator)
     {
         $data = $request->all();
 
@@ -1649,6 +1729,7 @@ class MaidController extends Controller
         // $data['added_by'] = null; // Temporarily set to null
         // $data = $action->storeMaid($data, $request);
         $data = $action->storeMaid($data, $request);
+        $this->generateCvAutomatically($data, $cvGenerator);
         if ($request->ajax()) {
             return jsonSuccess($data);
         }
@@ -1682,7 +1763,7 @@ class MaidController extends Controller
         ]);
     }
 
-    public function store_rapid_cv(StoreRapidCv $request, objAction $action)
+    public function store_rapid_cv(StoreRapidCv $request, objAction $action, MaidCvPdfGenerator $cvGenerator)
     {
         $data = $request->validated();
 
@@ -1700,6 +1781,7 @@ class MaidController extends Controller
         unset($data['name:en']);
 
         $data = $action->storeRapidCvMaid($data, $request);
+        $this->generateCvAutomatically($data, $cvGenerator);
 
         return response()->json(['code' => 200, 'message' => __('ingaz.cv_added_successfully')]);
     }
@@ -1909,10 +1991,11 @@ class MaidController extends Controller
         ));
     }
 
-    public function update(MaidRequest $request, objAction $action, $id)
+    public function update(MaidRequest $request, objAction $action, MaidCvPdfGenerator $cvGenerator, $id)
     {
         $data = $request->only($this->postData);
         $data = $action->updateMaid($id, $data, $request);
+        $this->generateCvAutomatically($data, $cvGenerator);
 
 
         // Handle direct form submission
@@ -1921,6 +2004,195 @@ class MaidController extends Controller
             return jsonSuccess($data);
         }
         // return redirect()->route('maids.index')->with('success', 'تم تحديث العاملة بنجاح');
+    }
+
+    public function generateCv(Maid $maid, MaidCvPdfGenerator $cvGenerator)
+    {
+        try {
+            $path = $cvGenerator->generate($maid);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'تم توليد السيرة الذاتية بنجاح.',
+                'path' => $path,
+                'preview_url' => route('maids.cv.preview', $maid->id),
+            ]);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return response()->json([
+                'success' => false,
+                'message' => $exception->getMessage(),
+            ], 422);
+        }
+    }
+
+    public function generateCvBulk(Request $request, MaidCvPdfGenerator $cvGenerator)
+    {
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(1800);
+        }
+
+        $validated = $request->validate([
+            'maid_ids' => ['required', 'array', 'min:1', 'max:50'],
+            'maid_ids.*' => ['required', 'integer', 'distinct', 'exists:maids,id'],
+        ], [
+            'maid_ids.required' => 'يجب تحديد سيرة واحدة على الأقل.',
+            'maid_ids.max' => 'يمكن توليد 50 سيرة كحد أقصى في العملية الواحدة.',
+        ]);
+
+        if (!MaidCvTemplateSettings::enabled()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'توليد السيرة الذاتية غير مفعل أو لم يتم رفع القالب.',
+            ], 422);
+        }
+
+        $ids = collect($validated['maid_ids'])->map(fn ($id) => (int) $id)->values();
+        $query = Maid::query()->whereIn('id', $ids);
+        $this->applyRecruitmentMaidsScope($query);
+        $maids = $query->get()->keyBy('id');
+        $generated = [];
+        $failed = [];
+
+        foreach ($ids as $id) {
+            $maid = $maids->get($id);
+            if (!$maid) {
+                $failed[] = ['id' => $id, 'message' => 'السيرة غير موجودة ضمن سير الاستقدام.'];
+                continue;
+            }
+
+            try {
+                $cvGenerator->generate($maid);
+                $generated[] = $id;
+            } catch (\Throwable $exception) {
+                report($exception);
+                $failed[] = ['id' => $id, 'message' => $exception->getMessage()];
+            }
+        }
+
+        $generatedCount = count($generated);
+        $failedCount = count($failed);
+
+        return response()->json([
+            'success' => $generatedCount > 0,
+            'message' => $failedCount === 0
+                ? "تم توليد {$generatedCount} ملف سيرة ذاتية بنجاح."
+                : "تم توليد {$generatedCount} ملف، وتعذر توليد {$failedCount} ملف.",
+            'generated_count' => $generatedCount,
+            'failed_count' => $failedCount,
+            'generated_ids' => $generated,
+            'failures' => $failed,
+        ], $generatedCount > 0 ? 200 : 422);
+    }
+
+    public function downloadGeneratedCv(Maid $maid, ManagedFileStorage $storage)
+    {
+        $path = $this->maidGeneratedPdfPath($maid);
+        abort_unless($path, 404, 'ملف السيرة الذاتية المولد غير موجود.');
+
+        return $storage->downloadResponse(
+            $path,
+            $this->generatedCvFilename($maid),
+            'application/pdf'
+        );
+    }
+
+    public function exportGeneratedCvs(Request $request, ManagedFileStorage $storage)
+    {
+        $validated = $request->validate([
+            'maid_ids' => ['required', 'array', 'min:1', 'max:100'],
+            'maid_ids.*' => ['required', 'integer', 'distinct', 'exists:maids,id'],
+        ], [
+            'maid_ids.required' => 'يجب تحديد سيرة واحدة على الأقل.',
+            'maid_ids.max' => 'يمكن تصدير 100 سيرة كحد أقصى في العملية الواحدة.',
+        ]);
+
+        $ids = collect($validated['maid_ids'])->map(fn ($id) => (int) $id)->values();
+        $query = Maid::query()->whereIn('id', $ids);
+        $this->applyRecruitmentMaidsScope($query);
+        $maids = $query->get()->keyBy('id');
+
+        $exportable = $ids
+            ->map(function ($id) use ($maids) {
+                $maid = $maids->get($id);
+                $path = $maid ? $this->maidGeneratedPdfPath($maid) : null;
+
+                return $maid && $path ? compact('maid', 'path') : null;
+            })
+            ->filter()
+            ->values();
+
+        if ($exportable->isEmpty()) {
+            throw ValidationException::withMessages([
+                'maid_ids' => 'السير المحددة لا تحتوي على ملفات PDF مولدة. استخدم زر التوليد الجماعي أولًا.',
+            ]);
+        }
+
+        if ($exportable->count() === 1) {
+            $item = $exportable->first();
+
+            return $storage->downloadResponse(
+                $item['path'],
+                $this->generatedCvFilename($item['maid']),
+                'application/pdf'
+            );
+        }
+
+        $temporaryDirectory = storage_path('app/cv-exports');
+        File::ensureDirectoryExists($temporaryDirectory);
+        $zipPath = $temporaryDirectory . DIRECTORY_SEPARATOR . 'maid-cvs-' . Str::uuid() . '.zip';
+        $zip = new ZipArchive();
+
+        if ($zip->open($zipPath, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
+            throw new \RuntimeException('تعذر إنشاء ملف ZIP لتصدير السير الذاتية.');
+        }
+
+        try {
+            foreach ($exportable as $item) {
+                $zip->addFromString(
+                    $this->generatedCvFilename($item['maid']),
+                    $storage->contents($item['path'])
+                );
+            }
+
+            $missingIds = $ids->diff($exportable->pluck('maid.id'))->values();
+            if ($missingIds->isNotEmpty()) {
+                $zip->addFromString(
+                    'missing-cv-files.txt',
+                    "The following maid IDs do not have a generated PDF:\r\n" . $missingIds->join(', ')
+                );
+            }
+        } catch (\Throwable $exception) {
+            $zip->close();
+            File::delete($zipPath);
+            throw $exception;
+        }
+
+        $zip->close();
+
+        return response()
+            ->download($zipPath, 'maid-cvs-' . now()->format('Y-m-d-His') . '.zip', [
+                'Content-Type' => 'application/zip',
+            ])
+            ->deleteFileAfterSend(true);
+    }
+
+    private function generateCvAutomatically(Maid $maid, MaidCvPdfGenerator $cvGenerator): void
+    {
+        if (!MaidCvTemplateSettings::enabled()) {
+            return;
+        }
+
+        try {
+            $cvGenerator->generate($maid);
+        } catch (\Throwable $exception) {
+            report($exception);
+            \Log::warning('Automatic maid CV generation failed.', [
+                'maid_id' => $maid->id,
+                'error' => $exception->getMessage(),
+            ]);
+        }
     }
 
     public function updateMedia(Request $request, Maid $maid)
@@ -2006,7 +2278,20 @@ class MaidController extends Controller
             $value = $matches[2];
         }
 
-        return html_entity_decode(trim($value), ENT_QUOTES, 'UTF-8') ?: null;
+        $value = html_entity_decode(trim($value), ENT_QUOTES, 'UTF-8');
+
+        if (preg_match('~^https?://(?:drive|docs)\.google\.com/file/d/([^/?#]+)~i', $value, $matches)) {
+            return 'https://drive.google.com/file/d/' . $matches[1] . '/preview';
+        }
+
+        if (preg_match('~^https?://drive\.google\.com/(?:open|uc)~i', $value)) {
+            parse_str((string) parse_url($value, PHP_URL_QUERY), $query);
+            if (filled($query['id'] ?? null)) {
+                return 'https://drive.google.com/file/d/' . $query['id'] . '/preview';
+            }
+        }
+
+        return $value ?: null;
     }
 
     public function updateOffer($id, Request $request)

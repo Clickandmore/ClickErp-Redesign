@@ -216,6 +216,7 @@ const PARTENR_CONTROL = 'partenr_control';
     const SETTINGS_VIEW = 'settings_view';
     const SETTINGS_EDIT = 'settings_edit';
     const SETTINGS_CONTROL = 'settings_control';
+    const SETTINGS_CV_TEMPLATE = 'settings_cv_template';
     const MOYASAR_SETTINGS = 'moyasar_settings';
 
     // سجل النشاط

@@ -219,7 +219,7 @@ class NationalityController extends Controller
     public function store(NationalityRequest $request, objAction $action)
     {
 
-        $data = $request->only($this->postData);
+        $data = $this->syncTitleWithSubTitle($request->only($this->postData));
         $data = $action->store($data);
         return jsonSuccess($data);
     }
@@ -237,10 +237,23 @@ class NationalityController extends Controller
 
     public function update(NationalityRequest $request, objAction $action, $id)
     {
-        $updatedData = $request->only($this->postData);
+        $updatedData = $this->syncTitleWithSubTitle($request->only($this->postData));
         // dd($updatedData);
         $data = $action->updateNationality($id, $updatedData);
         return jsonSuccess($data);
+    }
+
+    private function syncTitleWithSubTitle(array $data): array
+    {
+        foreach (config('translatable.locales', []) as $locale) {
+            $subTitleKey = "sub_title:$locale";
+
+            if (array_key_exists($subTitleKey, $data)) {
+                $data["title:$locale"] = $data[$subTitleKey];
+            }
+        }
+
+        return $data;
     }
 
     public function generateFinancialAccounts(int $id, NationalityFinanceAccountService $service)

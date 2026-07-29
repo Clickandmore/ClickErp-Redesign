@@ -55,6 +55,10 @@ class MaidAction extends MainAction
             $image = $data['cv_preview'];
             $data['cv_preview'] = uploadMaidFile($image, $this->fileFolder);
         }
+        if (isset($data['maid_cv_file']) && $data['maid_cv_file'] instanceof \Illuminate\Http\UploadedFile) {
+            $file = $data['maid_cv_file'];
+            $data['maid_cv_file'] = uploadMaidFile($file, $this->fileFolder);
+        }
         if (isset($data['video']) && $data['video'] instanceof \Illuminate\Http\UploadedFile) {
             $video = $data['video'];
             $data['video'] = uploadMaidFile($video, $this->fileFolder);
@@ -314,6 +318,9 @@ class MaidAction extends MainAction
             'birth_date' => $data['birth_date'] ?? null,
             'experience_years' => $data['experience_years'] ?? '0',
             'experience_status' => $data['experience_status'] ?? 'no_experience',
+            'cooking_experience' => ($data['experience_status'] ?? null) === 'has_experience'
+                ? ($data['cooking_experience'] ?? null)
+                : null,
             'skills' => $data['skills'] ?? null,
             'languages' => $data['languages'] ?? null,
             'percentage' => $data['percentage'] ?? null,
@@ -1328,6 +1335,13 @@ class MaidAction extends MainAction
             $image = $data['cv_preview'];
             $data['cv_preview'] = uploadMaidFile($image, $this->fileFolder);
         }
+        if (isset($data['maid_cv_file']) && $data['maid_cv_file'] instanceof \Illuminate\Http\UploadedFile) {
+            deleteFile($maid->maid_cv_file);
+            $file = $data['maid_cv_file'];
+            $data['maid_cv_file'] = uploadMaidFile($file, $this->fileFolder);
+        } else {
+            unset($data['maid_cv_file']);
+        }
         if (isset($data['image'])) {
             deleteFile($maid->image);
             $image = $data['image'];
@@ -2024,6 +2038,19 @@ class MaidAction extends MainAction
             })
             ->when(isset($request->experience_status), function ($query) use ($request) {
                 $query->where('experience_status', $request->experience_status);
+            })
+            ->when($request->filled('marital_status'), function ($query) use ($request) {
+                $maritalStatuses = match ($request->marital_status) {
+                    'single' => ['single', 'عازبة', 'أعزب'],
+                    'married' => ['married', 'متزوجة', 'متزوج'],
+                    default => [],
+                };
+
+                if (!empty($maritalStatuses)) {
+                    $query->whereHas('translations', function ($translationQuery) use ($maritalStatuses) {
+                        $translationQuery->whereIn('marital_status', $maritalStatuses);
+                    });
+                }
             })
             ->when(isset($request->age), function ($query) use ($request) {
                 if ($request->age == '20_30') {

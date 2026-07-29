@@ -93,6 +93,15 @@
                     <a class="nav-link {{ $activeSection === 'authentication' ? 'active' : '' }}" href="{{ route('settings.section', 'authentication') }}">
                         <span class="fw-semibold">{{ __('admin.settings_section_external_auth') }}</span>
                     </a>
+                    <a class="nav-link {{ $activeSection === 'ordering' ? 'active' : '' }}" href="{{ route('settings.section', 'ordering') }}">
+                        <span class="fw-semibold">{{ __('admin.settings_section_external_order') }}</span>
+                    </a>
+                    @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_CV_TEMPLATE))
+                        <a class="nav-link {{ $activeSection === 'cv-template' ? 'active' : '' }}"
+                            href="{{ route('settings.cv-template.edit') }}">
+                            <span class="fw-semibold">قالب السيرة الذاتية</span>
+                        </a>
+                    @endif
                     <a class="nav-link {{ $activeSection === 'seo' ? 'active' : '' }}" href="{{ route('settings.section', 'seo') }}">
                         <span class="fw-semibold">{{ __('admin.settings_section_seo') }}</span>
                     </a>
@@ -111,7 +120,10 @@
             <div class="col-lg-9">
                 <div class="card border-0 shadow-sm settings-card">
                     <div class="card-body">
-                        @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
+                        @if (
+                            ($activeSection === 'cv-template' && @AdminGuardHasPerm(\App\PermKeys::SETTINGS_CV_TEMPLATE))
+                            || ($activeSection !== 'cv-template' && @AdminGuardHasPerm(\App\PermKeys::SETTINGS_VIEW))
+                        )
                             <div class="d-flex flex-wrap align-items-center justify-content-between mb-3">
                                 <div>
                                     <h5 class="mb-1">@yield('settings-title')</h5>
