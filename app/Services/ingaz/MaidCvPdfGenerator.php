@@ -134,6 +134,14 @@ class MaidCvPdfGenerator
     {
         $temporaryDirectory = storage_path('framework/cache/mpdf');
         File::ensureDirectoryExists($temporaryDirectory);
+        // The page size and margins are configured directly on mPDF below.
+        // Keeping an uploaded template's @page rule as well can make mPDF
+        // generate many blank pages, while browser-based PDF generation needs it.
+        $html = preg_replace(
+            '/@page\b[^{]*\{[^{}]*\}/i',
+            '',
+            $html
+        ) ?? $html;
         $html = preg_replace(
             '/(?:background|background-image)\s*:\s*linear-gradient\([^;]+;/i',
             '',
