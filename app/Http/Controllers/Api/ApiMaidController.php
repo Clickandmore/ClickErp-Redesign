@@ -105,8 +105,25 @@ class ApiMaidController extends Controller
             ->ordered()
             ->get();
 
+        $recruitmentOffice = $maid->recruitmentOffice;
+        $recruitmentOfficePayload = $recruitmentOffice ? [
+            'id' => $recruitmentOffice->id,
+            'name' => $recruitmentOffice->title,
+            'title' => $recruitmentOffice->title,
+            'address' => $recruitmentOffice->street,
+            'street' => $recruitmentOffice->street,
+            'phone' => $recruitmentOffice->phone_office,
+            'phone_office' => $recruitmentOffice->phone_office,
+            'manager_phone' => $recruitmentOffice->manager_phone,
+            'email' => $recruitmentOffice->manager_email,
+            'manager_email' => $recruitmentOffice->manager_email,
+        ] : null;
+
+        $maidPayload = $maid->toArray();
+        $maidPayload['recruitment_office'] = $recruitmentOfficePayload;
+
         $data = [
-            'maid' => $maid,
+            'maid' => $maidPayload,
             'packages' => PackageResource::collection($packages),
             'experience' => [
                 'status' => $maid->experience_status,

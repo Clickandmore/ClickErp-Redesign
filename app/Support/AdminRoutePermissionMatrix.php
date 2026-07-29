@@ -104,6 +104,7 @@ class AdminRoutePermissionMatrix
             'admin.zoho-salesiq.visitors',
             'admin.zoho-salesiq.conversations.index',
             'settings.section',
+            'settings.cv-template.edit',
             'moyasar-settings.edit',
             'recruitment-contract-stages.edit',
             'sliders.index',
@@ -354,6 +355,10 @@ class AdminRoutePermissionMatrix
             'maids.attachments.delete' => [PermKeys::MAIDS_EDIT],
             'maids.export.pdf' => [PermKeys::MAIDS_EXPORT_PDF, PermKeys::MAIDS_EXPORT],
             'maids.export.excel' => [PermKeys::MAIDS_EXPORT_EXCEL, PermKeys::MAIDS_EXPORT],
+            'maids.generate-cv' => [PermKeys::MAIDS_EDIT],
+            'maids.generate-cv.bulk' => [PermKeys::MAIDS_EDIT],
+            'maids.generated-cv.download' => [PermKeys::MAIDS_EXPORT_PDF, PermKeys::MAIDS_EXPORT],
+            'maids.generated-cvs.export' => [PermKeys::MAIDS_EXPORT_PDF, PermKeys::MAIDS_EXPORT],
             'noneAvailableMaids' => [PermKeys::MAIDS_BACKOUT_VIEW],
             'maids.deleted_cvs' => [PermKeys::MAIDS_DELETED_VIEW],
         ];
@@ -716,6 +721,8 @@ class AdminRoutePermissionMatrix
         return [
             'settings.index' => [PermKeys::SETTINGS_VIEW],
             'settings.section' => [PermKeys::SETTINGS_VIEW],
+            'settings.cv-template.edit' => [PermKeys::SETTINGS_CV_TEMPLATE],
+            'settings.cv-template.update' => [PermKeys::SETTINGS_CV_TEMPLATE],
             'settings.store' => [PermKeys::SETTINGS_CONTROL],
             'settings.update' => [PermKeys::SETTINGS_CONTROL],
             'moyasar-settings.edit' => [PermKeys::MOYASAR_SETTINGS],

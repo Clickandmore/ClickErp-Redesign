@@ -544,6 +544,27 @@
                                     <input type="file" data-default-file="{{ showFile($obj->cv_file) }}" name="cv_file" id="cv_file" class="dropify"
                                         accept=".pdf,image/*">
                                 </div>
+                                <div class="col-12">
+                                    <label for="maid_cv_file" class="form-label">
+                                        {{ helperTrans('ingaz.maid_cv_file') }}
+                                        <small class="text-muted">({{ helperTrans('ingaz.optional') }})</small>
+                                    </label>
+                                    <input type="file" name="maid_cv_file" id="maid_cv_file"
+                                        class="form-control" accept="application/pdf,.pdf">
+                                    <div class="form-text">{{ helperTrans('ingaz.maid_cv_file_hint') }}</div>
+
+                                    @if (filled($obj->maid_cv_file))
+                                        <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
+                                            <span class="badge bg-danger-subtle text-danger">
+                                                <i class="fas fa-file-pdf me-1"></i>{{ helperTrans('ingaz.maid_cv_file_current') }}
+                                            </span>
+                                            <a href="{{ showFile($obj->maid_cv_file) }}" target="_blank"
+                                                rel="noopener" class="btn btn-outline-primary btn-sm">
+                                                <i class="fas fa-eye me-1"></i>{{ helperTrans('ingaz.view') }}
+                                            </a>
+                                        </div>
+                                    @endif
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1245,6 +1266,33 @@
                                                 <input type="text" name="education" id="education"
                                                     class="form-control" maxlength="255"
                                                     value="{{ old('education', $obj->education) }}">
+                                            </div>
+                                            @php
+                                                $selectedExperienceStatus = old('experience_status', $obj->experience_status);
+                                                $selectedCookingExperience = old('cooking_experience', $obj->cooking_experience);
+                                            @endphp
+                                            <div class="col-md-4" id="cooking_experience_field"
+                                                style="{{ $selectedExperienceStatus === 'has_experience' ? '' : 'display: none;' }}">
+                                                <label for="cooking_experience" class="form-label">
+                                                    {{ helperTrans('ingaz.cooking_experience') }}
+                                                </label>
+                                                <select name="cooking_experience" id="cooking_experience"
+                                                    class="form-control"
+                                                    {{ $selectedExperienceStatus === 'has_experience' ? 'required' : '' }}>
+                                                    <option value="">{{ helperTrans('ingaz.select_cooking_experience') }}</option>
+                                                    <option value="arabic_cooking" {{ $selectedCookingExperience === 'arabic_cooking' ? 'selected' : '' }}>
+                                                        {{ helperTrans('ingaz.cooking_experience_arabic') }}
+                                                    </option>
+                                                    <option value="regular_cooking" {{ $selectedCookingExperience === 'regular_cooking' ? 'selected' : '' }}>
+                                                        {{ helperTrans('ingaz.cooking_experience_regular') }}
+                                                    </option>
+                                                    <option value="willing_to_learn" {{ $selectedCookingExperience === 'willing_to_learn' ? 'selected' : '' }}>
+                                                        {{ helperTrans('ingaz.cooking_experience_willing_to_learn') }}
+                                                    </option>
+                                                    <option value="general_cooking" {{ $selectedCookingExperience === 'general_cooking' ? 'selected' : '' }}>
+                                                        {{ helperTrans('ingaz.cooking_experience_general') }}
+                                                    </option>
+                                                </select>
                                             </div>
                                             <div class="col-md-4" id="driving_license_field">
                                                 <label for="has_driving_license" class="form-label">
@@ -2814,7 +2862,21 @@
 
                 var iframeMatch = value.match(/<iframe\b[^>]*\bsrc\s*=\s*(["']?)([^"'\s>]+)\1/i);
                 if (iframeMatch && iframeMatch[2]) {
-                    return $('<textarea/>').html(iframeMatch[2]).text().trim();
+                    value = $('<textarea/>').html(iframeMatch[2]).text().trim();
+                }
+
+                var driveFileMatch = value.match(/^https?:\/\/(?:drive|docs)\.google\.com\/file\/d\/([^/?#]+)/i);
+                if (driveFileMatch && driveFileMatch[1]) {
+                    return 'https://drive.google.com/file/d/' + driveFileMatch[1] + '/preview';
+                }
+
+                try {
+                    var url = new URL(value);
+                    if (url.hostname === 'drive.google.com' && url.searchParams.get('id')) {
+                        return 'https://drive.google.com/file/d/' + url.searchParams.get('id') + '/preview';
+                    }
+                } catch (error) {
+                    // Keep the original value so the normal URL validation can handle it.
                 }
 
                 return value;
@@ -2875,9 +2937,13 @@
                 var status = $('#experience_status').val();
                 var $section = $('#experience_section');
                 var $requiredFields = $section.find('[data-exp-required]');
+                var $cookingField = $('#cooking_experience_field');
+                var $cookingSelect = $('#cooking_experience');
 
                 if (status === 'has_experience') {
                     $section.slideDown();
+                    $cookingField.slideDown();
+                    $cookingSelect.attr('required', 'required');
                     $requiredFields.each(function() {
                         $(this).attr('required', 'required');
                     });
@@ -2885,6 +2951,8 @@
                         window.initExperienceSelects();
                     }
                 } else {
+                    $cookingSelect.removeAttr('required').val('');
+                    $cookingField.slideUp();
                     $requiredFields.each(function() {
                         $(this).removeAttr('required');
                     });

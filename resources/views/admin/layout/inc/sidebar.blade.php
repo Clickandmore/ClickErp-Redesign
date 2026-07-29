@@ -141,6 +141,7 @@
                     $canViewWebsiteManagement ||
                     $canViewHomeSettings ||
                     $canViewMaidsData ||
+                    @AdminGuardHasPerm(\App\PermKeys::SETTINGS_CV_TEMPLATE) ||
                     @AdminGuardHasPerm(\App\PermKeys::SETTINGS_CONTROL) ||
                     @AdminGuardHasPerm(\App\PermKeys::PACKAGES_VIEW) ||
                     $canViewFinanceModule ||
@@ -1158,7 +1159,9 @@
                             (request()->routeIs('settings.section') &&
                                 !$isDashboardSettings &&
                                 !$isTranslationSettingsRoute) ||
-                            (request()->routeIs('settings.*') && !request()->routeIs('settings.section'));
+                            (request()->routeIs('settings.*') &&
+                                !request()->routeIs('settings.section') &&
+                                !request()->routeIs('settings.cv-template.*'));
                         $isSelectWorkersSettingsRoute =
                             request()->routeIs('select-workers.*') || request()->routeIs('select-workers-settings.*');
                         $isGuidelinesRoute = request()->routeIs('guidelines.*');
@@ -1200,6 +1203,7 @@
                             request()->routeIs('moyasar-settings.*');
                         $isInternalSystemSettingsRoute =
                             $isTranslationSettingsRoute ||
+                            request()->routeIs('settings.cv-template.*') ||
                             request()->routeIs('storage.settings*') ||
                             request()->routeIs('form-settings.*') ||
                             request()->routeIs('dash.settings*') ||
@@ -1252,6 +1256,16 @@
                                         href="{{ route('settings.section', 'dashboard') }}">
                                         <i class="fa fa-gauge"></i>
                                         <span class="ms-2">{{ __('admin.sidebar.dashboard_settings') }}</span>
+                                    </a>
+                                </li>
+                            @endif
+
+                            @if (@AdminGuardHasPerm(\App\PermKeys::SETTINGS_CV_TEMPLATE))
+                                <li>
+                                    <a class="m-link {{ request()->routeIs('settings.cv-template.*') ? 'active' : '' }}"
+                                        href="{{ route('settings.cv-template.edit') }}">
+                                        <i class="fa fa-file-pdf"></i>
+                                        <span class="ms-2">إعداد قالب السيرة الذاتية</span>
                                     </a>
                                 </li>
                             @endif

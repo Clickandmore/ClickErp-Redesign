@@ -174,8 +174,11 @@
             $imagePath = collect([$maid->image, $maid->cv_preview])
                 ->first(fn ($path) => $path && in_array(strtolower(pathinfo($path, PATHINFO_EXTENSION)), $imageExtensions, true) && showFile($path));
             $imageUrl = $imagePath ? showFile($imagePath) : null;
-            $cvFileUrl = $maid->cv_file ? showFile($maid->cv_file) : null;
-            $cvPreviewUrl = $cvFileUrl ? route('maids.cv.preview', $maid->id) : null;
+            $cvPdfPath = collect([$maid->cv_preview, $maid->cv_file])
+                ->first(fn ($path) => filled($path) && strtolower(pathinfo((string) $path, PATHINFO_EXTENSION)) === 'pdf' && showFile($path));
+            $cvFileUrl = $cvPdfPath ? showFile($cvPdfPath) : null;
+            $cvPreviewUrl = $cvPdfPath ? route('maids.cv.preview', $maid->id) : null;
+            $externalCvUrl = filled($maid->maid_cv_file) ? showFile($maid->maid_cv_file) : null;
         @endphp
 
         <div class="container-fluid py-3 py-lg-4">
@@ -657,6 +660,33 @@
                                             <i class="fas fa-eye me-1"></i>عرض داخل الموقع
                                         </button>
                                         <a href="{{ $cvFileUrl }}" download class="btn btn-light btn-sm border">
+                                            <i class="fas fa-download me-1"></i>تنزيل
+                                        </a>
+                                    </div>
+                                </div>
+                            @endif
+
+                            @if ($externalCvUrl)
+                                <div class="border rounded-3 p-3 mb-3 bg-light">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <i class="fas fa-file-pdf text-danger fs-2"></i>
+                                        <div class="flex-grow-1">
+                                            <div class="fw-semibold">{{ helperTrans('ingaz.maid_cv_file') }}</div>
+                                            <div class="text-muted small">
+                                                {{ helperTrans('ingaz.maid_cv_file_description') }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex flex-wrap gap-2 mt-3">
+                                        <button type="button" data-cv-preview-url="{{ $externalCvUrl }}"
+                                            class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-eye me-1"></i>عرض داخل الموقع
+                                        </button>
+                                        <a href="{{ $externalCvUrl }}" target="_blank" rel="noopener"
+                                            class="btn btn-light btn-sm border">
+                                            <i class="fas fa-up-right-from-square me-1"></i>فتح في تبويب جديد
+                                        </a>
+                                        <a href="{{ $externalCvUrl }}" download class="btn btn-light btn-sm border">
                                             <i class="fas fa-download me-1"></i>تنزيل
                                         </a>
                                     </div>
