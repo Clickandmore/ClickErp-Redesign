@@ -492,7 +492,7 @@ class MaidController extends Controller
                         $menuItems .= '<li><a class="dropdown-item" href="' . route('showMaidDetails', $row->id) . '#maid-attachments"><i class="fas fa-paperclip text-info me-2"></i>' . helperTrans('ingaz.attachments') . '</a></li>';
                     }
 
-                    if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EXPORT_PDF) && $this->maidGeneratedFilePath($row)) {
+                    if (@AdminGuardHasPerm(\App\PermKeys::MAIDS_EXPORT_PDF) && $this->maidGeneratedPdfPath($row)) {
                         $menuItems .= '<li><a class="dropdown-item" href="' . route('maids.generated-cv.download', $row->id) . '">'
                             . '<i class="fas fa-download text-danger me-2"></i>تصدير ملف السيرة PDF</a></li>';
                     }
@@ -1386,14 +1386,12 @@ class MaidController extends Controller
         return null;
     }
 
-    private function maidGeneratedFilePath(Maid $maid): ?string
+    private function maidGeneratedPdfPath(Maid $maid): ?string
     {
         $path = $maid->cv_preview;
-        $extension = strtolower(pathinfo((string) $path, PATHINFO_EXTENSION));
 
         return filled($path)
-            && in_array($extension, ['pdf', 'svg'], true)
-            && app(MaidCvPdfGenerator::class)->isGeneratedPath($path)
+            && strtolower(pathinfo((string) $path, PATHINFO_EXTENSION)) === 'pdf'
             && app(ManagedFileStorage::class)->exists($path)
                 ? $path
                 : null;
@@ -1405,17 +1403,7 @@ class MaidController extends Controller
         $identifier = trim((string) preg_replace('/[^A-Za-z0-9_-]+/', '-', (string) $identifier), '-');
         $identifier = $identifier !== '' ? $identifier : (string) $maid->id;
 
-        $extension = strtolower(pathinfo((string) $maid->cv_preview, PATHINFO_EXTENSION));
-        $extension = in_array($extension, ['pdf', 'svg'], true) ? $extension : 'pdf';
-
-        return 'maid-cv-' . $maid->id . '-' . $identifier . '.' . $extension;
-    }
-
-    private function generatedCvMimeType(Maid $maid): string
-    {
-        return strtolower(pathinfo((string) $maid->cv_preview, PATHINFO_EXTENSION)) === 'svg'
-            ? 'image/svg+xml'
-            : 'application/pdf';
+        return 'maid-cv-' . $maid->id . '-' . $identifier . '.pdf';
     }
 
     private function maidImagePath(Maid $maid): ?string
@@ -2026,10 +2014,7 @@ class MaidController extends Controller
                 'success' => true,
                 'message' => 'تم توليد السيرة الذاتية بنجاح.',
                 'path' => $path,
-                'format' => strtolower(pathinfo($path, PATHINFO_EXTENSION)),
-                'preview_url' => strtolower(pathinfo($path, PATHINFO_EXTENSION)) === 'pdf'
-                    ? route('maids.cv.preview', $maid->id)
-                    : showFile($path),
+                'preview_url' => route('maids.cv.preview', $maid->id),
             ]);
         } catch (\Throwable $exception) {
             report($exception);
@@ -2102,13 +2087,13 @@ class MaidController extends Controller
 
     public function downloadGeneratedCv(Maid $maid, ManagedFileStorage $storage)
     {
-        $path = $this->maidGeneratedFilePath($maid);
+        $path = $this->maidGeneratedPdfPath($maid);
         abort_unless($path, 404, 'ملف السيرة الذاتية المولد غير موجود.');
 
         return $storage->downloadResponse(
             $path,
             $this->generatedCvFilename($maid),
-            $this->generatedCvMimeType($maid)
+            'application/pdf'
         );
     }
 
@@ -2130,7 +2115,7 @@ class MaidController extends Controller
         $exportable = $ids
             ->map(function ($id) use ($maids) {
                 $maid = $maids->get($id);
-                $path = $maid ? $this->maidGeneratedFilePath($maid) : null;
+                $path = $maid ? $this->maidGeneratedPdfPath($maid) : null;
 
                 return $maid && $path ? compact('maid', 'path') : null;
             })
@@ -2149,7 +2134,7 @@ class MaidController extends Controller
             return $storage->downloadResponse(
                 $item['path'],
                 $this->generatedCvFilename($item['maid']),
-                $this->generatedCvMimeType($item['maid'])
+                'application/pdf'
             );
         }
 

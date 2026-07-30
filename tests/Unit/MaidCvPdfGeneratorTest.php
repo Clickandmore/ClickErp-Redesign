@@ -3,9 +3,7 @@
 namespace Tests\Unit;
 
 use App\Models\ingaz\Maid;
-use App\Models\ingaz\Setting;
 use App\Services\ingaz\MaidCvPdfGenerator;
-use App\Services\ingaz\MaidCvSvgGenerator;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Tests\TestCase;
 
@@ -36,113 +34,6 @@ class MaidCvPdfGeneratorTest extends TestCase
         ));
         $this->assertFalse($generator->isGeneratedPath('images/Maid/uploaded-preview.pdf'));
         $this->assertFalse($generator->isGeneratedPath(null));
-    }
-
-    public function test_the_degraded_mpdf_fallback_is_disabled_by_default(): void
-    {
-        // A silent fallback is what made server PDFs stop matching the
-        // uploaded template while local PDFs still looked correct.
-        $this->assertFalse(config('cv.pdf.allow_mpdf_fallback'));
-        $this->assertFalse(app(MaidCvPdfGenerator::class)->mpdfFallbackEnabled());
-    }
-
-    public function test_the_browser_command_prints_the_page_without_chrome_headers(): void
-    {
-        $command = app(MaidCvPdfGenerator::class)
-            ->browserCommand('/usr/bin/chromium', '/tmp/profile', '/tmp/cv.pdf', '/tmp/cv.html');
-
-        $this->assertSame('/usr/bin/chromium', $command[0]);
-        $this->assertContains('--headless=new', $command);
-        $this->assertContains('--no-sandbox', $command);
-        $this->assertContains('--no-pdf-header-footer', $command);
-        $this->assertContains('--print-to-pdf=/tmp/cv.pdf', $command);
-        $this->assertContains('--virtual-time-budget=15000', $command);
-        $this->assertSame('file:///tmp/cv.html', end($command));
-    }
-
-    public function test_each_startup_profile_disables_one_more_isolation_layer(): void
-    {
-        $generator = app(MaidCvPdfGenerator::class);
-        $command = fn (string $profile) => $generator
-            ->browserCommand('/usr/bin/chromium', '/tmp/profile', '/tmp/cv.pdf', '/tmp/cv.html', $profile);
-
-        // Restricted shared hosting kills the zygote process with SIGTRAP.
-        $this->assertNotContains('--no-zygote', $command('default'));
-        $this->assertContains('--no-zygote', $command('no-zygote'));
-        $this->assertNotContains('--single-process', $command('no-zygote'));
-        $this->assertContains('--single-process', $command('single-process'));
-        $this->assertContains('--headless', $command('legacy-headless'));
-        $this->assertNotContains('--headless=new', $command('legacy-headless'));
-    }
-
-    public function test_a_pinned_startup_profile_skips_the_other_attempts(): void
-    {
-        $generator = app(MaidCvPdfGenerator::class);
-
-        $this->assertSame(MaidCvPdfGenerator::BROWSER_PROFILES, $generator->browserProfiles());
-
-        config()->set('cv.pdf.browser_profile', 'single-process');
-        $this->assertSame(['single-process'], $generator->browserProfiles());
-
-        config()->set('cv.pdf.browser_profile', 'not-a-profile');
-        $this->assertSame(MaidCvPdfGenerator::BROWSER_PROFILES, $generator->browserProfiles());
-    }
-
-    public function test_browser_temporary_paths_are_short_enough_for_unix_sockets(): void
-    {
-        $generator = app(MaidCvPdfGenerator::class);
-        $directory = $generator->createBrowserTemporaryDirectory();
-
-        try {
-            $profilePath = $directory
-                . DIRECTORY_SEPARATOR
-                . $generator->browserProfileCode('default')
-                . DIRECTORY_SEPARATOR
-                . 'p';
-
-            $this->assertLessThan(60, strlen($profilePath));
-            $this->assertSame('d', $generator->browserProfileCode('default'));
-            $this->assertSame('z', $generator->browserProfileCode('no-zygote'));
-            $this->assertSame('s', $generator->browserProfileCode('single-process'));
-            $this->assertSame('l', $generator->browserProfileCode('legacy-headless'));
-        } finally {
-            \Illuminate\Support\Facades\File::deleteDirectory($directory);
-        }
-    }
-
-    public function test_svg_renderer_can_be_forced_on_restricted_hosting(): void
-    {
-        $generator = app(MaidCvPdfGenerator::class);
-
-        config()->set('cv.pdf.renderer', 'auto');
-        $this->assertFalse($generator->usesSvgRenderer());
-
-        config()->set('cv.pdf.renderer', 'svg');
-        $this->assertTrue($generator->usesSvgRenderer());
-    }
-
-    public function test_svg_fallback_renders_without_a_browser(): void
-    {
-        $maid = new Maid([
-            'name' => 'Test Worker',
-            'passport_num' => 'P12345',
-            'skills' => [],
-        ]);
-        $maid->id = 10;
-        foreach (['nationality', 'religion', 'office', 'recruitmentOffice'] as $relation) {
-            $maid->setRelation($relation, null);
-        }
-        foreach (['jobTypes', 'jobTitles', 'expertises'] as $relation) {
-            $maid->setRelation($relation, collect());
-        }
-
-        $settings = (new Setting())->forceFill(['title' => 'Test Office']);
-        $svg = app(MaidCvSvgGenerator::class)->render($maid, $settings);
-
-        $this->assertStringStartsWith('<svg', $svg);
-        $this->assertStringContainsString('Test Worker', $svg);
-        $this->assertStringContainsString('P12345', $svg);
-        $this->assertStringContainsString('Test Office', $svg);
     }
 
     public function test_dompdf_can_create_a_pdf_from_rendered_blade_html(): void
