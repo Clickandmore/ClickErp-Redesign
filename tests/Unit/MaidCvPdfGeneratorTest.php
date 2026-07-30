@@ -58,6 +58,34 @@ class MaidCvPdfGeneratorTest extends TestCase
         $this->assertSame('file:///tmp/cv.html', end($command));
     }
 
+    public function test_each_startup_profile_disables_one_more_isolation_layer(): void
+    {
+        $generator = app(MaidCvPdfGenerator::class);
+        $command = fn (string $profile) => $generator
+            ->browserCommand('/usr/bin/chromium', '/tmp/profile', '/tmp/cv.pdf', '/tmp/cv.html', $profile);
+
+        // Restricted shared hosting kills the zygote process with SIGTRAP.
+        $this->assertNotContains('--no-zygote', $command('default'));
+        $this->assertContains('--no-zygote', $command('no-zygote'));
+        $this->assertNotContains('--single-process', $command('no-zygote'));
+        $this->assertContains('--single-process', $command('single-process'));
+        $this->assertContains('--headless', $command('legacy-headless'));
+        $this->assertNotContains('--headless=new', $command('legacy-headless'));
+    }
+
+    public function test_a_pinned_startup_profile_skips_the_other_attempts(): void
+    {
+        $generator = app(MaidCvPdfGenerator::class);
+
+        $this->assertSame(MaidCvPdfGenerator::BROWSER_PROFILES, $generator->browserProfiles());
+
+        config()->set('cv.pdf.browser_profile', 'single-process');
+        $this->assertSame(['single-process'], $generator->browserProfiles());
+
+        config()->set('cv.pdf.browser_profile', 'not-a-profile');
+        $this->assertSame(MaidCvPdfGenerator::BROWSER_PROFILES, $generator->browserProfiles());
+    }
+
     public function test_dompdf_can_create_a_pdf_from_rendered_blade_html(): void
     {
         $html = app(MaidCvPdfGenerator::class)->renderTemplate(

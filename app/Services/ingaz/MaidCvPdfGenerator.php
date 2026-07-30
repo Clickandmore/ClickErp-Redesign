@@ -21,6 +21,8 @@ class MaidCvPdfGenerator
 {
     public const STORAGE_DIRECTORY = 'images/Maid/generated-cvs';
 
+    public const BROWSER_PROFILES = ['default', 'no-zygote', 'single-process', 'legacy-headless'];
+
     public function generate(Maid $maid): string
     {
         $settings = MaidCvTemplateSettings::current();
@@ -144,43 +146,100 @@ class MaidCvPdfGenerator
         File::ensureDirectoryExists($temporaryDirectory);
 
         $htmlPath = $temporaryDirectory . DIRECTORY_SEPARATOR . 'cv.html';
-        $pdfPath = $temporaryDirectory . DIRECTORY_SEPARATOR . 'cv.pdf';
-        $profilePath = $temporaryDirectory . DIRECTORY_SEPARATOR . 'browser-profile';
+        $failures = [];
 
         try {
             File::put($htmlPath, $html);
 
-            $process = new Process(
-                $this->browserCommand($browserPath, $profilePath, $pdfPath, $htmlPath),
-                $temporaryDirectory,
-                // Shared hosting often runs PHP without a writable HOME, and
-                // Chromium aborts on startup when it cannot write its caches.
-                [
-                    'HOME' => $temporaryDirectory,
-                    'XDG_CONFIG_HOME' => $temporaryDirectory,
-                    'XDG_CACHE_HOME' => $temporaryDirectory,
-                    'TMPDIR' => $temporaryDirectory,
-                ]
-            );
-            $process->setTimeout($this->processTimeout());
-            $process->run();
+            foreach ($this->browserProfiles() as $profile) {
+                $attempt = $this->runBrowser($browserPath, $htmlPath, $temporaryDirectory, $profile);
 
-            if (!$process->isSuccessful() || !is_file($pdfPath)) {
-                throw new RuntimeException(
-                    trim($process->getErrorOutput() ?: $process->getOutput())
-                        ?: 'لم يُنتج المتصفح أي ملف ولم يُرجع رسالة خطأ.'
-                );
+                if ($attempt['contents'] !== null) {
+                    return $attempt['contents'];
+                }
+
+                $failures[] = "[$profile] " . $attempt['error'];
             }
 
-            $contents = File::get($pdfPath);
-            if (!Str::startsWith($contents, '%PDF')) {
-                throw new RuntimeException('لم يُرجع المتصفح ملف PDF صالحًا.');
-            }
-
-            return $contents;
+            throw new RuntimeException(implode(' — ', $failures));
         } finally {
             File::deleteDirectory($temporaryDirectory);
         }
+    }
+
+    /**
+     * @return array{contents: ?string, error: string}
+     */
+    private function runBrowser(
+        string $browserPath,
+        string $htmlPath,
+        string $temporaryDirectory,
+        string $profile
+    ): array {
+        $attemptDirectory = $temporaryDirectory . DIRECTORY_SEPARATOR . $profile;
+        File::ensureDirectoryExists($attemptDirectory);
+
+        $pdfPath = $attemptDirectory . DIRECTORY_SEPARATOR . 'cv.pdf';
+        $profilePath = $attemptDirectory . DIRECTORY_SEPARATOR . 'browser-profile';
+
+        $process = new Process(
+            $this->browserCommand($browserPath, $profilePath, $pdfPath, $htmlPath, $profile),
+            $attemptDirectory,
+            // Shared hosting often runs PHP without a writable HOME, and
+            // Chromium aborts on startup when it cannot write its caches.
+            [
+                'HOME' => $attemptDirectory,
+                'XDG_CONFIG_HOME' => $attemptDirectory,
+                'XDG_CACHE_HOME' => $attemptDirectory,
+                'TMPDIR' => $attemptDirectory,
+            ]
+        );
+        $process->setTimeout($this->processTimeout());
+
+        try {
+            $process->run();
+            $failure = $process->isSuccessful() ? null : 'خرج بالرمز ' . $process->getExitCode();
+        } catch (\Throwable $exception) {
+            // A crashed Chromium is signalled, and Symfony turns that into an
+            // exception rather than an exit code.
+            $failure = $exception->getMessage();
+        }
+
+        $output = trim($process->getErrorOutput() ?: $process->getOutput());
+
+        if ($failure !== null || !is_file($pdfPath)) {
+            return [
+                'contents' => null,
+                'error' => trim(($failure ?? 'لم يُنتج المتصفح أي ملف.') . ' ' . Str::limit($output, 300)),
+            ];
+        }
+
+        $contents = File::get($pdfPath);
+
+        if (!Str::startsWith($contents, '%PDF')) {
+            return ['contents' => null, 'error' => 'لم يُرجع المتصفح ملف PDF صالحًا.'];
+        }
+
+        return ['contents' => $contents, 'error' => ''];
+    }
+
+    /**
+     * Startup profiles ordered from fastest to most permissive. Restricted
+     * shared hosting (CloudLinux/CageFS, containers without user namespaces)
+     * kills Chromium's zygote process, so each profile disables one more
+     * layer of process isolation until one survives.
+     *
+     * @return array<int, string>
+     */
+    public function browserProfiles(): array
+    {
+        $configured = strtolower(trim((string) config('cv.pdf.browser_profile', '')));
+
+        if ($configured !== '' && in_array($configured, self::BROWSER_PROFILES, true)) {
+            return [$configured];
+        }
+
+        return self::BROWSER_PROFILES;
     }
 
     /**
@@ -190,11 +249,12 @@ class MaidCvPdfGenerator
         string $browserPath,
         string $profilePath,
         string $pdfPath,
-        string $htmlPath
+        string $htmlPath,
+        string $profile = 'default'
     ): array {
-        return [
+        $command = [
             $browserPath,
-            '--headless=new',
+            $profile === 'legacy-headless' ? '--headless' : '--headless=new',
             '--disable-gpu',
             '--no-sandbox',
             '--disable-setuid-sandbox',
@@ -202,6 +262,7 @@ class MaidCvPdfGenerator
             '--disable-extensions',
             '--disable-background-networking',
             '--disable-crash-reporter',
+            '--disable-breakpad',
             '--no-first-run',
             '--no-default-browser-check',
             '--hide-scrollbars',
@@ -214,11 +275,22 @@ class MaidCvPdfGenerator
             '--virtual-time-budget=' . $this->virtualTimeBudget(),
             '--no-pdf-header-footer',
             '--print-to-pdf-no-header',
+        ];
+
+        if ($profile !== 'default') {
+            $command[] = '--no-zygote';
+        }
+
+        if (in_array($profile, ['single-process', 'legacy-headless'], true)) {
+            $command[] = '--single-process';
+        }
+
+        return array_merge($command, [
             '--user-data-dir=' . $profilePath,
             '--crash-dumps-dir=' . $profilePath,
             '--print-to-pdf=' . $pdfPath,
             $this->fileUrl($htmlPath),
-        ];
+        ]);
     }
 
     private function generateWithRemoteBrowser(string $driver, string $html): string

@@ -9,6 +9,15 @@ return [
         'browser_path' => env('CV_PDF_BROWSER_PATH'),
 
         /*
+         * Restricted shared hosting kills Chromium's zygote process, so the
+         * generator retries with progressively less process isolation:
+         * default, no-zygote, single-process, legacy-headless.
+         * Pin the one `php artisan cv:doctor` reports as working to skip the
+         * failed attempts on every generation.
+         */
+        'browser_profile' => env('CV_PDF_BROWSER_PROFILE'),
+
+        /*
          * Extra milliseconds Chromium may keep loading remote images and web
          * fonts before the page is printed. A server is slower than a
          * developer machine, so this must not be too tight.
